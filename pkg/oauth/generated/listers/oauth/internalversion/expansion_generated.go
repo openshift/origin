@@ -7,5 +7,5 @@ package internalversion
 type OAuthClientListerExpansion interface{}
 
 // OAuthClientNamespaceListerExpansion allows custom methods to be added to
-// OAuthClientNamespaeLister.
+// OAuthClientNamespaceLister.
 type OAuthClientNamespaceListerExpansion interface{}

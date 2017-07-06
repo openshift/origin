@@ -40,7 +40,9 @@ var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
-const _ = proto.GoGoProtoPackageIsVersion1
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 func (m *ClusterRoleScopeRestriction) Reset()      { *m = ClusterRoleScopeRestriction{} }
 func (*ClusterRoleScopeRestriction) ProtoMessage() {}
@@ -110,159 +112,159 @@ func init() {
 	proto.RegisterType((*RedirectReference)(nil), "github.com.openshift.origin.pkg.oauth.apis.oauth.v1.RedirectReference")
 	proto.RegisterType((*ScopeRestriction)(nil), "github.com.openshift.origin.pkg.oauth.apis.oauth.v1.ScopeRestriction")
 }
-func (m *ClusterRoleScopeRestriction) Marshal() (data []byte, err error) {
+func (m *ClusterRoleScopeRestriction) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ClusterRoleScopeRestriction) MarshalTo(data []byte) (int, error) {
+func (m *ClusterRoleScopeRestriction) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.RoleNames) > 0 {
 		for _, s := range m.RoleNames {
-			data[i] = 0xa
+			dAtA[i] = 0xa
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
 	if len(m.Namespaces) > 0 {
 		for _, s := range m.Namespaces {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
-	data[i] = 0x18
+	dAtA[i] = 0x18
 	i++
 	if m.AllowEscalation {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	return i, nil
 }
 
-func (m *OAuthAccessToken) Marshal() (data []byte, err error) {
+func (m *OAuthAccessToken) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthAccessToken) MarshalTo(data []byte) (int, error) {
+func (m *OAuthAccessToken) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n1, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n1, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n1
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.ClientName)))
-	i += copy(data[i:], m.ClientName)
-	data[i] = 0x18
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ClientName)))
+	i += copy(dAtA[i:], m.ClientName)
+	dAtA[i] = 0x18
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ExpiresIn))
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ExpiresIn))
 	if len(m.Scopes) > 0 {
 		for _, s := range m.Scopes {
-			data[i] = 0x22
+			dAtA[i] = 0x22
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
-	data[i] = 0x2a
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.RedirectURI)))
-	i += copy(data[i:], m.RedirectURI)
-	data[i] = 0x32
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.RedirectURI)))
+	i += copy(dAtA[i:], m.RedirectURI)
+	dAtA[i] = 0x32
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.UserName)))
-	i += copy(data[i:], m.UserName)
-	data[i] = 0x3a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.UserName)))
+	i += copy(dAtA[i:], m.UserName)
+	dAtA[i] = 0x3a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.UserUID)))
-	i += copy(data[i:], m.UserUID)
-	data[i] = 0x42
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.UserUID)))
+	i += copy(dAtA[i:], m.UserUID)
+	dAtA[i] = 0x42
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.AuthorizeToken)))
-	i += copy(data[i:], m.AuthorizeToken)
-	data[i] = 0x4a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.AuthorizeToken)))
+	i += copy(dAtA[i:], m.AuthorizeToken)
+	dAtA[i] = 0x4a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.RefreshToken)))
-	i += copy(data[i:], m.RefreshToken)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.RefreshToken)))
+	i += copy(dAtA[i:], m.RefreshToken)
 	return i, nil
 }
 
-func (m *OAuthAccessTokenList) Marshal() (data []byte, err error) {
+func (m *OAuthAccessTokenList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthAccessTokenList) MarshalTo(data []byte) (int, error) {
+func (m *OAuthAccessTokenList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n2, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n2, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n2
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -272,107 +274,107 @@ func (m *OAuthAccessTokenList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *OAuthAuthorizeToken) Marshal() (data []byte, err error) {
+func (m *OAuthAuthorizeToken) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthAuthorizeToken) MarshalTo(data []byte) (int, error) {
+func (m *OAuthAuthorizeToken) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n3, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n3, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n3
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.ClientName)))
-	i += copy(data[i:], m.ClientName)
-	data[i] = 0x18
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ClientName)))
+	i += copy(dAtA[i:], m.ClientName)
+	dAtA[i] = 0x18
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ExpiresIn))
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ExpiresIn))
 	if len(m.Scopes) > 0 {
 		for _, s := range m.Scopes {
-			data[i] = 0x22
+			dAtA[i] = 0x22
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
-	data[i] = 0x2a
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.RedirectURI)))
-	i += copy(data[i:], m.RedirectURI)
-	data[i] = 0x32
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.RedirectURI)))
+	i += copy(dAtA[i:], m.RedirectURI)
+	dAtA[i] = 0x32
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.State)))
-	i += copy(data[i:], m.State)
-	data[i] = 0x3a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.State)))
+	i += copy(dAtA[i:], m.State)
+	dAtA[i] = 0x3a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.UserName)))
-	i += copy(data[i:], m.UserName)
-	data[i] = 0x42
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.UserName)))
+	i += copy(dAtA[i:], m.UserName)
+	dAtA[i] = 0x42
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.UserUID)))
-	i += copy(data[i:], m.UserUID)
-	data[i] = 0x4a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.UserUID)))
+	i += copy(dAtA[i:], m.UserUID)
+	dAtA[i] = 0x4a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.CodeChallenge)))
-	i += copy(data[i:], m.CodeChallenge)
-	data[i] = 0x52
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.CodeChallenge)))
+	i += copy(dAtA[i:], m.CodeChallenge)
+	dAtA[i] = 0x52
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.CodeChallengeMethod)))
-	i += copy(data[i:], m.CodeChallengeMethod)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.CodeChallengeMethod)))
+	i += copy(dAtA[i:], m.CodeChallengeMethod)
 	return i, nil
 }
 
-func (m *OAuthAuthorizeTokenList) Marshal() (data []byte, err error) {
+func (m *OAuthAuthorizeTokenList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthAuthorizeTokenList) MarshalTo(data []byte) (int, error) {
+func (m *OAuthAuthorizeTokenList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n4, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n4, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n4
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -382,81 +384,81 @@ func (m *OAuthAuthorizeTokenList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *OAuthClient) Marshal() (data []byte, err error) {
+func (m *OAuthClient) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthClient) MarshalTo(data []byte) (int, error) {
+func (m *OAuthClient) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n5, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n5, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n5
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Secret)))
-	i += copy(data[i:], m.Secret)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Secret)))
+	i += copy(dAtA[i:], m.Secret)
 	if len(m.AdditionalSecrets) > 0 {
 		for _, s := range m.AdditionalSecrets {
-			data[i] = 0x1a
+			dAtA[i] = 0x1a
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
-	data[i] = 0x20
+	dAtA[i] = 0x20
 	i++
 	if m.RespondWithChallenges {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	if len(m.RedirectURIs) > 0 {
 		for _, s := range m.RedirectURIs {
-			data[i] = 0x2a
+			dAtA[i] = 0x2a
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
-	data[i] = 0x32
+	dAtA[i] = 0x32
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.GrantMethod)))
-	i += copy(data[i:], m.GrantMethod)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.GrantMethod)))
+	i += copy(dAtA[i:], m.GrantMethod)
 	if len(m.ScopeRestrictions) > 0 {
 		for _, msg := range m.ScopeRestrictions {
-			data[i] = 0x3a
+			dAtA[i] = 0x3a
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -466,88 +468,88 @@ func (m *OAuthClient) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *OAuthClientAuthorization) Marshal() (data []byte, err error) {
+func (m *OAuthClientAuthorization) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthClientAuthorization) MarshalTo(data []byte) (int, error) {
+func (m *OAuthClientAuthorization) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n6, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n6, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n6
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.ClientName)))
-	i += copy(data[i:], m.ClientName)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ClientName)))
+	i += copy(dAtA[i:], m.ClientName)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.UserName)))
-	i += copy(data[i:], m.UserName)
-	data[i] = 0x22
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.UserName)))
+	i += copy(dAtA[i:], m.UserName)
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.UserUID)))
-	i += copy(data[i:], m.UserUID)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.UserUID)))
+	i += copy(dAtA[i:], m.UserUID)
 	if len(m.Scopes) > 0 {
 		for _, s := range m.Scopes {
-			data[i] = 0x2a
+			dAtA[i] = 0x2a
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
 	return i, nil
 }
 
-func (m *OAuthClientAuthorizationList) Marshal() (data []byte, err error) {
+func (m *OAuthClientAuthorizationList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthClientAuthorizationList) MarshalTo(data []byte) (int, error) {
+func (m *OAuthClientAuthorizationList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n7, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n7, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n7
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -557,35 +559,35 @@ func (m *OAuthClientAuthorizationList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *OAuthClientList) Marshal() (data []byte, err error) {
+func (m *OAuthClientList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthClientList) MarshalTo(data []byte) (int, error) {
+func (m *OAuthClientList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n8, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n8, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n8
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -595,33 +597,33 @@ func (m *OAuthClientList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *OAuthRedirectReference) Marshal() (data []byte, err error) {
+func (m *OAuthRedirectReference) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *OAuthRedirectReference) MarshalTo(data []byte) (int, error) {
+func (m *OAuthRedirectReference) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n9, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n9, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n9
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Reference.Size()))
-	n10, err := m.Reference.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Reference.Size()))
+	n10, err := m.Reference.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -629,71 +631,71 @@ func (m *OAuthRedirectReference) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RedirectReference) Marshal() (data []byte, err error) {
+func (m *RedirectReference) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *RedirectReference) MarshalTo(data []byte) (int, error) {
+func (m *RedirectReference) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Group)))
-	i += copy(data[i:], m.Group)
-	data[i] = 0x12
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Group)))
+	i += copy(dAtA[i:], m.Group)
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Kind)))
-	i += copy(data[i:], m.Kind)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Kind)))
+	i += copy(dAtA[i:], m.Kind)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Name)))
-	i += copy(data[i:], m.Name)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Name)))
+	i += copy(dAtA[i:], m.Name)
 	return i, nil
 }
 
-func (m *ScopeRestriction) Marshal() (data []byte, err error) {
+func (m *ScopeRestriction) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ScopeRestriction) MarshalTo(data []byte) (int, error) {
+func (m *ScopeRestriction) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if len(m.ExactValues) > 0 {
 		for _, s := range m.ExactValues {
-			data[i] = 0xa
+			dAtA[i] = 0xa
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
 	if m.ClusterRole != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.ClusterRole.Size()))
-		n11, err := m.ClusterRole.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.ClusterRole.Size()))
+		n11, err := m.ClusterRole.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -702,31 +704,31 @@ func (m *ScopeRestriction) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func encodeFixed64Generated(data []byte, offset int, v uint64) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
-	data[offset+4] = uint8(v >> 32)
-	data[offset+5] = uint8(v >> 40)
-	data[offset+6] = uint8(v >> 48)
-	data[offset+7] = uint8(v >> 56)
+func encodeFixed64Generated(dAtA []byte, offset int, v uint64) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
+	dAtA[offset+4] = uint8(v >> 32)
+	dAtA[offset+5] = uint8(v >> 40)
+	dAtA[offset+6] = uint8(v >> 48)
+	dAtA[offset+7] = uint8(v >> 56)
 	return offset + 8
 }
-func encodeFixed32Generated(data []byte, offset int, v uint32) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
+func encodeFixed32Generated(dAtA []byte, offset int, v uint32) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
 	return offset + 4
 }
-func encodeVarintGenerated(data []byte, offset int, v uint64) int {
+func encodeVarintGenerated(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
-		data[offset] = uint8(v&0x7f | 0x80)
+		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
-	data[offset] = uint8(v)
+	dAtA[offset] = uint8(v)
 	return offset + 1
 }
 func (m *ClusterRoleScopeRestriction) Size() (n int) {
@@ -1127,8 +1129,8 @@ func valueToStringGenerated(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ClusterRoleScopeRestriction) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1140,7 +1142,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1168,7 +1170,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1183,7 +1185,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RoleNames = append(m.RoleNames, string(data[iNdEx:postIndex]))
+			m.RoleNames = append(m.RoleNames, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -1197,7 +1199,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1212,7 +1214,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Namespaces = append(m.Namespaces, string(data[iNdEx:postIndex]))
+			m.Namespaces = append(m.Namespaces, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
@@ -1226,7 +1228,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1236,7 +1238,7 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 			m.AllowEscalation = bool(v != 0)
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1255,8 +1257,8 @@ func (m *ClusterRoleScopeRestriction) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthAccessToken) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthAccessToken) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1268,7 +1270,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1296,7 +1298,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1310,7 +1312,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1326,7 +1328,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1341,7 +1343,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ClientName = string(data[iNdEx:postIndex])
+			m.ClientName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
@@ -1355,7 +1357,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.ExpiresIn |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1374,7 +1376,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1389,7 +1391,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Scopes = append(m.Scopes, string(data[iNdEx:postIndex]))
+			m.Scopes = append(m.Scopes, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -1403,7 +1405,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1418,7 +1420,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RedirectURI = string(data[iNdEx:postIndex])
+			m.RedirectURI = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -1432,7 +1434,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1447,7 +1449,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserName = string(data[iNdEx:postIndex])
+			m.UserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
@@ -1461,7 +1463,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1476,7 +1478,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserUID = string(data[iNdEx:postIndex])
+			m.UserUID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
@@ -1490,7 +1492,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1505,7 +1507,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.AuthorizeToken = string(data[iNdEx:postIndex])
+			m.AuthorizeToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
@@ -1519,7 +1521,7 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1534,11 +1536,11 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RefreshToken = string(data[iNdEx:postIndex])
+			m.RefreshToken = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1557,8 +1559,8 @@ func (m *OAuthAccessToken) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthAccessTokenList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1570,7 +1572,7 @@ func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1598,7 +1600,7 @@ func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1612,7 +1614,7 @@ func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1628,7 +1630,7 @@ func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1643,13 +1645,13 @@ func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, OAuthAccessToken{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1668,8 +1670,8 @@ func (m *OAuthAccessTokenList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthAuthorizeToken) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -1681,7 +1683,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -1709,7 +1711,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1723,7 +1725,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -1739,7 +1741,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1754,7 +1756,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ClientName = string(data[iNdEx:postIndex])
+			m.ClientName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 0 {
@@ -1768,7 +1770,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.ExpiresIn |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1787,7 +1789,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1802,7 +1804,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Scopes = append(m.Scopes, string(data[iNdEx:postIndex]))
+			m.Scopes = append(m.Scopes, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -1816,7 +1818,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1831,7 +1833,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RedirectURI = string(data[iNdEx:postIndex])
+			m.RedirectURI = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -1845,7 +1847,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1860,7 +1862,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.State = string(data[iNdEx:postIndex])
+			m.State = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
@@ -1874,7 +1876,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1889,7 +1891,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserName = string(data[iNdEx:postIndex])
+			m.UserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 8:
 			if wireType != 2 {
@@ -1903,7 +1905,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1918,7 +1920,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserUID = string(data[iNdEx:postIndex])
+			m.UserUID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
@@ -1932,7 +1934,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1947,7 +1949,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.CodeChallenge = string(data[iNdEx:postIndex])
+			m.CodeChallenge = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 10:
 			if wireType != 2 {
@@ -1961,7 +1963,7 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -1976,11 +1978,11 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.CodeChallengeMethod = string(data[iNdEx:postIndex])
+			m.CodeChallengeMethod = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -1999,8 +2001,8 @@ func (m *OAuthAuthorizeToken) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthAuthorizeTokenList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2012,7 +2014,7 @@ func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2040,7 +2042,7 @@ func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2054,7 +2056,7 @@ func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2070,7 +2072,7 @@ func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2085,13 +2087,13 @@ func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, OAuthAuthorizeToken{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2110,8 +2112,8 @@ func (m *OAuthAuthorizeTokenList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthClient) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthClient) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2123,7 +2125,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2151,7 +2153,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2165,7 +2167,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2181,7 +2183,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2196,7 +2198,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Secret = string(data[iNdEx:postIndex])
+			m.Secret = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2210,7 +2212,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2225,7 +2227,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.AdditionalSecrets = append(m.AdditionalSecrets, string(data[iNdEx:postIndex]))
+			m.AdditionalSecrets = append(m.AdditionalSecrets, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
@@ -2239,7 +2241,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2259,7 +2261,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2274,7 +2276,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.RedirectURIs = append(m.RedirectURIs, string(data[iNdEx:postIndex]))
+			m.RedirectURIs = append(m.RedirectURIs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -2288,7 +2290,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2303,7 +2305,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.GrantMethod = GrantHandlerType(data[iNdEx:postIndex])
+			m.GrantMethod = GrantHandlerType(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
@@ -2317,7 +2319,7 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2332,13 +2334,13 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.ScopeRestrictions = append(m.ScopeRestrictions, ScopeRestriction{})
-			if err := m.ScopeRestrictions[len(m.ScopeRestrictions)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ScopeRestrictions[len(m.ScopeRestrictions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2357,8 +2359,8 @@ func (m *OAuthClient) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthClientAuthorization) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2370,7 +2372,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2398,7 +2400,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2412,7 +2414,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2428,7 +2430,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2443,7 +2445,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ClientName = string(data[iNdEx:postIndex])
+			m.ClientName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2457,7 +2459,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2472,7 +2474,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserName = string(data[iNdEx:postIndex])
+			m.UserName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -2486,7 +2488,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2501,7 +2503,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.UserUID = string(data[iNdEx:postIndex])
+			m.UserUID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -2515,7 +2517,7 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2530,11 +2532,11 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Scopes = append(m.Scopes, string(data[iNdEx:postIndex]))
+			m.Scopes = append(m.Scopes, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2553,8 +2555,8 @@ func (m *OAuthClientAuthorization) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthClientAuthorizationList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2566,7 +2568,7 @@ func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2594,7 +2596,7 @@ func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2608,7 +2610,7 @@ func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2624,7 +2626,7 @@ func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2639,13 +2641,13 @@ func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, OAuthClientAuthorization{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2664,8 +2666,8 @@ func (m *OAuthClientAuthorizationList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthClientList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthClientList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2677,7 +2679,7 @@ func (m *OAuthClientList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2705,7 +2707,7 @@ func (m *OAuthClientList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2719,7 +2721,7 @@ func (m *OAuthClientList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2735,7 +2737,7 @@ func (m *OAuthClientList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2750,13 +2752,13 @@ func (m *OAuthClientList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, OAuthClient{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2775,8 +2777,8 @@ func (m *OAuthClientList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *OAuthRedirectReference) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2788,7 +2790,7 @@ func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2816,7 +2818,7 @@ func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2830,7 +2832,7 @@ func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2846,7 +2848,7 @@ func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2860,13 +2862,13 @@ func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Reference.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Reference.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2885,8 +2887,8 @@ func (m *OAuthRedirectReference) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *RedirectReference) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *RedirectReference) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2898,7 +2900,7 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2926,7 +2928,7 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2941,7 +2943,7 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Group = string(data[iNdEx:postIndex])
+			m.Group = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -2955,7 +2957,7 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2970,7 +2972,7 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Kind = string(data[iNdEx:postIndex])
+			m.Kind = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2984,7 +2986,7 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2999,11 +3001,11 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Name = string(data[iNdEx:postIndex])
+			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3022,8 +3024,8 @@ func (m *RedirectReference) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ScopeRestriction) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ScopeRestriction) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3035,7 +3037,7 @@ func (m *ScopeRestriction) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3063,7 +3065,7 @@ func (m *ScopeRestriction) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3078,7 +3080,7 @@ func (m *ScopeRestriction) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ExactValues = append(m.ExactValues, string(data[iNdEx:postIndex]))
+			m.ExactValues = append(m.ExactValues, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -3092,7 +3094,7 @@ func (m *ScopeRestriction) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3109,13 +3111,13 @@ func (m *ScopeRestriction) Unmarshal(data []byte) error {
 			if m.ClusterRole == nil {
 				m.ClusterRole = &ClusterRoleScopeRestriction{}
 			}
-			if err := m.ClusterRole.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ClusterRole.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3134,8 +3136,8 @@ func (m *ScopeRestriction) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func skipGenerated(data []byte) (n int, err error) {
-	l := len(data)
+func skipGenerated(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		var wire uint64
@@ -3146,7 +3148,7 @@ func skipGenerated(data []byte) (n int, err error) {
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3164,7 +3166,7 @@ func skipGenerated(data []byte) (n int, err error) {
 					return 0, io.ErrUnexpectedEOF
 				}
 				iNdEx++
-				if data[iNdEx-1] < 0x80 {
+				if dAtA[iNdEx-1] < 0x80 {
 					break
 				}
 			}
@@ -3181,7 +3183,7 @@ func skipGenerated(data []byte) (n int, err error) {
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				length |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3204,7 +3206,7 @@ func skipGenerated(data []byte) (n int, err error) {
 					if iNdEx >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -3215,7 +3217,7 @@ func skipGenerated(data []byte) (n int, err error) {
 				if innerWireType == 4 {
 					break
 				}
-				next, err := skipGenerated(data[start:])
+				next, err := skipGenerated(dAtA[start:])
 				if err != nil {
 					return 0, err
 				}
@@ -3239,81 +3241,84 @@ var (
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
 
+func init() {
+	proto.RegisterFile("github.com/openshift/origin/pkg/oauth/apis/oauth/v1/generated.proto", fileDescriptorGenerated)
+}
+
 var fileDescriptorGenerated = []byte{
-	// 1190 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xec, 0x57, 0xcd, 0x6f, 0x1b, 0x45,
-	0x14, 0xcf, 0x26, 0x76, 0x62, 0x8f, 0x9b, 0x0f, 0x4f, 0x9a, 0x76, 0x69, 0xc1, 0x8e, 0x5c, 0x09,
+	// 1176 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xec, 0x57, 0xcd, 0x6f, 0x1b, 0x45,
+	0x14, 0xcf, 0x26, 0x76, 0x62, 0x8f, 0x9b, 0x0f, 0x4f, 0x9a, 0x76, 0x49, 0xc1, 0x8e, 0x5c, 0x09,
 	0x82, 0x80, 0x35, 0x49, 0x0b, 0xaa, 0x84, 0x84, 0xb0, 0x4d, 0x68, 0x23, 0x48, 0x8b, 0x26, 0x0d,
-	0x48, 0x88, 0x03, 0x93, 0xf5, 0x8b, 0x3d, 0xcd, 0x7a, 0x77, 0x35, 0x33, 0x4e, 0x53, 0xc4, 0x01,
+	0x48, 0x88, 0x03, 0x93, 0xf5, 0x8b, 0x3d, 0xcd, 0x7a, 0x77, 0x35, 0x33, 0x4e, 0x5b, 0xc4, 0x01,
 	0x89, 0x03, 0x37, 0xc4, 0x3f, 0xc2, 0x9f, 0xc0, 0x01, 0x21, 0xa4, 0x1c, 0x7b, 0x42, 0x3d, 0x59,
 	0x8d, 0x91, 0x38, 0x23, 0x71, 0xe3, 0x84, 0x76, 0x76, 0xbc, 0x1f, 0xfe, 0x20, 0x34, 0x91, 0x22,
-	0x0e, 0xdc, 0xd6, 0xef, 0xfd, 0x7e, 0xef, 0x63, 0xf6, 0xf7, 0x9e, 0x67, 0x51, 0xa3, 0xc5, 0x64,
-	0xbb, 0xbb, 0x67, 0xd9, 0x5e, 0xa7, 0xea, 0xf9, 0xe0, 0x8a, 0x36, 0xdb, 0x97, 0x55, 0x8f, 0xb3,
-	0x16, 0x73, 0xab, 0xfe, 0x41, 0xab, 0xea, 0xd1, 0xae, 0x6c, 0x57, 0xa9, 0xcf, 0x84, 0x7e, 0x3c,
-	0x5c, 0xaf, 0xb6, 0xc0, 0x05, 0x4e, 0x25, 0x34, 0x2d, 0x9f, 0x7b, 0xd2, 0xc3, 0x37, 0xe3, 0x20,
-	0x56, 0x14, 0xc4, 0x0a, 0x83, 0x58, 0xfe, 0x41, 0xcb, 0x52, 0x4c, 0x2b, 0x08, 0xa2, 0x1f, 0x0f,
-	0xd7, 0xaf, 0xbd, 0x91, 0xc8, 0xdc, 0xf2, 0x5a, 0x5e, 0x55, 0xc5, 0xda, 0xeb, 0xee, 0xab, 0x5f,
-	0xea, 0x87, 0x7a, 0x0a, 0x73, 0x5c, 0xbb, 0x75, 0x70, 0x5b, 0x58, 0xcc, 0x0b, 0x2a, 0xe9, 0x50,
-	0xbb, 0xcd, 0x5c, 0xe0, 0x8f, 0x55, 0x81, 0xaa, 0xb4, 0x0e, 0x48, 0x3a, 0xa6, 0xb2, 0x6b, 0xd5,
+	0x0e, 0xdc, 0xc6, 0xef, 0xfd, 0x7e, 0xef, 0xbd, 0x99, 0xf9, 0xbd, 0xe7, 0x59, 0xd4, 0x68, 0x31,
+	0xd9, 0xee, 0xee, 0x5b, 0xb6, 0xd7, 0xa9, 0x7a, 0x3e, 0xb8, 0xa2, 0xcd, 0x0e, 0x64, 0xd5, 0xe3,
+	0xac, 0xc5, 0xdc, 0xaa, 0x7f, 0xd8, 0xaa, 0x7a, 0xb4, 0x2b, 0xdb, 0x55, 0xea, 0x33, 0xa1, 0x97,
+	0x47, 0x1b, 0xd5, 0x16, 0xb8, 0xc0, 0xa9, 0x84, 0xa6, 0xe5, 0x73, 0x4f, 0x7a, 0xf8, 0x46, 0x1c,
+	0xc4, 0x8a, 0x82, 0x58, 0x61, 0x10, 0xcb, 0x3f, 0x6c, 0x59, 0x8a, 0x69, 0x05, 0x41, 0xf4, 0xf2,
+	0x68, 0x63, 0xf5, 0x8d, 0x44, 0xe6, 0x96, 0xd7, 0xf2, 0xaa, 0x2a, 0xd6, 0x7e, 0xf7, 0x40, 0xfd,
+	0x52, 0x3f, 0xd4, 0x2a, 0xcc, 0xb1, 0x7a, 0xf3, 0xf0, 0x96, 0xb0, 0x98, 0x17, 0x54, 0xd2, 0xa1,
+	0x76, 0x9b, 0xb9, 0xc0, 0x1f, 0xab, 0x02, 0x55, 0x69, 0x1d, 0x90, 0x74, 0x4c, 0x65, 0xab, 0xd5,
 	0x49, 0x2c, 0xde, 0x75, 0x25, 0xeb, 0xc0, 0x08, 0xe1, 0xed, 0xd3, 0x08, 0xc2, 0x6e, 0x43, 0x87,
-	0x8e, 0xf0, 0x6e, 0x4e, 0xe2, 0x75, 0x25, 0x73, 0xaa, 0xcc, 0x95, 0x42, 0xf2, 0x11, 0x52, 0xa2,
-	0x27, 0x01, 0xfc, 0x10, 0x78, 0xdc, 0x10, 0x1c, 0xd1, 0x8e, 0xef, 0xc0, 0x98, 0x9e, 0x2a, 0x3f,
-	0x1a, 0xe8, 0x7a, 0xc3, 0xe9, 0x0a, 0x09, 0x9c, 0x78, 0x0e, 0xec, 0xd8, 0x9e, 0x0f, 0x04, 0x84,
-	0xe4, 0xcc, 0x96, 0xcc, 0x73, 0xf1, 0x6b, 0x28, 0xcf, 0x3d, 0x07, 0xee, 0xd1, 0x0e, 0x08, 0xd3,
-	0x58, 0x9d, 0x59, 0xcb, 0xd7, 0xe7, 0xfb, 0xbd, 0x72, 0x9e, 0x0c, 0x8c, 0x24, 0xf6, 0x63, 0x0b,
-	0x21, 0x37, 0x78, 0xf0, 0xa9, 0x0d, 0xc2, 0x9c, 0x56, 0xe8, 0x85, 0x7e, 0xaf, 0x8c, 0xee, 0x45,
-	0x56, 0x92, 0x40, 0xe0, 0x1a, 0x5a, 0xa4, 0x8e, 0xe3, 0x3d, 0xda, 0x14, 0x36, 0x75, 0x68, 0x90,
-	0xcf, 0x9c, 0x59, 0x35, 0xd6, 0x72, 0xf5, 0xab, 0xc7, 0xbd, 0xf2, 0x54, 0xbf, 0x57, 0x5e, 0xac,
-	0xa5, 0xdd, 0x64, 0x18, 0x5f, 0xf9, 0x36, 0x83, 0x96, 0xee, 0xd7, 0xba, 0xb2, 0x5d, 0xb3, 0x6d,
-	0x10, 0xe2, 0x81, 0x77, 0x00, 0x2e, 0xfe, 0x02, 0xe5, 0x82, 0x77, 0xd8, 0xa4, 0x92, 0x9a, 0xc6,
-	0xaa, 0xb1, 0x56, 0xd8, 0x78, 0xd3, 0x0a, 0x4f, 0xc7, 0x4a, 0x1e, 0xa9, 0x52, 0x93, 0xd2, 0x51,
-	0x80, 0xb6, 0x0e, 0xd7, 0xad, 0xfb, 0x7b, 0x0f, 0xc1, 0x96, 0xdb, 0x20, 0x69, 0x1d, 0xeb, 0x12,
-	0x50, 0x6c, 0x23, 0x51, 0x54, 0xbc, 0x81, 0x90, 0xed, 0x30, 0x70, 0x65, 0xd0, 0x99, 0x39, 0xbd,
-	0x6a, 0xac, 0xe5, 0x63, 0x46, 0x23, 0xf2, 0x90, 0x04, 0x0a, 0x57, 0x51, 0x1e, 0x8e, 0x7c, 0xc6,
-	0x41, 0x6c, 0x85, 0x7d, 0xce, 0xd4, 0x8b, 0x9a, 0x92, 0xdf, 0x1c, 0x38, 0x48, 0x8c, 0xc1, 0x15,
-	0x34, 0x2b, 0x82, 0xf7, 0x21, 0xcc, 0x8c, 0x3a, 0x4a, 0xd4, 0xef, 0x95, 0x67, 0xd5, 0x1b, 0x12,
-	0x44, 0x7b, 0xf0, 0x5b, 0xa8, 0xc0, 0xa1, 0xc9, 0x38, 0xd8, 0x72, 0x97, 0x6c, 0x99, 0x59, 0x55,
-	0xc9, 0xb2, 0x0e, 0x5b, 0x20, 0xb1, 0x8b, 0x24, 0x71, 0xf8, 0x75, 0x94, 0xeb, 0x0a, 0xe0, 0xaa,
-	0xfa, 0x59, 0xc5, 0x59, 0xd2, 0x9c, 0xdc, 0xae, 0xb6, 0x93, 0x08, 0x81, 0x5f, 0x45, 0x73, 0xc1,
-	0xf3, 0xee, 0xd6, 0xfb, 0xe6, 0x9c, 0x02, 0x2f, 0x6a, 0xf0, 0xdc, 0x6e, 0x68, 0x26, 0x03, 0x3f,
-	0x7e, 0x17, 0x2d, 0x04, 0x33, 0xe9, 0x71, 0xf6, 0x25, 0xa8, 0x97, 0x61, 0xe6, 0x14, 0xe3, 0x8a,
-	0x66, 0x2c, 0xd4, 0x52, 0x5e, 0x32, 0x84, 0xc6, 0xb7, 0xd1, 0x25, 0x0e, 0xfb, 0x1c, 0x44, 0x3b,
-	0x64, 0xe7, 0x15, 0xfb, 0xb2, 0x66, 0x5f, 0x22, 0x09, 0x1f, 0x49, 0x21, 0x2b, 0xcf, 0x0c, 0x74,
-	0x79, 0x58, 0x09, 0x1f, 0x31, 0x21, 0xf1, 0xe7, 0x23, 0x6a, 0xb0, 0xfe, 0x9d, 0x1a, 0x02, 0xb6,
-	0xd2, 0x42, 0x74, 0x36, 0x03, 0x4b, 0x42, 0x09, 0x0f, 0x51, 0x96, 0x49, 0xe8, 0x84, 0x72, 0x2f,
-	0x6c, 0x6c, 0x5a, 0x67, 0x58, 0x5f, 0xd6, 0x70, 0xdd, 0xf5, 0x79, 0x9d, 0x31, 0xbb, 0x15, 0xc4,
-	0x26, 0x61, 0x8a, 0xca, 0x4f, 0x19, 0xb4, 0x1c, 0x42, 0xd3, 0x87, 0xf6, 0xbf, 0xde, 0x4f, 0xd3,
-	0xfb, 0x0d, 0x94, 0x15, 0x92, 0xca, 0x81, 0xd8, 0xa3, 0xe3, 0xdd, 0x09, 0x8c, 0x24, 0xf4, 0xa5,
-	0x86, 0x62, 0xee, 0x79, 0x86, 0x22, 0x77, 0xca, 0x50, 0xbc, 0x83, 0xe6, 0x6d, 0xaf, 0x09, 0x8d,
-	0x36, 0x75, 0x1c, 0x70, 0x5b, 0xa0, 0x55, 0xbd, 0xa2, 0x09, 0xf3, 0x8d, 0xa4, 0x93, 0xa4, 0xb1,
-	0x78, 0x1b, 0x2d, 0xa7, 0x0c, 0xdb, 0x20, 0xdb, 0x5e, 0xd3, 0x44, 0x2a, 0xc4, 0x75, 0x1d, 0x62,
-	0xb9, 0x31, 0x0a, 0x21, 0xe3, 0x78, 0x95, 0xdf, 0x0d, 0x74, 0x75, 0x8c, 0x86, 0x2e, 0x60, 0x52,
-	0x3a, 0xe9, 0x49, 0xb9, 0x7b, 0x8e, 0x49, 0x49, 0x95, 0x3e, 0x61, 0x58, 0x7e, 0xce, 0xa0, 0x82,
-	0x42, 0x87, 0xf2, 0xbc, 0x80, 0x21, 0x79, 0x19, 0xcd, 0x0a, 0xb0, 0x39, 0x48, 0x3d, 0x20, 0x0b,
-	0x1a, 0x3d, 0xbb, 0xa3, 0xac, 0x44, 0x7b, 0x71, 0x03, 0x15, 0x69, 0xb3, 0xc9, 0x82, 0xff, 0x2f,
-	0xea, 0x84, 0x3e, 0x61, 0xce, 0x28, 0xc9, 0xaf, 0xf4, 0x7b, 0xe5, 0x62, 0x6d, 0xd8, 0x49, 0x46,
-	0xf1, 0x78, 0x07, 0xad, 0x70, 0x10, 0xbe, 0xe7, 0x36, 0x3f, 0x65, 0xb2, 0x1d, 0xbd, 0xe5, 0x60,
-	0x76, 0x82, 0x7f, 0xd0, 0x97, 0x74, 0xee, 0x15, 0x32, 0x0e, 0x44, 0xc6, 0x73, 0xf1, 0xad, 0x60,
-	0xfb, 0x46, 0x53, 0x23, 0xcc, 0xac, 0x2a, 0x6a, 0x29, 0xdc, 0xbc, 0xb1, 0x9d, 0xa4, 0x50, 0x78,
-	0x0b, 0x15, 0x5a, 0x9c, 0xba, 0x52, 0x2b, 0x33, 0x1c, 0xb1, 0x57, 0x06, 0x33, 0x79, 0x27, 0x76,
-	0xfd, 0xd5, 0x2b, 0x2f, 0xa9, 0x9f, 0x77, 0xa9, 0xdb, 0x74, 0x80, 0x3f, 0x78, 0xec, 0x03, 0x49,
-	0x72, 0xf1, 0x77, 0x06, 0x2a, 0x8a, 0xa1, 0x3b, 0x88, 0x30, 0xe7, 0xce, 0xb1, 0x5a, 0x87, 0x6f,
-	0x34, 0xf5, 0x17, 0x74, 0x61, 0xc5, 0x61, 0x8f, 0x20, 0xa3, 0xa9, 0x2b, 0x3f, 0x4c, 0x23, 0x33,
-	0xa1, 0xa2, 0x81, 0xf2, 0xd4, 0xe5, 0xe3, 0x3f, 0xba, 0x77, 0x93, 0x6b, 0x6c, 0xe6, 0x79, 0xd6,
-	0x58, 0xe6, 0x94, 0x35, 0x16, 0xef, 0xe7, 0xec, 0xa4, 0xfd, 0x5c, 0xf9, 0xc3, 0x40, 0x2f, 0x4e,
-	0x3a, 0xaf, 0x0b, 0xd8, 0x31, 0x3c, 0xbd, 0x63, 0xb6, 0xcf, 0xbe, 0x63, 0xc6, 0xd4, 0x3f, 0x61,
-	0xd1, 0xfc, 0x6a, 0xa0, 0xc5, 0x04, 0xe5, 0x02, 0xba, 0x84, 0x74, 0x97, 0xef, 0x9d, 0xb7, 0xcb,
-	0x09, 0x8d, 0xfd, 0x69, 0xa0, 0x2b, 0x0a, 0x35, 0x98, 0x7d, 0x02, 0xfb, 0xc0, 0xc1, 0xb5, 0xe1,
-	0x02, 0x94, 0xff, 0x08, 0xe5, 0xf9, 0x20, 0x9d, 0x12, 0x7e, 0x61, 0xe3, 0x83, 0x33, 0xf5, 0x39,
-	0x52, 0x7c, 0x7c, 0x0b, 0x89, 0x4c, 0x24, 0xce, 0x55, 0xf9, 0x0a, 0x15, 0x47, 0xfb, 0xbd, 0x81,
-	0xb2, 0x2d, 0xee, 0x75, 0x7d, 0xd5, 0x6c, 0xe2, 0xfe, 0x70, 0x27, 0x30, 0x92, 0xd0, 0x87, 0x57,
-	0x51, 0xe6, 0x80, 0xb9, 0x4d, 0x3d, 0xa6, 0x97, 0x34, 0x26, 0xf3, 0x21, 0x73, 0x9b, 0x44, 0x79,
-	0x02, 0x84, 0x1b, 0x8f, 0x65, 0x84, 0x50, 0x23, 0xa9, 0x3c, 0x95, 0x5f, 0x0c, 0xb4, 0x34, 0xe6,
-	0x23, 0x2c, 0xe7, 0x30, 0x09, 0x9c, 0x3a, 0x83, 0x6f, 0xb0, 0xc5, 0x60, 0xb3, 0x6e, 0x1e, 0x51,
-	0x5b, 0x7e, 0x42, 0x9d, 0x2e, 0x08, 0x12, 0x01, 0xf0, 0x37, 0x06, 0x2a, 0xd8, 0xf1, 0x17, 0x9d,
-	0x3e, 0xbb, 0x8f, 0xcf, 0x74, 0x76, 0xff, 0xf0, 0x65, 0x18, 0x96, 0x90, 0x00, 0x90, 0x64, 0xd6,
-	0xfa, 0xda, 0xf1, 0x49, 0x69, 0xea, 0xc9, 0x49, 0x69, 0xea, 0xe9, 0x49, 0x69, 0xea, 0xeb, 0x7e,
-	0xc9, 0x38, 0xee, 0x97, 0x8c, 0x27, 0xfd, 0x92, 0xf1, 0xb4, 0x5f, 0x32, 0x9e, 0xf5, 0x4b, 0xc6,
-	0xf7, 0xbf, 0x95, 0xa6, 0x3e, 0x9b, 0x3e, 0x5c, 0xff, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x00, 0xa4,
-	0xe7, 0x1f, 0x35, 0x10, 0x00, 0x00,
+	0x8e, 0xf0, 0x6e, 0x4c, 0xe2, 0x75, 0x25, 0x73, 0xaa, 0xcc, 0x95, 0x42, 0xf2, 0x61, 0x52, 0xe5,
+	0x47, 0x03, 0x5d, 0x6b, 0x38, 0x5d, 0x21, 0x81, 0x13, 0xcf, 0x81, 0x5d, 0xdb, 0xf3, 0x81, 0x80,
+	0x90, 0x9c, 0xd9, 0x92, 0x79, 0x2e, 0x7e, 0x0d, 0xe5, 0xb9, 0xe7, 0xc0, 0x5d, 0xda, 0x01, 0x61,
+	0x1a, 0x6b, 0x33, 0xeb, 0xf9, 0xfa, 0x7c, 0xbf, 0x57, 0xce, 0x93, 0x81, 0x91, 0xc4, 0x7e, 0x6c,
+	0x21, 0xe4, 0x06, 0x0b, 0x9f, 0xda, 0x20, 0xcc, 0x69, 0x85, 0x5e, 0xe8, 0xf7, 0xca, 0xe8, 0x6e,
+	0x64, 0x25, 0x09, 0x04, 0xae, 0xa1, 0x45, 0xea, 0x38, 0xde, 0xc3, 0x2d, 0x61, 0x53, 0x87, 0x06,
+	0xf9, 0xcc, 0x99, 0x35, 0x63, 0x3d, 0x57, 0xbf, 0x7a, 0xdc, 0x2b, 0x4f, 0xf5, 0x7b, 0xe5, 0xc5,
+	0x5a, 0xda, 0x4d, 0x86, 0xf1, 0x95, 0x6f, 0x33, 0x68, 0xe9, 0x5e, 0xad, 0x2b, 0xdb, 0x35, 0xdb,
+	0x06, 0x21, 0xee, 0x7b, 0x87, 0xe0, 0xe2, 0x2f, 0x50, 0x2e, 0xb8, 0x8d, 0x26, 0x95, 0xd4, 0x34,
+	0xd6, 0x8c, 0xf5, 0xc2, 0xe6, 0x9b, 0x56, 0x78, 0x38, 0x56, 0xf2, 0x70, 0x94, 0x2e, 0x94, 0x22,
+	0x02, 0xb4, 0x75, 0xb4, 0x61, 0xdd, 0xdb, 0x7f, 0x00, 0xb6, 0xdc, 0x01, 0x49, 0xeb, 0x58, 0x97,
+	0x80, 0x62, 0x1b, 0x89, 0xa2, 0xe2, 0x4d, 0x84, 0x6c, 0x87, 0x81, 0x2b, 0x83, 0x9d, 0x99, 0xd3,
+	0x6b, 0xc6, 0x7a, 0x3e, 0x66, 0x34, 0x22, 0x0f, 0x49, 0xa0, 0x70, 0x15, 0xe5, 0xe1, 0x91, 0xcf,
+	0x38, 0x88, 0xed, 0x70, 0x9f, 0x33, 0xf5, 0xa2, 0xa6, 0xe4, 0xb7, 0x06, 0x0e, 0x12, 0x63, 0x70,
+	0x05, 0xcd, 0x8a, 0xe0, 0x3e, 0x84, 0x99, 0x51, 0x47, 0x89, 0xfa, 0xbd, 0xf2, 0xac, 0xba, 0x21,
+	0x41, 0xb4, 0x07, 0xbf, 0x85, 0x0a, 0x1c, 0x9a, 0x8c, 0x83, 0x2d, 0xf7, 0xc8, 0xb6, 0x99, 0x55,
+	0x95, 0x2c, 0xeb, 0xb0, 0x05, 0x12, 0xbb, 0x48, 0x12, 0x87, 0x5f, 0x47, 0xb9, 0xae, 0x00, 0xae,
+	0xaa, 0x9f, 0x55, 0x9c, 0x25, 0xcd, 0xc9, 0xed, 0x69, 0x3b, 0x89, 0x10, 0xf8, 0x55, 0x34, 0x17,
+	0xac, 0xf7, 0xb6, 0xdf, 0x37, 0xe7, 0x14, 0x78, 0x51, 0x83, 0xe7, 0xf6, 0x42, 0x33, 0x19, 0xf8,
+	0xf1, 0xbb, 0x68, 0x21, 0xe8, 0x2e, 0x8f, 0xb3, 0x2f, 0x41, 0x5d, 0x86, 0x99, 0x53, 0x8c, 0x2b,
+	0x9a, 0xb1, 0x50, 0x4b, 0x79, 0xc9, 0x10, 0x1a, 0xdf, 0x42, 0x97, 0x38, 0x1c, 0x70, 0x10, 0xed,
+	0x90, 0x9d, 0x57, 0xec, 0xcb, 0x9a, 0x7d, 0x89, 0x24, 0x7c, 0x24, 0x85, 0xac, 0x3c, 0x33, 0xd0,
+	0xe5, 0x61, 0x25, 0x7c, 0xc4, 0x84, 0xc4, 0x9f, 0x8f, 0xa8, 0xc1, 0xfa, 0x77, 0x6a, 0x08, 0xd8,
+	0x4a, 0x0b, 0xd1, 0xd9, 0x0c, 0x2c, 0x09, 0x25, 0x3c, 0x40, 0x59, 0x26, 0xa1, 0x13, 0xca, 0xbd,
+	0xb0, 0xb9, 0x65, 0x9d, 0x61, 0x10, 0x59, 0xc3, 0x75, 0xd7, 0xe7, 0x75, 0xc6, 0xec, 0x76, 0x10,
+	0x9b, 0x84, 0x29, 0x2a, 0x3f, 0x65, 0xd0, 0x72, 0x08, 0x4d, 0x1f, 0xda, 0xff, 0x7a, 0x3f, 0x4d,
+	0xef, 0xd7, 0x51, 0x56, 0x48, 0x2a, 0x07, 0x62, 0x8f, 0x8e, 0x77, 0x37, 0x30, 0x92, 0xd0, 0x97,
+	0x6a, 0x8a, 0xb9, 0xe7, 0x69, 0x8a, 0xdc, 0x29, 0x4d, 0xf1, 0x0e, 0x9a, 0xb7, 0xbd, 0x26, 0x34,
+	0xda, 0xd4, 0x71, 0xc0, 0x6d, 0x81, 0x56, 0xf5, 0x8a, 0x26, 0xcc, 0x37, 0x92, 0x4e, 0x92, 0xc6,
+	0xe2, 0x1d, 0xb4, 0x9c, 0x32, 0xec, 0x80, 0x6c, 0x7b, 0x4d, 0x13, 0xa9, 0x10, 0xd7, 0x74, 0x88,
+	0xe5, 0xc6, 0x28, 0x84, 0x8c, 0xe3, 0x55, 0x7e, 0x37, 0xd0, 0xd5, 0x31, 0x1a, 0xba, 0x80, 0x4e,
+	0xe9, 0xa4, 0x3b, 0xe5, 0xce, 0x39, 0x3a, 0x25, 0x55, 0xfa, 0x84, 0x66, 0xf9, 0x39, 0x83, 0x0a,
+	0x0a, 0x1d, 0xca, 0xf3, 0x02, 0x9a, 0xe4, 0x65, 0x34, 0x2b, 0xc0, 0xe6, 0x20, 0x75, 0x83, 0x2c,
+	0x68, 0xf4, 0xec, 0xae, 0xb2, 0x12, 0xed, 0xc5, 0x0d, 0x54, 0xa4, 0xcd, 0x26, 0x0b, 0xfe, 0xbf,
+	0xa8, 0x13, 0xfa, 0x84, 0x39, 0xa3, 0x24, 0xbf, 0xd2, 0xef, 0x95, 0x8b, 0xb5, 0x61, 0x27, 0x19,
+	0xc5, 0xe3, 0x5d, 0xb4, 0xc2, 0x41, 0xf8, 0x9e, 0xdb, 0xfc, 0x94, 0xc9, 0x76, 0x74, 0xcb, 0x41,
+	0xef, 0x04, 0xff, 0xa0, 0x2f, 0xe9, 0xdc, 0x2b, 0x64, 0x1c, 0x88, 0x8c, 0xe7, 0xe2, 0x9b, 0xc1,
+	0xf4, 0x8d, 0xba, 0x46, 0x98, 0x59, 0x55, 0xd4, 0x52, 0x38, 0x79, 0x63, 0x3b, 0x49, 0xa1, 0xf0,
+	0x36, 0x2a, 0xb4, 0x38, 0x75, 0xa5, 0x56, 0x66, 0xd8, 0x62, 0xaf, 0x0c, 0x7a, 0xf2, 0x76, 0xec,
+	0xfa, 0xab, 0x57, 0x5e, 0x52, 0x3f, 0xef, 0x50, 0xb7, 0xe9, 0x00, 0xbf, 0xff, 0xd8, 0x07, 0x92,
+	0xe4, 0xe2, 0xef, 0x0c, 0x54, 0x14, 0x43, 0x6f, 0x10, 0x61, 0xce, 0x9d, 0x63, 0xb4, 0x0e, 0xbf,
+	0x68, 0xea, 0x2f, 0xe8, 0xc2, 0x8a, 0xc3, 0x1e, 0x41, 0x46, 0x53, 0x57, 0x7e, 0x98, 0x46, 0x66,
+	0x42, 0x45, 0x03, 0xe5, 0xa9, 0xc7, 0xc7, 0x7f, 0x74, 0xee, 0x26, 0xc7, 0xd8, 0xcc, 0xf3, 0x8c,
+	0xb1, 0xcc, 0x29, 0x63, 0x2c, 0x9e, 0xcf, 0xd9, 0x49, 0xf3, 0xb9, 0xf2, 0x87, 0x81, 0x5e, 0x9c,
+	0x74, 0x5e, 0x17, 0x30, 0x63, 0x78, 0x7a, 0xc6, 0xec, 0x9c, 0x7d, 0xc6, 0x8c, 0xa9, 0x7f, 0xc2,
+	0xa0, 0xf9, 0xd5, 0x40, 0x8b, 0x09, 0xca, 0x05, 0xec, 0x12, 0xd2, 0xbb, 0x7c, 0xef, 0xbc, 0xbb,
+	0x9c, 0xb0, 0xb1, 0x3f, 0x0d, 0x74, 0x45, 0xa1, 0x06, 0xbd, 0x4f, 0xe0, 0x00, 0x38, 0xb8, 0x36,
+	0x5c, 0x80, 0xf2, 0x1f, 0xa2, 0x3c, 0x1f, 0xa4, 0x53, 0xc2, 0x2f, 0x6c, 0x7e, 0x70, 0xa6, 0x7d,
+	0x8e, 0x14, 0x1f, 0xbf, 0x42, 0x22, 0x13, 0x89, 0x73, 0x55, 0xbe, 0x42, 0xc5, 0xd1, 0xfd, 0x5e,
+	0x47, 0xd9, 0x16, 0xf7, 0xba, 0xbe, 0xda, 0x6c, 0xe2, 0xfd, 0x70, 0x3b, 0x30, 0x92, 0xd0, 0x87,
+	0xd7, 0x50, 0xe6, 0x90, 0xb9, 0x4d, 0xdd, 0xa6, 0x97, 0x34, 0x26, 0xf3, 0x21, 0x73, 0x9b, 0x44,
+	0x79, 0x02, 0x84, 0x1b, 0xb7, 0x65, 0x84, 0x50, 0x2d, 0xa9, 0x3c, 0x95, 0x5f, 0x0c, 0xb4, 0x34,
+	0xe6, 0x23, 0x2c, 0xe7, 0x30, 0x09, 0x9c, 0x3a, 0x83, 0x6f, 0xb0, 0xc5, 0x60, 0xb2, 0x6e, 0x3d,
+	0xa2, 0xb6, 0xfc, 0x84, 0x3a, 0x5d, 0x10, 0x24, 0x02, 0xe0, 0x6f, 0x0c, 0x54, 0xb0, 0xe3, 0x2f,
+	0x3a, 0x7d, 0x76, 0x1f, 0x9f, 0xe9, 0xec, 0xfe, 0xe1, 0xcb, 0x30, 0x2c, 0x21, 0x01, 0x20, 0xc9,
+	0xac, 0xf5, 0xf5, 0xe3, 0x93, 0xd2, 0xd4, 0x93, 0x93, 0xd2, 0xd4, 0xd3, 0x93, 0xd2, 0xd4, 0xd7,
+	0xfd, 0x92, 0x71, 0xdc, 0x2f, 0x19, 0x4f, 0xfa, 0x25, 0xe3, 0x69, 0xbf, 0x64, 0x3c, 0xeb, 0x97,
+	0x8c, 0xef, 0x7f, 0x2b, 0x4d, 0x7d, 0x36, 0x7d, 0xb4, 0xf1, 0x77, 0x00, 0x00, 0x00, 0xff, 0xff,
+	0xd1, 0x13, 0x3e, 0xfd, 0xff, 0x0f, 0x00, 0x00,
 }

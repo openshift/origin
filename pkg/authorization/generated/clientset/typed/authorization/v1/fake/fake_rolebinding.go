@@ -18,6 +18,8 @@ type FakeRoleBindings struct {
 
 var rolebindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "rolebindings"}
 
+var rolebindingsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "RoleBinding"}
+
 func (c *FakeRoleBindings) Create(roleBinding *v1.RoleBinding) (result *v1.RoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(rolebindingsResource, c.ns, roleBinding), &v1.RoleBinding{})
@@ -64,7 +66,7 @@ func (c *FakeRoleBindings) Get(name string, options meta_v1.GetOptions) (result 
 
 func (c *FakeRoleBindings) List(opts meta_v1.ListOptions) (result *v1.RoleBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(rolebindingsResource, c.ns, opts), &v1.RoleBindingList{})
+		Invokes(testing.NewListAction(rolebindingsResource, rolebindingsKind, c.ns, opts), &v1.RoleBindingList{})
 
 	if obj == nil {
 		return nil, err

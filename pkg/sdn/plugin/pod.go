@@ -86,18 +86,18 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 	}
 
 	type cniNetworkConfig struct {
-		CNIVersion string `json:"cniVersion"`
-		Name string         `json:"name"`
-		Type string         `json:"type"`
-		IPAM *hostLocalIPAM `json:"ipam"`
+		CNIVersion string         `json:"cniVersion"`
+		Name       string         `json:"name"`
+		Type       string         `json:"type"`
+		IPAM       *hostLocalIPAM `json:"ipam"`
 	}
 
 	_, mcnet, _ := net.ParseCIDR("224.0.0.0/4")
 	return json.Marshal(&cniNetworkConfig{
 		// TODO: update to 0.3.0 spec
 		CNIVersion: "0.2.0",
-		Name: "openshift-sdn",
-		Type: "openshift-sdn",
+		Name:       "openshift-sdn",
+		Type:       "openshift-sdn",
 		IPAM: &hostLocalIPAM{
 			Type: "host-local",
 			Subnet: cnitypes.IPNet{

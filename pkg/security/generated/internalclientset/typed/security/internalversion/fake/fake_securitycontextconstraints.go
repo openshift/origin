@@ -17,6 +17,8 @@ type FakeSecurityContextConstraints struct {
 
 var securitycontextconstraintsResource = schema.GroupVersionResource{Group: "security.openshift.io", Version: "", Resource: "securitycontextconstraints"}
 
+var securitycontextconstraintsKind = schema.GroupVersionKind{Group: "security.openshift.io", Version: "", Kind: "SecurityContextConstraints"}
+
 func (c *FakeSecurityContextConstraints) Create(securityContextConstraints *security.SecurityContextConstraints) (result *security.SecurityContextConstraints, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(securitycontextconstraintsResource, securityContextConstraints), &security.SecurityContextConstraints{})
@@ -59,7 +61,7 @@ func (c *FakeSecurityContextConstraints) Get(name string, options v1.GetOptions)
 
 func (c *FakeSecurityContextConstraints) List(opts v1.ListOptions) (result *security.SecurityContextConstraintsList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(securitycontextconstraintsResource, opts), &security.SecurityContextConstraintsList{})
+		Invokes(testing.NewRootListAction(securitycontextconstraintsResource, securitycontextconstraintsKind, opts), &security.SecurityContextConstraintsList{})
 	if obj == nil {
 		return nil, err
 	}

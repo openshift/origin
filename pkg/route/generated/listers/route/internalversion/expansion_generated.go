@@ -7,5 +7,5 @@ package internalversion
 type RouteListerExpansion interface{}
 
 // RouteNamespaceListerExpansion allows custom methods to be added to
-// RouteNamespaeLister.
+// RouteNamespaceLister.
 type RouteNamespaceListerExpansion interface{}

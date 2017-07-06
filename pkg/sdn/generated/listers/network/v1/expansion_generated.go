@@ -7,5 +7,5 @@ package v1
 type ClusterNetworkListerExpansion interface{}
 
 // ClusterNetworkNamespaceListerExpansion allows custom methods to be added to
-// ClusterNetworkNamespaeLister.
+// ClusterNetworkNamespaceLister.
 type ClusterNetworkNamespaceListerExpansion interface{}

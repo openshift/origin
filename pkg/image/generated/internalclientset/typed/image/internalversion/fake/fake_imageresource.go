@@ -17,6 +17,8 @@ type FakeImages struct {
 
 var imagesResource = schema.GroupVersionResource{Group: "image.openshift.io", Version: "", Resource: "images"}
 
+var imagesKind = schema.GroupVersionKind{Group: "image.openshift.io", Version: "", Kind: "Image"}
+
 func (c *FakeImages) Create(imageResource *image.Image) (result *image.Image, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(imagesResource, imageResource), &image.Image{})
@@ -59,7 +61,7 @@ func (c *FakeImages) Get(name string, options v1.GetOptions) (result *image.Imag
 
 func (c *FakeImages) List(opts v1.ListOptions) (result *image.ImageList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(imagesResource, opts), &image.ImageList{})
+		Invokes(testing.NewRootListAction(imagesResource, imagesKind, opts), &image.ImageList{})
 	if obj == nil {
 		return nil, err
 	}

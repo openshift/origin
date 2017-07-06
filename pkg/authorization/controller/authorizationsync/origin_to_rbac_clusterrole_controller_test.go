@@ -194,7 +194,7 @@ func TestSyncClusterRole(t *testing.T) {
 				return nil
 			},
 			reactions: map[reactionMatch]clienttesting.ReactionFunc{
-				reactionMatch{verb: "update", resource: "clusterroles"}: func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+				{verb: "update", resource: "clusterroles"}: func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, nil, apierrors.NewInvalid(rbac.Kind("ClusterRole"), "dummy", nil)
 				},
 			},
