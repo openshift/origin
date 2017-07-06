@@ -16,6 +16,7 @@ type FakeRoles struct {
 }
 
 var rolesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "roles"}
+var rolesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Role"}
 
 func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationapi.Role, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(rolesResource, c.Namespace, name), &authorizationapi.Role{})
@@ -27,7 +28,7 @@ func (c *FakeRoles) Get(name string, options metav1.GetOptions) (*authorizationa
 }
 
 func (c *FakeRoles) List(opts metav1.ListOptions) (*authorizationapi.RoleList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(rolesResource, c.Namespace, opts), &authorizationapi.RoleList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(rolesResource, rolesKind, c.Namespace, opts), &authorizationapi.RoleList{})
 	if obj == nil {
 		return nil, err
 	}

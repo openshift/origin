@@ -66,8 +66,8 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 			return "", fmt.Errorf("unable to find the specified revision")
 		}
 
-		buf := kinternalprinters.NewPrefixWriter(bytes.NewBuffer([]byte{}))
-		kinternalprinters.DescribePodTemplate(desired, buf)
+		buf := bytes.NewBuffer([]byte{})
+		kinternalprinters.DescribePodTemplate(desired, kinternalprinters.NewPrefixWriter(buf))
 		return buf.String(), nil
 	}
 

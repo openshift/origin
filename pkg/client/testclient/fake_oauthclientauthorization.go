@@ -14,6 +14,7 @@ type FakeOAuthClientAuthorization struct {
 }
 
 var oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
+var oAuthClientAuthorizationsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "OAuthClientAuthorization"}
 
 func (c *FakeOAuthClientAuthorization) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClientAuthorization, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(oAuthClientAuthorizationsResource, name), &oauthapi.OAuthClientAuthorization{})
@@ -25,7 +26,7 @@ func (c *FakeOAuthClientAuthorization) Get(name string, options metav1.GetOption
 }
 
 func (c *FakeOAuthClientAuthorization) List(opts metav1.ListOptions) (*oauthapi.OAuthClientAuthorizationList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthClientAuthorizationsResource, opts), &oauthapi.OAuthClientAuthorizationList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthClientAuthorizationsResource, oAuthClientAuthorizationsKind, opts), &oauthapi.OAuthClientAuthorizationList{})
 	if obj == nil {
 		return nil, err
 	}

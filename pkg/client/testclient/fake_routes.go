@@ -17,6 +17,7 @@ type FakeRoutes struct {
 }
 
 var routesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "routes"}
+var routesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Route"}
 
 func (c *FakeRoutes) Get(name string, options metav1.GetOptions) (*routeapi.Route, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(routesResource, c.Namespace, name), &routeapi.Route{})
@@ -28,7 +29,7 @@ func (c *FakeRoutes) Get(name string, options metav1.GetOptions) (*routeapi.Rout
 }
 
 func (c *FakeRoutes) List(opts metav1.ListOptions) (*routeapi.RouteList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(routesResource, c.Namespace, opts), &routeapi.RouteList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(routesResource, routesKind, c.Namespace, opts), &routeapi.RouteList{})
 	if obj == nil {
 		return nil, err
 	}
