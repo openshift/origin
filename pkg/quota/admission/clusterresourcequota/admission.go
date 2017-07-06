@@ -23,8 +23,8 @@ import (
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
-func init() {
-	admission.RegisterPlugin("openshift.io/ClusterResourceQuota",
+func Register(plugins *admission.Plugins) {
+	plugins.Register("openshift.io/ClusterResourceQuota",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewClusterResourceQuota()
 		})

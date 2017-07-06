@@ -26,18 +26,19 @@ import (
 // and do not count towards the user's limit.
 const allowedTerminatingProjects = 2
 
-func init() {
-	admission.RegisterPlugin("ProjectRequestLimit", func(config io.Reader) (admission.Interface, error) {
-		pluginConfig, err := readConfig(config)
-		if err != nil {
-			return nil, err
-		}
-		if pluginConfig == nil {
-			glog.Infof("Admission plugin %q is not configured so it will be disabled.", "ProjectRequestLimit")
-			return nil, nil
-		}
-		return NewProjectRequestLimit(pluginConfig)
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("ProjectRequestLimit",
+		func(config io.Reader) (admission.Interface, error) {
+			pluginConfig, err := readConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			if pluginConfig == nil {
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", "ProjectRequestLimit")
+				return nil, nil
+			}
+			return NewProjectRequestLimit(pluginConfig)
+		})
 }
 
 func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, error) {
