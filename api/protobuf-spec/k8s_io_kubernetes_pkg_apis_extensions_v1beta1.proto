@@ -26,8 +26,8 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
+import "k8s.io/kubernetes/pkg/apis/policy/v1beta1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1beta1";
@@ -37,25 +37,6 @@ message APIVersion {
   // Name of this version (e.g. 'v1').
   // +optional
   optional string name = 1;
-}
-
-message CPUTargetUtilization {
-  // fraction of the requested CPU that should be utilized/used,
-  // e.g. 70 means that 70% of the requested CPU should be in use.
-  optional int32 targetPercentage = 1;
-}
-
-// CrossVersionObjectReference contains enough information to let you identify the referred resource.
-message CrossVersionObjectReference {
-  // Kind of the referent; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-  optional string kind = 1;
-
-  // Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
-  optional string name = 2;
-
-  // API version of the referent
-  // +optional
-  optional string apiVersion = 3;
 }
 
 message CustomMetricCurrentStatus {
@@ -86,12 +67,12 @@ message CustomMetricTargetList {
 // DaemonSet represents the configuration of a daemon set.
 message DaemonSet {
   // Standard object's metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // The desired behavior of this daemon set.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
   // +optional
   optional DaemonSetSpec spec = 2;
 
@@ -99,7 +80,7 @@ message DaemonSet {
   // out of date by some window of time.
   // Populated by the system.
   // Read-only.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
   // +optional
   optional DaemonSetStatus status = 3;
 }
@@ -107,7 +88,7 @@ message DaemonSet {
 // DaemonSetList is a collection of daemon sets.
 message DaemonSetList {
   // Standard list metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
@@ -120,7 +101,7 @@ message DaemonSetSpec {
   // A label query over pods that are managed by the daemon set.
   // Must match in order to be controlled.
   // If empty, defaulted to labels on Pod template.
-  // More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+  // More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 1;
 
@@ -128,7 +109,7 @@ message DaemonSetSpec {
   // The DaemonSet will create exactly one copy of this pod on every node
   // that matches the template's node selector (or on every node if no node
   // selector is specified).
-  // More info: http://kubernetes.io/docs/user-guide/replication-controller#pod-template
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
   optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 2;
 
   // An update strategy to replace existing DaemonSet pods with new pods.
@@ -142,27 +123,34 @@ message DaemonSetSpec {
   // +optional
   optional int32 minReadySeconds = 4;
 
+  // DEPRECATED.
   // A sequence number representing a specific generation of the template.
   // Populated by the system. It can be set only during the creation.
   // +optional
   optional int64 templateGeneration = 5;
+
+  // The number of old history to retain to allow rollback.
+  // This is a pointer to distinguish between explicit zero and not specified.
+  // Defaults to 10.
+  // +optional
+  optional int32 revisionHistoryLimit = 6;
 }
 
 // DaemonSetStatus represents the current status of a daemon set.
 message DaemonSetStatus {
   // The number of nodes that are running at least 1
   // daemon pod and are supposed to run the daemon pod.
-  // More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
   optional int32 currentNumberScheduled = 1;
 
   // The number of nodes that are running the daemon pod, but are
   // not supposed to run the daemon pod.
-  // More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
   optional int32 numberMisscheduled = 2;
 
   // The total number of nodes that should be running the daemon
   // pod (including nodes correctly running the daemon pod).
-  // More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
   optional int32 desiredNumberScheduled = 3;
 
   // The number of nodes that should be running the daemon pod and have one
@@ -188,6 +176,12 @@ message DaemonSetStatus {
   // (ready for at least spec.minReadySeconds)
   // +optional
   optional int32 numberUnavailable = 8;
+
+  // Count of hash collisions for the DaemonSet. The DaemonSet controller
+  // uses this field as a collision avoidance mechanism when it needs to
+  // create the name for the newest ControllerRevision.
+  // +optional
+  optional int64 collisionCount = 9;
 }
 
 message DaemonSetUpdateStrategy {
@@ -199,7 +193,7 @@ message DaemonSetUpdateStrategy {
   // Rolling update config params. Present only if type = "RollingUpdate".
   // ---
   // TODO: Update this to follow our convention for oneOf, whatever we decide it
-  // to be. Same as DeploymentStrategy.RollingUpdate.
+  // to be. Same as Deployment `strategy.rollingUpdate`.
   // See https://github.com/kubernetes/kubernetes/issues/35345
   // +optional
   optional RollingUpdateDaemonSet rollingUpdate = 2;
@@ -340,7 +334,15 @@ message DeploymentStatus {
   optional int32 unavailableReplicas = 5;
 
   // Represents the latest available observations of a deployment's current state.
+  // +patchMergeKey=type
+  // +patchStrategy=merge
   repeated DeploymentCondition conditions = 6;
+
+  // Count of hash collisions for the Deployment. The Deployment controller uses this
+  // field as a collision avoidance mechanism when it needs to create the name for the
+  // newest ReplicaSet.
+  // +optional
+  optional int64 collisionCount = 8;
 }
 
 // DeploymentStrategy describes how to replace existing pods with new ones.
@@ -398,73 +400,6 @@ message HTTPIngressRuleValue {
   repeated HTTPIngressPath paths = 1;
 }
 
-// configuration of a horizontal pod autoscaler.
-message HorizontalPodAutoscaler {
-  // Standard object metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
-  // +optional
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
-
-  // behaviour of autoscaler. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status.
-  // +optional
-  optional HorizontalPodAutoscalerSpec spec = 2;
-
-  // current information about the autoscaler.
-  // +optional
-  optional HorizontalPodAutoscalerStatus status = 3;
-}
-
-// list of horizontal pod autoscaler objects.
-message HorizontalPodAutoscalerList {
-  // Standard list metadata.
-  // +optional
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
-
-  // list of horizontal pod autoscaler objects.
-  repeated HorizontalPodAutoscaler items = 2;
-}
-
-// specification of a horizontal pod autoscaler.
-message HorizontalPodAutoscalerSpec {
-  // reference to Scale subresource; horizontal pod autoscaler will learn the current resource consumption from its status,
-  // and will set the desired number of pods by modifying its spec.
-  optional SubresourceReference scaleRef = 1;
-
-  // lower limit for the number of pods that can be set by the autoscaler, default 1.
-  // +optional
-  optional int32 minReplicas = 2;
-
-  // upper limit for the number of pods that can be set by the autoscaler; cannot be smaller than MinReplicas.
-  optional int32 maxReplicas = 3;
-
-  // target average CPU utilization (represented as a percentage of requested CPU) over all the pods;
-  // if not specified it defaults to the target CPU utilization at 80% of the requested resources.
-  // +optional
-  optional CPUTargetUtilization cpuUtilization = 4;
-}
-
-// current status of a horizontal pod autoscaler
-message HorizontalPodAutoscalerStatus {
-  // most recent generation observed by this autoscaler.
-  // +optional
-  optional int64 observedGeneration = 1;
-
-  // last time the HorizontalPodAutoscaler scaled the number of pods;
-  // used by the autoscaler to control how often the number of pods is changed.
-  // +optional
-  optional k8s.io.apimachinery.pkg.apis.meta.v1.Time lastScaleTime = 2;
-
-  // current number of replicas of pods managed by this autoscaler.
-  optional int32 currentReplicas = 3;
-
-  // desired number of replicas of pods managed by this autoscaler.
-  optional int32 desiredReplicas = 4;
-
-  // current average CPU utilization over all pods, represented as a percentage of requested CPU,
-  // e.g. 70 means that an average pod is using now 70% of its requested CPU.
-  // +optional
-  optional int32 currentCPUUtilizationPercentage = 5;
-}
-
 // Host Port Range defines a range of host ports that will be enabled by a policy
 // for pods to use.  It requires both the start and end to be defined.
 message HostPortRange {
@@ -490,17 +425,17 @@ message IDRange {
 // based virtual hosting etc.
 message Ingress {
   // Standard object's metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec is the desired state of the Ingress.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
   // +optional
   optional IngressSpec spec = 2;
 
   // Status is the current state of the Ingress.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
   // +optional
   optional IngressStatus status = 3;
 }
@@ -517,7 +452,7 @@ message IngressBackend {
 // IngressList is a collection of Ingress.
 message IngressList {
   // Standard object's metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
@@ -610,60 +545,10 @@ message IngressTLS {
   optional string secretName = 2;
 }
 
-// MetricSpec specifies how to scale based on a single metric
-// (only `type` and one other matching field should be set at once).
-message MetricSpec {
-  // type is the type of metric source.  It should match one of the fields below.
-  optional string type = 1;
-
-  // object refers to a metric describing a single kubernetes object
-  // (for example, hits-per-second on an Ingress object).
-  // +optional
-  optional ObjectMetricSource object = 2;
-
-  // pods refers to a metric describing each pod in the current scale target
-  // (for example, transactions-processed-per-second).  The values will be
-  // averaged together before being compared to the target value.
-  // +optional
-  optional PodsMetricSource pods = 3;
-
-  // resource refers to a resource metric (such as those specified in
-  // requests and limits) known to Kubernetes describing each pod in the
-  // current scale target (e.g. CPU or memory). Such metrics are built in to
-  // Kubernetes, and have special scaling options on top of those available
-  // to normal per-pod metrics using the "pods" source.
-  // +optional
-  optional ResourceMetricSource resource = 4;
-}
-
-// MetricStatus describes the last-read state of a single metric.
-message MetricStatus {
-  // type is the type of metric source.  It will match one of the fields below.
-  optional string type = 1;
-
-  // object refers to a metric describing a single kubernetes object
-  // (for example, hits-per-second on an Ingress object).
-  // +optional
-  optional ObjectMetricStatus object = 2;
-
-  // pods refers to a metric describing each pod in the current scale target
-  // (for example, transactions-processed-per-second).  The values will be
-  // averaged together before being compared to the target value.
-  // +optional
-  optional PodsMetricStatus pods = 3;
-
-  // resource refers to a resource metric (such as those specified in
-  // requests and limits) known to Kubernetes describing each pod in the
-  // current scale target (e.g. CPU or memory). Such metrics are built in to
-  // Kubernetes, and have special scaling options on top of those available
-  // to normal per-pod metrics using the "pods" source.
-  // +optional
-  optional ResourceMetricStatus resource = 4;
-}
-
+// NetworkPolicy describes what network traffic is allowed for a set of Pods
 message NetworkPolicy {
   // Standard object's metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
@@ -676,21 +561,17 @@ message NetworkPolicy {
 message NetworkPolicyIngressRule {
   // List of ports which should be made accessible on the pods selected for this rule.
   // Each item in this list is combined using a logical OR.
-  // If this field is not provided, this rule matches all ports (traffic not restricted by port).
-  // If this field is empty, this rule matches no ports (no traffic matches).
+  // If this field is empty or missing, this rule matches all ports (traffic not restricted by port).
   // If this field is present and contains at least one item, then this rule allows traffic
   // only if the traffic matches at least one port in the list.
-  // TODO: Update this to be a pointer to slice as soon as auto-generation supports it.
   // +optional
   repeated NetworkPolicyPort ports = 1;
 
   // List of sources which should be able to access the pods selected for this rule.
   // Items in this list are combined using a logical OR operation.
-  // If this field is not provided, this rule matches all sources (traffic not restricted by source).
-  // If this field is empty, this rule matches no sources (no traffic matches).
+  // If this field is empty or missing, this rule matches all sources (traffic not restricted by source).
   // If this field is present and contains at least on item, this rule allows traffic only if the
   // traffic matches at least one item in the from list.
-  // TODO: Update this to be a pointer to slice as soon as auto-generation supports it.
   // +optional
   repeated NetworkPolicyPeer from = 2;
 }
@@ -698,7 +579,7 @@ message NetworkPolicyIngressRule {
 // Network Policy List is a list of NetworkPolicy objects.
 message NetworkPolicyList {
   // Standard list metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
@@ -709,7 +590,6 @@ message NetworkPolicyList {
 message NetworkPolicyPeer {
   // This is a label selector which selects Pods in this namespace.
   // This field follows standard label selector semantics.
-  // If not provided, this selector selects no pods.
   // If present but empty, this selector selects all pods in this namespace.
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector podSelector = 1;
@@ -717,7 +597,6 @@ message NetworkPolicyPeer {
   // Selects Namespaces using cluster scoped-labels.  This
   // matches all pods in all namespaces selected by this label selector.
   // This field follows standard label selector semantics.
-  // If omitted, this selector selects no namespaces.
   // If present but empty, this selector selects all namespaces.
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector namespaceSelector = 2;
@@ -747,48 +626,21 @@ message NetworkPolicySpec {
   optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector podSelector = 1;
 
   // List of ingress rules to be applied to the selected pods.
-  // Traffic is allowed to a pod if namespace.networkPolicy.ingress.isolation is undefined and cluster policy allows it,
+  // Traffic is allowed to a pod if there are no NetworkPolicies selecting the pod
   // OR if the traffic source is the pod's local node,
   // OR if the traffic matches at least one ingress rule across all of the NetworkPolicy
   // objects whose podSelector matches the pod.
-  // If this field is empty then this NetworkPolicy does not affect ingress isolation.
-  // If this field is present and contains at least one rule, this policy allows any traffic
-  // which matches at least one of the ingress rules in this list.
+  // If this field is empty then this NetworkPolicy does not allow any traffic
+  // (and serves solely to ensure that the pods it selects are isolated by default).
   // +optional
   repeated NetworkPolicyIngressRule ingress = 2;
-}
-
-// ObjectMetricSource indicates how to scale on a metric describing a
-// kubernetes object (for example, hits-per-second on an Ingress object).
-message ObjectMetricSource {
-  // target is the described Kubernetes object.
-  optional CrossVersionObjectReference target = 1;
-
-  // metricName is the name of the metric in question.
-  optional string metricName = 2;
-
-  // targetValue is the target value of the metric (as a quantity).
-  optional k8s.io.apimachinery.pkg.api.resource.Quantity targetValue = 3;
-}
-
-// ObjectMetricStatus indicates the current value of a metric describing a
-// kubernetes object (for example, hits-per-second on an Ingress object).
-message ObjectMetricStatus {
-  // target is the described Kubernetes object.
-  optional CrossVersionObjectReference target = 1;
-
-  // metricName is the name of the metric in question.
-  optional string metricName = 2;
-
-  // currentValue is the current value of the metric (as a quantity).
-  optional k8s.io.apimachinery.pkg.api.resource.Quantity currentValue = 3;
 }
 
 // Pod Security Policy governs the ability to make requests that affect the Security Context
 // that will be applied to a pod and container.
 message PodSecurityPolicy {
   // Standard object's metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
@@ -800,7 +652,7 @@ message PodSecurityPolicy {
 // Pod Security Policy List is a list of PodSecurityPolicy objects.
 message PodSecurityPolicyList {
   // Standard list metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
@@ -873,40 +725,16 @@ message PodSecurityPolicySpec {
   optional bool readOnlyRootFilesystem = 14;
 }
 
-// PodsMetricSource indicates how to scale on a metric describing each pod in
-// the current scale target (for example, transactions-processed-per-second).
-// The values will be averaged together before being compared to the target
-// value.
-message PodsMetricSource {
-  // metricName is the name of the metric in question
-  optional string metricName = 1;
-
-  // targetAverageValue is the target value of the average of the
-  // metric across all relevant pods (as a quantity)
-  optional k8s.io.apimachinery.pkg.api.resource.Quantity targetAverageValue = 2;
-}
-
-// PodsMetricStatus indicates the current value of a metric describing each pod in
-// the current scale target (for example, transactions-processed-per-second).
-message PodsMetricStatus {
-  // metricName is the name of the metric in question
-  optional string metricName = 1;
-
-  // currentAverageValue is the current value of the average of the
-  // metric across all relevant pods (as a quantity)
-  optional k8s.io.apimachinery.pkg.api.resource.Quantity currentAverageValue = 2;
-}
-
 // ReplicaSet represents the configuration of a ReplicaSet.
 message ReplicaSet {
   // If the Labels of a ReplicaSet are empty, they are defaulted to
   // be the same as the Pod(s) that the ReplicaSet manages.
-  // Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
   // Spec defines the specification of the desired behavior of the ReplicaSet.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
   // +optional
   optional ReplicaSetSpec spec = 2;
 
@@ -914,7 +742,7 @@ message ReplicaSet {
   // This data may be out of date by some window of time.
   // Populated by the system.
   // Read-only.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
   // +optional
   optional ReplicaSetStatus status = 3;
 }
@@ -943,12 +771,12 @@ message ReplicaSetCondition {
 // ReplicaSetList is a collection of ReplicaSets.
 message ReplicaSetList {
   // Standard list metadata.
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 
   // List of ReplicaSets.
-  // More info: http://kubernetes.io/docs/user-guide/replication-controller
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller
   repeated ReplicaSet items = 2;
 }
 
@@ -957,7 +785,7 @@ message ReplicaSetSpec {
   // Replicas is the number of desired replicas.
   // This is a pointer to distinguish between explicit zero and unspecified.
   // Defaults to 1.
-  // More info: http://kubernetes.io/docs/user-guide/replication-controller#what-is-a-replication-controller
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
   // +optional
   optional int32 replicas = 1;
 
@@ -970,13 +798,13 @@ message ReplicaSetSpec {
   // Selector is a label query over pods that should match the replica count.
   // If the selector is empty, it is defaulted to the labels present on the pod template.
   // Label keys and values that must match in order to be controlled by this replica set.
-  // More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+  // More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.LabelSelector selector = 2;
 
   // Template is the object that describes the pod that will be created if
   // insufficient replicas are detected.
-  // More info: http://kubernetes.io/docs/user-guide/replication-controller#pod-template
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
   // +optional
   optional k8s.io.kubernetes.pkg.api.v1.PodTemplateSpec template = 3;
 }
@@ -984,7 +812,7 @@ message ReplicaSetSpec {
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 message ReplicaSetStatus {
   // Replicas is the most recently oberved number of replicas.
-  // More info: http://kubernetes.io/docs/user-guide/replication-controller#what-is-a-replication-controller
+  // More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
   optional int32 replicas = 1;
 
   // The number of pods that have labels matching the labels of the pod template of the replicaset.
@@ -1005,6 +833,8 @@ message ReplicaSetStatus {
 
   // Represents the latest available observations of a replica set's current state.
   // +optional
+  // +patchMergeKey=type
+  // +patchStrategy=merge
   repeated ReplicaSetCondition conditions = 6;
 }
 
@@ -1012,56 +842,8 @@ message ReplicaSetStatus {
 message ReplicationControllerDummy {
 }
 
-// ResourceMetricSource indicates how to scale on a resource metric known to
-// Kubernetes, as specified in requests and limits, describing each pod in the
-// current scale target (e.g. CPU or memory).  The values will be averaged
-// together before being compared to the target.  Such metrics are built in to
-// Kubernetes, and have special scaling options on top of those available to
-// normal per-pod metrics using the "pods" source.  Only one "target" type
-// should be set.
-message ResourceMetricSource {
-  // name is the name of the resource in question.
-  optional string name = 1;
-
-  // targetAverageUtilization is the target value of the average of the
-  // resource metric across all relevant pods, represented as a percentage of
-  // the requested value of the resource for the pods.
-  // +optional
-  optional int32 targetAverageUtilization = 2;
-
-  // targetAverageValue is the the target value of the average of the
-  // resource metric across all relevant pods, as a raw value (instead of as
-  // a percentage of the request), similar to the "pods" metric source type.
-  // +optional
-  optional k8s.io.apimachinery.pkg.api.resource.Quantity targetAverageValue = 3;
-}
-
-// ResourceMetricStatus indicates the current value of a resource metric known to
-// Kubernetes, as specified in requests and limits, describing each pod in the
-// current scale target (e.g. CPU or memory).  Such metrics are built in to
-// Kubernetes, and have special scaling options on top of those available to
-// normal per-pod metrics using the "pods" source.
-message ResourceMetricStatus {
-  // name is the name of the resource in question.
-  optional string name = 1;
-
-  // currentAverageUtilization is the current value of the average of the
-  // resource metric across all relevant pods, represented as a percentage of
-  // the requested value of the resource for the pods.  It will only be
-  // present if `targetAverageValue` was set in the corresponding metric
-  // specification.
-  // +optional
-  optional int32 currentAverageUtilization = 2;
-
-  // currentAverageValue is the the current value of the average of the
-  // resource metric across all relevant pods, as a raw value (instead of as
-  // a percentage of the request), similar to the "pods" metric source type.
-  // It will always be set, regardless of the corresponding metric specification.
-  optional k8s.io.apimachinery.pkg.api.resource.Quantity currentAverageValue = 3;
-}
-
 message RollbackConfig {
-  // The revision to rollback to. If set to 0, rollbck to the last revision.
+  // The revision to rollback to. If set to 0, rollback to the last revision.
   // +optional
   optional int64 revision = 1;
 }
@@ -1132,22 +914,22 @@ message SELinuxStrategyOptions {
   optional string rule = 1;
 
   // seLinuxOptions required to run as; required for MustRunAs
-  // More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+  // More info: https://git.k8s.io/community/contributors/design-proposals/security_context.md
   // +optional
   optional k8s.io.kubernetes.pkg.api.v1.SELinuxOptions seLinuxOptions = 2;
 }
 
 // represents a scaling request for a resource.
 message Scale {
-  // Standard object metadata; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata.
+  // Standard object metadata; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata.
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
 
-  // defines the behavior of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status.
+  // defines the behavior of the scale. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status.
   // +optional
   optional ScaleSpec spec = 2;
 
-  // current status of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status. Read-only.
+  // current status of the scale. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status. Read-only.
   // +optional
   optional ScaleStatus status = 3;
 }
@@ -1173,28 +955,9 @@ message ScaleStatus {
   // avoid introspection in the clients. The string will be in the same format as the
   // query-param syntax. If the target type only supports map-based selectors, both this
   // field and map-based selector field are populated.
-  // More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+  // More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
   // +optional
   optional string targetSelector = 3;
-}
-
-// SubresourceReference contains enough information to let you inspect or modify the referred subresource.
-message SubresourceReference {
-  // Kind of the referent; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
-  // +optional
-  optional string kind = 1;
-
-  // Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
-  // +optional
-  optional string name = 2;
-
-  // API version of the referent
-  // +optional
-  optional string apiVersion = 3;
-
-  // Subresource name of the referent
-  // +optional
-  optional string subresource = 4;
 }
 
 // SupplementalGroupsStrategyOptions defines the strategy type and options used to create the strategy.
@@ -1239,7 +1002,7 @@ message ThirdPartyResourceData {
 // ThirdPartyResrouceDataList is a list of ThirdPartyResourceData.
 message ThirdPartyResourceDataList {
   // Standard list metadata
-  // More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+  // More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
   // +optional
   optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
 

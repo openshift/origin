@@ -3,7 +3,6 @@
 package v1
 
 import (
-	quota "github.com/openshift/origin/pkg/quota/apis/quota"
 	v1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +45,7 @@ func (s *clusterResourceQuotaLister) Get(name string) (*v1.ClusterResourceQuota,
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(quota.Resource("clusterresourcequota"), name)
+		return nil, errors.NewNotFound(v1.Resource("clusterresourcequota"), name)
 	}
 	return obj.(*v1.ClusterResourceQuota), nil
 }

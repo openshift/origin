@@ -3,7 +3,6 @@
 package v1
 
 import (
-	template "github.com/openshift/origin/pkg/template/apis/template"
 	v1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -73,7 +72,7 @@ func (s templateNamespaceLister) Get(name string) (*v1.Template, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(template.Resource("template"), name)
+		return nil, errors.NewNotFound(v1.Resource("template"), name)
 	}
 	return obj.(*v1.Template), nil
 }

@@ -7,5 +7,5 @@ package internalversion
 type DeploymentConfigListerExpansion interface{}
 
 // DeploymentConfigNamespaceListerExpansion allows custom methods to be added to
-// DeploymentConfigNamespaeLister.
+// DeploymentConfigNamespaceLister.
 type DeploymentConfigNamespaceListerExpansion interface{}

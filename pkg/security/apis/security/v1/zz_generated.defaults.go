@@ -69,15 +69,6 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 		if a.VolumeSource.ScaleIO != nil {
 			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
-		if a.VolumeSource.Metadata != nil {
-			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
-		}
 	}
 	for i := range in.Spec.Template.Spec.InitContainers {
 		a := &in.Spec.Template.Spec.InitContainers[i]
@@ -209,15 +200,6 @@ func SetObjectDefaults_PodSecurityPolicyReview(in *PodSecurityPolicyReview) {
 			}
 			if b.VolumeSource.ScaleIO != nil {
 				api_v1.SetDefaults_ScaleIOVolumeSource(b.VolumeSource.ScaleIO)
-			}
-			if b.VolumeSource.Metadata != nil {
-				api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(b.VolumeSource.Metadata)
-				for k := range b.VolumeSource.Metadata.Items {
-					c := &b.VolumeSource.Metadata.Items[k]
-					if c.FieldRef != nil {
-						api_v1.SetDefaults_ObjectFieldSelector(c.FieldRef)
-					}
-				}
 			}
 		}
 		for j := range a.PodSecurityPolicySubjectReviewStatus.Template.Spec.InitContainers {
@@ -353,15 +335,6 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 		if a.VolumeSource.ScaleIO != nil {
 			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
-		if a.VolumeSource.Metadata != nil {
-			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
-		}
 	}
 	for i := range in.Spec.Template.Spec.InitContainers {
 		a := &in.Spec.Template.Spec.InitContainers[i]
@@ -491,15 +464,6 @@ func SetObjectDefaults_PodSecurityPolicySelfSubjectReview(in *PodSecurityPolicyS
 		}
 		if a.VolumeSource.ScaleIO != nil {
 			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
-		}
-		if a.VolumeSource.Metadata != nil {
-			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
 		}
 	}
 	for i := range in.Status.Template.Spec.InitContainers {
@@ -634,15 +598,6 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubje
 		if a.VolumeSource.ScaleIO != nil {
 			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
-		if a.VolumeSource.Metadata != nil {
-			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
-		}
 	}
 	for i := range in.Spec.Template.Spec.InitContainers {
 		a := &in.Spec.Template.Spec.InitContainers[i]
@@ -772,15 +727,6 @@ func SetObjectDefaults_PodSecurityPolicySubjectReview(in *PodSecurityPolicySubje
 		}
 		if a.VolumeSource.ScaleIO != nil {
 			api_v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
-		}
-		if a.VolumeSource.Metadata != nil {
-			api_v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					api_v1.SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
 		}
 	}
 	for i := range in.Status.Template.Spec.InitContainers {

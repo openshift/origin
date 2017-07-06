@@ -18,6 +18,8 @@ type FakeClusterNetworks struct {
 
 var clusternetworksResource = schema.GroupVersionResource{Group: "network.openshift.io", Version: "v1", Resource: "clusternetworks"}
 
+var clusternetworksKind = schema.GroupVersionKind{Group: "network.openshift.io", Version: "v1", Kind: "ClusterNetwork"}
+
 func (c *FakeClusterNetworks) Create(clusterNetwork *v1.ClusterNetwork) (result *v1.ClusterNetwork, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(clusternetworksResource, c.ns, clusterNetwork), &v1.ClusterNetwork{})
@@ -64,7 +66,7 @@ func (c *FakeClusterNetworks) Get(name string, options meta_v1.GetOptions) (resu
 
 func (c *FakeClusterNetworks) List(opts meta_v1.ListOptions) (result *v1.ClusterNetworkList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(clusternetworksResource, c.ns, opts), &v1.ClusterNetworkList{})
+		Invokes(testing.NewListAction(clusternetworksResource, clusternetworksKind, c.ns, opts), &v1.ClusterNetworkList{})
 
 	if obj == nil {
 		return nil, err

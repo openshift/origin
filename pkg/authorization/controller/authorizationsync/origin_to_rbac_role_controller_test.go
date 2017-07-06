@@ -171,7 +171,7 @@ func TestSyncRole(t *testing.T) {
 				return nil
 			},
 			reactions: map[reactionMatch]clienttesting.ReactionFunc{
-				reactionMatch{verb: "update", resource: "roles"}: func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+				{verb: "update", resource: "roles"}: func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, nil, apierrors.NewInvalid(rbac.Kind("Role"), "dummy", nil)
 				},
 			},

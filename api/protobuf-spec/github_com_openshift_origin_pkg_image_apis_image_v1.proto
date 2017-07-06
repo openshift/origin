@@ -9,7 +9,6 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
@@ -42,6 +41,7 @@ message Image {
   optional string dockerImageReference = 2;
 
   // DockerImageMetadata contains metadata about this image
+  // +patchStrategy=replace
   optional k8s.io.apimachinery.pkg.runtime.RawExtension dockerImageMetadata = 3;
 
   // DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
@@ -54,6 +54,8 @@ message Image {
   repeated ImageLayer dockerImageLayers = 6;
 
   // Signatures holds all signatures of the image.
+  // +patchMergeKey=name
+  // +patchStrategy=merge
   repeated ImageSignature signatures = 7;
 
   // DockerImageSignatures provides the signatures as opaque blobs. This is a part of manifest schema v1.
@@ -144,6 +146,8 @@ message ImageSignature {
   optional bytes content = 3;
 
   // Conditions represent the latest available observations of a signature's current state.
+  // +patchMergeKey=type
+  // +patchStrategy=merge
   repeated SignatureCondition conditions = 4;
 
   // A human readable string representing image's identity. It could be a product name and version, or an

@@ -17,6 +17,8 @@ type FakeBrokerTemplateInstances struct {
 
 var brokertemplateinstancesResource = schema.GroupVersionResource{Group: "template.openshift.io", Version: "", Resource: "brokertemplateinstances"}
 
+var brokertemplateinstancesKind = schema.GroupVersionKind{Group: "template.openshift.io", Version: "", Kind: "BrokerTemplateInstance"}
+
 func (c *FakeBrokerTemplateInstances) Create(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(brokertemplateinstancesResource, brokerTemplateInstance), &template.BrokerTemplateInstance{})
@@ -59,7 +61,7 @@ func (c *FakeBrokerTemplateInstances) Get(name string, options v1.GetOptions) (r
 
 func (c *FakeBrokerTemplateInstances) List(opts v1.ListOptions) (result *template.BrokerTemplateInstanceList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(brokertemplateinstancesResource, opts), &template.BrokerTemplateInstanceList{})
+		Invokes(testing.NewRootListAction(brokertemplateinstancesResource, brokertemplateinstancesKind, opts), &template.BrokerTemplateInstanceList{})
 	if obj == nil {
 		return nil, err
 	}

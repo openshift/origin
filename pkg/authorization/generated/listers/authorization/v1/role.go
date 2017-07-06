@@ -3,7 +3,6 @@
 package v1
 
 import (
-	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -73,7 +72,7 @@ func (s roleNamespaceLister) Get(name string) (*v1.Role, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(authorization.Resource("role"), name)
+		return nil, errors.NewNotFound(v1.Resource("role"), name)
 	}
 	return obj.(*v1.Role), nil
 }

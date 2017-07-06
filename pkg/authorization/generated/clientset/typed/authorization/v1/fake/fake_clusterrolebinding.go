@@ -17,6 +17,8 @@ type FakeClusterRoleBindings struct {
 
 var clusterrolebindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "clusterrolebindings"}
 
+var clusterrolebindingsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "ClusterRoleBinding"}
+
 func (c *FakeClusterRoleBindings) Create(clusterRoleBinding *v1.ClusterRoleBinding) (result *v1.ClusterRoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(clusterrolebindingsResource, clusterRoleBinding), &v1.ClusterRoleBinding{})
@@ -59,7 +61,7 @@ func (c *FakeClusterRoleBindings) Get(name string, options meta_v1.GetOptions) (
 
 func (c *FakeClusterRoleBindings) List(opts meta_v1.ListOptions) (result *v1.ClusterRoleBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterrolebindingsResource, opts), &v1.ClusterRoleBindingList{})
+		Invokes(testing.NewRootListAction(clusterrolebindingsResource, clusterrolebindingsKind, opts), &v1.ClusterRoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}
