@@ -16,6 +16,7 @@ type FakeUsers struct {
 }
 
 var usersResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "users"}
+var usersKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "User"}
 
 func (c *FakeUsers) Get(name string, options metav1.GetOptions) (*userapi.User, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(usersResource, name), &userapi.User{})
@@ -27,7 +28,7 @@ func (c *FakeUsers) Get(name string, options metav1.GetOptions) (*userapi.User, 
 }
 
 func (c *FakeUsers) List(opts metav1.ListOptions) (*userapi.UserList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(usersResource, opts), &userapi.UserList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(usersResource, usersKind, opts), &userapi.UserList{})
 	if obj == nil {
 		return nil, err
 	}

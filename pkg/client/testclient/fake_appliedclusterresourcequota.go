@@ -14,6 +14,7 @@ type FakeAppliedClusterResourceQuotas struct {
 }
 
 var appliedClusterResourceQuotasResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "appliedclusterresourcequotas"}
+var appliedClusterResourceQuotasKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "AppliedClusterResourceQuota"}
 
 func (c *FakeAppliedClusterResourceQuotas) Get(name string, options metav1.GetOptions) (*quotaapi.AppliedClusterResourceQuota, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(appliedClusterResourceQuotasResource, c.Namespace, name), &quotaapi.AppliedClusterResourceQuota{})
@@ -25,7 +26,7 @@ func (c *FakeAppliedClusterResourceQuotas) Get(name string, options metav1.GetOp
 }
 
 func (c *FakeAppliedClusterResourceQuotas) List(opts metav1.ListOptions) (*quotaapi.AppliedClusterResourceQuotaList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(appliedClusterResourceQuotasResource, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(appliedClusterResourceQuotasResource, appliedClusterResourceQuotasKind, c.Namespace, opts), &quotaapi.AppliedClusterResourceQuotaList{})
 	if obj == nil {
 		return nil, err
 	}

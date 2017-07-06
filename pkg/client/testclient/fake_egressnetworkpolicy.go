@@ -17,6 +17,7 @@ type FakeEgressNetworkPolicy struct {
 }
 
 var egressNetworkPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "egressnetworkpolicies"}
+var egressNetworkPoliciesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "EgressNetworkPolicy"}
 
 func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*sdnapi.EgressNetworkPolicy, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
@@ -28,7 +29,7 @@ func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*
 }
 
 func (c *FakeEgressNetworkPolicy) List(opts metav1.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, egressNetworkPoliciesKind, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
