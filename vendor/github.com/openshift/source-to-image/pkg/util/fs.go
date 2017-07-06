@@ -25,6 +25,7 @@ type FileSystem interface {
 	Chmod(file string, mode os.FileMode) error
 	Rename(from, to string) error
 	MkdirAll(dirname string) error
+	MkdirAllWithPermissions(dirname string, perm os.FileMode) error
 	Mkdir(dirname string) error
 	Exists(file string) bool
 	Copy(sourcePath, targetPath string) error
@@ -147,6 +148,11 @@ func (h *fs) Rename(from, to string) error {
 // MkdirAll creates the directory and all its parents
 func (h *fs) MkdirAll(dirname string) error {
 	return os.MkdirAll(dirname, 0700)
+}
+
+// MkdirAllWithPermissions creates the directory and all its parents with the provided permissions
+func (h *fs) MkdirAllWithPermissions(dirname string, perm os.FileMode) error {
+	return os.MkdirAll(dirname, perm)
 }
 
 // Mkdir creates the specified directory

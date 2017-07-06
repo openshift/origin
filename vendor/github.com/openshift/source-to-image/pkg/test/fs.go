@@ -106,6 +106,12 @@ func (f *FakeFileSystem) MkdirAll(dirname string) error {
 	return f.MkdirAllError
 }
 
+// MkdirAllWithPermissions creates a new directories on the fake filesystem
+func (f *FakeFileSystem) MkdirAllWithPermissions(dirname string, perm os.FileMode) error {
+	f.MkdirAllDir = append(f.MkdirAllDir, dirname)
+	return f.MkdirAllError
+}
+
 // Mkdir creates a new directory on the fake filesystem
 func (f *FakeFileSystem) Mkdir(dirname string) error {
 	f.MkdirDir = dirname

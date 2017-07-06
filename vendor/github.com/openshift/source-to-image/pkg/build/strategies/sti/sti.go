@@ -339,7 +339,7 @@ func (builder *STI) Prepare(config *api.Config) error {
 
 	// Setup working directories
 	for _, v := range workingDirs {
-		if err = builder.fs.MkdirAll(filepath.Join(config.WorkingDir, v)); err != nil {
+		if err = builder.fs.MkdirAllWithPermissions(filepath.Join(config.WorkingDir, v), 0755); err != nil {
 			builder.result.BuildInfo.FailureReason = utilstatus.NewFailureReason(
 				utilstatus.ReasonFSOperationFailed,
 				utilstatus.ReasonMessageFSOperationFailed,
