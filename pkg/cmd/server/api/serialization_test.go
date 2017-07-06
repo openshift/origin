@@ -522,6 +522,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 			t.Errorf("%d: unable to decode: %v", i, err)
 			continue
 		}
+		configapi.Scheme.Default(test.out)
 		if !reflect.DeepEqual(test.out, result) {
 			t.Errorf("%d: result did not match: %s", i, diff.ObjectReflectDiff(test.out, result))
 			continue
