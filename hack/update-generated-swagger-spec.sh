@@ -22,6 +22,9 @@ os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 os::start::configure_server
 
+cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
+openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"templateServiceBrokerConfig\": {\"templateNamespaces\": [\"openshift\"]}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+
 SWAGGER_SPEC_REL_DIR="${1:-}"
 SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
 mkdir -p "${SWAGGER_SPEC_OUT_DIR}"
