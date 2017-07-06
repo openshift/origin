@@ -35,6 +35,9 @@ func init() {
 			if strings.HasPrefix(kubePackage, "+") {
 				kubePackage = kubePackage[1:]
 			}
+			if strings.HasPrefix(kubePackage, "-") {
+				kubePackage = kubePackage[1:]
+			}
 			fullPackageList = append(fullPackageList, "-"+kubePackage)
 		}
 	}
