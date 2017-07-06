@@ -415,8 +415,9 @@ loop:
 	}
 
 	e.serverLimited = servers > e.opts.ServerThreshold
-	e.serverThresholdCurrent.Set(float64(servers))
-	e.serverThresholdLimit.Set(float64(e.opts.ServerThreshold))
+	// TODO counters only go up
+	// e.serverThresholdCurrent.Set(float64(servers))
+	// e.serverThresholdLimit.Set(float64(e.opts.ServerThreshold))
 
 	e.scrapeInterval = time.Duration(((float32(rows) / 1000) + 1) * float32(e.opts.BaseScrapeInterval))
 	e.nextScrapeInterval.Set(float64(e.scrapeInterval / time.Second))
