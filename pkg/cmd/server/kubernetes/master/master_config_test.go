@@ -105,7 +105,6 @@ func TestAPIServerDefaults(t *testing.T) {
 				string(apiv1.NodeInternalIP),
 				string(apiv1.NodeExternalDNS),
 				string(apiv1.NodeExternalIP),
-				string(apiv1.NodeLegacyHostIP),
 			},
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
