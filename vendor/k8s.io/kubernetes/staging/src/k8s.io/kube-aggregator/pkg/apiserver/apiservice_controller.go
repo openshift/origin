@@ -26,11 +26,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	v1informers "k8s.io/client-go/informers/core/v1"
+	v1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api"
-	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
-	internallisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	informers "k8s.io/kube-aggregator/pkg/client/informers/internalversion/apiregistration/internalversion"
@@ -39,7 +39,7 @@ import (
 )
 
 type APIHandlerManager interface {
-	AddAPIService(apiService *apiregistration.APIService, destinationHost string)
+	AddAPIService(apiService *apiregistration.APIService)
 	RemoveAPIService(apiServiceName string)
 }
 
@@ -50,7 +50,7 @@ type APIServiceRegistrationController struct {
 	apiServiceSynced cache.InformerSynced
 
 	// serviceLister is used to get the IP to create the transport for
-	serviceLister  internallisters.ServiceLister
+	serviceLister  v1listers.ServiceLister
 	servicesSynced cache.InformerSynced
 
 	// To allow injection for testing.
@@ -59,7 +59,7 @@ type APIServiceRegistrationController struct {
 	queue workqueue.RateLimitingInterface
 }
 
-func NewAPIServiceRegistrationController(apiServiceInformer informers.APIServiceInformer, serviceInformer internalinformers.ServiceInformer, apiHandlerManager APIHandlerManager) *APIServiceRegistrationController {
+func NewAPIServiceRegistrationController(apiServiceInformer informers.APIServiceInformer, serviceInformer v1informers.ServiceInformer, apiHandlerManager APIHandlerManager) *APIServiceRegistrationController {
 	c := &APIServiceRegistrationController{
 		apiHandlerManager: apiHandlerManager,
 		apiServiceLister:  apiServiceInformer.Lister(),
@@ -102,31 +102,8 @@ func (c *APIServiceRegistrationController) sync(key string) error {
 		return nil
 	}
 
-	// TODO move the destination host to status so that you can see where its going
-	c.apiHandlerManager.AddAPIService(apiService, c.getDestinationHost(apiService))
+	c.apiHandlerManager.AddAPIService(apiService)
 	return nil
-}
-
-func (c *APIServiceRegistrationController) getDestinationHost(apiService *apiregistration.APIService) string {
-	if apiService.Spec.Service == nil {
-		return ""
-	}
-
-	destinationHost := apiService.Spec.Service.Name + "." + apiService.Spec.Service.Namespace + ".svc"
-	service, err := c.serviceLister.Services(apiService.Spec.Service.Namespace).Get(apiService.Spec.Service.Name)
-	if err != nil {
-		return destinationHost
-	}
-	switch {
-	// use IP from a clusterIP for these service types
-	case service.Spec.Type == api.ServiceTypeClusterIP,
-		service.Spec.Type == api.ServiceTypeNodePort,
-		service.Spec.Type == api.ServiceTypeLoadBalancer:
-		return service.Spec.ClusterIP
-	}
-
-	// return the normal DNS name by default
-	return destinationHost
 }
 
 func (c *APIServiceRegistrationController) Run(stopCh <-chan struct{}) {
@@ -213,7 +190,7 @@ func (c *APIServiceRegistrationController) deleteAPIService(obj interface{}) {
 }
 
 // there aren't very many apiservices, just check them all.
-func (c *APIServiceRegistrationController) getAPIServicesFor(service *api.Service) []*apiregistration.APIService {
+func (c *APIServiceRegistrationController) getAPIServicesFor(service *v1.Service) []*apiregistration.APIService {
 	var ret []*apiregistration.APIService
 	apiServiceList, _ := c.apiServiceLister.List(labels.Everything())
 	for _, apiService := range apiServiceList {
@@ -231,26 +208,26 @@ func (c *APIServiceRegistrationController) getAPIServicesFor(service *api.Servic
 // TODO, think of a way to avoid checking on every service manipulation
 
 func (c *APIServiceRegistrationController) addService(obj interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*api.Service)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Service)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *APIServiceRegistrationController) updateService(obj, _ interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*api.Service)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Service)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *APIServiceRegistrationController) deleteService(obj interface{}) {
-	castObj, ok := obj.(*api.Service)
+	castObj, ok := obj.(*v1.Service)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			glog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
-		castObj, ok = tombstone.Obj.(*api.Service)
+		castObj, ok = tombstone.Obj.(*v1.Service)
 		if !ok {
 			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return

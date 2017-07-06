@@ -15,10 +15,12 @@
 package invoke_test
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/invoke/fakes"
+	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 
 	. "github.com/onsi/ginkgo"
@@ -38,7 +40,7 @@ var _ = Describe("Executing a plugin, unit tests", func() {
 
 	BeforeEach(func() {
 		rawExec = &fakes.RawExec{}
-		rawExec.ExecPluginCall.Returns.ResultBytes = []byte(`{ "ip4": { "ip": "1.2.3.4/24" } }`)
+		rawExec.ExecPluginCall.Returns.ResultBytes = []byte(`{ "ips": [ { "version": "4", "address": "1.2.3.4/24" } ] }`)
 
 		versionDecoder = &fakes.VersionDecoder{}
 		versionDecoder.DecodeCall.Returns.PluginInfo = version.PluginSupports("0.42.0")
@@ -48,16 +50,20 @@ var _ = Describe("Executing a plugin, unit tests", func() {
 			VersionDecoder: versionDecoder,
 		}
 		pluginPath = "/some/plugin/path"
-		netconf = []byte(`{ "some": "stdin" }`)
+		netconf = []byte(`{ "some": "stdin", "cniVersion": "0.3.1" }`)
 		cniargs = &fakes.CNIArgs{}
 		cniargs.AsEnvCall.Returns.Env = []string{"SOME=ENV"}
 	})
 
 	Describe("returning a result", func() {
 		It("unmarshals the result bytes into the Result type", func() {
-			result, err := pluginExec.WithResult(pluginPath, netconf, cniargs)
+			r, err := pluginExec.WithResult(pluginPath, netconf, cniargs)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.IP4.IP.IP.String()).To(Equal("1.2.3.4"))
+
+			result, err := current.GetResult(r)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(result.IPs)).To(Equal(1))
+			Expect(result.IPs[0].Address.IP.String()).To(Equal("1.2.3.4"))
 		})
 
 		It("passes its arguments through to the rawExec", func() {
@@ -105,8 +111,9 @@ var _ = Describe("Executing a plugin, unit tests", func() {
 		It("execs the plugin with the command VERSION", func() {
 			pluginExec.GetVersionInfo(pluginPath)
 			Expect(rawExec.ExecPluginCall.Received.PluginPath).To(Equal(pluginPath))
-			Expect(rawExec.ExecPluginCall.Received.StdinData).To(BeNil())
 			Expect(rawExec.ExecPluginCall.Received.Environ).To(ContainElement("CNI_COMMAND=VERSION"))
+			expectedStdin, _ := json.Marshal(map[string]string{"cniVersion": version.Current()})
+			Expect(rawExec.ExecPluginCall.Received.StdinData).To(MatchJSON(expectedStdin))
 		})
 
 		It("decodes and returns the version info", func() {
@@ -146,6 +153,5 @@ var _ = Describe("Executing a plugin, unit tests", func() {
 				Expect(env).To(ContainElement("CNI_PATH=dummy"))
 			})
 		})
-
 	})
 })

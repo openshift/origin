@@ -33,6 +33,7 @@ import (
 	"k8s.io/kubernetes/pkg/util/strings"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/util"
+	"k8s.io/kubernetes/pkg/volume/util/volumehelper"
 )
 
 // ProbeVolumePlugins is the primary entrypoint for volume plugins.
@@ -61,10 +62,6 @@ var _ volume.Deleter = &quobyteVolumeDeleter{}
 
 const (
 	quobytePluginName = "kubernetes.io/quobyte"
-
-	annotationQuobyteAPIServer          = "quobyte.kubernetes.io/api"
-	annotationQuobyteAPISecret          = "quobyte.kubernetes.io/apiuser"
-	annotationQuobyteAPISecretNamespace = "quobyte.kubernetes.io/apipassword"
 )
 
 func (plugin *quobytePlugin) Init(host volume.VolumeHost) error {
@@ -410,6 +407,7 @@ func (provisioner *quobyteVolumeProvisioner) Provision() (*v1.PersistentVolume, 
 		return nil, err
 	}
 	pv := new(v1.PersistentVolume)
+	metav1.SetMetaDataAnnotation(&pv.ObjectMeta, volumehelper.VolumeDynamicallyCreatedByKey, "quobyte-dynamic-provisioner")
 	pv.Spec.PersistentVolumeSource.Quobyte = vol
 	pv.Spec.PersistentVolumeReclaimPolicy = provisioner.options.PersistentVolumeReclaimPolicy
 	pv.Spec.AccessModes = provisioner.options.PVC.Spec.AccessModes

@@ -24,14 +24,7 @@ import (
 )
 
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	RegisterDefaults(scheme)
-	return scheme.AddDefaultingFuncs(
-		SetDefaults_DaemonSet,
-		SetDefaults_Deployment,
-		SetDefaults_HorizontalPodAutoscaler,
-		SetDefaults_ReplicaSet,
-		SetDefaults_NetworkPolicy,
-	)
+	return RegisterDefaults(scheme)
 }
 
 func SetDefaults_DaemonSet(obj *DaemonSet) {
@@ -62,6 +55,10 @@ func SetDefaults_DaemonSet(obj *DaemonSet) {
 			maxUnavailable := intstr.FromInt(1)
 			updateStrategy.RollingUpdate.MaxUnavailable = &maxUnavailable
 		}
+	}
+	if obj.Spec.RevisionHistoryLimit == nil {
+		obj.Spec.RevisionHistoryLimit = new(int32)
+		*obj.Spec.RevisionHistoryLimit = 10
 	}
 }
 
@@ -105,16 +102,6 @@ func SetDefaults_Deployment(obj *Deployment) {
 	}
 }
 
-func SetDefaults_HorizontalPodAutoscaler(obj *HorizontalPodAutoscaler) {
-	if obj.Spec.MinReplicas == nil {
-		minReplicas := int32(1)
-		obj.Spec.MinReplicas = &minReplicas
-	}
-	if obj.Spec.CPUUtilization == nil {
-		obj.Spec.CPUUtilization = &CPUTargetUtilization{TargetPercentage: 80}
-	}
-}
-
 func SetDefaults_ReplicaSet(obj *ReplicaSet) {
 	labels := obj.Spec.Template.Labels
 
@@ -138,7 +125,6 @@ func SetDefaults_ReplicaSet(obj *ReplicaSet) {
 func SetDefaults_NetworkPolicy(obj *NetworkPolicy) {
 	// Default any undefined Protocol fields to TCP.
 	for _, i := range obj.Spec.Ingress {
-		// TODO: Update Ports to be a pointer to slice as soon as auto-generation supports it.
 		for _, p := range i.Ports {
 			if p.Protocol == nil {
 				proto := v1.ProtocolTCP

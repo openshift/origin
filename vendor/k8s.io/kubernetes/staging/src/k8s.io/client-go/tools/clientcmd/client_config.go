@@ -27,7 +27,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/imdario/mergo"
 
-	"k8s.io/client-go/pkg/api"
+	"k8s.io/client-go/pkg/api/v1"
 	restclient "k8s.io/client-go/rest"
 	clientauth "k8s.io/client-go/tools/auth"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -146,7 +146,11 @@ func (config *DirectClientConfig) ClientConfig() (*restclient.Config, error) {
 		clientConfig.Host = u.String()
 	}
 	if len(configAuthInfo.Impersonate) > 0 {
-		clientConfig.Impersonate = restclient.ImpersonationConfig{UserName: configAuthInfo.Impersonate}
+		clientConfig.Impersonate = restclient.ImpersonationConfig{
+			UserName: configAuthInfo.Impersonate,
+			Groups:   configAuthInfo.ImpersonateGroups,
+			Extra:    configAuthInfo.ImpersonateUserExtra,
+		}
 	}
 
 	// only try to read the auth information if we are secure
@@ -201,7 +205,7 @@ func getServerIdentificationPartialConfig(configAuthInfo clientcmdapi.AuthInfo, 
 // we want this order of precedence for user identifcation
 // 1.  configAuthInfo minus auth-path (the final result of command line flags and merged .kubeconfig files)
 // 2.  configAuthInfo.auth-path (this file can contain information that conflicts with #1, and we want #1 to win the priority)
-// 3.  if there is not enough information to idenfity the user, load try the ~/.kubernetes_auth file
+// 3.  if there is not enough information to identify the user, load try the ~/.kubernetes_auth file
 // 4.  if there is not enough information to identify the user, prompt if possible
 func (config *DirectClientConfig) getUserIdentificationPartialConfig(configAuthInfo clientcmdapi.AuthInfo, fallbackReader io.Reader, persistAuthConfig restclient.AuthProviderConfigPersister) (*restclient.Config, error) {
 	mergedConfig := &restclient.Config{}
@@ -217,7 +221,11 @@ func (config *DirectClientConfig) getUserIdentificationPartialConfig(configAuthI
 		mergedConfig.BearerToken = string(tokenBytes)
 	}
 	if len(configAuthInfo.Impersonate) > 0 {
-		mergedConfig.Impersonate = restclient.ImpersonationConfig{UserName: configAuthInfo.Impersonate}
+		mergedConfig.Impersonate = restclient.ImpersonationConfig{
+			UserName: configAuthInfo.Impersonate,
+			Groups:   configAuthInfo.ImpersonateGroups,
+			Extra:    configAuthInfo.ImpersonateUserExtra,
+		}
 	}
 	if len(configAuthInfo.ClientCertificate) > 0 || len(configAuthInfo.ClientCertificateData) > 0 {
 		mergedConfig.CertFile = configAuthInfo.ClientCertificate
@@ -306,7 +314,7 @@ func (config *DirectClientConfig) Namespace() (string, bool, error) {
 	}
 
 	if len(configContext.Namespace) == 0 {
-		return api.NamespaceDefault, false, nil
+		return v1.NamespaceDefault, false, nil
 	}
 
 	return configContext.Namespace, false, nil
@@ -486,13 +494,13 @@ func (config *inClusterClientConfig) Namespace() (string, bool, error) {
 	// This way assumes you've set the POD_NAMESPACE environment variable using the downward API.
 	// This check has to be done first for backwards compatibility with the way InClusterConfig was originally set up
 	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
-		return ns, true, nil
+		return ns, false, nil
 	}
 
 	// Fall back to the namespace associated with the service account token, if available
 	if data, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
 		if ns := strings.TrimSpace(string(data)); len(ns) > 0 {
-			return ns, true, nil
+			return ns, false, nil
 		}
 	}
 

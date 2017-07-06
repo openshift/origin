@@ -31,8 +31,9 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota/validation"
 )
 
-func init() {
-	admission.RegisterPlugin("ResourceQuota",
+// Register registers a plugin
+func Register(plugins *admission.Plugins) {
+	plugins.Register("ResourceQuota",
 		func(config io.Reader) (admission.Interface, error) {
 			// load the configuration provided (if any)
 			configuration, err := LoadConfiguration(config)
@@ -68,7 +69,9 @@ type liveLookupEntry struct {
 	items  []*api.ResourceQuota
 }
 
-// NewResourceQuota configures an admission controller that can enforce quota constraints.
+// NewResourceQuota configures an admission controller that can enforce quota constraints
+// using the provided registry.  The registry must have the capability to handle group/kinds that
+// are persisted by the server this admission controller is intercepting
 func NewResourceQuota(config *resourcequotaapi.Configuration, numEvaluators int, stopCh <-chan struct{}) (admission.Interface, error) {
 	quotaAccessor, err := newQuotaAccessor()
 	if err != nil {

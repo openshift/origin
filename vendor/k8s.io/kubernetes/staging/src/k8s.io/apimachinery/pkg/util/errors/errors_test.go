@@ -286,11 +286,11 @@ func TestCreateAggregateFromMessageCountMap(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			if testCase.expected != nil {
 				expected = testCase.expected.Errors()
-				sort.Sort(aggregate(expected))
+				sort.Slice(expected, func(i, j int) bool { return expected[i].Error() < expected[j].Error() })
 			}
 			if testCase.mcp != nil {
 				agg = CreateAggregateFromMessageCountMap(testCase.mcp).Errors()
-				sort.Sort(aggregate(agg))
+				sort.Slice(agg, func(i, j int) bool { return agg[i].Error() < agg[j].Error() })
 			}
 			if !reflect.DeepEqual(expected, agg) {
 				t.Errorf("expected %v, got %v", expected, agg)

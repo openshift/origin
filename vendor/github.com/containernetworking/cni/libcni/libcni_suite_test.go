@@ -15,6 +15,10 @@
 package libcni_test
 
 import (
+	"fmt"
+	"path/filepath"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
@@ -27,17 +31,35 @@ func TestLibcni(t *testing.T) {
 	RunSpecs(t, "Libcni Suite")
 }
 
-const packagePath = "github.com/containernetworking/cni/plugins/test/noop"
+var plugins = map[string]string{
+	"noop":       "github.com/containernetworking/cni/plugins/test/noop",
+	"ptp":        "github.com/containernetworking/cni/plugins/main/ptp",
+	"host-local": "github.com/containernetworking/cni/plugins/ipam/host-local",
+}
 
-var pathToPlugin string
+var pluginPaths map[string]string
+var pluginDirs []string // array of plugin dirs
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	var err error
-	pathToPlugin, err = gexec.Build(packagePath)
-	Expect(err).NotTo(HaveOccurred())
-	return []byte(pathToPlugin)
+	dirs := make([]string, 0, len(plugins))
+
+	for name, packagePath := range plugins {
+		execPath, err := gexec.Build(packagePath)
+		Expect(err).NotTo(HaveOccurred())
+		dirs = append(dirs, fmt.Sprintf("%s=%s", name, execPath))
+	}
+
+	return []byte(strings.Join(dirs, ":"))
 }, func(crossNodeData []byte) {
-	pathToPlugin = string(crossNodeData)
+	pluginPaths = make(map[string]string)
+	for _, str := range strings.Split(string(crossNodeData), ":") {
+		kvs := strings.SplitN(str, "=", 2)
+		if len(kvs) != 2 {
+			Fail("Invalid inter-node data...")
+		}
+		pluginPaths[kvs[0]] = kvs[1]
+		pluginDirs = append(pluginDirs, filepath.Dir(kvs[1]))
+	}
 })
 
 var _ = SynchronizedAfterSuite(func() {}, func() {

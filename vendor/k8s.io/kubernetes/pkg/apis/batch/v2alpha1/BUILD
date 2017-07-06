@@ -16,6 +16,7 @@ go_library(
         "doc.go",
         "generated.pb.go",
         "register.go",
+        "types.generated.go",
         "types.go",
         "types_swagger_doc_generated.go",
         "zz_generated.conversion.go",
@@ -28,11 +29,15 @@ go_library(
         "//pkg/api/v1:go_default_library",
         "//pkg/apis/batch:go_default_library",
         "//pkg/apis/batch/v1:go_default_library",
-        "//vendor:github.com/gogo/protobuf/proto",
-        "//vendor:k8s.io/apimachinery/pkg/apis/meta/v1",
-        "//vendor:k8s.io/apimachinery/pkg/conversion",
-        "//vendor:k8s.io/apimachinery/pkg/runtime",
-        "//vendor:k8s.io/apimachinery/pkg/runtime/schema",
+        "//vendor/github.com/gogo/protobuf/proto:go_default_library",
+        "//vendor/github.com/ugorji/go/codec:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/resource:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/conversion:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/runtime/schema:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/util/intstr:go_default_library",
     ],
 )
 
@@ -45,7 +50,7 @@ go_test(
         "//pkg/api/install:go_default_library",
         "//pkg/apis/batch/install:go_default_library",
         "//pkg/apis/batch/v2alpha1:go_default_library",
-        "//vendor:k8s.io/apimachinery/pkg/runtime",
+        "//vendor/k8s.io/apimachinery/pkg/runtime:go_default_library",
     ],
 )
 

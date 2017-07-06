@@ -32,7 +32,7 @@ import (
 	. "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 )
 
-func TestSetDefaultDaemonSet(t *testing.T) {
+func TestSetDefaultDaemonSetSpec(t *testing.T) {
 	defaultLabels := map[string]string{"foo": "bar"}
 	period := int64(v1.DefaultTerminationGracePeriodSeconds)
 	defaultTemplate := v1.PodTemplateSpec{
@@ -78,6 +78,7 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 					UpdateStrategy: DaemonSetUpdateStrategy{
 						Type: OnDeleteDaemonSetStrategyType,
 					},
+					RevisionHistoryLimit: newInt32(10),
 				},
 			},
 		},
@@ -89,7 +90,8 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 					},
 				},
 				Spec: DaemonSetSpec{
-					Template: defaultTemplate,
+					Template:             defaultTemplate,
+					RevisionHistoryLimit: newInt32(1),
 				},
 			},
 			expected: &DaemonSet{
@@ -106,6 +108,7 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 					UpdateStrategy: DaemonSetUpdateStrategy{
 						Type: OnDeleteDaemonSetStrategyType,
 					},
+					RevisionHistoryLimit: newInt32(1),
 				},
 			},
 		},
@@ -117,19 +120,7 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 					UpdateStrategy: DaemonSetUpdateStrategy{
 						Type: OnDeleteDaemonSetStrategyType,
 					},
-				},
-			},
-		},
-		{ // Update strategy.
-			original: &DaemonSet{
-				Spec: DaemonSetSpec{},
-			},
-			expected: &DaemonSet{
-				Spec: DaemonSetSpec{
-					Template: templateNoLabel,
-					UpdateStrategy: DaemonSetUpdateStrategy{
-						Type: OnDeleteDaemonSetStrategyType,
-					},
+					RevisionHistoryLimit: newInt32(10),
 				},
 			},
 		},
@@ -143,6 +134,7 @@ func TestSetDefaultDaemonSet(t *testing.T) {
 					UpdateStrategy: DaemonSetUpdateStrategy{
 						Type: OnDeleteDaemonSetStrategyType,
 					},
+					RevisionHistoryLimit: newInt32(10),
 				},
 			},
 		},
@@ -512,78 +504,6 @@ func TestDefaultRequestIsNotSetForReplicaSet(t *testing.T) {
 	requestValue := defaultRequest[v1.ResourceCPU]
 	if requestValue.String() != "0" {
 		t.Errorf("Expected 0 request value, got: %s", requestValue.String())
-	}
-}
-
-func TestSetDefaultHorizontalPodAutoscalerMinReplicas(t *testing.T) {
-	tests := []struct {
-		hpa            HorizontalPodAutoscaler
-		expectReplicas int32
-	}{
-		{
-			hpa:            HorizontalPodAutoscaler{},
-			expectReplicas: 1,
-		},
-		{
-			hpa: HorizontalPodAutoscaler{
-				Spec: HorizontalPodAutoscalerSpec{
-					MinReplicas: newInt32(3),
-				},
-			},
-			expectReplicas: 3,
-		},
-	}
-
-	for _, test := range tests {
-		hpa := &test.hpa
-		obj2 := roundTrip(t, runtime.Object(hpa))
-		hpa2, ok := obj2.(*HorizontalPodAutoscaler)
-		if !ok {
-			t.Errorf("unexpected object: %v", hpa2)
-			t.FailNow()
-		}
-		if hpa2.Spec.MinReplicas == nil {
-			t.Errorf("unexpected nil MinReplicas")
-		} else if test.expectReplicas != *hpa2.Spec.MinReplicas {
-			t.Errorf("expected: %d MinReplicas, got: %d", test.expectReplicas, *hpa2.Spec.MinReplicas)
-		}
-	}
-}
-
-func TestSetDefaultHorizontalPodAutoscalerCpuUtilization(t *testing.T) {
-	tests := []struct {
-		hpa               HorizontalPodAutoscaler
-		expectUtilization int32
-	}{
-		{
-			hpa:               HorizontalPodAutoscaler{},
-			expectUtilization: 80,
-		},
-		{
-			hpa: HorizontalPodAutoscaler{
-				Spec: HorizontalPodAutoscalerSpec{
-					CPUUtilization: &CPUTargetUtilization{
-						TargetPercentage: int32(50),
-					},
-				},
-			},
-			expectUtilization: 50,
-		},
-	}
-
-	for _, test := range tests {
-		hpa := &test.hpa
-		obj2 := roundTrip(t, runtime.Object(hpa))
-		hpa2, ok := obj2.(*HorizontalPodAutoscaler)
-		if !ok {
-			t.Errorf("unexpected object: %v", hpa2)
-			t.FailNow()
-		}
-		if hpa2.Spec.CPUUtilization == nil {
-			t.Errorf("unexpected nil CPUUtilization")
-		} else if test.expectUtilization != hpa2.Spec.CPUUtilization.TargetPercentage {
-			t.Errorf("expected: %d CPUUtilization, got: %d", test.expectUtilization, hpa2.Spec.CPUUtilization.TargetPercentage)
-		}
 	}
 }
 
