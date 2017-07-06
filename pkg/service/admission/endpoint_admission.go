@@ -16,10 +16,11 @@ import (
 
 const RestrictedEndpointsPluginName = "openshift.io/RestrictedEndpointsAdmission"
 
-func init() {
-	admission.RegisterPlugin(RestrictedEndpointsPluginName, func(config io.Reader) (admission.Interface, error) {
-		return NewRestrictedEndpointsAdmission(nil), nil
-	})
+func RegisterRestrictedEndpoints(plugins *admission.Plugins) {
+	plugins.Register(RestrictedEndpointsPluginName,
+		func(config io.Reader) (admission.Interface, error) {
+			return NewRestrictedEndpointsAdmission(nil), nil
+		})
 }
 
 type restrictedEndpointsAdmission struct {
