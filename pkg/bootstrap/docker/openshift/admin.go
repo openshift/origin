@@ -7,10 +7,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -18,11 +21,9 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
-	"github.com/openshift/origin/pkg/cmd/admin/registry"
-	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 )
 
@@ -32,6 +33,7 @@ const (
 	SvcRouter         = "router"
 	masterConfigDir   = "/var/lib/origin/openshift.local.config/master"
 	RegistryServiceIP = "172.30.1.1"
+	routerCertPath    = masterConfigDir + "/router.pem"
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
@@ -50,32 +52,45 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = images
-	opts := &registry.RegistryOptions{
-		Config: &registry.RegistryConfig{
-			Name:           "registry",
-			Type:           "docker-registry",
-			ImageTemplate:  imageTemplate,
-			Ports:          "5000",
-			Replicas:       1,
-			Labels:         "docker-registry=default",
-			Volume:         "/registry",
-			ServiceAccount: "registry",
-			HostMount:      path.Join(pvDir, "registry"),
-			ClusterIP:      RegistryServiceIP,
-		},
-	}
-	cmd := registry.NewCmdRegistry(f, "", "registry", out, errout)
-	output := &bytes.Buffer{}
-	err = opts.Complete(f, cmd, output, output, []string{})
+	// Obtain registry markup. The reason it is not created outright is because
+	// we need to modify the ClusterIP of the registry service. The command doesn't
+	// have an option to set it.
+	registryJSON, stdErr, err := h.execHelper.Command("oc", "adm", "registry",
+		"--dry-run",
+		"--output=json",
+		fmt.Sprintf("--images=%s", images),
+		fmt.Sprintf("--mount-host=%s", path.Join(pvDir, "registry"))).Output()
+
 	if err != nil {
-		return errors.NewError("error completing the registry configuration").WithCause(err)
+		return errors.NewError("cannot generate registry resources").WithCause(err).WithDetails(stdErr)
 	}
-	err = opts.RunCmdRegistry()
-	glog.V(4).Infof("Registry command output:\n%s", output.String())
+
+	obj, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), []byte(registryJSON))
 	if err != nil {
-		return errors.NewError("cannot install registry").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot decode registry JSON output").WithCause(err).WithDetails(registryJSON)
+	}
+	objList := obj.(*kapi.List)
+
+	if errs := runtime.DecodeList(objList.Items, kapi.Codecs.UniversalDecoder()); len(errs) > 0 {
+		return errors.NewError("cannot decode registry objects").WithCause(utilerrors.NewAggregate(errs))
+	}
+
+	// Update the ClusterIP on the Docker registry service definition
+	for _, item := range objList.Items {
+		if svc, ok := item.(*kapi.Service); ok {
+			svc.Spec.ClusterIP = RegistryServiceIP
+		}
+	}
+
+	// Create objects
+	mapper := clientcmd.ResourceMapper(f)
+	bulk := &configcmd.Bulk{
+		Mapper: mapper,
+		Op:     configcmd.Create,
+	}
+	if errs := bulk.Run(objList, DefaultNamespace); len(errs) > 0 {
+		err = utilerrors.NewAggregate(errs)
+		return errors.NewError("cannot create registry objects").WithCause(err)
 	}
 	return nil
 }
@@ -146,33 +161,31 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 		filepath.Join(masterDir, "router.key"),
 		filepath.Join(masterDir, "ca.crt"))
 	if err != nil {
-		return err
+		return errors.NewError("cannot create aggregate router cert").WithCause(err)
 	}
 
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = images
-	cfg := &router.RouterConfig{
-		Name:               "router",
-		Type:               "haproxy-router",
-		ImageTemplate:      imageTemplate,
-		Ports:              "80:80,443:443",
-		Replicas:           1,
-		Labels:             "router=<name>",
-		DefaultCertificate: filepath.Join(masterDir, "router.pem"),
-		StatsPort:          1936,
-		StatsUsername:      "admin",
-		HostNetwork:        !portForwarding,
-		HostPorts:          true,
-		ServiceAccount:     "router",
-	}
-	output := &bytes.Buffer{}
-	cmd := router.NewCmdRouter(f, "", "router", out, errout)
-	cmd.SetOutput(output)
-	err = router.RunCmdRouter(f, cmd, output, output, cfg, []string{})
-	glog.V(4).Infof("Router command output:\n%s", output.String())
+	err = h.hostHelper.UploadFileToContainer(filepath.Join(masterDir, "router.pem"), routerCertPath)
 	if err != nil {
-		return errors.NewError("cannot install router").WithCause(err).WithDetails(h.OriginLog())
+		return errors.NewError("cannot upload router cert to origin container").WithCause(err)
 	}
+
+	_, stdErr, err := h.execHelper.Command("oc", "adm", "router",
+		"--host-ports=true",
+		fmt.Sprintf("--host-network=%v", !portForwarding),
+		fmt.Sprintf("--images=%s", images),
+		fmt.Sprintf("--default-cert=%s", routerCertPath)).Output()
+
+	if err != nil {
+		// In origin v1.3.1, the 'oc adm router' command exits with an error
+		// about an existing router service account. However, the router is
+		// created successfully.
+		if strings.Contains(stdErr, "error: serviceaccounts \"router\" already exists") {
+			glog.V(2).Infof("ignoring error about existing router service account")
+		} else {
+			return errors.NewError("error creating router").WithCause(err)
+		}
+	}
+
 	return nil
 }
 
