@@ -16,7 +16,7 @@ ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 ADD *.rpm /tmp/origin-rpm/
 RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel" && \
+    INSTALL_PKGS="make gcc glibc-static zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel" && \
     yum install -y $INSTALL_PKGS /tmp/origin-rpm/*.rpm && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
