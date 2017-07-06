@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 15bd2fcdb28ecedaafdb1f07894d53dfd50b9e0b
+%global commit 11b0813ca27efdda7d2433b0466758089f1fecfd
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.134 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=15bd2fc
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.135 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=11b0813
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.135
+Version:        3.6.136
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,25 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jul 06 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.136-1
+- When CRI runtime is not docker, don't init docker socket
+  (ccoleman@redhat.com)
+- Reverse the order of migrate output to match desired visual outcome
+  (ccoleman@redhat.com)
+- Get more error info if OVS ofport allocation fails (danw@redhat.com)
+- Deployer pod may be unable to observe started pod from API
+  (ccoleman@redhat.com)
+- cluster up: Fix the regular expression used to parse openshift version
+  (cewong@redhat.com)
+- Add disabled DNS test back into conformance (ccoleman@redhat.com)
+- Throw error using --context-dir with a template (cdaley@redhat.com)
+- AggregatedLogging diagnostic: handle optional components better
+  (lmeyer@redhat.com)
+- AggregatedLogging diagnostic: there is no deployer (lmeyer@redhat.com)
+- UPSTREAM: <carry>: increase job re-list time in cronjob controller
+  (maszulik@redhat.com)
+- UPSTREAM: 46121: Fix kuberuntime GetPods (sjenning@redhat.com)
+
 * Wed Jul 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.135-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 04a56c8
   (smunilla@redhat.com)
