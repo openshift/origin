@@ -456,7 +456,7 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 	if err != nil {
 		return err
 	}
-	kapi.Scheme.Default(ext)
+	configapi.Scheme.Default(ext)
 	internal, err := configapi.Scheme.ConvertToVersion(ext, configapi.SchemeGroupVersion)
 	if err != nil {
 		return err
