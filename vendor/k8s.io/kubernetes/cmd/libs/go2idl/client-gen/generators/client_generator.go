@@ -29,6 +29,7 @@ import (
 	clientgenargs "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/args"
 	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/fake"
 	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/scheme"
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/path"
 	clientgentypes "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/types"
 
 	"github.com/golang/glog"
@@ -37,9 +38,9 @@ import (
 // NameSystems returns the name system used by the generators in this package.
 func NameSystems() namer.NameSystems {
 	pluralExceptions := map[string]string{
-		"Endpoints":                  "Endpoints",
-		"SecurityContextConstraints": "SecurityContextConstraints",
+		"Endpoints": "Endpoints",
 	}
+	lowercaseNamer := namer.NewAllLowercasePluralNamer(pluralExceptions)
 
 	publicNamer := &ExceptionNamer{
 		Exceptions: map[string]string{
@@ -90,7 +91,8 @@ func NameSystems() namer.NameSystems {
 		"raw":                namer.NewRawNamer("", nil),
 		"publicPlural":       namer.NewPublicPluralNamer(pluralExceptions),
 		"privatePlural":      namer.NewPrivatePluralNamer(pluralExceptions),
-		"allLowercasePlural": namer.NewAllLowercasePluralNamer(pluralExceptions),
+		"allLowercasePlural": lowercaseNamer,
+		"resource":           NewTagOverrideNamer("resourceName", lowercaseNamer),
 	}
 }
 
@@ -336,7 +338,8 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 
 	gvToTypes := map[clientgentypes.GroupVersion][]*types.Type{}
 	for gv, inputDir := range customArgs.GroupVersionToInputPath {
-		p := context.Universe.Package(inputDir)
+		// Package are indexed with the vendor prefix stripped
+		p := context.Universe.Package(path.Vendorless(inputDir))
 		for n, t := range p.Types {
 			// filter out types which are not included in user specified overrides.
 			typesOverride, ok := includedTypesOverrides[gv]
@@ -393,4 +396,28 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 	}
 
 	return generator.Packages(packageList)
+}
+
+// tagOverrideNamer is a namer which pulls names from a given tag, if specified,
+// and otherwise falls back to a different namer.
+type tagOverrideNamer struct {
+	tagName  string
+	fallback namer.Namer
+}
+
+func (n *tagOverrideNamer) Name(t *types.Type) string {
+	if nameOverride := extractTag(n.tagName, t.SecondClosestCommentLines); nameOverride != "" {
+		return nameOverride
+	}
+
+	return n.fallback.Name(t)
+}
+
+// NewTagOverrideNamer creates a namer.Namer which uses the contents of the given tag as
+// the name, or falls back to another Namer if the tag is not present.
+func NewTagOverrideNamer(tagName string, fallback namer.Namer) namer.Namer {
+	return &tagOverrideNamer{
+		tagName:  tagName,
+		fallback: fallback,
+	}
 }

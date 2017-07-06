@@ -53,9 +53,9 @@ func TestNewGarbageCollector(t *testing.T) {
 	config.ContentConfig.NegotiatedSerializer = nil
 	clientPool := dynamic.NewClientPool(config, api.Registry.RESTMapper(), dynamic.LegacyAPIPathResolverFunc)
 	podResource := map[schema.GroupVersionResource]struct{}{
-		schema.GroupVersionResource{Version: "v1", Resource: "pods"}: {},
+		{Version: "v1", Resource: "pods"}: {},
 		// no monitor will be constructed for non-core resource, the GC construction will not fail.
-		schema.GroupVersionResource{Group: "tpr.io", Version: "v1", Resource: "unknown"}: {},
+		{Group: "tpr.io", Version: "v1", Resource: "unknown"}: {},
 	}
 
 	client := fake.NewSimpleClientset()
@@ -584,5 +584,39 @@ func TestUnblockOwnerReference(t *testing.T) {
 		for _, ref := range got.OwnerReferences {
 			t.Errorf("ref.UID=%s, ref.BlockOwnerDeletion=%v", ref.UID, *ref.BlockOwnerDeletion)
 		}
+	}
+}
+
+func TestOrphanDependentsFailure(t *testing.T) {
+	testHandler := &fakeActionHandler{
+		response: map[string]FakeResponse{
+			"PATCH" + "/api/v1/namespaces/ns1/pods/pod": {
+				409,
+				[]byte{},
+			},
+		},
+	}
+	srv, clientConfig := testServerAndClientConfig(testHandler.ServeHTTP)
+	defer srv.Close()
+
+	gc := setupGC(t, clientConfig)
+	defer close(gc.stop)
+
+	dependents := []*node{
+		{
+			identity: objectReference{
+				OwnerReference: metav1.OwnerReference{
+					Kind:       "Pod",
+					APIVersion: "v1",
+					Name:       "pod",
+				},
+				Namespace: "ns1",
+			},
+		},
+	}
+	err := gc.orphanDependents(objectReference{}, dependents)
+	expected := `the server reported a conflict (patch pods pod)`
+	if err == nil || !strings.Contains(err.Error(), expected) {
+		t.Errorf("expected error contains text %s, got %v", expected, err)
 	}
 }

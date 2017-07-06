@@ -23,9 +23,9 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/clock"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/util/clock"
 )
 
 func makeObjectReference(kind, name, namespace string) v1.ObjectReference {
@@ -266,6 +266,7 @@ func TestEventCorrelator(t *testing.T) {
 		if err != nil {
 			t.Errorf("scenario %v: unexpected error correlating input event %v", testScenario, err)
 		}
+
 		// verify we did not get skip from filter function unexpectedly...
 		if result.Skip != testInput.expectedSkip {
 			t.Errorf("scenario %v: expected skip %v, but got %v", testScenario, testInput.expectedSkip, result.Skip)
