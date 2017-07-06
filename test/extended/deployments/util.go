@@ -461,6 +461,27 @@ func createFixture(oc *exutil.CLI, fixture string) (string, string, error) {
 	return resource, parts[1], nil
 }
 
+func createDeploymentConfig(oc *exutil.CLI, fixture string) (*deployapi.DeploymentConfig, error) {
+	_, name, err := createFixture(oc, fixture)
+	if err != nil {
+		return nil, err
+	}
+	var pollErr error
+	var dc *deployapi.DeploymentConfig
+	err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
+		dc, err = oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+		if err != nil {
+			pollErr = err
+			return false, nil
+		}
+		return true, nil
+	})
+	if err == wait.ErrWaitTimeout {
+		err = pollErr
+	}
+	return dc, err
+}
+
 func DeploymentConfigFailureTrap(oc *exutil.CLI, name string, failed bool) {
 	failureTrap(oc, name, failed)
 }
