@@ -385,7 +385,7 @@ func Run(f cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr io
 				return unknownRcErr
 			}
 			return uexec.CodeExitError{
-				Err:  fmt.Errorf("pod %s/%s terminated", pod.Namespace, pod.Name),
+				Err:  fmt.Errorf("pod %s/%s terminated (%s)\n%s", pod.Namespace, pod.Name, pod.Status.ContainerStatuses[0].State.Terminated.Reason, pod.Status.ContainerStatuses[0].State.Terminated.Message),
 				Code: int(rc),
 			}
 		default:
