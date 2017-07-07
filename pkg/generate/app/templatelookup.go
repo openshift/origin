@@ -102,10 +102,11 @@ func IsPossibleTemplateFile(value string) (bool, error) {
 
 // TemplateFileSearcher resolves template files into template objects
 type TemplateFileSearcher struct {
-	Mapper       meta.RESTMapper
-	Typer        runtime.ObjectTyper
-	ClientMapper resource.ClientMapper
-	Namespace    string
+	Mapper           meta.RESTMapper
+	Typer            runtime.ObjectTyper
+	ClientMapper     resource.ClientMapper
+	CategoryExpander resource.CategoryExpander
+	Namespace        string
 }
 
 // Search attempts to read template files and transform it into template objects
@@ -119,7 +120,7 @@ func (r *TemplateFileSearcher) Search(precise bool, terms ...string) (ComponentM
 		}
 
 		var isSingleItemImplied bool
-		obj, err := resource.NewBuilder(r.Mapper, r.Typer, r.ClientMapper, kapi.Codecs.UniversalDecoder()).
+		obj, err := resource.NewBuilder(r.Mapper, r.CategoryExpander, r.Typer, r.ClientMapper, kapi.Codecs.UniversalDecoder()).
 			NamespaceParam(r.Namespace).RequireNamespace().
 			FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: terms}).
 			Do().

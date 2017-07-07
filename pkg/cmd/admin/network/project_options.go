@@ -36,6 +36,7 @@ type ProjectOptions struct {
 
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
+	CategoryExpander  resource.CategoryExpander
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 
 	ProjectNames []string
@@ -62,6 +63,7 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 	p.Out = out
 	p.Mapper = mapper
 	p.Typer = typer
+	p.CategoryExpander = f.CategoryExpander()
 	p.RESTClientFactory = f.ClientForMapping
 	p.ProjectNames = []string{}
 	if len(args) != 0 {
@@ -106,7 +108,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 		nameArgs = append(nameArgs, p.ProjectNames...)
 	}
 
-	r := resource.NewBuilder(p.Mapper, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
+	r := resource.NewBuilder(p.Mapper, p.CategoryExpander, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
 		SelectorParam(p.Selector).

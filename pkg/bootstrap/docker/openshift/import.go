@@ -25,7 +25,7 @@ func ImportObjects(f *clientcmd.Factory, ns, location string) error {
 		return err
 	}
 	glog.V(8).Infof("Importing data:\n%s\n", string(data))
-	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	r := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
 		Schema(schema).
 		ContinueOnError().
 		NamespaceParam(ns).
