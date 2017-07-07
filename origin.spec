@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 11b0813ca27efdda7d2433b0466758089f1fecfd
+%global commit f61070d9d29de72a1063b291a25e33f2950bc910
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.135 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=11b0813
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.136 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f61070d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.136
+Version:        3.6.137
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,18 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Jul 07 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.137-1
+- Use admin commands on origin container to install router and registry
+  (cewong@redhat.com)
+- UPSTREAM: <drop>: Increase SAControllerClientBuilder timeout
+  (ccoleman@redhat.com)
+- UPSTREAM: 48481: protect against nil panic in apply (ffranz@redhat.com)
+- Add static library to release image (ccoleman@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  7f58756254b0a65bf59fa87a8ecedad01ce6a85b (bparees@redhat.com)
+- disable autoscaling v2alpha1 by default (deads@redhat.com)
+- have TemplateInstance objects appear in swagger spec (jminter@redhat.com)
+
 * Thu Jul 06 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.136-1
 - When CRI runtime is not docker, don't init docker socket
   (ccoleman@redhat.com)
