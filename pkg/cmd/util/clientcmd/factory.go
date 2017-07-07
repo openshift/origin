@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	"k8s.io/kubernetes/pkg/printers"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -67,14 +68,15 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
 func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
-	printer, generic, err := f.PrinterForCommand(cmd)
+	// mirrors PrintResourceInfoForCommand upstream
+	printer, err := f.PrinterForCommand(cmd, false, nil, printers.PrintOptions{})
 	if err != nil {
 		return nil
 	}
-	if !generic {
+	if !printer.IsGeneric() {
 		for _, info := range infos {
 			mapping := info.ResourceMapping()
-			printer, err := f.PrinterForMapping(cmd, mapping, false)
+			printer, err := f.PrinterForMapping(cmd, false, nil, mapping, false)
 			if err != nil {
 				return err
 			}
@@ -205,7 +207,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 		return fallback, nil
 
 	default:
-		pod, err := f.AttachablePodForObject(object)
+		pod, err := f.AttachablePodForObject(object, 1*time.Minute)
 		if pod != nil {
 			return &api.PodTemplateSpec{
 				ObjectMeta: pod.ObjectMeta,
