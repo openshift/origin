@@ -18,6 +18,7 @@ import (
 
 	"github.com/containernetworking/cni/pkg/skel"
 	"github.com/containernetworking/cni/pkg/types"
+	"github.com/containernetworking/cni/pkg/types/020"
 	"github.com/containernetworking/cni/pkg/version"
 )
 
@@ -82,14 +83,16 @@ func (p *cniPlugin) doCNI(url string, req *cniserver.CNIRequest) ([]byte, error)
 
 // Send the ADD command environment and config to the CNI server, returning
 // the IPAM result to the caller
-func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) (*types.Result, error) {
+func (p *cniPlugin) CmdAdd(args *skel.CmdArgs) (types.Result, error) {
 	body, err := p.doCNI("http://dummy/", newCNIRequest(args))
 	if err != nil {
 		return nil, err
 	}
 
-	result := &types.Result{}
-	if err := json.Unmarshal(body, result); err != nil {
+	// We currently expect CNI version 0.2.0 results, because that's the
+	// CNIVersion we pass in our config JSON
+	result, err := types020.NewResult(body)
+	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal response '%s': %v", string(body), err)
 	}
 
