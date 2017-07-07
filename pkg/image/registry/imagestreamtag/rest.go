@@ -219,6 +219,12 @@ func (r *REST) Update(ctx apirequest.Context, tagName string, objInfo rest.Updat
 		return nil, false, kapierrors.NewConflict(imageapi.Resource("imagestreamtags"), istag.Name, fmt.Errorf("another caller has updated the resource version to %s", imageStream.ResourceVersion))
 	}
 
+	// When we began returning image stream labels in 3.6, old clients that didn't need to send labels would be
+	// broken on update. Explicitly default labels if they are unset.  We don't support mutation of labels on update.
+	if len(imageStream.Labels) > 0 && len(istag.Labels) == 0 {
+		istag.Labels = imageStream.Labels
+	}
+
 	if create {
 		if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 			return nil, false, err
