@@ -225,7 +225,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		templateObj.CreationTimestamp = metav1.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err = resource.NewBuilder(mapper, typer, clientMappingFn, kapi.Codecs.UniversalDecoder()).
+		infos, err = resource.NewBuilder(mapper, f.CategoryExpander(), typer, clientMappingFn, kapi.Codecs.UniversalDecoder()).
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().
 			Infos()

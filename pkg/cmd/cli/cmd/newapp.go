@@ -502,6 +502,9 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	if config.ClientMapper == nil {
 		config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
 	}
+	if config.CategoryExpander == nil {
+		config.CategoryExpander = f.CategoryExpander()
+	}
 
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {

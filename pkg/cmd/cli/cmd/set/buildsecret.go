@@ -122,7 +122,7 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 var supportedBuildTypes = []string{"buildconfigs"}
 
 func (o *BuildSecretOptions) secretFromArg(f *clientcmd.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
-	builder := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	builder := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(namespace).DefaultNamespace().
 		RequireObject(false).
 		ContinueOnError().
@@ -174,7 +174,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return err
 		}
 	}
-	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	o.Builder = resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
