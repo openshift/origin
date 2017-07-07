@@ -3136,6 +3136,14 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - serviceaccounts
+    verbs:
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - events
     verbs:
     - create

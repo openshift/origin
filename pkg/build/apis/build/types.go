@@ -505,6 +505,10 @@ const (
 	// StatusReasonGenericBuildFailed is the reason associated with a broad
 	// range of build failures.
 	StatusReasonGenericBuildFailed StatusReason = "GenericBuildFailed"
+
+	// StatusCannotRetrieveServiceAccount is the reason associated with a failure
+	// to look up the service account associated with the BuildConfig.
+	StatusReasonCannotRetrieveServiceAccount StatusReason = "CannotRetrieveServiceAccount"
 )
 
 // NOTE: These messages might change.
@@ -528,6 +532,7 @@ const (
 	StatusMessageFailedContainer                 = "The pod for this build has at least one container with a non-zero exit status."
 	StatusMessageGenericBuildFailed              = "Generic Build failure - check logs for details."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
+	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account associated with this build."
 )
 
 // BuildStatusOutput contains the status of the built image.

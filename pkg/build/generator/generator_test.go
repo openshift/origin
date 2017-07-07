@@ -1829,16 +1829,9 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 		bc := mocks.MockBuildConfig(source, strategy, output)
 		build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
 
-		if build.Spec.Output.PushSecret == nil {
-			t.Errorf("Expected PushSecret for image '%s' to be set, got nil", imageName)
-			continue
-		}
 		if build.Spec.Strategy.DockerStrategy.PullSecret == nil {
 			t.Errorf("Expected PullSecret for image '%s' to be set, got nil", imageName)
 			continue
-		}
-		if len(build.Spec.Output.PushSecret.Name) == 0 {
-			t.Errorf("Expected PushSecret for image %s to be set not empty", imageName)
 		}
 		if len(build.Spec.Strategy.DockerStrategy.PullSecret.Name) == 0 {
 			t.Errorf("Expected PullSecret for image %s to be set not empty", imageName)

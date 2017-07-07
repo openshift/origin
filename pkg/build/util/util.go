@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
@@ -435,4 +436,28 @@ func UpdateBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
 	}
 	newEnv = append(newEnv, env...)
 	SetBuildEnv(build, newEnv)
+}
+
+// FindDockerSecretAsReference looks through a set of k8s Secrets to find one that represents Docker credentials
+// and which contains credentials that are associated with the registry identified by the image.  It returns
+// a LocalObjectReference to the Secret, or nil if no match was found.
+func FindDockerSecretAsReference(secrets []kapi.Secret, image string) *kapi.LocalObjectReference {
+	emptyKeyring := credentialprovider.BasicDockerKeyring{}
+	for _, secret := range secrets {
+		secretsv1 := make([]v1.Secret, 1)
+		err := v1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, &emptyKeyring)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		if _, found := keyring.Lookup(image); found {
+			return &kapi.LocalObjectReference{Name: secret.Name}
+		}
+	}
+	return nil
 }

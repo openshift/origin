@@ -36,6 +36,7 @@ import (
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 	imagelister "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -329,7 +330,7 @@ func (bc *BuildController) handleNewBuild(build *buildapi.Build, pod *v1.Pod) (*
 }
 
 // createPodSpec creates a pod spec for the given build
-func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref string) (*v1.Pod, error) {
+func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref string, secret *kapi.LocalObjectReference) (*v1.Pod, error) {
 	// TODO(rhcarvalho)
 	// The S2I and Docker builders expect build.Spec.Output.To to contain a
 	// resolved reference to a Docker image. Since build.Spec is immutable, we
@@ -349,6 +350,17 @@ func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref stri
 			Name: ref,
 		}
 	}
+
+	// set the pushSecret that will be needed by the build to push the image to the registry
+	// at the end of the build.
+	build.Spec.Output.PushSecret = secret
+
+	// ensure the build object the pod sees starts with a clean set of reasons/messages,
+	// rather than inheriting the potential "invalidoutputreference" message from the current
+	// build state.  Otherwise when the pod attempts to update the build (e.g. with the git
+	// revision information), it will re-assert the stale reason/message.
+	build.Status.Reason = ""
+	build.Status.Message = ""
 
 	// Invoke the strategy to create a build pod.
 	podSpec, err := bc.createStrategy.CreateBuildPod(build)
@@ -372,8 +384,15 @@ func (bc *BuildController) createPodSpec(originalBuild *buildapi.Build, ref stri
 	return podSpec, nil
 }
 
-// resolveOutputDockerImageReference returns a reference to a Docker image
-// computed from the buid.Spec.Output.To reference.
+// resolveOutputDockerImageReference returns a Docker image name
+// computed from the build.Spec.Output.To reference.
+// Note that we are using controller level permissions to resolve the imagestream and secret,
+// meaning users could theoretically define a build that references an imagestream they cannot
+// see, and 1) get the docker image reference of that imagestream and 2) a reference to a secret
+// associated with a service account that can push to that location.  However they still cannot view the secret,
+// and ability to use a service account implies access to its secrets, so this is considered safe.
+// Furthermore it's necessary to enable triggered builds since a triggered build is not "requested"
+// by a particular user, so there are no user permissions to validate against in that case.
 func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Build) (string, error) {
 	outputTo := build.Spec.Output.To
 	if outputTo == nil || outputTo.Name == "" {
@@ -414,7 +433,43 @@ func (bc *BuildController) resolveOutputDockerImageReference(build *buildapi.Bui
 		}
 		ref = fmt.Sprintf("%s%s", stream.Status.DockerImageRepository, tag)
 	}
+
 	return ref, nil
+}
+
+// resolvePushSecretAsReference returns a LocalObjectReference to a secret that should
+// be able to push to the build's image output target.  The secret must be associated
+// with the service account for the build.
+// Note that we are using controller level permissions to resolve the secret,
+// meaning users could theoretically define a build that references an imagestream they cannot
+// see, and 1) get the docker image reference of that imagestream and 2) a reference to a secret
+// associated with a service account that can push to that location.  However they still cannot view the secret,
+// and ability to use a service account implies access to its secrets, so this is considered safe.
+// Furthermore it's necessary to enable triggered builds since a triggered build is not "requested"
+// by a particular user, so there are no user permissions to validate against in that case.
+func (bc *BuildController) resolvePushSecretAsReference(build *buildapi.Build, imagename string) (*kapi.LocalObjectReference, error) {
+	serviceAccount := build.Spec.ServiceAccount
+	if len(serviceAccount) == 0 {
+		serviceAccount = bootstrappolicy.BuilderServiceAccountName
+	}
+	sa, err := bc.kubeClient.Core().ServiceAccounts(build.Namespace).Get(serviceAccount, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", build.Namespace, serviceAccount, err)
+	}
+
+	var builderSecrets []kapi.Secret
+	for _, saSecret := range sa.Secrets {
+		secret, err := bc.kubeClient.Core().Secrets(build.Namespace).Get(saSecret.Name, metav1.GetOptions{})
+		if err != nil {
+			continue
+		}
+		builderSecrets = append(builderSecrets, *secret)
+	}
+	pushSecret := buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
+	if pushSecret == nil {
+		glog.V(4).Infof("No secrets found for pushing or pulling image named %s from the %s %s/%s", imagename, build.Spec.Output.To.Kind, build.Namespace, build.Spec.Output.To.Name)
+	}
+	return pushSecret, nil
 }
 
 // createBuildPod creates a new pod to run a build
@@ -422,7 +477,11 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 
 	update := &buildUpdate{}
 
-	// Set the output Docker image reference.
+	// Set the output Docker image reference as well as look up the pushsecret that
+	// should be used to push to the resolved image reference.  We are late-resolving this information
+	// so users can create a build before the output imagestream exists.  Resolving it at
+	// build instantiate time would mean we'd have to fail the build request immediately if
+	// the output imagestream did not already exist.
 	ref, err := bc.resolveOutputDockerImageReference(build)
 	if err != nil {
 		// If we cannot resolve the output reference, the output image stream
@@ -432,9 +491,20 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		update.setMessage(buildapi.StatusMessageInvalidOutputRef)
 		return update, err
 	}
+	pushSecret := build.Spec.Output.PushSecret
+	// Only look up a push secret if the user hasn't explicitly provided one.
+	if build.Spec.Output.PushSecret == nil && build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) > 0 {
+		var err error
+		pushSecret, err = bc.resolvePushSecretAsReference(build, ref)
+		if err != nil {
+			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
+			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
+			return update, err
+		}
+	}
 
 	// Create the build pod spec
-	buildPod, err := bc.createPodSpec(build, ref)
+	buildPod, err := bc.createPodSpec(build, ref, pushSecret)
 	if err != nil {
 		switch err.(type) {
 		case common.ErrEnvVarResolver:
@@ -484,6 +554,11 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	}
 	glog.V(4).Infof("Created pod %s/%s for build %s", build.Namespace, buildPod.Name, buildDesc(build))
 	update = transitionToPhase(buildapi.BuildPhasePending, "", "")
+
+	if pushSecret != nil {
+		update.setPushSecret(*pushSecret)
+	}
+
 	update.setPodNameAnnotation(buildPod.Name)
 	update.setOutputRef(ref)
 	return update, nil

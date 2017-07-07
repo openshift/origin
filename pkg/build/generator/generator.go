@@ -15,9 +15,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
@@ -495,7 +493,6 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	if builderSecrets, err = g.FetchServiceAccountSecrets(bcCopy.Namespace, serviceAccount); err != nil {
 		return nil, err
 	}
-	setBuildPushSecret(g.resolveImageSecret(ctx, builderSecrets, build.Spec.Output.To, bcCopy.Namespace), &build.Spec.Output)
 
 	// Resolve image source if present
 	if err = g.setBuildSourceImage(ctx, builderSecrets, bcCopy, &build.Spec.Source); err != nil {
@@ -548,7 +545,7 @@ func (g *BuildGenerator) setBuildSourceImage(ctx apirequest.Context, builderSecr
 	return nil
 }
 
-// setBaseImageAndPullSecretForBuildStrategy sets base image and pullSecret items used in buildStragety for new builds
+// setBaseImageAndPullSecretForBuildStrategy sets base image and pullSecret items used in buildStrategy for new builds
 func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx apirequest.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, strategy *buildapi.BuildStrategy) error {
 	var err error
 	var image string
@@ -738,31 +735,17 @@ func (g *BuildGenerator) resolveImageSecret(ctx apirequest.Context, secrets []ka
 	if len(secrets) == 0 || imageRef == nil {
 		return nil
 	}
-	emptyKeyring := credentialprovider.BasicDockerKeyring{}
 	// Get the image pull spec from the image stream reference
 	imageSpec, err := g.resolveImageStreamDockerRepository(ctx, *imageRef, buildNamespace)
 	if err != nil {
 		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
 		return nil
 	}
-	for _, secret := range secrets {
-		secretsv1 := make([]kapiv1.Secret, 1)
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
-		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
-			continue
-		}
-		keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, &emptyKeyring)
-		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
-			continue
-		}
-		if _, found := keyring.Lookup(imageSpec); found {
-			return &kapi.LocalObjectReference{Name: secret.Name}
-		}
+	s := buildutil.FindDockerSecretAsReference(secrets, imageSpec)
+	if s == nil {
+		glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	}
-	glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
-	return nil
+	return s
 }
 
 func resolveError(kind string, namespace string, name string, err error) error {
@@ -943,11 +926,4 @@ func setBuildAnnotationAndLabel(bcCopy *buildapi.BuildConfig, build *buildapi.Bu
 	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildConfigLabel] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
-}
-
-// setBuildPushSecret set push secret for new build
-func setBuildPushSecret(pushSecret *kapi.LocalObjectReference, output *buildapi.BuildOutput) {
-	if output.PushSecret == nil {
-		output.PushSecret = pushSecret
-	}
 }
