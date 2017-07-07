@@ -195,7 +195,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 || o.Local || kcmdutil.GetDryRunFlag(cmd) {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
+		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, o.Local, mapper, obj, o.Out) }
 	}
 
 	o.Encoder = f.JSONEncoder()

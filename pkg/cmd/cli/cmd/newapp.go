@@ -245,7 +245,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
 
-	o.Action.BindForOutput(cmd.Flags())
+	o.Action.BindForOutput(cmd.Flags(), "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd

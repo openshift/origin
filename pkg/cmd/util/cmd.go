@@ -151,7 +151,7 @@ func convertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime
 
 // VersionedPrintObject handles printing an object in the appropriate version by looking at 'output-version'
 // on the command
-func VersionedPrintObject(fn func(*cobra.Command, meta.RESTMapper, runtime.Object, io.Writer) error, c *cobra.Command, mapper meta.RESTMapper, out io.Writer) func(runtime.Object) error {
+func VersionedPrintObject(fn func(*cobra.Command, bool, meta.RESTMapper, runtime.Object, io.Writer) error, c *cobra.Command, mapper meta.RESTMapper, out io.Writer) func(runtime.Object) error {
 	return func(obj runtime.Object) error {
 		// TODO: fold into the core printer functionality (preferred output version)
 		if list, ok := obj.(*kapi.List); ok {
@@ -166,7 +166,7 @@ func VersionedPrintObject(fn func(*cobra.Command, meta.RESTMapper, runtime.Objec
 			}
 			obj = result[0]
 		}
-		return fn(c, mapper, obj, out)
+		return fn(c, false, mapper, obj, out)
 	}
 }
 
