@@ -16,8 +16,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	pconfig "k8s.io/kubernetes/pkg/proxy/config"
 )
+
+// EndpointsConfigHandler is an abstract interface of objects which receive update notifications for the set of endpoints.
+type EndpointsConfigHandler interface {
+	// OnEndpointsUpdate gets called when endpoints configuration is changed for a given
+	// service on any of the configuration sources. An example is when a new
+	// service comes up, or when containers come up or down for an existing service.
+	OnEndpointsUpdate(endpoints []*kapi.Endpoints)
+}
 
 type firewallItem struct {
 	ruleType osapi.EgressNetworkPolicyRuleType
@@ -34,7 +41,7 @@ type OsdnProxy struct {
 	osClient             *osclient.Client
 	networkInfo          *NetworkInfo
 	egressDNS            *EgressDNS
-	baseEndpointsHandler pconfig.EndpointsConfigHandler
+	baseEndpointsHandler EndpointsConfigHandler
 
 	lock         sync.Mutex
 	firewall     map[string]*proxyFirewallItem
@@ -59,7 +66,7 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclien
 	}, nil
 }
 
-func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsConfigHandler) error {
+func (proxy *OsdnProxy) Start(baseHandler EndpointsConfigHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
