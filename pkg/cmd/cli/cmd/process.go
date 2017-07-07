@@ -306,7 +306,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	}
 	objects = append(objects, resultObj.Objects...)
 
-	p, _, err := f.PrinterForCommand(cmd)
+	p, err := f.PrinterForCommand(cmd, local, nil, kprinters.PrintOptions{})
 	if err != nil {
 		return err
 	}
