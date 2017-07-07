@@ -103,6 +103,7 @@ type VolumeOptions struct {
 	Err                    io.Writer
 	Mapper                 meta.RESTMapper
 	Typer                  runtime.ObjectTyper
+	CategoryExpander       resource.CategoryExpander
 	RESTClientFactory      func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
@@ -387,6 +388,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.Err = errOut
 	v.Mapper = mapper
 	v.Typer = typer
+	v.CategoryExpander = f.CategoryExpander()
 	v.RESTClientFactory = f.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	v.Encoder = f.JSONEncoder()
@@ -425,7 +427,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 
 func (v *VolumeOptions) RunVolume(args []string) error {
 	mapper := resource.ClientMapperFunc(v.RESTClientFactory)
-	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
+	b := resource.NewBuilder(v.Mapper, v.CategoryExpander, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).

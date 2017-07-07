@@ -136,7 +136,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 	// Set up client based support.
 	mapper, typer := f.Object()
 	o.getBuilder = func() *resource.Builder {
-		return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
+		return resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder())
 	}
 
 	oClient, kClient, err := f.Clients()

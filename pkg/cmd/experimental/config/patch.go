@@ -83,7 +83,7 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return cmdutil.UsageError(cmd, fmt.Sprintf("--type must be one of %v, not %q", sets.StringKeySet(patchTypes).List(), patchTypeString))
 	}
 
-	o.Builder = resource.NewBuilder(configapiinstall.NewRESTMapper(), configapi.Scheme, resource.DisabledClientForMapping{}, configapi.Codecs.LegacyCodec())
+	o.Builder = resource.NewBuilder(configapiinstall.NewRESTMapper(), f.CategoryExpander(), configapi.Scheme, resource.DisabledClientForMapping{}, configapi.Codecs.LegacyCodec())
 
 	var err error
 	mapper, typer := f.Object()
