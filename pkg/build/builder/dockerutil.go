@@ -41,6 +41,7 @@ var (
 		"connection reset by peer",
 		"transport closed before response was received",
 		"connection refused",
+		"received unexpected HTTP status: 500 Internal Server Error",
 	}
 )
 
