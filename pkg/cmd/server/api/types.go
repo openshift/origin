@@ -82,8 +82,8 @@ var (
 		APIGroupAuthentication:    {"v1", "v1beta1"},
 		APIGroupAuthorization:     {"v1", "v1beta1"},
 		APIGroupAuthorizationRbac: {"v1beta1"},
-		APIGroupAutoscaling:       {"v1", "v2alpha1"},
-		APIGroupBatch:             {"v1", "v2alpha1"},
+		APIGroupAutoscaling:       {"v1"},
+		APIGroupBatch:             {"v1", "v2alpha1"}, // v2alpha1 has to stay on to keep cronjobs on for backwards compatibility
 		APIGroupCertificates:      {"v1beta1"},
 		APIGroupPolicy:            {"v1beta1"},
 		APIGroupStorage:           {"v1", "v1beta1"},
@@ -111,7 +111,7 @@ var (
 	KubeDefaultDisabledVersions = map[string][]string{
 		APIGroupKube:              {"v1beta3"},
 		APIGroupExtensions:        {},
-		APIGroupAutoscaling:       {},
+		APIGroupAutoscaling:       {"v2alpha1"},
 		APIGroupBatch:             {},
 		APIGroupPolicy:            {},
 		APIGroupApps:              {},

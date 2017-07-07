@@ -42,7 +42,6 @@ var expectedIndex = []string{
 	"/apis/authorization.openshift.io/v1",
 	"/apis/autoscaling",
 	"/apis/autoscaling/v1",
-	"/apis/autoscaling/v2alpha1",
 	"/apis/batch",
 	"/apis/batch/v1",
 	"/apis/batch/v2alpha1",
