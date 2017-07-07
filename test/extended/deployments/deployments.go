@@ -834,12 +834,13 @@ var _ = g.Describe("deploymentconfigs", func() {
 		g.It("should never persist more old deployments than acceptable after being observed by the controller", func() {
 			revisionHistoryLimit := 3 // as specified in the fixture
 
-			_, err := oc.Run("create").Args("-f", historyLimitedDeploymentFixture).Output()
+			dc, err := createDeploymentConfig(oc, historyLimitedDeploymentFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
+			deploymentTimeout := time.Duration(*dc.Spec.Strategy.RollingParams.TimeoutSeconds) * time.Second
 
 			iterations := 10
 			for i := 0; i < iterations; i++ {
-				o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred(),
+				o.Expect(waitForLatestCondition(oc, "history-limit", deploymentTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred(),
 					"the current deployment needs to have finished before attempting to trigger a new deployment through configuration change")
 				e2e.Logf("%02d: triggering a new deployment with config change", i)
 				out, err := oc.Run("set", "env").Args("dc/history-limit", fmt.Sprintf("A=%d", i)).Output()
@@ -849,7 +850,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred())
 			g.By("waiting for the deployment to complete")
-			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+			o.Expect(waitForLatestCondition(oc, "history-limit", deploymentTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 			o.Expect(waitForSyncedConfig(oc, "history-limit", deploymentRunTimeout)).NotTo(o.HaveOccurred(),
 				"the controller needs to have synced with the updated deployment configuration before checking that the revision history limits are being adhered to")
 			var pollErr error
@@ -877,8 +878,9 @@ var _ = g.Describe("deploymentconfigs", func() {
 				return true, nil
 			})
 			if err == wait.ErrWaitTimeout {
-				o.Expect(pollErr).NotTo(o.HaveOccurred())
+				err = pollErr
 			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
 
