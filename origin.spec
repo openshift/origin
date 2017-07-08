@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f61070d9d29de72a1063b291a25e33f2950bc910
+%global commit 2ed2b645c571c765f34eafef64cdc231eab91158
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.136 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f61070d
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.137 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2ed2b64
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.137
+Version:        3.6.138
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,26 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Jul 08 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.138-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console e52273d
+  (smunilla@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ed474b193b37dc5a206368a9843275a7fe276786 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  09e388accea5f3412c2f39581f23e779c72b5214 (eparis+openshiftbot@redhat.com)
+- UPSTREAM: 48578: run must output message on container error
+  (ffranz@redhat.com)
+- Deleted image streams are never removed from controller queue
+  (ccoleman@redhat.com)
+- UPSTREAM: 48582: Fixes oc delete ignoring --grace-period. (ffranz@redhat.com)
+- cluster up: fix host volume share creation (cewong@redhat.com)
+- Updates to the cleanup DC test (mkargaki@redhat.com)
+- Clarify what needs to be said in cherry-pick commit comments
+  (bbennett@redhat.com)
+- Separate serviceaccount and secret storage config. (vsemushi@redhat.com)
+- UPSTREAM: 47822: Separate serviceaccount and secret storage config
+  (vsemushi@redhat.com)
+
 * Fri Jul 07 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.137-1
 - Use admin commands on origin container to install router and registry
   (cewong@redhat.com)
