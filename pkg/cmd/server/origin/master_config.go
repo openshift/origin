@@ -900,14 +900,26 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 		return nil, err
 	}
 
-	storageConfig, err := kubeStorageFactory.NewConfig(kapi.Resource("serviceaccounts"))
+	storageConfigServiceAccounts, err := kubeStorageFactory.NewConfig(kapi.Resource("serviceaccounts"))
 	if err != nil {
 		return nil, err
 	}
+	storageConfigSecrets, err := kubeStorageFactory.NewConfig(kapi.Resource("secrets"))
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO: by doing this we will not be able to authenticate while a master quorum is not present - reimplement
 	// as two storages called in succession (non quorum and then quorum).
-	storageConfig.Quorum = true
-	return sacontroller.NewGetterFromStorageInterface(storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")), kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets"))), nil
+	storageConfigServiceAccounts.Quorum = true
+	storageConfigSecrets.Quorum = true
+
+	return sacontroller.NewGetterFromStorageInterface(
+		storageConfigServiceAccounts,
+		kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")),
+		storageConfigSecrets,
+		kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets")),
+	), nil
 }
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {

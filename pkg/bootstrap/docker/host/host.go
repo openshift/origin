@@ -22,10 +22,11 @@ for dir in %s; do
   fi
 done
 `
-	cmdCreateVolumesDirBindMount = "grep /var/lib/origin /rootfs/proc/1/mountinfo || " +
-		"nsenter --mount=/rootfs/proc/1/ns/mnt mount -o bind %[1]s %[1]s"
-	cmdCreateVolumesDirShare = "grep %[1]s /rootfs/proc/1/mountinfo | grep shared || " +
-		"nsenter --mount=/rootfs/proc/1/ns/mnt mount --make-shared %[1]s"
+	ensureVolumeShareCmd = `#/bin/bash
+nsenter --mount=/rootfs/proc/1/ns/mnt mkdir -p %[1]s
+grep -F %[1]s /rootfs/proc/1/mountinfo || nsenter --mount=/rootfs/proc/1/ns/mnt mount -o bind %[1]s %[1]s
+grep -F %[1]s /rootfs/proc/1/mountinfo | grep shared || nsenter --mount=/rootfs/proc/1/ns/mnt mount --make-shared %[1]s
+`
 
 	DefaultVolumesDir           = "/var/lib/origin/openshift.local.volumes"
 	DefaultConfigDir            = "/var/lib/origin/openshift.local.config"
@@ -72,11 +73,17 @@ func (h *HostHelper) CanUseNsenterMounter() (bool, error) {
 // EnsureVolumeShare ensures that the host Docker machine has a shared directory that can be used
 // for OpenShift volumes
 func (h *HostHelper) EnsureVolumeShare() error {
-	if err := h.ensureVolumesDirBindMount(); err != nil {
-		return err
-	}
-	if err := h.ensureVolumesDirShare(); err != nil {
-		return err
+	cmd := fmt.Sprintf(ensureVolumeShareCmd, h.volumesDir)
+	rc, err := h.runner().
+		Image(h.image).
+		DiscardContainer().
+		HostPid().
+		Privileged().
+		Bind("/proc:/rootfs/proc:ro").
+		Entrypoint("/bin/bash").
+		Command("-c", cmd).Run()
+	if err != nil || rc != 0 {
+		return errors.NewError("cannot create volume share").WithCause(err)
 	}
 	return nil
 }
@@ -174,35 +181,6 @@ func (h *HostHelper) EnsureHostDirectories(createVolumeShare bool) error {
 	}
 	if createVolumeShare {
 		return h.EnsureVolumeShare()
-	}
-	return nil
-}
-
-func (h *HostHelper) hostPidCmd(cmd string) (int, error) {
-	return h.runner().
-		Image(h.image).
-		DiscardContainer().
-		HostPid().
-		Privileged().
-		Bind("/proc:/rootfs/proc:ro").
-		Entrypoint("/bin/bash").
-		Command("-c", cmd).Run()
-}
-
-func (h *HostHelper) ensureVolumesDirBindMount() error {
-	cmd := fmt.Sprintf(cmdCreateVolumesDirBindMount, h.volumesDir)
-	rc, err := h.hostPidCmd(cmd)
-	if err != nil || rc != 0 {
-		return errors.NewError("cannot create volumes dir mount").WithCause(err)
-	}
-	return nil
-}
-
-func (h *HostHelper) ensureVolumesDirShare() error {
-	cmd := fmt.Sprintf(cmdCreateVolumesDirShare, h.volumesDir)
-	rc, err := h.hostPidCmd(cmd)
-	if err != nil || rc != 0 {
-		return errors.NewError("cannot create volumes dir share").WithCause(err)
 	}
 	return nil
 }

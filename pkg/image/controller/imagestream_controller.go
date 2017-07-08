@@ -125,17 +125,24 @@ func (c *ImageStreamController) processNextWorkItem() bool {
 	defer c.queue.Done(key)
 
 	stream, err := c.getByKey(key.(string))
-	if err == nil && stream != nil {
-		glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
-		if err = handleImageStream(stream, c.isNamespacer, c.notifier); err == nil {
-			c.queue.Forget(key)
-			return true
-		}
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Error syncing image stream: %v", err))
+		c.queue.AddRateLimited(key)
+		return true
+	}
+	if stream == nil {
+		c.queue.Forget(key)
+		return true
 	}
 
-	utilruntime.HandleError(fmt.Errorf("Error syncing image stream: %v", err))
-	c.queue.AddRateLimited(key)
+	glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
+	if err := handleImageStream(stream, c.isNamespacer, c.notifier); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Error syncing image stream: %v", err))
+		c.queue.AddRateLimited(key)
+		return true
+	}
 
+	c.queue.Forget(key)
 	return true
 }
 
@@ -146,14 +153,10 @@ func (c *ImageStreamController) getByKey(key string) (*imageapi.ImageStream, err
 	}
 	stream, err := c.lister.ImageStreams(namespace).Get(name)
 	if apierrs.IsNotFound(err) {
+		// TODO: this is not normal and should be refactored
 		return nil, nil
 	}
-	if err != nil {
-		glog.Infof("Unable to retrieve image stream %q from store: %v", key, err)
-		return nil, err
-	}
-
-	return stream, nil
+	return stream, err
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
