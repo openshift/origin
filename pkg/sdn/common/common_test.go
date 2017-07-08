@@ -1,4 +1,4 @@
-package plugin
+package common
 
 import (
 	"net"
@@ -73,7 +73,7 @@ func Test_checkHostNetworks(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := test.networkInfo.checkHostNetworks(hostIPNets)
+		err := test.networkInfo.CheckHostNetworks(hostIPNets)
 		if test.expectError {
 			if err == nil {
 				t.Fatalf("unexpected lack of error checking %q", test.name)
@@ -162,7 +162,7 @@ func Test_checkClusterObjects(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := test.ni.checkClusterObjects(subnets, pods, services)
+		err := test.ni.CheckClusterObjects(subnets, pods, services)
 		if err == nil {
 			if len(test.errs) > 0 {
 				t.Fatalf("test %q unexpectedly did not get an error", test.name)

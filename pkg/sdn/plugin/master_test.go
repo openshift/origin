@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 )
 
 func Test_clusterNetworkChanged(t *testing.T) {
@@ -118,10 +119,10 @@ func Test_clusterNetworkChanged(t *testing.T) {
 
 		changed, err := clusterNetworkChanged(&newCN, &origCN)
 		if changed != expectChanged {
-			t.Fatalf("unexpected result (%t instead of %t) on %q: %s -> %s", changed, expectChanged, test.name, clusterNetworkToString(&origCN), clusterNetworkToString(&newCN))
+			t.Fatalf("unexpected result (%t instead of %t) on %q: %s -> %s", changed, expectChanged, test.name, common.ClusterNetworkToString(&origCN), common.ClusterNetworkToString(&newCN))
 		}
 		if (err != nil) != test.expectError {
-			t.Fatalf("unexpected error on %q: %s -> %s: %v", test.name, clusterNetworkToString(&origCN), clusterNetworkToString(&newCN), err)
+			t.Fatalf("unexpected error on %q: %s -> %s: %v", test.name, common.ClusterNetworkToString(&origCN), common.ClusterNetworkToString(&newCN), err)
 		}
 	}
 }

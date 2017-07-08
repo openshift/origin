@@ -16,6 +16,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 	pnetid "github.com/openshift/origin/pkg/sdn/plugin/netid"
 )
 
@@ -282,8 +283,8 @@ func (master *OsdnMaster) VnidStartMaster() error {
 }
 
 func (master *OsdnMaster) watchNamespaces() {
-	RegisterSharedInformerEventHandlers(master.informers,
-		master.handleAddOrUpdateNamespace, master.handleDeleteNamespace, Namespaces)
+	common.RegisterSharedInformerEventHandlers(master.informers,
+		master.handleAddOrUpdateNamespace, master.handleDeleteNamespace, common.Namespaces)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -303,7 +304,7 @@ func (master *OsdnMaster) handleDeleteNamespace(obj interface{}) {
 }
 
 func (master *OsdnMaster) watchNetNamespaces() {
-	RunEventQueue(master.osClient, NetNamespaces, func(delta cache.Delta) error {
+	common.RunEventQueue(master.osClient, common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 

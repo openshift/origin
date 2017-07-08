@@ -14,6 +14,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 )
 
 type nodeVNIDMap struct {
@@ -175,7 +176,7 @@ func (vmap *nodeVNIDMap) Start() error {
 }
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
-	RunEventQueue(vmap.osClient, NetNamespaces, func(delta cache.Delta) error {
+	common.RunEventQueue(vmap.osClient, common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)

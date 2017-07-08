@@ -18,6 +18,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"
@@ -83,7 +84,7 @@ type OsdnNode struct {
 	kClient            kclientset.Interface
 	osClient           *osclient.Client
 	oc                 *ovsController
-	networkInfo        *NetworkInfo
+	networkInfo        *common.NetworkInfo
 	podManager         *podManager
 	localSubnetCIDR    string
 	localIP            string
@@ -95,7 +96,7 @@ type OsdnNode struct {
 	// Synchronizes operations on egressPolicies
 	egressPoliciesLock sync.Mutex
 	egressPolicies     map[uint32][]osapi.EgressNetworkPolicy
-	egressDNS          *EgressDNS
+	egressDNS          *common.EgressDNS
 
 	host             knetwork.Host
 	kubeletCniPlugin knetwork.NetworkPlugin
@@ -183,7 +184,7 @@ func NewNodePlugin(c *OsdnNodeConfig) (sdn.NodeInterface, error) {
 		iptablesSyncPeriod: c.IPTablesSyncPeriod,
 		mtu:                c.MTU,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
-		egressDNS:          NewEgressDNS(),
+		egressDNS:          common.NewEgressDNS(),
 		kubeInformers:      c.KubeInformers,
 
 		runtimeEndpoint: c.RuntimeEndpoint,
@@ -290,7 +291,7 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 
 func (node *OsdnNode) Start() error {
 	var err error
-	node.networkInfo, err = getNetworkInfo(node.osClient)
+	node.networkInfo, err = common.GetNetworkInfo(node.osClient)
 	if err != nil {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
@@ -299,7 +300,7 @@ func (node *OsdnNode) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to get host network information: %v", err)
 	}
-	if err := node.networkInfo.checkHostNetworks(hostIPNets); err != nil {
+	if err := node.networkInfo.CheckHostNetworks(hostIPNets); err != nil {
 		// checkHostNetworks() errors *should* be fatal, but we didn't used to check this, and we can't break (mostly-)working nodes on upgrade.
 		log.Errorf("Local networks conflict with SDN; this will eventually cause problems: %v", err)
 	}
@@ -443,8 +444,8 @@ func isServiceChanged(oldsvc, newsvc *kapi.Service) bool {
 }
 
 func (node *OsdnNode) watchServices() {
-	RegisterSharedInformerEventHandlers(node.kubeInformers,
-		node.handleAddOrUpdateService, node.handleDeleteService, Services)
+	common.RegisterSharedInformerEventHandlers(node.kubeInformers,
+		node.handleAddOrUpdateService, node.handleDeleteService, common.Services)
 }
 
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {

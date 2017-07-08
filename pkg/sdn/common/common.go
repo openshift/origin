@@ -1,4 +1,4 @@
-package plugin
+package common
 
 import (
 	"fmt"
@@ -23,11 +23,11 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
-func hostSubnetToString(subnet *osapi.HostSubnet) string {
+func HostSubnetToString(subnet *osapi.HostSubnet) string {
 	return fmt.Sprintf("%s (host: %q, ip: %q, subnet: %q)", subnet.Name, subnet.Host, subnet.HostIP, subnet.Subnet)
 }
 
-func clusterNetworkToString(n *osapi.ClusterNetwork) string {
+func ClusterNetworkToString(n *osapi.ClusterNetwork) string {
 	return fmt.Sprintf("%s (network: %q, hostSubnetBits: %d, serviceNetwork: %q, pluginName: %q)", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 }
 
@@ -36,7 +36,7 @@ type NetworkInfo struct {
 	ServiceNetwork *net.IPNet
 }
 
-func parseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInfo, error) {
+func ParseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInfo, error) {
 	cn, err := netutils.ParseCIDRMask(clusterNetwork)
 	if err != nil {
 		_, cn, err := net.ParseCIDR(clusterNetwork)
@@ -60,7 +60,7 @@ func parseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInf
 	}, nil
 }
 
-func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
+func (ni *NetworkInfo) ValidateNodeIP(nodeIP string) error {
 	if nodeIP == "" || nodeIP == "127.0.0.1" {
 		return fmt.Errorf("invalid node IP %q", nodeIP)
 	}
@@ -82,7 +82,7 @@ func (ni *NetworkInfo) validateNodeIP(nodeIP string) error {
 	return nil
 }
 
-func (ni *NetworkInfo) checkHostNetworks(hostIPNets []*net.IPNet) error {
+func (ni *NetworkInfo) CheckHostNetworks(hostIPNets []*net.IPNet) error {
 	errList := []error{}
 	for _, ipNet := range hostIPNets {
 		if ipNet.Contains(ni.ClusterNetwork.IP) {
@@ -101,7 +101,7 @@ func (ni *NetworkInfo) checkHostNetworks(hostIPNets []*net.IPNet) error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (ni *NetworkInfo) checkClusterObjects(subnets []osapi.HostSubnet, pods []kapi.Pod, services []kapi.Service) error {
+func (ni *NetworkInfo) CheckClusterObjects(subnets []osapi.HostSubnet, pods []kapi.Pod, services []kapi.Service) error {
 	var errList []error
 
 	for _, subnet := range subnets {
@@ -142,13 +142,13 @@ func (ni *NetworkInfo) checkClusterObjects(subnets []osapi.HostSubnet, pods []ka
 	return kerrors.NewAggregate(errList)
 }
 
-func getNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
+func GetNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
 	cn, err := osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	return parseNetworkInfo(cn.Network, cn.ServiceNetwork)
+	return ParseNetworkInfo(cn.Network, cn.ServiceNetwork)
 }
 
 type ResourceName string

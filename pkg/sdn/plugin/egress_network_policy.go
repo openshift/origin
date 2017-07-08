@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -42,7 +43,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 }
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	RunEventQueue(plugin.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
+	common.RunEventQueue(plugin.osClient, common.EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
 		vnid, err := plugin.policy.GetVNID(policy.Namespace)
@@ -99,7 +100,7 @@ func (plugin *OsdnNode) syncEgressDNSPolicyRules() {
 	go utilwait.Forever(plugin.egressDNS.Sync, 0)
 
 	for {
-		policyUpdates := <-plugin.egressDNS.updates
+		policyUpdates := <-plugin.egressDNS.Updates
 		glog.V(5).Infof("Egress dns sync: updating policy: %v", policyUpdates.UID)
 
 		vnid, err := plugin.policy.GetVNID(policyUpdates.Namespace)

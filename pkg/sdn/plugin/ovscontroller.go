@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 	"github.com/openshift/origin/pkg/util/ovs"
 
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -397,7 +398,7 @@ func policyNames(policies []osapi.EgressNetworkPolicy) string {
 	return strings.Join(names, ", ")
 }
 
-func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressNetworkPolicy, vnid uint32, namespaces []string, egressDNS *EgressDNS) error {
+func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressNetworkPolicy, vnid uint32, namespaces []string, egressDNS *common.EgressDNS) error {
 	otx := oc.ovs.NewTransaction()
 	var inputErr error
 
@@ -461,7 +462,7 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []osapi.EgressN
 		}
 
 		if dnsFound {
-			if err := CheckDNSResolver(); err != nil {
+			if err := common.CheckDNSResolver(); err != nil {
 				inputErr = fmt.Errorf("DNS resolver failed: %v, dropping all traffic for namespace: %q", err, namespaces[0])
 				otx.DeleteFlows("table=100, reg0=%d", vnid)
 				otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)

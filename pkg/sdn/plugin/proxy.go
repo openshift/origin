@@ -10,6 +10,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -46,8 +47,8 @@ type proxyEndpoints struct {
 type OsdnProxy struct {
 	kClient              kclientset.Interface
 	osClient             *osclient.Client
-	networkInfo          *NetworkInfo
-	egressDNS            *EgressDNS
+	networkInfo          *common.NetworkInfo
+	egressDNS            *common.EgressDNS
 	baseEndpointsHandler pconfig.EndpointsHandler
 
 	lock         sync.Mutex
@@ -68,7 +69,7 @@ func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclien
 		kClient:      kClient,
 		osClient:     osClient,
 		ids:          make(map[string]uint32),
-		egressDNS:    NewEgressDNS(),
+		egressDNS:    common.NewEgressDNS(),
 		firewall:     make(map[string]*proxyFirewallItem),
 		allEndpoints: make(map[ktypes.UID]*proxyEndpoints),
 	}, nil
@@ -78,7 +79,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
-	proxy.networkInfo, err = getNetworkInfo(proxy.osClient)
+	proxy.networkInfo, err = common.GetNetworkInfo(proxy.osClient)
 	if err != nil {
 		return fmt.Errorf("could not get network info: %s", err)
 	}
@@ -104,7 +105,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
 }
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
-	RunEventQueue(proxy.osClient, EgressNetworkPolicies, func(delta cache.Delta) error {
+	common.RunEventQueue(proxy.osClient, common.EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*osapi.EgressNetworkPolicy)
 
 		proxy.egressDNS.Delete(*policy)
@@ -125,7 +126,7 @@ func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 
 // TODO: Abstract common code shared between proxy and node
 func (proxy *OsdnProxy) watchNetNamespaces() {
-	RunEventQueue(proxy.osClient, NetNamespaces, func(delta cache.Delta) error {
+	common.RunEventQueue(proxy.osClient, common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*osapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 
@@ -207,7 +208,7 @@ func (proxy *OsdnProxy) updateEgressNetworkPolicy(policy osapi.EgressNetworkPoli
 	// Set active policy for the namespace
 	if ref, ok := proxy.firewall[ns]; ok {
 		if dnsFound {
-			if err := CheckDNSResolver(); err != nil {
+			if err := common.CheckDNSResolver(); err != nil {
 				ref.activePolicy = nil
 				glog.Errorf("DNS resolver failed: %v, dropping all firewall rules for namespace: %q", err, ns)
 				return
@@ -339,7 +340,7 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 	go utilwait.Forever(proxy.egressDNS.Sync, 0)
 
 	for {
-		policyUpdates := <-proxy.egressDNS.updates
+		policyUpdates := <-proxy.egressDNS.Updates
 		glog.V(5).Infof("Egress dns sync: update proxy firewall for policy: %v", policyUpdates.UID)
 
 		policy, ok := getPolicy(policyUpdates.UID, policies)

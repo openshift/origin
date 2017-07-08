@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -29,11 +30,11 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 	}
 	for _, sub := range subnets.Items {
 		subrange = append(subrange, sub.Subnet)
-		if err = master.networkInfo.validateNodeIP(sub.HostIP); err != nil {
+		if err = master.networkInfo.ValidateNodeIP(sub.HostIP); err != nil {
 			// Don't error out; just warn so the error can be corrected with 'oc'
-			log.Errorf("Failed to validate HostSubnet %s: %v", hostSubnetToString(&sub), err)
+			log.Errorf("Failed to validate HostSubnet %s: %v", common.HostSubnetToString(&sub), err)
 		} else {
-			log.Infof("Found existing HostSubnet %s", hostSubnetToString(&sub))
+			log.Infof("Found existing HostSubnet %s", common.HostSubnetToString(&sub))
 		}
 	}
 
@@ -52,7 +53,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubne
 // Returns the IP address used for hostsubnet (either the preferred or one from the otherValidAddresses) and any error
 func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations map[string]string, otherValidAddresses []kapi.NodeAddress) (string, error) {
 	// Validate node IP before proceeding
-	if err := master.networkInfo.validateNodeIP(nodeIP); err != nil {
+	if err := master.networkInfo.ValidateNodeIP(nodeIP); err != nil {
 		return "", err
 	}
 
@@ -70,7 +71,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 			if err != nil {
 				return "", fmt.Errorf("error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
-			log.Infof("Updated HostSubnet %s", hostSubnetToString(sub))
+			log.Infof("Updated HostSubnet %s", common.HostSubnetToString(sub))
 			return nodeIP, nil
 		}
 	}
@@ -93,7 +94,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 		master.subnetAllocator.ReleaseNetwork(sn)
 		return "", fmt.Errorf("error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
 	}
-	log.Infof("Created HostSubnet %s", hostSubnetToString(sub))
+	log.Infof("Created HostSubnet %s", common.HostSubnetToString(sub))
 	return nodeIP, nil
 }
 
@@ -107,7 +108,7 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 		return fmt.Errorf("error deleting subnet %v for node %q: %v", sub, nodeName, err)
 	}
 
-	log.Infof("Deleted HostSubnet %s", hostSubnetToString(sub))
+	log.Infof("Deleted HostSubnet %s", common.HostSubnetToString(sub))
 	return nil
 }
 
@@ -184,8 +185,8 @@ func GetNodeCondition(status *kapi.NodeStatus, conditionType kapi.NodeConditionT
 }
 
 func (master *OsdnMaster) watchNodes() {
-	RegisterSharedInformerEventHandlers(master.informers,
-		master.handleAddOrUpdateNode, master.handleDeleteNode, Nodes)
+	common.RegisterSharedInformerEventHandlers(master.informers,
+		master.handleAddOrUpdateNode, master.handleDeleteNode, common.Nodes)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType watch.EventType) {
@@ -230,7 +231,7 @@ func (node *OsdnNode) SubnetStartNode() error {
 // Only run on the master
 // Watch for all hostsubnet events and if one is found with the right annotation, use the SubnetAllocator to dole a real subnet
 func (master *OsdnMaster) watchSubnets() {
-	RunEventQueue(master.osClient, HostSubnets, func(delta cache.Delta) error {
+	common.RunEventQueue(master.osClient, common.HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		name := hs.ObjectMeta.Name
 		hostIP := hs.HostIP
@@ -297,7 +298,7 @@ func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 // Only run on the nodes
 func (node *OsdnNode) watchSubnets() {
 	subnets := make(hostSubnetMap)
-	RunEventQueue(node.osClient, HostSubnets, func(delta cache.Delta) error {
+	common.RunEventQueue(node.osClient, common.HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*osapi.HostSubnet)
 		if hs.HostIP == node.localIP {
 			return nil
@@ -315,7 +316,7 @@ func (node *OsdnNode) watchSubnets() {
 					node.DeleteHostSubnetRules(oldSubnet)
 				}
 			}
-			if err := node.networkInfo.validateNodeIP(hs.HostIP); err != nil {
+			if err := node.networkInfo.ValidateNodeIP(hs.HostIP); err != nil {
 				log.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
 				break
 			}

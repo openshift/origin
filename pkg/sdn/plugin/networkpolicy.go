@@ -24,6 +24,7 @@ import (
 
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 )
 
 type networkPolicyPlugin struct {
@@ -392,7 +393,7 @@ func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *ex
 }
 
 func (np *networkPolicyPlugin) watchNetworkPolicies() {
-	RunEventQueue(np.node.kClient.Extensions().RESTClient(), NetworkPolicies, func(delta cache.Delta) error {
+	common.RunEventQueue(np.node.kClient.Extensions().RESTClient(), common.NetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*extensions.NetworkPolicy)
 
 		glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", delta.Type, policy.Namespace, policy.Name)
@@ -429,8 +430,8 @@ func (np *networkPolicyPlugin) watchNetworkPolicies() {
 }
 
 func (np *networkPolicyPlugin) watchPods() {
-	RegisterSharedInformerEventHandlers(np.kubeInformers,
-		np.handleAddOrUpdatePod, np.handleDeletePod, Pods)
+	common.RegisterSharedInformerEventHandlers(np.kubeInformers,
+		np.handleAddOrUpdatePod, np.handleDeletePod, common.Pods)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventType watch.EventType) {
@@ -458,7 +459,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventTyp
 	defer np.lock.Unlock()
 
 	np.pods[pod.UID] = *pod
-	np.refreshNetworkPolicies(Pods)
+	np.refreshNetworkPolicies(common.Pods)
 }
 
 func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
@@ -474,12 +475,12 @@ func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
 	defer np.lock.Unlock()
 
 	delete(np.pods, pod.UID)
-	np.refreshNetworkPolicies(Pods)
+	np.refreshNetworkPolicies(common.Pods)
 }
 
 func (np *networkPolicyPlugin) watchNamespaces() {
-	RegisterSharedInformerEventHandlers(np.kubeInformers,
-		np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, Namespaces)
+	common.RegisterSharedInformerEventHandlers(np.kubeInformers,
+		np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, common.Namespaces)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {
@@ -490,7 +491,7 @@ func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, ev
 	defer np.lock.Unlock()
 
 	np.kNamespaces[ns.Name] = *ns
-	np.refreshNetworkPolicies(Namespaces)
+	np.refreshNetworkPolicies(common.Namespaces)
 }
 
 func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
@@ -501,15 +502,15 @@ func (np *networkPolicyPlugin) handleDeleteNamespace(obj interface{}) {
 	defer np.lock.Unlock()
 
 	delete(np.kNamespaces, ns.Name)
-	np.refreshNetworkPolicies(Namespaces)
+	np.refreshNetworkPolicies(common.Namespaces)
 }
 
-func (np *networkPolicyPlugin) refreshNetworkPolicies(watchResourceName ResourceName) {
+func (np *networkPolicyPlugin) refreshNetworkPolicies(watchResourceName common.ResourceName) {
 	for _, npns := range np.namespaces {
 		changed := false
 		for _, npp := range npns.policies {
-			if ((watchResourceName == Namespaces) && npp.watchesNamespaces) ||
-				((watchResourceName == Pods) && npp.watchesPods) {
+			if ((watchResourceName == common.Namespaces) && npp.watchesNamespaces) ||
+				((watchResourceName == common.Pods) && npp.watchesPods) {
 				if np.updateNetworkPolicy(npns, &npp.policy) {
 					changed = true
 					break

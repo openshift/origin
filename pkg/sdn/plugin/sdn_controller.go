@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn/common"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 
@@ -51,7 +52,7 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 		return "", fmt.Errorf("failed to get subnet for this host: %s, error: %v", plugin.hostName, err)
 	}
 
-	if err = plugin.networkInfo.validateNodeIP(subnet.HostIP); err != nil {
+	if err = plugin.networkInfo.ValidateNodeIP(subnet.HostIP); err != nil {
 		return "", fmt.Errorf("failed to validate own HostSubnet: %v", err)
 	}
 
@@ -201,14 +202,14 @@ func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
 }
 
 func (plugin *OsdnNode) AddHostSubnetRules(subnet *osapi.HostSubnet) {
-	glog.Infof("AddHostSubnetRules for %s", hostSubnetToString(subnet))
+	glog.Infof("AddHostSubnetRules for %s", common.HostSubnetToString(subnet))
 	if err := plugin.oc.AddHostSubnetRules(subnet); err != nil {
 		glog.Errorf("Error adding OVS flows for subnet %q: %v", subnet.Subnet, err)
 	}
 }
 
 func (plugin *OsdnNode) DeleteHostSubnetRules(subnet *osapi.HostSubnet) {
-	glog.Infof("DeleteHostSubnetRules for %s", hostSubnetToString(subnet))
+	glog.Infof("DeleteHostSubnetRules for %s", common.HostSubnetToString(subnet))
 	if err := plugin.oc.DeleteHostSubnetRules(subnet); err != nil {
 		glog.Errorf("Error deleting OVS flows for subnet %q: %v", subnet.Subnet, err)
 	}

@@ -1,4 +1,4 @@
-package plugin
+package common
 
 import (
 	"net"
@@ -30,7 +30,7 @@ type EgressDNS struct {
 	added chan bool
 
 	// Report changes when there are dns updates
-	updates chan EgressDNSUpdate
+	Updates chan EgressDNSUpdate
 }
 
 func NewEgressDNS() *EgressDNS {
@@ -38,7 +38,7 @@ func NewEgressDNS() *EgressDNS {
 		pdMap:      map[ktypes.UID]*DNS{},
 		namespaces: map[ktypes.UID]string{},
 		added:      make(chan bool),
-		updates:    make(chan EgressDNSUpdate),
+		Updates:    make(chan EgressDNSUpdate),
 	}
 }
 
@@ -100,7 +100,7 @@ func (e *EgressDNS) Sync() {
 				}
 
 				if changed {
-					e.updates <- EgressDNSUpdate{policyUID, policyNamespace}
+					e.Updates <- EgressDNSUpdate{policyUID, policyNamespace}
 				}
 				continue
 			}

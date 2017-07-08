@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	osapivalidation "github.com/openshift/origin/pkg/sdn/apis/network/validation"
+	"github.com/openshift/origin/pkg/sdn/common"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +27,7 @@ import (
 type OsdnMaster struct {
 	kClient         kclientset.Interface
 	osClient        *osclient.Client
-	networkInfo     *NetworkInfo
+	networkInfo     *common.NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
 	informers       kinternalinformers.SharedInformerFactory
@@ -50,7 +51,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	var err error
-	master.networkInfo, err = parseNetworkInfo(networkConfig.ClusterNetworkCIDR, networkConfig.ServiceNetworkCIDR)
+	master.networkInfo, err = common.ParseNetworkInfo(networkConfig.ClusterNetworkCIDR, networkConfig.ServiceNetworkCIDR)
 	if err != nil {
 		return err
 	}
@@ -85,7 +86,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 			if _, err = master.osClient.ClusterNetwork().Create(configCN); err != nil {
 				return false, err
 			}
-			log.Infof("Created ClusterNetwork %s", clusterNetworkToString(configCN))
+			log.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 
 			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
 				log.Errorf("WARNING: cluster contains objects incompatible with new ClusterNetwork: %v", err)
@@ -101,9 +102,9 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 				if _, err = master.osClient.ClusterNetwork().Update(configCN); err != nil {
 					return false, err
 				}
-				log.Infof("Updated ClusterNetwork %s", clusterNetworkToString(configCN))
+				log.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 			} else {
-				log.V(5).Infof("No change to ClusterNetwork %s", clusterNetworkToString(configCN))
+				log.V(5).Infof("No change to ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 			}
 		}
 
@@ -141,7 +142,7 @@ func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
 	if err != nil {
 		return err
 	}
-	return master.networkInfo.checkHostNetworks(hostIPNets)
+	return master.networkInfo.CheckHostNetworks(hostIPNets)
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
@@ -158,7 +159,7 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 		services = serviceList.Items
 	}
 
-	return master.networkInfo.checkClusterObjects(subnets, pods, services)
+	return master.networkInfo.CheckClusterObjects(subnets, pods, services)
 }
 
 func clusterNetworkChanged(obj *osapi.ClusterNetwork, old *osapi.ClusterNetwork) (bool, error) {
