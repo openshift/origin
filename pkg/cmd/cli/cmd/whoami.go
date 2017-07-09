@@ -11,7 +11,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
@@ -30,7 +30,7 @@ type WhoAmIOptions struct {
 	Out io.Writer
 }
 
-func NewCmdWhoAmI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdWhoAmI(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &WhoAmIOptions{}
 
 	cmd := &cobra.Command{
@@ -59,7 +59,7 @@ func (o WhoAmIOptions) WhoAmI() (*userapi.User, error) {
 	return me, err
 }
 
-func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string, o *WhoAmIOptions) error {
+func RunWhoAmI(f factory.Interface, out io.Writer, cmd *cobra.Command, args []string, o *WhoAmIOptions) error {
 	if kcmdutil.GetFlagBool(cmd, "show-token") {
 		cfg, err := f.OpenShiftClientConfig().ClientConfig()
 		if err != nil {

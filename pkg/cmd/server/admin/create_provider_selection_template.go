@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/server/selectprovider"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const CreateProviderSelectionTemplateCommand = "create-provider-selection-template"
@@ -33,7 +33,7 @@ var providerSelectionLongDescription = templates.LongDesc(`
 
 type CreateProviderSelectionTemplateOptions struct{}
 
-func NewCommandCreateProviderSelectionTemplate(f *clientcmd.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
+func NewCommandCreateProviderSelectionTemplate(f factory.Interface, commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateProviderSelectionTemplateOptions{}
 
 	cmd := &cobra.Command{

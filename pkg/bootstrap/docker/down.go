@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const CmdDownRecommendedName = "down"
@@ -38,7 +38,7 @@ type ClientStopConfig struct {
 }
 
 // NewCmdDown creates a command that stops OpenShift
-func NewCmdDown(name, fullName string, f *osclientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdDown(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	config := &ClientStopConfig{}
 	cmd := &cobra.Command{
 		Use:     name,

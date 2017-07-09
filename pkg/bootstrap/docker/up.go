@@ -35,7 +35,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 )
 
@@ -131,7 +131,7 @@ var (
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
-func NewCmdUp(name, fullName string, f *osclientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdUp(name, fullName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	config := &ClientStartConfig{
 		CommonStartConfig: CommonStartConfig{
 			Out:                 out,
@@ -220,8 +220,8 @@ type CommonStartConfig struct {
 	dockerHelper    *dockerhelper.Helper
 	hostHelper      *host.HostHelper
 	openshiftHelper *openshift.Helper
-	factory         *clientcmd.Factory
-	originalFactory *clientcmd.Factory
+	factory         factory.Interface
+	originalFactory factory.Interface
 	command         *cobra.Command
 
 	usingDefaultImages         bool
@@ -300,7 +300,7 @@ func (config *ClientStartConfig) Bind(flags *pflag.FlagSet) {
 	config.CommonStartConfig.Bind(flags)
 }
 
-func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
+func (c *CommonStartConfig) Complete(f factory.Interface, cmd *cobra.Command) error {
 	c.originalFactory = f
 	c.command = cmd
 
@@ -369,7 +369,7 @@ func (c *CommonStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 }
 
 // Complete initializes fields based on command parameters and execution environment
-func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
+func (c *ClientStartConfig) Complete(f factory.Interface, cmd *cobra.Command) error {
 	if err := c.CommonStartConfig.Complete(f, cmd); err != nil {
 		return err
 	}
@@ -1159,7 +1159,7 @@ func (c *ClientStartConfig) checkProxySettings() string {
 }
 
 // Factory returns a command factory that works with OpenShift server's admin credentials
-func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
+func (c *ClientStartConfig) Factory() (factory.Interface, error) {
 	if c.factory == nil {
 		cfg, err := kclientcmd.LoadFromFile(filepath.Join(c.LocalConfigDir, "master", "admin.kubeconfig"))
 		if err != nil {

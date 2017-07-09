@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/server/login"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const CreateLoginTemplateCommand = "create-login-template"
@@ -33,7 +33,7 @@ var longDescription = templates.LongDesc(`
 
 type CreateLoginTemplateOptions struct{}
 
-func NewCommandCreateLoginTemplate(f *clientcmd.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
+func NewCommandCreateLoginTemplate(f factory.Interface, commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateLoginTemplateOptions{}
 
 	cmd := &cobra.Command{

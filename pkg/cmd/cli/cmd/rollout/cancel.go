@@ -15,7 +15,7 @@ import (
 
 	units "github.com/docker/go-units"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
@@ -53,7 +53,7 @@ event will be emitted.`)
   %[1]s rollout cancel dc/nginx`)
 )
 
-func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutCancel(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	opts := &CancelOptions{}
 	cmd := &cobra.Command{
 		Use:     "cancel (TYPE NAME | TYPE/NAME) [flags]",
@@ -70,7 +70,7 @@ func NewCmdRolloutCancel(fullName string, f *clientcmd.Factory, out io.Writer) *
 	return cmd
 }
 
-func (o *CancelOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+func (o *CancelOptions) Complete(f factory.Interface, cmd *cobra.Command, out io.Writer, args []string) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}

@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
@@ -222,7 +222,7 @@ var (
 	  %[1]s describe is ruby-centos7`)
 )
 
-func NewCmdTypes(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdTypes(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	buf := &bytes.Buffer{}
 	for _, c := range concepts {
 		writeConcept(buf, c)

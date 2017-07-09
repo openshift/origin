@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/server/errorpage"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const CreateErrorTemplateCommand = "create-error-template"
@@ -32,7 +32,7 @@ var errorLongDescription = templates.LongDesc(`
 
 type CreateErrorTemplateOptions struct{}
 
-func NewCommandCreateErrorTemplate(f *clientcmd.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
+func NewCommandCreateErrorTemplate(f factory.Interface, commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateErrorTemplateOptions{}
 
 	cmd := &cobra.Command{

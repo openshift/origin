@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	netutil "github.com/openshift/origin/pkg/diagnostics/networkpod/util"
@@ -48,7 +49,7 @@ type DiagnosticsOptions struct {
 	// creates flags as a byproduct, most of which we don't want.
 	// The command creates these and binds only the flags we want.
 	ClientFlags *flag.FlagSet
-	Factory     *osclientcmd.Factory
+	Factory     factory.Interface
 	// LogOptions determine globally what the user wants to see and how.
 	LogOptions *log.LoggerOptions
 	// The Logger is built with the options and should be used for all diagnostic output.

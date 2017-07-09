@@ -17,6 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // MigrateVisitFunc is invoked for each returned object, and may return a
@@ -91,7 +92,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 	c.MarkFlagRequired("filename")
 }
 
-func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
+func (o *ResourceOptions) Complete(f factory.Interface, c *cobra.Command) error {
 	switch {
 	case len(o.Output) > 0:
 		printer, _, err := f.PrinterForCommand(c)

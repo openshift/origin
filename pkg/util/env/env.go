@@ -3,13 +3,13 @@ package env
 import (
 	"fmt"
 
+	"github.com/openshift/origin/pkg/cmd/util/factory"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/fieldpath"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // ResourceStore defines a new resource store data structure
@@ -72,7 +72,7 @@ func getResourceFieldRef(from *kapi.EnvVarSource, c *kapi.Container) (string, er
 }
 
 // GenEnvVarRefValue returns the value referenced by the supplied EnvVarSource given the other supplied information
-func GetEnvVarRefValue(f *clientcmd.Factory, kc kclientset.Interface, ns string, store *ResourceStore, from *kapi.EnvVarSource, obj runtime.Object, c *kapi.Container) (string, error) {
+func GetEnvVarRefValue(f factory.Interface, kc kclientset.Interface, ns string, store *ResourceStore, from *kapi.EnvVarSource, obj runtime.Object, c *kapi.Container) (string, error) {
 	var kubeClient kclientset.Interface
 	var namespace string
 	var err error
@@ -90,7 +90,7 @@ func GetEnvVarRefValue(f *clientcmd.Factory, kc kclientset.Interface, ns string,
 		kubeClient = kc
 		namespace = ns
 	} else {
-		return "", fmt.Errorf("You must supply either a clientcmd.Factory or kclientset.Interface")
+		return "", fmt.Errorf("You must supply either a factory.Interface or kclientset.Interface")
 	}
 
 	if from.SecretKeyRef != nil {

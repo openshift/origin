@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
 	"github.com/spf13/cobra"
 )
@@ -47,7 +47,7 @@ type MigrateAuthorizationOptions struct {
 	rbac rbacinternalversion.RbacInterface
 }
 
-func NewCmdMigrateAuthorization(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateAuthorization(name, fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateAuthorizationOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			In:            in,
@@ -75,7 +75,7 @@ func NewCmdMigrateAuthorization(name, fullName string, f *clientcmd.Factory, in 
 	return cmd
 }
 
-func (o *MigrateAuthorizationOptions) Complete(name string, f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateAuthorizationOptions) Complete(name string, f factory.Interface, c *cobra.Command, args []string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("%s takes no positional arguments", name)
 	}

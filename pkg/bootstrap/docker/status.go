@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // CmdStatusRecommendedName is the recommended command name
@@ -41,7 +41,7 @@ var (
 )
 
 // NewCmdStatus implements the OpenShift cluster status command.
-func NewCmdStatus(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdStatus(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	config := &ClientStatusConfig{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -68,7 +68,7 @@ type ClientStatusConfig struct {
 }
 
 // Status prints the OpenShift cluster status
-func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
+func (c *ClientStatusConfig) Status(f factory.Interface, out io.Writer) error {
 	dockerClient, err := getDockerClient(out, c.DockerMachine, false)
 	if err != nil {
 		return errors.ErrNoDockerClient(err)
@@ -175,7 +175,7 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 	return nil
 }
 
-func isHealthy(f *clientcmd.Factory) (bool, error) {
+func isHealthy(f factory.Interface) (bool, error) {
 	osClient, _, err := f.Clients()
 	if err != nil {
 		return false, err

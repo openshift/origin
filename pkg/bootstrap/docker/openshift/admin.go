@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 )
@@ -37,7 +38,7 @@ const (
 )
 
 // InstallRegistry checks whether a registry is installed and installs one if not already installed
-func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, pvDir string, out, errout io.Writer) error {
+func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f factory.Interface, configDir, images, pvDir string, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcDockerRegistry, metav1.GetOptions{})
 	if err == nil {
 		// If there's no error, the registry already exists
@@ -96,7 +97,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 }
 
 // InstallRouter installs a default router on the OpenShift server
-func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Factory, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
+func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f factory.Interface, configDir, images, hostIP string, portForwarding bool, out, errout io.Writer) error {
 	_, err := kubeClient.Core().Services(DefaultNamespace).Get(SvcRouter, metav1.GetOptions{})
 	if err == nil {
 		// Router service already exists, nothing to do

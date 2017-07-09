@@ -21,7 +21,7 @@ import (
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
@@ -64,7 +64,7 @@ type sccReviewOptions struct {
 	shortServiceAccountNames []string // it contains only short sa name for example 'bob'
 }
 
-func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSccReview(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &sccReviewOptions{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -83,7 +83,7 @@ func NewCmdSccReview(name, fullName string, f *clientcmd.Factory, out io.Writer)
 	return cmd
 }
 
-func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
+func (o *sccReviewOptions) Complete(f factory.Interface, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}

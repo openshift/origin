@@ -20,7 +20,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
@@ -74,7 +74,7 @@ var (
 )
 
 // NewCmdReconcileClusterRoleBindings implements the OpenShift cli reconcile-cluster-role-bindings command
-func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Factory, out, err io.Writer) *cobra.Command {
+func NewCmdReconcileClusterRoleBindings(name, fullName string, f factory.Interface, out, err io.Writer) *cobra.Command {
 	o := &ReconcileClusterRoleBindingsOptions{
 		Out:   out,
 		Err:   err,
@@ -115,7 +115,7 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 	return cmd
 }
 
-func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, excludeUsers, excludeGroups []string) error {
+func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string, excludeUsers, excludeGroups []string) error {
 	oclient, _, err := f.Clients()
 	if err != nil {
 		return err
@@ -152,7 +152,7 @@ func (o *ReconcileClusterRoleBindingsOptions) Validate() error {
 	return nil
 }
 
-func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cmd *cobra.Command, f factory.Interface) error {
 	changedClusterRoleBindings, fetchErr := o.ChangedClusterRoleBindings()
 	if fetchErr != nil && !IsClusterRoleBindingLookupError(fetchErr) {
 		// we got an error that isn't due to a partial match, so we can't continue

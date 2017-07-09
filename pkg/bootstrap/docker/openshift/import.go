@@ -9,12 +9,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/bootstrap"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // ImportObjects imports objects into OpenShift from a particular location
 // into a given namespace
-func ImportObjects(f *clientcmd.Factory, ns, location string) error {
+func ImportObjects(f factory.Interface, ns, location string) error {
 	mapper, typer := f.Object()
 	schema, err := f.Validator(false, "")
 	if err != nil {

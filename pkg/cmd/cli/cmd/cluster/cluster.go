@@ -9,7 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/bootstrap/docker"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const ClusterRecommendedName = "cluster"
@@ -36,7 +36,7 @@ var (
 		routing suffix, use the --routing-suffix flag.`)
 )
 
-func NewCmdCluster(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdCluster(name, fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   fmt.Sprintf("%s ACTION", name),

@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/build/prune"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const PruneBuildsRecommendedName = "builds"
@@ -52,7 +52,7 @@ type PruneBuildsOptions struct {
 }
 
 // NewCmdPruneBuilds implements the OpenShift cli prune builds command.
-func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneBuilds(f factory.Interface, parentName, name string, out io.Writer) *cobra.Command {
 	opts := &PruneBuildsOptions{
 		Confirm:         false,
 		Orphans:         false,
@@ -83,7 +83,7 @@ func NewCmdPruneBuilds(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 // Complete turns a partially defined PruneBuildsOptions into a solvent structure
 // which can be validated and used for pruning builds.
-func (o *PruneBuildsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *PruneBuildsOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}

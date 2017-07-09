@@ -10,7 +10,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
@@ -34,7 +34,7 @@ type IsolateOptions struct {
 	Options *ProjectOptions
 }
 
-func NewCmdIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdIsolateProjectsNetwork(commandName, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	opts := &ProjectOptions{}
 	isolateOp := &IsolateOptions{Options: opts}
 

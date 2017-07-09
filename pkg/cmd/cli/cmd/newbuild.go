@@ -14,7 +14,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newapp "github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
@@ -84,7 +84,7 @@ type NewBuildOptions struct {
 }
 
 // NewCmdNewBuild implements the OpenShift cli new-build command
-func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdNewBuild(name, baseName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	config := newcmd.NewAppConfig()
 	config.ExpectToBuild = true
 	o := &NewBuildOptions{ObjectGeneratorOptions: &ObjectGeneratorOptions{Config: config}}
@@ -141,7 +141,7 @@ func NewCmdNewBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, o
 }
 
 // Complete sets any default behavior for the command
-func (o *NewBuildOptions) Complete(baseName, commandName string, f *clientcmd.Factory, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *NewBuildOptions) Complete(baseName, commandName string, f factory.Interface, c *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	bo := o.ObjectGeneratorOptions
 	err := bo.Complete(baseName, commandName, f, c, args, in, out, errout)
 	if err != nil {

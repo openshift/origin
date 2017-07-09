@@ -19,7 +19,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const CanIRecommendedName = "can-i"
@@ -44,7 +44,7 @@ type canIOptions struct {
 	Out io.Writer
 }
 
-func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCanI(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &canIOptions{
 		Out: out,
 	}
@@ -90,7 +90,7 @@ const (
 	tabwriterFlags    = 0
 )
 
-func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
+func (o *canIOptions) Complete(f factory.Interface, args []string) error {
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")
 	}

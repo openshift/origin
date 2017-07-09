@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 )
 
 // InstallLoggingViaAnsible checks whether logging is installed and installs it if not already installed
-func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
+func (h *Helper) InstallLoggingViaAnsible(f factory.Interface, serverIP, publicHostname, loggerHost, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
 	_, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -56,7 +57,7 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, public
 }
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
-func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
+func (h *Helper) InstallLogging(f factory.Interface, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())

@@ -17,7 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 )
 
@@ -47,7 +47,7 @@ type CreateClusterQuotaOptions struct {
 }
 
 // NewCmdCreateClusterQuota is a macro command to create a new cluster quota.
-func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateClusterQuota(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &CreateClusterQuotaOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -71,7 +71,7 @@ func NewCmdCreateClusterQuota(name, fullName string, f *clientcmd.Factory, out i
 	return cmd
 }
 
-func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("NAME is required: %v", args)
 	}

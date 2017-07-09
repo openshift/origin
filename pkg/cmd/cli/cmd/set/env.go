@@ -21,7 +21,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	envutil "github.com/openshift/origin/pkg/util/env"
 )
 
@@ -110,7 +110,7 @@ type EnvOptions struct {
 }
 
 // NewCmdEnv implements the OpenShift cli env command
-func NewCmdEnv(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdEnv(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &EnvOptions{
 		Out: out,
 		Err: errout,
@@ -166,7 +166,7 @@ func keyToEnvName(key string) string {
 	return strings.ToUpper(validEnvNameRegexp.ReplaceAllString(key, "_"))
 }
 
-func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *EnvOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	resources, envArgs, ok := cmdutil.SplitEnvironmentFromResources(args)
 	if !ok {
 		return kcmdutil.UsageError(o.Cmd, "all resources must be specified before environment changes: %s", strings.Join(args, " "))
@@ -201,7 +201,7 @@ func (o *EnvOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 
 // RunEnv contains all the necessary functionality for the OpenShift cli env command
 // TODO: refactor to share the common "patch resource" pattern of probe
-func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
+func (o *EnvOptions) RunEnv(f factory.Interface) error {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return err

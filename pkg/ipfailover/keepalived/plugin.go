@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/ipfailover"
@@ -19,12 +19,12 @@ import (
 // KeepalivedPlugin is an IP Failover configurator plugin for keepalived sidecar.
 type KeepalivedPlugin struct {
 	Name    string
-	Factory *clientcmd.Factory
+	Factory factory.Interface
 	Options *ipfailover.IPFailoverConfigCmdOptions
 }
 
 // NewIPFailoverConfiguratorPlugin creates a new IPFailoverConfigurator (keepalived) plugin instance.
-func NewIPFailoverConfiguratorPlugin(name string, f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions) (*KeepalivedPlugin, error) {
+func NewIPFailoverConfiguratorPlugin(name string, f factory.Interface, options *ipfailover.IPFailoverConfigCmdOptions) (*KeepalivedPlugin, error) {
 	glog.V(4).Infof("Creating new KeepAlived plugin: %q", name)
 
 	p := &KeepalivedPlugin{

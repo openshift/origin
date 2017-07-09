@@ -8,7 +8,7 @@ import (
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
@@ -19,7 +19,7 @@ type CreateBootstrapProjectTemplateOptions struct {
 	Name string
 }
 
-func NewCommandCreateBootstrapProjectTemplate(f *clientcmd.Factory, commandName string, fullName string, out io.Writer) *cobra.Command {
+func NewCommandCreateBootstrapProjectTemplate(f factory.Interface, commandName string, fullName string, out io.Writer) *cobra.Command {
 	options := &CreateBootstrapProjectTemplateOptions{}
 
 	cmd := &cobra.Command{

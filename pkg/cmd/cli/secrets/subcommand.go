@@ -8,7 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const SecretsRecommendedName = "secrets"
@@ -35,7 +35,7 @@ var (
     Docker registries.`)
 )
 
-func NewCmdSecrets(name, fullName string, f *clientcmd.Factory, reader io.Reader, out, errOut io.Writer, ocEditFullName string) *cobra.Command {
+func NewCmdSecrets(name, fullName string, f factory.Interface, reader io.Reader, out, errOut io.Writer, ocEditFullName string) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:     name,

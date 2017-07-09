@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -25,7 +25,7 @@ type DiagnosticPod struct {
 	KubeClient          kclientset.Interface
 	Namespace           string
 	Level               int
-	Factory             *osclientcmd.Factory
+	Factory             factory.Interface
 	PreventModification bool
 	ImageTemplate       variable.ImageTemplate
 }

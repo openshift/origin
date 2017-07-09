@@ -14,7 +14,7 @@ import (
 	loginutil "github.com/openshift/origin/pkg/cmd/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
 )
 
@@ -61,7 +61,7 @@ type StatusOptions struct {
 
 // NewCmdStatus implements the OpenShift cli status command.
 // baseCLIName is the path from root cmd to the parent of this cmd.
-func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdStatus(name, baseCLIName, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	opts := &StatusOptions{}
 
 	cmd := &cobra.Command{
@@ -90,7 +90,7 @@ func NewCmdStatus(name, baseCLIName, fullName string, f *clientcmd.Factory, out 
 }
 
 // Complete completes the options for the Openshift cli status command.
-func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseCLIName string, args []string, out io.Writer) error {
+func (o *StatusOptions) Complete(f factory.Interface, cmd *cobra.Command, baseCLIName string, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "no arguments should be provided")
 	}

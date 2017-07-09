@@ -20,7 +20,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 var (
@@ -114,7 +114,7 @@ type ProbeOptions struct {
 }
 
 // NewCmdProbe implements the set probe command
-func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdProbe(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	options := &ProbeOptions{
 		Out: out,
 		Err: errOut,
@@ -164,7 +164,7 @@ func NewCmdProbe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *
 	return cmd
 }
 
-func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *ProbeOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	resources := args
 	if i := cmd.ArgsLenAtDash(); i != -1 {
 		resources = args[:i]
