@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rollout"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/rsync"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/set"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/sa"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
@@ -197,7 +198,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	cmds.AddCommand(experimental)
 
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{PrintClientFeatures: true}))
+		cmds.AddCommand(version.NewCmdVersion(fullName, f, out, version.VersionOptions{PrintClientFeatures: true}))
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(out))
 
