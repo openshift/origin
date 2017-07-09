@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"runtime"
-	"strings"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -26,7 +24,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/policy"
 	"github.com/openshift/origin/pkg/cmd/cli/sa"
 	"github.com/openshift/origin/pkg/cmd/cli/secrets"
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -275,16 +272,8 @@ func NewCmdKubectl(name string, out io.Writer) *cobra.Command {
 
 // CommandFor returns the appropriate command for this base name,
 // or the OpenShift CLI command.
-func CommandFor(basename string) *cobra.Command {
+func CommandFor(basename string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	var cmd *cobra.Command
-
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
-
-	// Make case-insensitive and strip executable suffix if present
-	if runtime.GOOS == "windows" {
-		basename = strings.ToLower(basename)
-		basename = strings.TrimSuffix(basename, ".exe")
-	}
 
 	switch basename {
 	case "kubectl":
@@ -292,11 +281,6 @@ func CommandFor(basename string) *cobra.Command {
 	default:
 		cmd = NewCommandCLI("oc", "oc", in, out, errout)
 	}
-
-	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd, []string{"options"})
-	}
-	flagtypes.GLog(cmd.PersistentFlags())
 
 	return cmd
 }
