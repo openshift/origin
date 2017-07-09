@@ -34,6 +34,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	"github.com/openshift/origin/pkg/security/legacyclient"
@@ -42,11 +43,11 @@ import (
 )
 
 type ring1Factory struct {
-	clientAccessFactory      ClientAccessFactory
+	clientAccessFactory      factory.ClientAccess
 	kubeObjectMappingFactory kcmdutil.ObjectMappingFactory
 }
 
-func NewObjectMappingFactory(clientAccessFactory ClientAccessFactory) kcmdutil.ObjectMappingFactory {
+func NewObjectMappingFactory(clientAccessFactory factory.ClientAccess) kcmdutil.ObjectMappingFactory {
 	return &ring1Factory{
 		clientAccessFactory:      clientAccessFactory,
 		kubeObjectMappingFactory: kcmdutil.NewObjectMappingFactory(clientAccessFactory),
