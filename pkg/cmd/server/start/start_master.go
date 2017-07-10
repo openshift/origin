@@ -519,6 +519,7 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
+		kubeMasterConfig.Master.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
 
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
@@ -729,6 +730,13 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 		return false, nil
 	})
 	if err != nil {
+		return err
+	}
+
+	//  the service account passed for the recyclable volume plugins needs to exist.  We want to do this via the init function, but its a kube init function
+	// for the rebase, create that service account here
+	// TODO make this a lot cleaner
+	if _, err := controllerContext.ClientBuilder.Client(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName); err != nil {
 		return err
 	}
 
