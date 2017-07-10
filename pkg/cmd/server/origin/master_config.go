@@ -21,6 +21,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
@@ -35,6 +36,8 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	kubeclientgoinformers "k8s.io/client-go/informers"
+	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/cert"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -70,6 +73,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	kubecontrollers "github.com/openshift/origin/pkg/cmd/server/kubernetes/master/controller"
+	admissionregistry "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -177,6 +181,7 @@ type MasterConfig struct {
 	// TODO inspect uses to eliminate them
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
 	ExternalKubeInformers  kinformers.SharedInformerFactory
+	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
 	AppInformers           appinformer.SharedInformerFactory
 	BuildInformers         buildinformer.SharedInformerFactory
@@ -189,6 +194,7 @@ type MasterConfig struct {
 type InformerAccess interface {
 	GetInternalKubeInformers() kinternalinformers.SharedInformerFactory
 	GetExternalKubeInformers() kinformers.SharedInformerFactory
+	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
 	GetAppInformers() appinformer.SharedInformerFactory
 	GetBuildInformers() buildinformer.SharedInformerFactory
@@ -224,6 +230,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		return nil, err
 	}
 	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	if err != nil {
+		return nil, err
+	}
+	kubeClientGoClientSet, err := kubeclientgoclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -272,21 +282,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		informers.GetAuthorizationInformers().Authorization().InternalVersion(),
 		options.ProjectConfig.ProjectRequestMessage)
 
-	pluginInitializer := oadmission.PluginInitializer{
-		OpenshiftClient:              privilegedLoopbackOpenShiftClient,
-		ProjectCache:                 projectCache,
-		OriginQuotaRegistry:          quotaRegistry,
-		Authorizer:                   authorizer,
-		JenkinsPipelineConfig:        options.JenkinsPipelineConfig,
-		RESTClientConfig:             *privilegedLoopbackClientConfig,
-		Informers:                    informers.GetInternalKubeInformers(),
-		ClusterResourceQuotaInformer: informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
-		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
-		DefaultRegistryFn:            imageapi.DefaultRegistryFunc(defaultRegistryFunc),
-		GroupCache:                   groupCache,
-		SecurityInformers:            informers.GetSecurityInformers(),
-	}
-
 	// punch through layers to build this in order to get a string for a cloud provider file
 	// TODO refactor us into a forward building flow with a side channel like this
 	kubeOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
@@ -303,8 +298,36 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		}
 	}
 	// note: we are passing a combined quota registry here...
-	kubePluginInitializer := kadmission.NewPluginInitializer(privilegedLoopbackKubeClientsetInternal, informers.GetInternalKubeInformers(), authorizer, cloudConfig, quotaRegistry)
-	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientsetInternal, pluginInitializer, kubePluginInitializer)
+	genericInitializer, err := initializer.New(kubeClientGoClientSet, informers.GetClientGoKubeInformers(), authorizer)
+	if err != nil {
+		return nil, err
+	}
+	kubePluginInitializer := kadmission.NewPluginInitializer(
+		privilegedLoopbackKubeClientsetInternal,
+		privilegedLoopbackKubeClientsetExternal,
+		informers.GetInternalKubeInformers(),
+		authorizer,
+		cloudConfig,
+		// TODO: use a dynamic restmapper. See https://github.com/kubernetes/kubernetes/pull/42615.
+		kapi.Registry.RESTMapper(),
+		quotaRegistry)
+	openshiftPluginInitializer := &oadmission.PluginInitializer{
+		OpenshiftClient:              privilegedLoopbackOpenShiftClient,
+		ProjectCache:                 projectCache,
+		OriginQuotaRegistry:          quotaRegistry,
+		Authorizer:                   authorizer,
+		JenkinsPipelineConfig:        options.JenkinsPipelineConfig,
+		RESTClientConfig:             *privilegedLoopbackClientConfig,
+		Informers:                    informers.GetInternalKubeInformers(),
+		ClusterResourceQuotaInformer: informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
+		DefaultRegistryFn:            imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+		GroupCache:                   groupCache,
+		SecurityInformers:            informers.GetSecurityInformers(),
+	}
+	initializersChain := admission.PluginInitializers{genericInitializer, kubePluginInitializer, openshiftPluginInitializer}
+
+	originAdmission, kubeAdmission, err := buildAdmissionChains(options, privilegedLoopbackKubeClientsetInternal, initializersChain)
 	if err != nil {
 		return nil, err
 	}
@@ -362,8 +385,9 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		PrivilegedLoopbackKubernetesClientsetInternal: privilegedLoopbackKubeClientsetInternal,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
-		ExternalKubeInformers:  informers.GetExternalKubeInformers(),
 		InternalKubeInformers:  informers.GetInternalKubeInformers(),
+		ExternalKubeInformers:  informers.GetExternalKubeInformers(),
+		ClientGoKubeInformers:  informers.GetClientGoKubeInformers(),
 		AppInformers:           informers.GetAppInformers(),
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
 		BuildInformers:         informers.GetBuildInformers(),
@@ -694,7 +718,7 @@ func fixupAdmissionPlugins(plugins []string) []string {
 	return result
 }
 
-func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclientsetinternal.Interface, pluginInitializer oadmission.PluginInitializer, kubePluginInitializer admission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
+func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclientsetinternal.Interface, admissionInitializer admission.PluginInitializer) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
 	// check to see if they've taken explicit control of the kube admission chain
 	// this happens when any of the following are true:
 	// 1. extended kube server args are used to change the admission plugin list
@@ -745,14 +769,14 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclients
 		var kubeAdmission admission.Interface
 		if options.KubernetesMasterConfig != nil {
 			var err error
-			kubeAdmission, err = newAdmissionChainFunc(KubeAdmissionPlugins, kubeAdmissionPluginConfigFilename, options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, options, kubeClientSet, pluginInitializer, kubePluginInitializer)
+			kubeAdmission, err = newAdmissionChainFunc(KubeAdmissionPlugins, kubeAdmissionPluginConfigFilename, options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, options, kubeClientSet, admissionInitializer)
 			if err != nil {
 				return nil, nil, err
 			}
 		}
 
 		// build openshift admission
-		openshiftAdmission, err := newAdmissionChainFunc(openshiftAdmissionPlugins, "", options.AdmissionConfig.PluginConfig, options, kubeClientSet, pluginInitializer, kubePluginInitializer)
+		openshiftAdmission, err := newAdmissionChainFunc(openshiftAdmissionPlugins, "", options.AdmissionConfig.PluginConfig, options, kubeClientSet, admissionInitializer)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -771,7 +795,7 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclients
 		pluginConfig[pluginName] = config
 	}
 
-	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, pluginInitializer, kubePluginInitializer)
+	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, admissionInitializer)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -782,9 +806,8 @@ func buildAdmissionChains(options configapi.MasterConfig, kubeClientSet kclients
 // newAdmissionChainFunc is for unit testing only.  You should NEVER OVERRIDE THIS outside of a unit test.
 var newAdmissionChainFunc = newAdmissionChain
 
-func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientsetinternal.Interface, pluginInitializer oadmission.PluginInitializer, kubePluginInitializer admission.PluginInitializer) (admission.Interface, error) {
+func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientsetinternal.Interface, admissionInitializer admission.PluginInitializer) (admission.Interface, error) {
 	plugins := []admission.Interface{}
-	allPluginInitializers := admission.PluginInitializers([]admission.PluginInitializer{kubePluginInitializer, &pluginInitializer})
 	for _, pluginName := range pluginNames {
 		var (
 			plugin             admission.Interface
@@ -805,7 +828,10 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if err != nil {
 				return nil, err
 			}
-			lc.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kubeClientSet)
+			admissionInitializer.Initialize(lc)
+			if err := lc.(admission.Validator).Validate(); err != nil {
+				return nil, err
+			}
 			plugin = lc
 
 		case serviceadmit.ExternalIPPluginName:
@@ -850,7 +876,8 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if err != nil {
 				return nil, err
 			}
-			plugin, err = admission.InitPlugin(pluginName, pluginConfigReader, allPluginInitializers)
+
+			plugin, err = admissionregistry.OriginAdmissionPlugins.InitPlugin(pluginName, pluginConfigReader, admissionInitializer)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err
@@ -866,7 +893,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 		plugins = append(plugins, plugin)
 
 		if !skipInitialization {
-			allPluginInitializers.Initialize(plugin)
+			admissionInitializer.Initialize(plugin)
 		}
 	}
 
@@ -907,7 +934,7 @@ func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccoun
 	// TODO: by doing this we will not be able to authenticate while a master quorum is not present - reimplement
 	// as two storages called in succession (non quorum and then quorum).
 	storageConfig.Quorum = true
-	return sacontroller.NewGetterFromStorageInterface(storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")), kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets"))), nil
+	return sacontroller.NewGetterFromStorageInterface(storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")), storageConfig, kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets"))), nil
 }
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {

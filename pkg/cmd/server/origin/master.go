@@ -31,6 +31,7 @@ import (
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
@@ -110,8 +111,21 @@ func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Co
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
 func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) {
+	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
+	if err != nil {
+		glog.Fatalf("Failed: %v", err)
+	}
+	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, kubeAPIServerOptions.Etcd)
+	if err != nil {
+		glog.Fatalf("Failed: %v", err)
+	}
+	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, apiserver.EmptyDelegate)
+	if err != nil {
+		glog.Fatalf("Failed: %v", err)
+	}
+
 	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(*kubeAPIServerConfig.GenericConfig, controllerPlug)
-	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(apiserver.EmptyDelegate, stopCh)
+	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(apiExtensionsServer.GenericAPIServer, stopCh)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
@@ -137,7 +151,7 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	}
 	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
 	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
-	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer)
+	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer, apiExtensionsConfig.CRDRESTOptionsGetter)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
@@ -167,7 +181,7 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		glog.Fatalf("Failed to create aggregator config: %v", err)
 	}
-	aggregatorServer, err := createAggregatorServer(aggregatorConfig, preparedKubeAPIServer.GenericAPIServer, c.InternalKubeInformers, stopCh)
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, preparedKubeAPIServer.GenericAPIServer, c.InternalKubeInformers, apiExtensionsServer.Informers)
 	if err != nil {
 		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
 		glog.Fatalf("Failed to create aggregator server: %v", err)
@@ -213,7 +227,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 				// backwards compatible writer to regular log
 				writer = cmdutil.NewGLogWriterV(0)
 			}
-			handler = apifilters.WithAudit(handler, contextMapper, writer)
+			handler = apifilters.WithLegacyAudit(handler, contextMapper, writer)
 		}
 		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
 		handler = namespacingFilter(handler, contextMapper)

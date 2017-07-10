@@ -505,6 +505,7 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
+		kubeMasterConfig.Master.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
 
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
