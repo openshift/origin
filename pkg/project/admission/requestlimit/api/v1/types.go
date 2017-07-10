@@ -11,7 +11,7 @@ type ProjectRequestLimitConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// Limits are the project request limits
-	Limits []ProjectLimitBySelector `json:"limits",description:"project request limits"`
+	Limits []ProjectLimitBySelector `json:"limits" description:"project request limits"`
 
 	// MaxProjectsForSystemUsers controls how many projects a certificate user may have.  Certificate
 	// users do not have any labels associated with them for more fine grained control
@@ -26,10 +26,10 @@ type ProjectRequestLimitConfig struct {
 // ProjectLimitBySelector specifies the maximum number of projects allowed for a given user label selector
 type ProjectLimitBySelector struct {
 	// Selector is a user label selector. An empty selector selects everything.
-	Selector map[string]string `json:"selector",description:"user label selector"`
+	Selector map[string]string `json:"selector" description:"user label selector"`
 	// MaxProjects is the number of projects allowed for this class of users. If MaxProjects is nil,
 	// there is no limit to the number of projects users can request. An unlimited number of projects
 	// is useful in the case a limit is specified as the default for all users and only users with a
 	// specific set of labels should be allowed unlimited project creation.
-	MaxProjects *int `json:"maxProjects,omitempty",description:"maximum number of projects, unlimited if nil"`
+	MaxProjects *int `json:"maxProjects,omitempty" description:"maximum number of projects, unlimited if nil"`
 }
