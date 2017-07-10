@@ -181,6 +181,10 @@ os::cmd::expect_success_and_text "oc get is/mysql --template='{{(index .spec.tag
 
 os::cmd::expect_failure_and_text 'oc tag mysql:latest tagtest:tag1 --alias' 'cannot set alias across'
 
+# tag labeled image
+os::cmd::expect_success 'oc label is/mysql labelA=value'
+os::cmd::expect_success 'oc tag mysql:latest mysql:labeled'
+os::cmd::expect_success_and_text "oc get istag/mysql:labeled -o jsonpath='{.metadata.labels.labelA}'" 'value'
 # test copying tags
 os::cmd::expect_success 'oc tag registry-1.docker.io/openshift/origin:v1.0.4 newrepo:latest'
 os::cmd::expect_success_and_text "oc get is/newrepo --template='{{(index .spec.tags 0).from.kind}}'" 'DockerImage'
