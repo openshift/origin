@@ -970,6 +970,7 @@ func TestResolutionConfig(t *testing.T) {
 		config   *api.ImagePolicyConfig
 		resource schema.GroupResource
 		attrs    rules.ImagePolicyAttributes
+		update   bool
 
 		resolve bool
 		fail    bool
@@ -1042,6 +1043,63 @@ func TestResolutionConfig(t *testing.T) {
 			resolve:  true,
 			rewrite:  true,
 		},
+		// resource match skips on job update
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "jobs"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "extensions", Resource: "jobs"},
+			update:   true,
+			resolve:  true,
+			rewrite:  false,
+		},
+		// resource match succeeds on job create
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "jobs"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "extensions", Resource: "jobs"},
+			update:   false,
+			resolve:  true,
+			rewrite:  true,
+		},
+		// resource match skips on build update
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "build.openshift.io", Resource: "builds"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "build.openshift.io", Resource: "builds"},
+			update:   true,
+			resolve:  true,
+			rewrite:  false,
+		},
+		// resource match skips on statefulset update
+		// TODO: remove in 3.7
+		{
+			attrs: rules.ImagePolicyAttributes{LocalRewrite: true},
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "apps", Resource: "statefulsets"}},
+				},
+			},
+			resource: schema.GroupResource{Group: "apps", Resource: "statefulsets"},
+			update:   true,
+			resolve:  true,
+			rewrite:  false,
+		},
 	}
 
 	for i, test := range testCases {
@@ -1052,7 +1110,7 @@ func TestResolutionConfig(t *testing.T) {
 		if c.FailOnResolutionFailure(test.resource) != test.fail {
 			t.Errorf("%d: resolution failure != %t", i, test.fail)
 		}
-		if c.RewriteImagePullSpec(&test.attrs, test.resource) != test.rewrite {
+		if c.RewriteImagePullSpec(&test.attrs, test.update, test.resource) != test.rewrite {
 			t.Errorf("%d: rewrite != %t", i, test.rewrite)
 		}
 	}
