@@ -27,6 +27,17 @@ os::cmd::expect_success_and_not_text 'oadm migrate storage --loglevel=2 --includ
 os::cmd::expect_success_and_text     'oadm migrate storage --loglevel=2 --confirm' 'unchanged:'
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/migrate/storage_oauthclientauthorizations"
+# Create valid OAuth client
+os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/client.yaml' 'oauthclient "test-oauth-client" created'
+# Create OAuth client authorization for client
+os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/clientauthorization.yaml' 'oauthclientauthorization "user1:test-oauth-client" created'
+# Delete client
+os::cmd::expect_success_and_text     'oc delete oauthclient test-oauth-client' 'oauthclient "test-oauth-client" deleted'
+# Assert that migration/update still works even though the client authorization is no longer valid
+os::cmd::expect_success_and_text 'oadm migrate storage --loglevel=6 --include=oauthclientauthorizations --confirm' 'PUT.*oauthclientauthorizations/user1:test-oauth-client'
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/migrate/imagereferences"
 # create alternating items in history
 os::cmd::expect_success 'oc import-image --from=mysql:latest test:1 --confirm'

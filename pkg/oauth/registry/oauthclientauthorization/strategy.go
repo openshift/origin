@@ -3,12 +3,11 @@ package oauthclientauthorization
 import (
 	"fmt"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
@@ -16,6 +15,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	"github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
@@ -79,15 +80,31 @@ func (s strategy) ValidateUpdate(ctx apirequest.Context, obj runtime.Object, old
 	oldClientAuth := old.(*oauthapi.OAuthClientAuthorization)
 	validationErrors := validation.ValidateClientAuthorizationUpdate(clientAuth, oldClientAuth)
 
-	client, err := s.clientGetter.GetClient(ctx, clientAuth.ClientName, &metav1.GetOptions{})
-	if err != nil {
-		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
-	}
-	if err := scopeauthorizer.ValidateScopeRestrictions(client, clientAuth.Scopes...); err != nil {
-		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
+	// only do a live client check if the scopes were increased by the update
+	if containsNewScopes(clientAuth.Scopes, oldClientAuth.Scopes) {
+		client, err := s.clientGetter.GetClient(ctx, clientAuth.ClientName, &metav1.GetOptions{})
+		if err != nil {
+			return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
+		}
+		if err := scopeauthorizer.ValidateScopeRestrictions(client, clientAuth.Scopes...); err != nil {
+			return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
+		}
 	}
 
 	return validationErrors
+}
+
+func containsNewScopes(obj []string, old []string) bool {
+	// an empty slice of scopes means all scopes, so we consider that a new scope
+	newHasAllScopes := len(obj) == 0
+	oldHasAllScopes := len(old) == 0
+	if newHasAllScopes && !oldHasAllScopes {
+		return true
+	}
+
+	newScopes := sets.NewString(obj...)
+	oldScopes := sets.NewString(old...)
+	return len(newScopes.Difference(oldScopes)) > 0
 }
 
 func (strategy) AllowCreateOnUpdate() bool {
