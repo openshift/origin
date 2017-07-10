@@ -67,7 +67,7 @@ func accept(accepter rules.Accepter, policy imageResolutionPolicy, resolver imag
 					// if we resolved properly, assign the attributes and rewrite the pull spec if we need to
 					decision.attrs = resolvedAttrs
 
-					if policy.RewriteImagePullSpec(resolvedAttrs, gr) {
+					if policy.RewriteImagePullSpec(resolvedAttrs, attr.GetOperation() == admission.Update, gr) {
 						ref.Namespace = ""
 						ref.Name = decision.attrs.Name.Exact()
 						ref.Kind = "DockerImage"
