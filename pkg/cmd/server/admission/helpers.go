@@ -25,6 +25,7 @@ func IsOnlyMutatingGCFields(obj, old runtime.Object) bool {
 	}
 	copiedMeta.SetOwnerReferences(oldMeta.GetOwnerReferences())
 	copiedMeta.SetFinalizers(oldMeta.GetFinalizers())
+	copiedMeta.SetSelfLink(oldMeta.GetSelfLink())
 
 	return kapi.Semantic.DeepEqual(copied, old)
 }
