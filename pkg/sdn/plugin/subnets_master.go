@@ -223,12 +223,6 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 	}
 }
 
-func (node *OsdnNode) SubnetStartNode() error {
-	go utilwait.Forever(node.watchSubnets, 0)
-	return nil
-}
-
-// Only run on the master
 // Watch for all hostsubnet events and if one is found with the right annotation, use the SubnetAllocator to dole a real subnet
 func (master *OsdnMaster) watchSubnets() {
 	common.RunEventQueue(master.osClient, common.HostSubnets, func(delta cache.Delta) error {
@@ -277,58 +271,6 @@ func (master *OsdnMaster) watchSubnets() {
 				master.subnetAllocator.ReleaseNetwork(ipnet)
 			}
 		}
-		return nil
-	})
-}
-
-type hostSubnetMap map[string]*osapi.HostSubnet
-
-func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
-	remoteIPs := make([]string, 0, len(subnets)-1)
-	for _, subnet := range subnets {
-		if subnet.HostIP != plugin.localIP {
-			remoteIPs = append(remoteIPs, subnet.HostIP)
-		}
-	}
-	if err := plugin.oc.UpdateVXLANMulticastFlows(remoteIPs); err != nil {
-		log.Errorf("Error updating OVS VXLAN multicast flows: %v", err)
-	}
-}
-
-// Only run on the nodes
-func (node *OsdnNode) watchSubnets() {
-	subnets := make(hostSubnetMap)
-	common.RunEventQueue(node.osClient, common.HostSubnets, func(delta cache.Delta) error {
-		hs := delta.Object.(*osapi.HostSubnet)
-		if hs.HostIP == node.localIP {
-			return nil
-		}
-
-		log.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			oldSubnet, exists := subnets[string(hs.UID)]
-			if exists {
-				if oldSubnet.HostIP == hs.HostIP {
-					break
-				} else {
-					// Delete old subnet rules
-					node.DeleteHostSubnetRules(oldSubnet)
-				}
-			}
-			if err := node.networkInfo.ValidateNodeIP(hs.HostIP); err != nil {
-				log.Warningf("Ignoring invalid subnet for node %s: %v", hs.HostIP, err)
-				break
-			}
-
-			node.AddHostSubnetRules(hs)
-			subnets[string(hs.UID)] = hs
-		case cache.Deleted:
-			delete(subnets, string(hs.UID))
-			node.DeleteHostSubnetRules(hs)
-		}
-		// Update multicast rules after all other changes have been processed
-		node.updateVXLANMulticastRules(subnets)
 		return nil
 	})
 }
