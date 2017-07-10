@@ -207,7 +207,7 @@ func (o MasterOptions) StartMaster() error {
 
 	// TODO: this should be encapsulated by RunMaster, but StartAllInOne has no
 	// way to communicate whether RunMaster should block.
-	go daemon.SdNotify("READY=1")
+	go daemon.SdNotify(false, "READY=1")
 	select {}
 }
 
