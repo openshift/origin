@@ -313,7 +313,7 @@ func (o AllInOneOptions) StartAllInOne() error {
 		return nil
 	}
 
-	daemon.SdNotify("READY=1")
+	daemon.SdNotify(false, "READY=1")
 	select {}
 }
 

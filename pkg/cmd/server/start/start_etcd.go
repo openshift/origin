@@ -90,7 +90,7 @@ func (o *EtcdOptions) StartEtcdServer() error {
 		return err
 	}
 
-	go daemon.SdNotify("READY=1")
+	go daemon.SdNotify(false, "READY=1")
 	select {}
 }
 
