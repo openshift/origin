@@ -191,6 +191,13 @@ func (o *ProbeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		o.Builder = o.Builder.
 			SelectorParam(o.Selector).
 			ResourceTypeOrNameArgs(o.All, resources...)
+	} else {
+		// if a --local flag was provided, and a resource was specified in the form
+		// <resource>/<name>, fail immediately as --local cannot query the api server
+		// for the specified resource.
+		if len(resources) > 0 {
+			return resource.LocalResourceError
+		}
 	}
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")

@@ -297,6 +297,13 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		b = b.
 			SelectorParam(o.Selector).
 			ResourceTypeOrNameArgs(o.All, o.Resources...)
+	} else {
+		// if a --local flag was provided, and a resource was specified in the form
+		// <resource>/<name>, fail immediately as --local cannot query the api server
+		// for the specified resource.
+		if len(o.Resources) > 0 {
+			return resource.LocalResourceError
+		}
 	}
 
 	one := false

@@ -16,7 +16,7 @@ os::cmd::expect_success_and_text 'oc create -f pkg/api/graph/test/simple-deploym
 os::cmd::expect_success_and_text 'oc status -v' 'dc/simple-deployment has no liveness probe'
 
 # test --local flag
-os::cmd::expect_failure_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --local' 'You must provide one or more resources by argument or filename'
+os::cmd::expect_failure_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --local' 'you must specify resources by \-\-filename when \-\-local is set'
 # test --dry-run flag with -o formats
 os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --dry-run' 'simple-deployment'
 os::cmd::expect_success_and_text 'oc set probe dc/simple-deployment --liveness --get-url=http://google.com:80 --dry-run -o name' 'deploymentconfigs/simple-deployment'

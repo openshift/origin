@@ -188,6 +188,13 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		if o.All {
 			o.Builder.ResourceTypes(supportedBuildTypes...).SelectAllParam(o.All)
 		}
+	} else {
+		// if a --local flag was provided, and a resource was specified in the form
+		// <resource>/<name>, fail immediately as --local cannot query the api server
+		// for the specified resource.
+		if len(resources) > 0 {
+			return resource.LocalResourceError
+		}
 	}
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
