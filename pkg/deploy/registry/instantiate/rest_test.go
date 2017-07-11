@@ -134,8 +134,9 @@ func TestProcess_matchScenarios(t *testing.T) {
 	tests := []struct {
 		name string
 
-		param    *deployapi.DeploymentTriggerImageChangeParams
-		notFound bool
+		param              *deployapi.DeploymentTriggerImageChangeParams
+		containerImageFunc func() string
+		notFound           bool
 
 		expected bool
 	}{
@@ -212,6 +213,23 @@ func TestProcess_matchScenarios(t *testing.T) {
 
 			expected: false,
 		},
+		{
+			name: "allow lastTriggeredImage to resolve",
+
+			containerImageFunc: func() string {
+				image := "registry:5000/openshift/test-image-stream@sha256:0000000000000000000000000000000000000000000000000000000000000001"
+				return image
+			},
+			param: &deployapi.DeploymentTriggerImageChangeParams{
+				Automatic:          true,
+				ContainerNames:     []string{"container1"},
+				From:               kapi.ObjectReference{Name: imageapi.JoinImageStreamTag(deploytest.ImageStreamName, imageapi.DefaultImageTag)},
+				LastTriggeredImage: "",
+			},
+			notFound: false,
+
+			expected: true,
+		},
 	}
 
 	for i := range tests {
@@ -237,6 +255,9 @@ func TestProcess_matchScenarios(t *testing.T) {
 			},
 		}
 
+		if test.containerImageFunc != nil {
+			config.Spec.Template.Spec.Containers[0].Image = test.containerImageFunc()
+		}
 		image := config.Spec.Template.Spec.Containers[0].Image
 
 		err := processTriggers(config, fake, false, nil)
@@ -244,10 +265,16 @@ func TestProcess_matchScenarios(t *testing.T) {
 			t.Errorf("unexpected error: %v", err)
 			continue
 		}
-		if test.expected && config.Spec.Template.Spec.Containers[0].Image == image {
+		if test.containerImageFunc == nil && test.expected && config.Spec.Template.Spec.Containers[0].Image == image {
 			t.Errorf("%s: expected an image update but got none", test.name)
-		} else if !test.expected && config.Spec.Template.Spec.Containers[0].Image != image {
+			continue
+		}
+		if !test.expected && config.Spec.Template.Spec.Containers[0].Image != image {
 			t.Errorf("%s: didn't expect an image update but got %s", test.name, image)
+			continue
+		}
+		if test.containerImageFunc != nil && image != config.Spec.Triggers[0].ImageChangeParams.LastTriggeredImage {
+			t.Errorf("%s: expected a lastTriggeredImage update to %q, got none", test.name, image)
 		}
 	}
 }
