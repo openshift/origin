@@ -67,7 +67,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				},
 			},
 			AllowPrivilegedContainer: true,
-			AllowedCapabilities:      []kapi.Capability{kapi.CapabilityAll},
+			AllowedCapabilities:      []kapi.Capability{securityapi.AllowAllCapabilities},
 			Volumes:                  []securityapi.FSType{securityapi.FSTypeAll},
 			AllowHostNetwork:         true,
 			AllowHostPorts:           true,

@@ -53,7 +53,7 @@ func TestAdmitCaps(t *testing.T) {
 
 	allowAllInAllowed := restrictiveSCC()
 	allowAllInAllowed.Name = "allowAllCapsInAllowed"
-	allowAllInAllowed.AllowedCapabilities = []kapi.Capability{kapi.CapabilityAll}
+	allowAllInAllowed.AllowedCapabilities = []kapi.Capability{securityapi.AllowAllCapabilities}
 
 	tc := map[string]struct {
 		pod                  *kapi.Pod
