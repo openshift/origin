@@ -45,10 +45,11 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/source-to-image/pkg/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/test/util"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 func skipExternalGit(t *testing.T) {
@@ -196,7 +197,10 @@ func TestNewAppResolve(t *testing.T) {
 
 func TestNewAppDetectSource(t *testing.T) {
 	skipExternalGit(t)
-	gitLocalDir := test.CreateLocalGitDirectory(t)
+	gitLocalDir, err := s2igit.CreateLocalGitDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.RemoveAll(gitLocalDir)
 
 	dockerSearcher := app.DockerRegistrySearcher{

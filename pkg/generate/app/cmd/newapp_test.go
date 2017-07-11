@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	"github.com/openshift/source-to-image/pkg/test"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -259,7 +259,10 @@ func templateList() *templateapi.TemplateList {
 }
 
 func TestEnsureHasSource(t *testing.T) {
-	gitLocalDir := test.CreateLocalGitDirectory(t)
+	gitLocalDir, err := git.CreateLocalGitDirectory()
+	if err != nil {
+		t.Fatal(err)
+	}
 	defer os.RemoveAll(gitLocalDir)
 
 	tests := []struct {

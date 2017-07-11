@@ -1,7 +1,6 @@
 package app
 
 import (
-	"net/url"
 	"os"
 	"reflect"
 	"testing"
@@ -12,10 +11,11 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 func TestBuildConfigOutput(t *testing.T) {
-	url, err := url.Parse("https://github.com/openshift/origin.git")
+	url, err := git.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

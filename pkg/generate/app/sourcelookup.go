@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,7 +14,6 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/validation"
@@ -68,21 +66,20 @@ func (d dockerfileContents) Contents() string {
 
 // IsRemoteRepository checks whether the provided string is a remote repository or not
 func IsRemoteRepository(s string) (bool, error) {
-	if !s2igit.New(s2iutil.NewFileSystem()).ValidCloneSpecRemoteOnly(s) {
-		glog.V(5).Infof("%s is not a valid remote git clone spec", s)
-		return false, nil
-	}
-	url, err := url.Parse(s)
+	url, err := s2igit.Parse(s)
 	if err != nil {
 		glog.V(5).Infof("%s is not a valid url: %v", s, err)
 		return false, err
 	}
-	url.Fragment = ""
+	if url.IsLocal() {
+		glog.V(5).Infof("%s is not a valid remote git clone spec", s)
+		return false, nil
+	}
 	gitRepo := git.NewRepository()
 
 	// try up to 3 times to reach the remote git repo
 	for i := 0; i < 3; i++ {
-		_, _, err = gitRepo.ListRemote(url.String())
+		_, _, err = gitRepo.ListRemote(url.StringNoFragment())
 		if err == nil {
 			break
 		}
@@ -98,9 +95,9 @@ func IsRemoteRepository(s string) (bool, error) {
 // SourceRepository represents a code repository that may be the target of a build.
 type SourceRepository struct {
 	location        string
-	url             url.URL
+	url             s2igit.URL
 	localDir        string
-	remoteURL       *url.URL
+	remoteURL       *s2igit.URL
 	contextDir      string
 	secrets         []buildapi.SecretBuildSource
 	info            *SourceRepositoryInfo
@@ -121,7 +118,7 @@ type SourceRepository struct {
 // NewSourceRepository creates a reference to a local or remote source code repository from
 // a URL or path.
 func NewSourceRepository(s string, strategy generate.Strategy) (*SourceRepository, error) {
-	location, err := git.ParseRepository(s)
+	location, err := s2igit.Parse(s)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +192,7 @@ func (r *SourceRepository) UsedBy(ref ComponentReference) {
 
 // Remote checks whether the source repository is remote
 func (r *SourceRepository) Remote() bool {
-	return r.url.Scheme != "file"
+	return !r.url.IsLocal()
 }
 
 // InUse checks if the source repository is in use
@@ -252,17 +249,15 @@ func (r *SourceRepository) LocalPath() (string, error) {
 	if len(r.localDir) > 0 {
 		return r.localDir, nil
 	}
-	switch {
-	case r.url.Scheme == "file":
-		r.localDir = filepath.Join(r.url.Path, r.contextDir)
-	default:
+	if r.url.IsLocal() {
+		r.localDir = filepath.Join(r.url.LocalPath(), r.contextDir)
+	} else {
 		gitRepo := git.NewRepository()
 		var err error
 		if r.localDir, err = ioutil.TempDir("", "gen"); err != nil {
 			return "", err
 		}
-		localURL, ref := cloneURLAndRef(&r.url)
-		r.localDir, err = CloneAndCheckoutSources(gitRepo, localURL.String(), ref, r.localDir, r.contextDir)
+		r.localDir, err = CloneAndCheckoutSources(gitRepo, r.url.StringNoFragment(), r.url.URL.Fragment, r.localDir, r.contextDir)
 		if err != nil {
 			return "", err
 		}
@@ -271,13 +266,6 @@ func (r *SourceRepository) LocalPath() (string, error) {
 		return "", fmt.Errorf("supplied context directory '%s' does not exist in '%s'", r.contextDir, r.url.String())
 	}
 	return r.localDir, nil
-}
-
-func cloneURLAndRef(url *url.URL) (*url.URL, string) {
-	localURL := *url
-	ref := localURL.Fragment
-	localURL.Fragment = ""
-	return &localURL, ref
 }
 
 // DetectAuth returns an error if the source repository cannot be cloned
@@ -319,8 +307,7 @@ func (r *SourceRepository) DetectAuth() error {
 		)
 	}
 	gitRepo := git.NewRepositoryWithEnv(env)
-	localURL, ref := cloneURLAndRef(url)
-	_, err = CloneAndCheckoutSources(gitRepo, localURL.String(), ref, tempSrc, "")
+	_, err = CloneAndCheckoutSources(gitRepo, url.StringNoFragment(), url.URL.Fragment, tempSrc, "")
 	if err != nil {
 		r.requiresAuth = true
 	}
@@ -328,29 +315,28 @@ func (r *SourceRepository) DetectAuth() error {
 }
 
 // RemoteURL returns the remote URL of the source repository
-func (r *SourceRepository) RemoteURL() (*url.URL, bool, error) {
+func (r *SourceRepository) RemoteURL() (*s2igit.URL, bool, error) {
 	if r.remoteURL != nil {
 		return r.remoteURL, true, nil
 	}
-	switch r.url.Scheme {
-	case "file":
+	if r.url.IsLocal() {
 		gitRepo := git.NewRepository()
-		remote, ok, err := gitRepo.GetOriginURL(r.url.Path)
+		remote, ok, err := gitRepo.GetOriginURL(r.url.LocalPath())
 		if err != nil && err != git.ErrGitNotAvailable {
 			return nil, false, err
 		}
 		if !ok {
 			return nil, ok, nil
 		}
-		ref := gitRepo.GetRef(r.url.Path)
+		ref := gitRepo.GetRef(r.url.LocalPath())
 		if len(ref) > 0 {
 			remote = fmt.Sprintf("%s#%s", remote, ref)
 		}
 
-		if r.remoteURL, err = git.ParseRepository(remote); err != nil {
+		if r.remoteURL, err = s2igit.Parse(remote); err != nil {
 			return nil, false, err
 		}
-	default:
+	} else {
 		r.remoteURL = &r.url
 	}
 	return r.remoteURL, true, nil
@@ -572,7 +558,6 @@ func StrategyAndSourceForRepository(repo *SourceRepository, image *ImageRef) (*B
 		}
 		if ok {
 			source.URL = remoteURL
-			source.Ref = remoteURL.Fragment
 		} else {
 			source.Binary = true
 		}
