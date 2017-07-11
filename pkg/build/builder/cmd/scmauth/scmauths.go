@@ -7,11 +7,13 @@ import (
 	"os"
 
 	"github.com/golang/glog"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 type SCMAuths []SCMAuth
 
-func GitAuths(sourceURL *url.URL) SCMAuths {
+func GitAuths(sourceURL *s2igit.URL) SCMAuths {
 	auths := SCMAuths{
 		&SSHPrivateKey{},
 		&UsernamePassword{SourceURL: *sourceURL},

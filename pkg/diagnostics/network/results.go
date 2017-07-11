@@ -11,7 +11,7 @@ import (
 	"strconv"
 
 	"github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -93,7 +93,7 @@ func (d *NetworkDiagnostic) copyNetworkPodInfo(pod *kapi.Pod) error {
 	}
 	defer tmp.Close()
 
-	tarHelper := tar.New(s2iutil.NewFileSystem())
+	tarHelper := tar.New(s2ifs.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)
 	logdir := filepath.Join(d.LogDir, util.NetworkDiagNodeLogDirPrefix, pod.Spec.NodeName)
 	err = tarHelper.ExtractTarStream(logdir, tmp)

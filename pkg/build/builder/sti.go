@@ -18,6 +18,7 @@ import (
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
 	s2i "github.com/openshift/source-to-image/pkg/build/strategies"
 	"github.com/openshift/source-to-image/pkg/docker"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -169,7 +170,7 @@ func (s *S2IBuilder) Build() error {
 		}
 	}
 
-	var s2iSourceInfo *s2iapi.SourceInfo
+	var s2iSourceInfo *s2igit.SourceInfo
 	if sourceInfo != nil {
 		s2iSourceInfo = &sourceInfo.SourceInfo
 		revision := updateBuildRevision(s.build, sourceInfo)
@@ -220,7 +221,7 @@ func (s *S2IBuilder) Build() error {
 		Labels:            buildLabels(s.build),
 		DockerNetworkMode: getDockerNetworkMode(),
 
-		Source:     srcDir,
+		Source:     &s2igit.URL{URL: url.URL{Path: srcDir}, Type: s2igit.URLTypeLocal},
 		ContextDir: contextDir,
 		SourceInfo: s2iSourceInfo,
 		ForceCopy:  true,
@@ -382,13 +383,13 @@ func (s *S2IBuilder) Build() error {
 }
 
 type downloader struct {
-	sourceInfo *s2iapi.SourceInfo
+	sourceInfo *s2igit.SourceInfo
 }
 
 // Download no-ops (because we already downloaded the source to the right location)
 // and returns the previously computed sourceInfo for the source.
-func (d *downloader) Download(config *s2iapi.Config) (*s2iapi.SourceInfo, error) {
-	config.WorkingSourceDir = config.Source
+func (d *downloader) Download(config *s2iapi.Config) (*s2igit.SourceInfo, error) {
+	config.WorkingSourceDir = config.Source.LocalPath()
 
 	return d.sourceInfo, nil
 }
