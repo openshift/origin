@@ -83,7 +83,7 @@ type imageResolutionPolicy interface {
 	// FailOnResolutionFailure returns true if you should fail when resolution fails
 	FailOnResolutionFailure(schema.GroupResource) bool
 	// RewriteImagePullSpec returns true if you should rewrite image pull specs when resolution succeeds
-	RewriteImagePullSpec(*rules.ImagePolicyAttributes, schema.GroupResource) bool
+	RewriteImagePullSpec(attr *rules.ImagePolicyAttributes, isUpdate bool, gr schema.GroupResource) bool
 }
 
 // imagePolicyPlugin returns an admission controller for pods that controls what images are allowed to run on the
@@ -439,8 +439,24 @@ func (config resolutionConfig) FailOnResolutionFailure(gr schema.GroupResource) 
 	return api.FailOnResolutionFailure(config.config.ResolveImages)
 }
 
+var skipImageRewriteOnUpdate = map[schema.GroupResource]struct{}{
+	// Job template specs are immutable, they cannot be updated.
+	{Group: "extensions", Resource: "jobs"}: {},
+	{Group: "batch", Resource: "jobs"}:      {},
+	// Build specs are immutable, they cannot be updated.
+	{Group: "", Resource: "builds"}:                   {},
+	{Group: "build.openshift.io", Resource: "builds"}: {},
+	// TODO: remove when statefulsets allow spec.template updates in 3.7
+	{Group: "apps", Resource: "statefulsets"}: {},
+}
+
 // RewriteImagePullSpec applies to implicit rewrite attributes and local resources as well as if the policy requires it.
-func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttributes, gr schema.GroupResource) bool {
+func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttributes, isUpdate bool, gr schema.GroupResource) bool {
+	if isUpdate {
+		if _, ok := skipImageRewriteOnUpdate[gr]; ok {
+			return false
+		}
+	}
 	if api.RequestsResolution(config.config.ResolveImages) {
 		return true
 	}

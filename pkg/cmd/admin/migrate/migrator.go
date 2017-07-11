@@ -485,7 +485,8 @@ func canRetry(err error) bool {
 // All other errors are left in their natural state - they will not be retried unless
 // they define a Temporary() method that returns true.
 func DefaultRetriable(info *resource.Info, err error) error {
-	if err == nil {
+	// tolerate the deletion of resources during migration
+	if err == nil || errors.IsNotFound(err) {
 		return nil
 	}
 	switch {
