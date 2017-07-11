@@ -6,9 +6,10 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/openshift/origin/pkg/util/file"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 const (
@@ -25,14 +26,16 @@ const (
 
 // UsernamePassword implements SCMAuth interface for using Username and Password credentials
 type UsernamePassword struct {
-	SourceURL url.URL
+	SourceURL s2igit.URL
 }
 
 // Setup creates a gitconfig fragment that includes a substitution URL with the username/password
 // included in the URL. Returns source URL stripped of username/password credentials.
 func (u UsernamePassword) Setup(baseDir string, context SCMAuthContext) error {
 	// Only apply to https and http URLs
-	if scheme := strings.ToLower(u.SourceURL.Scheme); scheme != "http" && scheme != "https" {
+	if !(u.SourceURL.Type == s2igit.URLTypeURL &&
+		(u.SourceURL.URL.Scheme == "http" || u.SourceURL.URL.Scheme == "https") &&
+		u.SourceURL.URL.Opaque == "") {
 		return nil
 	}
 
@@ -51,7 +54,7 @@ func (u UsernamePassword) Setup(baseDir string, context SCMAuthContext) error {
 	}
 
 	// Determine overrides
-	overrideSourceURL, gitconfigURL, err := doSetup(u.SourceURL, usernameSecret, passwordSecret, tokenSecret)
+	overrideSourceURL, gitconfigURL, err := doSetup(u.SourceURL.URL, usernameSecret, passwordSecret, tokenSecret)
 	if err != nil {
 		return err
 	}

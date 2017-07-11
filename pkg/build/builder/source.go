@@ -14,7 +14,7 @@ import (
 	docker "github.com/fsouza/go-dockerclient"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
@@ -167,12 +167,9 @@ func checkRemoteGit(gitClient GitClient, url string, initialTimeout time.Duratio
 // checkSourceURI performs a check on the URI associated with the build
 // to make sure that it is valid.
 func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) error {
-	ok, err := s2igit.New(s2iutil.NewFileSystem()).ValidCloneSpec(rawurl)
+	_, err := s2igit.Parse(rawurl)
 	if err != nil {
 		return fmt.Errorf("Invalid git source url %q: %v", rawurl, err)
-	}
-	if !ok {
-		return fmt.Errorf("Invalid git source url: %s", rawurl)
 	}
 	return checkRemoteGit(gitClient, rawurl, timeout)
 }
@@ -391,7 +388,7 @@ func extractSourceFromImage(ctx context.Context, dockerClient DockerClient, imag
 	}
 	defer dockerClient.RemoveContainer(docker.RemoveContainerOptions{ID: container.ID})
 
-	tarHelper := tar.New(s2iutil.NewFileSystem())
+	tarHelper := tar.New(s2ifs.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)
 
 	for _, path := range paths {

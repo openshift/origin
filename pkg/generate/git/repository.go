@@ -17,7 +17,7 @@ import (
 
 	"github.com/golang/glog"
 
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 // Repository represents a git source repository
@@ -64,7 +64,7 @@ var ErrGitNotAvailable = errors.New("git binary not available")
 
 // SourceInfo stores information about the source code
 type SourceInfo struct {
-	s2iapi.SourceInfo
+	s2igit.SourceInfo
 }
 
 // execGitFunc is a function that executes a Git command

@@ -18,6 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
@@ -123,7 +124,7 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 	if sourceSecret != nil {
 		// TODO: this should be refactored to let each source type manage which secrets
 		//   it accepts
-		sourceURL, err := git.ParseRepository(gitSource.URI)
+		sourceURL, err := s2igit.Parse(gitSource.URI)
 		if err != nil {
 			return "", nil, fmt.Errorf("cannot parse build URL: %s", gitSource.URI)
 		}
