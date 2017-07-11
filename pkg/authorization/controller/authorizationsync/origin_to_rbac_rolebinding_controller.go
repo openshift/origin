@@ -75,7 +75,11 @@ func (c *OriginRoleBindingToRBACRoleBindingController) syncRoleBinding(key strin
 	// if the origin roleBinding doesn't exist, just delete the rbac roleBinding
 	if apierrors.IsNotFound(originErr) {
 		// orphan on delete to minimize fanout.  We ought to clean the rest via controller too.
-		return c.rbacClient.RoleBindings(namespace).Delete(name, nil)
+		deleteErr := c.rbacClient.RoleBindings(namespace).Delete(name, nil)
+		if apierrors.IsNotFound(deleteErr) {
+			return nil
+		}
+		return deleteErr
 	}
 
 	// determine if we need to create, update or do nothing
@@ -138,15 +142,17 @@ func (c *OriginRoleBindingToRBACRoleBindingController) policyBindingEventHandler
 				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 				if !ok {
 					utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+					return
 				}
 				originContainerObj, ok = tombstone.Obj.(*authorizationapi.PolicyBinding)
 				if !ok {
 					utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a runtime.Object %#v", obj))
+					return
 				}
 			}
 
 			for _, originObj := range originContainerObj.RoleBindings {
-				c.originIndexer.Add(originObj)
+				c.originIndexer.Delete(originObj)
 				key, err := controller.KeyFunc(originObj)
 				if err != nil {
 					utilruntime.HandleError(err)
