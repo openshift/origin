@@ -134,6 +134,7 @@ func (m *DefaultRESTMapper) Add(kind schema.GroupVersionKind, scope RESTScope) {
 // callers to use the RESTMapper they mean.
 var unpluralizedSuffixes = []string{
 	"endpoints",
+	"securitycontextconstraints",
 }
 
 // UnsafeGuessKindToResource converts Kind to a resource name.
