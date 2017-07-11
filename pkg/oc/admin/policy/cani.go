@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
@@ -21,7 +20,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/oc/cli/describe"
 )
 
 const CanIRecommendedName = "can-i"
@@ -130,15 +128,12 @@ func (o *canIOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []
 	o.RulesReviewClient = oclient
 	o.SARClient = oclient
 
-	output := kcmdutil.GetFlagString(cmd, "output")
-	if len(output) > 0 {
-		printer, _, err := f.PrinterForCommand(cmd)
-		if err != nil {
-			return err
-		}
-
-		o.Printer = printer
+	printer, err := f.PrinterForCommand(cmd, false, nil, printers.PrintOptions{})
+	if err != nil {
+		return err
 	}
+
+	o.Printer = printer
 
 	o.Namespace = metav1.NamespaceAll
 	if !o.AllNamespaces {
@@ -198,7 +193,6 @@ func (o *canIOptions) Run() (bool, error) {
 
 func (o *canIOptions) listAllPermissions() error {
 	var rulesReviewResult runtime.Object
-	var policyRules []authorizationapi.PolicyRule
 
 	if len(o.User) == 0 && len(o.Groups) == 0 {
 		rulesReview := &authorizationapi.SelfSubjectRulesReview{}
@@ -211,7 +205,6 @@ func (o *canIOptions) listAllPermissions() error {
 			return err
 		}
 
-		policyRules = whatCanIDo.Status.Rules
 		rulesReviewResult = whatCanIDo
 	} else {
 		rulesReview := &authorizationapi.SubjectRulesReview{
@@ -227,21 +220,8 @@ func (o *canIOptions) listAllPermissions() error {
 			return err
 		}
 
-		policyRules = whatCanYouDo.Status.Rules
 		rulesReviewResult = whatCanYouDo
 	}
 
-	if o.Printer != nil {
-		return o.Printer.PrintObj(rulesReviewResult, o.Out)
-	}
-
-	writer := tabwriter.NewWriter(o.Out, tabwriterMinWidth, tabwriterWidth, tabwriterPadding, tabwriterPadChar, tabwriterFlags)
-	fmt.Fprint(writer, describe.PolicyRuleHeadings+"\n")
-	for _, rule := range policyRules {
-		describe.DescribePolicyRule(writer, rule, "")
-
-	}
-	writer.Flush()
-
-	return nil
+	return o.Printer.PrintObj(rulesReviewResult, o.Out)
 }
