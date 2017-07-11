@@ -5,6 +5,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
+// AllowAllCapabilities can be used as a value for the
+// SecurityContextConstraints.AllowAllCapabilities field and means that any
+// capabilities are allowed to be requested.
+var AllowAllCapabilities kapi.Capability = "*"
+
 // +genclient=true
 // +nonNamespaced=true
 
