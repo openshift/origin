@@ -213,6 +213,9 @@ type BuildStatus struct {
 	// including start time, duration (in milliseconds), and the steps that
 	// occured within each stage.
 	Stages []StageInfo `json:"stages,omitempty" protobuf:"bytes,11,opt,name=stages"`
+
+	// logSnippet is the last few lines of the build log.  This value is only set for builds that failed.
+	LogSnippet string `json:"logSnippet,omitempty" protobuf:"bytes,12,opt,name=logSnippet"`
 }
 
 // StageInfo contains details about a build stage.
