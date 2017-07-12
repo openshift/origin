@@ -71,6 +71,7 @@ func TestRequestHeader(t *testing.T) {
 				IDHeaders:                []string{"x-id", "x-id2"},
 				PreferredUsernameHeaders: []string{"x-preferred-username", "x-preferred-username2"},
 				EmailHeaders:             []string{"x-email", "x-email2"},
+				GroupHeaders:             []string{"x-group", "x-group2"},
 				NameHeaders:              []string{"x-name", "x-name2"},
 			},
 			RequestHeaders: http.Header{
@@ -78,11 +79,14 @@ func TestRequestHeader(t *testing.T) {
 				"X-Preferred-Username2": {"bob"},
 				"X-Email2":              {"bob@example.com"},
 				"X-Name2":               {"Bob"},
+				"X-Group":               {"group1", "group2"},
+				"X-Group2":              {"group3"},
 			},
 			ExpectedUsername: "bob",
 			ExpectedIdentity: &api.DefaultUserIdentityInfo{
 				ProviderName:     "testprovider",
 				ProviderUserName: "12345",
+				ProviderGroups:   []string{"group1", "group2", "group3"},
 				Extra: map[string]string{
 					api.IdentityDisplayNameKey:       "Bob",
 					api.IdentityEmailKey:             "bob@example.com",

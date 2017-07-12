@@ -655,6 +655,7 @@ var map_OpenIDClaims = map[string]string{
 	"preferredUsername": "PreferredUsername is the list of claims whose values should be used as the preferred username. If unspecified, the preferred username is determined from the value of the id claim",
 	"name":              "Name is the list of claims whose values should be used as the display name. Optional. If unspecified, no display name is set for the identity",
 	"email":             "Email is the list of claims whose values should be used as the email address. Optional. If unspecified, no email is set for the identity",
+	"groups":            "Groups is the list of claims whose values should be used as group memberships. Optional. If unspecified, no group memberships are consumed from the claims. Claim values must either be a string or an array of strings.",
 }
 
 func (OpenIDClaims) SwaggerDoc() map[string]string {
@@ -781,6 +782,7 @@ var map_RequestHeaderIdentityProvider = map[string]string{
 	"preferredUsernameHeaders": "PreferredUsernameHeaders is the set of headers to check for the preferred username",
 	"nameHeaders":              "NameHeaders is the set of headers to check for the display name",
 	"emailHeaders":             "EmailHeaders is the set of headers to check for the email address",
+	"groupHeaders":             "GroupHeaders is the set of headers to check for group names",
 }
 
 func (RequestHeaderIdentityProvider) SwaggerDoc() map[string]string {

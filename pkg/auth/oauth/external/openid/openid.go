@@ -44,6 +44,7 @@ type Config struct {
 	PreferredUsernameClaims []string
 	EmailClaims             []string
 	NameClaims              []string
+	GroupClaims             []string
 
 	IDTokenValidator TokenValidator
 }
@@ -201,6 +202,13 @@ func (p provider) GetUserIdentity(data *osincli.AccessData) (authapi.UserIdentit
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(p.providerName, id)
 
+	groups, err := getClaimValues(claims, p.GroupClaims)
+	if err != nil {
+		glog.V(4).Infof("error reading group claims: %v", err)
+	} else {
+		identity.ProviderGroups = groups
+	}
+
 	if preferredUsername, _ := getClaimValue(claims, p.PreferredUsernameClaims); len(preferredUsername) != 0 {
 		identity.Extra[authapi.IdentityPreferredUsernameKey] = preferredUsername
 	}
@@ -233,6 +241,43 @@ func getClaimValue(data map[string]interface{}, claims []string) (string, error)
 		}
 	}
 	return "", errors.New("No value found")
+}
+
+func getClaimValues(data map[string]interface{}, claims []string) ([]string, error) {
+	values := []string{}
+	for _, claim := range claims {
+		claimValue, ok := data[claim]
+		if !ok {
+			continue
+		}
+
+		switch claimValue := claimValue.(type) {
+		case string:
+			if len(claimValue) > 0 {
+				values = append(values, claimValue)
+			}
+		case []string:
+			for _, claimValueItem := range claimValue {
+				if len(claimValueItem) > 0 {
+					values = append(values, claimValueItem)
+				}
+			}
+		case []interface{}:
+			for _, claimValueItem := range claimValue {
+				stringValue, ok := claimValueItem.(string)
+				if !ok {
+					return nil, fmt.Errorf("claim %s contained a non-string item: %v", claim, claimValueItem)
+				}
+				if len(stringValue) > 0 {
+					values = append(values, stringValue)
+				}
+			}
+		default:
+			return nil, fmt.Errorf("claim %s was not a string or array type", claim)
+		}
+
+	}
+	return values, nil
 }
 
 // fetch and decode JSON from the given UserInfo URL

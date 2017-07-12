@@ -3,6 +3,7 @@ package basicauthpassword
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"testing"
 )
 
@@ -19,6 +20,7 @@ func TestUnmarshal(t *testing.T) {
 		"sub":"%s",
 		"name": "%s",
 		"email": "%s",
+		"groups": ["group1","group2"],
 		"preferred_username": "%s",
 		"additional_field": "should be ignored"
 	}`, expectedSubject, expectedName, expectedEmail, expectedPreferredUsername)
@@ -37,6 +39,9 @@ func TestUnmarshal(t *testing.T) {
 	}
 	if user.Email != expectedEmail {
 		t.Errorf("Expected %s, got %s", expectedEmail, user.Email)
+	}
+	if !reflect.DeepEqual(user.Groups, []string{"group1", "group2"}) {
+		t.Errorf("Expected group1,group2, got %v", user.Groups)
 	}
 	if user.PreferredUsername != expectedPreferredUsername {
 		t.Errorf("Expected %s, got %s", expectedPreferredUsername, user.PreferredUsername)

@@ -19,6 +19,8 @@ type Config struct {
 	PreferredUsernameHeaders []string
 	// EmailHeaders lists the headers to check (in order, case-insensitively) for an email address. The first header with a value wins.
 	EmailHeaders []string
+	// GroupHeaders lists the headers to check for group memberships. All values from all headers are aggregated.
+	GroupHeaders []string
 }
 
 func NewDefaultConfig() *Config {
@@ -44,6 +46,8 @@ func (a *Authenticator) AuthenticateRequest(req *http.Request) (user.Info, bool,
 	}
 
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, id)
+
+	identity.ProviderGroups = headerValues(req.Header, a.config.GroupHeaders)
 
 	if email := headerValue(req.Header, a.config.EmailHeaders); len(email) > 0 {
 		identity.Extra[authapi.IdentityEmailKey] = email
@@ -77,4 +81,20 @@ func headerValue(h http.Header, headerNames []string) string {
 		}
 	}
 	return ""
+}
+
+func headerValues(h http.Header, headerNames []string) []string {
+	values := []string{}
+	for _, headerName := range headerNames {
+		headerName = strings.TrimSpace(headerName)
+		if len(headerName) == 0 {
+			continue
+		}
+		for _, headerValue := range h[http.CanonicalHeaderKey(headerName)] {
+			if len(headerValue) > 0 {
+				values = append(values, headerValue)
+			}
+		}
+	}
+	return values
 }

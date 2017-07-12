@@ -22,8 +22,8 @@ import (
 //   {"error":"Error message"}
 // A 200 status with an "id" key indicates success:
 //   {"id":"userid"}
-// A successful response may also include name and/or email:
-//   {"id":"userid", "name": "User Name", "email":"user@example.com"}
+// A successful response may also include name, email, preferred username, and group memberships:
+//   {"id":"userid", "name": "User Name", "email":"user@example.com", "preferred_username": "myuser", groups: ["group1","group2"]}
 type Authenticator struct {
 	providerName string
 	url          string
@@ -45,6 +45,8 @@ type RemoteUserData struct {
 	PreferredUsername string `json:"preferred_username"`
 	// Email is the end-User's preferred e-mail address. Optional.
 	Email string `json:"email"`
+	// Groups are the end-User's group memberships. Optional.
+	Groups []string `json:"groups"`
 }
 
 // RemoteError holds error data returned from a remote authentication request
@@ -122,6 +124,8 @@ func (a *Authenticator) AuthenticatePassword(username, password string) (user.In
 		return nil, false, errors.New("Could not retrieve user data")
 	}
 	identity := authapi.NewDefaultUserIdentityInfo(a.providerName, remoteUserData.Subject)
+
+	identity.ProviderGroups = remoteUserData.Groups
 
 	if len(remoteUserData.Name) > 0 {
 		identity.Extra[authapi.IdentityDisplayNameKey] = remoteUserData.Name

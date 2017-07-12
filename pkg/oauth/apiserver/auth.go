@@ -578,6 +578,7 @@ func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.Identity
 			PreferredUsernameClaims: provider.Claims.PreferredUsername,
 			EmailClaims:             provider.Claims.Email,
 			NameClaims:              provider.Claims.Name,
+			GroupClaims:             provider.Claims.Groups,
 		}
 
 		return openid.NewProvider(identityProvider.Name, transport, config)
@@ -709,6 +710,7 @@ func (c *OAuthServerConfig) getAuthenticationRequestHandler() (authenticator.Req
 					NameHeaders:              provider.NameHeaders,
 					EmailHeaders:             provider.EmailHeaders,
 					PreferredUsernameHeaders: provider.PreferredUsernameHeaders,
+					GroupHeaders:             provider.GroupHeaders,
 				}
 				authRequestHandler = headerrequest.NewAuthenticator(identityProvider.Name, authRequestConfig, identityMapper)
 
