@@ -31,40 +31,13 @@ func ValidateBuild(build *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
 	allErrs = append(allErrs, validateCommonSpec(&build.Spec.CommonSpec, field.NewPath("spec"))...)
-
-	// Check that all source image references are of DockerImage kind.
-	strategyPath := field.NewPath("spec", "strategy")
-	switch {
-	case build.Spec.Strategy.SourceStrategy != nil:
-		allErrs = append(allErrs, validateBuildImageReference(&build.Spec.Strategy.SourceStrategy.From, strategyPath.Child("sourceStrategy").Child("from"))...)
-		allErrs = append(allErrs, validateBuildImageReference(build.Spec.Strategy.SourceStrategy.RuntimeImage, strategyPath.Child("sourceStrategy").Child("runtimeImage"))...)
-	case build.Spec.Strategy.DockerStrategy != nil:
-		allErrs = append(allErrs, validateBuildImageReference(build.Spec.Strategy.DockerStrategy.From, strategyPath.Child("dockerStrategy").Child("from"))...)
-	case build.Spec.Strategy.CustomStrategy != nil:
-		allErrs = append(allErrs, validateBuildImageReference(&build.Spec.Strategy.CustomStrategy.From, strategyPath.Child("customStrategy").Child("from"))...)
-	}
-
-	imagesPath := field.NewPath("spec", "source", "images")
-	for i, image := range build.Spec.Source.Images {
-		allErrs = append(allErrs, validateBuildImageReference(&image.From, imagesPath.Index(i).Child("from"))...)
-	}
-
-	return allErrs
-}
-
-func validateBuildImageReference(reference *kapi.ObjectReference, fldPath *field.Path) field.ErrorList {
-	allErrs := field.ErrorList{}
-	if reference != nil && reference.Kind != "DockerImage" {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("kind"), reference.Kind, "only DockerImage references are supported for Builds"))
-	}
 	return allErrs
 }
 
 func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, validation.ValidateObjectMetaUpdate(&build.ObjectMeta, &older.ObjectMeta, field.NewPath("metadata"))...)
-
-	allErrs = append(allErrs, ValidateBuild(build)...)
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&build.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))...)
 
 	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "phase"), build.Status.Phase, "phase cannot be updated from a terminal state"))
@@ -303,7 +276,7 @@ func validateSecrets(secrets []buildapi.SecretBuildSource, isDockerStrategy bool
 }
 
 func validateImageSource(imageSource buildapi.ImageSource, fldPath *field.Path) field.ErrorList {
-	allErrs := validateFromImageReference(&imageSource.From, fldPath.Child("from"))
+	allErrs := validateImageReference(&imageSource.From, fldPath.Child("from"))
 	if imageSource.PullSecret != nil {
 		allErrs = append(allErrs, validateSecretRef(imageSource.PullSecret, fldPath.Child("pullSecret"))...)
 	}
@@ -382,7 +355,10 @@ func validateToImageReference(reference *kapi.ObjectReference, fldPath *field.Pa
 	return allErrs
 }
 
-func validateFromImageReference(reference *kapi.ObjectReference, fldPath *field.Path) field.ErrorList {
+func validateImageReference(reference *kapi.ObjectReference, fldPath *field.Path) field.ErrorList {
+	if reference == nil {
+		return nil
+	}
 	allErrs := field.ErrorList{}
 	kind, name, namespace := reference.Kind, reference.Name, reference.Namespace
 	switch kind {
@@ -390,35 +366,35 @@ func validateFromImageReference(reference *kapi.ObjectReference, fldPath *field.
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		} else if _, _, ok := imageapi.SplitImageStreamTag(name); !ok {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag object references must be in the form <name>:<tag>"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "must be <name>:<tag>"))
 		} else if name, _, _ := imageapi.SplitImageStreamTag(name); len(imageapivalidation.ValidateImageStreamName(name, false)) != 0 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "ImageStreamTag name contains invalid syntax"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, "invalid name syntax"))
 		}
 
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "must be a valid namespace"))
 		}
 
 	case "DockerImage":
 		if len(namespace) != 0 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace is not valid when used with a 'DockerImage'"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "not valid when used with a 'DockerImage'"))
 		}
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		} else if _, err := imageapi.ParseDockerImageReference(name); err != nil {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, fmt.Sprintf("name is not a valid Docker pull specification: %v", err)))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), name, fmt.Sprintf("not a valid Docker pull specification: %v", err)))
 		}
 	case "ImageStreamImage":
 		if len(name) == 0 {
 			allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 		}
 		if len(namespace) != 0 && len(kvalidation.IsDNS1123Subdomain(namespace)) != 0 {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "namespace must be a valid subdomain"))
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), namespace, "must be a valid namespace"))
 		}
 	case "":
 		allErrs = append(allErrs, field.Required(fldPath.Child("kind"), ""))
 	default:
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("kind"), kind, "the source of a builder image must be an 'ImageStreamTag', 'ImageStreamImage', or 'DockerImage'"))
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("kind"), kind, "must be 'ImageStreamTag', 'ImageStreamImage', or 'DockerImage'"))
 
 	}
 	return allErrs
@@ -478,7 +454,7 @@ func validateDockerStrategy(strategy *buildapi.DockerBuildStrategy, fldPath *fie
 	allErrs := field.ErrorList{}
 
 	if strategy.From != nil {
-		allErrs = append(allErrs, validateFromImageReference(strategy.From, fldPath.Child("from"))...)
+		allErrs = append(allErrs, validateImageReference(strategy.From, fldPath.Child("from"))...)
 	}
 
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
@@ -520,7 +496,7 @@ func validateRelativePath(filePath, fieldName string, fldPath *field.Path) (stri
 
 func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, validateFromImageReference(&strategy.From, fldPath.Child("from"))...)
+	allErrs = append(allErrs, validateImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
 	allErrs = append(allErrs, validateRuntimeImage(strategy, fldPath.Child("runtimeImage"))...)
@@ -529,7 +505,7 @@ func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *fie
 
 func validateCustomStrategy(strategy *buildapi.CustomBuildStrategy, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, validateFromImageReference(&strategy.From, fldPath.Child("from"))...)
+	allErrs = append(allErrs, validateImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
 	return allErrs
@@ -617,7 +593,7 @@ func validateTrigger(trigger *buildapi.BuildTriggerPolicy, buildFrom *kapi.Objec
 			allErrs = append(allErrs, invalidKindErr)
 			break
 		}
-		allErrs = append(allErrs, validateFromImageReference(trigger.ImageChange.From, fldPath.Child("from"))...)
+		allErrs = append(allErrs, validateImageReference(trigger.ImageChange.From, fldPath.Child("from"))...)
 	case buildapi.ConfigChangeBuildTriggerType:
 		// doesn't require additional validation
 	default:
