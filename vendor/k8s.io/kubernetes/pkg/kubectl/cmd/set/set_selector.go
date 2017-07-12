@@ -117,7 +117,7 @@ func (o *SelectorOptions) Complete(f cmdutil.Factory, cmd *cobra.Command, args [
 	o.mapper = mapper
 	o.encoder = f.JSONEncoder()
 
-	o.builder = f.NewBuilder().
+	o.builder = f.NewBuilder(!o.local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &o.fileOptions).

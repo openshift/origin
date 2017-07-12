@@ -233,7 +233,7 @@ type BuilderFactory interface {
 	// PrintObject prints an api object given command line flags to modify the output format
 	PrintObject(cmd *cobra.Command, mapper meta.RESTMapper, obj runtime.Object, out io.Writer) error
 	// One stop shopping for a Builder
-	NewBuilder() *resource.Builder
+	NewBuilder(bool) *resource.Builder
 }
 
 func getGroupVersionKinds(gvks []schema.GroupVersionKind, group string) []schema.GroupVersionKind {

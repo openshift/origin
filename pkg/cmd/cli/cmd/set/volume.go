@@ -107,6 +107,7 @@ type VolumeOptions struct {
 	UpdatePodSpecForObject func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 	Client                 kcoreclient.PersistentVolumeClaimsGetter
 	Encoder                runtime.Encoder
+	Decoder                runtime.Decoder
 	Cmd                    *cobra.Command
 
 	// Resource selection
@@ -169,7 +170,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 			err = opts.Complete(f, cmd, out, errOut)
 			kcmdutil.CheckErr(err)
 
-			err = opts.RunVolume(args)
+			err = opts.RunVolume(args, f)
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -363,12 +364,6 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 }
 
 func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errOut io.Writer) error {
-	_, kc, err := f.Clients()
-	if err != nil {
-		return err
-	}
-	v.Client = kc.Core()
-
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -390,6 +385,15 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	v.RESTClientFactory = f.ClientForMapping
 	v.UpdatePodSpecForObject = f.UpdatePodSpecForObject
 	v.Encoder = f.JSONEncoder()
+	v.Decoder = f.Decoder(true)
+
+	if !v.Local {
+		_, kc, err := f.Clients()
+		if err != nil {
+			return err
+		}
+		v.Client = kc.Core()
+	}
 
 	// In case of volume source ignore the default volume type
 	if len(v.AddOpts.Source) > 0 {
@@ -423,9 +427,9 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	return nil
 }
 
-func (v *VolumeOptions) RunVolume(args []string) error {
+func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 	mapper := resource.ClientMapperFunc(v.RESTClientFactory)
-	b := resource.NewBuilder(v.Mapper, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
+	b := f.NewBuilder(!v.Local).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
@@ -898,7 +902,7 @@ func (v *VolumeOptions) listVolumeForSpec(spec *kapi.PodSpec, info *resource.Inf
 		found = true
 
 		refInfo := ""
-		if vol.VolumeSource.PersistentVolumeClaim != nil {
+		if vol.VolumeSource.PersistentVolumeClaim != nil && v.Client != nil {
 			claimName := vol.VolumeSource.PersistentVolumeClaim.ClaimName
 			claim, err := v.Client.PersistentVolumeClaims(info.Namespace).Get(claimName, metav1.GetOptions{})
 			switch {

@@ -161,11 +161,11 @@ func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 
 	o.Cmd = cmd
 
-	mapper, typer := f.Object()
-	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	mapper, _ := f.Object()
+	o.Builder = f.NewBuilder(!o.Local).
 		ContinueOnError().
-		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
+		NamespaceParam(cmdNamespace).DefaultNamespace().
 		Flatten()
 	if !o.Local {
 		o.Builder = o.Builder.
@@ -173,7 +173,7 @@ func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 			SelectAllParam(o.All).
 			ResourceNames("route", resources...)
 
-		if len(resources) == 0 {
+		if len(resources) == 0 && len(o.Filenames) == 0 {
 			o.Builder.ResourceTypes("routes")
 		}
 	}

@@ -456,7 +456,7 @@ func (f *FakeFactory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RESTMa
 	return f.tf.Printer, f.tf.Err
 }
 
-func (f *FakeFactory) NewBuilder() *resource.Builder {
+func (f *FakeFactory) NewBuilder(bool) *resource.Builder {
 	return nil
 }
 
@@ -686,7 +686,7 @@ func (f *fakeAPIFactory) PrinterForMapping(cmd *cobra.Command, mapping *meta.RES
 	return f.tf.Printer, f.tf.Err
 }
 
-func (f *fakeAPIFactory) NewBuilder() *resource.Builder {
+func (f *fakeAPIFactory) NewBuilder(bool) *resource.Builder {
 	mapper, typer := f.Object()
 
 	return resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true))
