@@ -627,7 +627,7 @@ func (proxier *Proxier) Sync() {
 // SyncLoop runs periodic work.  This is expected to run as a goroutine or as the main loop of the app.  It does not return.
 func (proxier *Proxier) SyncLoop() {
 	// Update healthz timestamp at beginning in case Sync() never succeeds.
-	if proxier.healthzServer != nil {
+	if proxier.healthzServer != nil && !reflect.ValueOf(proxier.healthzServer).IsNil() {
 		proxier.healthzServer.UpdateTimestamp()
 	}
 	proxier.syncRunner.Loop(wait.NeverStop)
@@ -1587,7 +1587,7 @@ func (proxier *Proxier) syncProxyRules() {
 	proxier.portsMap = replacementPortsMap
 
 	// Update healthz timestamp.
-	if proxier.healthzServer != nil {
+	if proxier.healthzServer != nil && !reflect.ValueOf(proxier.healthzServer).IsNil() {
 		proxier.healthzServer.UpdateTimestamp()
 	}
 
