@@ -15,6 +15,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	knet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	build "github.com/openshift/origin/pkg/build/apis/build"
@@ -204,6 +205,78 @@ func TestWellKnownOAuthOff(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("Expected %d, got %d", http.StatusNotFound, resp.StatusCode)
+	}
+}
+
+var preferredVersions = map[string]string{
+	"":                          "v1",
+	"apps":                      "v1beta1",
+	"authentication.k8s.io":     "v1",
+	"authorization.k8s.io":      "v1",
+	"autoscaling":               "v1",
+	"batch":                     "v1",
+	"certificates.k8s.io":       "v1beta1",
+	"extensions":                "v1beta1",
+	"policy":                    "v1beta1",
+	"rbac.authorization.k8s.io": "v1beta1",
+	"storage.k8s.io":            "v1",
+
+	"apps.openshift.io":          "v1",
+	"authorization.openshift.io": "v1",
+	"build.openshift.io":         "v1",
+	"image.openshift.io":         "v1",
+	"network.openshift.io":       "v1",
+	"oauth.openshift.io":         "v1",
+	"project.openshift.io":       "v1",
+	"quota.openshift.io":         "v1",
+	"route.openshift.io":         "v1",
+	"security.openshift.io":      "v1",
+	"template.openshift.io":      "v1",
+	"user.openshift.io":          "v1",
+}
+
+func TestApiGroupPreferredVersions(t *testing.T) {
+	testutil.RequireEtcd(t)
+	defer testutil.DumpEtcdOnFailure(t)
+	masterConfig, err := testserver.DefaultMasterOptions()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	masterConfig.OAuthConfig = nil
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	t.Logf("Looking for build api group in server group discovery")
+	groups, err := kclientset.Discovery().ServerGroups()
+	if err != nil {
+		t.Fatalf("unexpected group discovery error: %v", err)
+	}
+
+	found := sets.NewString()
+	for _, g := range groups.Groups {
+		found.Insert(g.Name)
+		preferred, found := preferredVersions[g.Name]
+		if !found {
+			t.Errorf("Unexpected group %q in discovery", g.Name)
+			continue
+		}
+
+		if g.PreferredVersion.Version != preferred {
+			t.Errorf("Unexpected preferred version for group %q: got %q, expected %q", g.Name, g.PreferredVersion.Version, preferred)
+		}
+	}
+
+	for g := range preferredVersions {
+		if !found.Has(g) {
+			t.Errorf("Didn't see group %q in discovery", g)
+		}
 	}
 }
 
