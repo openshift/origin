@@ -129,6 +129,9 @@ os::cmd::expect_success "oc new-app ruby-helloworld-sample --param-file /dev/nul
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc new-app ruby-helloworld-sample --param-file -" 'invalid parameter assignment'
 
+os::cmd::expect_failure_and_text 'oc new-app ruby-helloworld-sample --param ABSENT_PARAMETER=absent -o yaml' 'unexpected parameter name'
+os::cmd::expect_success 'oc new-app ruby-helloworld-sample --param ABSENT_PARAMETER=absent -o yaml --ignore-unknown-parameters'
+
 # check that we can set environment variables from env file
 env_file="${OS_ROOT}/test/testdata/test-cmd-newapp-env.env"
 os::cmd::expect_success_and_text "oc new-app php --env-file ${env_file} -o jsonpath='{.items[?(@.kind==\"DeploymentConfig\")].spec.template.spec.containers[0].env[?(@.name==\"SOME_VAR\")].value}'" 'envvarfromfile'

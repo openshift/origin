@@ -18,7 +18,7 @@ func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templ
 	}
 
 	// process the template
-	result, err := genappcmd.TransformTemplate(template, client, targetNamespace, params)
+	result, err := genappcmd.TransformTemplate(template, client, targetNamespace, params, false)
 	if err != nil {
 		return errors.NewError("cannot process template %s/%s", templateNamespace, templateName).WithCause(err)
 	}
