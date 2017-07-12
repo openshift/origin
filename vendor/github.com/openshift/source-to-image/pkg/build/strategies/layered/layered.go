@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
 	"github.com/openshift/source-to-image/pkg/tar"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -34,14 +34,14 @@ const defaultDestination = "/tmp"
 type Layered struct {
 	config     *api.Config
 	docker     docker.Docker
-	fs         util.FileSystem
+	fs         fs.FileSystem
 	tar        tar.Tar
 	scripts    build.ScriptsHandler
 	hasOnBuild bool
 }
 
 // New creates a Layered builder.
-func New(client docker.Client, config *api.Config, fs util.FileSystem, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
+func New(client docker.Client, config *api.Config, fs fs.FileSystem, scripts build.ScriptsHandler, overrides build.Overrides) (*Layered, error) {
 	excludePattern, err := regexp.Compile(config.ExcludeRegExp)
 	if err != nil {
 		return nil, err

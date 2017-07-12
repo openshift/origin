@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/build/strategies/onbuild"
 	"github.com/openshift/source-to-image/pkg/build/strategies/sti"
 	"github.com/openshift/source-to-image/pkg/docker"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 	utilstatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
@@ -24,7 +24,7 @@ func Strategy(client docker.Client, config *api.Config, overrides build.Override
 	var builder build.Builder
 	var buildInfo api.BuildInfo
 
-	fs := util.NewFileSystem()
+	fs := fs.NewFileSystem()
 
 	startTime := time.Now()
 	image, err := docker.GetBuilderImage(client, config)

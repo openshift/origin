@@ -9,7 +9,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/docker"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 )
 
 // Installer interface is responsible for installing scripts needed to run the
@@ -32,7 +32,7 @@ type URLScriptHandler struct {
 	URL            string
 	DestinationDir string
 	download       Downloader
-	fs             util.FileSystem
+	fs             fs.FileSystem
 	name           string
 }
 
@@ -104,7 +104,7 @@ func (s *URLScriptHandler) Install(r *api.InstallResult) error {
 // source code directory.
 type SourceScriptHandler struct {
 	DestinationDir string
-	fs             util.FileSystem
+	fs             fs.FileSystem
 }
 
 // Get verifies if the script is present in the source directory and get the
@@ -170,7 +170,7 @@ type DefaultScriptSourceManager struct {
 	docker     docker.Docker
 	dockerAuth api.AuthConfig
 	sources    []ScriptHandler
-	fs         util.FileSystem
+	fs         fs.FileSystem
 }
 
 // Add registers a new script source handler.
@@ -182,7 +182,7 @@ func (m *DefaultScriptSourceManager) Add(s ScriptHandler) {
 }
 
 // NewInstaller returns a new instance of the default Installer implementation
-func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth api.AuthConfig, fs util.FileSystem) Installer {
+func NewInstaller(image string, scriptsURL string, proxyConfig *api.ProxyConfig, docker docker.Docker, auth api.AuthConfig, fs fs.FileSystem) Installer {
 	m := DefaultScriptSourceManager{
 		Image:      image,
 		ScriptsURL: scriptsURL,
