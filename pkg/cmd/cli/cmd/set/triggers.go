@@ -28,7 +28,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -124,7 +124,7 @@ type TriggersOptions struct {
 }
 
 // NewCmdTriggers implements the set triggers command
-func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdTriggers(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	options := &TriggersOptions{
 		Out: out,
 		Err: errOut,
@@ -173,7 +173,7 @@ func NewCmdTriggers(fullName string, f *clientcmd.Factory, out, errOut io.Writer
 	return cmd
 }
 
-func (o *TriggersOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *TriggersOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err

@@ -13,7 +13,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
@@ -42,7 +42,7 @@ type SCCModificationOptions struct {
 	Subjects                []kapi.ObjectReference
 }
 
-func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSCCToGroup(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -63,7 +63,7 @@ func NewCmdAddSCCToGroup(name, fullName string, f *clientcmd.Factory, out io.Wri
 	return cmd
 }
 
-func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddSCCToUser(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 	saNames := []string{}
 
@@ -88,7 +88,7 @@ func NewCmdAddSCCToUser(name, fullName string, f *clientcmd.Factory, out io.Writ
 	return cmd
 }
 
-func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveSCCFromGroup(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -109,7 +109,7 @@ func NewCmdRemoveSCCFromGroup(name, fullName string, f *clientcmd.Factory, out i
 	return cmd
 }
 
-func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveSCCFromUser(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &SCCModificationOptions{}
 	saNames := []string{}
 
@@ -133,7 +133,7 @@ func NewCmdRemoveSCCFromUser(name, fullName string, f *clientcmd.Factory, out io
 	return cmd
 }
 
-func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []string, saNames []string) error {
+func (o *SCCModificationOptions) CompleteUsers(f factory.Interface, args []string, saNames []string) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a scc")
 	}
@@ -163,7 +163,7 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []stri
 	return nil
 }
 
-func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []string) error {
+func (o *SCCModificationOptions) CompleteGroups(f factory.Interface, args []string) error {
 	if len(args) < 2 {
 		return errors.New("you must specify at least two arguments: <scc> <group> [group]...")
 	}

@@ -18,7 +18,7 @@ import (
 	cmdconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 func adjustCmdExamples(cmd *cobra.Command, parentName string, name string) {
@@ -62,7 +62,7 @@ var (
 )
 
 // NewCmdGet is a wrapper for the Kubernetes cli get command
-func NewCmdGet(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdGet(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdGet(f, out, errOut)
 	cmd.Long = fmt.Sprintf(getLong, fullName)
 	cmd.Example = fmt.Sprintf(getExample, fullName)
@@ -88,7 +88,7 @@ var (
 )
 
 // NewCmdReplace is a wrapper for the Kubernetes cli replace command
-func NewCmdReplace(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdReplace(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdReplace(f, out)
 	cmd.Long = replaceLong
 	cmd.Example = fmt.Sprintf(replaceExample, fullName)
@@ -107,7 +107,7 @@ var (
 )
 
 // NewCmdPatch is a wrapper for the Kubernetes cli patch command
-func NewCmdPatch(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdPatch(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdPatch(f, out)
 	cmd.Long = patchLong
 	cmd.Example = fmt.Sprintf(patchExample, fullName)
@@ -150,7 +150,7 @@ var (
 )
 
 // NewCmdDelete is a wrapper for the Kubernetes cli delete command
-func NewCmdDelete(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdDelete(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdDelete(f, out, errOut)
 	cmd.Long = deleteLong
 	cmd.Short = "Delete one or more resources"
@@ -174,7 +174,7 @@ var (
 )
 
 // NewCmdCreate is a wrapper for the Kubernetes cli create command
-func NewCmdCreate(parentName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdCreate(parentName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdCreate(f, out, errOut)
 	cmd.Long = createLong
 	cmd.Example = fmt.Sprintf(createExample, parentName)
@@ -224,7 +224,7 @@ var (
 	  * zsh completions are only supported in versions of zsh >= 5.2`)
 )
 
-func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCompletion(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmdHelpName := fullName
 
 	if strings.HasSuffix(fullName, "completion") {
@@ -249,7 +249,7 @@ var (
 )
 
 // NewCmdExec is a wrapper for the Kubernetes cli exec command
-func NewCmdExec(fullName string, f *clientcmd.Factory, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
+func NewCmdExec(fullName string, f factory.Interface, cmdIn io.Reader, cmdOut, cmdErr io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExec(f, cmdIn, cmdOut, cmdErr)
 	cmd.Use = "exec [options] POD [-c CONTAINER] -- COMMAND [args...]"
 	cmd.Long = execLong
@@ -276,7 +276,7 @@ var (
 )
 
 // NewCmdPortForward is a wrapper for the Kubernetes cli port-forward command
-func NewCmdPortForward(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdPortForward(fullName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdPortForward(f, out, errout)
 	cmd.Long = portForwardLong
 	cmd.Example = fmt.Sprintf(portForwardExample, fullName)
@@ -300,7 +300,7 @@ var (
 )
 
 // NewCmdDescribe is a wrapper for the Kubernetes cli describe command
-func NewCmdDescribe(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdDescribe(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdDescribe(f, out, errOut)
 	cmd.Long = describeLong
 	cmd.Example = fmt.Sprintf(describeExample, fullName)
@@ -325,7 +325,7 @@ var (
 )
 
 // NewCmdProxy is a wrapper for the Kubernetes cli proxy command
-func NewCmdProxy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProxy(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdProxy(f, out)
 	cmd.Long = proxyLong
 	cmd.Example = fmt.Sprintf(proxyExample, fullName)
@@ -360,7 +360,7 @@ var (
 )
 
 // NewCmdScale is a wrapper for the Kubernetes cli scale command
-func NewCmdScale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdScale(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdScale(f, out)
 	cmd.ValidArgs = append(cmd.ValidArgs, "deploymentconfig")
 	cmd.Short = "Change the number of pods in a deployment"
@@ -388,7 +388,7 @@ var (
 )
 
 // NewCmdAutoscale is a wrapper for the Kubernetes cli autoscale command
-func NewCmdAutoscale(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAutoscale(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdAutoscale(f, out)
 	cmd.Short = "Autoscale a deployment config, deployment, replication controller, or replica set"
 	cmd.Long = autoScaleLong
@@ -444,7 +444,7 @@ var (
 )
 
 // NewCmdRun is a wrapper for the Kubernetes cli run command
-func NewCmdRun(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdRun(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	opts := &kcmd.RunOptions{DefaultRestartAlwaysGenerator: "deploymentconfig/v1", DefaultGenerator: kcmdutil.RunPodV1GeneratorName}
 	cmd := kcmd.NewCmdRunWithOptions(f, opts, in, out, errout)
 	cmd.Long = runLong
@@ -477,7 +477,7 @@ var (
 )
 
 // NewCmdAttach is a wrapper for the Kubernetes cli attach command
-func NewCmdAttach(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdAttach(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdAttach(f, in, out, errout)
 	cmd.Long = attachLong
 	cmd.Example = fmt.Sprintf(attachExample, fullName)
@@ -519,7 +519,7 @@ var (
 )
 
 // NewCmdAnnotate is a wrapper for the Kubernetes cli annotate command
-func NewCmdAnnotate(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAnnotate(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdAnnotate(f, out)
 	cmd.Long = fmt.Sprintf(annotateLong, fullName)
 	cmd.Example = fmt.Sprintf(annotateExample, fullName)
@@ -555,7 +555,7 @@ var (
 )
 
 // NewCmdLabel is a wrapper for the Kubernetes cli label command
-func NewCmdLabel(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdLabel(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdLabel(f, out)
 	cmd.Long = fmt.Sprintf(labelLong, kvalidation.LabelValueMaxLength)
 	cmd.Example = fmt.Sprintf(labelExample, fullName)
@@ -577,7 +577,7 @@ var (
 )
 
 // NewCmdApply is a wrapper for the Kubernetes cli apply command
-func NewCmdApply(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdApply(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdApply(f, out, errOut)
 	cmd.Long = applyLong
 	cmd.Example = fmt.Sprintf(applyExample, fullName)
@@ -602,7 +602,7 @@ var (
 )
 
 // NewCmdExplain is a wrapper for the Kubernetes cli explain command
-func NewCmdExplain(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdExplain(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdExplain(f, out, errOut)
 	cmd.Long = explainLong
 	cmd.Example = fmt.Sprintf(explainExample, fullName)
@@ -634,7 +634,7 @@ var (
 )
 
 // NewCmdConvert is a wrapper for the Kubernetes cli convert command
-func NewCmdConvert(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdConvert(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdConvert(f, out)
 	cmd.Long = convertLong
 	cmd.Example = fmt.Sprintf(convertExample, fullName)
@@ -678,7 +678,7 @@ var (
 )
 
 // NewCmdEdit is a wrapper for the Kubernetes cli edit command
-func NewCmdEdit(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdEdit(fullName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdEdit(f, out, errout)
 	cmd.Long = editLong
 	cmd.Example = fmt.Sprintf(editExample, fullName)
@@ -747,13 +747,13 @@ var (
 )
 
 // NewCmdCp is a wrapper for the Kubernetes cli cp command
-func NewCmdCp(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdCp(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	cmd := kcmd.NewCmdCp(f, in, out, errout)
 	cmd.Example = fmt.Sprintf(cpExample, fullName)
 	return cmd
 }
 
-func NewCmdAuth(fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdAuth(fullName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	cmd := kcmdauth.NewCmdAuth(f, out, errout)
 	return cmd
 }

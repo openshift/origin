@@ -10,10 +10,11 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // CreateProject creates a project
-func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
+func CreateProject(f factory.Interface, name, display, desc, basecmd string, out io.Writer) error {
 	client, _, err := f.Clients()
 	if err != nil {
 		return nil
@@ -45,14 +46,14 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 	return nil
 }
 
-func setCurrentProject(f *clientcmd.Factory, name string, out io.Writer) error {
+func setCurrentProject(f factory.Interface, name string, out io.Writer) error {
 	pathOptions := config.NewPathOptionsWithConfig("")
 	opt := &cmd.ProjectOptions{PathOptions: pathOptions}
 	opt.Complete(f, []string{name}, out)
 	return opt.RunProject()
 }
 
-func LoggedInUserFactory() (*clientcmd.Factory, error) {
+func LoggedInUserFactory() (factory.Interface, error) {
 	cfg, err := config.NewOpenShiftClientConfigLoadingRules().Load()
 	if err != nil {
 		return nil, err

@@ -16,6 +16,7 @@ import (
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
 
@@ -58,7 +59,7 @@ var (
 )
 
 // NewCmdProjects implements the OpenShift cli rollback command
-func NewCmdProjects(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdProjects(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &ProjectsOptions{}
 
 	cmd := &cobra.Command{
@@ -82,7 +83,7 @@ func NewCmdProjects(fullName string, f *clientcmd.Factory, out io.Writer) *cobra
 	return cmd
 }
 
-func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandName string, out io.Writer) error {
+func (o *ProjectsOptions) Complete(f factory.Interface, args []string, commandName string, out io.Writer) error {
 	if len(args) > 0 {
 		return fmt.Errorf("no arguments should be passed")
 	}

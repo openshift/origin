@@ -28,6 +28,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -35,30 +36,29 @@ import (
 
 // New creates a default Factory for commands that should share identical server
 // connection behavior. Most commands should use this method to get a factory.
-func New(flags *pflag.FlagSet) *Factory {
+func New(flags *pflag.FlagSet) factory.Interface {
 	f := NewFactory(nil)
 	f.BindFlags(flags)
 
 	return f
 }
 
-// Factory provides common options for OpenShift commands
-type Factory struct {
-	ClientAccessFactory
+type openshiftFactory struct {
+	factory.ClientAccess
 	kcmdutil.ObjectMappingFactory
 	kcmdutil.BuilderFactory
 }
 
-var _ kcmdutil.Factory = &Factory{}
+var _ kcmdutil.Factory = &openshiftFactory{}
 
 // NewFactory creates an object that holds common methods across all OpenShift commands
-func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
+func NewFactory(optionalClientConfig kclientcmd.ClientConfig) factory.Interface {
 	clientAccessFactory := NewClientAccessFactory(optionalClientConfig)
 	objectMappingFactory := NewObjectMappingFactory(clientAccessFactory)
 	builderFactory := kcmdutil.NewBuilderFactory(clientAccessFactory, objectMappingFactory)
 
-	return &Factory{
-		ClientAccessFactory:  clientAccessFactory,
+	return &openshiftFactory{
+		ClientAccess:         clientAccessFactory,
 		ObjectMappingFactory: objectMappingFactory,
 		BuilderFactory:       builderFactory,
 	}
@@ -66,7 +66,7 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
-func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
+func (f *openshiftFactory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
 	printer, generic, err := f.PrinterForCommand(cmd)
 	if err != nil {
 		return nil
@@ -94,14 +94,6 @@ func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info,
 	return printer.PrintObj(object, out)
 }
 
-// FlagBinder represents an interface that allows to bind extra flags into commands.
-type FlagBinder interface {
-	// Bound returns true if the flag is already bound to a command.
-	Bound() bool
-	// Bind allows to bind an extra flag to a command
-	Bind(*pflag.FlagSet)
-}
-
 func ResourceMapper(f kcmdutil.Factory) *resource.Mapper {
 	mapper, typer := f.Object()
 	return &resource.Mapper{
@@ -112,7 +104,7 @@ func ResourceMapper(f kcmdutil.Factory) *resource.Mapper {
 }
 
 // UpdateObjectEnvironment update the environment variables in object specification.
-func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error) {
+func (f *openshiftFactory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.EnvVar) error) (bool, error) {
 	switch t := obj.(type) {
 	case *buildapi.BuildConfig:
 		if t.Spec.Strategy.CustomStrategy != nil {
@@ -130,7 +122,7 @@ func (f *Factory) UpdateObjectEnvironment(obj runtime.Object, fn func(*[]api.Env
 
 // ExtractFileContents returns a map of keys to contents, false if the object cannot support such an
 // operation, or an error.
-func (f *Factory) ExtractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
+func (f *openshiftFactory) ExtractFileContents(obj runtime.Object) (map[string][]byte, bool, error) {
 	switch t := obj.(type) {
 	case *api.Secret:
 		return t.Data, true, nil
@@ -148,7 +140,7 @@ func (f *Factory) ExtractFileContents(obj runtime.Object) (map[string][]byte, bo
 // ApproximatePodTemplateForObject returns a pod template object for the provided source.
 // It may return both an error and a object. It attempt to return the best possible template
 // available at the current time.
-func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.PodTemplateSpec, error) {
+func (f *openshiftFactory) ApproximatePodTemplateForObject(object runtime.Object) (*api.PodTemplateSpec, error) {
 	switch t := object.(type) {
 	case *imageapi.ImageStreamTag:
 		// create a minimal pod spec that uses the image referenced by the istag without any introspection
@@ -226,7 +218,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 	}
 }
 
-func (f *Factory) PodForResource(resource string, timeout time.Duration) (string, error) {
+func (f *openshiftFactory) PodForResource(resource string, timeout time.Duration) (string, error) {
 	sortBy := func(pods []*v1.Pod) sort.Interface { return sort.Reverse(controller.ActivePods(pods)) }
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {

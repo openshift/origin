@@ -13,7 +13,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/util/fsnotification"
 )
 
@@ -90,7 +90,7 @@ type RsyncOptions struct {
 }
 
 // NewCmdRsync creates a new sync command
-func NewCmdRsync(name, parent string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdRsync(name, parent string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	o := RsyncOptions{
 		Out:    out,
 		ErrOut: errOut,
@@ -132,7 +132,7 @@ func warnNoRsync(out io.Writer) {
 	fmt.Fprintf(out, noRsyncUnixWarning)
 }
 
-func (o *RsyncOptions) determineStrategy(f *clientcmd.Factory, cmd *cobra.Command, name string) (copyStrategy, error) {
+func (o *RsyncOptions) determineStrategy(f factory.Interface, cmd *cobra.Command, name string) (copyStrategy, error) {
 	switch name {
 	case "":
 		// Default case, use an rsync strategy first and then fallback to Tar
@@ -175,7 +175,7 @@ func (o *RsyncOptions) determineStrategy(f *clientcmd.Factory, cmd *cobra.Comman
 }
 
 // Complete verifies command line arguments and loads data from the command environment
-func (o *RsyncOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *RsyncOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	switch n := len(args); {
 	case n == 0:
 		cmd.Help()

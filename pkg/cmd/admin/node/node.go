@@ -10,7 +10,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const ManageNodeCommandName = "manage-node"
@@ -63,7 +63,7 @@ type ManageNodeOptions struct {
 }
 
 // NewCommandManageNode implements the OpenShift cli manage-node command
-func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, out, errout io.Writer) *cobra.Command {
+func NewCommandManageNode(f factory.Interface, commandName, fullName string, out, errout io.Writer) *cobra.Command {
 	nodeOpts := &NodeOptions{}
 	schedulableOp := &SchedulableOptions{Options: nodeOpts}
 	evacuateOp := NewEvacuateOptions(nodeOpts)
@@ -109,7 +109,7 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 	return cmd
 }
 
-func (n *ManageNodeOptions) Complete(c *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (n *ManageNodeOptions) Complete(c *cobra.Command, f factory.Interface, args []string) error {
 	return n.nodeOptions.Complete(f, c, args, n.out, n.errout)
 }
 

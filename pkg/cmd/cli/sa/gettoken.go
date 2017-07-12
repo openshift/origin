@@ -14,7 +14,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
@@ -51,7 +51,7 @@ type GetServiceAccountTokenOptions struct {
 	Err io.Writer
 }
 
-func NewCommandGetServiceAccountToken(name, fullname string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCommandGetServiceAccountToken(name, fullname string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &GetServiceAccountTokenOptions{
 		Out: out,
 		Err: os.Stderr,
@@ -72,7 +72,7 @@ func NewCommandGetServiceAccountToken(name, fullname string, f *clientcmd.Factor
 	return getServiceAccountTokenCommand
 }
 
-func (o *GetServiceAccountTokenOptions) Complete(args []string, f *clientcmd.Factory, cmd *cobra.Command) error {
+func (o *GetServiceAccountTokenOptions) Complete(args []string, f factory.Interface, cmd *cobra.Command) error {
 	if len(args) != 1 {
 		return cmdutil.UsageError(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
 	}

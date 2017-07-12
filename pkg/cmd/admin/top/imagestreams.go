@@ -13,9 +13,9 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
@@ -35,7 +35,7 @@ var (
 )
 
 // NewCmdTopImageStreams implements the OpenShift cli top imagestreams command.
-func NewCmdTopImageStreams(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdTopImageStreams(f factory.Interface, parentName, name string, out io.Writer) *cobra.Command {
 	opts := &TopImageStreamsOptions{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -64,7 +64,7 @@ type TopImageStreamsOptions struct {
 
 // Complete turns a partially defined TopImageStreamsOptions into a solvent structure
 // which can be validated and used for showing limits usage.
-func (o *TopImageStreamsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TopImageStreamsOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	osClient, _, err := f.Clients()
 	if err != nil {
 		return err

@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -80,7 +81,7 @@ type RegistryOptions struct {
 	Config *RegistryConfig
 
 	// helpers required for Run.
-	factory       *clientcmd.Factory
+	factory       factory.Interface
 	cmd           *cobra.Command
 	out           io.Writer
 	label         map[string]string
@@ -144,7 +145,7 @@ const (
 )
 
 // NewCmdRegistry implements the OpenShift cli registry command
-func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdRegistry(f factory.Interface, parentName, name string, out, errout io.Writer) *cobra.Command {
 	cfg := &RegistryConfig{
 		ImageTemplate:  variable.NewDefaultImageTemplate(),
 		Name:           "registry",
@@ -199,7 +200,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 }
 
 // Complete completes any options that are required by validate or run steps.
-func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, args []string) error {
+func (opts *RegistryOptions) Complete(f factory.Interface, cmd *cobra.Command, out, errout io.Writer, args []string) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "No arguments are allowed to this command")
 	}

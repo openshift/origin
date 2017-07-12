@@ -12,7 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
@@ -49,7 +49,7 @@ type CreateUserOptions struct {
 }
 
 // NewCmdCreateUser is a macro command to create a new user
-func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateUser(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &CreateUserOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -69,7 +69,7 @@ func NewCmdCreateUser(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-func (o *CreateUserOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateUserOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	switch len(args) {
 	case 0:
 		return fmt.Errorf("username is required")

@@ -19,7 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
@@ -58,7 +58,7 @@ type sccSubjectReviewOptions struct {
 	serviceAccount             string
 }
 
-func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSccSubjectReview(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &sccSubjectReviewOptions{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -79,7 +79,7 @@ func NewCmdSccSubjectReview(name, fullName string, f *clientcmd.Factory, out io.
 	return cmd
 }
 
-func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *cobra.Command, out io.Writer) error {
+func (o *sccSubjectReviewOptions) Complete(f factory.Interface, args []string, cmd *cobra.Command, out io.Writer) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}

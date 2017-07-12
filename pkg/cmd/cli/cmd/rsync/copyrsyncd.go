@@ -13,11 +13,10 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	krand "k8s.io/apimachinery/pkg/util/rand"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 const (
@@ -287,7 +286,7 @@ func (s *rsyncDaemonStrategy) Validate() error {
 	return nil
 }
 
-func newRsyncDaemonStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+func newRsyncDaemonStrategy(f factory.Interface, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 	flags := []string{"-a", "--omit-dir-times", "--numeric-ids"}
 	flags = append(flags, rsyncFlagsFromOptions(o)...)
 

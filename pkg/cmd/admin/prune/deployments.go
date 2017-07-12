@@ -16,7 +16,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/prune"
 )
@@ -53,7 +53,7 @@ type PruneDeploymentsOptions struct {
 }
 
 // NewCmdPruneDeployments implements the OpenShift cli prune deployments command.
-func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneDeployments(f factory.Interface, parentName, name string, out io.Writer) *cobra.Command {
 	opts := &PruneDeploymentsOptions{
 		Confirm:         false,
 		KeepYoungerThan: 60 * time.Minute,
@@ -85,7 +85,7 @@ func NewCmdPruneDeployments(f *clientcmd.Factory, parentName, name string, out i
 
 // Complete turns a partially defined PruneDeploymentsOptions into a solvent structure
 // which can be validated and used for pruning deployments.
-func (o *PruneDeploymentsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *PruneDeploymentsOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}

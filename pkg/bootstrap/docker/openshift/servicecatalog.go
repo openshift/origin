@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const (
@@ -29,7 +30,7 @@ const (
 )
 
 // InstallServiceCatalog checks whether the service catalog is installed and installs it if not already installed
-func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catalogHost string) error {
+func (h *Helper) InstallServiceCatalog(f factory.Interface, publicMaster, catalogHost string) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())

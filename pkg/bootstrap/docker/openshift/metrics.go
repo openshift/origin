@@ -9,7 +9,7 @@ import (
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const (
@@ -22,7 +22,7 @@ const (
 )
 
 // InstallMetricsViaAnsible checks whether metrics is installed and installs it if not already installed
-func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
+func (h *Helper) InstallMetricsViaAnsible(f factory.Interface, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
 	_, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -54,7 +54,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, public
 }
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
-func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, imageVersion string) error {
+func (h *Helper) InstallMetrics(f factory.Interface, hostName, imagePrefix, imageVersion string) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())

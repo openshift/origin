@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
@@ -44,7 +44,7 @@ type CreateDeploymentConfigOptions struct {
 }
 
 // NewCmdCreateDeploymentConfig is a macro command to create a new deployment config.
-func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateDeploymentConfig(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &CreateDeploymentConfigOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -67,7 +67,7 @@ func NewCmdCreateDeploymentConfig(name, fullName string, f *clientcmd.Factory, o
 	return cmd
 }
 
-func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	argsLenAtDash := cmd.ArgsLenAtDash()
 	switch {
 	case (argsLenAtDash == -1 && len(args) != 1),

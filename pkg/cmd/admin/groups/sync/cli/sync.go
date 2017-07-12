@@ -29,7 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const SyncRecommendedName = "sync"
@@ -127,7 +127,7 @@ func NewSyncOptions() *SyncOptions {
 	}
 }
 
-func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdSync(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := NewSyncOptions()
 	options.Out = out
 
@@ -184,7 +184,7 @@ func NewCmdSync(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	return cmd
 }
 
-func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
+func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile string, args []string, f factory.Interface) error {
 	switch typeArg {
 	case string(GroupSyncSourceLDAP):
 		o.Source = GroupSyncSourceLDAP
@@ -337,7 +337,7 @@ func (o *SyncOptions) Validate() error {
 
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
-func (o *SyncOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *SyncOptions) Run(cmd *cobra.Command, f factory.Interface) error {
 	bindPassword, err := api.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err

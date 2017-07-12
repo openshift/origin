@@ -22,7 +22,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // CancelBuildRecommendedCommandName is the recommended command name.
@@ -72,7 +72,7 @@ type CancelBuildOptions struct {
 }
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
-func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdCancelBuild(name, baseName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &CancelBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -94,7 +94,7 @@ func NewCmdCancelBuild(name, baseName string, f *clientcmd.Factory, in io.Reader
 }
 
 // Complete completes all the required options.
-func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *CancelBuildOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, in io.Reader, out, errout io.Writer) error {
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout

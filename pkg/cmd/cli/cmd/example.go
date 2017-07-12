@@ -11,7 +11,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 var (
@@ -30,7 +30,7 @@ type TYPEOptions struct {
 
 // NewCmdTYPE implements a TYPE command
 // This is an example type for templating.
-func NewCmdTYPE(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdTYPE(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &TYPEOptions{
 		In:     in,
 		Out:    out,
@@ -56,7 +56,7 @@ func NewCmdTYPE(fullName string, f *clientcmd.Factory, in io.Reader, out, errout
 	return cmd
 }
 
-func (o *TYPEOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *TYPEOptions) Complete(f factory.Interface, c *cobra.Command, args []string) error {
 	return nil
 }
 

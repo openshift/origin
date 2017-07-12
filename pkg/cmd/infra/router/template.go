@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -31,7 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/router/metrics/haproxy"
 	templateplugin "github.com/openshift/origin/pkg/router/template"
 	"github.com/openshift/origin/pkg/util/proc"
-	"github.com/openshift/origin/pkg/version"
+	oversion "github.com/openshift/origin/pkg/version"
 )
 
 // defaultReloadInterval is how often to do reloads in seconds.
@@ -152,7 +152,7 @@ func NewCommandTemplateRouter(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	cmd.AddCommand(version.NewCmdVersion(name, nil, os.Stdout, version.VersionOptions{}))
 
 	flag := cmd.Flags()
 	options.Config.Bind(flag)
@@ -243,7 +243,7 @@ func (o *TemplateRouterOptions) Validate() error {
 
 // Run launches a template router using the provided options. It never exits.
 func (o *TemplateRouterOptions) Run() error {
-	glog.Infof("Starting template router (%s)", version.Get())
+	glog.Infof("Starting template router (%s)", oversion.Get())
 
 	statsPort := o.StatsPort
 	switch {

@@ -16,7 +16,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 var (
@@ -81,7 +81,7 @@ type BuildHookOptions struct {
 }
 
 // NewCmdBuildHook implements the set build-hook command
-func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdBuildHook(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	options := &BuildHookOptions{
 		Out: out,
 		Err: errOut,
@@ -121,7 +121,7 @@ func NewCmdBuildHook(fullName string, f *clientcmd.Factory, out, errOut io.Write
 	return cmd
 }
 
-func (o *BuildHookOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *BuildHookOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	resources := args
 	if i := cmd.ArgsLenAtDash(); i != -1 {
 		resources = args[:i]

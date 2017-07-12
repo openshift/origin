@@ -15,7 +15,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const PolicyRecommendedName = "policy"
@@ -31,7 +31,7 @@ var policyLong = templates.LongDesc(`
 	and 'scc'.`)
 
 // NewCmdPolicy implements the OpenShift cli policy command
-func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdPolicy(name, fullName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

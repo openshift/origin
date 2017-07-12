@@ -9,7 +9,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const TopRecommendedName = "top"
@@ -20,7 +20,7 @@ var topLong = templates.LongDesc(`
 	This command analyzes resources managed by the platform and presents current
 	usage statistics.`)
 
-func NewCommandTop(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCommandTop(name, fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

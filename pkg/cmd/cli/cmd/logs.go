@@ -19,7 +19,7 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
@@ -74,7 +74,7 @@ type OpenShiftLogsOptions struct {
 }
 
 // NewCmdLogs creates a new logs command that supports OpenShift resources.
-func NewCmdLogs(name, baseName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdLogs(name, baseName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := OpenShiftLogsOptions{
 		KubeLogOptions: &kcmd.LogsOptions{},
 	}
@@ -115,7 +115,7 @@ func isPipelineBuild(obj runtime.Object) (bool, *buildapi.BuildConfig, bool, *bu
 // Complete calls the upstream Complete for the logs command and then resolves the
 // resource a user requested to view its logs and creates the appropriate logOptions
 // object for it.
-func (o *OpenShiftLogsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *OpenShiftLogsOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if err := o.KubeLogOptions.Complete(f, out, cmd, args); err != nil {
 		return err
 	}

@@ -8,7 +8,7 @@ import (
 
 	groups "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const (
@@ -22,7 +22,7 @@ var pruneLong = templates.LongDesc(`
 	The commands here allow administrators to manage the older versions of resources on
 	the system by removing them.`)
 
-func NewCommandPrune(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCommandPrune(name, fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
 		Use:   name,

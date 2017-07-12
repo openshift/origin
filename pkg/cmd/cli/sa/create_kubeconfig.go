@@ -16,7 +16,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 
@@ -56,7 +56,7 @@ type CreateKubeconfigOptions struct {
 	Err io.Writer
 }
 
-func NewCommandCreateKubeconfig(name, fullname string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCommandCreateKubeconfig(name, fullname string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &CreateKubeconfigOptions{
 		Out: out,
 		Err: os.Stderr,
@@ -77,7 +77,7 @@ func NewCommandCreateKubeconfig(name, fullname string, f *clientcmd.Factory, out
 	return cmd
 }
 
-func (o *CreateKubeconfigOptions) Complete(args []string, f *clientcmd.Factory, cmd *cobra.Command) error {
+func (o *CreateKubeconfigOptions) Complete(args []string, f factory.Interface, cmd *cobra.Command) error {
 	if len(args) != 1 {
 		return cmdutil.UsageError(cmd, fmt.Sprintf("expected one service account name as an argument, got %q", args))
 	}

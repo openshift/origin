@@ -16,7 +16,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -31,7 +31,7 @@ type NetworkDiagnostic struct {
 	OSClient            *osclient.Client
 	ClientFlags         *flag.FlagSet
 	Level               int
-	Factory             *osclientcmd.Factory
+	Factory             factory.Interface
 	PreventModification bool
 	LogDir              string
 	PodImage            string

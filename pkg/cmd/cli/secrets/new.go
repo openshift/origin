@@ -16,7 +16,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/spf13/cobra"
 )
 
@@ -71,7 +71,7 @@ type CreateSecretOptions struct {
 	AllowUnknownTypes bool
 }
 
-func NewCmdCreateSecret(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateSecret(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := NewCreateSecretOptions()
 	options.Out = out
 
@@ -118,7 +118,7 @@ func NewCreateSecretOptions() *CreateSecretOptions {
 	}
 }
 
-func (o *CreateSecretOptions) Complete(args []string, f *clientcmd.Factory) error {
+func (o *CreateSecretOptions) Complete(args []string, f factory.Interface) error {
 	// Fill name from args[0]
 	if len(args) > 0 {
 		o.Name = args[0]

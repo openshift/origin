@@ -13,7 +13,7 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const PolicyBindingRecommendedName = "policybinding"
@@ -41,7 +41,7 @@ type CreatePolicyBindingOptions struct {
 type ObjectPrinter func(runtime.Object, io.Writer) error
 
 // NewCmdCreatePolicyBinding is a macro command to create a new policy binding.
-func NewCmdCreatePolicyBinding(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreatePolicyBinding(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &CreatePolicyBindingOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -59,7 +59,7 @@ func NewCmdCreatePolicyBinding(name, fullName string, f *clientcmd.Factory, out 
 	return cmd
 }
 
-func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	if len(args) != 1 {
 		return fmt.Errorf("exactly one argument (policy namespace) is supported, not: %v", args)
 	}

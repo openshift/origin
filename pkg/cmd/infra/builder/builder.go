@@ -8,7 +8,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
-	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/templates"
 )
 
@@ -38,7 +38,7 @@ func NewCommandS2IBuilder(name string) *cobra.Command {
 		},
 	}
 
-	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	cmd.AddCommand(version.NewCmdVersion(name, nil, os.Stdout, version.VersionOptions{}))
 	return cmd
 }
 
@@ -53,6 +53,6 @@ func NewCommandDockerBuilder(name string) *cobra.Command {
 			kcmdutil.CheckErr(err)
 		},
 	}
-	cmd.AddCommand(ocmd.NewCmdVersion(name, nil, os.Stdout, ocmd.VersionOptions{}))
+	cmd.AddCommand(version.NewCmdVersion(name, nil, os.Stdout, version.VersionOptions{}))
 	return cmd
 }

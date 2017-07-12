@@ -23,7 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
@@ -45,7 +45,7 @@ type ProjectOptions struct {
 	CheckSelector bool
 }
 
-func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string, out io.Writer) error {
+func (p *ProjectOptions) Complete(f factory.Interface, c *cobra.Command, args []string, out io.Writer) error {
 	defaultNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
