@@ -10,43 +10,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/apis/autoscaling"
-	autoscaling_v1 "k8s.io/kubernetes/pkg/apis/autoscaling/v1"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batch_v1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kautoscalingclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/autoscaling/internalversion"
 	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/batch/internalversion"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
-
-type legacyExtensionsAutoscaling struct {
-	kautoscalingclient.HorizontalPodAutoscalerInterface
-	client    restclient.Interface
-	namespace string
-}
-
-// List takes label and field selectors, and returns the list of horizontalPodAutoscalers that match those selectors.
-func (c legacyExtensionsAutoscaling) List(opts metav1.ListOptions) (result *autoscaling.HorizontalPodAutoscalerList, err error) {
-	result = &autoscaling.HorizontalPodAutoscalerList{}
-	err = c.client.Get().Namespace(c.namespace).Resource("horizontalPodAutoscalers").VersionedParams(&opts, kapi.ParameterCodec).Do().Into(result)
-	return
-}
-
-func (c legacyExtensionsAutoscaling) Create(hpa *autoscaling.HorizontalPodAutoscaler) (*autoscaling.HorizontalPodAutoscaler, error) {
-	var result autoscaling.HorizontalPodAutoscaler
-	return &result, c.client.Post().Resource("horizontalpodautoscalers").Namespace(c.namespace).Body(hpa).Do().Into(&result)
-}
-
-func (c legacyExtensionsAutoscaling) Get(name string, options metav1.GetOptions) (*autoscaling.HorizontalPodAutoscaler, error) {
-	var result autoscaling.HorizontalPodAutoscaler
-	return &result, c.client.Get().Resource("horizontalpodautoscalers").Namespace(c.namespace).Name(name).Do().Into(&result)
-}
 
 func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig, prefix, ns, name string) (*schema.GroupVersionKind, error) {
 	keys := etcd.NewKeysAPI(etcdClient)
@@ -92,7 +65,6 @@ func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclien
 
 func TestStorageVersions(t *testing.T) {
 	ns := "storageversions"
-	autoscalingVersion := autoscaling_v1.SchemeGroupVersion
 	batchVersion := batch_v1.SchemeGroupVersion
 
 	defer testutil.DumpEtcdOnFailure(t)
@@ -132,49 +104,6 @@ func TestStorageVersions(t *testing.T) {
 		// Ensure it is accessible from both APIs
 		if _, err := kubeClient.Batch().Jobs(ns).Get(job.Name, metav1.GetOptions{}); err != nil {
 			t.Errorf("%s: Error reading Job from the batch client: %#v", name, err)
-		}
-	}
-
-	legacyClient := legacyExtensionsAutoscaling{
-		kubeClient.Autoscaling().HorizontalPodAutoscalers(ns),
-		kubeClient.Autoscaling().RESTClient(),
-		ns,
-	}
-	hpaTestcases := map[string]struct {
-		creator kautoscalingclient.HorizontalPodAutoscalerInterface
-	}{
-		"autoscaling": {creator: kubeClient.Autoscaling().HorizontalPodAutoscalers(ns)},
-		"extensions": {
-			creator: legacyClient,
-		},
-	}
-	for name, testcase := range hpaTestcases {
-		hpa := autoscaling.HorizontalPodAutoscaler{
-			ObjectMeta: metav1.ObjectMeta{Name: name + "-hpa"},
-			Spec: autoscaling.HorizontalPodAutoscalerSpec{
-				MaxReplicas:    1,
-				ScaleTargetRef: autoscaling.CrossVersionObjectReference{Kind: "ReplicationController", Name: "myrc"},
-			},
-		}
-
-		// Create an HPA
-		if _, err := testcase.creator.Create(&hpa); err != nil {
-			t.Fatalf("%s: unexpected error creating HPA: %v", name, err)
-		}
-
-		// Make sure it is persisted correctly
-		if gvk, err := getGVKFromEtcd(etcdServer.Client, masterConfig, "horizontalpodautoscalers", ns, hpa.Name); err != nil {
-			t.Fatalf("%s: unexpected error reading HPA: %v", name, err)
-		} else if *gvk != autoscalingVersion.WithKind("HorizontalPodAutoscaler") {
-			t.Fatalf("%s: expected api version %s in etcd, got %s reading HPA", name, autoscalingVersion, gvk)
-		}
-
-		// Make sure it is available from the api
-		if _, err := kubeClient.Autoscaling().HorizontalPodAutoscalers(ns).Get(hpa.Name, metav1.GetOptions{}); err != nil {
-			t.Errorf("%s: Error reading HPA.autoscaling from the autoscaling/v1 API: %#v", name, err)
-		}
-		if _, err := legacyClient.Get(hpa.Name, metav1.GetOptions{}); err != nil {
-			t.Errorf("%s: Error reading HPA.autoscaling from the extensions/v1beta1 API: %#v", name, err)
 		}
 	}
 }
