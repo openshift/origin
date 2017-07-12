@@ -34,6 +34,7 @@ type TagOptions struct {
 	insecureTag  bool
 	referenceTag bool
 	namespace    string
+	labels       map[string]string
 
 	referencePolicy string
 
@@ -249,6 +250,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 				ref.Tag = ""
 				sourceKind = "ImageStreamImage"
 			}
+			o.labels = is.Labels
 		}
 
 		args = args[1:]
@@ -419,6 +421,7 @@ func (o TagOptions) Run() error {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      destNameAndTag,
 					Namespace: o.destNamespace[i],
+					Labels:    o.labels,
 				},
 				Tag: &imageapi.TagReference{
 					Reference: o.referenceTag,
