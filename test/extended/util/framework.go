@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/test/e2e/framework"
 
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -1297,4 +1298,24 @@ func (r *podExecutor) Exec(script string) (string, error) {
 		return true, err
 	})
 	return out, waitErr
+}
+
+// WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
+// and the provided user is authorized to perform the action on the resource.
+func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
+	sar := authapi.SubjectAccessReview{
+		User: user,
+		Action: authapi.Action{
+			Namespace: oc.Namespace(),
+			Verb:      verb,
+			Resource:  resource,
+		},
+	}
+	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
+		resp, err := oc.AdminClient().SubjectAccessReviews().Create(&sar)
+		if err == nil && resp != nil && resp.Allowed {
+			return true, nil
+		}
+		return false, err
+	})
 }

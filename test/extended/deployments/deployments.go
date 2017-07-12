@@ -373,11 +373,18 @@ var _ = g.Describe("deploymentconfigs", func() {
 		})
 
 		g.It("should successfully tag the deployed image", func() {
+			g.By("creating the deployment config fixture")
 			_, name, err := createFixture(oc, tagImagesFixture)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployment is marked complete")
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
+
+			g.By("verifying the deployer service account can update imagestreamtags and user can get them")
+			err = exutil.WaitForUserBeAuthorized(oc, oc.Username(), "get", "imagestreamtags")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			err = exutil.WaitForUserBeAuthorized(oc, "system:serviceaccount:"+oc.Namespace()+":deployer", "update", "imagestreamtags")
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the post deployment action happened: tag is set")
 			var istag *imageapi.ImageStreamTag
