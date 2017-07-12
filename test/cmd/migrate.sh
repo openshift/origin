@@ -74,14 +74,4 @@ os::cmd::expect_success_and_not_text 'oc get is test --template "{{ range .statu
 os::cmd::expect_success_and_not_text 'oc get is test --template "{{ range .status.tags }}{{ range .items }}{{ .dockerImageReference }}{{ \"\n\" }}{{ end }}{{ end }}"' '^mysql'
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start 'cmd/migrate/volumesource'
-os::cmd::expect_success_and_text     'oadm migrate volumesource' 'summary \(dry run\): total=[0-9]+ errors=0 ignored=0 unchanged=[0-9]+ migrated=0'
-os::cmd::expect_success_and_text     'oc create -f test/testdata/pod-with-volumesource-metadata.yaml' 'pod "vsmpod" created'
-os::cmd::expect_failure_and_text     'oadm migrate volumesource' " -n ${project} pods/vsmpod: volumeSource.metadata is not nil"
-os::cmd::expect_failure_and_text     'oadm migrate volumesource' 'summary \(dry run\): total=[0-9]+ errors=1 ignored=0 unchanged=[0-9]+ migrated=0'
-os::cmd::expect_success_and_text     'oc delete pod vsmpod' 'pod "vsmpod" deleted'
-os::cmd::expect_failure_and_text     'oc get pod vsmpod' 'Error from server \(NotFound\): pods "vsmpod" not found'
-os::cmd::expect_success_and_text     'oadm migrate volumesource' 'summary \(dry run\): total=[0-9]+ errors=0 ignored=0 unchanged=[0-9]+ migrated=0'
-os::test::junit::declare_suite_end
-
 os::test::junit::declare_suite_end
