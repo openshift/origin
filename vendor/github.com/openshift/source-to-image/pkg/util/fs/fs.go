@@ -1,4 +1,4 @@
-package util
+package fs
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/openshift/source-to-image/pkg/util/cmd"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
@@ -43,13 +44,13 @@ type FileSystem interface {
 // implementation
 func NewFileSystem() FileSystem {
 	return &fs{
-		runner:    NewCommandRunner(),
+		runner:    cmd.NewCommandRunner(),
 		fileModes: make(map[string]os.FileMode),
 	}
 }
 
 type fs struct {
-	runner CommandRunner
+	runner cmd.CommandRunner
 
 	// on Windows, fileModes is used to track the UNIX file mode of every file we
 	// work with; m is used to synchronize access to fileModes.
