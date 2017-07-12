@@ -49,6 +49,7 @@ import (
 	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/networking"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -211,6 +212,7 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 	storageFactory.AddCohabitatingResources(autoscaling.Resource("horizontalpodautoscalers"), extensions.Resource("horizontalpodautoscalers"))
 	// keep Deployments in extensions for backwards compatibility, we'll have to migrate at some point, eventually
 	storageFactory.AddCohabitatingResources(extensions.Resource("deployments"), apps.Resource("deployments"))
+	storageFactory.AddCohabitatingResources(extensions.Resource("networkpolicies"), networking.Resource("networkpolicies"))
 	storageFactory.AddCohabitatingResources(kapi.Resource("securitycontextconstraints"), securityapi.Resource("securitycontextconstraints"))
 
 	return storageFactory, nil
