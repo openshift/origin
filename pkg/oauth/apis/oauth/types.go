@@ -31,6 +31,12 @@ type OAuthAccessToken struct {
 
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
+
+	// IdentityName is the name of the Identity API object associated with this token
+	IdentityName string
+
+	// IdentityProviderGroups are the group memberships determined by the identity provider
+	IdentityProviderGroups []string
 }
 
 type OAuthAuthorizeToken struct {
@@ -64,6 +70,12 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string
+
+	// IdentityName is the name of the Identity API object associated with this token
+	IdentityName string
+
+	// IdentityProviderGroups are the group memberships determined by the identity provider
+	IdentityProviderGroups []string
 }
 
 // +genclient

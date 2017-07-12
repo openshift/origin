@@ -6,6 +6,7 @@ import (
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 
 	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 type UserConversion struct{}
@@ -26,6 +27,13 @@ func (s *UserConversion) ConvertToAuthorizeToken(user interface{}, token *oapi.O
 		return errors.New("user name is empty")
 	}
 	token.UserUID = info.GetUID()
+
+	extra := info.GetExtra()
+	if identity, ok := extra[userapi.ExtraIdentityNameKey]; ok && len(identity) == 1 {
+		token.IdentityName = identity[0]
+		token.IdentityProviderGroups = extra[userapi.ExtraIdentityProviderGroupsKey]
+	}
+
 	return nil
 }
 
@@ -39,6 +47,13 @@ func (s *UserConversion) ConvertToAccessToken(user interface{}, token *oapi.OAut
 		return errors.New("user name is empty")
 	}
 	token.UserUID = info.GetUID()
+
+	extra := info.GetExtra()
+	if identity, ok := extra[userapi.ExtraIdentityNameKey]; ok && len(identity) == 1 {
+		token.IdentityName = identity[0]
+		token.IdentityProviderGroups = extra[userapi.ExtraIdentityProviderGroupsKey]
+	}
+
 	return nil
 }
 
@@ -46,9 +61,17 @@ func (s *UserConversion) ConvertFromAuthorizeToken(token *oapi.OAuthAuthorizeTok
 	if token.UserName == "" {
 		return nil, errors.New("token has no user name stored")
 	}
+
+	extra := map[string][]string{}
+	if token.IdentityName != "" {
+		extra[userapi.ExtraIdentityNameKey] = []string{token.IdentityName}
+		extra[userapi.ExtraIdentityProviderGroupsKey] = token.IdentityProviderGroups
+	}
+
 	return &kuser.DefaultInfo{
-		Name: token.UserName,
-		UID:  token.UserUID,
+		Name:  token.UserName,
+		UID:   token.UserUID,
+		Extra: extra,
 	}, nil
 }
 
@@ -56,8 +79,16 @@ func (s *UserConversion) ConvertFromAccessToken(token *oapi.OAuthAccessToken) (i
 	if token.UserName == "" {
 		return nil, errors.New("token has no user name stored")
 	}
+
+	extra := map[string][]string{}
+	if token.IdentityName != "" {
+		extra[userapi.ExtraIdentityNameKey] = []string{token.IdentityName}
+		extra[userapi.ExtraIdentityProviderGroupsKey] = token.IdentityProviderGroups
+	}
+
 	return &kuser.DefaultInfo{
-		Name: token.UserName,
-		UID:  token.UserUID,
+		Name:  token.UserName,
+		UID:   token.UserUID,
+		Extra: extra,
 	}, nil
 }

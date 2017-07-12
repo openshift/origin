@@ -53,6 +53,12 @@ message OAuthAccessToken {
 
   // RefreshToken is the value by which this token can be renewed. Can be blank.
   optional string refreshToken = 9;
+
+  // IdentityName is the name of the Identity API object associated with this token
+  optional string identityName = 10;
+
+  // IdentityProviderGroups are the group memberships determined by the identity provider
+  repeated string identityProviderGroups = 11;
 }
 
 // OAuthAccessTokenList is a collection of OAuth access tokens
@@ -96,6 +102,12 @@ message OAuthAuthorizeToken {
 
   // CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
   optional string codeChallengeMethod = 10;
+
+  // IdentityName is the name of the Identity API object associated with this token
+  optional string identityName = 11;
+
+  // IdentityProviderGroups are the group memberships determined by the identity provider
+  repeated string identityProviderGroups = 12;
 }
 
 // OAuthAuthorizeTokenList is a collection of OAuth authorization tokens
