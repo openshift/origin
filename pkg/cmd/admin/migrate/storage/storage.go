@@ -15,7 +15,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 var (
@@ -58,7 +58,7 @@ type MigrateAPIStorageOptions struct {
 }
 
 // NewCmdMigrateAPIStorage implements a MigrateStorage command
-func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateAPIStorage(name, fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateAPIStorageOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			In:     in,
@@ -175,7 +175,7 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 	return cmd
 }
 
-func (o *MigrateAPIStorageOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateAPIStorageOptions) Complete(f factory.Interface, c *cobra.Command, args []string) error {
 	o.ResourceOptions.SaveFn = o.save
 	if err := o.ResourceOptions.Complete(f, c); err != nil {
 		return err

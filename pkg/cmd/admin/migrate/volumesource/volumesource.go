@@ -18,7 +18,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 
 	"github.com/spf13/cobra"
@@ -55,7 +55,7 @@ type MigrateVolumeSourceOptions struct {
 	migrate.ResourceOptions
 }
 
-func NewCmdMigrateVolumeSource(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateVolumeSource(name, fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateVolumeSourceOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			In:            in,
@@ -90,7 +90,7 @@ func NewCmdMigrateVolumeSource(name, fullName string, f *clientcmd.Factory, in i
 	return cmd
 }
 
-func (o *MigrateVolumeSourceOptions) Complete(name string, f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateVolumeSourceOptions) Complete(name string, f factory.Interface, c *cobra.Command, args []string) error {
 	if len(args) != 0 {
 		return fmt.Errorf("%s takes no positional arguments", name)
 	}

@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/spf13/cobra"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -19,8 +20,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 type NodeOptions struct {
@@ -44,7 +43,7 @@ type NodeOptions struct {
 	PodSelector string
 }
 
-func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string, out, errout io.Writer) error {
+func (n *NodeOptions) Complete(f factory.Interface, c *cobra.Command, args []string, out, errout io.Writer) error {
 	defaultNamespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err

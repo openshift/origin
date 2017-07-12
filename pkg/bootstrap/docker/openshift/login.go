@@ -14,11 +14,11 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // Login logs into the specified server using given credentials and CA file
-func Login(username, password, server, configDir string, f *clientcmd.Factory, c *cobra.Command, out io.Writer) error {
+func Login(username, password, server, configDir string, f factory.Interface, c *cobra.Command, out io.Writer) error {
 	existingConfig, err := f.OpenShiftClientConfig().RawConfig()
 	if err != nil {
 		if !os.IsNotExist(err) {

@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	imageutil "github.com/openshift/origin/pkg/image/util"
@@ -44,19 +45,11 @@ import (
 
 type ring0Factory struct {
 	clientConfig            kclientcmd.ClientConfig
-	imageResolutionOptions  FlagBinder
+	imageResolutionOptions  factory.FlagBinder
 	kubeClientAccessFactory kcmdutil.ClientAccessFactory
 }
 
-type ClientAccessFactory interface {
-	kcmdutil.ClientAccessFactory
-
-	Clients() (*client.Client, kclientset.Interface, error)
-	OpenShiftClientConfig() kclientcmd.ClientConfig
-	ImageResolutionOptions() FlagBinder
-}
-
-func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) ClientAccessFactory {
+func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) factory.ClientAccess {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
 
 	clientConfig := optionalClientConfig
@@ -310,7 +303,7 @@ func (o *imageResolutionOptions) Bind(f *pflag.FlagSet) {
 	o.bound = true
 }
 
-func (f *ring0Factory) ImageResolutionOptions() FlagBinder {
+func (f *ring0Factory) ImageResolutionOptions() factory.FlagBinder {
 	return f.imageResolutionOptions
 }
 

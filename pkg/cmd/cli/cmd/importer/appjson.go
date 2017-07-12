@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	appcmd "github.com/openshift/origin/pkg/generate/app/cmd"
@@ -72,7 +73,7 @@ type AppJSONOptions struct {
 
 // NewCmdAppJSON imports an app.json file (schema described here: https://devcenter.heroku.com/articles/app-json-schema)
 // as a template.
-func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdAppJSON(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &AppJSONOptions{
 		Action: configcmd.BulkAction{
 			Out:    out,
@@ -112,7 +113,7 @@ func NewCmdAppJSON(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	return cmd
 }
 
-func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *AppJSONOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	version, _ := cmd.Flags().GetString("output-version")
 	for _, v := range strings.Split(version, ",") {
 		gv, err := schema.ParseGroupVersion(v)

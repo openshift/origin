@@ -22,7 +22,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -99,7 +99,7 @@ type BackendsOptions struct {
 }
 
 // NewCmdRouteBackends implements the set route-backends command
-func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdRouteBackends(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	options := &BackendsOptions{
 		Out: out,
 		Err: errOut,
@@ -138,7 +138,7 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 }
 
 // Complete takes command line information to fill out BackendOptions or returns an error.
-func (o *BackendsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *BackendsOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err

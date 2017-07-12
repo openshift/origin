@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -50,7 +50,7 @@ type CreateImageStreamOptions struct {
 }
 
 // NewCmdCreateImageStream is a macro command to create a new image stream
-func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateImageStream(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &CreateImageStreamOptions{
 		Out: out,
 		IS: &imageapi.ImageStream{
@@ -78,7 +78,7 @@ func NewCmdCreateImageStream(name, fullName string, f *clientcmd.Factory, out io
 	return cmd
 }
 
-func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	switch len(args) {

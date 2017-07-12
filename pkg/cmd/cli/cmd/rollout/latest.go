@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -53,7 +53,7 @@ type RolloutLatestOptions struct {
 }
 
 // NewCmdRolloutLatest implements the oc rollout latest subcommand.
-func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutLatest(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	opts := &RolloutLatestOptions{
 		baseCommandName: fullName,
 	}
@@ -84,7 +84,7 @@ func NewCmdRolloutLatest(fullName string, f *clientcmd.Factory, out io.Writer) *
 	return cmd
 }
 
-func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *RolloutLatestOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
 		return errors.New("one deployment config name is needed as argument.")
 	}

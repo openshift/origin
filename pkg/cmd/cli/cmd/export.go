@@ -18,7 +18,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
@@ -51,7 +51,7 @@ var (
 	  %[1]s export service -o json`)
 )
 
-func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdExport(fullName string, f factory.Interface, in io.Reader, out io.Writer) *cobra.Command {
 	exporter := &DefaultExporter{}
 	var filenames []string
 	cmd := &cobra.Command{
@@ -80,7 +80,7 @@ func NewCmdExport(fullName string, f *clientcmd.Factory, in io.Reader, out io.Wr
 	return cmd
 }
 
-func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
+func RunExport(f factory.Interface, exporter Exporter, in io.Reader, out io.Writer, cmd *cobra.Command, args []string, filenames []string) error {
 	selector := kcmdutil.GetFlagString(cmd, "selector")
 	allNamespaces := kcmdutil.GetFlagBool(cmd, "all-namespaces")
 	exact := kcmdutil.GetFlagBool(cmd, "exact")

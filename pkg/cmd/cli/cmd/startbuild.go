@@ -38,7 +38,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/generate/git"
 	oerrors "github.com/openshift/origin/pkg/util/errors"
 )
@@ -84,7 +84,7 @@ var (
 )
 
 // NewCmdStartBuild implements the OpenShift cli start-build command
-func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdStartBuild(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	o := &StartBuildOptions{}
 
 	cmd := &cobra.Command{
@@ -159,7 +159,7 @@ type StartBuildOptions struct {
 	Namespace   string
 }
 
-func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
+func (o *StartBuildOptions) Complete(f factory.Interface, in io.Reader, out, errout io.Writer, cmd *cobra.Command, cmdFullName string, args []string) error {
 	o.In = in
 	o.Out = out
 	o.ErrOut = errout

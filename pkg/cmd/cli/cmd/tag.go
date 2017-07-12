@@ -19,7 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -81,7 +81,7 @@ const (
 )
 
 // NewCmdTag implements the OpenShift cli tag command.
-func NewCmdTag(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdTag(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	opts := &TagOptions{}
 
 	cmd := &cobra.Command{
@@ -130,7 +130,7 @@ func parseStreamName(defaultNamespace, name string) (string, string, error) {
 	return namespace, streamName, nil
 }
 
-func determineSourceKind(f *clientcmd.Factory, input string) string {
+func determineSourceKind(f factory.Interface, input string) string {
 	mapper, _ := f.Object()
 	gvks, err := mapper.KindsFor(schema.GroupVersionResource{Group: imageapi.GroupName, Resource: input})
 	if err == nil {
@@ -147,7 +147,7 @@ func determineSourceKind(f *clientcmd.Factory, input string) string {
 }
 
 // Complete completes all the required options for the tag command.
-func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TagOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) < 2 && (len(args) < 1 && !o.deleteTag) {
 		return kcmdutil.UsageError(cmd, "you must specify a source and at least one destination or one or more tags to delete")
 	}

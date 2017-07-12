@@ -12,7 +12,7 @@ import (
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -186,7 +186,7 @@ func ExpectedConnectionStatus(ns1, ns2 string, vnidMap map[string]uint32) bool {
 }
 
 // Execute() will run a command in a pod and streams the out/err
-func Execute(factory *osclientcmd.Factory, command []string, pod *kapi.Pod, in io.Reader, out, errOut io.Writer) error {
+func Execute(factory factory.Interface, command []string, pod *kapi.Pod, in io.Reader, out, errOut io.Writer) error {
 	config, err := factory.ClientConfig()
 	if err != nil {
 		return err

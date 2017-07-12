@@ -18,7 +18,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 
@@ -43,7 +43,7 @@ var (
 )
 
 // NewCmdTopImages implements the OpenShift cli top images command.
-func NewCmdTopImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdTopImages(f factory.Interface, parentName, name string, out io.Writer) *cobra.Command {
 	opts := &TopImagesOptions{}
 	cmd := &cobra.Command{
 		Use:     name,
@@ -74,7 +74,7 @@ type TopImagesOptions struct {
 
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
-func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *TopImagesOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	osClient, kClient, err := f.Clients()
 	if err != nil {
 		return err

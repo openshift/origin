@@ -14,7 +14,7 @@ import (
 	"github.com/containers/image/signature"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 
@@ -82,7 +82,7 @@ const (
 	VerifyRecommendedName = "verify-image-signature"
 )
 
-func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdVerifyImageSignature(name, fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	opts := &VerifyImageSignatureOptions{
 		ErrOut:       errOut,
 		Out:          out,
@@ -125,7 +125,7 @@ func (o *VerifyImageSignatureOptions) Validate() error {
 	}
 	return nil
 }
-func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *VerifyImageSignatureOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
 		return kcmdutil.UsageError(cmd, "exactly one image must be specified")
 	}

@@ -19,8 +19,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/admin/migrate"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -79,7 +79,7 @@ type MigrateImageReferenceOptions struct {
 }
 
 // NewCmdMigrateImageReferences implements a MigrateImages command
-func NewCmdMigrateImageReferences(name, fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdMigrateImageReferences(name, fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &MigrateImageReferenceOptions{
 		ResourceOptions: migrate.ResourceOptions{
 			In:      in,
@@ -104,7 +104,7 @@ func NewCmdMigrateImageReferences(name, fullName string, f *clientcmd.Factory, i
 	return cmd
 }
 
-func (o *MigrateImageReferenceOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []string) error {
+func (o *MigrateImageReferenceOptions) Complete(f factory.Interface, c *cobra.Command, args []string) error {
 	var remainingArgs []string
 	for _, s := range args {
 		if !strings.Contains(s, "=") {

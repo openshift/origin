@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const PruneRecommendedName = "prune"
@@ -80,7 +80,7 @@ func NewPruneOptions() *PruneOptions {
 	}
 }
 
-func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdPrune(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := NewPruneOptions()
 	options.Out = out
 
@@ -130,7 +130,7 @@ func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 	return cmd
 }
 
-func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
+func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string, args []string, f factory.Interface) error {
 	var err error
 	o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile)
 	if err != nil {
@@ -170,7 +170,7 @@ func (o *PruneOptions) Validate() error {
 
 // Run creates the GroupSyncer specified and runs it to sync groups
 // the arguments are only here because its the only way to get the printer we need
-func (o *PruneOptions) Run(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *PruneOptions) Run(cmd *cobra.Command, f factory.Interface) error {
 	bindPassword, err := api.ResolveStringValue(o.Config.BindPassword)
 	if err != nil {
 		return err

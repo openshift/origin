@@ -36,7 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/util/proc"
 )
 
@@ -161,7 +161,7 @@ var (
 )
 
 // NewCmdObserve creates the observe command.
-func NewCmdObserve(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdObserve(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	options := &ObserveOptions{
 		baseCommandName: fullName,
 		retryCount:      2,
@@ -272,7 +272,7 @@ type ObserveOptions struct {
 	baseCommandName string
 }
 
-func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out, errOut io.Writer) error {
+func (o *ObserveOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out, errOut io.Writer) error {
 	var err error
 
 	var command []string

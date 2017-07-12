@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const (
@@ -48,7 +48,7 @@ type GroupModificationOptions struct {
 	Users []string
 }
 
-func NewCmdAddUsers(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdAddUsers(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &GroupModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -68,7 +68,7 @@ func NewCmdAddUsers(name, fullName string, f *clientcmd.Factory, out io.Writer) 
 	return cmd
 }
 
-func NewCmdRemoveUsers(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveUsers(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &GroupModificationOptions{}
 
 	cmd := &cobra.Command{
@@ -88,7 +88,7 @@ func NewCmdRemoveUsers(name, fullName string, f *clientcmd.Factory, out io.Write
 	return cmd
 }
 
-func (o *GroupModificationOptions) Complete(f *clientcmd.Factory, args []string) error {
+func (o *GroupModificationOptions) Complete(f factory.Interface, args []string) error {
 	if len(args) < 2 {
 		return errors.New("you must specify at least two arguments: GROUP USER [USER ...]")
 	}

@@ -12,13 +12,12 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/source-to-image/pkg/tar"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	s2iutil "github.com/openshift/source-to-image/pkg/util"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // tarStrategy implements the tar copy strategy.
@@ -35,7 +34,7 @@ type tarStrategy struct {
 	IgnoredFlags   []string
 }
 
-func newTarStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+func newTarStrategy(f factory.Interface, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 
 	tarHelper := tar.New(s2iutil.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)

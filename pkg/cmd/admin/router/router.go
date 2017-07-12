@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -248,7 +249,7 @@ const (
 )
 
 // NewCmdRouter implements the OpenShift CLI router command.
-func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.Writer) *cobra.Command {
+func NewCmdRouter(f factory.Interface, parentName, name string, out, errout io.Writer) *cobra.Command {
 	cfg := &RouterConfig{
 		Name:          "router",
 		ImageTemplate: variable.NewDefaultImageTemplate(),
@@ -490,7 +491,7 @@ func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *k
 
 // RunCmdRouter contains all the necessary functionality for the
 // OpenShift CLI router command.
-func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
+func RunCmdRouter(f factory.Interface, cmd *cobra.Command, out, errout io.Writer, cfg *RouterConfig, args []string) error {
 	switch len(args) {
 	case 0:
 		// uses default value

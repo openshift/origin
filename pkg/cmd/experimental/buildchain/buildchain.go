@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
@@ -60,7 +60,7 @@ type BuildChainOptions struct {
 }
 
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
-func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdBuildChain(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &BuildChainOptions{
 		namespaces: sets.NewString(),
 	}
@@ -84,7 +84,7 @@ func NewCmdBuildChain(name, fullName string, f *clientcmd.Factory, out io.Writer
 }
 
 // Complete completes the required options for build-chain
-func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *BuildChainOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) != 1 {
 		return cmdutil.UsageError(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}

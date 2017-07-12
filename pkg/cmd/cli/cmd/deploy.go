@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -95,7 +95,7 @@ var (
 )
 
 // NewCmdDeploy creates a new `deploy` command.
-func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdDeploy(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &DeployOptions{
 		baseCommandName: fullName,
 	}
@@ -133,7 +133,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 	return cmd
 }
 
-func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Writer) error {
+func (o *DeployOptions) Complete(f factory.Interface, args []string, out io.Writer) error {
 	if len(args) > 1 {
 		return errors.New("only one deployment config name is supported as argument.")
 	}

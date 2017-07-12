@@ -3,12 +3,12 @@ package rsync
 import (
 	"io"
 
+	"github.com/openshift/origin/pkg/cmd/util/factory"
+
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // portForwarder starts port forwarding to a given pod
@@ -54,7 +54,7 @@ func (f *portForwarder) ForwardPorts(ports []string, stopChan <-chan struct{}) e
 }
 
 // newPortForwarder creates a new forwarder for use with rsync
-func newPortForwarder(f *clientcmd.Factory, o *RsyncOptions) (forwarder, error) {
+func newPortForwarder(f factory.Interface, o *RsyncOptions) (forwarder, error) {
 	client, err := f.ClientSet()
 	if err != nil {
 		return nil, err

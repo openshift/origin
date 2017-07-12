@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
@@ -27,7 +27,7 @@ var (
 )
 
 // NewCmdCreateRoute is a macro command to create a secured route.
-func NewCmdCreateRoute(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdCreateRoute(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "route",
 		Short: "Expose containers externally via secured routes",
@@ -59,7 +59,7 @@ var (
 )
 
 // NewCmdCreateEdgeRoute is a macro command to create an edge route.
-func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateEdgeRoute(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "edge [NAME] --service=SERVICE",
 		Short:   "Create a route that uses edge TLS termination",
@@ -92,7 +92,7 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 }
 
 // CreateEdgeRoute implements the behavior to run the create edge route command.
-func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func CreateEdgeRoute(f factory.Interface, out io.Writer, cmd *cobra.Command, args []string) error {
 	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
@@ -188,7 +188,7 @@ var (
 )
 
 // NewCmdCreatePassthroughRoute is a macro command to create a passthrough route.
-func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreatePassthroughRoute(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "passthrough [NAME] --service=SERVICE",
 		Short:   "Create a route that uses passthrough TLS termination",
@@ -214,7 +214,7 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 }
 
 // CreatePassthroughRoute implements the behavior to run the create passthrough route command.
-func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func CreatePassthroughRoute(f factory.Interface, out io.Writer, cmd *cobra.Command, args []string) error {
 	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
@@ -295,7 +295,7 @@ var (
 )
 
 // NewCmdCreateReencryptRoute is a macro command to create a reencrypt route.
-func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateReencryptRoute(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "reencrypt [NAME] --dest-ca-cert=FILENAME --service=SERVICE",
 		Short:   "Create a route that uses reencrypt TLS termination",
@@ -331,7 +331,7 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 }
 
 // CreateReencryptRoute implements the behavior to run the create reencrypt route command.
-func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
+func CreateReencryptRoute(f factory.Interface, out io.Writer, cmd *cobra.Command, args []string) error {
 	oc, kc, err := f.Clients()
 	if err != nil {
 		return err
@@ -415,7 +415,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	return nil
 }
 
-func resolveServiceName(f *clientcmd.Factory, resource string) (string, error) {
+func resolveServiceName(f factory.Interface, resource string) (string, error) {
 	if len(resource) == 0 {
 		return "", fmt.Errorf("you need to provide a service name via --service")
 	}

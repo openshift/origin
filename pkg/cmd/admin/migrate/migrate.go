@@ -7,7 +7,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const MigrateRecommendedName = "migrate"
@@ -17,7 +17,7 @@ var migrateLong = templates.LongDesc(`
 
 	These commands assist administrators in performing preventative maintenance on a cluster.`)
 
-func NewCommandMigrate(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer, cmds ...*cobra.Command) *cobra.Command {
+func NewCommandMigrate(name, fullName string, f factory.Interface, out, errOut io.Writer, cmds ...*cobra.Command) *cobra.Command {
 	// Parent command to which all subcommands are added.
 	cmd := &cobra.Command{
 		Use:   name,

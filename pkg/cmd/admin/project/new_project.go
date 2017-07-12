@@ -17,7 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
@@ -44,7 +44,7 @@ var newProjectLong = templates.LongDesc(`
 	to restrict which nodes pods in this project can be scheduled to.`)
 
 // NewCmdNewProject implements the OpenShift cli new-project command
-func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewProject(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &NewProjectOptions{}
 
 	cmd := &cobra.Command{

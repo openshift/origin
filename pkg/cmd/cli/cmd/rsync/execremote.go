@@ -5,11 +5,10 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	restclient "k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // remoteExecutor will execute commands on a given pod/container by using the kube Exec command
@@ -54,7 +53,7 @@ func (e *remoteExecutor) Execute(command []string, in io.Reader, out, errOut io.
 	return err
 }
 
-func newRemoteExecutor(f *clientcmd.Factory, o *RsyncOptions) (executor, error) {
+func newRemoteExecutor(f factory.Interface, o *RsyncOptions) (executor, error) {
 	config, err := f.ClientConfig()
 	if err != nil {
 		return nil, err

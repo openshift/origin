@@ -25,7 +25,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -51,7 +51,7 @@ var (
 )
 
 // NewCmdIdle implements the OpenShift cli idle command
-func NewCmdIdle(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdIdle(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	o := &IdleOptions{
 		out:         out,
 		errOut:      errOut,
@@ -102,7 +102,7 @@ type IdleOptions struct {
 	svcBuilder *resource.Builder
 }
 
-func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *IdleOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	namespace, _, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -190,7 +190,7 @@ type idleUpdateInfo struct {
 // Using the list of services, it figures out the associated scalable objects, and returns a map from the endpoints object for the services to
 // the list of scalable resources associated with that endpoints object, as well as a map from CrossGroupObjectReferences to scale to 0 to the
 // name of the associated service.
-func (o *IdleOptions) calculateIdlableAnnotationsByService(f *clientcmd.Factory) (map[types.NamespacedName]idleUpdateInfo, map[unidlingapi.CrossGroupObjectReference]types.NamespacedName, error) {
+func (o *IdleOptions) calculateIdlableAnnotationsByService(f factory.Interface) (map[types.NamespacedName]idleUpdateInfo, map[unidlingapi.CrossGroupObjectReference]types.NamespacedName, error) {
 	// load our set of services
 	client, err := f.ClientSet()
 	if err != nil {
@@ -484,7 +484,7 @@ func setIdleAnnotations(serviceName types.NamespacedName, annotations map[string
 }
 
 // patchObj patches calculates a patch between the given new object and the existing marshaled object
-func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f *clientcmd.Factory) (runtime.Object, error) {
+func patchObj(obj runtime.Object, metadata metav1.Object, oldData []byte, mapping *meta.RESTMapping, f factory.Interface) (runtime.Object, error) {
 	versionedObj, err := mapping.ObjectConvertor.ConvertToVersion(obj, schema.GroupVersions{mapping.GroupVersionKind.GroupVersion()})
 	if err != nil {
 		return nil, err
@@ -517,7 +517,7 @@ type scaleInfo struct {
 // RunIdle runs the idling command logic, taking a list of resources or services in a file, scaling the associated
 // scalable resources to zero, and annotating the associated endpoints objects with the scalable resources to unidle
 // when they receive traffic.
-func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
+func (o *IdleOptions) RunIdle(f factory.Interface) error {
 	hadError := false
 	nowTime := time.Now().UTC()
 

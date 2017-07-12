@@ -21,8 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // ReconcileProtectAnnotation is the name of an annotation which prevents reconciliation if set to "true"
@@ -74,7 +73,7 @@ var (
 )
 
 // NewCmdReconcileClusterRoles implements the OpenShift cli reconcile-cluster-roles command
-func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdReconcileClusterRoles(name, fullName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	o := &ReconcileClusterRolesOptions{
 		Out:    out,
 		ErrOut: errout,
@@ -110,7 +109,7 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 	return cmd
 }
 
-func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	oclient, _, err := f.Clients()
 	if err != nil {
 		return err
@@ -146,7 +145,7 @@ func (o *ReconcileClusterRolesOptions) Validate() error {
 }
 
 // RunReconcileClusterRoles contains all the necessary functionality for the OpenShift cli reconcile-cluster-roles command
-func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Command, f *clientcmd.Factory) error {
+func (o *ReconcileClusterRolesOptions) RunReconcileClusterRoles(cmd *cobra.Command, f factory.Interface) error {
 	changedClusterRoles, skippedClusterRoles, err := o.ChangedClusterRoles()
 	if err != nil {
 		return err

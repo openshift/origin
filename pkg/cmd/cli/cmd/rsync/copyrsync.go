@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // rsyncStrategy implements the rsync copy strategy
@@ -32,7 +32,7 @@ type rsyncStrategy struct {
 // rshExcludeFlags are flags that are passed to oc rsync, and should not be passed on to the underlying command being invoked via oc rsh.
 var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet", "include", "exclude", "progress", "no-perms", "watch")
 
-func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
+func newRsyncStrategy(f factory.Interface, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 	// Determine the rsh command to pass to the local rsync command
 	rsh := cmdutil.SiblingCommand(c, "rsh")
 	rshCmd := []string{rsh}

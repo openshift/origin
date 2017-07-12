@@ -29,7 +29,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const (
@@ -150,7 +150,7 @@ type AddVolumeOptions struct {
 	TypeChanged bool
 }
 
-func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *cobra.Command {
+func NewCmdVolume(fullName string, f factory.Interface, out, errOut io.Writer) *cobra.Command {
 	addOpts := &AddVolumeOptions{}
 	opts := &VolumeOptions{AddOpts: addOpts}
 	cmd := &cobra.Command{
@@ -362,7 +362,7 @@ func (a *AddVolumeOptions) Validate(isAddOp bool) error {
 	return nil
 }
 
-func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, errOut io.Writer) error {
+func (v *VolumeOptions) Complete(f factory.Interface, cmd *cobra.Command, out, errOut io.Writer) error {
 	_, kc, err := f.Clients()
 	if err != nil {
 		return err

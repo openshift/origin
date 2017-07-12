@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
@@ -54,7 +54,7 @@ var (
 `)
 )
 
-func NewCmdRolloutRetry(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRolloutRetry(fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	opts := &RetryOptions{}
 	cmd := &cobra.Command{
 		Use:     "retry (TYPE NAME | TYPE/NAME) [flags]",
@@ -71,7 +71,7 @@ func NewCmdRolloutRetry(fullName string, f *clientcmd.Factory, out io.Writer) *c
 	return cmd
 }
 
-func (o *RetryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out io.Writer, args []string) error {
+func (o *RetryOptions) Complete(f factory.Interface, cmd *cobra.Command, out io.Writer, args []string) error {
 	if len(args) == 0 && len(o.FilenameOptions.Filenames) == 0 {
 		return kcmdutil.UsageError(cmd, cmd.Use)
 	}

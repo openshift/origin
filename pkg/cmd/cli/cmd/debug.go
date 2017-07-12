@@ -27,7 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	generateapp "github.com/openshift/origin/pkg/generate/app"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -107,7 +107,7 @@ var (
 )
 
 // NewCmdDebug creates a command for debugging pods.
-func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+func NewCmdDebug(fullName string, f factory.Interface, in io.Reader, out, errout io.Writer) *cobra.Command {
 	options := &DebugOptions{
 		Timeout: 15 * time.Minute,
 		Attach: kcmd.AttachOptions{
@@ -168,7 +168,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	return cmd
 }
 
-func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, in io.Reader, out, errout io.Writer) error {
+func (o *DebugOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string, in io.Reader, out, errout io.Writer) error {
 	if i := cmd.ArgsLenAtDash(); i != -1 && i < len(args) {
 		o.Command = args[i:]
 		args = args[:i]

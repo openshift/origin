@@ -66,7 +66,7 @@ var (
 )
 
 // NewCmdMine implement the OpenShift cli mine command.
-func NewCmdMine(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdMine(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
   options := &MineOptions{}
   cmd := &cobra.Command{
     Use:     fmt.Sprintf("%s [--latest]", name),
@@ -90,7 +90,7 @@ func NewCmdMine(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 }
 
 // Complete completes all the required options for mine.
-func (o *MineOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *MineOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
   return nil
 }
 
@@ -256,7 +256,7 @@ var (
 )
 
 // 4.
-func NewCmdDeploy(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdDeploy(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
   options := &DeployOptions{}
 
   cmd := &cobra.Command{
@@ -290,7 +290,7 @@ func NewCmdDeploy(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
   return cmd
 }
 
-func (o *DeployOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *DeployOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
   return nil
 }
 
@@ -307,7 +307,7 @@ func (o DeployOptions) RunDeploy() error {
 <3> Command examples. Try to cover every important command path (flags, arguments, etc).
 <4> This function creates the command. Notice it takes the parent command name as argument and also a `io.Writer` that will be used to print messages.
 <5> Command usage.
-<6> `Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error` is used to populate any object or variable that will be required to run the command and is still missing at this point. For example, if the command will make use of an API client it can be created from the factory in this method. Can also be used to take argument values from the `args` slice and hold it in explicit variables in your struct, store the `io.Writer` that will be used later, etc.
+<6> `Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error` is used to populate any object or variable that will be required to run the command and is still missing at this point. For example, if the command will make use of an API client it can be created from the factory in this method. Can also be used to take argument values from the `args` slice and hold it in explicit variables in your struct, store the `io.Writer` that will be used later, etc.
 <7> `Validate() error` perform validations on anything required in order to run this command. Notice that if the `Complete` and `Validate` methods implementations are simple enough, you may have only one of them that does both.
 <8> `Run<Command>() error` (e.g. `RunDeploy`, `RunCreate` and so on) does the actual command logic and returns errors as required. Notice that this method does not take anything as argument - it's expected that you previously extracted and stored in the `struct` anything that will be needed to run this command. This makes commands more easily testable once you can run and populate the command struct with the values you want to test and then just run this method and check for the returned error(s).
 <9> Try to always use the functions in `k8s.io/kubernetes/pkg/kubectl/cmd/util` to check and handle errors. It is not expected that commands call `glog.Fatalf`, `os.Exit` or anything similar directly.

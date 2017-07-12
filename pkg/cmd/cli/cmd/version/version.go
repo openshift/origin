@@ -1,4 +1,4 @@
-package cmd
+package version
 
 import (
 	"encoding/json"
@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/version"
 
@@ -44,7 +45,7 @@ type VersionOptions struct {
 }
 
 // NewCmdVersion creates a command for displaying the version of this binary
-func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options VersionOptions) *cobra.Command {
+func NewCmdVersion(fullName string, f factory.Interface, out io.Writer, options VersionOptions) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Display client and server versions",
@@ -65,7 +66,7 @@ func NewCmdVersion(fullName string, f *clientcmd.Factory, out io.Writer, options
 	return cmd
 }
 
-func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out io.Writer) error {
+func (o *VersionOptions) Complete(cmd *cobra.Command, f factory.Interface, out io.Writer) error {
 	o.Out = out
 
 	if f == nil {

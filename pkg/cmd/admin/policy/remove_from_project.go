@@ -14,7 +14,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
@@ -34,7 +34,7 @@ type RemoveFromProjectOptions struct {
 }
 
 // NewCmdRemoveGroupFromProject implements the OpenShift cli remove-group command
-func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveGroupFromProject(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -56,7 +56,7 @@ func NewCmdRemoveGroupFromProject(name, fullName string, f *clientcmd.Factory, o
 }
 
 // NewCmdRemoveUserFromProject implements the OpenShift cli remove-user command
-func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdRemoveUserFromProject(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &RemoveFromProjectOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -77,7 +77,7 @@ func NewCmdRemoveUserFromProject(name, fullName string, f *clientcmd.Factory, ou
 	return cmd
 }
 
-func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string, target *[]string, targetName string) error {
+func (o *RemoveFromProjectOptions) Complete(f factory.Interface, args []string, target *[]string, targetName string) error {
 	if len(args) < 1 {
 		return fmt.Errorf("you must specify at least one argument: <%s> [%s]...", targetName, targetName)
 	}

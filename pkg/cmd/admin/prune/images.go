@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/prune"
 	oserrors "github.com/openshift/origin/pkg/util/errors"
@@ -101,7 +101,7 @@ type PruneImagesOptions struct {
 }
 
 // NewCmdPruneImages implements the OpenShift cli prune images command.
-func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Writer) *cobra.Command {
+func NewCmdPruneImages(f factory.Interface, parentName, name string, out io.Writer) *cobra.Command {
 	allImages := true
 	opts := &PruneImagesOptions{
 		Confirm:            false,
@@ -139,7 +139,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 
 // Complete turns a partially defined PruneImagesOptions into a solvent structure
 // which can be validated and used for pruning images.
-func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+func (o *PruneImagesOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string, out io.Writer) error {
 	if len(args) > 0 {
 		return kcmdutil.UsageError(cmd, "no arguments are allowed to this command")
 	}
@@ -465,7 +465,7 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 // getClients returns a Kube client, OpenShift client, and registry client. Note that
 // registryCABundle and registryInsecure=true are mutually exclusive. If registryInsecure=true is
 // specified, the ca bundle is ignored.
-func getClients(f *clientcmd.Factory, registryCABundle string, registryInsecure bool) (*client.Client, kclientset.Interface, *http.Client, error) {
+func getClients(f factory.Interface, registryCABundle string, registryInsecure bool) (*client.Client, kclientset.Interface, *http.Client, error) {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
 		return nil, nil, nil, err

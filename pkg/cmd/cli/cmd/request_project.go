@@ -13,7 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 )
 
@@ -73,7 +73,7 @@ To switch to this project and start adding applications, use:
 )
 
 // NewCmdRequestProject implement the OpenShift cli RequestProject command.
-func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out, errout io.Writer) *cobra.Command {
+func NewCmdRequestProject(name, baseName string, f factory.Interface, out, errout io.Writer) *cobra.Command {
 	o := &NewProjectOptions{}
 	o.Out = out
 	o.Name = baseName
@@ -102,7 +102,7 @@ func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out, erro
 }
 
 // Complete completes all the required options.
-func (o *NewProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *NewProjectOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		cmd.Help()
 		return errors.New("must have exactly one argument")

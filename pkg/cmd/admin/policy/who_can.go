@@ -15,7 +15,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 const WhoCanRecommendedName = "who-can"
@@ -31,7 +31,7 @@ type whoCanOptions struct {
 }
 
 // NewCmdWhoCan implements the OpenShift cli who-can command
-func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdWhoCan(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &whoCanOptions{}
 
 	cmd := &cobra.Command{
@@ -59,7 +59,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	return cmd
 }
 
-func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
+func (o *whoCanOptions) complete(f factory.Interface, args []string) error {
 	switch len(args) {
 	case 3:
 		o.resourceName = args[2]

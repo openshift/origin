@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/bootstrap/docker/openshift"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 )
 
 // CmdJoinRecommendedName is the recommended command name
@@ -46,7 +46,7 @@ var (
 )
 
 // NewCmdJoin creates a command that joins an existing OpenShift cluster.
-func NewCmdJoin(name, fullName string, f *osclientcmd.Factory, in io.Reader, out io.Writer) *cobra.Command {
+func NewCmdJoin(name, fullName string, f factory.Interface, in io.Reader, out io.Writer) *cobra.Command {
 	config := &ClientJoinConfig{
 		CommonStartConfig: CommonStartConfig{
 			Out:      out,
@@ -86,7 +86,7 @@ func (config *ClientJoinConfig) Bind(flags *pflag.FlagSet) {
 }
 
 // Complete initializes fields based on command parameters and execution environment
-func (c *ClientJoinConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command) error {
+func (c *ClientJoinConfig) Complete(f factory.Interface, cmd *cobra.Command) error {
 	if len(c.Secret) == 0 && c.In != nil {
 		fmt.Fprintf(c.Out, "Please paste the contents of your secret here and hit ENTER:\n")
 		data, err := ioutil.ReadAll(c.In)

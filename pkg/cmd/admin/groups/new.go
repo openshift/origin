@@ -14,7 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
@@ -47,7 +47,7 @@ type NewGroupOptions struct {
 	Printer kprinters.ResourcePrinterFunc
 }
 
-func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdNewGroup(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	options := &NewGroupOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -69,7 +69,7 @@ func NewCmdNewGroup(name, fullName string, f *clientcmd.Factory, out io.Writer) 
 	return cmd
 }
 
-func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string) error {
+func (o *NewGroupOptions) Complete(f factory.Interface, cmd *cobra.Command, args []string) error {
 	if len(args) < 1 {
 		return errors.New("You must specify at least one argument: GROUP [USER ...]")
 	}

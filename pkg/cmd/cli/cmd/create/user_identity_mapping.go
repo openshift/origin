@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/templates"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/factory"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
@@ -46,7 +46,7 @@ type CreateUserIdentityMappingOptions struct {
 }
 
 // NewCmdCreateUserIdentityMapping is a macro command to create a new identity
-func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory, out io.Writer) *cobra.Command {
+func NewCmdCreateUserIdentityMapping(name, fullName string, f factory.Interface, out io.Writer) *cobra.Command {
 	o := &CreateUserIdentityMappingOptions{Out: out}
 
 	cmd := &cobra.Command{
@@ -65,7 +65,7 @@ func NewCmdCreateUserIdentityMapping(name, fullName string, f *clientcmd.Factory
 	return cmd
 }
 
-func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
+func (o *CreateUserIdentityMappingOptions) Complete(cmd *cobra.Command, f factory.Interface, args []string) error {
 	switch len(args) {
 	case 0:
 		return fmt.Errorf("identity is required")
