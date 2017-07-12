@@ -29,7 +29,13 @@ func ErrKubeConfigNotWriteable(file string, err error) error {
 // ErrNoInsecureRegistryArgument is thrown when an --insecure-registry argument cannot be detected
 // on the Docker daemon process
 func ErrNoInsecureRegistryArgument() error {
-	return NewError("did not detect an --insecure-registry argument on the Docker daemon").WithSolution(noInsecureRegistryArgSolution())
+	return NewError("did not detect an --insecure-registry argument on the Docker daemon").WithSolution(invalidInsecureRegistryArgSolution())
+}
+
+// ErrInvalidInsecureRegistryArgument is thrown when an --insecure-registry argument is found, but does not allow sufficient access
+// for our services to operate
+func ErrInvalidInsecureRegistryArgument() error {
+	return NewError("did not detect a sufficient --insecure-registry argument on the Docker daemon").WithSolution(invalidInsecureRegistryArgSolution())
 }
 
 const (
@@ -89,12 +95,12 @@ Ensure that the Docker machine is available and running. You can also create a
 new Docker machine by specifying the --create-machine flag.
 `
 
-	NoInsecureRegistryArgSolution = `
+	InvalidInsecureRegistryArgSolution = `
 Ensure that the Docker daemon is running with the following argument:
 	--insecure-registry 172.30.0.0/16
 `
 
-	NoInsecureRegistryArgSolutionDockerMachine = NoInsecureRegistryArgSolution + `
+	InvalidInsecureRegistryArgSolutionDockerMachine = InvalidInsecureRegistryArgSolution + `
 You can run this command with --create-machine to create a machine with the
 right argument.
 `
@@ -156,16 +162,9 @@ func kubeConfigSolution() string {
 	}
 }
 
-func noInsecureRegistryArgSolution() string {
-	switch runtime.GOOS {
-	case "darwin":
-		if hasDockerMachine() {
-			return NoInsecureRegistryArgSolutionDockerMachine
-		}
-	case "windows":
-		if hasDockerMachine() {
-			return NoInsecureRegistryArgSolutionDockerMachine
-		}
+func invalidInsecureRegistryArgSolution() string {
+	if hasDockerMachine() {
+		return InvalidInsecureRegistryArgSolutionDockerMachine
 	}
-	return NoInsecureRegistryArgSolution
+	return InvalidInsecureRegistryArgSolution
 }
