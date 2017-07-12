@@ -24586,6 +24586,10 @@
        "$ref": "v1.StageInfo"
       },
       "description": "stages contains details about each stage that occurs during the build including start time, duration (in milliseconds), and the steps that occured within each stage."
+     },
+     "logSnippet": {
+      "type": "string",
+      "description": "logSnippet is the last few lines of the build log.  This value is only set for builds that failed."
      }
     }
    },

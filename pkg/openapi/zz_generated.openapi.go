@@ -3084,6 +3084,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"logSnippet": {
+							SchemaProps: spec.SchemaProps{
+								Description: "logSnippet is the last few lines of the build log.  This value is only set for builds that failed.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 					},
 					Required: []string{"phase"},
 				},

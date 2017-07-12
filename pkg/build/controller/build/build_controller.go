@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -42,6 +43,9 @@ import (
 
 const (
 	maxRetries = 15
+
+	// maxExcerptLength is the maximum length of the LogSnippet on a build.
+	maxExcerptLength = 5
 )
 
 // BuildController watches builds and synchronizes them with their
@@ -258,13 +262,17 @@ func shouldIgnore(build *buildapi.Build) bool {
 	}
 
 	// If a build is in a terminal state, ignore it; unless it is in a succeeded or failed
-	// state and its completion time is not set, then we should at least attempt to set its
-	// completion time if possible.
+	// state and its completion time or logsnippet is not set, then we should at least attempt to set its
+	// completion time and logsnippet if possible because the build pod may have put the build in
+	// this state and it would have not set the completion timestamp or logsnippet data.
 	if buildutil.IsBuildComplete(build) {
 		switch build.Status.Phase {
-		case buildapi.BuildPhaseComplete,
-			buildapi.BuildPhaseFailed:
+		case buildapi.BuildPhaseComplete:
 			if build.Status.CompletionTimestamp == nil {
+				return false
+			}
+		case buildapi.BuildPhaseFailed:
+			if build.Status.CompletionTimestamp == nil || len(build.Status.LogSnippet) == 0 {
 				return false
 			}
 		}
@@ -546,17 +554,13 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 // handleCompletedBuild will only be called on builds that are already in a terminal phase however, their completion timestamp
 // has not been set.
 func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
-	// Make sure that the completion timestamp has not already been set
-	if build.Status.CompletionTimestamp != nil {
+	// No-op if the completion timestamp and logsnippet data(for failed builds only) has already been set
+	if build.Status.CompletionTimestamp != nil && (len(build.Status.LogSnippet) > 0 || build.Status.Phase != buildapi.BuildPhaseFailed) {
 		return nil, nil
 	}
 
 	update := &buildUpdate{}
-	var podStartTime *metav1.Time
-	if pod != nil {
-		podStartTime = pod.Status.StartTime
-	}
-	setBuildCompletionTimestampAndDuration(build, podStartTime, update)
+	setBuildCompletionData(build, pod, update)
 
 	return update, nil
 }
@@ -595,11 +599,7 @@ func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdat
 
 		// Update build completion timestamp if transitioning to a terminal phase
 		if buildutil.IsTerminalPhase(*update.phase) {
-			var podStartTime *metav1.Time
-			if pod != nil {
-				podStartTime = pod.Status.StartTime
-			}
-			setBuildCompletionTimestampAndDuration(build, podStartTime, update)
+			setBuildCompletionData(build, pod, update)
 		}
 		glog.V(4).Infof("Updating build %s -> %s%s", buildDesc(build), *update.phase, reasonText)
 	}
@@ -637,13 +637,13 @@ func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdat
 // patchBuild generates a patch for the given build and buildUpdate
 // and applies that patch using the REST client
 func (bc *BuildController) patchBuild(build *buildapi.Build, update *buildUpdate) (*buildapi.Build, error) {
-
 	// Create a patch using the buildUpdate object
 	updatedBuild, err := buildutil.BuildDeepCopy(build)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create a deep copy of build %s: %v", buildDesc(build), err)
 	}
 	update.apply(updatedBuild)
+
 	patch, err := validation.CreateBuildPatch(build, updatedBuild)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create a build patch: %v", err)
@@ -818,11 +818,17 @@ func isValidTransition(from, to buildapi.BuildPhase) bool {
 	return true
 }
 
-// setBuildCompletionTimestampAndDuration sets the build completion time and duration as well as the start time
-// if not already set on the given buildUpdate object
-func setBuildCompletionTimestampAndDuration(build *buildapi.Build, podStartTime *metav1.Time, update *buildUpdate) {
+// setBuildCompletionData sets the build completion time and duration as well as the start time
+// if not already set on the given buildUpdate object.  It also sets the log tail data
+// if applicable.
+func setBuildCompletionData(build *buildapi.Build, pod *v1.Pod, update *buildUpdate) {
 	now := metav1.Now()
 	update.setCompletionTime(now)
+
+	var podStartTime *metav1.Time
+	if pod != nil {
+		podStartTime = pod.Status.StartTime
+	}
 
 	startTime := build.Status.StartTimestamp
 	if startTime == nil {
@@ -834,4 +840,25 @@ func setBuildCompletionTimestampAndDuration(build *buildapi.Build, podStartTime 
 		update.setStartTime(*startTime)
 	}
 	update.setDuration(now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time))
+
+	if pod != nil && len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].State.Terminated != nil {
+		msg := pod.Status.ContainerStatuses[0].State.Terminated.Message
+		if len(msg) != 0 {
+			parts := strings.Split(strings.TrimRight(msg, "\n"), "\n")
+
+			excerptLength := maxExcerptLength
+			if len(parts) < maxExcerptLength {
+				excerptLength = len(parts)
+			}
+			excerpt := parts[len(parts)-excerptLength:]
+			for i, line := range excerpt {
+				if len(line) > 120 {
+					excerpt[i] = line[:58] + "..." + line[len(line)-59:]
+				}
+			}
+			msg = strings.Join(excerpt, "\n")
+			update.setLogSnippet(msg)
+		}
+	}
+
 }

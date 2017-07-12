@@ -170,7 +170,9 @@ func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.Des
 
 		describeCommonSpec(build.Spec.CommonSpec, out)
 		describeBuildTriggerCauses(build.Spec.TriggeredBy, out)
-
+		if len(build.Status.LogSnippet) != 0 {
+			formatString(out, "Log Tail", build.Status.LogSnippet)
+		}
 		if settings.ShowEvents {
 			kinternalprinters.DescribeEvents(events, kinternalprinters.NewPrefixWriter(out))
 		}

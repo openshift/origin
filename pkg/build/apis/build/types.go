@@ -304,6 +304,9 @@ type BuildStatus struct {
 	// including start time, duration (in milliseconds), and the steps that
 	// occured within each stage.
 	Stages []StageInfo
+
+	// LogSnippet is the last few lines of the build log.  This value is only set for builds that failed.
+	LogSnippet string
 }
 
 // StageInfo contains details about a build stage.
