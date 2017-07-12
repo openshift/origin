@@ -8,17 +8,17 @@ import (
 	"path/filepath"
 	"sync"
 
-	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
-
 	"github.com/openshift/source-to-image/pkg/api"
 	s2ierr "github.com/openshift/source-to-image/pkg/errors"
+	"github.com/openshift/source-to-image/pkg/scm/git"
+	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
 )
 
 var glog = utilglog.StderrLog
 
 // Downloader downloads the specified URL to the target file location
 type Downloader interface {
-	Download(url *url.URL, target string) (*api.SourceInfo, error)
+	Download(url *url.URL, target string) (*git.SourceInfo, error)
 }
 
 // schemeReader creates an io.Reader from the given url.
@@ -46,9 +46,9 @@ func NewDownloader(proxyConfig *api.ProxyConfig) Downloader {
 // Download downloads the file pointed to by URL into local targetFile
 // Returns information a boolean flag informing whether any download/copy operation
 // happened and an error if there was a problem during that operation
-func (d *downloader) Download(url *url.URL, targetFile string) (*api.SourceInfo, error) {
+func (d *downloader) Download(url *url.URL, targetFile string) (*git.SourceInfo, error) {
 	r := d.schemeReaders[url.Scheme]
-	info := &api.SourceInfo{}
+	info := &git.SourceInfo{}
 	if r == nil {
 		glog.Errorf("No URL handler found for %s", url.String())
 		return nil, s2ierr.NewURLHandlerError(url.String())

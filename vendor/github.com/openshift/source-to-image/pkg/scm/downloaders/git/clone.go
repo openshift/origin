@@ -1,54 +1,31 @@
 package git
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
-	"strings"
 
+	"github.com/golang/glog"
 	"github.com/openshift/source-to-image/pkg/api"
-	"github.com/openshift/source-to-image/pkg/util"
+	"github.com/openshift/source-to-image/pkg/scm/git"
+	"github.com/openshift/source-to-image/pkg/util/fs"
 )
 
 // Clone knows how to clone a Git repository.
 type Clone struct {
-	Git
-	util.FileSystem
+	git.Git
+	fs.FileSystem
 }
 
 // Download downloads the application source code from the Git repository
 // and checkout the Ref specified in the config.
-func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
+func (c *Clone) Download(config *api.Config) (*git.SourceInfo, error) {
 	targetSourceDir := filepath.Join(config.WorkingDir, api.Source)
 	config.WorkingSourceDir = targetSourceDir
 
-	ok, err := c.ValidCloneSpec(config.Source)
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		glog.Errorf("Clone.Download was passed an invalid source %s", config.Source)
-		return nil, fmt.Errorf("invalid source %s", config.Source)
-	}
-
-	ref := "HEAD"
-	if config.Ref != "" {
-		ref = config.Ref
-	}
-
-	if strings.HasPrefix(config.Source, "file://") {
-		s := strings.TrimPrefix(config.Source, "file://")
-
-		if util.UsingCygwinGit {
-			var err error
-			s, err = util.ToSlashCygwin(s)
-			if err != nil {
-				glog.V(0).Infof("error: Cygwin path conversion failed: %v", err)
-				return nil, err
-			}
-		}
-		config.Source = "file://" + s
+	ref := config.Source.URL.Fragment
+	if ref == "" {
+		ref = "HEAD"
 	}
 
 	if len(config.ContextDir) > 0 {
@@ -64,8 +41,8 @@ func (c *Clone) Download(config *api.Config) (*api.SourceInfo, error) {
 		glog.V(2).Infof("Cloning sources (ignoring submodules) into %q", targetSourceDir)
 	}
 
-	cloneConfig := api.CloneConfig{Quiet: true}
-	err = c.Clone(config.Source, targetSourceDir, cloneConfig)
+	cloneConfig := git.CloneConfig{Quiet: true}
+	err := c.Clone(config.Source, targetSourceDir, cloneConfig)
 	if err != nil {
 		glog.V(0).Infof("error: git clone failed: %v", err)
 		return nil, err
