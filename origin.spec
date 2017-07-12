@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d27321185053447fcfd54c705e0db38a7f19ea41
+%global commit cff4e8777d5adeb06eac7d91bba33195c27d158c
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.140 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=d273211
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.141 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=cff4e87
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.141
+Version:        3.6.142
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,28 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jul 12 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.142-1
+- Increase default maxInFlightRequests to 1200 (ccoleman@redhat.com)
+- UPSTREAM: <carry>: Lengthen too short timeouts on startup
+  (ccoleman@redhat.com)
+- Live client check only if scopes were added (mkhan@redhat.com)
+- Update lastTriggeredImage if not set when instantiating DCs
+  (mkargaki@redhat.com)
+- set broker catalog poll interval to 5minutes (bparees@redhat.com)
+- UPSTREAM: 48733: Never prevent deletion of resources as part of namespace
+  lifecycle (jliggitt@redhat.com)
+- UPSTREAM: 48624: kube-proxy logs abridged (decarr@redhat.com)
+- UPSTREAM: 48085: Move iptables logging in kubeproxy (decarr@redhat.com)
+- Adding meta tag so the login screen renders correctly when IE is in intranet
+  mode (rhamilto@redhat.com)
+- Get encryption configuration from a config and apply resource transformers.
+  (vsemushi@redhat.com)
+- Support valueFrom in build environment variables #2 (cdaley@redhat.com)
+- origin, syscontainer: add bind mount for /etc/pki (gscrivan@redhat.com)
+- node, syscontainer: add bind mount for /etc/pki (gscrivan@redhat.com)
+- Typo fix of 'execure' on oc cluster up --help (jwmatthews@gmail.com)
+- update upstream kubernetes link for cni (rchopra@redhat.com)
+
 * Tue Jul 11 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.141-1
 - Tolerate deletion of resources during migration (mkhan@redhat.com)
 - Do not resolve images on job/build/statefulset updates (ccoleman@redhat.com)
