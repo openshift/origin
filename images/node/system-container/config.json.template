@@ -485,6 +485,15 @@
 	    ]
         },
 	{
+	    "type": "bind",
+	    "source": "/etc/pki",
+	    "destination": "/etc/pki",
+	    "options": [
+		"bind",
+		"ro"
+	    ]
+	},
+	{
 	    "destination": "/tmp",
 	    "type": "tmpfs",
 	    "source": "tmpfs",

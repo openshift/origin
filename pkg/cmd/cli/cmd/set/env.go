@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	envutil "github.com/openshift/origin/pkg/util/env"
+	envresolve "github.com/openshift/origin/pkg/pod/envresolve"
 )
 
 var (
@@ -207,6 +207,11 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		return err
 	}
 
+	kubeClient, err := f.ClientSet()
+	if err != nil {
+		return err
+	}
+
 	cmdNamespace, explicit, err := f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -347,7 +352,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 				if o.List {
 					resolveErrors := map[string][]string{}
-					store := envutil.NewResourceStore()
+					store := envresolve.NewResourceStore()
 
 					fmt.Fprintf(o.Out, "# %s %s, container %s\n", info.Mapping.Resource, info.Name, c.Name)
 					for _, env := range c.Env {
@@ -359,11 +364,11 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 
 						// Print the reference version
 						if !o.Resolve {
-							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envutil.GetEnvVarRefString(env.ValueFrom))
+							fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envresolve.GetEnvVarRefString(env.ValueFrom))
 							continue
 						}
 
-						value, err := envutil.GetEnvVarRefValue(f, nil, "", store, env.ValueFrom, info.Object, c)
+						value, err := envresolve.GetEnvVarRefValue(kubeClient, cmdNamespace, store, env.ValueFrom, info.Object, c)
 						// Print the resolved value
 						if err == nil {
 							fmt.Fprintf(o.Out, "%s=%s\n", env.Name, value)
@@ -371,7 +376,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 						}
 
 						// Print the reference version and save the resolve error
-						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envutil.GetEnvVarRefString(env.ValueFrom))
+						fmt.Fprintf(o.Out, "# %s from %s\n", env.Name, envresolve.GetEnvVarRefString(env.ValueFrom))
 						errString := err.Error()
 						resolveErrors[errString] = append(resolveErrors[errString], env.Name)
 						resolutionErrorsEncountered = true

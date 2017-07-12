@@ -9,6 +9,7 @@ const defaultGrantTemplateString = `<!DOCTYPE html>
 <html>
 
 <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <title>
       Authorize 
       {{ if and .ServiceAccountName .ServiceAccountNamespace }}

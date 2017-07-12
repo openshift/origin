@@ -159,6 +159,15 @@
 	},
 	{
 	    "type": "bind",
+	    "source": "/etc/pki",
+	    "destination": "/etc/pki",
+	    "options": [
+		"bind",
+		"ro"
+	    ]
+	},
+	{
+	    "type": "bind",
 	    "source": "$ORIGIN_DATA_DIR",
 	    "destination": "/var/lib/origin",
 	    "options": [

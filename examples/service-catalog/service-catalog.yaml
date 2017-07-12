@@ -306,6 +306,8 @@ objects:
           - http://$(APISERVER_SERVICE_HOST):$(APISERVER_SERVICE_PORT)
           - --leader-election-namespace
           - service-catalog
+          - --broker-relist-interval
+          - "5m"
           image: quay.io/kubernetes-service-catalog/controller-manager:${SERVICE_CATALOG_TAG}
           imagePullPolicy: IfNotPresent
           name: controller-manager
