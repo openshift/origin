@@ -1,4 +1,4 @@
-package env
+package envresolve
 
 import (
 	"fmt"
@@ -8,8 +8,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/fieldpath"
-
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
 // ResourceStore defines a new resource store data structure
@@ -72,33 +70,13 @@ func getResourceFieldRef(from *kapi.EnvVarSource, c *kapi.Container) (string, er
 }
 
 // GenEnvVarRefValue returns the value referenced by the supplied EnvVarSource given the other supplied information
-func GetEnvVarRefValue(f *clientcmd.Factory, kc kclientset.Interface, ns string, store *ResourceStore, from *kapi.EnvVarSource, obj runtime.Object, c *kapi.Container) (string, error) {
-	var kubeClient kclientset.Interface
-	var namespace string
-	var err error
-
-	if f != nil {
-		kubeClient, err = f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		namespace, _, err = f.DefaultNamespace()
-		if err != nil {
-			return "", err
-		}
-	} else if kc != nil {
-		kubeClient = kc
-		namespace = ns
-	} else {
-		return "", fmt.Errorf("You must supply either a clientcmd.Factory or kclientset.Interface")
-	}
-
+func GetEnvVarRefValue(kc kclientset.Interface, ns string, store *ResourceStore, from *kapi.EnvVarSource, obj runtime.Object, c *kapi.Container) (string, error) {
 	if from.SecretKeyRef != nil {
-		return getSecretRefValue(kubeClient, namespace, store, from.SecretKeyRef)
+		return getSecretRefValue(kc, ns, store, from.SecretKeyRef)
 	}
 
 	if from.ConfigMapKeyRef != nil {
-		return getConfigMapRefValue(kubeClient, namespace, store, from.ConfigMapKeyRef)
+		return getConfigMapRefValue(kc, ns, store, from.ConfigMapKeyRef)
 	}
 
 	if from.FieldRef != nil {
