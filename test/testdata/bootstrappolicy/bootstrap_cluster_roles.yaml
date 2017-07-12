@@ -1790,6 +1790,7 @@ items:
     - /oapi/*
     - /osapi
     - /osapi/
+    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
     - /version
@@ -2513,6 +2514,7 @@ items:
     - /oapi/*
     - /osapi
     - /osapi/
+    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
     - /version
