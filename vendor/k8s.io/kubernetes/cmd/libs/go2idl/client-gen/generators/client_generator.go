@@ -87,6 +87,7 @@ func NameSystems() namer.NameSystems {
 	}
 
 	return namer.NameSystems{
+		"singularKind":       namer.NewPublicNamer(0),
 		"public":             publicNamer,
 		"private":            privateNamer,
 		"raw":                namer.NewRawNamer("", nil),
