@@ -24,6 +24,36 @@ export OS_BUILD_IMAGE_ARGS
 # assume the user wants jUnit output and will turn it off if they don't.
 JUNIT_REPORT ?= true
 
+# Build the base images for the current host architecture
+# Example:
+#   make build-base-images
+build-base-images:
+	hack/build-base-images.sh
+.PHONY: build-base-images
+
+# Build the base images for all supported architectures
+# Example:
+#   make build-base-images-cross
+build-base-images-cross: export OS_BUILD_ARCHES=$(shell bash -c 'source hack/lib/init.sh; echo $${OS_BUILD_ENV_ARCHES[@]}')
+build-base-images-cross:
+	hack/build-base-images.sh
+.PHONY: build-base-images-cross
+
+# Build the release images for the current host architecture
+# Example:
+#   make build-release-images
+build-release-images:
+	hack/build-release-images.sh
+.PHONY: build-release-images
+
+# Build the release images for all supported architectures
+# Example:
+#   make build-release-images-cross
+build-release-images-cross: export OS_BUILD_ARCHES=$(shell bash -c 'source hack/lib/init.sh; echo $${OS_BUILD_ENV_ARCHES[@]}')
+build-release-images-cross:
+	hack/build-release-images.sh
+.PHONY: build-release-images-cross
+
 # Build code.
 #
 # Args:
@@ -229,7 +259,7 @@ test-extended:
 # Example:
 #   make run
 run: export OS_OUTPUT_BINPATH=$(shell bash -c 'source hack/lib/init.sh; echo $${OS_OUTPUT_BINPATH}')
-run: export PLATFORM=$(shell bash -c 'source hack/lib/init.sh; os::build::host_platform')
+run: export PLATFORM=$(shell bash -c 'source hack/lib/init.sh; os::util::host_platform')
 run: build
 	$(OS_OUTPUT_BINPATH)/$(PLATFORM)/openshift start
 .PHONY: run
@@ -249,7 +279,8 @@ clean:
 official-release: build-images build-cross
 .PHONY: official-release
 
-# Build a release of OpenShift for linux/amd64 and the images that depend on it.
+# Build a release of OpenShift for the Linux target matching the host architecture
+# and the images that depend on it
 #
 # Example:
 #   make release
