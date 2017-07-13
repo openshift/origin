@@ -69,6 +69,6 @@ func (a *alwaysPullImages) Admit(attributes admission.Attributes) (err error) {
 // NewAlwaysPullImages creates a new always pull images admission control handler
 func NewAlwaysPullImages() admission.Interface {
 	return &alwaysPullImages{
-		Handler: admission.NewHandler(admission.Create, admission.Update),
+		Handler: admission.NewHandler(admission.Create),
 	}
 }
