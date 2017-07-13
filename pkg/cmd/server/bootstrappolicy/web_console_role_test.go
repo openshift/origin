@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 // NOTE: If this test fails, talk to the web console team to decide if your
@@ -84,13 +84,13 @@ func TestSystemOnlyRoles(t *testing.T) {
 
 // this logic must stay in sync w/the web console for this test to be valid/valuable
 // it is the same logic that is run on the membership page
-func isSystemOnlyRole(role *authorizationapi.ClusterRole) bool {
+func isSystemOnlyRole(role *rbac.ClusterRole) bool {
 	return role.Annotations[roleSystemOnly] == roleIsSystemOnly
 }
 
 // helper so that roles following this pattern do not need to be manaully added
 // to the hide list
-func isControllerRole(role *authorizationapi.ClusterRole) bool {
+func isControllerRole(role *rbac.ClusterRole) bool {
 	return strings.HasPrefix(role.Name, "system:controller:") ||
 		strings.HasSuffix(role.Name, "-controller") ||
 		strings.HasPrefix(role.Name, "system:openshift:controller:")

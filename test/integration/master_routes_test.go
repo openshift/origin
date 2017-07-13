@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -162,7 +163,7 @@ func TestRootRedirect(t *testing.T) {
 			break
 		}
 
-		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v", got, expectedIndex)
+		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v,\n\ndiff=%v", got.Paths, expectedIndex, diff.ObjectDiff(expectedIndex, got.Paths))
 	}
 
 	req, err = http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL, nil)

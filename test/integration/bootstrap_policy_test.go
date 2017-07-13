@@ -1,19 +1,14 @@
 package integration
 
 import (
-	"io/ioutil"
 	"testing"
-	"time"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/server/admin"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -71,51 +66,6 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 		t.Errorf("unexpected error: %v", err)
 	}
 	if _, err := valerieOpenshiftClient.ImageStreamTags(metav1.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
-		t.Errorf("unexpected error: %v", err)
-	}
-}
-
-func TestBootstrapPolicyOverwritePolicyCommand(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	client, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if err := client.ClusterPolicies().Delete(authorizationapi.PolicyName); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	// after the policy is deleted, we must wait for it to be cleared from the policy cache
-	err = wait.Poll(10*time.Millisecond, 10*time.Second, func() (bool, error) {
-		_, err := client.ClusterPolicies().List(metav1.ListOptions{})
-		if err == nil {
-			return false, nil
-		}
-		if !kapierror.IsForbidden(err) {
-			t.Errorf("unexpected error: %v", err)
-		}
-		return true, nil
-	})
-	if err != nil {
-		t.Errorf("timeout: %v", err)
-	}
-
-	optsGetter, err := originrest.StorageOptions(*masterConfig)
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if err := admin.OverwriteBootstrapPolicy(optsGetter, masterConfig.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if _, err := client.ClusterPolicies().List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
 }

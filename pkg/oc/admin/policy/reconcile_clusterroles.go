@@ -190,7 +190,8 @@ func (o *ReconcileClusterRolesOptions) ChangedClusterRoles() ([]*authorizationap
 
 	rolesToReconcile := sets.NewString(o.RolesToReconcile...)
 	rolesNotFound := sets.NewString(o.RolesToReconcile...)
-	bootstrapClusterRoles := bootstrappolicy.GetBootstrapClusterRoles()
+	//TODO: nuke convert from orbit
+	bootstrapClusterRoles := bootstrappolicy.ConvertToOriginClusterRolesOrDie(bootstrappolicy.GetBootstrapClusterRoles())
 	for i := range bootstrapClusterRoles {
 		expectedClusterRole := &bootstrapClusterRoles[i]
 		if (len(rolesToReconcile) > 0) && !rolesToReconcile.Has(expectedClusterRole.Name) {

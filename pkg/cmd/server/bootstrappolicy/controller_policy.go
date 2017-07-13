@@ -75,11 +75,6 @@ func addControllerRoleToSA(saNamespace, saName string, role rbac.ClusterRole) {
 		}
 	}
 
-	if role.Annotations == nil {
-		role.Annotations = map[string]string{}
-	}
-	role.Annotations[roleSystemOnly] = roleIsSystemOnly
-
 	controllerRoles = append(controllerRoles, role)
 
 	controllerRoleBindings = append(controllerRoleBindings,

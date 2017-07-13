@@ -26,6 +26,7 @@ import (
 
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -253,7 +254,7 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("authorization.openshift.io-bootstrapclusterroles", c.ensureComponentAuthorizationRules)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 

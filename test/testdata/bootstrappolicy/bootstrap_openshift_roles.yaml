@@ -8,8 +8,8 @@ items:
     namespace: openshift
   rules:
   - apiGroups:
-    - template.openshift.io
     - ""
+    - template.openshift.io
     attributeRestrictions: null
     resources:
     - templates
@@ -18,8 +18,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -30,8 +30,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
