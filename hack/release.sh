@@ -19,9 +19,8 @@ commit="$( git rev-parse ${tag} )"
 docker pull "${OS_BUILD_ENV_IMAGE}"
 
 hack/build-base-images.sh
-OS_GIT_COMMIT="${commit}" hack/build-release.sh
-hack/build-images.sh
-OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh
+hack/env OS_GIT_COMMIT="${commit}" make official-release
+OS_PUSH_ALWAYS=1 OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh
 
 echo
 echo "Pushed ${tag} to DockerHub"

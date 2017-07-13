@@ -454,7 +454,7 @@ readonly -f os::build::place_bins
 # built release directory.
 function os::build::release_sha() {
   pushd "${OS_OUTPUT_RELEASEPATH}" &> /dev/null
-  sha256sum * > CHECKSUM
+  find . -maxdepth 1 -type f | xargs sha256sum > CHECKSUM
   popd &> /dev/null
 }
 readonly -f os::build::release_sha
