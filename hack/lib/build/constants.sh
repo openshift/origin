@@ -1,9 +1,42 @@
 #!/bin/bash
 
 # This script provides constants for the Golang binary build process
+readonly -A OS_BUILD_GOLANG_VERSION_ARCH_MAP=(
+  ['1.7']='amd64'
+  ['1.8']='amd64 arm64 ppc64le'
+)
 
-readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.7}"
-readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
+readonly -A OS_BUILD_SYSARCH_TO_GOARCH_MAP=(
+  ['x86_64']='amd64'
+  ['aarch64']='arm64'
+  ['ppc64le']='ppc64le'
+  ['s390x']='s390x'
+)
+
+readonly -A OS_BUILD_GOARCH_TO_SYSARCH_MAP=(
+  ['amd64']='x86_64'
+  ['arm64']='aarch64'
+  ['ppc64le']='ppc64le'
+  ['s390x']='s390x'
+)
+
+readonly OS_BUILD_ENV_GOLANG_VERSIONS=("${!OS_BUILD_GOLANG_VERSION_ARCH_MAP[@]}")
+
+# TODO: clean these up
+readonly OS_BUILD_ENV_PLATFORMS=(
+  linux/amd64
+  linux/arm64
+  linux/ppc64le
+)
+
+readonly OS_BUILD_ENV_ARCHES=("${OS_BUILD_ENV_PLATFORMS[@]##*/}")
+
+readonly OS_BUILD_ENV_PLATFORMS_REDISTRIBUTABLE_ONLY=(
+  darwin/amd64
+  windows/amd64
+)
+readonly OS_BUILD_ENV_PLATFORMS_REDISTRIBUTABLE=("${OS_BUILD_ENV_PLATFORMS[@]}" "${OS_BUILD_ENV_PLATFORMS_REDISTRIBUTABLE_ONLY[@]}")
+# end TODO cleanup
 
 readonly OS_OUTPUT_BASEPATH="${OS_OUTPUT_BASEPATH:-_output}"
 readonly OS_BASE_OUTPUT="${OS_ROOT}/${OS_OUTPUT_BASEPATH}"
@@ -35,12 +68,12 @@ readonly OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX=(
 )
 readonly OS_IMAGE_COMPILE_BINARIES=("${OS_SCRATCH_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}" "${OS_IMAGE_COMPILE_TARGETS_LINUX[@]##*/}")
 
-readonly OS_CROSS_COMPILE_TARGETS=(
+readonly OS_REDISTRIBUTABLE_TARGETS=(
   cmd/openshift
   cmd/oc
   cmd/kubefed
 )
-readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
+readonly OS_REDISTRIBUTABLE_BINARIES=("${OS_REDISTRIBUTABLE_TARGETS[@]##*/}")
 
 readonly OS_TEST_TARGETS=(
   test/extended/extended.test

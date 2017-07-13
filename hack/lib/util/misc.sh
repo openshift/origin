@@ -205,19 +205,52 @@ function os::util::host_platform() {
 }
 readonly -f os::util::host_platform
 
-# os::util::host_arch determines what the host architecture is, as Golang
+# os::util::go_arch determines what the host architecture is, as Golang
 # sees it.
-function os::util::host_arch() {
-	echo "$(go env GOHOSTARCH)"
+function os::util::go_arch() {
+	arch=${1:-}
+
+	if [[ -z "${arch}" ]]; then
+		# No arch requested, query go
+		echo "$(go env GOHOSTARCH)"
+	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known go arch
+		echo "${arch}"
+	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known system arch
+		echo "${OS_BUILD_SYSARCH_TO_GOARCH_MAP[${arch}]}"
+	else
+		os::log::error "Unkown arch: ${arch}"
+		exit 1
+	fi
 }
-readonly -f os::util::host_arch
+readonly -f os::util::go_arch
+
+function os::util::sys_arch() {
+	arch=${1:-}
+
+	if [[ -z "${arch}" ]]; then
+		# No arch requested, query system
+		echo "$(uname -m)"
+	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known system arch
+		echo "${arch}"
+	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known go arch
+		echo "${OS_BUILD_GOARCH_TO_SYSARCH_MAP[${arch}]}"
+	else
+		os::log::error "Unkown arch: ${arch}"
+		exit 1
+	fi
+}
+readonly -f os::util::sys_arch
 
 # os::util::centos_image returns the image prefix for
 # the centos image based on host architecture
 function os::util::centos_image() {
   local host_arch=${1:-}
   if [[ -z "${host_arch}" ]]; then
-    host_arch=$(os::util::host_arch)
+    host_arch=$(os::util::go_arch)
   fi
 
   if [[ $host_arch == "arm64" ]]; then
@@ -238,7 +271,7 @@ readonly -f os::util::centos_image
 function os::util::official_docker_image_prefix() {
   local host_arch=${1:-}
   if [[ -z "${host_arch}" ]]; then
-    host_arch=$(os::util::host_arch)
+    host_arch=$(os::util::go_arch)
   fi
 
   if [[ $host_arch == "arm64" ]]; then
