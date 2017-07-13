@@ -2,7 +2,6 @@ package authorization
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"unicode"
 
@@ -105,25 +104,6 @@ func (r PolicyRule) CompactString() string {
 	return fmt.Sprintf(formatString, formatArgs...)
 }
 
-func getRoleBindingValues(roleBindingMap map[string]*RoleBinding) []*RoleBinding {
-	ret := []*RoleBinding{}
-	for _, currBinding := range roleBindingMap {
-		ret = append(ret, currBinding)
-	}
-
-	return ret
-}
-func SortRoleBindings(roleBindingMap map[string]*RoleBinding, reverse bool) []*RoleBinding {
-	roleBindings := getRoleBindingValues(roleBindingMap)
-	if reverse {
-		sort.Sort(sort.Reverse(RoleBindingSorter(roleBindings)))
-	} else {
-		sort.Sort(RoleBindingSorter(roleBindings))
-	}
-
-	return roleBindings
-}
-
 type PolicyBindingSorter []PolicyBinding
 
 func (s PolicyBindingSorter) Len() int {
@@ -136,7 +116,7 @@ func (s PolicyBindingSorter) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 
-type RoleBindingSorter []*RoleBinding
+type RoleBindingSorter []RoleBinding
 
 func (s RoleBindingSorter) Len() int {
 	return len(s)

@@ -132,17 +132,18 @@ func NewLocalRoleBindingAccessor(bindingNamespace string, client client.Interfac
 }
 
 func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
-	existingBindings, err := a.Client.PolicyBindings(a.BindingNamespace).Get(authorizationapi.GetPolicyBindingName(roleNamespace), metav1.GetOptions{})
+	existingBindings, err := a.Client.RoleBindings(a.BindingNamespace).List(metav1.ListOptions{})
 	if err != nil && !kapierrors.IsNotFound(err) {
 		return nil, err
 	}
 
 	ret := make([]*authorizationapi.RoleBinding, 0)
 	// see if we can find an existing binding that points to the role in question.
-	for _, currBinding := range existingBindings.RoleBindings {
-		if currBinding.RoleRef.Name == role {
-			t := currBinding
-			ret = append(ret, t)
+	for i := range existingBindings.Items {
+		// shallow copy outside of the loop so that we can take its address
+		currBinding := existingBindings.Items[i]
+		if currBinding.RoleRef.Name == role && currBinding.RoleRef.Namespace == roleNamespace {
+			ret = append(ret, &currBinding)
 		}
 	}
 
@@ -150,16 +151,14 @@ func (a LocalRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, 
 }
 
 func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	policyBindings, err := a.Client.PolicyBindings(a.BindingNamespace).List(metav1.ListOptions{})
+	roleBindings, err := a.Client.RoleBindings(a.BindingNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	ret := &sets.String{}
-	for _, existingBindings := range policyBindings.Items {
-		for _, currBinding := range existingBindings.RoleBindings {
-			ret.Insert(currBinding.Name)
-		}
+	for _, currBinding := range roleBindings.Items {
+		ret.Insert(currBinding.Name)
 	}
 
 	return ret, nil
@@ -187,18 +186,23 @@ func NewClusterRoleBindingAccessor(client client.Interface) ClusterRoleBindingAc
 }
 
 func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error) {
-	uncast, err := a.Client.ClusterPolicyBindings().Get(authorizationapi.GetPolicyBindingName(roleNamespace), metav1.GetOptions{})
-	if err != nil && !kapierrors.IsNotFound(err) {
+	// cluster role bindings can only reference cluster roles
+	if roleNamespace != "" {
+		return nil, nil
+	}
+
+	existingBindings, err := a.Client.ClusterRoleBindings().List(metav1.ListOptions{})
+	if err != nil {
 		return nil, err
 	}
-	existingBindings := authorizationapi.ToPolicyBinding(uncast)
 
 	ret := make([]*authorizationapi.RoleBinding, 0)
 	// see if we can find an existing binding that points to the role in question.
-	for _, currBinding := range existingBindings.RoleBindings {
-		if currBinding.RoleRef.Name == role {
-			t := currBinding
-			ret = append(ret, t)
+	for i := range existingBindings.Items {
+		// shallow copy outside of the loop so that we can take its address
+		currBinding := existingBindings.Items[i]
+		if currBinding.RoleRef.Name == role && currBinding.RoleRef.Namespace == "" {
+			ret = append(ret, authorizationapi.ToRoleBinding(&currBinding))
 		}
 	}
 
@@ -206,17 +210,14 @@ func (a ClusterRoleBindingAccessor) GetExistingRoleBindingsForRole(roleNamespace
 }
 
 func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, error) {
-	uncast, err := a.Client.ClusterPolicyBindings().List(metav1.ListOptions{})
+	existingBindings, err := a.Client.ClusterRoleBindings().List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-	policyBindings := authorizationapi.ToPolicyBindingList(uncast)
 
 	ret := &sets.String{}
-	for _, existingBindings := range policyBindings.Items {
-		for _, currBinding := range existingBindings.RoleBindings {
-			ret.Insert(currBinding.Name)
-		}
+	for _, currBinding := range existingBindings.Items {
+		ret.Insert(currBinding.Name)
 	}
 
 	return ret, nil
