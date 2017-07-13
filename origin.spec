@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1935997d25389a6d07b8175d3ec567cc537b559c
+%global commit fba7858a2385fb4b6054179fcc23106e7323db58
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.142 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1935997
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.143 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=fba7858
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.143
+Version:        3.6.144
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -640,6 +640,38 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Jul 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.144-1
+- Merge remote-tracking branch enterprise-3.6, bump origin-web-console 22172b6
+  (smunilla@redhat.com)
+- Update image-promotion.md (p3tecracknell@gmail.com)
+- Ensure CNI dir exists before writing openshift CNI configuration under CNI
+  dir (rpenta@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e3e7ba71d505d1c65b890cc39169131584a46a1d (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  8f900905ebebc9bdb3c0e24c90b5a85c9a7d8343 (eparis+openshiftbot@redhat.com)
+- Update broken jUnit reporter tests (skuznets@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  649b78ed8a4a6296e738f5f691078da4f34998cb (eparis+openshiftbot@redhat.com)
+- Add an option to refresh to newest hack/env image (skuznets@redhat.com)
+- add PR testing hook for openshift-login plugin (gmontero@redhat.com)
+- UPSTREAM: 48635: proxy/userspace: suppress "LoadBalancerRR: Removing
+  endpoints" message (dcbw@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b9034e8109e833d961d771a4ecbedbfeb4422919 (eparis+openshiftbot@redhat.com)
+- re-enable newapp conformance test (bparees@redhat.com)
+- Add integration test for preferred GVs in discovery
+  (stefan.schimanski@gmail.com)
+- swagger.json should be accessible to anonymous users (ccoleman@redhat.com)
+- Allow installation of missing Golang dependencies at run-time
+  (skuznets@redhat.com)
+- Update generated completions (ffranz@redhat.com)
+- UPSTREAM: 44746: support for PodPreset in get command (ffranz@redhat.com)
+- Tolerate NotFound on delete, remove roles on policybinding deletion
+  (jliggitt@redhat.com)
+- make GC mutation check ignore selfLink (deads@redhat.com)
+- Bump OVS version requirement to 2.6.1 (sdodson@redhat.com)
+
 * Wed Jul 12 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.143-1
 - Merge remote-tracking branch enterprise-3.6, bump origin-web-console 2ff23c3
   (smunilla@redhat.com)
