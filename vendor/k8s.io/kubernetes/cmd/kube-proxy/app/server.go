@@ -300,7 +300,7 @@ func (o *Options) loadConfig(data []byte) (*componentconfig.KubeProxyConfigurati
 	return config, nil
 }
 
-func (o *Options) applyDefaults(in *componentconfig.KubeProxyConfiguration) (*componentconfig.KubeProxyConfiguration, error) {
+func (o *Options) ApplyDefaults(in *componentconfig.KubeProxyConfiguration) (*componentconfig.KubeProxyConfiguration, error) {
 	external, err := o.scheme.ConvertToVersion(in, v1alpha1.SchemeGroupVersion)
 	if err != nil {
 		return nil, err
@@ -342,7 +342,7 @@ with the apiserver API to configure the proxy.`,
 		},
 	}
 
-	opts.config, err = opts.applyDefaults(opts.config)
+	opts.config, err = opts.ApplyDefaults(opts.config)
 	if err != nil {
 		glog.Fatalf("unable to create flag defaults: %v", err)
 	}
