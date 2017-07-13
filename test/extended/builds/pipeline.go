@@ -71,17 +71,37 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 		dcLogStdOut, dcLogStdErr *bytes.Buffer
 		setupJenkins             = func() {
 			// Deploy Jenkins
+			// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
+			// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
+			// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
+			// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
+			// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
+			// an override to use that images stream and test image
 			var licensePrefix, pluginName string
+			useSnapshotImage := false
 			// our pipeline jobs, between jenkins and oc invocations, need more mem than the default
 			newAppArgs := []string{"-f", jenkinsTemplatePath, "-p", "MEMORY_LIMIT=2Gi"}
-			newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
-			if !useSnapshotImage {
-				newAppArgs, useSnapshotImage = jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
-				licensePrefix = syncLicenseText
-				pluginName = syncPluginName
-			} else {
+			clientPluginNewAppArgs, useClientPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalClientPluginSnapshotEnvVarName, localClientPluginSnapshotImage, localClientPluginSnapshotImageStream, newAppArgs, oc)
+			syncPluginNewAppArgs, useSyncPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalSyncPluginSnapshotEnvVarName, localSyncPluginSnapshotImage, localSyncPluginSnapshotImageStream, newAppArgs, oc)
+			switch {
+			case useClientPluginSnapshotImage && useSyncPluginSnapshotImage:
+				fmt.Fprintf(g.GinkgoWriter,
+					"\nBOTH %s and %s for PR TESTING ARE SET.  WILL NOT CHOOSE BETWEEN THE TWO SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n",
+					jenkins.UseLocalClientPluginSnapshotEnvVarName, jenkins.UseLocalSyncPluginSnapshotEnvVarName)
+			case useClientPluginSnapshotImage:
+				fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT CLIENT PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
 				licensePrefix = clientLicenseText
 				pluginName = clientPluginName
+				useSnapshotImage = true
+				newAppArgs = clientPluginNewAppArgs
+			case useSyncPluginSnapshotImage:
+				fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT SYNC PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
+				licensePrefix = syncLicenseText
+				pluginName = syncPluginName
+				useSnapshotImage = true
+				newAppArgs = syncPluginNewAppArgs
+			default:
+				fmt.Fprintf(g.GinkgoWriter, "\nNO PR TEST ENV VARS SET SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n")
 			}
 
 			g.By(fmt.Sprintf("calling oc new-app useSnapshotImage %v with license text %s and newAppArgs %#v", useSnapshotImage, licensePrefix, newAppArgs))
