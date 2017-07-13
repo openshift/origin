@@ -9,7 +9,7 @@ import (
 )
 
 // SiblingCommand returns a sibling command to the given command
-func SiblingCommand(cmd *cobra.Command, name string) string {
+func SiblingCommand(cmd *cobra.Command, name string) []string {
 	c := cmd.Parent()
 	command := []string{}
 	for c != nil {
@@ -20,11 +20,11 @@ func SiblingCommand(cmd *cobra.Command, name string) string {
 	// Replace the root command with what was actually used
 	// in the command line
 	glog.V(4).Infof("Setting root command to: %s", os.Args[0])
-	command[0] = "\"" + os.Args[0] + "\""
+	command[0] = os.Args[0]
 
 	// Append the sibling command
 	command = append(command, name)
 	glog.V(4).Infof("The sibling command is: %s", strings.Join(command, " "))
 
-	return strings.Join(command, " ")
+	return command
 }

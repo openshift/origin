@@ -629,7 +629,7 @@ func (c *CommonStartConfig) CheckExistingOpenShiftContainer(out io.Writer) error
 		return errors.NewError("unexpected error while checking OpenShift container state").WithCause(err)
 	}
 	if running {
-		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", cmdutil.SiblingCommand(c.command, "down"))
+		return errors.NewError("OpenShift is already running").WithSolution("To start OpenShift again, stop the current cluster:\n$ %s\n", strings.Join(cmdutil.SiblingCommand(c.command, "down"), " "))
 	}
 	if container != nil {
 		err = c.DockerHelper().RemoveContainer(openshift.OpenShiftContainer)

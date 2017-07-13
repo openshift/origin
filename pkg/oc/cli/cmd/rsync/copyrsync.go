@@ -34,8 +34,7 @@ var rshExcludeFlags = sets.NewString("delete", "strategy", "quiet", "include", "
 
 func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (copyStrategy, error) {
 	// Determine the rsh command to pass to the local rsync command
-	rsh := cmdutil.SiblingCommand(c, "rsh")
-	rshCmd := []string{rsh}
+	rshCmd := cmdutil.SiblingCommand(c, "rsh")
 	// Append all original flags to rsh command
 	c.Flags().Visit(func(flag *pflag.Flag) {
 		if rshExcludeFlags.Has(flag.Name) {
@@ -43,7 +42,7 @@ func newRsyncStrategy(f *clientcmd.Factory, c *cobra.Command, o *RsyncOptions) (
 		}
 		rshCmd = append(rshCmd, fmt.Sprintf("--%s=%s", flag.Name, flag.Value.String()))
 	})
-	rshCmdStr := strings.Join(rshCmd, " ")
+	rshCmdStr := strings.Join(rsyncEscapeCommand(rshCmd), " ")
 	glog.V(4).Infof("Rsh command: %s", rshCmdStr)
 
 	remoteExec, err := newRemoteExecutor(f, o)
@@ -109,6 +108,23 @@ func (r *rsyncStrategy) Validate() error {
 		return kerrors.NewAggregate(errs)
 	}
 	return nil
+}
+
+// rsyncEscapeCommand wraps each element of the command in double quotes
+// if it contains any of the following: single quote, double quote, or space
+// It also replaces every pre-existing double quote character in the element with a pair.
+// Example: " -> ""
+func rsyncEscapeCommand(command []string) []string {
+	var escapedCommand []string
+	for _, val := range command {
+		needsQuoted := strings.ContainsAny(val, `'" `)
+		if needsQuoted {
+			val = strings.Replace(val, `"`, `""`, -1)
+			val = `"` + val + `"`
+		}
+		escapedCommand = append(escapedCommand, val)
+	}
+	return escapedCommand
 }
 
 func (r *rsyncStrategy) String() string {
