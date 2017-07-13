@@ -21,12 +21,8 @@ func TestMarksTestBeginning(t *testing.T) {
 			testLine: "=== RUN 1234",
 		},
 		{
-			name:     "url",
-			testLine: "=== RUN github.com/maintainer/repository/package/file",
-		},
-		{
 			name:     "failed print",
-			testLine: "some other text=== RUN github.com/maintainer/repository/package/file",
+			testLine: "some other text=== RUN TestName",
 		},
 	}
 
@@ -53,11 +49,6 @@ func TestExtractTestName(t *testing.T) {
 			name:         "numeric",
 			testLine:     "=== RUN 1234",
 			expectedName: "1234",
-		},
-		{
-			name:         "url",
-			testLine:     "=== RUN github.com/maintainer/repository/package/file",
-			expectedName: "github.com/maintainer/repository/package/file",
 		},
 		{
 			name:         "basic end",

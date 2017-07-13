@@ -23,8 +23,14 @@ import (
 )
 
 const (
-	localPluginSnapshotImageStream = "jenkins-plugin-snapshot-test"
-	localPluginSnapshotImage       = "openshift/" + localPluginSnapshotImageStream + ":latest"
+	localPluginSnapshotImageStream      = "jenkins-plugin-snapshot-test"
+	localPluginSnapshotImage            = "openshift/" + localPluginSnapshotImageStream + ":latest"
+	localLoginPluginSnapshotImageStream = "jenkins-login-plugin-snapshot-test"
+	localLoginPluginSnapshotImage       = "openshift/" + localLoginPluginSnapshotImageStream + ":latest"
+	originalLicenseText                 = "About OpenShift Pipeline Jenkins Plugin"
+	originalPluginName                  = "openshift-pipeline"
+	loginLicenseText                    = "About OpenShift Login Plugin"
+	loginPluginName                     = "openshift-login"
 )
 
 // ginkgolog creates simple entry in the GinkgoWriter.
@@ -153,8 +159,38 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 		g.By("kick off the build for the jenkins ephemeral and application templates")
 
+		// Deploy Jenkins
+		// NOTE, we use these tests for both a) nightly regression runs against the latest openshift jenkins image on docker hub, and
+		// b) PR testing for changes to the various openshift jenkins plugins we support.  With scenario b), a docker image that extends
+		// our jenkins image is built, where the proposed plugin change is injected, overwritting the current released version of the plugin.
+		// Our test/PR jobs on ci.openshift create those images, as well as set env vars this test suite looks for.  When both the env var
+		// and test image is present, a new image stream is created using the test image, and our jenkins template is instantiated with
+		// an override to use that images stream and test image
+		var licensePrefix, pluginName string
 		newAppArgs := []string{exutil.FixturePath("..", "..", "examples", "jenkins", "jenkins-ephemeral-template.json")}
-		newAppArgs, useSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalPluginSnapshotEnvVarName, localPluginSnapshotImage, localPluginSnapshotImageStream, newAppArgs, oc)
+		useSnapshotImage := false
+		origPluginNewAppArgs, useOrigPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalPluginSnapshotEnvVarName, localPluginSnapshotImage, localPluginSnapshotImageStream, newAppArgs, oc)
+		loginPluginNewAppArgs, useLoginPluginSnapshotImage := jenkins.SetupSnapshotImage(jenkins.UseLocalLoginPluginSnapshotEnvVarName, localLoginPluginSnapshotImage, localLoginPluginSnapshotImageStream, newAppArgs, oc)
+		switch {
+		case useOrigPluginSnapshotImage && useLoginPluginSnapshotImage:
+			fmt.Fprintf(g.GinkgoWriter,
+				"\nBOTH %s and %s for PR TESTING ARE SET.  WILL NOT CHOOSE BETWEEN THE TWO SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n",
+				jenkins.UseLocalPluginSnapshotEnvVarName, jenkins.UseLocalLoginPluginSnapshotEnvVarName)
+		case useOrigPluginSnapshotImage:
+			fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT PIPELINE PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
+			licensePrefix = originalLicenseText
+			pluginName = originalPluginName
+			useSnapshotImage = true
+			newAppArgs = origPluginNewAppArgs
+		case useLoginPluginSnapshotImage:
+			fmt.Fprintf(g.GinkgoWriter, "\nTHE UPCOMING TESTS WILL LEVERAGE AN IMAGE THAT EXTENDS THE LATEST OPENSHIFT JENKINS IMAGE AND OVERRIDES THE OPENSHIFT LOGIN PLUGIN WITH A NEW VERSION BUILT FROM PROPOSED CHANGES TO THAT PLUGIN.\n")
+			licensePrefix = loginLicenseText
+			pluginName = loginPluginName
+			useSnapshotImage = true
+			newAppArgs = loginPluginNewAppArgs
+		default:
+			fmt.Fprintf(g.GinkgoWriter, "\nNO PR TEST ENV VARS SET SO TESTING CURRENT PLUGIN VERSIONS IN LATEST OPENSHIFT JENKINS IMAGE ON DOCKER HUB.\n")
+		}
 
 		err := oc.Run("new-app").Args(newAppArgs...).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -177,7 +213,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 		if useSnapshotImage {
 			g.By("verifying the test image is being used")
 			// for the test image, confirm that a snapshot version of the plugin is running in the jenkins image we'll test against
-			_, err = j.WaitForContent(`About OpenShift Pipeline Jenkins Plugin ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/openshift-pipeline/thirdPartyLicenses")
+			_, err = j.WaitForContent(licensePrefix+` ([0-9\.]+)-SNAPSHOT`, 200, 10*time.Minute, "/pluginManager/plugin/"+pluginName+"/thirdPartyLicenses")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 

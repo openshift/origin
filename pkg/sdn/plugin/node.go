@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	osexec "os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -36,6 +37,11 @@ import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
+)
+
+const (
+	cniDirPath       = "/etc/cni/net.d"
+	openshiftCNIFile = "80-openshift-sdn.conf"
 )
 
 type osdnPolicy interface {
@@ -112,7 +118,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 
 	// If our CNI config file exists, remove it so that kubelet doesn't think
 	// we're ready yet
-	os.Remove("/etc/cni/net.d/80-openshift-sdn.conf")
+	os.Remove(filepath.Join(cniDirPath, openshiftCNIFile))
 
 	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, proxyConfig.IPTablesSyncPeriod.Duration.String())
 	if hostname == "" {
@@ -326,13 +332,17 @@ func (node *OsdnNode) Start() error {
 		}
 	}
 
+	if err := os.MkdirAll(cniDirPath, 0755); err != nil {
+		return err
+	}
+
 	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
 
 	log.V(5).Infof("openshift-sdn network plugin ready")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
-	return ioutil.WriteFile("/etc/cni/net.d/80-openshift-sdn.conf", []byte(`
+	return ioutil.WriteFile(filepath.Join(cniDirPath, openshiftCNIFile), []byte(`
 {
   "cniVersion": "0.1.0",
   "name": "openshift-sdn",

@@ -205,6 +205,11 @@ function os::build::environment::run() {
     fi
   fi
 
+  if [[ -n "${OS_BUILD_ENV_PULL_IMAGE:-}" ]]; then
+    os::log::info "Pulling the ${OS_BUILD_ENV_IMAGE} image to update it..."
+    docker pull "${OS_BUILD_ENV_IMAGE}"
+  fi
+
   os::log::debug "Using commit ${commit}"
   os::log::debug "Using volume ${volume}"
 

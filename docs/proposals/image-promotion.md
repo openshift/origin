@@ -277,7 +277,7 @@ that use this image pass the verification checks.
 
 ## Areas of improvement
 
-The first use-case describes a typical Continuos Delivery example, where the developer uses
+The first use-case describes a typical Continuous Delivery example, where the developer uses
 both the Jenkins server and the OpenShift to deliver updates to the application.
 
 ### Jenkins
