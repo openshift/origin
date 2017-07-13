@@ -75,7 +75,11 @@ func (c *OriginRoleToRBACRoleController) syncRole(key string) error {
 	// if the origin role doesn't exist, just delete the rbac role
 	if apierrors.IsNotFound(originErr) {
 		// orphan on delete to minimize fanout.  We ought to clean the rest via controller too.
-		return c.rbacClient.Roles(namespace).Delete(name, nil)
+		deleteErr := c.rbacClient.Roles(namespace).Delete(name, nil)
+		if apierrors.IsNotFound(deleteErr) {
+			return nil
+		}
+		return deleteErr
 	}
 
 	// determine if we need to create, update or do nothing
@@ -138,15 +142,17 @@ func (c *OriginRoleToRBACRoleController) policyEventHandler() cache.ResourceEven
 				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 				if !ok {
 					utilruntime.HandleError(fmt.Errorf("Couldn't get object from tombstone %#v", obj))
+					return
 				}
 				originContainerObj, ok = tombstone.Obj.(*authorizationapi.Policy)
 				if !ok {
 					utilruntime.HandleError(fmt.Errorf("Tombstone contained object that is not a runtime.Object %#v", obj))
+					return
 				}
 			}
 
 			for _, originObj := range originContainerObj.Roles {
-				c.originIndexer.Add(originObj)
+				c.originIndexer.Delete(originObj)
 				key, err := controller.KeyFunc(originObj)
 				if err != nil {
 					utilruntime.HandleError(err)
