@@ -293,6 +293,17 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		if err != nil {
 			return fmt.Errorf("failed to convert IPAM: %v", err)
 		}
+		// Add a sandbox interface record which ConfigureInterface expects.
+		// The only interface we report is the pod interface.
+		result030.Interfaces = []*cnicurrent.Interface{
+			{
+				Name:    podInterfaceName,
+				Mac:     contVeth.HardwareAddr.String(),
+				Sandbox: req.Netns,
+			},
+		}
+		result030.IPs[0].Interface = 0
+
 		if err = ipam.ConfigureIface(podInterfaceName, result030); err != nil {
 			return fmt.Errorf("failed to configure container IPAM: %v", err)
 		}
