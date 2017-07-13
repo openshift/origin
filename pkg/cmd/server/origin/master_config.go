@@ -609,6 +609,8 @@ var (
 		"BuildByStrategy",
 		imageadmission.PluginName,
 		"OwnerReferencesPermissionEnforcement",
+		"Initializers",
+		"GenericAdmissionWebhook",
 		"ResourceQuota",
 	}
 
@@ -636,6 +638,10 @@ var (
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
+		"Initializers",
+		"GenericAdmissionWebhook",
+		"NodeRestriction",
+		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		"ResourceQuota",
@@ -676,6 +682,10 @@ var (
 		"OwnerReferencesPermissionEnforcement",
 		ingressadmission.IngressAdmission,
 		"DefaultTolerationSeconds",
+		"Initializers",
+		"GenericAdmissionWebhook",
+		"NodeRestriction",
+		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
 		"ResourceQuota",

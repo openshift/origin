@@ -115,6 +115,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server := kapiserveroptions.NewServerRunOptions()
 
 	// Adjust defaults
+	server.EnableLogsHandler = false
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(masterConfig.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
@@ -314,6 +315,7 @@ func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	// Adjust defaults
 	cmserver.ClusterSigningCertFile = ""
 	cmserver.ClusterSigningKeyFile = ""
+	cmserver.ClusterSigningDuration = metav1.Duration{Duration: 0}
 	cmserver.Address = "" // no healthz endpoint
 	cmserver.Port = 0     // no healthz endpoint
 	cmserver.EnableGarbageCollector = true

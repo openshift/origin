@@ -7,6 +7,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
 	// Admission control plug-ins used by OpenShift
@@ -46,6 +47,7 @@ func init() {
 // RegisterAllAdmissionPlugins registers all admission plugins
 func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 	kubeapiserver.RegisterAllAdmissionPlugins(plugins)
+	genericapiserver.RegisterAllAdmissionPlugins(plugins)
 	authorizationrestrictusers.Register(plugins)
 	buildjenkinsbootstrapper.Register(plugins)
 	buildsecretinjector.Register(plugins)
@@ -67,7 +69,7 @@ func RegisterAllAdmissionPlugins(plugins *admission.Plugins) {
 }
 
 var (
-	defaultOnPlugins = sets.NewString(
+	DefaultOnPlugins = sets.NewString(
 		"OriginNamespaceLifecycle",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
@@ -91,9 +93,9 @@ var (
 		"openshift.io/IngressAdmission",
 	)
 
-	// defaultOffPlugins includes plugins which require explicit configuration to run
+	// DefaultOffPlugins includes plugins which require explicit configuration to run
 	// if you wire them incorrectly, they may prevent the server from starting
-	defaultOffPlugins = sets.NewString(
+	DefaultOffPlugins = sets.NewString(
 		"ProjectRequestLimit",
 		"RunOnceDuration",
 		"PodNodeConstraints",
@@ -105,6 +107,12 @@ var (
 		"LimitPodHardAntiAffinityTopology",
 		"DefaultTolerationSeconds",
 		"PodPreset", // default to off while PodPreset is alpha
+
+		// these are new, reassess post-rebase
+		"Initializers",
+		"GenericAdmissionWebhook",
+		"NodeRestriction",
+		"PodTolerationRestriction",
 	)
 )
 
@@ -115,12 +123,12 @@ func init() {
 func IsAdmissionPluginActivated(name string, config io.Reader) bool {
 	// only intercept if we have an explicit enable or disable.  If the check fails in any way,
 	// assume that the config was a different type and let the actual admission plugin check it
-	if defaultOnPlugins.Has(name) {
+	if DefaultOnPlugins.Has(name) {
 		if enabled, err := configlatest.IsAdmissionPluginActivated(config, true); err == nil && !enabled {
 			glog.V(2).Infof("Admission plugin %v is disabled.  It will not be started.", name)
 			return false
 		}
-	} else if defaultOffPlugins.Has(name) {
+	} else if DefaultOffPlugins.Has(name) {
 		if enabled, err := configlatest.IsAdmissionPluginActivated(config, false); err == nil && !enabled {
 			glog.V(2).Infof("Admission plugin %v is not enabled.  It will not be started.", name)
 			return false
