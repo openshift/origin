@@ -1,4 +1,4 @@
-package admission
+package origin
 
 import (
 	"testing"
@@ -8,9 +8,8 @@ import (
 	_ "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/admission"
+	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
 
@@ -42,9 +41,11 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 )
 
 func TestKubeAdmissionControllerUsage(t *testing.T) {
-	registeredKubePlugins := sets.NewString(admission.GetPlugins()...)
+	kubeAdmissionPlugins = &admission.Plugins{}
+	kubeapiserver.RegisterAllAdmissionPlugins(kubeAdmissionPlugins)
+	registeredKubePlugins := sets.NewString(kubeAdmissionPlugins.Registered()...)
 
-	usedAdmissionPlugins := sets.NewString(origin.KubeAdmissionPlugins...)
+	usedAdmissionPlugins := sets.NewString(KubeAdmissionPlugins...)
 
 	if missingPlugins := usedAdmissionPlugins.Difference(registeredKubePlugins); len(missingPlugins) != 0 {
 		t.Errorf("%v not found", missingPlugins.List())
@@ -60,7 +61,7 @@ func TestKubeAdmissionControllerUsage(t *testing.T) {
 }
 
 func TestAdmissionOnOffCoverage(t *testing.T) {
-	configuredAdmissionPlugins := sets.NewString(origin.CombinedAdmissionControlPlugins...)
+	configuredAdmissionPlugins := sets.NewString(CombinedAdmissionControlPlugins...)
 	allCoveredAdmissionPlugins := sets.String{}
 	allCoveredAdmissionPlugins.Insert(defaultOnPlugins.List()...)
 	allCoveredAdmissionPlugins.Insert(defaultOffPlugins.List()...)
