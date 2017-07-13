@@ -236,11 +236,19 @@ clean:
 	rm -rf $(OUT_DIR)
 .PHONY: clean
 
+# Build an official release of OpenShift for all platforms and the images that depend on it.
+#
+# Example:
+#   make release
+official-release: build-rpms build-cross
+	hack/build-images.sh
+.PHONY: official-release
+
 # Build a release of OpenShift for linux/amd64 and the images that depend on it.
 #
 # Example:
 #   make release
-release: clean build-rpms
+release: build-rpms
 	hack/build-images.sh
 	hack/extract-release.sh
 .PHONY: release
@@ -249,7 +257,7 @@ release: clean build-rpms
 #
 # Example:
 #   make release-binaries
-release-binaries: clean
+release-binaries:
 	hack/build-release.sh
 	hack/extract-release.sh
 .PHONY: release-binaries
@@ -258,7 +266,7 @@ release-binaries: clean
 #
 # Example:
 #   make build-cross
-build-cross: clean
+build-cross:
 	hack/build-cross.sh
 .PHONY: build-cross
 
