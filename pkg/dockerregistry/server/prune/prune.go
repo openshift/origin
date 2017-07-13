@@ -192,5 +192,9 @@ func Prune(ctx context.Context, storageDriver driver.StorageDriver, registry dis
 
 		return nil
 	})
+	if e, ok := err.(driver.PathNotFoundError); ok {
+		logger.Warnf("No repositories found: %v", e)
+		return stats, nil
+	}
 	return stats, err
 }
