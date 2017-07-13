@@ -166,7 +166,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.HTTPCheckFrequency = metav1.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
 	server.FileCheckFrequency = metav1.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
 	server.KubeletFlags.ContainerRuntimeOptions.PodSandboxImage = imageTemplate.ExpandOrDie("pod")
-	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
+	server.LowDiskSpaceThresholdMB = 256 // this the previous default
+	server.CPUCFSQuota = true            // enable cpu cfs quota enforcement by default
 	server.MaxPods = 250
 	server.PodsPerCore = 10
 	server.CgroupDriver = "systemd"
@@ -397,6 +398,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubePr
 
 	// HealthzPort, HealthzBindAddress - disable
 	proxyconfig.HealthzBindAddress = ""
+	proxyconfig.MetricsBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
 	oomScoreAdj := int32(0)
