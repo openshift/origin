@@ -11,7 +11,7 @@ CMD="docker exec"
 
 # boostrap the registry components using the supported command
 # we'll delete the dc and service components later
-$CMD atomic-registry-master oadm registry
+$CMD atomic-registry-master oc adm registry
 
 # pause for components to create
 sleep 3

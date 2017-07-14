@@ -43,7 +43,7 @@ os::cmd::expect_success_and_not_text "curl -k '${API_SCHEME}://${API_HOST}:${API
 # variants I know I have to worry about
 # 1. oc (kube and openshift resources)
 # 2. openshift kubectl (kube and openshift resources)
-# 3. oadm (kube and openshift resources)
+# 3. oadm and oc adm (kube and openshift resources)
 # 4  openshift cli (kube and openshift resources)
 
 # example User-Agent: oc/v1.2.0 (linux/amd64) kubernetes/bc4550d
@@ -59,9 +59,9 @@ os::cmd::expect_success_and_text 'openshift kubectl get dc --loglevel=7  2>&1 | 
 # example User-Agent: oadm/v1.2.0 (linux/amd64) kubernetes/bc4550d
 # this is probably broken and should be `oadm/<oc version>... openshift/...`
 os::cmd::expect_success_and_text 'oadm policy reconcile-sccs --loglevel=7  2>&1 | grep -A4 "securitycontextconstraints" | grep User-Agent' "oadm/${kube_git_regex} .* kubernetes/"
-# example User-Agent: oadm/v1.1.3 (linux/amd64) openshift/b348c2f
+# example User-Agent: oc/v1.1.3 (linux/amd64) openshift/b348c2f
 # TODO: figure out why this is reporting openshift and not kubernetes
-os::cmd::expect_success_and_text 'oadm policy who-can get pods --loglevel=7  2>&1 | grep -A4 "localresourceaccessreviews" | grep User-Agent' "oadm/${os_git_regex} .* openshift/"
+os::cmd::expect_success_and_text 'oc adm policy who-can get pods --loglevel=7  2>&1 | grep -A4 "localresourceaccessreviews" | grep User-Agent' "oc/${os_git_regex} .* openshift/"
 # example User-Agent: openshift/v1.2.0 (linux/amd64) kubernetes/bc4550d
 # this is probably broken and should be `oc/<oc version>... kubernetes/...`
 os::cmd::expect_success_and_text 'openshift cli get pods --loglevel=7  2>&1 | grep -A4 "pods" | grep User-Agent' "openshift/${kube_git_regex} .* kubernetes/"

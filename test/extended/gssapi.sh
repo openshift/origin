@@ -65,7 +65,7 @@ os::cmd::expect_success 'oc rollout status dc/docker-registry'
 
 os::cmd::expect_success 'oc login -u system:admin'
 os::cmd::expect_success "oc new-project ${project_name}"
-os::cmd::expect_success "oadm policy add-scc-to-user anyuid -z default -n ${project_name}"
+os::cmd::expect_success "oc adm policy add-scc-to-user anyuid -z default -n ${project_name}"
 
 # create all the resources we need
 os::cmd::expect_success "oc create -f '${test_data_location}/proxy'"

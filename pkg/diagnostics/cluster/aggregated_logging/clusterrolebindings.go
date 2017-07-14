@@ -17,7 +17,7 @@ is required to enable Fluentd to look up pod metadata for the logs it gathers.
 As a user with a cluster-admin role, you can grant the permissions by running
 the following:
 
-  $ oadm policy add-cluster-role-to-user cluster-reader system:serviceaccount:%[2]s:%[1]s
+  $ oc adm policy add-cluster-role-to-user cluster-reader system:serviceaccount:%[2]s:%[1]s
 `
 
 func checkClusterRoleBindings(r diagnosticReporter, adapter clusterRoleBindingsAdapter, project string) {

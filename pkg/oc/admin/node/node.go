@@ -95,7 +95,7 @@ func NewCommandManageNode(f *clientcmd.Factory, commandName, fullName string, ou
 	// Supported operations
 	flags.BoolVar(&schedulable, "schedulable", false, "Control pod schedulability on the node.")
 	flags.BoolVar(&evacuate, "evacuate", false, "Migrate all/selected pods on the node.")
-	flags.MarkDeprecated("evacuate", "use 'oadm drain NODE' instead")
+	flags.MarkDeprecated("evacuate", "use 'oc adm drain NODE' instead")
 	flags.BoolVar(&listpods, "list-pods", false, "List all/selected pods on the node. Printer flags --output, etc. are only valid for this option.")
 
 	// Common optional params

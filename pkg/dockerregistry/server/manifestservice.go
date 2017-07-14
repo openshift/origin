@@ -204,7 +204,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 }
 
 // Delete deletes the manifest with digest `dgst`. Note: Image resources
-// in OpenShift are deleted via 'oadm prune images'. This function deletes
+// in OpenShift are deleted via 'oc adm prune images'. This function deletes
 // the content related to the manifest in the registry's storage (signatures).
 func (m *manifestService) Delete(ctx context.Context, dgst digest.Digest) error {
 	context.GetLogger(ctx).Debugf("(*manifestService).Delete")

@@ -327,7 +327,7 @@ func TestOAuthRequestHeader(t *testing.T) {
 }
 
 var (
-	// oadm ca create-signer-cert --name=test-ca --overwrite=true
+	// oc adm ca create-signer-cert --name=test-ca --overwrite=true
 	rootCACert = []byte(`
 Certificate:
     Data:
@@ -402,7 +402,7 @@ HOJWbU3FuRkuvZ2/Qyvpju/ntt3qIlKu5pRIGsQe5gS1wYbeSQOrOg==
 -----END CERTIFICATE-----
 `)
 
-	// oadm create-api-client-config --basename=proxy --client-dir=. --user=proxy
+	// oc adm create-api-client-config --basename=proxy --client-dir=. --user=proxy
 	proxyClientCert = []byte(`
 Certificate:
     Data:
@@ -509,7 +509,7 @@ dSmVatvGsqYsQbPKOAp3ZcMQiqTIPUFeYSuzs3TuTs/tZ1cwfseN4M2bs258ynsT
 -----END RSA PRIVATE KEY-----
 `)
 
-	// oadm create-api-client-config --basename=other --client-dir=. --user=other
+	// oc adm create-api-client-config --basename=other --client-dir=. --user=other
 	otherClientCert = []byte(`
 Certificate:
     Data:
@@ -617,8 +617,8 @@ PVEo4cjWU2JK68lSTyW3UWdoPwcKIdDlnure/al7NpIG2g6weBubpQ==
 `)
 
 	// invalidClientCert is a client cert with the desired name which is NOT signed by the root CA crt, but by another signer with the same name
-	// oadm ca create-signer-cert --name=test-ca --overwrite=true
-	// oadm create-api-client-config --basename=invalid --client-dir=. --user=invalid
+	// oc adm ca create-signer-cert --name=test-ca --overwrite=true
+	// oc adm create-api-client-config --basename=invalid --client-dir=. --user=invalid
 	invalidClientCert = []byte(`
 Certificate:
     Data:

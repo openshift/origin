@@ -7,9 +7,9 @@ project="$( oc project -q )"
 os::test::junit::declare_suite_start "cmd/policy-storage-admin"
 
 # Test storage-admin role and impersonation
-os::cmd::expect_success 'oadm policy add-cluster-role-to-user storage-admin storage-adm'
-os::cmd::expect_success 'oadm policy add-cluster-role-to-user storage-admin storage-adm2'
-os::cmd::expect_success 'oadm policy add-role-to-user admin storage-adm2'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user storage-admin storage-adm'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user storage-admin storage-adm2'
+os::cmd::expect_success 'oc adm policy add-role-to-user admin storage-adm2'
 os::cmd::expect_success_and_text 'oc policy who-can impersonate storage-admin' 'cluster-admin'
 
 # Test storage-admin role as user level

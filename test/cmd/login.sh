@@ -41,10 +41,10 @@ if [[ "${API_SCHEME}" == "https" ]]; then
 fi
 
 # remove self-provisioner role from user and test login prompt before creating any projects
-os::cmd::expect_success "oadm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
+os::cmd::expect_success "oc adm policy remove-cluster-role-from-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything" "You don't have any projects. Contact your system administrator to request a project"
 # make sure standard login prompt is printed once self-provisioner status is restored
-os::cmd::expect_success "oadm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
+os::cmd::expect_success "oc adm policy add-cluster-role-to-group self-provisioner system:authenticated:oauth --config='${login_kubeconfig}'"
 os::cmd::expect_success_and_text "oc login --server=${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything" "You don't have any projects. You can try to create a new project, by running"
 os::cmd::expect_success 'oc logout'
 echo "login and status messages: ok"

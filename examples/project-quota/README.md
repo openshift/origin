@@ -50,7 +50,7 @@ API resources (pods, services, etc.) that a project may require.
 Let's create a simple project that applies a basic quota where the total cpu usage across all pods cannot exceed 1 core and may not consume more than 750Mi of memory.
 
 ```shell
-$ oadm new-project quota-demo --admin=test-admin
+$ oc adm new-project quota-demo --admin=test-admin
 $ oc project quota-demo
 $ oc create quota quota --hard=cpu=1,memory=750Mi,pods=10,replicationcontrollers=10,resourcequotas=1,services=1
 ```

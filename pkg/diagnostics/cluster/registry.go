@@ -36,7 +36,7 @@ There is no "%s" service in project "%s". This is not strictly required to
 be present; however, it is required for builds, and its absence probably
 indicates an incomplete installation.
 
-Please consult the documentation and use the 'oadm registry' command
+Please consult the documentation and use the 'oc adm registry' command
 to create a Docker registry.`
 
 	clGetRegFailed = `

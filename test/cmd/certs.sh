@@ -10,9 +10,9 @@ mkdir -p -- "${CERT_DIR}"
 
 pushd "${CERT_DIR}" >/dev/null
 
-# oadm ca create-signer-cert should generate certificate for 5 years by default
+# oc adm ca create-signer-cert should generate certificate for 5 years by default
 os::cmd::expect_success_and_not_text \
-    "oadm ca create-signer-cert --cert='${CERT_DIR}/ca.crt' \
+    "oc adm ca create-signer-cert --cert='${CERT_DIR}/ca.crt' \
                                 --key='${CERT_DIR}/ca.key' \
                                 --serial='${CERT_DIR}/ca.serial.txt' \
                                 --overwrite=true" \
@@ -24,9 +24,9 @@ os::cmd::expect_success_and_text \
     "openssl x509 -in '${CERT_DIR}/ca.crt' -enddate -noout | awk '{print \$4}'" \
     "${expected_year}"
 
-# oadm ca create-signer-cert should generate certificate with specified number of days and show warning
+# oc adm ca create-signer-cert should generate certificate with specified number of days and show warning
 os::cmd::expect_success_and_text \
-    "oadm ca create-signer-cert --cert='${CERT_DIR}/ca.crt' \
+    "oc adm ca create-signer-cert --cert='${CERT_DIR}/ca.crt' \
                                 --key='${CERT_DIR}/ca.key' \
                                 --serial='${CERT_DIR}/ca.serial.txt' \
                                 --overwrite=true \
@@ -40,14 +40,14 @@ os::cmd::expect_success_and_text \
     "${expected_year}"
 
 
-# oadm create-node-config should generate certificates for 2 years by default
+# oc adm create-node-config should generate certificates for 2 years by default
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 
-# we have to remove these files otherwise oadm create-node-config won't generate new ones
+# we have to remove these files otherwise oc adm create-node-config won't generate new ones
 rm -f -- ${CERT_DIR}/master-client.crt ${CERT_DIR}/server.crt
 
 os::cmd::expect_success_and_not_text \
-    "oadm create-node-config \
+    "oc adm create-node-config \
             --node-dir='${CERT_DIR}' \
             --node=example \
             --hostnames=example.org \
@@ -65,14 +65,14 @@ for CERT_FILE in master-client.crt server.crt; do
         "${expected_year}"
 done
 
-# oadm create-node-config should generate certificates with specified number of days and show warning
+# oc adm create-node-config should generate certificates with specified number of days and show warning
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 
-# we have to remove these files otherwise oadm create-node-config won't generate new ones
+# we have to remove these files otherwise oc adm create-node-config won't generate new ones
 rm -f -- ${CERT_DIR}/master-client.crt ${CERT_DIR}/server.crt
 
 os::cmd::expect_success_and_text \
-    "oadm create-node-config \
+    "oc adm create-node-config \
             --node-dir='${CERT_DIR}' \
             --node=example \
             --hostnames=example.org \
@@ -93,11 +93,11 @@ for CERT_FILE in master-client.crt server.crt; do
 done
 
 
-# oadm create-api-client-config should generate certificates for 2 years by default
+# oc adm create-api-client-config should generate certificates for 2 years by default
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 
 os::cmd::expect_success_and_not_text \
-    "oadm create-api-client-config \
+    "oc adm create-api-client-config \
             --client-dir='${CERT_DIR}' \
             --user=test-user \
             --certificate-authority='${CERT_DIR}/ca.crt' \
@@ -111,11 +111,11 @@ os::cmd::expect_success_and_text \
     "openssl x509 -in '${CERT_DIR}/test-user.crt' -enddate -noout | awk '{print \$4}'" \
     "${expected_year}"
 
-# oadm create-api-client-config should generate certificates with specified number of days and show warning
+# oc adm create-api-client-config should generate certificates with specified number of days and show warning
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 
 os::cmd::expect_success_and_text \
-    "oadm create-api-client-config \
+    "oc adm create-api-client-config \
             --client-dir='${CERT_DIR}' \
             --user=test-user \
             --certificate-authority='${CERT_DIR}/ca.crt' \
@@ -131,10 +131,10 @@ os::cmd::expect_success_and_text \
     "${expected_year}"
 
 
-# oadm ca create-server-cert should generate certificate for 2 years by default
+# oc adm ca create-server-cert should generate certificate for 2 years by default
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 os::cmd::expect_success_and_not_text \
-    "oadm ca create-server-cert --signer-cert='${CERT_DIR}/ca.crt' \
+    "oc adm ca create-server-cert --signer-cert='${CERT_DIR}/ca.crt' \
                                 --signer-key='${CERT_DIR}/ca.key' \
                                 --signer-serial='${CERT_DIR}/ca.serial.txt' \
                                 --overwrite=true \
@@ -149,10 +149,10 @@ os::cmd::expect_success_and_text \
     "openssl x509 -in '${CERT_DIR}/example.org.crt' -enddate -noout | awk '{print \$4}'" \
     "${expected_year}"
 
-# oadm ca create-server-cert should generate certificate with specified number of days and show warning
+# oc adm ca create-server-cert should generate certificate with specified number of days and show warning
 # NOTE: tests order is important here because this test uses CA certificate that was generated before
 os::cmd::expect_success_and_text \
-    "oadm ca create-server-cert --signer-cert='${CERT_DIR}/ca.crt' \
+    "oc adm ca create-server-cert --signer-cert='${CERT_DIR}/ca.crt' \
                                 --signer-key='${CERT_DIR}/ca.key' \
                                 --signer-serial='${CERT_DIR}/ca.serial.txt' \
                                 --overwrite=true --hostnames=example.org \
@@ -167,9 +167,9 @@ os::cmd::expect_success_and_text \
     "openssl x509 -in '${CERT_DIR}/example.org.crt' -enddate -noout | awk '{print \$4}'" \
     "${expected_year}"
 
-# oadm ca create-master-certs should generate certificates for 2 years and CA for 5 years by default
+# oc adm ca create-master-certs should generate certificates for 2 years and CA for 5 years by default
 os::cmd::expect_success_and_not_text \
-    "oadm ca create-master-certs --cert-dir='${CERT_DIR}' \
+    "oc adm ca create-master-certs --cert-dir='${CERT_DIR}' \
                                  --hostnames=example.org \
                                  --overwrite=true" \
     'WARNING: .* is greater than'
@@ -188,9 +188,9 @@ for CERT_FILE in admin.crt {master,etcd}.server.crt master.{etcd,kubelet,proxy}-
         "${expected_year}"
 done
 
-# oadm ca create-master-certs should generate certificates with specified number of days and show warnings
+# oc adm ca create-master-certs should generate certificates with specified number of days and show warnings
 os::cmd::expect_success_and_text \
-    "oadm ca create-master-certs --cert-dir='${CERT_DIR}' \
+    "oc adm ca create-master-certs --cert-dir='${CERT_DIR}' \
                                  --hostnames=example.org \
                                  --overwrite=true \
                                  --expire-days=$((365*3)) \
@@ -224,7 +224,7 @@ cp "${CERT_DIR}/ca-bundle.crt" \
     "${CERT_DIR}/start-node/openshift.local.config/master"
 
 # Pre-create kubeconfig that is required by "openshift start node"
-oadm create-kubeconfig \
+oc adm create-kubeconfig \
     --client-certificate="${CERT_DIR}/master-client.crt" \
     --client-key="${CERT_DIR}/master-client.key" \
     --certificate-authority="${CERT_DIR}/ca.crt" \

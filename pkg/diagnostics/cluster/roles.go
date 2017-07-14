@@ -25,28 +25,28 @@ const (
 	clusterRoleMissing = `
 clusterrole/%s is missing.
 
-Use the 'oadm policy reconcile-cluster-roles' command to create the role. For example,
+Use the 'oc adm policy reconcile-cluster-roles' command to create the role. For example,
 
-  $ oadm policy reconcile-cluster-roles \
+  $ oc adm policy reconcile-cluster-roles \
          --additive-only=true --confirm
 `
 	clusterRoleReduced = `
 clusterrole/%s has changed, but the existing role has more permissions than the new role.
 
 If you can confirm that the extra permissions are not required, you may use the
-'oadm policy reconcile-cluster-roles' command to update the role to reduce permissions.
+'oc adm policy reconcile-cluster-roles' command to update the role to reduce permissions.
 For example,
 
-  $ oadm policy reconcile-cluster-roles \
+  $ oc adm policy reconcile-cluster-roles \
          --additive-only=false --confirm
 `
 	clusterRoleChanged = `
 clusterrole/%s has changed and the existing role does not have enough permissions.
 
-Use the 'oadm policy reconcile-cluster-roles' command to update the role.
+Use the 'oc adm policy reconcile-cluster-roles' command to update the role.
 For example,
 
-  $ oadm policy reconcile-cluster-roles \
+  $ oc adm policy reconcile-cluster-roles \
          --additive-only=true --confirm
 `
 )

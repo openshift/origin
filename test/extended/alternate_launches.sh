@@ -147,12 +147,12 @@ export KUBECONFIG="${ADMIN_KUBECONFIG}"
 # TODO this is copy/paste from hack/test-end-to-end.sh. We need to DRY
 if [[ -n "${USE_IMAGES:-}" ]]; then
   readonly JQSETPULLPOLICY='(.items[] | select(.kind == "DeploymentConfig") | .spec.template.spec.containers[0].imagePullPolicy) |= "IfNotPresent"'
-  os::cmd::expect_success "oadm registry --dry-run -o json --images='$USE_IMAGES' | jq '$JQSETPULLPOLICY' | oc create -f -"
+  os::cmd::expect_success "oc adm registry --dry-run -o json --images='$USE_IMAGES' | jq '$JQSETPULLPOLICY' | oc create -f -"
 else
-  os::cmd::expect_success "oadm registry"
+  os::cmd::expect_success "oc adm registry"
 fi
-os::cmd::expect_success 'oadm policy add-scc-to-user hostnetwork -z router'
-os::cmd::expect_success 'oadm router'
+os::cmd::expect_success 'oc adm policy add-scc-to-user hostnetwork -z router'
+os::cmd::expect_success 'oc adm router'
 
 os::test::junit::declare_suite_end
 

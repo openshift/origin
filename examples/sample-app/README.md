@@ -144,7 +144,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 4. Deploy a private docker registry within OpenShift with the certs necessary for access to master:
 
-        $ oadm registry -n default --config=openshift.local.config/master/admin.kubeconfig
+        $ oc adm registry -n default --config=openshift.local.config/master/admin.kubeconfig
         --> Creating registry registry ...
             serviceaccount "registry" created
             clusterrolebinding "registry-registry-role" created
@@ -182,7 +182,7 @@ This section covers how to perform all the steps of building, deploying, and upd
 
 6. For the sake of this demo, grant a `cluster-admin` role to the `test-admin` user and login as that user using any password you want (note that in a real world scenario, as an OpenShift user you would be granted roles from a cluster admin and you might not be able to do most of the following things - depending on your granted roles).
 
-        $ oadm policy add-cluster-role-to-user cluster-admin test-admin --config=openshift.local.config/master/admin.kubeconfig
+        $ oc adm policy add-cluster-role-to-user cluster-admin test-admin --config=openshift.local.config/master/admin.kubeconfig
         $ oc login --certificate-authority=openshift.local.config/master/ca.crt -u test-admin
 
 
@@ -403,14 +403,14 @@ the ip address shown below with the correct one for your environment.
     Give the following permissions to your router service account. It needs to be able to use host network and host ports, and it also needs to be able to list endpoints in all namespaces, that's why you need to grant it the `system:router` cluster role.
 
 
-        $ oadm policy add-scc-to-user hostnetwork -z router
-        $ oadm policy add-cluster-role-to-user system:router system:serviceaccount:default:router
+        $ oc adm policy add-scc-to-user hostnetwork -z router
+        $ oc adm policy add-cluster-role-to-user system:router system:serviceaccount:default:router
 
 
-    The router by default uses the host network. If you wish to use the container network stack and expose ports, add the --host-network=false option to the oadm router command.
+    The router by default uses the host network. If you wish to use the container network stack and expose ports, add the --host-network=false option to the oc adm router command.
 
 
-        $ oadm router --service-account=router
+        $ oc adm router --service-account=router
         DeploymentConfig "router" created
         Service "router" created
 
