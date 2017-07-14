@@ -106,12 +106,11 @@ objects:
           - containerPort: 8443
             name: web
           args:
+          - -provider=openshift
           - -https-address=:8443
           - -email-domain=*
-          - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
           - -upstream=http://localhost:9090
-          - -provider=openshift
-          - -redirect-url=https:///oauth2/callback
+          - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
           - '-openshift-sar={"namespace": "${NAMESPACE}", "verb": "list", "resource": "services"}'
           - -tls-cert=/etc/tls/private/tls.crt
           - -tls-key=/etc/tls/private/tls.key
