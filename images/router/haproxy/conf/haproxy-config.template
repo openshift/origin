@@ -171,7 +171,10 @@ frontend public
   {{- if (eq .StatsPort -1) }}
   monitor-uri /_______internal_router_healthz
   {{- end }}
-  
+
+  # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
+  http-request del-header Proxy
+
   # DNS labels are case insensitive (RFC 4343), we need to convert the hostname into lowercase
   # before matching, or any requests containing uppercase characters will never match.
   http-request set-header Host %[req.hdr(Host),lower]
@@ -235,6 +238,9 @@ frontend fe_sni
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
   mode http
 
+  # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
+  http-request del-header Proxy
+
   # DNS labels are case insensitive (RFC 4343), we need to convert the hostname into lowercase
   # before matching, or any requests containing uppercase characters will never match.
   http-request set-header Host %[req.hdr(Host),lower]
@@ -272,6 +278,9 @@ frontend fe_no_sni
   # terminate ssl on edge
   bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 {{ if gt (len .DefaultCertificate) 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
   mode http
+
+  # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
+  http-request del-header Proxy
 
   # DNS labels are case insensitive (RFC 4343), we need to convert the hostname into lowercase
   # before matching, or any requests containing uppercase characters will never match.
