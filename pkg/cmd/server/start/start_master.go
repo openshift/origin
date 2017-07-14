@@ -719,6 +719,13 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 		return err
 	}
 
+	//  the service account passed for the recyclable volume plugins needs to exist.  We want to do this via the init function, but its a kube init function
+	// for the rebase, create that service account here
+	// TODO make this a lot cleaner
+	if _, err := controllerContext.ClientBuilder.Client(bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName); err != nil {
+		return err
+	}
+
 	allocationController.RunSecurityAllocationController()
 
 	kubernetesControllerInitializers, err := kubeControllerConfig.GetControllerInitializers()
