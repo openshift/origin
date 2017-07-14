@@ -71,7 +71,7 @@ type NetNamespace struct {
 
 	// NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)
 	NetName string `json:"netname" protobuf:"bytes,2,opt,name=netname"`
-	// NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oadm pod-network" commands.
+	// NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oc adm pod-network" commands.
 	NetID uint32 `json:"netid" protobuf:"varint,3,opt,name=netid"`
 }
 
