@@ -16,6 +16,7 @@ import (
 	utiltesting "k8s.io/client-go/util/testing"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	cni020 "github.com/containernetworking/cni/pkg/types/020"
 )
 
 func clientDoCNI(t *testing.T, client *http.Client, req *CNIRequest) ([]byte, int) {
@@ -73,8 +74,8 @@ func TestCNIServer(t *testing.T) {
 	}
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
-	expectedResult = cnitypes.Result{
-		IP4: &cnitypes.IPConfig{
+	expectedResult = &cni020.Result{
+		IP4: &cni020.IPConfig{
 			IP: net.IPNet{
 				IP:   expectedIP,
 				Mask: expectedNet.Mask,
@@ -85,7 +86,7 @@ func TestCNIServer(t *testing.T) {
 	type testcase struct {
 		name        string
 		request     *CNIRequest
-		result      *cnitypes.Result
+		result      cnitypes.Result
 		errorPrefix string
 	}
 
@@ -102,7 +103,7 @@ func TestCNIServer(t *testing.T) {
 				},
 				Config: []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
-			result: &expectedResult,
+			result: expectedResult,
 		},
 		// Normal DEL request
 		{
@@ -183,7 +184,7 @@ func TestCNIServer(t *testing.T) {
 				t.Fatalf("[%s] expected status %v but got %v", tc.name, http.StatusOK, code)
 			}
 			if tc.result != nil {
-				result := &cnitypes.Result{}
+				result := &cni020.Result{}
 				if err := json.Unmarshal(body, result); err != nil {
 					t.Fatalf("[%s] failed to unmarshal response '%s': %v", tc.name, string(body), err)
 				}
