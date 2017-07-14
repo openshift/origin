@@ -26,7 +26,7 @@ import (
 	"testing"
 )
 
-func TestOpenapi(t *testing.T) {
+func DISABLE_TestOpenapi(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecsWithDefaultAndCustomReporters(t, "Openapi Suite", []Reporter{newlineReporter{}})
 }
