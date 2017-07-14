@@ -261,7 +261,6 @@ readonly -f os::build::build_binaries
 # Generates the .syso file used to add compile-time VERSIONINFO metadata to the
 # Windows binary.
 function os::build::generate_windows_versioninfo() {
-  os::util::ensure::gopath_binary_exists 'goversioninfo' 'github.com/josephspurrier/goversioninfo/cmd/goversioninfo'
   os::build::version::get_vars
   local major="${OS_GIT_MAJOR}"
   local minor="${OS_GIT_MINOR%+}"
