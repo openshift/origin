@@ -193,12 +193,8 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
-	clusterPolicies := clusterPolicyLister{
-		ClusterPolicyLister: c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies().Lister(),
-		versioner:           c.AuthorizationInformers.Authorization().InternalVersion().ClusterPolicies().Informer(),
-	}
-	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, clusterPolicies)
-	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, clusterPolicies)
+	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
+	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
 
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
@@ -304,11 +300,13 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
 
-	policyBindings := policyBindingLister{
-		PolicyBindingLister: c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings().Lister(),
-		versioner:           c.AuthorizationInformers.Authorization().InternalVersion().PolicyBindings().Informer(),
-	}
-	projectRequestStorage := projectrequeststorage.NewREST(c.ProjectRequestMessage, namespace, templateName, c.DeprecatedOpenshiftClient, c.GenericConfig.LoopbackClientConfig, policyBindings)
+	projectRequestStorage := projectrequeststorage.NewREST(
+		c.ProjectRequestMessage,
+		namespace, templateName,
+		c.DeprecatedOpenshiftClient,
+		c.GenericConfig.LoopbackClientConfig,
+		c.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
+	)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildClient.Build(),

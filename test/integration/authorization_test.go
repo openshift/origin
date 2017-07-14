@@ -877,7 +877,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -934,7 +934,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -947,7 +947,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -960,7 +960,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -973,7 +973,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -1073,7 +1073,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in default",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1136,7 +1136,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1163,7 +1163,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in mallet-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1217,7 +1217,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1256,7 +1256,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1267,7 +1267,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1413,7 +1413,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeSkip: true, // cannot do impersonation with kube clientset
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in default`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1461,7 +1461,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in hammer-project`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: namespace,
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1488,7 +1488,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in hammer-project`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: namespace,
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||

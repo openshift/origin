@@ -98,7 +98,7 @@ func (s *REST) Watch(ctx apirequest.Context, options *metainternal.ListOptions) 
 
 	includeAllExistingProjects := (options != nil) && options.ResourceVersion == "0"
 
-	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], s.authCache.GetClusterPolicyLister())
+	allowedNamespaces, err := scope.ScopesToVisibleNamespaces(userInfo.GetExtra()[authorizationapi.ScopesKey], s.authCache.GetClusterRoleLister())
 	if err != nil {
 		return nil, err
 	}

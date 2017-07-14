@@ -5,6 +5,7 @@ import (
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 // Authorization is calculated against
@@ -56,6 +57,13 @@ var DiscoveryRule = PolicyRule{
 		// we intentionally allow all to here
 		"/",
 	),
+}
+
+// The Kubernetes Rbac version
+// TODO make this the authoritative rule
+var RbacDiscoveryRule = rbac.PolicyRule{
+	Verbs:           DiscoveryRule.Verbs.List(),
+	NonResourceURLs: DiscoveryRule.NonResourceURLs.List(),
 }
 
 // PolicyRule holds information that describes a policy rule, but does not contain information

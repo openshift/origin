@@ -40,21 +40,26 @@ import (
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/cert"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
+	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
+	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
+	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
 	latestschedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api/latest"
 
@@ -64,8 +69,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
-	authorizationinternalinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion/authorization/internalversion"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -113,7 +116,7 @@ type MasterConfig struct {
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
 
-	RuleResolver   rulevalidation.AuthorizationRuleResolver
+	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	Authenticator  authenticator.Request
 	Authorizer     kauthorizer.Authorizer
 	SubjectLocator authorizer.SubjectLocator
@@ -267,17 +270,16 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		informers.GetExternalKubeInformers(),
 		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
 		privilegedLoopbackOpenShiftClient,
-		privilegedLoopbackKubeClientsetExternal)
-	ruleResolver := rulevalidation.NewDefaultRuleResolver(
-		informers.GetAuthorizationInformers().Authorization().InternalVersion().Policies().Lister(),
-		informers.GetAuthorizationInformers().Authorization().InternalVersion().PolicyBindings().Lister(),
-		informers.GetAuthorizationInformers().Authorization().InternalVersion().ClusterPolicies().Lister(),
-		informers.GetAuthorizationInformers().Authorization().InternalVersion().ClusterPolicyBindings().Lister(),
+		privilegedLoopbackKubeClientsetExternal,
 	)
+
+	kubeAuthorizer, ruleResolver, kubeSubjectLocator := buildKubeAuth(informers.GetInternalKubeInformers().Rbac().InternalVersion())
 	authorizer, subjectLocator := newAuthorizer(
-		ruleResolver,
-		informers.GetAuthorizationInformers().Authorization().InternalVersion(),
-		options.ProjectConfig.ProjectRequestMessage)
+		kubeAuthorizer,
+		kubeSubjectLocator,
+		informers.GetInternalKubeInformers().Rbac().InternalVersion().ClusterRoles().Lister(),
+		options.ProjectConfig.ProjectRequestMessage,
+	)
 
 	// punch through layers to build this in order to get a string for a cloud provider file
 	// TODO refactor us into a forward building flow with a side channel like this
@@ -354,9 +356,9 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
-			privilegedLoopbackKubeClientsetInternal,
-			informers.GetInternalKubeInformers(),
-			informers.GetAuthorizationInformers().Authorization().InternalVersion()),
+			informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces().Informer(),
+			informers.GetInternalKubeInformers().Rbac().InternalVersion(),
+		),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
 
@@ -988,21 +990,30 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 	return group.NewAuthenticatedGroupAdder(union.NewFailOnError(topLevelAuthenticators...)), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, kubeClient kclientsetinternal.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, authorizationInformers authorizationinternalinformer.Interface) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
-		internalKubeInformers.Core().InternalVersion().Namespaces().Informer(),
+		namespaces,
 		projectauth.NewAuthorizerReviewer(subjectLocator),
-		clusterPolicyLister{authorizationInformers.ClusterPolicies().Lister(), authorizationInformers.ClusterPolicies().Informer()},
-		clusterPolicyBindingLister{authorizationInformers.ClusterPolicyBindings().Lister(), authorizationInformers.ClusterPolicyBindings().Informer()},
-		policyLister{authorizationInformers.Policies().Lister(), authorizationInformers.Policies().Informer()},
-		policyBindingLister{authorizationInformers.PolicyBindings().Lister(), authorizationInformers.PolicyBindings().Informer()},
+		internalRBACInformers,
 	)
 }
 
-func newAuthorizer(ruleResolver rulevalidation.AuthorizationRuleResolver, authorizationInformer authorizationinternalinformer.Interface, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
+func buildKubeAuth(r rbacinformers.Interface) (kauthorizer.Authorizer, rbacregistryvalidation.AuthorizationRuleResolver, rbacauthorizer.SubjectLocator) {
+	roles := &rbacauthorizer.RoleGetter{Lister: r.Roles().Lister()}
+	roleBindings := &rbacauthorizer.RoleBindingLister{Lister: r.RoleBindings().Lister()}
+	clusterRoles := &rbacauthorizer.ClusterRoleGetter{Lister: r.ClusterRoles().Lister()}
+	clusterRoleBindings := &rbacauthorizer.ClusterRoleBindingLister{Lister: r.ClusterRoleBindings().Lister()}
+	kubeAuthorizer := rbacauthorizer.New(roles, roleBindings, clusterRoles, clusterRoleBindings)
+	ruleResolver := rbacregistryvalidation.NewDefaultRuleResolver(roles, roleBindings, clusterRoles, clusterRoleBindings)
+	kubeSubjectLocator := rbacauthorizer.NewSubjectAccessEvaluator(roles, roleBindings, clusterRoles, clusterRoleBindings, "")
+	return kubeAuthorizer, ruleResolver, kubeSubjectLocator
+}
+
+func newAuthorizer(kubeAuthorizer kauthorizer.Authorizer, kubeSubjectLocator rbacauthorizer.SubjectLocator, clusterRoleGetter rbaclisters.ClusterRoleLister, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
-	roleBasedAuthorizer, subjectLocator := authorizer.NewAuthorizer(ruleResolver, messageMaker)
-	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, authorizationInformer.ClusterPolicies().Lister(), messageMaker)
+	roleBasedAuthorizer := authorizer.NewAuthorizer(kubeAuthorizer, messageMaker)
+	subjectLocator := authorizer.NewSubjectLocator(kubeSubjectLocator)
+	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, clusterRoleGetter, messageMaker)
 
 	authorizer := authorizerunion.New(
 		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup), // authorizes system:masters to do anything, just like upstream

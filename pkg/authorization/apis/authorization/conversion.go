@@ -154,13 +154,13 @@ func getRBACRoleRefKind(namespace string) string {
 
 func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole, out *ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	out.Rules = convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
+	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
 
 func Convert_rbac_Role_To_authorization_Role(in *rbac.Role, out *Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	out.Rules = convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
+	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
 
@@ -227,7 +227,7 @@ func convert_rbac_RoleRef_To_authorization_RoleRef(in *rbac.RoleRef, namespace s
 	}
 }
 
-func convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule) []PolicyRule {
+func Convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule) []PolicyRule {
 	rules := make([]PolicyRule, 0, len(in))
 	for _, rule := range in {
 		r := PolicyRule{
