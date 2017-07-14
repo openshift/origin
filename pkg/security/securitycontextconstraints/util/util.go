@@ -46,6 +46,7 @@ func GetAllFSTypesAsSet() sets.String {
 		string(securityapi.FSProjected),
 		string(securityapi.FSPortworxVolume),
 		string(securityapi.FSScaleIO),
+		string(securityapi.FSStorageOS),
 	)
 	return fstypes
 }
@@ -105,6 +106,8 @@ func GetVolumeFSType(v api.Volume) (securityapi.FSType, error) {
 		return securityapi.FSPortworxVolume, nil
 	case v.ScaleIO != nil:
 		return securityapi.FSScaleIO, nil
+	case v.StorageOS != nil:
+		return securityapi.FSStorageOS, nil
 	}
 
 	return "", fmt.Errorf("unknown volume type for volume: %#v", v)
