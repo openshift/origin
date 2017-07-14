@@ -22,7 +22,7 @@ const (
 )
 
 // InstallMetricsViaAnsible checks whether metrics is installed and installs it if not already installed
-func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
+func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, defaultSubdomain, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
 	_, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -44,7 +44,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, public
 	params.OSERelease = imageVersion
 	params.MetricsImagePrefix = fmt.Sprintf("%s-", imagePrefix)
 	params.MetricsImageVersion = imageVersion
-	params.HawkularHostName = hostName
+	params.DefaultSubdomain = defaultSubdomain
 	params.MetricsResolution = "10s"
 
 	runner := newAnsibleRunner(h, kubeClient, infraNamespace, imageStreams, "metrics")
