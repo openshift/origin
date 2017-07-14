@@ -28,9 +28,18 @@ var MissingCommands = sets.NewString(
 	"taint",
 	"top",
 	"certificate",
+
+	// TODO commands to assess
+	"apiversions",
+	"clusterinfo",
+	"plugin",
+	"resize",
+	"rollingupdate",
+	"run-container",
+	"update",
 )
 
-// WhitelistedCommands is the list of commands we're never going to have in oc
+// WhitelistedCommands is the list of commands we're never going to have,
 // defend each one with a comment
 var WhitelistedCommands = sets.NewString()
 
@@ -59,7 +68,7 @@ kubectlLoop:
 			continue
 		}
 
-		t.Errorf("missing %q in oc", kubecmd.Name())
+		t.Errorf("missing %q,", kubecmd.Name())
 	}
 }
 
