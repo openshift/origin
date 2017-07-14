@@ -486,7 +486,7 @@ func canRetry(err error) bool {
 // they define a Temporary() method that returns true.
 func DefaultRetriable(info *resource.Info, err error) error {
 	// tolerate the deletion of resources during migration
-	if err == nil || errors.IsNotFound(err) {
+	if err == nil || isNotFoundForInfo(info, err) {
 		return nil
 	}
 	switch {
@@ -501,4 +501,21 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		return ErrRetriable{err}
 	}
 	return err
+}
+
+// isNotFoundForInfo returns true iff the error is a not found for the specific info object.
+func isNotFoundForInfo(info *resource.Info, err error) bool {
+	if err == nil || !errors.IsNotFound(err) {
+		return false
+	}
+	status, ok := err.(errors.APIStatus)
+	if !ok {
+		return false
+	}
+	details := status.Status().Details
+	if details == nil {
+		return false
+	}
+	gvk := info.Object.GetObjectKind().GroupVersionKind()
+	return details.Name == info.Name && details.Kind == gvk.Kind && (details.Group == "" || details.Group == gvk.Group)
 }
