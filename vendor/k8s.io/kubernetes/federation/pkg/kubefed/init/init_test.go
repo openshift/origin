@@ -75,7 +75,7 @@ const (
 	testAPIVersion = "testVersion"
 )
 
-func TestInitFederation(t *testing.T) {
+func DISABLE_TestInitFederation(t *testing.T) {
 	cmdErrMsg := ""
 	cmdutil.BehaviorOnFatal(func(str string, code int) {
 		cmdErrMsg = str
