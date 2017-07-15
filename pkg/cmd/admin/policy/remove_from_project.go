@@ -96,11 +96,12 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, args []string,
 }
 
 func (o *RemoveFromProjectOptions) Run() error {
-	bindingList, err := o.Client.PolicyBindings(o.BindingNamespace).List(metav1.ListOptions{})
+	roleBindings, err := o.Client.RoleBindings(o.BindingNamespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
-	sort.Sort(authorizationapi.PolicyBindingSorter(bindingList.Items))
+	// maintain David's hack from #1973 (see #1975, #1976 and https://bugzilla.redhat.com/show_bug.cgi?id=1215969)
+	sort.Sort(sort.Reverse(authorizationapi.RoleBindingSorter(roleBindings.Items)))
 
 	usersRemoved := sets.String{}
 	groupsRemoved := sets.String{}
@@ -109,47 +110,45 @@ func (o *RemoveFromProjectOptions) Run() error {
 
 	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
 
-	for _, currPolicyBinding := range bindingList.Items {
-		for _, currBinding := range authorizationapi.SortRoleBindings(currPolicyBinding.RoleBindings, true) {
-			originalSubjects := make([]kapi.ObjectReference, len(currBinding.Subjects))
-			copy(originalSubjects, currBinding.Subjects)
-			oldUsers, oldGroups, oldSAs, oldOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, originalSubjects)
-			oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := sets.NewString(oldUsers...), sets.NewString(oldGroups...), sets.NewString(oldSAs...), sets.NewString(oldOthers...)
+	for _, currBinding := range roleBindings.Items {
+		originalSubjects := make([]kapi.ObjectReference, len(currBinding.Subjects))
+		copy(originalSubjects, currBinding.Subjects)
+		oldUsers, oldGroups, oldSAs, oldOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, originalSubjects)
+		oldUsersSet, oldGroupsSet, oldSAsSet, oldOtherSet := sets.NewString(oldUsers...), sets.NewString(oldGroups...), sets.NewString(oldSAs...), sets.NewString(oldOthers...)
 
-			currBinding.Subjects = removeSubjects(currBinding.Subjects, subjectsToRemove)
-			newUsers, newGroups, newSAs, newOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, currBinding.Subjects)
-			newUsersSet, newGroupsSet, newSAsSet, newOtherSet := sets.NewString(newUsers...), sets.NewString(newGroups...), sets.NewString(newSAs...), sets.NewString(newOthers...)
+		currBinding.Subjects = removeSubjects(currBinding.Subjects, subjectsToRemove)
+		newUsers, newGroups, newSAs, newOthers := authorizationapi.SubjectsStrings(currBinding.Namespace, currBinding.Subjects)
+		newUsersSet, newGroupsSet, newSAsSet, newOtherSet := sets.NewString(newUsers...), sets.NewString(newGroups...), sets.NewString(newSAs...), sets.NewString(newOthers...)
 
-			if len(currBinding.Subjects) == len(originalSubjects) {
-				continue
-			}
+		if len(currBinding.Subjects) == len(originalSubjects) {
+			continue
+		}
 
-			_, err = o.Client.RoleBindings(o.BindingNamespace).Update(currBinding)
-			if err != nil {
-				return err
-			}
+		_, err = o.Client.RoleBindings(o.BindingNamespace).Update(&currBinding)
+		if err != nil {
+			return err
+		}
 
-			roleDisplayName := fmt.Sprintf("%s/%s", currBinding.RoleRef.Namespace, currBinding.RoleRef.Name)
-			if len(currBinding.RoleRef.Namespace) == 0 {
-				roleDisplayName = currBinding.RoleRef.Name
-			}
+		roleDisplayName := fmt.Sprintf("%s/%s", currBinding.RoleRef.Namespace, currBinding.RoleRef.Name)
+		if len(currBinding.RoleRef.Namespace) == 0 {
+			roleDisplayName = currBinding.RoleRef.Name
+		}
 
-			if diff := oldUsersSet.Difference(newUsersSet); len(diff) != 0 {
-				fmt.Fprintf(o.Out, "Removing %s from users %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
-				usersRemoved.Insert(diff.List()...)
-			}
-			if diff := oldGroupsSet.Difference(newGroupsSet); len(diff) != 0 {
-				fmt.Fprintf(o.Out, "Removing %s from groups %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
-				groupsRemoved.Insert(diff.List()...)
-			}
-			if diff := oldSAsSet.Difference(newSAsSet); len(diff) != 0 {
-				fmt.Fprintf(o.Out, "Removing %s from serviceaccounts %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
-				sasRemoved.Insert(diff.List()...)
-			}
-			if diff := oldOtherSet.Difference(newOtherSet); len(diff) != 0 {
-				fmt.Fprintf(o.Out, "Removing %s from subjects %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
-				othersRemoved.Insert(diff.List()...)
-			}
+		if diff := oldUsersSet.Difference(newUsersSet); len(diff) != 0 {
+			fmt.Fprintf(o.Out, "Removing %s from users %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+			usersRemoved.Insert(diff.List()...)
+		}
+		if diff := oldGroupsSet.Difference(newGroupsSet); len(diff) != 0 {
+			fmt.Fprintf(o.Out, "Removing %s from groups %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+			groupsRemoved.Insert(diff.List()...)
+		}
+		if diff := oldSAsSet.Difference(newSAsSet); len(diff) != 0 {
+			fmt.Fprintf(o.Out, "Removing %s from serviceaccounts %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+			sasRemoved.Insert(diff.List()...)
+		}
+		if diff := oldOtherSet.Difference(newOtherSet); len(diff) != 0 {
+			fmt.Fprintf(o.Out, "Removing %s from subjects %v in project %s.\n", roleDisplayName, diff.List(), o.BindingNamespace)
+			othersRemoved.Insert(diff.List()...)
 		}
 	}
 
