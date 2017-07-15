@@ -112,7 +112,7 @@ tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${pack
 ret=0
 test_result="ok"
 pushd "${OS_ROOT}/${package}" &>/dev/null
-test_start_time=$(date +%s%3N)
+test_start_time=$(date +%s)
 for test in "${tests[@]}"; do
 	for((i=0;i<${loop};i+=1)); do
 		if ! (exectest "${test}" ${@:2}); then
@@ -121,10 +121,10 @@ for test in "${tests[@]}"; do
 		fi
 	done
 done
-test_end_time=$(date +%s%3N)
+test_end_time=$(date +%s)
 test_duration=$((test_end_time - test_start_time))
 
-echo "${test_result}        github.com/openshift/origin/test/integration    $((test_duration / 1000)).$((test_duration % 1000))s" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
+echo "${test_result}        github.com/openshift/origin/test/integration    $((test_duration)).000s" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
 
 popd &>/dev/null
 
