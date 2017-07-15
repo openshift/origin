@@ -198,6 +198,7 @@ kubernetesMasterConfig:
   controllerArguments: null
   disabledAPIGroupVersions: null
   masterCount: 0
+  masterEndpointReconcileTTL: 0
   masterIP: ""
   podEvictionTimeout: ""
   proxyClientInfo:

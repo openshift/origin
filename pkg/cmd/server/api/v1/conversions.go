@@ -112,6 +112,9 @@ func addDefaultingFuncs(scheme *runtime.Scheme) error {
 			if obj.MasterCount == 0 {
 				obj.MasterCount = 1
 			}
+			if obj.MasterEndpointReconcileTTL == 0 {
+				obj.MasterEndpointReconcileTTL = 15
+			}
 			if len(obj.APILevels) == 0 {
 				obj.APILevels = internal.DefaultKubernetesAPILevels
 			}
