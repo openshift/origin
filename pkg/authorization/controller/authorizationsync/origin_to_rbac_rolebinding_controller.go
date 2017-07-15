@@ -7,6 +7,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
@@ -125,8 +126,8 @@ func (c *OriginRoleBindingToRBACRoleBindingController) policyBindingEventHandler
 			}
 		},
 		UpdateFunc: func(old, cur interface{}) {
-			originContainerObj := cur.(*authorizationapi.PolicyBinding)
-			for _, originObj := range originContainerObj.RoleBindings {
+			curKeys := sets.NewString()
+			for _, originObj := range cur.(*authorizationapi.PolicyBinding).RoleBindings {
 				c.originIndexer.Add(originObj)
 				key, err := controller.KeyFunc(originObj)
 				if err != nil {
@@ -134,6 +135,18 @@ func (c *OriginRoleBindingToRBACRoleBindingController) policyBindingEventHandler
 					continue
 				}
 				c.queue.Add(key)
+				curKeys.Insert(key)
+			}
+			for _, originObj := range old.(*authorizationapi.PolicyBinding).RoleBindings {
+				key, err := controller.KeyFunc(originObj)
+				if err != nil {
+					utilruntime.HandleError(err)
+					continue
+				}
+				if !curKeys.Has(key) {
+					c.originIndexer.Delete(originObj)
+					c.queue.Add(key)
+				}
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
