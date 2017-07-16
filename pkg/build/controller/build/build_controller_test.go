@@ -267,10 +267,15 @@ func TestHandleBuild(t *testing.T) {
 				update,
 		},
 		{
-			name:         "failed -> failed with completion timestamp",
-			build:        withCompletionTS(build(buildapi.BuildPhaseFailed)),
-			pod:          pod(v1.PodFailed),
-			expectUpdate: nil,
+			name:             "failed -> failed with completion timestamp+message",
+			build:            withCompletionTS(build(buildapi.BuildPhaseFailed)),
+			pod:              pod(v1.PodFailed),
+			expectOnComplete: true,
+			expectUpdate: newUpdate().
+				startTime(now).
+				completionTime(now).
+				logSnippet("").
+				update,
 		},
 	}
 
@@ -773,7 +778,9 @@ func TestSetBuildCompletionTimestampAndDuration(t *testing.T) {
 
 	for _, test := range tests {
 		update := &buildUpdate{}
-		setBuildCompletionTimestampAndDuration(test.build, test.podStartTime, update)
+		pod := &v1.Pod{}
+		pod.Status.StartTime = test.podStartTime
+		setBuildCompletionData(test.build, pod, update)
 		// Ensure that only the fields in the expected update are set
 		if test.expected.podNameAnnotation == nil && (test.expected.podNameAnnotation != update.podNameAnnotation) {
 			t.Errorf("%s: podNameAnnotation should not be set", test.name)
@@ -1183,6 +1190,11 @@ func (b *updateBuilder) outputRef(ref string) *updateBuilder {
 
 func (b *updateBuilder) podNameAnnotation(podName string) *updateBuilder {
 	b.update.setPodNameAnnotation(podName)
+	return b
+}
+
+func (b *updateBuilder) logSnippet(message string) *updateBuilder {
+	b.update.setLogSnippet(message)
 	return b
 }
 

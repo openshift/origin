@@ -538,7 +538,11 @@ func buildKubeApiserverConfig(
 	}
 
 	if kubeApiserverConfig.EnableCoreControllers {
-		glog.V(2).Info("Using the lease endpoint reconciler")
+		ttl := masterConfig.KubernetesMasterConfig.MasterEndpointReconcileTTL
+		interval := ttl * 2 / 3
+
+		glog.V(2).Infof("Using the lease endpoint reconciler with TTL=%ds and interval=%ds", ttl, interval)
+
 		config, err := kubeApiserverConfig.StorageFactory.NewConfig(kapi.Resource("apiServerIPInfo"))
 		if err != nil {
 			return nil, err
@@ -547,7 +551,8 @@ func buildKubeApiserverConfig(
 		if err != nil {
 			return nil, err
 		}
-		masterLeases := newMasterLeases(leaseStorage)
+
+		masterLeases := newMasterLeases(leaseStorage, ttl)
 
 		endpointConfig, err := kubeApiserverConfig.StorageFactory.NewConfig(kapi.Resource("endpoints"))
 		if err != nil {
@@ -564,7 +569,7 @@ func buildKubeApiserverConfig(
 
 		kubeApiserverConfig.EndpointReconcilerConfig = master.EndpointReconcilerConfig{
 			Reconciler: election.NewLeaseEndpointReconciler(endpointRegistry, masterLeases),
-			Interval:   master.DefaultEndpointReconcilerInterval,
+			Interval:   time.Duration(interval) * time.Second,
 		}
 	}
 
@@ -796,8 +801,6 @@ func readCAorNil(file string) ([]byte, error) {
 	return ioutil.ReadFile(file)
 }
 
-func newMasterLeases(storage storage.Interface) election.Leases {
-	// leaseTTL is in seconds, i.e. 15 means 15 seconds; do NOT do 15*time.Second!
-	leaseTTL := uint64((master.DefaultEndpointReconcilerInterval + 5*time.Second) / time.Second) // add 5 seconds for wiggle room
-	return election.NewLeases(storage, "/masterleases/", leaseTTL)
+func newMasterLeases(storage storage.Interface, masterEndpointReconcileTTL int) election.Leases {
+	return election.NewLeases(storage, "/masterleases/", uint64(masterEndpointReconcileTTL))
 }

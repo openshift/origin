@@ -2,11 +2,13 @@ package builds
 
 import (
 	"fmt"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 
@@ -57,6 +59,22 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessagePostCommitHookFailed))
 
 			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+
+			// wait for the build to be updated w/ completiontimestamp which should also mean the logsnippet
+			// is set if one is going to be set.
+			err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
+				// note this is the same build variable used in the test scope
+				build, err = oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+				if err != nil {
+					return true, err
+				}
+				if build.Status.CompletionTimestamp != nil {
+					return true, nil
+				}
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(len(build.Status.LogSnippet)).NotTo(o.Equal(0), "LogSnippet should be set to something for failed builds")
 		})
 	})
 

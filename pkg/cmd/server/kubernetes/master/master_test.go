@@ -29,7 +29,7 @@ func TestNewMasterLeasesHasCorrectTTL(t *testing.T) {
 	storageInterface, _ := restOptions.Decorator(kapi.Scheme, restOptions.StorageConfig, &watchCacheDisabled, nil, "masterleases", nil, nil, nil, nil)
 	defer server.Terminate(t)
 
-	masterLeases := newMasterLeases(storageInterface)
+	masterLeases := newMasterLeases(storageInterface, 15)
 	if err := masterLeases.UpdateLease("1.2.3.4"); err != nil {
 		t.Fatalf("error updating lease: %v", err)
 	}

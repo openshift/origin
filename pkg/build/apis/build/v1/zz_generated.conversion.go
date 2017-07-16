@@ -811,6 +811,7 @@ func autoConvert_v1_BuildStatus_To_build_BuildStatus(in *BuildStatus, out *build
 		return err
 	}
 	out.Stages = *(*[]build.StageInfo)(unsafe.Pointer(&in.Stages))
+	out.LogSnippet = in.LogSnippet
 	return nil
 }
 
@@ -840,6 +841,7 @@ func autoConvert_build_BuildStatus_To_v1_BuildStatus(in *build.BuildStatus, out 
 		return err
 	}
 	out.Stages = *(*[]StageInfo)(unsafe.Pointer(&in.Stages))
+	out.LogSnippet = in.LogSnippet
 	return nil
 }
 

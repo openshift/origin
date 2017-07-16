@@ -204,6 +204,7 @@ var map_BuildStatus = map[string]string{
 	"config":                     "config is an ObjectReference to the BuildConfig this Build is based on.",
 	"output":                     "output describes the Docker image the build has produced.",
 	"stages":                     "stages contains details about each stage that occurs during the build including start time, duration (in milliseconds), and the steps that occured within each stage.",
+	"logSnippet":                 "logSnippet is the last few lines of the build log.  This value is only set for builds that failed.",
 }
 
 func (BuildStatus) SwaggerDoc() map[string]string {
