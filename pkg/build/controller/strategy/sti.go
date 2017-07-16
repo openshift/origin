@@ -84,6 +84,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 						Privileged: &privileged,
 					},
 					Args: []string{},
+					TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 				},
 			},
 			RestartPolicy: v1.RestartPolicyNever,

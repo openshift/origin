@@ -26,6 +26,7 @@ type buildUpdate struct {
 	completionTime    *metav1.Time
 	duration          *time.Duration
 	outputRef         *string
+	logSnippet        *string
 }
 
 func (u *buildUpdate) setPhase(phase buildapi.BuildPhase) {
@@ -60,6 +61,10 @@ func (u *buildUpdate) setPodNameAnnotation(podName string) {
 	u.podNameAnnotation = &podName
 }
 
+func (u *buildUpdate) setLogSnippet(message string) {
+	u.logSnippet = &message
+}
+
 func (u *buildUpdate) reset() {
 	u.podNameAnnotation = nil
 	u.phase = nil
@@ -69,6 +74,7 @@ func (u *buildUpdate) reset() {
 	u.completionTime = nil
 	u.duration = nil
 	u.outputRef = nil
+	u.logSnippet = nil
 }
 
 func (u *buildUpdate) isEmpty() bool {
@@ -79,7 +85,8 @@ func (u *buildUpdate) isEmpty() bool {
 		u.startTime == nil &&
 		u.completionTime == nil &&
 		u.duration == nil &&
-		u.outputRef == nil
+		u.outputRef == nil &&
+		u.logSnippet == nil
 }
 
 func (u *buildUpdate) apply(build *buildapi.Build) {
@@ -106,6 +113,9 @@ func (u *buildUpdate) apply(build *buildapi.Build) {
 	}
 	if u.outputRef != nil {
 		build.Status.OutputDockerImageReference = *u.outputRef
+	}
+	if u.logSnippet != nil {
+		build.Status.LogSnippet = *u.logSnippet
 	}
 }
 
@@ -136,6 +146,9 @@ func (u *buildUpdate) String() string {
 	}
 	if u.podNameAnnotation != nil {
 		updates = append(updates, fmt.Sprintf("podName: %q", *u.podNameAnnotation))
+	}
+	if u.logSnippet != nil {
+		updates = append(updates, fmt.Sprintf("logSnippet: %q", *u.logSnippet))
 	}
 	return fmt.Sprintf("buildUpdate(%s)", strings.Join(updates, ", "))
 }

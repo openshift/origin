@@ -431,6 +431,9 @@ message BuildStatus {
   // including start time, duration (in milliseconds), and the steps that
   // occured within each stage.
   repeated StageInfo stages = 11;
+
+  // logSnippet is the last few lines of the build log.  This value is only set for builds that failed.
+  optional string logSnippet = 12;
 }
 
 // BuildStatusOutput contains the status of the built image.
