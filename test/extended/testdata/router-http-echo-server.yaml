@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: router-http-echo
+  spec:
+    replicas: 1
+    selector:
+      app: router-http-echo
+      deploymentconfig: router-http-echo
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: router-http-echo
+          deploymentconfig: router-http-echo
+      spec:
+        containers:
+        - image: openshift/origin-base
+          name: router-http-echo
+          command:
+            - /usr/bin/socat
+            - TCP4-LISTEN:8676,reuseaddr,fork
+            - EXEC:'perl -e \"print qq(HTTP/1.0 200 OK\r\n\r\n); while (<>) { print; last if /^\r/}\"'
+          ports:
+          - containerPort: 8676
+            protocol: TCP
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: router-http-echo
+    labels:
+      app: router-http-echo
+  spec:
+    selector:
+      app: router-http-echo
+    ports:
+      - port: 8676
+        name: router-http-echo
+        protocol: TCP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: router-http-echo
+  spec:
+    host: router-headers.example.com
+    to:
+      kind: Service
+      name: router-http-echo
