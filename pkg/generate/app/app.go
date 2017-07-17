@@ -245,6 +245,7 @@ type BuildRef struct {
 	DockerStrategyOptions *buildapi.DockerStrategyOptions
 	Output                *ImageRef
 	Env                   Environment
+	Binary                bool
 }
 
 // BuildConfig creates a buildConfig resource from the build configuration reference
@@ -271,14 +272,23 @@ func (r *BuildRef) BuildConfig() (*buildapi.BuildConfig, error) {
 		return nil, err
 	}
 
-	if source.Binary == nil {
+	if !r.Binary {
 		configChangeTrigger := buildapi.BuildTriggerPolicy{
 			Type: buildapi.ConfigChangeBuildTriggerType,
 		}
 		triggers = append(triggers, configChangeTrigger)
 		triggers = append(triggers, strategyTriggers...)
+	} else {
+		// remove imagechangetriggers from binary buildconfigs because
+		// triggered builds will fail (no binary input available)
+		filteredTriggers := []buildapi.BuildTriggerPolicy{}
+		for _, trigger := range triggers {
+			if trigger.Type != buildapi.ImageChangeBuildTriggerType {
+				filteredTriggers = append(filteredTriggers, trigger)
+			}
+		}
+		triggers = filteredTriggers
 	}
-
 	return &buildapi.BuildConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,

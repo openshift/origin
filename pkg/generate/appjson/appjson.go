@@ -217,7 +217,7 @@ func (g *Generator) Generate(body []byte) (*templateapi.Template, error) {
 	image.ObjectName = name
 	image.Tag = "from"
 
-	pipeline, err := app.NewPipelineBuilder(name, nil, nil, false).To(name).NewBuildPipeline(name, image, repo)
+	pipeline, err := app.NewPipelineBuilder(name, nil, nil, false).To(name).NewBuildPipeline(name, image, repo, false)
 	if err != nil {
 		return nil, err
 	}

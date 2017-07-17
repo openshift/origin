@@ -412,7 +412,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
-				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, image, refInput.Uses); err != nil {
+				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, image, refInput.Uses, c.BinaryBuild); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput.Uses, err)
 				}
 			default:

@@ -26,7 +26,7 @@ import (
 type PipelineBuilder interface {
 	To(string) PipelineBuilder
 
-	NewBuildPipeline(string, *ImageRef, *SourceRepository) (*Pipeline, error)
+	NewBuildPipeline(string, *ImageRef, *SourceRepository, bool) (*Pipeline, error)
 	NewImagePipeline(string, *ImageRef) (*Pipeline, error)
 }
 
@@ -60,7 +60,7 @@ func (pb *pipelineBuilder) To(name string) PipelineBuilder {
 
 // NewBuildPipeline creates a new pipeline with components that are expected to
 // be built.
-func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, sourceRepository *SourceRepository) (*Pipeline, error) {
+func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, sourceRepository *SourceRepository, binary bool) (*Pipeline, error) {
 	strategy, source, err := StrategyAndSourceForRepository(sourceRepository, input)
 	if err != nil {
 		return nil, fmt.Errorf("can't build %q: %v", from, err)
@@ -123,6 +123,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		Output:   output,
 		Env:      pb.environment,
 		DockerStrategyOptions: pb.dockerStrategyOptions,
+		Binary:                binary,
 	}
 
 	return &Pipeline{
