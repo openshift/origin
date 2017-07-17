@@ -13,6 +13,7 @@ import (
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -258,7 +259,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 		}
 
 		// RoleRef is immutable, to reset this, we have to delete/recreate
-		if !kapi.Semantic.DeepEqual(roleBinding.RoleRef, changedRoleBindings[i].RoleRef) {
+		if !kapihelper.Semantic.DeepEqual(roleBinding.RoleRef, changedRoleBindings[i].RoleRef) {
 			roleBinding.RoleRef = changedRoleBindings[i].RoleRef
 			roleBinding.Subjects = changedRoleBindings[i].Subjects
 
@@ -294,7 +295,7 @@ func computeUpdatedBinding(expected authorizationapi.ClusterRoleBinding, actual 
 	needsUpdating := false
 
 	// Always reset the roleref if it is different
-	if !kapi.Semantic.DeepEqual(expected.RoleRef, actual.RoleRef) {
+	if !kapihelper.Semantic.DeepEqual(expected.RoleRef, actual.RoleRef) {
 		needsUpdating = true
 	}
 
@@ -327,7 +328,7 @@ func computeUpdatedBinding(expected authorizationapi.ClusterRoleBinding, actual 
 
 func contains(list []kapi.ObjectReference, item kapi.ObjectReference) bool {
 	for _, listItem := range list {
-		if kapi.Semantic.DeepEqual(listItem, item) {
+		if kapihelper.Semantic.DeepEqual(listItem, item) {
 			return true
 		}
 	}

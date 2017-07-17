@@ -17,15 +17,15 @@ func TestGetKubeAPIServerFlagAPIEnablement(t *testing.T) {
 			name:      "skip bad",
 			flagValue: []string{"api/legacy=true", "apis/foobar/is/bad=true", "apis/foo/v1=true=true", "apis/good/v1=false"},
 			expected: map[schema.GroupVersion]bool{
-				schema.GroupVersion{Group: "good", Version: "v1"}: false,
+				{Group: "good", Version: "v1"}: false,
 			},
 		},
 		{
 			name:      "good",
 			flagValue: []string{"apis/good/v2=true", "apis/good/v1=false"},
 			expected: map[schema.GroupVersion]bool{
-				schema.GroupVersion{Group: "good", Version: "v1"}: false,
-				schema.GroupVersion{Group: "good", Version: "v2"}: true,
+				{Group: "good", Version: "v1"}: false,
+				{Group: "good", Version: "v2"}: true,
 			},
 		},
 	}

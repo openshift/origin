@@ -29,13 +29,8 @@ type callbackInvoker struct {
 func (c *callbackInvoker) ExecuteCallback(callbackURL string, success bool, labels map[string]string, messages []string) []string {
 	buf := new(bytes.Buffer)
 	writer := bufio.NewWriter(buf)
-	for _, message := range messages {
-		fmt.Fprintln(writer, message)
-	}
-	writer.Flush()
 
 	data := map[string]interface{}{
-		"payload": buf.String(),
 		"success": success,
 	}
 

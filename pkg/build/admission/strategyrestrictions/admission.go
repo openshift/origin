@@ -15,10 +15,11 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 )
 
-func init() {
-	admission.RegisterPlugin("BuildByStrategy", func(config io.Reader) (admission.Interface, error) {
-		return NewBuildByStrategy(), nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("BuildByStrategy",
+		func(config io.Reader) (admission.Interface, error) {
+			return NewBuildByStrategy(), nil
+		})
 }
 
 type buildByStrategy struct {

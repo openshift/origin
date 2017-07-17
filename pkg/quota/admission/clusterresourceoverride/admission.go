@@ -32,18 +32,19 @@ var (
 	memFloor = resource.MustParse("1Mi")
 )
 
-func init() {
-	admission.RegisterPlugin(api.PluginName, func(config io.Reader) (admission.Interface, error) {
-		pluginConfig, err := ReadConfig(config)
-		if err != nil {
-			return nil, err
-		}
-		if pluginConfig == nil {
-			glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
-			return nil, nil
-		}
-		return newClusterResourceOverride(pluginConfig)
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register(api.PluginName,
+		func(config io.Reader) (admission.Interface, error) {
+			pluginConfig, err := ReadConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			if pluginConfig == nil {
+				glog.Infof("Admission plugin %q is not configured so it will be disabled.", api.PluginName)
+				return nil, nil
+			}
+			return newClusterResourceOverride(pluginConfig)
+		})
 }
 
 type internalConfig struct {

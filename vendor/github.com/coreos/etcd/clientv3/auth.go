@@ -100,11 +100,19 @@ type Auth interface {
 }
 
 type auth struct {
+	c *Client
+
+	conn   *grpc.ClientConn // conn in-use
 	remote pb.AuthClient
 }
 
 func NewAuth(c *Client) Auth {
-	return &auth{remote: pb.NewAuthClient(c.ActiveConnection())}
+	conn := c.ActiveConnection()
+	return &auth{
+		conn:   c.ActiveConnection(),
+		remote: pb.NewAuthClient(conn),
+		c:      c,
+	}
 }
 
 func (auth *auth) AuthEnable(ctx context.Context) (*AuthEnableResponse, error) {

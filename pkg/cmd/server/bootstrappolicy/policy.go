@@ -52,6 +52,7 @@ var (
 	batchGroup          = batch.GroupName
 	certificatesGroup   = certificates.GroupName
 	extensionsGroup     = extensions.GroupName
+	networkingGroup     = "networking.k8s.io"
 	policyGroup         = policy.GroupName
 	rbacGroup           = rbac.GroupName
 	securityGroup       = securityapi.GroupName
@@ -159,7 +160,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"replicationcontrollers/status", "resourcequotas", "resourcequotas/status", "securitycontextconstraints", "serviceaccounts", "services",
 					"services/status").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/status", "deployments", "deployments/scale", "deployments/status").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/status", "deployments", "deployments/scale", "deployments/status", "controllerrevisions").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers", "horizontalpodautoscalers/status").RuleOrDie(),
 
@@ -170,6 +171,8 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"deployments/status", "horizontalpodautoscalers", "horizontalpodautoscalers/status", "ingresses", "ingresses/status", "jobs", "jobs/status",
 					"networkpolicies", "podsecuritypolicies", "replicasets", "replicasets/scale", "replicasets/status", "replicationcontrollers",
 					"replicationcontrollers/scale", "storageclasses", "thirdpartyresources").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(networkingGroup).Resources("networkpolicies").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(policyGroup).Resources("poddisruptionbudgets", "poddisruptionbudgets/status").RuleOrDie(),
 

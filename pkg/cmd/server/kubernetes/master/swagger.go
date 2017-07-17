@@ -1,8 +1,9 @@
 package master
 
 import (
-	"github.com/emicklei/go-restful/swagger"
 	"github.com/golang/glog"
+
+	"github.com/emicklei/go-restful-swagger12"
 
 	apiserver "k8s.io/apiserver/pkg/server"
 

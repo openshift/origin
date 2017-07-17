@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -400,7 +401,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		obj2 = obj2conv
 	}
 
-	if !kapi.Semantic.DeepEqual(originalItem, obj2) {
+	if !kapihelper.Semantic.DeepEqual(originalItem, obj2) {
 		t.Errorf("1: %v: diff: %v\nCodec: %v\nData: %s", name, diff.ObjectReflectDiff(originalItem, obj2), codec, string(data))
 		return
 	}
@@ -410,7 +411,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, originalItem runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !kapi.Semantic.DeepEqual(originalItem, obj3) {
+	if !kapihelper.Semantic.DeepEqual(originalItem, obj3) {
 		t.Errorf("3: %v: diff: %v\nCodec: %v", name, diff.ObjectReflectDiff(originalItem, obj3), codec)
 		return
 	}
@@ -521,6 +522,7 @@ func TestSpecificRoundTrips(t *testing.T) {
 			t.Errorf("%d: unable to decode: %v", i, err)
 			continue
 		}
+		configapi.Scheme.Default(test.out)
 		if !reflect.DeepEqual(test.out, result) {
 			t.Errorf("%d: result did not match: %s", i, diff.ObjectReflectDiff(test.out, result))
 			continue

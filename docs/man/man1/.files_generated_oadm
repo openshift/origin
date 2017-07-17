@@ -15,6 +15,7 @@ oadm-config-delete-cluster.1
 oadm-config-delete-context.1
 oadm-config-get-clusters.1
 oadm-config-get-contexts.1
+oadm-config-rename-context.1
 oadm-config-set-cluster.1
 oadm-config-set-context.1
 oadm-config-set-credentials.1
@@ -50,7 +51,6 @@ oadm-migrate-authorization.1
 oadm-migrate-etcd-ttl.1
 oadm-migrate-image-references.1
 oadm-migrate-storage.1
-oadm-migrate-volumesource.1
 oadm-migrate.1
 oadm-new-project.1
 oadm-options.1

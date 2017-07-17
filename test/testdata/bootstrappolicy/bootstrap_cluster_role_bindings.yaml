@@ -976,23 +976,6 @@ items:
     name: system:unauthenticated
   userNames: null
 - apiVersion: v1
-  groupNames:
-  - system:nodes
-  kind: ClusterRoleBinding
-  metadata:
-    annotations:
-      rbac.authorization.kubernetes.io/autoupdate: "true"
-    creationTimestamp: null
-    labels:
-      kubernetes.io/bootstrapping: rbac-defaults
-    name: system:node
-  roleRef:
-    name: system:node
-  subjects:
-  - kind: SystemGroup
-    name: system:nodes
-  userNames: null
-- apiVersion: v1
   groupNames: null
   kind: ClusterRoleBinding
   metadata:
@@ -1061,5 +1044,22 @@ items:
     name: system:kube-scheduler
   userNames:
   - system:kube-scheduler
+- apiVersion: v1
+  groupNames:
+  - system:nodes
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:node
+  roleRef:
+    name: system:node
+  subjects:
+  - kind: SystemGroup
+    name: system:nodes
+  userNames: null
 kind: List
 metadata: {}

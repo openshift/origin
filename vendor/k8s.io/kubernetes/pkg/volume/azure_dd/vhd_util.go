@@ -79,11 +79,13 @@ func findDiskByLunWithConstraint(lun int, io ioHandler, exe exec.Interface, azur
 	if dirs, err := io.ReadDir(sys_path); err == nil {
 		for _, f := range dirs {
 			name := f.Name()
-			// look for path like /sys/bus/scsi/devices/3:0:1:0
+			// look for path like /sys/bus/scsi/devices/3:0:0:1
 			arr := strings.Split(name, ":")
 			if len(arr) < 4 {
 				continue
 			}
+			// extract LUN from the path.
+			// LUN is the last index of the array, i.e. 1 in /sys/bus/scsi/devices/3:0:0:1
 			l, err := strconv.Atoi(arr[3])
 			if err != nil {
 				// unknown path format, continue to read the next one

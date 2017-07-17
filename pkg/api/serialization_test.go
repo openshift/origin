@@ -370,8 +370,8 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 					}
 				}
 				if c.RandBool() {
-					params.MaxUnavailable = intstr.FromInt(c.Rand.Int())
-					params.MaxSurge = intstr.FromInt(c.Rand.Int())
+					params.MaxUnavailable = intstr.FromInt(int(c.Rand.Int31()))
+					params.MaxSurge = intstr.FromInt(int(c.Rand.Int31()))
 				} else {
 					params.MaxSurge = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))
 					params.MaxUnavailable = intstr.FromString(fmt.Sprintf("%d%%", c.RandUint64()))

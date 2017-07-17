@@ -16,6 +16,7 @@ import (
 	khostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	cni020 "github.com/containernetworking/cni/pkg/types/020"
 )
 
 type operation struct {
@@ -25,7 +26,6 @@ type operation struct {
 	cidr      string                // pod CIDR for add operation
 	failStr   string                // error string for failing the operation
 	request   *cniserver.PodRequest // filled in automatically from other info
-	result    *cnitypes.Result
 }
 
 type expectedPod struct {
@@ -102,7 +102,7 @@ func fakeRunningPod(namespace, name string, ip net.IP) *runningPod {
 	return &runningPod{podPortMapping: podPortMapping, vnid: 0}
 }
 
-func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
+func (pt *podTester) setup(req *cniserver.PodRequest) (cnitypes.Result, *runningPod, error) {
 	pod, err := pt.getExpectedPod(req.PodNamespace, req.PodName, req.Command)
 	if err != nil {
 		return nil, nil, err
@@ -112,8 +112,8 @@ func (pt *podTester) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 	pod.added = true
 
 	ip, ipnet, _ := net.ParseCIDR(pod.cidr)
-	result := &cnitypes.Result{
-		IP4: &cnitypes.IPConfig{
+	result := &cni020.Result{
+		IP4: &cni020.IPConfig{
 			IP: net.IPNet{
 				IP:   ip,
 				Mask: ipnet.Mask,
@@ -354,7 +354,7 @@ func TestPodManager(t *testing.T) {
 					if result.Response == nil {
 						t.Fatalf("[%s] unexpected %v nil result response", k, op)
 					}
-					var cniResult *cnitypes.Result
+					var cniResult *cni020.Result
 					if err := json.Unmarshal(result.Response, &cniResult); err != nil {
 						t.Fatalf("[%s] unexpected error unmarshalling CNI result '%s': %v", k, string(result.Response), err)
 					}

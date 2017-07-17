@@ -281,8 +281,11 @@ func TestRefetchSchemaWhenValidationFails(t *testing.T) {
 			}
 		}),
 	}
-	dir := os.TempDir() + "/schemaCache"
-	os.RemoveAll(dir)
+	dir, err := ioutil.TempDir("", "schemaCache")
+	if err != nil {
+		t.Fatalf("Error getting tempDir: %v", err)
+	}
+	defer os.RemoveAll(dir)
 
 	fullDir, err := substituteUserHome(dir)
 	if err != nil {
@@ -339,8 +342,11 @@ func TestValidateCachesSchema(t *testing.T) {
 			}
 		}),
 	}
-	dir := os.TempDir() + "/schemaCache"
-	os.RemoveAll(dir)
+	dir, err := ioutil.TempDir("", "schemaCache")
+	if err != nil {
+		t.Fatalf("Error getting tempDir: %v", err)
+	}
+	defer os.RemoveAll(dir)
 
 	obj := &api.Pod{}
 	data, err := runtime.Encode(testapi.Default.Codec(), obj)
@@ -740,12 +746,12 @@ func TestDiscoveryReplaceAliases(t *testing.T) {
 		{
 			name:     "all-replacement",
 			arg:      "all",
-			expected: "buildconfigs,builds,imagestreams,deploymentconfigs,deployments,horizontalpodautoscalers,replicationcontrollers,routes,services,statefulsets,jobs,replicasets,pods",
+			expected: "pods,replicationcontrollers,services,statefulsets.apps,horizontalpodautoscalers.autoscaling,jobs.batch,deployments.extensions,replicasets.extensions",
 		},
 		{
 			name:     "alias-in-comma-separated-arg",
 			arg:      "all,secrets",
-			expected: "buildconfigs,builds,imagestreams,deploymentconfigs,deployments,horizontalpodautoscalers,replicationcontrollers,routes,services,statefulsets,jobs,replicasets,pods,secrets",
+			expected: "pods,replicationcontrollers,services,statefulsets.apps,horizontalpodautoscalers.autoscaling,jobs.batch,deployments.extensions,replicasets.extensions,secrets",
 		},
 	}
 
@@ -754,7 +760,7 @@ func TestDiscoveryReplaceAliases(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unable to create shortcut expander, err = %s", err.Error())
 	}
-	b := resource.NewBuilder(mapper, api.Scheme, fakeClient(), testapi.Default.Codec())
+	b := resource.NewBuilder(mapper, resource.LegacyCategoryExpander, api.Scheme, fakeClient(), testapi.Default.Codec())
 
 	for _, test := range tests {
 		replaced := b.ReplaceAliases(test.arg)

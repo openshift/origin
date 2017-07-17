@@ -111,7 +111,7 @@ If it is already installed, you may to reload the definition with:
 
 	sdUnitReqActive = `
 systemd unit %[1]s is running but %[2]s is not.
-%[1]s
+%[3]s
 An administrator can start the %[2]s unit with:
 
   # systemctl start %[2]s

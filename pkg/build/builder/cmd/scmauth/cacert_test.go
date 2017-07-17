@@ -1,9 +1,10 @@
 package scmauth
 
 import (
-	"net/url"
 	"os"
 	"testing"
+
+	"github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 func TestCACertHandles(t *testing.T) {
@@ -19,7 +20,7 @@ func TestCACertHandles(t *testing.T) {
 func TestCACertSetup(t *testing.T) {
 	context := NewDefaultSCMContext()
 	caCert := &CACert{
-		SourceURL: url.URL{Scheme: "https", Host: "my.host", Path: "git/repo"},
+		SourceURL: *git.MustParse("https://my.host/git/repo"),
 	}
 	secretDir := secretDir(t, "ca.crt")
 	defer os.RemoveAll(secretDir)
@@ -36,7 +37,7 @@ func TestCACertSetup(t *testing.T) {
 func TestCACertSetupNoSSL(t *testing.T) {
 	context := NewDefaultSCMContext()
 	caCert := &CACert{
-		SourceURL: url.URL{Scheme: "http", Host: "my.host", Path: "git/repo"},
+		SourceURL: *git.MustParse("http://my.host/git/repo"),
 	}
 	secretDir := secretDir(t, "ca.crt")
 	defer os.RemoveAll(secretDir)

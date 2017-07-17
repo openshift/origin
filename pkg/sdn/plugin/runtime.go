@@ -5,8 +5,8 @@ import (
 	"time"
 
 	kwait "k8s.io/apimachinery/pkg/util/wait"
-	kubeletapi "k8s.io/kubernetes/pkg/kubelet/api"
-	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
+	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
 	kubeletremote "k8s.io/kubernetes/pkg/kubelet/remote"
 )
 

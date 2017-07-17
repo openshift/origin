@@ -22,6 +22,7 @@ var _ client.ImageStreamInterface = &FakeImageStreams{}
 
 var imageStreamsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreams"}
 var imageStreamImportsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "imagestreamimports"}
+var imageStreamsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "ImageStream"}
 
 func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageapi.ImageStream, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(imageStreamsResource, c.Namespace, name), &imageapi.ImageStream{})
@@ -33,7 +34,7 @@ func (c *FakeImageStreams) Get(name string, options metav1.GetOptions) (*imageap
 }
 
 func (c *FakeImageStreams) List(opts metav1.ListOptions) (*imageapi.ImageStreamList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(imageStreamsResource, c.Namespace, opts), &imageapi.ImageStreamList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(imageStreamsResource, imageStreamsKind, c.Namespace, opts), &imageapi.ImageStreamList{})
 	if obj == nil {
 		return nil, err
 	}

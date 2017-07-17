@@ -81,7 +81,7 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
 
 	o.Printer = func(obj runtime.Object, out io.Writer) error {
-		return f.PrintObject(cmd, o.Mapper, obj, out)
+		return f.PrintObject(cmd, false, o.Mapper, obj, out)
 	}
 
 	return nil

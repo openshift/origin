@@ -15,6 +15,7 @@ type FakeClusterRoleBindings struct {
 }
 
 var clusterRoleBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterrolebindings"}
+var clusterRoleBindingsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "ClusterRoleBinding"}
 
 func (c *FakeClusterRoleBindings) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterRoleBinding, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterRoleBindingsResource, name), &authorizationapi.ClusterRoleBinding{})
@@ -26,7 +27,7 @@ func (c *FakeClusterRoleBindings) Get(name string, options metav1.GetOptions) (*
 }
 
 func (c *FakeClusterRoleBindings) List(opts metav1.ListOptions) (*authorizationapi.ClusterRoleBindingList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterRoleBindingsResource, opts), &authorizationapi.ClusterRoleBindingList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterRoleBindingsResource, clusterRoleBindingsKind, opts), &authorizationapi.ClusterRoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}

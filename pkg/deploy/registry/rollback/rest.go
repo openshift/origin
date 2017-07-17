@@ -41,7 +41,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create generates a new DeploymentConfig representing a rollback.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	namespace, ok := apirequest.NamespaceFrom(ctx)
 	if !ok {
 		return nil, kerrors.NewBadRequest("namespace parameter required.")

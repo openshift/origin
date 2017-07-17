@@ -35,7 +35,7 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
 	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
@@ -67,7 +67,7 @@ func (s *storage) GetImage(ctx apirequest.Context, imageID string, options *meta
 }
 
 func (s *storage) CreateImage(ctx apirequest.Context, image *imageapi.Image) error {
-	_, err := s.Create(ctx, image)
+	_, err := s.Create(ctx, image, false)
 	return err
 }
 

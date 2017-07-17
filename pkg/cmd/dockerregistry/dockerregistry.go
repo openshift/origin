@@ -13,7 +13,6 @@ import (
 	log "github.com/Sirupsen/logrus"
 	gorillahandlers "github.com/gorilla/handlers"
 
-	"github.com/Sirupsen/logrus/formatters/logstash"
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/health"
@@ -239,9 +238,14 @@ func configureLogging(ctx context.Context, config *configuration.Configuration) 
 			TimestampFormat: time.RFC3339Nano,
 		})
 	case "logstash":
-		log.SetFormatter(&logstash.LogstashFormatter{
-			TimestampFormat: time.RFC3339Nano,
-		})
+		// just let the library use default on empty string.
+		if config.Log.Formatter != "" {
+			return ctx, fmt.Errorf("unsupported logging formatter: %q", config.Log.Formatter)
+		}
+	// "github.com/Sirupsen/logrus/formatters/logstash"
+	// log.SetFormatter(&logstash.LogstashFormatter{
+	// 	TimestampFormat: time.RFC3339Nano,
+	// })
 	default:
 		// just let the library use default on empty string.
 		if config.Log.Formatter != "" {

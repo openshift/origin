@@ -16,6 +16,7 @@ type FakeClusterPolicyBindings struct {
 }
 
 var clusterPolicyBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterpolicybindings"}
+var clusterPolicyBindingsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "ClusterPolicyBinding"}
 
 func (c *FakeClusterPolicyBindings) Get(name string, options metav1.GetOptions) (*authorizationapi.ClusterPolicyBinding, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(clusterPolicyBindingsResource, name), &authorizationapi.ClusterPolicyBinding{})
@@ -27,7 +28,7 @@ func (c *FakeClusterPolicyBindings) Get(name string, options metav1.GetOptions) 
 }
 
 func (c *FakeClusterPolicyBindings) List(opts metav1.ListOptions) (*authorizationapi.ClusterPolicyBindingList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPolicyBindingsResource, opts), &authorizationapi.ClusterPolicyBindingList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(clusterPolicyBindingsResource, clusterPolicyBindingsKind, opts), &authorizationapi.ClusterPolicyBindingList{})
 	if obj == nil {
 		return nil, err
 	}

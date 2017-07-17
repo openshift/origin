@@ -247,7 +247,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
-	createdMapping, err := rest.Create(apirequest.NewContext(), mapping)
+	createdMapping, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -269,7 +269,7 @@ func TestCreateExists(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity, user)
-	_, err := rest.Create(apirequest.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -292,7 +292,7 @@ func TestCreateMissingIdentity(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(nil, user)
-	_, err := rest.Create(apirequest.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -316,7 +316,7 @@ func TestCreateMissingUser(t *testing.T) {
 	}
 
 	actions, _, _, rest := setupRegistries(identity)
-	_, err := rest.Create(apirequest.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -344,7 +344,7 @@ func TestCreateUserUpdateError(t *testing.T) {
 
 	actions, userRegistry, _, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
 	userRegistry.UpdateErr[associatedUser.Name] = expectedErr
-	_, err := rest.Create(apirequest.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")
@@ -372,7 +372,7 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 
 	actions, _, identityRegistry, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
 	identityRegistry.UpdateErr = errors.New("Update error")
-	_, err := rest.Create(apirequest.NewContext(), mapping)
+	_, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err == nil {
 		t.Errorf("Expected error, got none")

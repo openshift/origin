@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -240,7 +240,7 @@ func TestComputeReconciledRole(t *testing.T) {
 		if reconciliationNeeded != tc.expectedReconciliationNeeded {
 			t.Errorf("%s: Expected\n\t%v\ngot\n\t%v", k, tc.expectedReconciliationNeeded, reconciliationNeeded)
 		}
-		if !kapi.Semantic.DeepEqual(reconciledRole, tc.expectedReconciledRole) {
+		if !kapihelper.Semantic.DeepEqual(reconciledRole, tc.expectedReconciledRole) {
 			t.Errorf("%s: Expected\n\t%#v\ngot\n\t%#v", k, tc.expectedReconciledRole, reconciledRole)
 		}
 	}

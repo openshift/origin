@@ -58,7 +58,7 @@ func (s *storage) GetSecurityContextConstraint(ctx genericapirequest.Context, na
 }
 
 func (s *storage) CreateSecurityContextConstraint(ctx genericapirequest.Context, scc *securityapi.SecurityContextConstraints) error {
-	_, err := s.Create(ctx, scc)
+	_, err := s.Create(ctx, scc, false)
 	return err
 }
 

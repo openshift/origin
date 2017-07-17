@@ -102,6 +102,7 @@ var (
 	FSProjected                 FSType = "projected"
 	FSPortworxVolume            FSType = "portworxVolume"
 	FSScaleIO                   FSType = "scaleIO"
+	FSStorageOS                 FSType = "storageOS"
 	FSTypeAll                   FSType = "*"
 	FSTypeNone                  FSType = "none"
 )

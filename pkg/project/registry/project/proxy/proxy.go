@@ -125,7 +125,7 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 var _ = rest.Creater(&REST{})
 
 // Create registers the given Project.
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	project, ok := obj.(*projectapi.Project)
 	if !ok {
 		return nil, fmt.Errorf("not a project: %#v", obj)

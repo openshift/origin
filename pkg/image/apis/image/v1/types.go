@@ -28,6 +28,7 @@ type Image struct {
 	// DockerImageReference is the string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" protobuf:"bytes,2,opt,name=dockerImageReference"`
 	// DockerImageMetadata contains metadata about this image
+	// +patchStrategy=replace
 	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" patchStrategy:"replace" protobuf:"bytes,3,opt,name=dockerImageMetadata"`
 	// DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0"
 	DockerImageMetadataVersion string `json:"dockerImageMetadataVersion,omitempty" protobuf:"bytes,4,opt,name=dockerImageMetadataVersion"`
@@ -36,6 +37,8 @@ type Image struct {
 	// DockerImageLayers represents the layers in the image. May not be set if the image does not define that data.
 	DockerImageLayers []ImageLayer `json:"dockerImageLayers" protobuf:"bytes,6,rep,name=dockerImageLayers"`
 	// Signatures holds all signatures of the image.
+	// +patchMergeKey=name
+	// +patchStrategy=merge
 	Signatures []ImageSignature `json:"signatures,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=signatures"`
 	// DockerImageSignatures provides the signatures as opaque blobs. This is a part of manifest schema v1.
 	DockerImageSignatures [][]byte `json:"dockerImageSignatures,omitempty" protobuf:"bytes,8,rep,name=dockerImageSignatures"`
@@ -70,6 +73,8 @@ type ImageSignature struct {
 	// Required: An opaque binary string which is an image's signature.
 	Content []byte `json:"content" protobuf:"bytes,3,opt,name=content"`
 	// Conditions represent the latest available observations of a signature's current state.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	Conditions []SignatureCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,4,rep,name=conditions"`
 
 	// Following metadata fields will be set by server if the signature content is successfully parsed and

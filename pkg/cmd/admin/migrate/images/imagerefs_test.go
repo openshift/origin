@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
@@ -589,7 +590,7 @@ func TestTransform(t *testing.T) {
 				t.Errorf("%d: changed %#v %t", i, reporter, v.changed)
 				continue
 			}
-			if !kapi.Semantic.DeepEqual(v.expected, v.obj) {
+			if !kapihelper.Semantic.DeepEqual(v.expected, v.obj) {
 				t.Errorf("%d: object: %s", i, diff.ObjectDiff(v.expected, v.obj))
 				continue
 			}

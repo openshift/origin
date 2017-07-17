@@ -68,12 +68,12 @@ func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) 
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	quota, ok := obj.(*quotaapi.ClusterResourceQuota)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a ClusterResourceQuota")
+		return nil, nil, false, fmt.Errorf("not a ClusterResourceQuota")
 	}
-	return labels.Set(quota.ObjectMeta.Labels), quotaapi.ClusterResourceQuotaToSelectableFields(quota), nil
+	return labels.Set(quota.ObjectMeta.Labels), quotaapi.ClusterResourceQuotaToSelectableFields(quota), quota.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

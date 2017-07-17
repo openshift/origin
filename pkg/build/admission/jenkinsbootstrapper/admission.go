@@ -26,10 +26,11 @@ import (
 	"github.com/openshift/origin/pkg/config/cmd"
 )
 
-func init() {
-	admission.RegisterPlugin("openshift.io/JenkinsBootstrapper", func(config io.Reader) (admission.Interface, error) {
-		return NewJenkinsBootstrapper(), nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("openshift.io/JenkinsBootstrapper",
+		func(config io.Reader) (admission.Interface, error) {
+			return NewJenkinsBootstrapper(), nil
+		})
 }
 
 type jenkinsBootstrapper struct {

@@ -8,6 +8,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -442,7 +443,7 @@ func TestCreateImageImport(t *testing.T) {
 		if !listEqual(isi.Spec.Images, test.expectedImages) {
 			t.Errorf("%s: unexpected import images, expected %#v, got %#v", name, test.expectedImages, isi.Spec.Images)
 		}
-		if !kapi.Semantic.DeepEqual(isi.Spec.Repository, test.expectedRepository) {
+		if !kapihelper.Semantic.DeepEqual(isi.Spec.Repository, test.expectedRepository) {
 			t.Errorf("%s: unexpected import repository, expected %#v, got %#v", name, test.expectedRepository, isi.Spec.Repository)
 		}
 	}
@@ -494,7 +495,7 @@ func listEqual(actual, expected []imageapi.ImageImportSpec) bool {
 	for _, a := range actual {
 		found := false
 		for _, e := range expected {
-			if kapi.Semantic.DeepEqual(a, e) {
+			if kapihelper.Semantic.DeepEqual(a, e) {
 				found = true
 				break
 			}

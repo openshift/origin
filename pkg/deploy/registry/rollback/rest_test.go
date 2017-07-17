@@ -32,7 +32,7 @@ var _ RollbackGenerator = &terribleGenerator{}
 
 func TestCreateError(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -45,7 +45,7 @@ func TestCreateError(t *testing.T) {
 
 func TestCreateInvalid(t *testing.T) {
 	rest := REST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -72,7 +72,7 @@ func TestCreateOk(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	})
+	}, false)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -98,7 +98,7 @@ func TestCreateRollbackToLatest(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 2,
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("expected an error when rolling back to the existing deployed revision")
@@ -131,7 +131,7 @@ func TestCreateGeneratorError(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	})
+	}, false)
 
 	if err == nil || !strings.Contains(err.Error(), "something terrible happened") {
 		t.Errorf("Unexpected error: %v", err)
@@ -154,7 +154,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -183,7 +183,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -211,7 +211,7 @@ func TestCreateMissingDeploymentConfig(t *testing.T) {
 		Spec: deployapi.DeploymentConfigRollbackSpec{
 			Revision: 1,
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")

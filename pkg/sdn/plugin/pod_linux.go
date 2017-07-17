@@ -4,6 +4,7 @@ package plugin
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 	"syscall"
 
@@ -28,6 +29,8 @@ import (
 	"github.com/containernetworking/cni/pkg/ipam"
 	"github.com/containernetworking/cni/pkg/ns"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	cni020 "github.com/containernetworking/cni/pkg/types/020"
+	cnicurrent "github.com/containernetworking/cni/pkg/types/current"
 
 	"github.com/vishvananda/netlink"
 )
@@ -160,22 +163,27 @@ func createIPAMArgs(netnsPath string, action cniserver.CNICommand, id string) *i
 }
 
 // Run CNI IPAM allocation for the container and return the allocated IP address
-func (m *podManager) ipamAdd(netnsPath string, id string) (*cnitypes.Result, error) {
+func (m *podManager) ipamAdd(netnsPath string, id string) (*cni020.Result, net.IP, error) {
 	if netnsPath == "" {
-		return nil, fmt.Errorf("netns required for CNI_ADD")
+		return nil, nil, fmt.Errorf("netns required for CNI_ADD")
 	}
 
 	args := createIPAMArgs(netnsPath, cniserver.CNI_ADD, id)
-	result, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
+	r, err := invoke.ExecPluginWithResult("/opt/cni/bin/host-local", m.ipamConfig, args)
 	if err != nil {
-		return nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
+		return nil, nil, fmt.Errorf("failed to run CNI IPAM ADD: %v", err)
 	}
 
+	// We gave the IPAM plugin 0.2.0 config, so the plugin must return a 0.2.0 result
+	result, err := cni020.GetResult(r)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to parse CNI IPAM ADD result: %v", err)
+	}
 	if result.IP4 == nil {
-		return nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
+		return nil, nil, fmt.Errorf("failed to obtain IP address from CNI IPAM")
 	}
 
-	return result, nil
+	return result, result.IP4.IP.IP, nil
 }
 
 // Run CNI IPAM release for the container
@@ -229,17 +237,16 @@ func podIsExited(p *kcontainer.Pod) bool {
 }
 
 // Set up all networking (host/container veth, OVS flows, IPAM, loopback, etc)
-func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
+func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *runningPod, error) {
 	pod, err := m.kClient.Core().Pods(req.PodNamespace).Get(req.PodName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ipamResult, err := m.ipamAdd(req.Netns, req.SandboxID)
+	ipamResult, podIP, err := m.ipamAdd(req.Netns, req.SandboxID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to run IPAM for %v: %v", req.SandboxID, err)
 	}
-	podIP := ipamResult.IP4.IP.IP
 
 	// Release any IPAM allocations and hostports if the setup failed
 	var success bool
@@ -273,14 +280,31 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 			return fmt.Errorf("failed to set pod interface MAC address: %v", err)
 		}
 		// refetch to get hardware address and other properties
-		contVeth, err = netlink.LinkByIndex(contVeth.Attrs().Index)
+		tmp, err := net.InterfaceByIndex(contVeth.Index)
 		if err != nil {
 			return fmt.Errorf("failed to fetch container veth: %v", err)
 		}
+		contVeth = *tmp
+
 		// Clear out gateway to prevent ConfigureIface from adding the cluster
 		// subnet via the gateway
 		ipamResult.IP4.Gateway = nil
-		if err = ipam.ConfigureIface(podInterfaceName, ipamResult); err != nil {
+		result030, err := cnicurrent.NewResultFromResult(ipamResult)
+		if err != nil {
+			return fmt.Errorf("failed to convert IPAM: %v", err)
+		}
+		// Add a sandbox interface record which ConfigureInterface expects.
+		// The only interface we report is the pod interface.
+		result030.Interfaces = []*cnicurrent.Interface{
+			{
+				Name:    podInterfaceName,
+				Mac:     contVeth.HardwareAddr.String(),
+				Sandbox: req.Netns,
+			},
+		}
+		result030.IPs[0].Interface = 0
+
+		if err = ipam.ConfigureIface(podInterfaceName, result030); err != nil {
 			return fmt.Errorf("failed to configure container IPAM: %v", err)
 		}
 
@@ -292,8 +316,8 @@ func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runnin
 			return fmt.Errorf("failed to configure container loopback: %v", err)
 		}
 
-		hostVethName = hostVeth.Attrs().Name
-		contVethMac = contVeth.Attrs().HardwareAddr.String()
+		hostVethName = hostVeth.Name
+		contVethMac = contVeth.HardwareAddr.String()
 		return nil
 	})
 	if err != nil {

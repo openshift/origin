@@ -1,3 +1,5 @@
+// +build go1.8
+
 /*
 Copyright 2016 The Kubernetes Authors.
 
@@ -102,6 +104,32 @@ func TestGetClientIP(t *testing.T) {
 	for i, test := range testCases {
 		if a, e := GetClientIP(&test.Request), test.ExpectedIP; reflect.DeepEqual(e, a) != true {
 			t.Fatalf("test case %d failed. expected: %v, actual: %v", i, e, a)
+		}
+	}
+}
+
+func TestAppendForwardedForHeader(t *testing.T) {
+	testCases := []struct {
+		addr, forwarded, expected string
+	}{
+		{"1.2.3.4:8000", "", "1.2.3.4"},
+		{"1.2.3.4:8000", "8.8.8.8", "8.8.8.8, 1.2.3.4"},
+		{"1.2.3.4:8000", "8.8.8.8, 1.2.3.4", "8.8.8.8, 1.2.3.4, 1.2.3.4"},
+		{"1.2.3.4:8000", "foo,bar", "foo,bar, 1.2.3.4"},
+	}
+	for i, test := range testCases {
+		req := &http.Request{
+			RemoteAddr: test.addr,
+			Header:     make(http.Header),
+		}
+		if test.forwarded != "" {
+			req.Header.Set("X-Forwarded-For", test.forwarded)
+		}
+
+		AppendForwardedForHeader(req)
+		actual := req.Header.Get("X-Forwarded-For")
+		if actual != test.expected {
+			t.Errorf("[%d] Expected %q, Got %q", i, test.expected, actual)
 		}
 	}
 }

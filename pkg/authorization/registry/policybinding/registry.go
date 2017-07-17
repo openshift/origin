@@ -59,7 +59,7 @@ func (s *storage) ListPolicyBindings(ctx apirequest.Context, options *metaintern
 }
 
 func (s *storage) CreatePolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.PolicyBinding) error {
-	_, err := s.Create(ctx, policyBinding)
+	_, err := s.Create(ctx, policyBinding, false)
 	return err
 }
 

@@ -18,9 +18,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
-	kclientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/util/cert"
-	proxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app/options"
+	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -30,7 +29,7 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubeletserver "k8s.io/kubernetes/pkg/kubelet/server"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
@@ -65,13 +64,13 @@ type NodeConfig struct {
 	// Internal kubernetes shared informer factory.
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
 	// DockerClient is a client to connect to Docker
-	DockerClient dockertools.DockerInterface
+	DockerClient dockertools.Interface
 	// KubeletServer contains the KubeletServer configuration
 	KubeletServer *kubeletoptions.KubeletServer
 	// KubeletDeps are the injected code dependencies for the kubelet, fully initialized
 	KubeletDeps *kubelet.KubeletDeps
 	// ProxyConfig is the configuration for the kube-proxy, fully initialized
-	ProxyConfig *proxyoptions.ProxyServerConfig
+	ProxyConfig *componentconfig.KubeProxyConfiguration
 	// IPTablesSyncPeriod is how often iptable rules are refreshed
 	IPTablesSyncPeriod string
 	// EnableUnidling indicates whether or not the unidling hybrid proxy should be used
@@ -166,8 +165,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.HostIPCSources = []string{kubelettypes.ApiserverSource, kubelettypes.FileSource}
 	server.HTTPCheckFrequency = metav1.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
 	server.FileCheckFrequency = metav1.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
-	server.PodInfraContainerImage = imageTemplate.ExpandOrDie("pod")
-	server.CPUCFSQuota = true // enable cpu cfs quota enforcement by default
+	server.KubeletFlags.ContainerRuntimeOptions.PodSandboxImage = imageTemplate.ExpandOrDie("pod")
+	server.LowDiskSpaceThresholdMB = 256 // this the previous default
+	server.CPUCFSQuota = true            // enable cpu cfs quota enforcement by default
 	server.MaxPods = 250
 	server.PodsPerCore = 10
 	server.CgroupDriver = "systemd"
@@ -230,11 +230,11 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		return nil, err
 	}
 
-	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod)
+	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod.Duration)
 
 	// Initialize SDN before building kubelet config so it can modify option
 	sdnPlugin, err := sdnplugin.NewNodePlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient, internalKubeInformers, options.NodeName, options.NodeIP,
-		options.NetworkConfig.MTU, proxyconfig.KubeProxyConfiguration, options.DockerConfig.DockerShimSocket)
+		options.NetworkConfig.MTU, *proxyconfig, options.DockerConfig.DockerShimSocket)
 	if err != nil {
 		return nil, fmt.Errorf("SDN initialization failed: %v", err)
 	}
@@ -376,9 +376,13 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	return config, nil
 }
 
-func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServerConfig, error) {
+func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubeProxyConfiguration, error) {
+	proxyOptions, err := kubeproxyoptions.NewOptions()
+	if err != nil {
+		return nil, err
+	}
 	// get default config
-	proxyconfig := proxyoptions.NewProxyConfig()
+	proxyconfig := proxyOptions.GetConfig()
 
 	// BindAddress - Override default bind address from our config
 	addr := options.ServingInfo.BindAddress
@@ -393,8 +397,8 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	proxyconfig.BindAddress = ip.String()
 
 	// HealthzPort, HealthzBindAddress - disable
-	proxyconfig.HealthzPort = 0
 	proxyconfig.HealthzBindAddress = ""
+	proxyconfig.MetricsBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
 	oomScoreAdj := int32(0)
@@ -402,11 +406,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	proxyconfig.ResourceContainer = ""
 
 	// use the same client as the node
-	proxyconfig.Master = ""
-	proxyconfig.Kubeconfig = options.MasterKubeConfig
-
-	// PortRange, use default
-	// HostnameOverride, use default
+	proxyconfig.ClientConnection.KubeConfigFile = options.MasterKubeConfig
 
 	// ProxyMode, set to iptables
 	proxyconfig.Mode = "iptables"
@@ -416,29 +416,23 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*proxyoptions.ProxyServ
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse the provided ip-tables sync period (%s) : %v", options.IPTablesSyncPeriod, err)
 	}
-	proxyconfig.IPTablesSyncPeriod = metav1.Duration{
+	proxyconfig.IPTables.SyncPeriod = metav1.Duration{
 		Duration: syncPeriod,
 	}
+	masqueradeBit := int32(0)
+	proxyconfig.IPTables.MasqueradeBit = &masqueradeBit
 
+	// PortRange, use default
+	// HostnameOverride, use default
 	// ConfigSyncPeriod, use default
-
-	// NodeRef, build from config
-	proxyconfig.NodeRef = &kclientv1.ObjectReference{
-		Kind: "Node",
-		Name: options.NodeName,
-	}
-
 	// MasqueradeAll, use default
-
 	// CleanupAndExit, use default
-
 	// KubeAPIQPS, use default, doesn't apply until we build a separate client
 	// KubeAPIBurst, use default, doesn't apply until we build a separate client
-
 	// UDPIdleTimeout, use default
 
 	// Resolve cmd flags to add any user overrides
-	if err := cmdflags.Resolve(options.ProxyArguments, proxyconfig.AddFlags); len(err) > 0 {
+	if err := cmdflags.Resolve(options.ProxyArguments, proxyOptions.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 

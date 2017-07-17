@@ -9,9 +9,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -93,7 +94,7 @@ func (d *NetworkDiagnostic) copyNetworkPodInfo(pod *kapi.Pod) error {
 	}
 	defer tmp.Close()
 
-	tarHelper := tar.New(s2iutil.NewFileSystem())
+	tarHelper := tar.New(s2ifs.NewFileSystem())
 	tarHelper.SetExclusionPattern(nil)
 	logdir := filepath.Join(d.LogDir, util.NetworkDiagNodeLogDirPrefix, pod.Spec.NodeName)
 	err = tarHelper.ExtractTarStream(logdir, tmp)
@@ -128,7 +129,7 @@ func (d *NetworkDiagnostic) getNetworkPodLogs(pod *kapi.Pod) error {
 		LimitBytes: &bytelim,
 	}
 
-	req, err := d.Factory.LogsForObject(pod, opts)
+	req, err := d.Factory.LogsForObject(pod, opts, 1*time.Minute)
 	if err != nil {
 		return fmt.Errorf("Request for network diagnostic pod on node %q failed unexpectedly: %v", pod.Spec.NodeName, err)
 	}
@@ -154,7 +155,7 @@ func (d *NetworkDiagnostic) getNetworkPodLogs(pod *kapi.Pod) error {
 	}
 
 	if err := scanner.Err(); err != nil { // Scan terminated abnormally
-		return fmt.Errorf("Unexpected error reading network diagnostic pod on node %q: (%T) %[1]v\nLogs are:\n%[2]s", pod.Spec.NodeName, err, podLogs)
+		return fmt.Errorf("Unexpected error reading network diagnostic pod on node %q: (%T) %[1]v\nLogs are:\n%[3]s", pod.Spec.NodeName, err, podLogs)
 	} else {
 		if nerrors > 0 {
 			return fmt.Errorf("See the errors below in the output from the network diagnostic pod on node %q:\n%s", pod.Spec.NodeName, podLogs)

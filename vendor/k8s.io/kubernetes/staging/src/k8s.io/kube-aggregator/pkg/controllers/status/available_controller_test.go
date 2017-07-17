@@ -20,27 +20,27 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/pkg/api/v1"
 	clienttesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	"k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/fake"
 	listers "k8s.io/kube-aggregator/pkg/client/listers/apiregistration/internalversion"
-	"k8s.io/kubernetes/pkg/api"
-	internallisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 )
 
-func newEndpoints(namespace, name string) *api.Endpoints {
-	return &api.Endpoints{
+func newEndpoints(namespace, name string) *v1.Endpoints {
+	return &v1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
 	}
 }
 
-func newEndpointsWithAddress(namespace, name string) *api.Endpoints {
-	return &api.Endpoints{
+func newEndpointsWithAddress(namespace, name string) *v1.Endpoints {
+	return &v1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
-		Subsets: []api.EndpointSubset{
+		Subsets: []v1.EndpointSubset{
 			{
-				Addresses: []api.EndpointAddress{
+				Addresses: []v1.EndpointAddress{
 					{
 						IP: "val",
 					},
@@ -50,11 +50,11 @@ func newEndpointsWithAddress(namespace, name string) *api.Endpoints {
 	}
 }
 
-func newService(namespace, name string) *api.Service {
-	return &api.Service{
+func newService(namespace, name string) *v1.Service {
+	return &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
-		Spec: api.ServiceSpec{
-			Type: api.ServiceTypeClusterIP,
+		Spec: v1.ServiceSpec{
+			Type: v1.ServiceTypeClusterIP,
 		},
 	}
 }
@@ -83,8 +83,8 @@ func TestSync(t *testing.T) {
 
 		apiServiceName       string
 		apiServices          []*apiregistration.APIService
-		services             []*api.Service
-		endpoints            []*api.Endpoints
+		services             []*v1.Service
+		endpoints            []*v1.Endpoints
 		expectedAvailability apiregistration.APIServiceCondition
 	}{
 		{
@@ -102,7 +102,7 @@ func TestSync(t *testing.T) {
 			name:           "no service",
 			apiServiceName: "remote.group",
 			apiServices:    []*apiregistration.APIService{newRemoteAPIService("remote.group")},
-			services:       []*api.Service{newService("foo", "not-bar")},
+			services:       []*v1.Service{newService("foo", "not-bar")},
 			expectedAvailability: apiregistration.APIServiceCondition{
 				Type:    apiregistration.Available,
 				Status:  apiregistration.ConditionFalse,
@@ -114,7 +114,7 @@ func TestSync(t *testing.T) {
 			name:           "no endpoints",
 			apiServiceName: "remote.group",
 			apiServices:    []*apiregistration.APIService{newRemoteAPIService("remote.group")},
-			services:       []*api.Service{newService("foo", "bar")},
+			services:       []*v1.Service{newService("foo", "bar")},
 			expectedAvailability: apiregistration.APIServiceCondition{
 				Type:    apiregistration.Available,
 				Status:  apiregistration.ConditionFalse,
@@ -126,8 +126,8 @@ func TestSync(t *testing.T) {
 			name:           "missing endpoints",
 			apiServiceName: "remote.group",
 			apiServices:    []*apiregistration.APIService{newRemoteAPIService("remote.group")},
-			services:       []*api.Service{newService("foo", "bar")},
-			endpoints:      []*api.Endpoints{newEndpoints("foo", "bar")},
+			services:       []*v1.Service{newService("foo", "bar")},
+			endpoints:      []*v1.Endpoints{newEndpoints("foo", "bar")},
 			expectedAvailability: apiregistration.APIServiceCondition{
 				Type:    apiregistration.Available,
 				Status:  apiregistration.ConditionFalse,
@@ -139,14 +139,13 @@ func TestSync(t *testing.T) {
 			name:           "remote",
 			apiServiceName: "remote.group",
 			apiServices:    []*apiregistration.APIService{newRemoteAPIService("remote.group")},
-			services:       []*api.Service{newService("foo", "bar")},
-			endpoints:      []*api.Endpoints{newEndpointsWithAddress("foo", "bar")},
+			services:       []*v1.Service{newService("foo", "bar")},
+			endpoints:      []*v1.Endpoints{newEndpointsWithAddress("foo", "bar")},
 			expectedAvailability: apiregistration.APIServiceCondition{
-				// this is different in the 1.7 pull where the check is skipped.
 				Type:    apiregistration.Available,
-				Status:  apiregistration.ConditionFalse,
-				Reason:  "FailedDiscoveryCheck",
-				Message: `no response from https:///apis: Get https:///apis: http: no Host in request URL`,
+				Status:  apiregistration.ConditionTrue,
+				Reason:  "Passed",
+				Message: `all checks passed`,
 			},
 		},
 	}
@@ -169,8 +168,8 @@ func TestSync(t *testing.T) {
 		c := AvailableConditionController{
 			apiServiceClient: fakeClient.Apiregistration(),
 			apiServiceLister: listers.NewAPIServiceLister(apiServiceIndexer),
-			serviceLister:    internallisters.NewServiceLister(serviceIndexer),
-			endpointsLister:  internallisters.NewEndpointsLister(endpointsIndexer),
+			serviceLister:    v1listers.NewServiceLister(serviceIndexer),
+			endpointsLister:  v1listers.NewEndpointsLister(endpointsIndexer),
 		}
 		c.sync(tc.apiServiceName)
 

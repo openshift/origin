@@ -36,7 +36,7 @@ func TestAccept(t *testing.T) {
 		"empty": {
 			matcher: nameSet{},
 			covers: map[schema.GroupResource]bool{
-				schema.GroupResource{}: false,
+				{}: false,
 			},
 		},
 		"accepts when rules are empty": {
@@ -265,11 +265,11 @@ func TestAccept(t *testing.T) {
 			},
 			matcher: nameSet{},
 			covers: map[schema.GroupResource]bool{
-				podResource:                                                true,
-				schema.GroupResource{Resource: "services"}:                 true,
-				schema.GroupResource{Group: "extra", Resource: "services"}: true,
-				schema.GroupResource{Group: "extra", Resource: "nodes"}:    true,
-				schema.GroupResource{Resource: "nodes"}:                    false,
+				podResource:                            true,
+				{Resource: "services"}:                 true,
+				{Group: "extra", Resource: "services"}: true,
+				{Group: "extra", Resource: "nodes"}:    true,
+				{Resource: "nodes"}:                    false,
 			},
 		},
 	}

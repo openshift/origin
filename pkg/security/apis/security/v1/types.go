@@ -83,6 +83,7 @@ type FSType string
 
 var (
 	FSTypeAzureFile             FSType = "azureFile"
+	FSTypeAzureDisk             FSType = "azureDisk"
 	FSTypeFlocker               FSType = "flocker"
 	FSTypeFlexVolume            FSType = "flexVolume"
 	FSTypeHostPath              FSType = "hostPath"
@@ -101,6 +102,13 @@ var (
 	FSTypeDownwardAPI           FSType = "downwardAPI"
 	FSTypeFC                    FSType = "fc"
 	FSTypeConfigMap             FSType = "configMap"
+	FSTypeVsphereVolume         FSType = "vsphere"
+	FSTypeQuobyte               FSType = "quobyte"
+	FSTypePhotonPersistentDisk  FSType = "photonPersistentDisk"
+	FSProjected                 FSType = "projected"
+	FSPortworxVolume            FSType = "portworxVolume"
+	FSScaleIO                   FSType = "scaleIO"
+	FSStorageOS                 FSType = "storageOS"
 	FSTypeAll                   FSType = "*"
 	FSTypeNone                  FSType = "none"
 )

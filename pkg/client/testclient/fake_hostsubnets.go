@@ -16,6 +16,7 @@ type FakeHostSubnet struct {
 }
 
 var hostSubnetsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "hostsubnets"}
+var hostSubnetsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "HostSubnet"}
 
 func (c *FakeHostSubnet) Get(name string, options metav1.GetOptions) (*sdnapi.HostSubnet, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(hostSubnetsResource, name), &sdnapi.HostSubnet{})
@@ -27,7 +28,7 @@ func (c *FakeHostSubnet) Get(name string, options metav1.GetOptions) (*sdnapi.Ho
 }
 
 func (c *FakeHostSubnet) List(opts metav1.ListOptions) (*sdnapi.HostSubnetList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(hostSubnetsResource, opts), &sdnapi.HostSubnetList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(hostSubnetsResource, hostSubnetsKind, opts), &sdnapi.HostSubnetList{})
 	if obj == nil {
 		return nil, err
 	}

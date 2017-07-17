@@ -49,6 +49,7 @@ import (
 	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
+	"k8s.io/kubernetes/pkg/apis/networking"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -114,6 +115,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server := kapiserveroptions.NewServerRunOptions()
 
 	// Adjust defaults
+	server.EnableLogsHandler = false
 	server.EventTTL = 2 * time.Hour
 	server.ServiceClusterIPRange = net.IPNet(flagtypes.DefaultIPNet(masterConfig.KubernetesMasterConfig.ServicesSubnet))
 	server.ServiceNodePortRange = *portRange
@@ -211,6 +213,7 @@ func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserver
 	storageFactory.AddCohabitatingResources(autoscaling.Resource("horizontalpodautoscalers"), extensions.Resource("horizontalpodautoscalers"))
 	// keep Deployments in extensions for backwards compatibility, we'll have to migrate at some point, eventually
 	storageFactory.AddCohabitatingResources(extensions.Resource("deployments"), apps.Resource("deployments"))
+	storageFactory.AddCohabitatingResources(extensions.Resource("networkpolicies"), networking.Resource("networkpolicies"))
 	storageFactory.AddCohabitatingResources(kapi.Resource("securitycontextconstraints"), securityapi.Resource("securitycontextconstraints"))
 
 	return storageFactory, nil
@@ -312,6 +315,7 @@ func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	// Adjust defaults
 	cmserver.ClusterSigningCertFile = ""
 	cmserver.ClusterSigningKeyFile = ""
+	cmserver.ClusterSigningDuration = metav1.Duration{Duration: 0}
 	cmserver.Address = "" // no healthz endpoint
 	cmserver.Port = 0     // no healthz endpoint
 	cmserver.EnableGarbageCollector = true
@@ -653,7 +657,7 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 		GetDefinitions:    openapigenerated.GetOpenAPIDefinitions,
 		IgnorePrefixes:    []string{"/swaggerapi", "/healthz", "/controllers", "/metrics", "/version/openshift", "/brokers"},
 		GetDefinitionName: defNamer.GetDefinitionName,
-		GetOperationIDAndTags: func(servePath string, r *restful.Route) (string, []string, error) {
+		GetOperationIDAndTags: func(r *restful.Route) (string, []string, error) {
 			op := r.Operation
 			path := r.Path
 			// DEPRECATED: These endpoints are going to be removed in 1.8 or 1.9 release.
@@ -671,7 +675,7 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			if op != r.Operation {
 				return op, []string{}, nil
 			}
-			return apiserverendpointsopenapi.GetOperationIDAndTags(servePath, r)
+			return apiserverendpointsopenapi.GetOperationIDAndTags(r)
 		},
 		Info: &spec.Info{
 			InfoProps: spec.InfoProps{

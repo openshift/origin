@@ -6,13 +6,13 @@ trap os::test::junit::reconcile_output EXIT
 os::test::junit::declare_suite_start "cmd/basicresources/printer"
 os::cmd::expect_success 'oc create imagestream test1'
 os::cmd::expect_success 'oc new-app node'
-os::cmd::expect_success_and_text 'oc get all' 'is/test1'
-os::cmd::expect_success_and_not_text 'oc get is' 'is/test1'
+os::cmd::expect_success_and_text 'oc get all' 'imagestreams/test1'
+os::cmd::expect_success_and_not_text 'oc get is' 'imagestreams/test1'
 
 # Test that resource printer includes namespaces for buildconfigs with custom strategies
 os::cmd::expect_success 'oc create -f examples/sample-app/application-template-custombuild.json'
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample' 'deploymentconfig "frontend" created'
-os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+bc\/ruby\-sample\-build'
+os::cmd::expect_success_and_text 'oc get all --all-namespaces' 'cmd-printer[\ ]+buildconfigs\/ruby\-sample\-build'
 
 # Test that infos printer supports all outputFormat options
 os::cmd::expect_success_and_text 'oc new-app node -o yaml | oc set env -f - MYVAR=value' 'deploymentconfig "node" updated'

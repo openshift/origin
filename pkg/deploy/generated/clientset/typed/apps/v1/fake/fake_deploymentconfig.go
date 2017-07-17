@@ -18,6 +18,8 @@ type FakeDeploymentConfigs struct {
 
 var deploymentconfigsResource = schema.GroupVersionResource{Group: "apps.openshift.io", Version: "v1", Resource: "deploymentconfigs"}
 
+var deploymentconfigsKind = schema.GroupVersionKind{Group: "apps.openshift.io", Version: "v1", Kind: "DeploymentConfig"}
+
 func (c *FakeDeploymentConfigs) Create(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(deploymentconfigsResource, c.ns, deploymentConfig), &v1.DeploymentConfig{})
@@ -74,7 +76,7 @@ func (c *FakeDeploymentConfigs) Get(name string, options meta_v1.GetOptions) (re
 
 func (c *FakeDeploymentConfigs) List(opts meta_v1.ListOptions) (result *v1.DeploymentConfigList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(deploymentconfigsResource, c.ns, opts), &v1.DeploymentConfigList{})
+		Invokes(testing.NewListAction(deploymentconfigsResource, deploymentconfigsKind, c.ns, opts), &v1.DeploymentConfigList{})
 
 	if obj == nil {
 		return nil, err

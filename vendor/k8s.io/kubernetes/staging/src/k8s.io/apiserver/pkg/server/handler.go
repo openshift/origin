@@ -18,6 +18,7 @@ package server
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	rt "runtime"
@@ -85,7 +86,11 @@ func NewAPIServerHandler(name string, contextMapper request.RequestContextMapper
 		logStackOnRecover(s, panicReason, httpWriter)
 	})
 	gorestfulContainer.ServiceErrorHandler(func(serviceErr restful.ServiceError, request *restful.Request, response *restful.Response) {
-		serviceErrorHandler(s, serviceErr, request, response)
+		ctx, ok := contextMapper.Get(request.Request)
+		if !ok {
+			responsewriters.InternalError(response.ResponseWriter, request.Request, errors.New("no context found for request"))
+		}
+		serviceErrorHandler(ctx, s, serviceErr, request, response)
 	})
 
 	director := director{
@@ -135,8 +140,7 @@ func (d director) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				glog.V(5).Infof("%v: %v %q satisfied by gorestful with webservice %v", d.name, req.Method, path, ws.RootPath())
 				// don't use servemux here because gorestful servemuxes get messed up when removing webservices
 				// TODO fix gorestful, remove TPRs, or stop using gorestful
-				// We can use this in openshift because we don't support TPRs, so the TPR removal flow doesn't screw us
-				d.goRestfulContainer.ServeHTTP(w, req)
+				d.goRestfulContainer.Dispatch(w, req)
 				return
 			}
 
@@ -146,8 +150,7 @@ func (d director) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				glog.V(5).Infof("%v: %v %q satisfied by gorestful with webservice %v", d.name, req.Method, path, ws.RootPath())
 				// don't use servemux here because gorestful servemuxes get messed up when removing webservices
 				// TODO fix gorestful, remove TPRs, or stop using gorestful
-				// We can use this in openshift because we don't support TPRs, so the TPR removal flow doesn't screw us
-				d.goRestfulContainer.ServeHTTP(w, req)
+				d.goRestfulContainer.Dispatch(w, req)
 				return
 			}
 		}
@@ -175,11 +178,13 @@ func logStackOnRecover(s runtime.NegotiatedSerializer, panicReason interface{}, 
 	if ct := w.Header().Get("Content-Type"); len(ct) > 0 {
 		headers.Set("Accept", ct)
 	}
-	responsewriters.ErrorNegotiated(apierrors.NewGenericServerResponse(http.StatusInternalServerError, "", schema.GroupResource{}, "", "", 0, false), s, schema.GroupVersion{}, w, &http.Request{Header: headers})
+	emptyContext := request.NewContext() // best we can do here: we don't know the request
+	responsewriters.ErrorNegotiated(emptyContext, apierrors.NewGenericServerResponse(http.StatusInternalServerError, "", schema.GroupResource{}, "", "", 0, false), s, schema.GroupVersion{}, w, &http.Request{Header: headers})
 }
 
-func serviceErrorHandler(s runtime.NegotiatedSerializer, serviceErr restful.ServiceError, request *restful.Request, resp *restful.Response) {
+func serviceErrorHandler(ctx request.Context, s runtime.NegotiatedSerializer, serviceErr restful.ServiceError, request *restful.Request, resp *restful.Response) {
 	responsewriters.ErrorNegotiated(
+		ctx,
 		apierrors.NewGenericServerResponse(serviceErr.Code, "", schema.GroupResource{}, "", serviceErr.Message, 0, false),
 		s,
 		schema.GroupVersion{},

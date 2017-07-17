@@ -22,6 +22,7 @@ type FakeBuildConfigs struct {
 }
 
 var buildConfigsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "buildconfigs"}
+var buildConfigsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "BuildConfig"}
 
 func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(buildConfigsResource, c.Namespace, name), &buildapi.BuildConfig{})
@@ -33,7 +34,7 @@ func (c *FakeBuildConfigs) Get(name string, options metav1.GetOptions) (*buildap
 }
 
 func (c *FakeBuildConfigs) List(opts metav1.ListOptions) (*buildapi.BuildConfigList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, c.Namespace, opts), &buildapi.BuildConfigList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildConfigsResource, buildConfigsKind, c.Namespace, opts), &buildapi.BuildConfigList{})
 	if obj == nil {
 		return nil, err
 	}

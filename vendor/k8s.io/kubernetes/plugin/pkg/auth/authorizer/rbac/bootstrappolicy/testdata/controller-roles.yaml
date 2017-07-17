@@ -74,6 +74,12 @@ items:
     verbs:
     - update
   - apiGroups:
+    - authorization.k8s.io
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
     - ""
     resources:
     - events
@@ -96,6 +102,7 @@ items:
     resources:
     - cronjobs
     verbs:
+    - delete
     - get
     - list
     - update
@@ -109,6 +116,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
@@ -147,6 +155,7 @@ items:
     resources:
     - daemonsets
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -180,6 +189,17 @@ items:
     verbs:
     - create
   - apiGroups:
+    - apps
+    resources:
+    - controllerrevisions
+    verbs:
+    - create
+    - delete
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
     resources:
     - events
@@ -203,6 +223,7 @@ items:
     resources:
     - deployments
     verbs:
+    - delete
     - get
     - list
     - update
@@ -474,6 +495,7 @@ items:
     resources:
     - jobs
     verbs:
+    - delete
     - get
     - list
     - update
@@ -492,6 +514,7 @@ items:
     - create
     - delete
     - list
+    - patch
     - watch
   - apiGroups:
     - ""
@@ -561,6 +584,7 @@ items:
     resources:
     - nodes/status
     verbs:
+    - patch
     - update
   - apiGroups:
     - ""
@@ -718,6 +742,7 @@ items:
     resources:
     - replicasets
     verbs:
+    - delete
     - get
     - list
     - update
@@ -761,6 +786,7 @@ items:
     resources:
     - replicationcontrollers
     verbs:
+    - delete
     - get
     - list
     - update
@@ -936,6 +962,7 @@ items:
     resources:
     - statefulsets
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -955,6 +982,18 @@ items:
     - get
     - patch
     - update
+  - apiGroups:
+    - apps
+    resources:
+    - controllerrevisions
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
     - ""
     resources:

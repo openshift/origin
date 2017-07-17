@@ -11,19 +11,34 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/kubernetes/pkg/api"
+	apihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	"k8s.io/kubernetes/pkg/proxy"
-	"k8s.io/kubernetes/pkg/proxy/config"
 
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 )
 
+// EndpointsConfigHandler is an abstract interface of objects which receive update notifications for the set of endpoints.
+type EndpointsConfigHandler interface {
+	// OnEndpointsUpdate gets called when endpoints configuration is changed for a given
+	// service on any of the configuration sources. An example is when a new
+	// service comes up, or when containers come up or down for an existing service.
+	OnEndpointsUpdate(endpoints []*api.Endpoints)
+}
+
+// ServiceConfigHandler is an abstract interface of objects which receive update notifications for the set of services.
+type ServiceConfigHandler interface {
+	// OnServiceUpdate gets called when a configuration has been changed by one of the sources.
+	// This is the union of all the configuration sources.
+	OnServiceUpdate(services []*api.Service)
+}
+
 type HybridProxier struct {
 	unidlingProxy        *userspace.Proxier
-	unidlingLoadBalancer config.EndpointsConfigHandler
-	mainEndpointsHandler config.EndpointsConfigHandler
-	mainServicesHandler  config.ServiceConfigHandler
+	unidlingLoadBalancer EndpointsConfigHandler
+	mainEndpointsHandler EndpointsConfigHandler
+	mainServicesHandler  ServiceConfigHandler
 	mainProxy            proxy.ProxyProvider
 	syncPeriod           time.Duration
 	serviceLister        kcorelisters.ServiceLister
@@ -35,11 +50,11 @@ type HybridProxier struct {
 }
 
 func NewHybridProxier(
-	unidlingLoadBalancer config.EndpointsConfigHandler,
+	unidlingLoadBalancer EndpointsConfigHandler,
 	unidlingProxy *userspace.Proxier,
-	mainEndpointsHandler config.EndpointsConfigHandler,
+	mainEndpointsHandler EndpointsConfigHandler,
 	mainProxy proxy.ProxyProvider,
-	mainServicesHandler config.ServiceConfigHandler,
+	mainServicesHandler ServiceConfigHandler,
 	syncPeriod time.Duration,
 	serviceLister kcorelisters.ServiceLister,
 ) (*HybridProxier, error) {
@@ -64,7 +79,7 @@ func (p *HybridProxier) OnServiceUpdate(services []*api.Service) {
 	defer p.usingUserspaceLock.Unlock()
 
 	for _, service := range services {
-		if !api.IsServiceIPSet(service) {
+		if !apihelper.IsServiceIPSet(service) {
 			// Skip service with no ClusterIP set
 			continue
 		}

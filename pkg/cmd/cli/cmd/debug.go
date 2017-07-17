@@ -38,7 +38,7 @@ type DebugOptions struct {
 	Client *client.Client
 
 	Print         func(pod *kapi.Pod, w io.Writer) error
-	LogsForObject func(object, options runtime.Object) (*restclient.Request, error)
+	LogsForObject func(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error)
 
 	NoStdin    bool
 	ForceTTY   bool
@@ -147,6 +147,7 @@ func NewCmdDebug(fullName string, f *clientcmd.Factory, in io.Reader, out, errou
 	cmd.Flags().MarkHidden("sort-by")
 	cmd.Flags().Bool("show-all", true, "When printing, show all resources (default hide terminated pods.)")
 	cmd.Flags().MarkHidden("show-all")
+	cmd.Flags().Bool("show-labels", false, "When printing, show all labels as the last column (default hide labels column)")
 
 	cmd.Flags().BoolVarP(&options.NoStdin, "no-stdin", "I", options.NoStdin, "Bypasses passing STDIN to the container, defaults to true if no command specified")
 	cmd.Flags().BoolVarP(&options.ForceTTY, "tty", "t", false, "Force a pseudo-terminal to be allocated")
@@ -217,7 +218,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	}
 
 	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	b := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SingleResourceType().
 		ResourceNames("pods", resources...).
@@ -267,7 +268,7 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 {
 		o.Print = func(pod *kapi.Pod, out io.Writer) error {
-			return f.PrintObject(cmd, mapper, pod, out)
+			return f.PrintObject(cmd, false, mapper, pod, out)
 		}
 	}
 

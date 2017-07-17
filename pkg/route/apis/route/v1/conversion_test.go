@@ -23,19 +23,19 @@ func TestFieldSelectorConversions(t *testing.T) {
 }
 
 func TestSupportingCamelConstants(t *testing.T) {
-	for k, v := range map[routeapiv1.TLSTerminationType]routeapi.TLSTerminationType{
-		"Reencrypt":   routeapi.TLSTerminationReencrypt,
-		"Edge":        routeapi.TLSTerminationEdge,
-		"Passthrough": routeapi.TLSTerminationPassthrough,
+	for k, v := range map[routeapiv1.TLSTerminationType]routeapiv1.TLSTerminationType{
+		"Reencrypt":   routeapiv1.TLSTerminationReencrypt,
+		"Edge":        routeapiv1.TLSTerminationEdge,
+		"Passthrough": routeapiv1.TLSTerminationPassthrough,
 	} {
-		obj := &routeapiv1.TLSConfig{Termination: k}
-		out := &routeapi.TLSConfig{}
-		if err := kapi.Scheme.Convert(obj, out, nil); err != nil {
-			t.Errorf("%s: did not convert: %v", k, err)
-			continue
+		obj := &routeapiv1.Route{
+			Spec: routeapiv1.RouteSpec{
+				TLS: &routeapiv1.TLSConfig{Termination: k},
+			},
 		}
-		if out.Termination != v {
-			t.Errorf("%s: did not default termination: %#v", k, out)
+		kapi.Scheme.Default(obj)
+		if obj.Spec.TLS.Termination != v {
+			t.Errorf("%s: did not default termination: %#v", k, obj)
 		}
 	}
 }
