@@ -7,6 +7,7 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 	rbacclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/rbac/internalversion"
@@ -120,8 +121,8 @@ func (c *OriginClusterRoleToRBACClusterRoleController) clusterPolicyEventHandler
 			}
 		},
 		UpdateFunc: func(old, cur interface{}) {
-			originContainerObj := cur.(*authorizationapi.ClusterPolicy)
-			for _, originObj := range originContainerObj.Roles {
+			curKeys := sets.NewString()
+			for _, originObj := range cur.(*authorizationapi.ClusterPolicy).Roles {
 				c.originIndexer.Add(originObj)
 				key, err := controller.KeyFunc(originObj)
 				if err != nil {
@@ -129,6 +130,18 @@ func (c *OriginClusterRoleToRBACClusterRoleController) clusterPolicyEventHandler
 					continue
 				}
 				c.queue.Add(key)
+				curKeys.Insert(key)
+			}
+			for _, originObj := range old.(*authorizationapi.ClusterPolicy).Roles {
+				key, err := controller.KeyFunc(originObj)
+				if err != nil {
+					utilruntime.HandleError(err)
+					continue
+				}
+				if !curKeys.Has(key) {
+					c.originIndexer.Delete(originObj)
+					c.queue.Add(key)
+				}
 			}
 		},
 		DeleteFunc: func(obj interface{}) {
