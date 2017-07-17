@@ -208,9 +208,8 @@ __custom_func() {
     * nodes (aka 'no')
     * persistentvolumeclaims (aka 'pvc')
     * persistentvolumes (aka 'pv')
-    * poddisruptionbudgets (aka 'pdb')
-    * podpreset
     * pods (aka 'po')
+    * poddisruptionbudgets (aka 'pdb')
     * podsecuritypolicies (aka 'psp')
     * podtemplates
     * policies
