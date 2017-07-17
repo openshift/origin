@@ -106,7 +106,13 @@ loop="${TIMES:-1}"
 # hack/test-integration.sh WatchBuilds
 # hack/test-integration.sh Template*
 # hack/test-integration.sh "(WatchBuilds|Template)"
-tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testexec}" | grep -E "${1-Test}") )
+listTemplate='{{ range $i,$file := .TestGoFiles }}{{$.Dir}}/{{ $file }}{{ "\n" }}{{end}}'
+tests=( $(go list -f "${listTemplate}" "./${package}" | xargs grep -E -o --no-filename '^func Test[^(]+' | cut -d ' ' -f 2 | grep -E "${1-Test}") )
+
+if [[ "${#tests[@]}" == "0" ]]; then
+	os::text::print_red "No tests found matching \"${1-Test}\""
+	exit 1
+fi
 
 # run each test as its own process
 ret=0
