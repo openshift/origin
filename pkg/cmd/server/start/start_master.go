@@ -23,6 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -400,6 +402,13 @@ func (m *Master) Start() error {
 
 	if m.config.KubernetesMasterConfig == nil {
 		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
+	}
+
+	if len(m.config.AggregatorConfig.ProxyClientInfo.KeyFile) > 0 {
+		// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
+		// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
+		// TODO: make scheme threadsafe and do this as part of aggregator config building
+		aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 	}
 
 	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured

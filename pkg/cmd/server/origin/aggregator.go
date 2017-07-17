@@ -34,11 +34,9 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
-	"k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
 	"k8s.io/kube-aggregator/pkg/controllers/autoregister"
-	kapi "k8s.io/kubernetes/pkg/api"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 )
 
@@ -52,8 +50,10 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 	genericConfig.OpenAPIConfig = nil
 	genericConfig.SwaggerConfig = nil
 
+	// This depends on aggregator types being registered into the kapi.Scheme, which is currently done in Start() to avoid concurrent scheme modification
+	//
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
-	install.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+	// install.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 
 	client, err := kubeclientset.NewForConfig(genericConfig.LoopbackClientConfig)
 	if err != nil {
