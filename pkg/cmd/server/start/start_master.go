@@ -402,17 +402,17 @@ func (m *Master) Start() error {
 		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
 	}
 
-	// informers are shared amongst all the various components we build
-	informers, err := NewInformers(*m.config)
-	if err != nil {
-		return err
-	}
 	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
 	// as a separate API server which can be chained as a delegate
 	var controllerPlug plug.Plug
 
 	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
 	if controllersEnabled {
+		// informers are shared amongst all the various controllers we build
+		informers, err := NewInformers(*m.config)
+		if err != nil {
+			return err
+		}
 		kubeInternal, _, err := configapi.GetInternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
@@ -497,6 +497,11 @@ func (m *Master) Start() error {
 	}
 
 	if m.api {
+		// informers are shared amongst all the various api components we build
+		informers, err := NewInformers(*m.config)
+		if err != nil {
+			return err
+		}
 		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
 		if err != nil {
 			return err
