@@ -148,6 +148,8 @@ const (
 	// TemplateInstanceInstantiateFailure indicates the failure of the template
 	// instantiation
 	TemplateInstanceInstantiateFailure TemplateInstanceConditionType = "InstantiateFailure"
+
+	TemplateInstanceWaiting TemplateInstanceConditionType = "Waiting"
 )
 
 // TemplateInstanceList is a list of TemplateInstance objects.

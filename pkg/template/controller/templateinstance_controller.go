@@ -3,13 +3,16 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -27,9 +30,11 @@ import (
 	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/config/cmd"
+	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion/apps/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
-	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
+	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
 )
@@ -45,30 +50,47 @@ type TemplateInstanceController struct {
 	kc             kclientsetinternal.Interface
 	templateclient internalversiontemplate.TemplateInterface
 
-	lister   templatelister.TemplateInstanceLister
-	informer cache.SharedIndexInformer
+	lister             templatelister.TemplateInstanceLister
+	templateInformer   cache.SharedIndexInformer
+	deploymentInformer cache.SharedIndexInformer
 
 	queue workqueue.RateLimitingInterface
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(config *rest.Config, oc client.Interface, kc kclientsetinternal.Interface, templateclient internalversiontemplate.TemplateInterface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(config *rest.Config, oc client.Interface, kc kclientsetinternal.Interface, templateclient internalversiontemplate.TemplateInterface, templateInformer templateinformer.TemplateInstanceInformer, deploymentInformer deployinformer.DeploymentConfigInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
-		config:         config,
-		oc:             oc,
-		kc:             kc,
-		templateclient: templateclient,
-		lister:         informer.Lister(),
-		informer:       informer.Informer(),
-		queue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TemplateInstanceController"),
+		config:             config,
+		oc:                 oc,
+		kc:                 kc,
+		templateclient:     templateclient,
+		lister:             templateInformer.Lister(),
+		templateInformer:   templateInformer.Informer(),
+		deploymentInformer: deploymentInformer.Informer(),
+		queue:              workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TemplateInstanceController"),
 	}
 
-	c.informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.templateInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			c.enqueue(obj.(*templateapi.TemplateInstance))
 		},
 		UpdateFunc: func(_, obj interface{}) {
 			c.enqueue(obj.(*templateapi.TemplateInstance))
+		},
+		DeleteFunc: func(obj interface{}) {
+		},
+	})
+
+	c.deploymentInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			if templateInstance, found := obj.(*deployapi.DeploymentConfig).Annotations[templateapi.TemplateInstanceAnnotation]; found {
+				c.queue.Add(templateInstance)
+			}
+		},
+		UpdateFunc: func(_, obj interface{}) {
+			if templateInstance, found := obj.(*deployapi.DeploymentConfig).Annotations[templateapi.TemplateInstanceAnnotation]; found {
+				c.queue.Add(templateInstance)
+			}
 		},
 		DeleteFunc: func(obj interface{}) {
 		},
@@ -118,10 +140,14 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return err
 	}
 
+	var instantiated bool
 	for _, condition := range templateInstance.Status.Conditions {
 		if condition.Type == templateapi.TemplateInstanceReady && condition.Status == kapi.ConditionTrue ||
 			condition.Type == templateapi.TemplateInstanceInstantiateFailure && condition.Status == kapi.ConditionTrue {
 			return nil
+		}
+		if condition.Type == templateapi.TemplateInstanceWaiting && condition.Status == kapi.ConditionTrue {
+			instantiated = true
 		}
 	}
 
@@ -132,29 +158,70 @@ func (c *TemplateInstanceController) sync(key string) error {
 		return err
 	}
 
-	instantiateErr := c.instantiate(templateInstance)
-	if instantiateErr != nil {
-		glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, instantiateErr)
+	if !instantiated {
+		instantiateErr := c.instantiate(templateInstance)
+		if instantiateErr != nil {
+			glog.V(4).Infof("TemplateInstance controller: instantiate %s returned %v", key, instantiateErr)
+
+			templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, templateapi.TemplateInstanceCondition{
+				Type:               templateapi.TemplateInstanceInstantiateFailure,
+				Status:             kapi.ConditionTrue,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "Failed",
+				Message:            instantiateErr.Error(),
+			})
+
+			_, err = c.templateclient.TemplateInstances(templateInstance.Namespace).UpdateStatus(templateInstance)
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("TemplateInstance status update failed: %v", err))
+			}
+
+			return err
+		}
 	}
 
-	templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceReady)
-	templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceInstantiateFailure)
+	waiting, err := c.checkWait(templateInstance)
 
-	if instantiateErr == nil {
-		templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, templateapi.TemplateInstanceCondition{
-			Type:               templateapi.TemplateInstanceReady,
-			Status:             kapi.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "Created",
-		})
+	switch {
+	case err != nil:
+		templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceWaiting)
 
-	} else {
 		templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, templateapi.TemplateInstanceCondition{
 			Type:               templateapi.TemplateInstanceInstantiateFailure,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             "Failed",
-			Message:            instantiateErr.Error(),
+			Message:            err.Error(),
+		})
+
+	case waiting:
+		var found bool
+		for _, condition := range templateInstance.Status.Conditions {
+			if condition.Type == templateapi.TemplateInstanceWaiting && condition.Status == kapi.ConditionTrue {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceWaiting)
+
+			templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, templateapi.TemplateInstanceCondition{
+				Type:               templateapi.TemplateInstanceWaiting,
+				Status:             kapi.ConditionTrue,
+				LastTransitionTime: metav1.Now(),
+				Reason:             "Waiting",
+			})
+		}
+
+	default:
+		templateInstance.Status.Conditions = templateapi.FilterTemplateInstanceCondition(templateInstance.Status.Conditions, templateapi.TemplateInstanceWaiting)
+
+		templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, templateapi.TemplateInstanceCondition{
+			Type:               templateapi.TemplateInstanceReady,
+			Status:             kapi.ConditionTrue,
+			LastTransitionTime: metav1.Now(),
+			Reason:             "Created",
 		})
 	}
 
@@ -166,13 +233,68 @@ func (c *TemplateInstanceController) sync(key string) error {
 	return err
 }
 
+func (c *TemplateInstanceController) checkWait(templateInstance *templateapi.TemplateInstance) (waiting bool, err error) {
+	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{templateInstance.Name})
+
+	dcs, err := c.oc.DeploymentConfigs("").List(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
+	if err != nil {
+		return false, err
+	}
+
+	for _, dc := range dcs.Items {
+		if dc.Annotations[templateapi.TemplateInstanceAnnotation] != templateInstance.Namespace+"/"+templateInstance.Name {
+			continue
+		}
+
+		wait, found := dc.Annotations[templateapi.WaitAnnotation]
+		if !found {
+			continue
+		}
+
+		waitSecs, err := strconv.Atoi(wait)
+		if err != nil {
+			return false, err
+		}
+
+		var progressing, available *deployapi.DeploymentCondition
+		for i, condition := range dc.Status.Conditions {
+			switch condition.Type {
+			case deployapi.DeploymentProgressing:
+				progressing = &dc.Status.Conditions[i]
+
+			case deployapi.DeploymentAvailable:
+				available = &dc.Status.Conditions[i]
+			}
+		}
+
+		if progressing != nil && progressing.Status == kapi.ConditionFalse {
+			return false, fmt.Errorf("deploymentconfig %s/%s not progressing", dc.Namespace, dc.Name)
+		}
+
+		if !(progressing != nil &&
+			progressing.Status == kapi.ConditionTrue &&
+			progressing.Reason == deployapi.NewRcAvailableReason &&
+			available != nil &&
+			available.Status == kapi.ConditionTrue) {
+
+			if time.Now().Sub(dc.CreationTimestamp.Time) > time.Duration(waitSecs)*time.Second {
+				return false, fmt.Errorf("deploymentconfig %s/%s timeout expired", dc.Namespace, dc.Name)
+			}
+
+			waiting = true
+		}
+	}
+
+	return waiting, nil
+}
+
 // Run runs the controller until stopCh is closed, with as many workers as
 // specified.
 func (c *TemplateInstanceController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	defer c.queue.ShutDown()
 
-	if !cache.WaitForCacheSync(stopCh, c.informer.HasSynced) {
+	if !cache.WaitForCacheSync(stopCh, c.templateInformer.HasSynced) {
 		return
 	}
 

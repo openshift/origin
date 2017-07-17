@@ -34,6 +34,7 @@ func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
 		internalKubeClient,
 		templateClient.Template(),
 		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
+		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs(),
 	).Run(5, ctx.Stop)
 
 	return true, nil

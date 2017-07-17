@@ -58,4 +58,6 @@ const (
 	// Base64ExposeAnnotationPrefix is as ExposeAnnotationPrefix, except that
 	// any []byte values returned are base64 encoded.
 	Base64ExposeAnnotationPrefix = "template.openshift.io/base64-expose-"
+
+	WaitAnnotation = "template.openshift.io/wait-for-completion-seconds"
 )
