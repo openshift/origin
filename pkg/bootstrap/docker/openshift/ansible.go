@@ -38,12 +38,12 @@ nodes
 
 openshift_deployment_type={{.OSEDeploymentType}} 
 
+openshift_master_default_subdomain={{.DefaultSubdomain}}
+
 openshift_metrics_install_metrics=True
 openshift_metrics_image_prefix={{.MetricsImagePrefix}}
 openshift_metrics_image_version={{.MetricsImageVersion}}
 openshift_metrics_resolution={{.MetricsResolution}}
-
-openshift_metrics_hawkular_hostname={{.HawkularHostName}}
 
 [masters]
 {{.MasterIP}} ansible_connection=local
@@ -95,10 +95,10 @@ type ansibleMetricsInventoryParams struct {
 	MetricsImagePrefix  string
 	MetricsImageVersion string
 	MetricsResolution   string
-	HawkularHostName    string
 }
 
 type ansibleInventoryParams struct {
+	DefaultSubdomain  string
 	MasterIP          string
 	MasterPublicURL   string
 	OSERelease        string
