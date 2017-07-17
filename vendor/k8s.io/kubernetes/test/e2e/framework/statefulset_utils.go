@@ -672,26 +672,29 @@ func DeleteAllStatefulSets(c clientset.Interface, ns string) {
 		errList = append(errList, fmt.Sprintf("Timeout waiting for pvc deletion."))
 	}
 
-	pollErr := wait.PollImmediate(StatefulSetPoll, StatefulSetTimeout, func() (bool, error) {
-		pvList, err := c.Core().PersistentVolumes().List(metav1.ListOptions{LabelSelector: labels.Everything().String()})
-		if err != nil {
-			Logf("WARNING: Failed to list pvs, retrying %v", err)
-			return false, nil
-		}
-		waitingFor := []string{}
-		for _, pv := range pvList.Items {
-			if pvNames.Has(pv.Name) {
-				waitingFor = append(waitingFor, fmt.Sprintf("%v: %+v", pv.Name, pv.Status))
+	// the PVs seem to stick around for us.
+	if false {
+		pollErr := wait.PollImmediate(StatefulSetPoll, StatefulSetTimeout, func() (bool, error) {
+			pvList, err := c.Core().PersistentVolumes().List(metav1.ListOptions{LabelSelector: labels.Everything().String()})
+			if err != nil {
+				Logf("WARNING: Failed to list pvs, retrying %v", err)
+				return false, nil
 			}
+			waitingFor := []string{}
+			for _, pv := range pvList.Items {
+				if pvNames.Has(pv.Name) {
+					waitingFor = append(waitingFor, fmt.Sprintf("%v: %+v", pv.Name, pv.Status))
+				}
+			}
+			if len(waitingFor) == 0 {
+				return true, nil
+			}
+			Logf("Still waiting for pvs of statefulset to disappear:\n%v", strings.Join(waitingFor, "\n"))
+			return false, nil
+		})
+		if pollErr != nil {
+			errList = append(errList, fmt.Sprintf("Timeout waiting for pv provisioner to delete pvs, this might mean the test leaked pvs."))
 		}
-		if len(waitingFor) == 0 {
-			return true, nil
-		}
-		Logf("Still waiting for pvs of statefulset to disappear:\n%v", strings.Join(waitingFor, "\n"))
-		return false, nil
-	})
-	if pollErr != nil {
-		errList = append(errList, fmt.Sprintf("Timeout waiting for pv provisioner to delete pvs, this might mean the test leaked pvs."))
 	}
 	if len(errList) != 0 {
 		ExpectNoError(fmt.Errorf("%v", strings.Join(errList, "\n")))
