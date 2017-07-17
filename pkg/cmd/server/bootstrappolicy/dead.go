@@ -21,7 +21,12 @@ func addDeadClusterRole(name string) {
 
 	deadClusterRoles = append(deadClusterRoles,
 		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: name,
+				Annotations: map[string]string{
+					roleSystemOnly: roleIsSystemOnly,
+				},
+			},
 		},
 	)
 }
