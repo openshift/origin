@@ -6,18 +6,21 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+function die() {
+    echo "$*" 1>&2
+    exit 1
+}
+
 BLANK_LINE_OR_COMMENT_REGEX="([[:space:]]*$|#.*)"
 PORT_REGEX="[[:digit:]]+"
 PROTO_REGEX="(tcp|udp)"
 IP_REGEX="[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+"
 
 if [[ ! "${EGRESS_SOURCE:-}" =~ ^${IP_REGEX}$ ]]; then
-    echo "EGRESS_SOURCE unspecified or invalid"
-    exit 1
+    die "EGRESS_SOURCE unspecified or invalid"
 fi
 if [[ ! "${EGRESS_GATEWAY:-}" =~ ^${IP_REGEX}$ ]]; then
-    echo "EGRESS_GATEWAY unspecified or invalid"
-    exit 1
+    die "EGRESS_GATEWAY unspecified or invalid"
 fi
 
 if [[ -n "${EGRESS_ROUTER_DEBUG:-}" ]]; then
@@ -43,23 +46,30 @@ function setup_network() {
       arping -q -U -c 1 -I macvlan0 "${EGRESS_SOURCE}" || true ) > /dev/null 2>&1 < /dev/null &
 }
 
+function validate_port() {
+    local port=$1
+    if [[ "${port}" -lt "1" || "${port}" -gt "65535" ]]; then
+        die "Invalid port: ${port}, must be in the range 1 to 65535"
+    fi
+}
+
 function gen_iptables_rules() {
     if [[ -z "${EGRESS_DESTINATION:-}" ]]; then
-        echo "EGRESS_DESTINATION unspecified"
-        exit 1
+        die "EGRESS_DESTINATION unspecified"
     fi
 
     did_fallback=
+    declare -A used_ports=()
     while read dest; do
 	if [[ "${dest}" =~ ^${BLANK_LINE_OR_COMMENT_REGEX}$ ]]; then
             # comment or blank line
             continue
 	fi
 	if [[ -n "${did_fallback}" ]]; then
-            echo "EGRESS_DESTINATION fallback IP must be the last line" 1>&2
-            exit 1
+            die "EGRESS_DESTINATION fallback IP must be the last line" 1>&2
 	fi
 
+	localport=""
 	if [[ "${dest}" =~ ^${IP_REGEX}$ ]]; then
             # single IP address: do fallback "all ports to same IP"
             echo -A PREROUTING -i eth0 -j DNAT --to-destination "${dest}"
@@ -71,13 +81,23 @@ function gen_iptables_rules() {
 
 	elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}\ +${PORT_REGEX}$ ]]; then
             read localport proto destip destport <<< "${dest}"
+	    validate_port ${destport}
             echo -A PREROUTING -i eth0 -p "${proto}" --dport "${localport}" -j DNAT --to-destination "${destip}:${destport}"
 
 	else
-            echo "EGRESS_DESTINATION value '${dest}' is invalid" 1>&2
-            exit 1
+            die "EGRESS_DESTINATION value '${dest}' is invalid" 1>&2
 
 	fi
+
+	if [[ -n "${localport}" ]]; then
+	    validate_port ${localport}
+
+            if [[ "${used_ports[${localport}]:-}" == "" ]]; then
+                used_ports[${localport}]=1
+            else
+                die "EGRESS_DESTINATION localport $localport is already used, must be unique for each destination"
+	    fi
+        fi
 
     done <<< "${EGRESS_DESTINATION}"
     echo -A POSTROUTING -j SNAT --to-source "${EGRESS_SOURCE}"
@@ -132,8 +152,7 @@ case "${EGRESS_ROUTER_MODE:=legacy}" in
 	;;
 
     *)
-        echo "Unrecognized EGRESS_ROUTER_MODE '${EGRESS_ROUTER_MODE}'"
-        exit 1
+        die "Unrecognized EGRESS_ROUTER_MODE '${EGRESS_ROUTER_MODE}'"
         ;;
 esac
 
