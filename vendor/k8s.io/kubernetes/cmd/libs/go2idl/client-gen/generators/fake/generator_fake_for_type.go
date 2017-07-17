@@ -24,6 +24,8 @@ import (
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
+
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/util"
 )
 
 // genFakeForType produces a file for each top-level type.
@@ -64,13 +66,11 @@ func genStatus(t *types.Type) bool {
 			break
 		}
 	}
-
-	// Allow overriding via a comment on the type
-	genStatus, err := types.ExtractSingleBoolCommentTag("+", "genclientstatus", hasStatus, t.SecondClosestCommentLines)
+	tags, err := util.ParseClientGenTags(t.SecondClosestCommentLines)
 	if err != nil {
-		fmt.Printf("error looking up +genclientstatus: %v\n", err)
+		fmt.Printf("error parsing tags: %v\n", err)
 	}
-	return genStatus
+	return hasStatus && !tags.NoStatus
 }
 
 // hasObjectMeta returns true if the type has a ObjectMeta field.
@@ -87,7 +87,10 @@ func hasObjectMeta(t *types.Type) bool {
 func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	pkg := filepath.Base(t.Name.Package)
-	namespaced := !extractBoolTagOrDie("nonNamespaced", t.SecondClosestCommentLines)
+	tags, err := util.ParseClientGenTags(t.SecondClosestCommentLines)
+	if err != nil {
+		return err
+	}
 	canonicalGroup := g.group
 	if canonicalGroup == "core" {
 		canonicalGroup = ""
@@ -109,7 +112,7 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 		"type":                 t,
 		"package":              pkg,
 		"Package":              namer.IC(pkg),
-		"namespaced":           namespaced,
+		"namespaced":           !tags.NonNamespaced,
 		"Group":                namer.IC(g.group),
 		"GroupVersion":         namer.IC(g.group) + namer.IC(g.version),
 		"group":                canonicalGroup,
@@ -146,36 +149,77 @@ func (g *genFakeForType) GenerateType(c *generator.Context, t *types.Type, w io.
 		"ExtractFromListOptions":         c.Universe.Function(types.Name{Package: pkgClientGoTesting, Name: "ExtractFromListOptions"}),
 	}
 
-	noMethods := extractBoolTagOrDie("noMethods", t.SecondClosestCommentLines) == true
-
-	if namespaced {
-		sw.Do(structNamespaced, m)
-	} else {
-		sw.Do(structNonNamespaced, m)
+	if len(tags.OnlyVerbs) > 0 {
+		tags.SkipVerbs = []string{}
+		for _, m := range util.SupportedVerbs {
+			skip := true
+			for _, o := range tags.OnlyVerbs {
+				if o == m {
+					skip = false
+					break
+				}
+			}
+			if skip {
+				tags.SkipVerbs = append(tags.SkipVerbs, m)
+			}
+		}
 	}
 
-	if !noMethods {
+	if tags.NonNamespaced {
+		sw.Do(structNonNamespaced, m)
+	} else {
+		sw.Do(structNamespaced, m)
+	}
+
+	if !tags.NoVerbs {
 		sw.Do(resource, m)
-		sw.Do(createTemplate, m)
-		sw.Do(updateTemplate, m)
-		// Generate the UpdateStatus method if the type has a status
-		if genStatus(t) {
+		if !skipMethod("create", tags.SkipVerbs) {
+			sw.Do(createTemplate, m)
+		}
+		if !skipMethod("update", tags.SkipVerbs) {
+			sw.Do(updateTemplate, m)
+		}
+		if !skipMethod("updateStatus", tags.SkipVerbs) && genStatus(t) {
 			sw.Do(updateStatusTemplate, m)
 		}
-		sw.Do(deleteTemplate, m)
-		sw.Do(deleteCollectionTemplate, m)
-		sw.Do(getTemplate, m)
-		if hasObjectMeta(t) {
-			sw.Do(listUsingOptionsTemplate, m)
-		} else {
-			sw.Do(listTemplate, m)
+		if !skipMethod("delete", tags.SkipVerbs) {
+			sw.Do(deleteTemplate, m)
 		}
-		sw.Do(watchTemplate, m)
-		sw.Do(patchTemplate, m)
+		if !skipMethod("deleteCollection", tags.SkipVerbs) {
+			sw.Do(deleteCollectionTemplate, m)
+		}
+		if !skipMethod("get", tags.SkipVerbs) {
+			sw.Do(getTemplate, m)
+		}
+		if !skipMethod("list", tags.SkipVerbs) {
+			if hasObjectMeta(t) {
+				sw.Do(listUsingOptionsTemplate, m)
+			} else {
+				sw.Do(listTemplate, m)
+			}
+		}
+		if !skipMethod("watch", tags.SkipVerbs) {
+			sw.Do(watchTemplate, m)
+		}
+		if !skipMethod("patch", tags.SkipVerbs) {
+			sw.Do(patchTemplate, m)
+		}
+
 	}
 
 	return sw.Error()
 }
+
+func skipMethod(m string, skippedMethods []string) bool {
+	for _, toSkip := range skippedMethods {
+		if toSkip == m {
+			return true
+		}
+	}
+	return false
+}
+
+var allMethods = []string{"create", "update", "updateStatus", "delete", "deleteCollection", "get", "list", "watch", "patch"}
 
 // template for the struct that implements the type's interface
 var structNamespaced = `
