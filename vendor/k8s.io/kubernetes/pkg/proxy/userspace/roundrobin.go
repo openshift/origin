@@ -299,12 +299,10 @@ func (lb *LoadBalancerRR) OnEndpointsUpdate(allEndpoints []*api.Endpoints) {
 	// Remove endpoints missing from the update.
 	for k := range lb.services {
 		if _, exists := registeredEndpoints[k]; !exists {
+			glog.V(2).Infof("LoadBalancerRR: Removing endpoints for %s", k)
 			// Reset but don't delete.
 			state := lb.services[k]
-			if len(state.endpoints) > 0 {
-				glog.V(2).Infof("LoadBalancerRR: Removing endpoints for %s", k)
-				state.endpoints = []string{}
-			}
+			state.endpoints = []string{}
 			state.index = 0
 			state.affinity.affinityMap = map[string]*affinityState{}
 		}
