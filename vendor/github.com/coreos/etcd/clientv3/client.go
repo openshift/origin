@@ -20,12 +20,12 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/coreos/etcd/etcdserver/api/v3rpc/rpctypes"
+	prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -36,7 +36,6 @@ import (
 
 var (
 	ErrNoAvailableEndpoints = errors.New("etcdclient: no available endpoints")
-	ErrOldCluster           = errors.New("etcdclient: old cluster version")
 )
 
 // Client provides and manages an etcd v3 client session.
@@ -48,9 +47,7 @@ type Client struct {
 	Auth
 	Maintenance
 
-	conn     *grpc.ClientConn
-	dialerrc chan error
-
+	conn             *grpc.ClientConn
 	cfg              Config
 	creds            *credentials.TransportCredentials
 	balancer         *simpleBalancer
@@ -77,17 +74,18 @@ func New(cfg Config) (*Client, error) {
 	return newClient(&cfg)
 }
 
-// NewCtxClient creates a client with a context but no underlying grpc
-// connection. This is useful for embedded cases that override the
-// service interface implementations and do not need connection management.
-func NewCtxClient(ctx context.Context) *Client {
-	cctx, cancel := context.WithCancel(ctx)
-	return &Client{ctx: cctx, cancel: cancel}
-}
-
 // NewFromURL creates a new etcdv3 client from a URL.
 func NewFromURL(url string) (*Client, error) {
 	return New(Config{Endpoints: []string{url}})
+}
+
+// NewFromConfigFile creates a new etcdv3 client from a configuration file.
+func NewFromConfigFile(path string) (*Client, error) {
+	cfg, err := configFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return New(*cfg)
 }
 
 // Close shuts down the client's etcd connections.
@@ -95,10 +93,7 @@ func (c *Client) Close() error {
 	c.cancel()
 	c.Watcher.Close()
 	c.Lease.Close()
-	if c.conn != nil {
-		return toErr(c.ctx, c.conn.Close())
-	}
-	return c.ctx.Err()
+	return toErr(c.ctx, c.conn.Close())
 }
 
 // Ctx is a context for "out of band" messages (e.g., for sending
@@ -182,9 +177,8 @@ func parseEndpoint(endpoint string) (proto string, host string, scheme string) {
 	host = url.Host
 	switch url.Scheme {
 	case "http", "https":
-	case "unix", "unixs":
+	case "unix":
 		proto = "unix"
-		host = url.Host + url.Path
 	default:
 		proto, host = "", ""
 	}
@@ -197,7 +191,7 @@ func (c *Client) processCreds(scheme string) (creds *credentials.TransportCreden
 	case "unix":
 	case "http":
 		creds = nil
-	case "https", "unixs":
+	case "https":
 		if creds != nil {
 			break
 		}
@@ -219,11 +213,6 @@ func (c *Client) dialSetupOpts(endpoint string, dopts ...grpc.DialOption) (opts 
 
 	f := func(host string, t time.Duration) (net.Conn, error) {
 		proto, host, _ := parseEndpoint(c.balancer.getEndpoint(host))
-		if host == "" && endpoint != "" {
-			// dialing an endpoint not in the balancer; use
-			// endpoint passed into dial
-			proto, host, _ = parseEndpoint(endpoint)
-		}
 		if proto == "" {
 			return nil, fmt.Errorf("unknown scheme for %q", host)
 		}
@@ -233,14 +222,7 @@ func (c *Client) dialSetupOpts(endpoint string, dopts ...grpc.DialOption) (opts 
 		default:
 		}
 		dialer := &net.Dialer{Timeout: t}
-		conn, err := dialer.DialContext(c.ctx, proto, host)
-		if err != nil {
-			select {
-			case c.dialerrc <- err:
-			default:
-			}
-		}
-		return conn, err
+		return dialer.DialContext(c.ctx, proto, host)
 	}
 	opts = append(opts, grpc.WithDialer(f))
 
@@ -300,29 +282,19 @@ func (c *Client) dial(endpoint string, dopts ...grpc.DialOption) (*grpc.ClientCo
 			tokenMu: &sync.RWMutex{},
 		}
 
-		ctx := c.ctx
-		if c.cfg.DialTimeout > 0 {
-			cctx, cancel := context.WithTimeout(ctx, c.cfg.DialTimeout)
-			defer cancel()
-			ctx = cctx
+		err := c.getToken(context.TODO())
+		if err != nil {
+			return nil, err
 		}
 
-		err := c.getToken(ctx)
-		if err != nil {
-			if toErr(ctx, err) != rpctypes.ErrAuthNotEnabled {
-				if err == ctx.Err() && ctx.Err() != c.ctx.Err() {
-					err = grpc.ErrClientConnTimeout
-				}
-				return nil, err
-			}
-		} else {
-			opts = append(opts, grpc.WithPerRPCCredentials(c.tokenCred))
-		}
+		opts = append(opts, grpc.WithPerRPCCredentials(c.tokenCred))
 	}
 
-	opts = append(opts, c.cfg.DialOptions...)
+	// add metrics options
+	opts = append(opts, grpc.WithUnaryInterceptor(prometheus.UnaryClientInterceptor))
+	opts = append(opts, grpc.WithStreamInterceptor(prometheus.StreamClientInterceptor))
 
-	conn, err := grpc.DialContext(c.ctx, host, opts...)
+	conn, err := grpc.Dial(host, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -347,19 +319,13 @@ func newClient(cfg *Config) (*Client, error) {
 	}
 
 	// use a temporary skeleton client to bootstrap first connection
-	baseCtx := context.TODO()
-	if cfg.Context != nil {
-		baseCtx = cfg.Context
-	}
-
-	ctx, cancel := context.WithCancel(baseCtx)
+	ctx, cancel := context.WithCancel(context.TODO())
 	client := &Client{
-		conn:     nil,
-		dialerrc: make(chan error, 1),
-		cfg:      *cfg,
-		creds:    creds,
-		ctx:      ctx,
-		cancel:   cancel,
+		conn:   nil,
+		cfg:    *cfg,
+		creds:  creds,
+		ctx:    ctx,
+		cancel: cancel,
 	}
 	if cfg.Username != "" && cfg.Password != "" {
 		client.Username = cfg.Username
@@ -367,12 +333,8 @@ func newClient(cfg *Config) (*Client, error) {
 	}
 
 	client.balancer = newSimpleBalancer(cfg.Endpoints)
-	// use Endpoints[0] so that for https:// without any tls config given, then
-	// grpc will assume the ServerName is in the endpoint.
 	conn, err := client.dial(cfg.Endpoints[0], grpc.WithBalancer(client.balancer))
 	if err != nil {
-		client.cancel()
-		client.balancer.Close()
 		return nil, err
 	}
 	client.conn = conn
@@ -390,15 +352,9 @@ func newClient(cfg *Config) (*Client, error) {
 		case <-waitc:
 		}
 		if !hasConn {
-			err := grpc.ErrClientConnTimeout
-			select {
-			case err = <-client.dialerrc:
-			default:
-			}
 			client.cancel()
-			client.balancer.Close()
 			conn.Close()
-			return nil, err
+			return nil, grpc.ErrClientConnTimeout
 		}
 	}
 
@@ -409,55 +365,8 @@ func newClient(cfg *Config) (*Client, error) {
 	client.Auth = NewAuth(client)
 	client.Maintenance = NewMaintenance(client)
 
-	if cfg.RejectOldCluster {
-		if err := client.checkVersion(); err != nil {
-			client.Close()
-			return nil, err
-		}
-	}
-
 	go client.autoSync()
 	return client, nil
-}
-
-func (c *Client) checkVersion() (err error) {
-	var wg sync.WaitGroup
-	errc := make(chan error, len(c.cfg.Endpoints))
-	ctx, cancel := context.WithCancel(c.ctx)
-	if c.cfg.DialTimeout > 0 {
-		ctx, _ = context.WithTimeout(ctx, c.cfg.DialTimeout)
-	}
-	wg.Add(len(c.cfg.Endpoints))
-	for _, ep := range c.cfg.Endpoints {
-		// if cluster is current, any endpoint gives a recent version
-		go func(e string) {
-			defer wg.Done()
-			resp, rerr := c.Status(ctx, e)
-			if rerr != nil {
-				errc <- rerr
-				return
-			}
-			vs := strings.Split(resp.Version, ".")
-			maj, min := 0, 0
-			if len(vs) >= 2 {
-				maj, rerr = strconv.Atoi(vs[0])
-				min, rerr = strconv.Atoi(vs[1])
-			}
-			if maj < 3 || (maj == 3 && min < 2) {
-				rerr = ErrOldCluster
-			}
-			errc <- rerr
-		}(ep)
-	}
-	// wait for success
-	for i := 0; i < len(c.cfg.Endpoints); i++ {
-		if err = <-errc; err == nil {
-			break
-		}
-	}
-	cancel()
-	wg.Wait()
-	return err
 }
 
 // ActiveConnection returns the current in-use connection
@@ -504,12 +413,4 @@ func toErr(ctx context.Context, err error) error {
 		err = grpc.ErrClientConnClosing
 	}
 	return err
-}
-
-func canceledByCaller(stopCtx context.Context, err error) bool {
-	if stopCtx.Err() == nil || err == nil {
-		return false
-	}
-
-	return err == context.Canceled || err == context.DeadlineExceeded
 }

@@ -27,12 +27,12 @@ import (
 
 	"github.com/golang/glog"
 
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
-	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
@@ -40,6 +40,7 @@ import (
 	"k8s.io/kube-aggregator/pkg/controllers/autoregister"
 	kapi "k8s.io/kubernetes/pkg/api"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/master/thirdparty"
 )
 
 func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
@@ -49,16 +50,14 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 
 	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
 	genericConfig.EnableSwaggerUI = false
-	genericConfig.OpenAPIConfig = nil
 	genericConfig.SwaggerConfig = nil
+
+	serviceResolver := aggregatorapiserver.NewClusterIPServiceResolver(
+		c.ClientGoKubeInformers.Core().V1().Services().Lister(),
+	)
 
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
 	install.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
-
-	client, err := kubeclientset.NewForConfig(genericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 
 	certBytes, err := ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.CertFile)
 	if err != nil {
@@ -68,17 +67,19 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 	if err != nil {
 		return nil, err
 	}
-	return &aggregatorapiserver.Config{
-		GenericConfig:         &genericConfig,
-		CoreAPIServerClient:   client,
-		ProxyClientCert:       certBytes,
-		ProxyClientKey:        keyBytes,
-		KubeInternalInformers: c.InternalKubeInformers,
-	}, nil
+
+	aggregatorConfig := &aggregatorapiserver.Config{
+		GenericConfig:     &genericConfig,
+		CoreKubeInformers: c.ClientGoKubeInformers,
+		ProxyClientCert:   certBytes,
+		ProxyClientKey:    keyBytes,
+		ServiceResolver:   serviceResolver,
+	}
+	return aggregatorConfig, nil
 }
 
-func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delegateAPIServer genericapiserver.DelegationTarget, sharedInformers informers.SharedInformerFactory, stopCh <-chan struct{}) (*aggregatorapiserver.APIAggregator, error) {
-	aggregatorServer, err := aggregatorConfig.Complete().NewWithDelegate(delegateAPIServer, stopCh)
+func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delegateAPIServer genericapiserver.DelegationTarget, kubeInformers informers.SharedInformerFactory, apiExtensionInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
+	aggregatorServer, err := aggregatorConfig.Complete().NewWithDelegate(delegateAPIServer)
 	if err != nil {
 		return nil, err
 	}
@@ -90,9 +91,14 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 	}
 	autoRegistrationController := autoregister.NewAutoRegisterController(aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices(), apiRegistrationClient)
 	apiServices := apiServicesToRegister(delegateAPIServer, autoRegistrationController)
+	tprRegistrationController := thirdparty.NewAutoRegistrationController(
+		kubeInformers.Extensions().InternalVersion().ThirdPartyResources(),
+		apiExtensionInformers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
+		autoRegistrationController)
 
 	aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
-		go autoRegistrationController.Run(5, stopCh)
+		go autoRegistrationController.Run(5, context.StopCh)
+		go tprRegistrationController.Run(5, context.StopCh)
 		return nil
 	})
 	aggregatorServer.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("autoregister-completion", func(r *http.Request) error {
@@ -105,7 +111,10 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		for _, apiService := range apiServices {
 			found := false
 			for _, item := range items {
-				if item.Name == apiService.Name {
+				if item.Name != apiService.Name {
+					continue
+				}
+				if apiregistration.IsAPIServiceConditionTrue(item, apiregistration.Available) {
 					found = true
 					break
 				}

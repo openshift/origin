@@ -1,5 +1,3 @@
-// +build integration,!no-etcd
-
 /*
 Copyright 2015 The Kubernetes Authors.
 
@@ -63,13 +61,12 @@ func TestQuota(t *testing.T) {
 		<-h.Initialized
 		h.M.GenericAPIServer.Handler.ServeHTTP(w, req)
 	}))
-	defer s.Close()
 
 	admissionCh := make(chan struct{})
 	clientset := clientset.NewForConfigOrDie(&restclient.Config{QPS: -1, Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(v1.GroupName).GroupVersion}})
 	internalClientset := internalclientset.NewForConfigOrDie(&restclient.Config{QPS: -1, Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(v1.GroupName).GroupVersion}})
 	config := &resourcequotaapi.Configuration{}
-	admission, err := resourcequota.NewResourceQuota(config, 5, admissionCh)	
+	admission, err := resourcequota.NewResourceQuota(config, 5, admissionCh)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -77,12 +74,13 @@ func TestQuota(t *testing.T) {
 	internalInformers := internalinformers.NewSharedInformerFactory(internalClientset, controller.NoResyncPeriodFunc())
 	admission.(kubeadmission.WantsInternalKubeInformerFactory).SetInternalKubeInformerFactory(internalInformers)
 	quotaRegistry := quotainstall.NewRegistry(nil, nil)
- 	admission.(kubeadmission.WantsQuotaRegistry).SetQuotaRegistry(quotaRegistry)
+	admission.(kubeadmission.WantsQuotaRegistry).SetQuotaRegistry(quotaRegistry)
 	defer close(admissionCh)
 
 	masterConfig := framework.NewIntegrationTestMasterConfig()
 	masterConfig.GenericConfig.AdmissionControl = admission
-	framework.RunAMasterUsingServer(masterConfig, s, h)
+	_, _, closeFn := framework.RunAMasterUsingServer(masterConfig, s, h)
+	defer closeFn()
 
 	ns := framework.CreateTestingNamespace("quotaed", s, t)
 	defer framework.DeleteTestingNamespace(ns, s, t)
@@ -241,7 +239,6 @@ func TestQuotaLimitedResourceDenial(t *testing.T) {
 		<-h.Initialized
 		h.M.GenericAPIServer.Handler.ServeHTTP(w, req)
 	}))
-	defer s.Close()
 
 	admissionCh := make(chan struct{})
 	clientset := clientset.NewForConfigOrDie(&restclient.Config{QPS: -1, Host: s.URL, ContentConfig: restclient.ContentConfig{GroupVersion: &api.Registry.GroupOrDie(v1.GroupName).GroupVersion}})
@@ -257,7 +254,7 @@ func TestQuotaLimitedResourceDenial(t *testing.T) {
 		},
 	}
 	quotaRegistry := quotainstall.NewRegistry(nil, nil)
- 	admission, err := resourcequota.NewResourceQuota(config, 5, admissionCh)
+	admission, err := resourcequota.NewResourceQuota(config, 5, admissionCh)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -269,7 +266,8 @@ func TestQuotaLimitedResourceDenial(t *testing.T) {
 
 	masterConfig := framework.NewIntegrationTestMasterConfig()
 	masterConfig.GenericConfig.AdmissionControl = admission
-	framework.RunAMasterUsingServer(masterConfig, s, h)
+	_, _, closeFn := framework.RunAMasterUsingServer(masterConfig, s, h)
+	defer closeFn()
 
 	ns := framework.CreateTestingNamespace("quota", s, t)
 	defer framework.DeleteTestingNamespace(ns, s, t)

@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/flowcontrol"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	"github.com/openshift/origin/pkg/api/latest"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -425,6 +426,17 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
+	// k8s.io/kubernetes/pkg/apis/admissionregistration/v1alpha1
+	gvr("admissionregistration.k8s.io", "v1alpha1", "initializerconfigurations"): {
+		stub:             `{"metadata": {"name": "ic1"}}`,
+		expectedEtcdPath: "kubernetes.io/initializerconfigurations/ic1",
+	},
+	gvr("admissionregistration.k8s.io", "v1alpha1", "externaladmissionhookconfigurations"): {
+		stub:             `{"metadata": {"name": "ic1"}}`,
+		expectedEtcdPath: "kubernetes.io/externaladmissionhookconfigurations/ic1",
+	},
+	// --
+
 	// k8s.io/kubernetes/pkg/apis/apps/v1beta1
 	gvr("apps", "v1beta1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment2"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
@@ -434,6 +446,10 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("apps", "v1beta1", "statefulsets"): {
 		stub:             `{"metadata": {"name": "ss1"}, "spec": {"template": {"metadata": {"labels": {"a": "b"}}}}}`,
 		expectedEtcdPath: "kubernetes.io/statefulsets/etcdstoragepathtestnamespace/ss1",
+	},
+	gvr("apps", "v1beta1", "controllerrevisions"): {
+		stub:             `{"metadata": {"name": "cr1"}, "data": {}, "revision": 6}`,
+		expectedEtcdPath: "kubernetes.io/controllerrevisions/etcdstoragepathtestnamespace/cr1",
 	},
 	// --
 
@@ -503,14 +519,17 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		stub:             `{"metadata": {"name": "deployment1"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/deployments/etcdstoragepathtestnamespace/deployment1",
 	},
-	gvr("extensions", "v1beta1", "horizontalpodautoscalers"): {
-		stub:             `{"metadata": {"name": "hpa1"}, "spec": {"maxReplicas": 3, "scaleRef": {"kind": "something", "name": "cross"}}}`,
-		expectedEtcdPath: "kubernetes.io/horizontalpodautoscalers/etcdstoragepathtestnamespace/hpa1",
-		expectedGVK:      gvkP("autoscaling", "v1", "HorizontalPodAutoscaler"),
-	},
 	gvr("extensions", "v1beta1", "replicasets"): {
 		stub:             `{"metadata": {"name": "rs1"}, "spec": {"selector": {"matchLabels": {"g": "h"}}, "template": {"metadata": {"labels": {"g": "h"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container4"}]}}}}`,
 		expectedEtcdPath: "kubernetes.io/replicasets/etcdstoragepathtestnamespace/rs1",
+	},
+	// --
+
+	// k8s.io/kubernetes/pkg/apis/network/v1
+	gvr("networking.k8s.io", "v1", "networkpolicies"): {
+		stub:             `{"metadata": {"name": "np2"}, "spec": {"podSelector": {"matchLabels": {"e": "f"}}}}`,
+		expectedEtcdPath: "kubernetes.io/networkpolicies/etcdstoragepathtestnamespace/np2",
+		expectedGVK:      gvkP("extensions", "v1beta1", "NetworkPolicy"), // migrate to v1 later
 	},
 	// --
 
@@ -574,6 +593,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("storage.k8s.io", "v1beta1", "storageclasses"): {
 		stub:             `{"metadata": {"name": "sc1"}, "provisioner": "aws"}`,
 		expectedEtcdPath: "kubernetes.io/storageclasses/sc1",
+		expectedGVK:      gvkP("storage.k8s.io", "v1", "StorageClass"),
 	},
 	// --
 
@@ -581,7 +601,6 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	gvr("storage.k8s.io", "v1", "storageclasses"): {
 		stub:             `{"metadata": {"name": "sc2"}, "provisioner": "aws"}`,
 		expectedEtcdPath: "kubernetes.io/storageclasses/sc2",
-		expectedGVK:      gvkP("storage.k8s.io", "v1beta1", "StorageClass"), // migrate to v1 in the future
 	},
 	// --
 }
@@ -715,6 +734,10 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("", "v1", "componentstatuses"),    // status info not stored in etcd
 	gvr("", "v1", "serializedreferences"), // used for serilization, not stored in etcd
 	gvr("", "v1", "podstatusresults"),     // wrapper object not stored in etcd
+	// --
+
+	// k8s.io/kubernetes/pkg/apis/admission/v1alpha1
+	gvr("admission.k8s.io", "v1alpha1", "admissionreviews"), // not stored in etcd
 	// --
 
 	// k8s.io/kubernetes/pkg/apis/authentication/v1beta1
@@ -855,6 +878,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 		"runtime-config": {
 			"apis/settings.k8s.io/v1alpha1=true",
 			"apis/autoscaling/v2alpha1=true",
+			"apis/admissionregistration.k8s.io/v1alpha1=true",
 		},
 	}
 	masterConfig.AdmissionConfig.PluginConfig["ServiceAccount"] = serverapi.AdmissionPluginConfig{
@@ -998,7 +1022,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 				t.Errorf("GVK for %s from %s does not match, expected %s got %s", kind, pkgPath, expectedGVK, actualGVK)
 			}
 
-			if !kapi.Semantic.DeepDerivative(input, output) {
+			if !kapihelper.Semantic.DeepDerivative(input, output) {
 				t.Errorf("Test stub for %s from %s does not match: %s", kind, pkgPath, diff.ObjectGoPrintDiff(input, output))
 			}
 

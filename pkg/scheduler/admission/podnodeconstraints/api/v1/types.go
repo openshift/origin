@@ -14,5 +14,5 @@ type PodNodeConstraintsConfig struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// NodeSelectorLabelBlacklist specifies a list of labels which cannot be set by entities without the "pods/binding" permission
-	NodeSelectorLabelBlacklist []string `json:"nodeSelectorLabelBlacklist",description:"list of labels which cannot be set by entities without the 'pods/binding' permission"`
+	NodeSelectorLabelBlacklist []string `json:"nodeSelectorLabelBlacklist" description:"list of labels which cannot be set by entities without the 'pods/binding' permission"`
 }

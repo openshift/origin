@@ -1,19 +1,19 @@
 package v1
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 )
 
 func SetDefaults_PodNodeConstraintsConfig(obj *PodNodeConstraintsConfig) {
 	if obj.NodeSelectorLabelBlacklist == nil {
 		obj.NodeSelectorLabelBlacklist = []string{
-			metav1.LabelHostname,
+			kubeletapis.LabelHostname,
 		}
 	}
 }
+
 func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	return scheme.AddDefaultingFuncs(
-		SetDefaults_PodNodeConstraintsConfig,
-	)
+	scheme.AddTypeDefaultingFunc(&PodNodeConstraintsConfig{}, func(obj interface{}) { SetDefaults_PodNodeConstraintsConfig(obj.(*PodNodeConstraintsConfig)) })
+	return nil
 }

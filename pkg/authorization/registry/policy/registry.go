@@ -59,7 +59,7 @@ func (s *storage) ListPolicies(ctx apirequest.Context, options *metainternal.Lis
 }
 
 func (s *storage) CreatePolicy(ctx apirequest.Context, node *authorizationapi.Policy) error {
-	_, err := s.Create(ctx, node)
+	_, err := s.Create(ctx, node, false)
 	return err
 }
 

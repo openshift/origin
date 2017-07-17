@@ -16,6 +16,7 @@ type FakeNetNamespace struct {
 }
 
 var netNamespacesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "netnamespaces"}
+var netNamespacesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "NetNamespace"}
 
 func (c *FakeNetNamespace) Get(name string, options metav1.GetOptions) (*sdnapi.NetNamespace, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(netNamespacesResource, name), &sdnapi.NetNamespace{})
@@ -27,7 +28,7 @@ func (c *FakeNetNamespace) Get(name string, options metav1.GetOptions) (*sdnapi.
 }
 
 func (c *FakeNetNamespace) List(opts metav1.ListOptions) (*sdnapi.NetNamespaceList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(netNamespacesResource, opts), &sdnapi.NetNamespaceList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(netNamespacesResource, netNamespacesKind, opts), &sdnapi.NetNamespaceList{})
 	if obj == nil {
 		return nil, err
 	}

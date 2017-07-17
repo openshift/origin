@@ -35,7 +35,7 @@ func (t *FakeLaggedScaler) Scale(namespace, name string, newSize uint, precondit
 	if t.RetryCount != 2 {
 		t.RetryCount += 1
 		// This is faking a real error from the
-		// "k8s.io/kubernetes/plugin/pkg/admission/namespace/lifecycle" package.
+		// "k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle" package.
 		return errors.NewForbidden(schema.GroupResource{Resource: "ReplicationController"}, name, fmt.Errorf("%s: not yet ready to handle request", name))
 	}
 	t.Events = append(t.Events, ScaleEvent{name, newSize})

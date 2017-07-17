@@ -179,13 +179,13 @@ func validateObject(path string, obj runtime.Object, t *testing.T) {
 		}
 
 		if namespaceRequired {
-			objectMeta, objectMetaErr := metav1.ObjectMetaFor(obj)
+			objectMeta, objectMetaErr := meta.Accessor(obj)
 			if objectMetaErr != nil {
 				t.Errorf("Expected no error, Got %v", objectMetaErr)
 				return
 			}
 
-			objectMeta.Namespace = metav1.NamespaceDefault
+			objectMeta.SetNamespace(metav1.NamespaceDefault)
 		}
 	}
 

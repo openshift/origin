@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -125,15 +124,4 @@ func SetDefaults_DeploymentConfig(obj *DeploymentConfig) {
 
 func mkintp(i int64) *int64 {
 	return &i
-}
-
-func addDefaultingFuncs(scheme *runtime.Scheme) error {
-	RegisterDefaults(scheme)
-	return scheme.AddDefaultingFuncs(
-		SetDefaults_DeploymentConfigSpec,
-		SetDefaults_DeploymentStrategy,
-		SetDefaults_RecreateDeploymentStrategyParams,
-		SetDefaults_RollingDeploymentStrategyParams,
-		SetDefaults_DeploymentConfig,
-	)
 }

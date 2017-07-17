@@ -7,6 +7,7 @@ import (
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmappoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/controller"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -14,8 +15,8 @@ import (
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 )
 
-func getControllerContext(options configapi.MasterConfig, controllerManagerOptions *cmappoptions.CMServer, informers *informers, stopCh <-chan struct{}) (origincontrollers.ControllerContext, error) {
-	loopbackConfig, _, kubeExternal, _, err := getAllClients(options)
+func getControllerContext(options configapi.MasterConfig, controllerManagerOptions *cmappoptions.CMServer, cloudProvider cloudprovider.Interface, informers *informers, stopCh <-chan struct{}) (origincontrollers.ControllerContext, error) {
+	loopbackConfig, _, kubeExternal, _, _, err := getAllClients(options)
 	if err != nil {
 		return origincontrollers.ControllerContext{}, err
 	}
@@ -78,6 +79,7 @@ func getControllerContext(options configapi.MasterConfig, controllerManagerOptio
 			},
 			Options:            *controllerManagerOptions,
 			AvailableResources: availableResources,
+			Cloud:              cloudProvider,
 			Stop:               stopCh,
 		},
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{

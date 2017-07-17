@@ -70,7 +70,7 @@ var (
 	forbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 )
 
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
 
 	if err := rest.BeforeCreate(projectrequestregistry.Strategy, ctx, obj); err != nil {
 		return nil, err

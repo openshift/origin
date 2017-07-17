@@ -17,6 +17,7 @@ type FakePolicies struct {
 }
 
 var policiesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "policies"}
+var policiesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Policy"}
 
 func (c *FakePolicies) Get(name string, options metav1.GetOptions) (*authorizationapi.Policy, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(policiesResource, c.Namespace, name), &authorizationapi.Policy{})
@@ -28,7 +29,7 @@ func (c *FakePolicies) Get(name string, options metav1.GetOptions) (*authorizati
 }
 
 func (c *FakePolicies) List(opts metav1.ListOptions) (*authorizationapi.PolicyList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(policiesResource, c.Namespace, opts), &authorizationapi.PolicyList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(policiesResource, policiesKind, c.Namespace, opts), &authorizationapi.PolicyList{})
 	if obj == nil {
 		return nil, err
 	}

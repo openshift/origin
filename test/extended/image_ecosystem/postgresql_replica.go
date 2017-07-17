@@ -14,6 +14,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
 var (
@@ -87,7 +88,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), postgreSQLHelperName, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.KubeFramework().WaitForAnEndpoint(postgreSQLHelperName)
+		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), postgreSQLHelperName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		tableCounter := 0
@@ -115,7 +116,8 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 			check(err)
 
 			// Test if we can query as admin
-			oc.KubeFramework().WaitForAnEndpoint("postgresql-master")
+			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "postgresql-master")
+			check(err)
 			err = helper.TestRemoteLogin(oc, "postgresql-master")
 			check(err)
 

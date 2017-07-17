@@ -112,7 +112,7 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 	}
 
 	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	b := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		NamespaceParam(cmdNamespace).DefaultNamespace().AllNamespaces(allNamespaces).
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: filenames}).
 		SelectorParam(selector).
@@ -179,7 +179,14 @@ func RunExport(f *clientcmd.Factory, exporter Exporter, in io.Reader, out io.Wri
 		outputFormat = "yaml"
 	}
 	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
-	p, _, err := kprinters.GetStandardPrinter(outputFormat, templateFile, kcmdutil.GetFlagBool(cmd, "no-headers"), kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"), mapper, typer, decoders)
+	p, err := kprinters.GetStandardPrinter(
+		&kprinters.OutputOptions{
+			FmtType:          outputFormat,
+			FmtArg:           templateFile,
+			AllowMissingKeys: kcmdutil.GetFlagBool(cmd, "allow-missing-template-keys"),
+		},
+		kcmdutil.GetFlagBool(cmd, "no-headers"), mapper, typer, kapi.Codecs.LegacyCodec(outputVersion), decoders, kprinters.PrintOptions{})
+
 	if err != nil {
 		return err
 	}

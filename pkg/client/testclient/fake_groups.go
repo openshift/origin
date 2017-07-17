@@ -16,6 +16,7 @@ type FakeGroups struct {
 }
 
 var groupsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "groups"}
+var groupsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Group"}
 
 func (c *FakeGroups) Get(name string, options metav1.GetOptions) (*userapi.Group, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(groupsResource, name), &userapi.Group{})
@@ -27,7 +28,7 @@ func (c *FakeGroups) Get(name string, options metav1.GetOptions) (*userapi.Group
 }
 
 func (c *FakeGroups) List(opts metav1.ListOptions) (*userapi.GroupList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(groupsResource, opts), &userapi.GroupList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(groupsResource, groupsKind, opts), &userapi.GroupList{})
 	if obj == nil {
 		return nil, err
 	}

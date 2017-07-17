@@ -9,6 +9,7 @@ import (
 	"text/tabwriter"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -1225,12 +1226,12 @@ func filterBoringPods(pods []graphview.Pod) ([]graphview.Pod, error) {
 		if !ok {
 			continue
 		}
-		meta, err := metav1.ObjectMetaFor(actualPod)
+		meta, err := meta.Accessor(actualPod)
 		if err != nil {
 			return nil, err
 		}
-		_, isDeployerPod := meta.Labels[deployapi.DeployerPodForDeploymentLabel]
-		_, isBuilderPod := meta.Annotations[buildapi.BuildAnnotation]
+		_, isDeployerPod := meta.GetLabels()[deployapi.DeployerPodForDeploymentLabel]
+		_, isBuilderPod := meta.GetAnnotations()[buildapi.BuildAnnotation]
 		isFinished := actualPod.Status.Phase == kapi.PodSucceeded || actualPod.Status.Phase == kapi.PodFailed
 		if isDeployerPod || isBuilderPod || isFinished {
 			continue

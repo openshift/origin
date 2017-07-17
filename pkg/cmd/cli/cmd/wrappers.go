@@ -231,7 +231,7 @@ func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 		cmdHelpName = "openshift"
 	}
 
-	cmd := kcmd.NewCmdCompletion(f, out, "\n")
+	cmd := kcmd.NewCmdCompletion(out, "\n")
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
 	return cmd
@@ -748,7 +748,7 @@ var (
 
 // NewCmdCp is a wrapper for the Kubernetes cli cp command
 func NewCmdCp(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
-	cmd := kcmd.NewCmdCp(f, in, out, errout)
+	cmd := kcmd.NewCmdCp(f, out, errout)
 	cmd.Example = fmt.Sprintf(cpExample, fullName)
 	return cmd
 }

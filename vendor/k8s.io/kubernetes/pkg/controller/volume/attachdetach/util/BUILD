@@ -18,8 +18,8 @@ go_library(
         "//pkg/controller/volume/attachdetach/cache:go_default_library",
         "//pkg/volume:go_default_library",
         "//pkg/volume/util/volumehelper:go_default_library",
-        "//vendor:github.com/golang/glog",
-        "//vendor:k8s.io/apimachinery/pkg/types",
+        "//vendor/github.com/golang/glog:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
 )
 

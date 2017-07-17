@@ -67,12 +67,12 @@ func (s strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object
 	return validation.ValidateRoleUpdate(obj.(*authorizationapi.Role), old.(*authorizationapi.Role), s.namespaced, nil)
 }
 
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	role, ok := obj.(*authorizationapi.Role)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a role")
+		return nil, nil, false, fmt.Errorf("not a role")
 	}
-	return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), nil
+	return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), role.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

@@ -1,30 +1,37 @@
 package fake
 
 import (
-	user "github.com/openshift/origin/pkg/user/apis/user/install"
-	announced "k8s.io/apimachinery/pkg/apimachinery/announced"
-	registered "k8s.io/apimachinery/pkg/apimachinery/registered"
+	userv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	os "os"
 )
 
 var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 var parameterCodec = runtime.NewParameterCodec(scheme)
 
-var registry = registered.NewOrDie(os.Getenv("KUBE_API_VERSIONS"))
-var groupFactoryRegistry = make(announced.APIGroupFactoryRegistry)
-
 func init() {
 	v1.AddToGroupVersion(scheme, schema.GroupVersion{Version: "v1"})
-	Install(groupFactoryRegistry, registry, scheme)
+	AddToScheme(scheme)
 }
 
-// Install registers the API group and adds types to a scheme
-func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
-	user.Install(groupFactoryRegistry, registry, scheme)
+// AddToScheme adds all types of this clientset into the given scheme. This allows composition
+// of clientsets, like in:
+//
+//   import (
+//     "k8s.io/client-go/kubernetes"
+//     clientsetscheme "k8s.io/client-go/kuberentes/scheme"
+//     aggregatorclientsetscheme "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/scheme"
+//   )
+//
+//   kclientset, _ := kubernetes.NewForConfig(c)
+//   aggregatorclientsetscheme.AddToScheme(clientsetscheme.Scheme)
+//
+// After this, RawExtensions in Kubernetes types will serialize kube-aggregator types
+// correctly.
+func AddToScheme(scheme *runtime.Scheme) {
+	userv1.AddToScheme(scheme)
 
 }

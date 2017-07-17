@@ -147,9 +147,6 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_extensions_ReplicaSet_to_v1_ReplicationController,
 		Convert_extensions_ReplicaSetSpec_to_v1_ReplicationControllerSpec,
 		Convert_extensions_ReplicaSetStatus_to_v1_ReplicationControllerStatus,
-
-		Convert_api_VolumeSource_To_v1_VolumeSource,
-		Convert_v1_VolumeSource_To_api_VolumeSource,
 	)
 	if err != nil {
 		return err
@@ -193,6 +190,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 				"spec.restartPolicy",
 				"spec.serviceAccountName",
 				"status.phase",
+				"status.hostIP",
 				"status.podIP":
 				return label, value, nil
 				// This is for backwards compatibility with old v1 clients which send spec.host
@@ -303,7 +301,7 @@ func Convert_extensions_ReplicaSet_to_v1_ReplicationController(in *extensions.Re
 		if out.Annotations == nil {
 			out.Annotations = make(map[string]string)
 		}
-		out.Annotations[api.NonConvertibleAnnotationPrefix+"/"+fieldErr.Field] = reflect.ValueOf(fieldErr.BadValue).String()
+		out.Annotations[NonConvertibleAnnotationPrefix+"/"+fieldErr.Field] = reflect.ValueOf(fieldErr.BadValue).String()
 	}
 	if err := Convert_extensions_ReplicaSetStatus_to_v1_ReplicationControllerStatus(&in.Status, &out.Status, s); err != nil {
 		return err
@@ -483,10 +481,16 @@ func Convert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in *PodTemplateSpec, out 
 		in.Spec.InitContainers = values
 
 		// Call defaulters explicitly until annotations are removed
-		for i := range in.Spec.InitContainers {
-			c := &in.Spec.InitContainers[i]
-			SetDefaults_Container(c)
+		tmpPodTemp := &PodTemplate{
+			Template: PodTemplateSpec{
+				Spec: PodSpec{
+					HostNetwork:    in.Spec.HostNetwork,
+					InitContainers: values,
+				},
+			},
 		}
+		SetObjectDefaults_PodTemplate(tmpPodTemp)
+		in.Spec.InitContainers = tmpPodTemp.Template.Spec.InitContainers
 	}
 
 	if err := autoConvert_v1_PodTemplateSpec_To_api_PodTemplateSpec(in, out, s); err != nil {
@@ -606,10 +610,14 @@ func Convert_v1_Pod_To_api_Pod(in *Pod, out *api.Pod, s conversion.Scope) error 
 		// back to the caller.
 		in.Spec.InitContainers = values
 		// Call defaulters explicitly until annotations are removed
-		for i := range in.Spec.InitContainers {
-			c := &in.Spec.InitContainers[i]
-			SetDefaults_Container(c)
+		tmpPod := &Pod{
+			Spec: PodSpec{
+				HostNetwork:    in.Spec.HostNetwork,
+				InitContainers: values,
+			},
 		}
+		SetObjectDefaults_Pod(tmpPod)
+		in.Spec.InitContainers = tmpPod.Spec.InitContainers
 	}
 	// If there is a beta annotation, copy to alpha key.
 	// See commit log for PR #31026 for why we do this.
@@ -647,15 +655,6 @@ func Convert_v1_Pod_To_api_Pod(in *Pod, out *api.Pod, s conversion.Scope) error 
 	return nil
 }
 
-func Convert_api_ServiceSpec_To_v1_ServiceSpec(in *api.ServiceSpec, out *ServiceSpec, s conversion.Scope) error {
-	if err := autoConvert_api_ServiceSpec_To_v1_ServiceSpec(in, out, s); err != nil {
-		return err
-	}
-	// Publish both externalIPs and deprecatedPublicIPs fields in v1.
-	out.DeprecatedPublicIPs = in.ExternalIPs
-	return nil
-}
-
 func Convert_v1_Secret_To_api_Secret(in *Secret, out *api.Secret, s conversion.Scope) error {
 	if err := autoConvert_v1_Secret_To_api_Secret(in, out, s); err != nil {
 		return err
@@ -671,17 +670,6 @@ func Convert_v1_Secret_To_api_Secret(in *Secret, out *api.Secret, s conversion.S
 		}
 	}
 
-	return nil
-}
-
-func Convert_v1_ServiceSpec_To_api_ServiceSpec(in *ServiceSpec, out *api.ServiceSpec, s conversion.Scope) error {
-	if err := autoConvert_v1_ServiceSpec_To_api_ServiceSpec(in, out, s); err != nil {
-		return err
-	}
-	// Prefer the legacy deprecatedPublicIPs field, if provided.
-	if len(in.DeprecatedPublicIPs) > 0 {
-		out.ExternalIPs = in.DeprecatedPublicIPs
-	}
 	return nil
 }
 
@@ -785,65 +773,4 @@ func AddFieldLabelConversionsForSecret(scheme *runtime.Scheme) error {
 				return "", "", fmt.Errorf("field label not supported: %s", label)
 			}
 		})
-}
-
-// This will Convert our internal represantation of VolumeSource to its v1 representation
-// Used for keeping backwards compatibility for the Metadata field
-func Convert_api_VolumeSource_To_v1_VolumeSource(in *api.VolumeSource, out *VolumeSource, s conversion.Scope) error {
-	if err := autoConvert_api_VolumeSource_To_v1_VolumeSource(in, out, s); err != nil {
-		return err
-	}
-
-	// Metadata is a copy of DownwardAPI
-	if out.DownwardAPI != nil {
-		out.Metadata = &DeprecatedDownwardAPIVolumeSource{
-			DefaultMode: in.DownwardAPI.DefaultMode,
-		}
-		for _, item := range out.DownwardAPI.Items {
-			out.Metadata.Items = append(out.Metadata.Items, DeprecatedDownwardAPIVolumeFile{
-				Path:             item.Path,
-				FieldRef:         item.FieldRef,
-				ResourceFieldRef: item.ResourceFieldRef,
-				Mode:             item.Mode,
-			})
-		}
-	}
-
-	return nil
-}
-
-// This will Convert the v1 representation of VolumeSource to our internal representation
-// Used for keeping backwards compatibility for the Metadata field
-func Convert_v1_VolumeSource_To_api_VolumeSource(in *VolumeSource, out *api.VolumeSource, s conversion.Scope) error {
-	if err := autoConvert_v1_VolumeSource_To_api_VolumeSource(in, out, s); err != nil {
-		return err
-	}
-
-	// Metadata overrides DownwardAPI
-	if in.Metadata != nil {
-		SetDefaults_DeprecatedDownwardAPIVolumeSource(in.Metadata)
-		out.DownwardAPI = &api.DownwardAPIVolumeSource{
-			DefaultMode: in.Metadata.DefaultMode,
-		}
-		for _, item := range in.Metadata.Items {
-			file := api.DownwardAPIVolumeFile{
-				Path: item.Path,
-				Mode: item.Mode,
-			}
-			if item.FieldRef != nil {
-				file.FieldRef = new(api.ObjectFieldSelector)
-				if err := Convert_v1_ObjectFieldSelector_To_api_ObjectFieldSelector(item.FieldRef, file.FieldRef, s); err != nil {
-					return err
-				}
-			}
-			if item.ResourceFieldRef != nil {
-				file.ResourceFieldRef = new(api.ResourceFieldSelector)
-				if err := Convert_v1_ResourceFieldSelector_To_api_ResourceFieldSelector(item.ResourceFieldRef, file.ResourceFieldRef, s); err != nil {
-					return err
-				}
-			}
-			out.DownwardAPI.Items = append(out.DownwardAPI.Items, file)
-		}
-	}
-	return nil
 }

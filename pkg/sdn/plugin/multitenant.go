@@ -7,6 +7,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
@@ -76,7 +77,7 @@ func (mp *multiTenantPlugin) updatePodNetwork(namespace string, oldNetID, netID 
 
 		// Update OF rules for the old services in the namespace
 		for _, svc := range services.Items {
-			if !kapi.IsServiceIPSet(&svc) {
+			if !kapihelper.IsServiceIPSet(&svc) {
 				continue
 			}
 

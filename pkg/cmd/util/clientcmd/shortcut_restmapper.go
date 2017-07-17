@@ -9,8 +9,6 @@ import (
 // ShortcutExpander is a RESTMapper that can be used for OpenShift resources.   It expands the resource first, then invokes the wrapped
 type ShortcutExpander struct {
 	RESTMapper meta.RESTMapper
-
-	All []string
 }
 
 var _ meta.RESTMapper = &ShortcutExpander{}
@@ -36,17 +34,7 @@ func NewShortcutExpander(discoveryClient discovery.DiscoveryInterface, delegate 
 		}
 	}
 
-	availableAll := []string{}
-	for _, requestedResource := range userResources {
-		for _, availableResource := range availableResources {
-			if requestedResource == availableResource.Resource {
-				availableAll = append(availableAll, requestedResource)
-				break
-			}
-		}
-	}
-
-	return ShortcutExpander{All: availableAll, RESTMapper: delegate}
+	return ShortcutExpander{RESTMapper: delegate}
 }
 
 func (e ShortcutExpander) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
@@ -75,31 +63,6 @@ func (e ShortcutExpander) RESTMapping(gk schema.GroupKind, versions ...string) (
 
 func (e ShortcutExpander) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
 	return e.RESTMapper.RESTMappings(gk, versions...)
-}
-
-// userResources are the resource names that apply to the primary, user facing resources used by
-// client tools. They are in deletion-first order - dependent resources should be last.
-var userResources = []string{
-	"buildconfigs", "builds",
-	"imagestreams",
-	"deploymentconfigs", "replicationcontrollers",
-	"routes", "services",
-	"pods",
-}
-
-// AliasesForResource returns whether a resource has an alias or not
-func (e ShortcutExpander) AliasesForResource(resource string) ([]string, bool) {
-	aliases := map[string][]string{
-		"all": userResources,
-	}
-	if len(e.All) != 0 {
-		aliases["all"] = e.All
-	}
-
-	if res, ok := aliases[resource]; ok {
-		return res, true
-	}
-	return e.RESTMapper.AliasesForResource(expandResourceShortcut(schema.GroupVersionResource{Resource: resource}).Resource)
 }
 
 // shortForms is the list of short names to their expanded names

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/emicklei/go-restful/swagger"
+	"github.com/emicklei/go-restful-swagger12"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/util/openapi"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
@@ -59,6 +60,37 @@ func (f *ring1Factory) Object() (meta.RESTMapper, runtime.ObjectTyper) {
 
 func (f *ring1Factory) UnstructuredObject() (meta.RESTMapper, runtime.ObjectTyper, error) {
 	return f.kubeObjectMappingFactory.UnstructuredObject()
+}
+
+func (f *ring1Factory) CategoryExpander() resource.CategoryExpander {
+	upstreamExpander := f.kubeObjectMappingFactory.CategoryExpander()
+
+	var openshiftCategoryExpander resource.CategoryExpander
+	openshiftCategoryExpander = legacyOpeshiftCategoryExpander
+	discoveryClient, err := f.clientAccessFactory.DiscoveryClient()
+	if err == nil {
+		// wrap with discovery based filtering
+		openshiftCategoryExpander, err = resource.NewDiscoveryFilteredExpander(openshiftCategoryExpander, discoveryClient)
+		// you only have an error on missing discoveryClient, so this shouldn't fail.  Check anyway.
+		kcmdutil.CheckErr(err)
+	}
+
+	return resource.UnionCategoryExpander{legacyOpeshiftCategoryExpander, upstreamExpander}
+}
+
+var legacyOpenshiftUserResources = []schema.GroupResource{
+	{Group: "", Resource: "buildconfigs"},
+	{Group: "", Resource: "builds"},
+	{Group: "", Resource: "imagestreams"},
+	{Group: "", Resource: "deploymentconfigs"},
+	{Group: "", Resource: "routes"},
+}
+
+// legacyOpeshiftCategoryExpander is the old hardcoded expansion for servers without listed categories
+var legacyOpeshiftCategoryExpander resource.CategoryExpander = resource.SimpleCategoryExpander{
+	Expansions: map[string][]schema.GroupResource{
+		"all": legacyOpenshiftUserResources,
+	},
 }
 
 func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
@@ -129,7 +161,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 	return f.kubeObjectMappingFactory.Describer(mapping)
 }
 
-func (f *ring1Factory) LogsForObject(object, options runtime.Object) (*restclient.Request, error) {
+func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error) {
 	switch t := object.(type) {
 	case *deployapi.DeploymentConfig:
 		dopts, ok := options.(*deployapi.DeploymentLogOptions)
@@ -179,7 +211,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object) (*restclien
 		sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
 		return oc.BuildLogs(t.Namespace).Get(builds.Items[0].Name, *bopts), nil
 	default:
-		return f.kubeObjectMappingFactory.LogsForObject(object, options)
+		return f.kubeObjectMappingFactory.LogsForObject(object, options, timeout)
 	}
 }
 
@@ -283,7 +315,7 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 	return f.kubeObjectMappingFactory.StatusViewer(mapping)
 }
 
-func (f *ring1Factory) AttachablePodForObject(object runtime.Object) (*kapi.Pod, error) {
+func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout time.Duration) (*kapi.Pod, error) {
 	switch t := object.(type) {
 	case *deployapi.DeploymentConfig:
 		_, kc, err := f.clientAccessFactory.Clients()
@@ -295,7 +327,7 @@ func (f *ring1Factory) AttachablePodForObject(object runtime.Object) (*kapi.Pod,
 		pod, _, err := kcmdutil.GetFirstPod(kc.Core(), t.Namespace, selector, 1*time.Minute, f)
 		return pod, err
 	default:
-		return f.kubeObjectMappingFactory.AttachablePodForObject(object)
+		return f.kubeObjectMappingFactory.AttachablePodForObject(object, timeout)
 	}
 }
 
@@ -314,6 +346,10 @@ func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiD
 		return nil, err
 	}
 	return f.OriginSwaggerSchema(oc.RESTClient, gvk.GroupVersion())
+}
+
+func (f *ring1Factory) OpenAPISchema(cacheDir string) (*openapi.Resources, error) {
+	return f.kubeObjectMappingFactory.OpenAPISchema(cacheDir)
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.

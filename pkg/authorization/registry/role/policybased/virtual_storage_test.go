@@ -41,7 +41,7 @@ func TestCreateValidationError(t *testing.T) {
 	role := &authorizationapi.Role{}
 
 	ctx := apirequest.WithNamespace(apirequest.NewContext(), "unittest")
-	_, err := storage.Create(ctx, role)
+	_, err := storage.Create(ctx, role, false)
 	if err == nil {
 		t.Errorf("Expected validation error")
 	}
@@ -55,7 +55,7 @@ func TestCreateValid(t *testing.T) {
 	}
 
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
-	obj, err := storage.Create(ctx, role)
+	obj, err := storage.Create(ctx, role, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestUpdate(t *testing.T) {
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
-	})
+	}, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
-	})
+	}, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -167,7 +167,7 @@ func TestConflictingUpdate(t *testing.T) {
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
-	})
+	}, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -196,7 +196,7 @@ func TestUpdateNoOp(t *testing.T) {
 		Rules: []authorizationapi.PolicyRule{
 			{Verbs: sets.NewString(authorizationapi.VerbAll)},
 		},
-	})
+	}, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -268,7 +268,7 @@ func TestDeleteValid(t *testing.T) {
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
 	storage.Create(ctx, &authorizationapi.Role{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-role"},
-	})
+	}, false)
 
 	obj, _, err := storage.Delete(ctx, "my-role", nil)
 	if err != nil {

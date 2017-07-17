@@ -16,6 +16,7 @@ type FakeRoleBindings struct {
 }
 
 var roleBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindings"}
+var roleBindingsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "RoleBinding"}
 
 func (c *FakeRoleBindings) Get(name string, options metav1.GetOptions) (*authorizationapi.RoleBinding, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(roleBindingsResource, c.Namespace, name), &authorizationapi.RoleBinding{})
@@ -27,7 +28,7 @@ func (c *FakeRoleBindings) Get(name string, options metav1.GetOptions) (*authori
 }
 
 func (c *FakeRoleBindings) List(opts metav1.ListOptions) (*authorizationapi.RoleBindingList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingsResource, c.Namespace, opts), &authorizationapi.RoleBindingList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingsResource, roleBindingsKind, c.Namespace, opts), &authorizationapi.RoleBindingList{})
 	if obj == nil {
 		return nil, err
 	}

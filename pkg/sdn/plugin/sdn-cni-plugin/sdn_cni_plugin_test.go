@@ -14,6 +14,7 @@ import (
 
 	cniskel "github.com/containernetworking/cni/pkg/skel"
 	cnitypes "github.com/containernetworking/cni/pkg/types"
+	cni020 "github.com/containernetworking/cni/pkg/types/020"
 
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 	utiltesting "k8s.io/client-go/util/testing"
@@ -71,8 +72,8 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	cniPlugin := NewCNIPlugin(path)
 
 	expectedIP, expectedNet, _ := net.ParseCIDR("10.0.0.2/24")
-	expectedResult = cnitypes.Result{
-		IP4: &cnitypes.IPConfig{
+	expectedResult = &cni020.Result{
+		IP4: &cni020.IPConfig{
 			IP: net.IPNet{
 				IP:   expectedIP,
 				Mask: expectedNet.Mask,
@@ -84,7 +85,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 		name        string
 		skelArgs    *cniskel.CmdArgs
 		reqType     cniserver.CNICommand
-		result      *cnitypes.Result
+		result      cnitypes.Result
 		errorPrefix string
 	}
 
@@ -101,7 +102,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 				Path:        "/some/path",
 				StdinData:   []byte("{\"cniVersion\": \"0.1.0\",\"name\": \"openshift-sdn\",\"type\": \"openshift-sdn\"}"),
 			},
-			result: &expectedResult,
+			result: expectedResult,
 		},
 		// Normal DEL request
 		{
@@ -132,7 +133,7 @@ func TestOpenshiftSdnCNIPlugin(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		var result *cnitypes.Result
+		var result cnitypes.Result
 		var err error
 
 		skelArgsToEnv(tc.reqType, tc.skelArgs)

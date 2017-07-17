@@ -193,15 +193,7 @@ func TestResolveResource(t *testing.T) {
 			name:             "shortname, implicit api group",
 			defaultResource:  schema.GroupResource{},
 			resourceString:   "hpa/myhpa",
-			expectedResource: schema.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"}, // autoscaling group has lower priority
-			expectedName:     "myhpa",
-			expectedErr:      false,
-		},
-		{
-			name:             "shortname, explicit extensions api group",
-			defaultResource:  schema.GroupResource{},
-			resourceString:   "hpa.extensions/myhpa",
-			expectedResource: schema.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
+			expectedResource: schema.GroupResource{Group: "autoscaling", Resource: "horizontalpodautoscalers"}, // there is no extensions hpa anymore
 			expectedName:     "myhpa",
 			expectedErr:      false,
 		},

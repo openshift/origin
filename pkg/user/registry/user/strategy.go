@@ -67,12 +67,12 @@ func (userStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Obje
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
 	obj, ok := o.(*userapi.User)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a User")
+		return nil, nil, false, fmt.Errorf("not a User")
 	}
-	return labels.Set(obj.Labels), SelectableFields(obj), nil
+	return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

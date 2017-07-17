@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
@@ -581,11 +582,11 @@ func TestResourceDefaults(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%v :unexpected error: %v", name, err)
 		}
-		if !kapi.Semantic.DeepEqual(test.ExpectedResource, build.Spec.Resources) {
+		if !kapihelper.Semantic.DeepEqual(test.ExpectedResource, build.Spec.Resources) {
 			t.Fatalf("%v:Build resource expected expected=actual, %#v != %#v", name, test.ExpectedResource, build.Spec.Resources)
 		}
 		for i := range pod.Spec.Containers {
-			if !kapi.Semantic.DeepEqual(buildutil.CopyApiResourcesToV1Resources(&test.ExpectedResource), pod.Spec.Containers[i].Resources) {
+			if !kapihelper.Semantic.DeepEqual(buildutil.CopyApiResourcesToV1Resources(&test.ExpectedResource), pod.Spec.Containers[i].Resources) {
 				t.Fatalf("%v:Pod container %d resource expected expected=actual, got expected:\n%#v\nactual:\n%#v", name, i, test.ExpectedResource, pod.Spec.Containers[i].Resources)
 			}
 		}

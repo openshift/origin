@@ -17,6 +17,7 @@ limitations under the License.
 package rest
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -116,16 +117,10 @@ func (h *UpgradeAwareProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Re
 		h.Transport = h.defaultProxyTransport(req.URL, h.Transport)
 	}
 
-	newReq, err := http.NewRequest(req.Method, loc.String(), req.Body)
-	if err != nil {
-		h.Responder.Error(err)
-		return
-	}
-	newReq.Header = req.Header
-	newReq.ContentLength = req.ContentLength
-	// Copy the TransferEncoding is for future-proofing. Currently Go only supports "chunked" and
-	// it can determine the TransferEncoding based on ContentLength and the Body.
-	newReq.TransferEncoding = req.TransferEncoding
+	// WithContext creates a shallow clone of the request with the new context.
+	newReq := req.WithContext(context.Background())
+	newReq.Header = utilnet.CloneHeader(req.Header)
+	newReq.URL = &loc
 
 	proxy := httputil.NewSingleHostReverseProxy(&url.URL{Scheme: h.Location.Scheme, Host: h.Location.Host})
 	proxy.Transport = h.Transport
@@ -144,10 +139,16 @@ func (h *UpgradeAwareProxyHandler) tryUpgrade(w http.ResponseWriter, req *http.R
 		rawResponse []byte
 		err         error
 	)
+
+	clone := utilnet.CloneRequest(req)
+	// Only append X-Forwarded-For in the upgrade path, since httputil.NewSingleHostReverseProxy
+	// handles this in the non-upgrade path.
+	utilnet.AppendForwardedForHeader(clone)
 	if h.InterceptRedirects && utilfeature.DefaultFeatureGate.Enabled(genericfeatures.StreamingProxyRedirects) {
-		backendConn, rawResponse, err = h.connectBackendWithRedirects(req)
+		backendConn, rawResponse, err = utilnet.ConnectWithRedirects(req.Method, h.Location, clone.Header, req.Body, h)
 	} else {
-		backendConn, err = h.connectBackend(req.Method, h.Location, req.Header, req.Body)
+		clone.URL = h.Location
+		backendConn, err = h.Dial(clone)
 	}
 	if err != nil {
 		h.Responder.Error(err)
@@ -212,43 +213,22 @@ func (h *UpgradeAwareProxyHandler) tryUpgrade(w http.ResponseWriter, req *http.R
 	return true
 }
 
-func (h *UpgradeAwareProxyHandler) SendRequest(method string, location *url.URL, header http.Header, body io.Reader) (net.Conn, error) {
-	return h.connectBackend(method, location, header, body)
-}
-
-// connectBackend dials the backend at location and forwards a copy of the client request.
-func (h *UpgradeAwareProxyHandler) connectBackend(method string, location *url.URL, header http.Header, body io.Reader) (conn net.Conn, err error) {
-	defer func() {
-		if err != nil && conn != nil {
-			conn.Close()
-			conn = nil
-		}
-	}()
-
-	beReq, err := http.NewRequest(method, location.String(), body)
+// Dial dials the backend at req.URL and writes req to it.
+func (h *UpgradeAwareProxyHandler) Dial(req *http.Request) (net.Conn, error) {
+	conn, err := proxy.DialURL(req.URL, h.Transport)
 	if err != nil {
-		return nil, err
-	}
-	beReq.Header = header
-
-	conn, err = proxy.DialURL(location, h.Transport)
-	if err != nil {
-		return conn, fmt.Errorf("error dialing backend: %v", err)
+		return nil, fmt.Errorf("error dialing backend: %v", err)
 	}
 
-	if err = beReq.Write(conn); err != nil {
-		return conn, fmt.Errorf("error sending request: %v", err)
+	if err = req.Write(conn); err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("error sending request: %v", err)
 	}
 
 	return conn, err
 }
 
-// connectBackendWithRedirects dials the backend and forwards a copy of the client request. If the
-// client responds with a redirect, it is followed. The raw response bytes are returned, and should
-// be forwarded back to the client.
-func (h *UpgradeAwareProxyHandler) connectBackendWithRedirects(req *http.Request) (net.Conn, []byte, error) {
-	return utilnet.ConnectWithRedirects(req.Method, h.Location, req.Header, req.Body, h)
-}
+var _ utilnet.Dialer = &UpgradeAwareProxyHandler{}
 
 func (h *UpgradeAwareProxyHandler) defaultProxyTransport(url *url.URL, internalTransport http.RoundTripper) http.RoundTripper {
 	scheme := url.Scheme

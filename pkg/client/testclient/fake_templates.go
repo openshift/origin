@@ -17,6 +17,7 @@ type FakeTemplates struct {
 }
 
 var templatesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "templates"}
+var templatesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Template"}
 
 func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateapi.Template, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(templatesResource, c.Namespace, name), &templateapi.Template{})
@@ -28,7 +29,7 @@ func (c *FakeTemplates) Get(name string, options metav1.GetOptions) (*templateap
 }
 
 func (c *FakeTemplates) List(opts metav1.ListOptions) (*templateapi.TemplateList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(templatesResource, c.Namespace, opts), &templateapi.TemplateList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(templatesResource, templatesKind, c.Namespace, opts), &templateapi.TemplateList{})
 	if obj == nil {
 		return nil, err
 	}

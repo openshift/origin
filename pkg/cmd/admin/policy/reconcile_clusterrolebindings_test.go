@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
@@ -62,10 +63,10 @@ func TestDiffObjectReferenceLists(t *testing.T) {
 
 	for k, tc := range tests {
 		onlyA, onlyB := DiffObjectReferenceLists(tc.A, tc.B)
-		if !kapi.Semantic.DeepEqual(onlyA, tc.ExpectedOnlyA) {
+		if !kapihelper.Semantic.DeepEqual(onlyA, tc.ExpectedOnlyA) {
 			t.Errorf("%s: Expected %#v, got %#v", k, tc.ExpectedOnlyA, onlyA)
 		}
-		if !kapi.Semantic.DeepEqual(onlyB, tc.ExpectedOnlyB) {
+		if !kapihelper.Semantic.DeepEqual(onlyB, tc.ExpectedOnlyB) {
 			t.Errorf("%s: Expected %#v, got %#v", k, tc.ExpectedOnlyB, onlyB)
 		}
 	}
@@ -184,7 +185,7 @@ func TestComputeUpdate(t *testing.T) {
 		if updateNeeded != tc.ExpectedUpdateNeeded {
 			t.Errorf("%s: Expected\n\t%v\ngot\n\t%v", k, tc.ExpectedUpdateNeeded, updateNeeded)
 		}
-		if !kapi.Semantic.DeepEqual(updatedBinding, tc.ExpectedUpdatedBinding) {
+		if !kapihelper.Semantic.DeepEqual(updatedBinding, tc.ExpectedUpdatedBinding) {
 			t.Errorf("%s: Expected\n\t%v %v\ngot\n\t%v %v", k, tc.ExpectedUpdatedBinding.RoleRef, tc.ExpectedUpdatedBinding.Subjects, updatedBinding.RoleRef, updatedBinding.Subjects)
 		}
 	}

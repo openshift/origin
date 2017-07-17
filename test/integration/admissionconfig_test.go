@@ -21,6 +21,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
+	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -89,28 +90,29 @@ func (a *testAdmissionPlugin) Handles(operation admission.Operation) bool {
 func registerAdmissionPlugins(t *testing.T, names ...string) {
 	for _, name := range names {
 		pluginName := name
-		admission.RegisterPlugin(pluginName, func(config io.Reader) (admission.Interface, error) {
-			plugin := &testAdmissionPlugin{
-				name: pluginName,
-			}
-			if config != nil && !reflect.ValueOf(config).IsNil() {
-				configData, err := ioutil.ReadAll(config)
-				if err != nil {
-					return nil, err
+		serveradmission.OriginAdmissionPlugins.Register(pluginName,
+			func(config io.Reader) (admission.Interface, error) {
+				plugin := &testAdmissionPlugin{
+					name: pluginName,
 				}
-				configData, err = kyaml.ToJSON(configData)
-				if err != nil {
-					return nil, err
+				if config != nil && !reflect.ValueOf(config).IsNil() {
+					configData, err := ioutil.ReadAll(config)
+					if err != nil {
+						return nil, err
+					}
+					configData, err = kyaml.ToJSON(configData)
+					if err != nil {
+						return nil, err
+					}
+					configObj := &TestPluginConfig{}
+					err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), configData, configObj)
+					if err != nil {
+						return nil, err
+					}
+					plugin.labelValue = configObj.Data
 				}
-				configObj := &TestPluginConfig{}
-				err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), configData, configObj)
-				if err != nil {
-					return nil, err
-				}
-				plugin.labelValue = configObj.Data
-			}
-			return plugin, nil
-		})
+				return plugin, nil
+			})
 	}
 }
 

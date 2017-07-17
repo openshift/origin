@@ -18,6 +18,7 @@ type FakeRoleBindingRestrictions struct {
 }
 
 var roleBindingRestritionsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindingrestrictions"}
+var roleBindingRestritionsKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "RoleBindingRestriction"}
 
 func (c *FakeRoleBindingRestrictions) Get(name string, options metav1.GetOptions) (*authorizationapi.RoleBindingRestriction, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(roleBindingRestritionsResource, c.Namespace, name), &authorizationapi.RoleBindingRestriction{})
@@ -29,7 +30,7 @@ func (c *FakeRoleBindingRestrictions) Get(name string, options metav1.GetOptions
 }
 
 func (c *FakeRoleBindingRestrictions) List(opts metav1.ListOptions) (*authorizationapi.RoleBindingRestrictionList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingRestritionsResource, c.Namespace, opts), &authorizationapi.RoleBindingRestrictionList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(roleBindingRestritionsResource, roleBindingRestritionsKind, c.Namespace, opts), &authorizationapi.RoleBindingRestrictionList{})
 	if obj == nil {
 		return nil, err
 	}

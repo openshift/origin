@@ -126,12 +126,12 @@ func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Ob
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a DeploymentConfig")
+		return nil, nil, false, fmt.Errorf("not a DeploymentConfig")
 	}
-	return labels.Set(deploymentConfig.ObjectMeta.Labels), deployapi.DeploymentConfigToSelectableFields(deploymentConfig), nil
+	return labels.Set(deploymentConfig.ObjectMeta.Labels), deployapi.DeploymentConfigToSelectableFields(deploymentConfig), deploymentConfig.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

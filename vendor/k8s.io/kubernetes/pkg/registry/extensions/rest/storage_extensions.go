@@ -32,7 +32,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extensionsapiv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 	extensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
-	horizontalpodautoscalerstore "k8s.io/kubernetes/pkg/registry/autoscaling/horizontalpodautoscaler/storage"
 	expcontrollerstore "k8s.io/kubernetes/pkg/registry/extensions/controller/storage"
 	daemonstore "k8s.io/kubernetes/pkg/registry/extensions/daemonset/storage"
 	deploymentstore "k8s.io/kubernetes/pkg/registry/extensions/deployment/storage"
@@ -49,6 +48,8 @@ type RESTStorageProvider struct {
 
 func (p RESTStorageProvider) NewRESTStorage(apiResourceConfigSource serverstorage.APIResourceConfigSource, restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(extensions.GroupName, api.Registry, api.Scheme, api.ParameterCodec, api.Codecs)
+	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with specific priorities.
+	// TODO refactor the plumbing to provide the information in the APIGroupInfo
 
 	if apiResourceConfigSource.AnyResourcesForVersionEnabled(extensionsapiv1beta1.SchemeGroupVersion) {
 		apiGroupInfo.VersionedResourcesStorageMap[extensionsapiv1beta1.SchemeGroupVersion.Version] = p.v1beta1Storage(apiResourceConfigSource, restOptionsGetter)
@@ -68,12 +69,6 @@ func (p RESTStorageProvider) v1beta1Storage(apiResourceConfigSource serverstorag
 	controllerStorage := expcontrollerstore.NewStorage(restOptionsGetter)
 	storage["replicationcontrollers"] = controllerStorage.ReplicationController
 	storage["replicationcontrollers/scale"] = controllerStorage.Scale
-
-	if apiResourceConfigSource.ResourceEnabled(version.WithResource("horizontalpodautoscalers")) {
-		hpaStorage, hpaStatusStorage := horizontalpodautoscalerstore.NewREST(restOptionsGetter)
-		storage["horizontalpodautoscalers"] = hpaStorage
-		storage["horizontalpodautoscalers/status"] = hpaStatusStorage
-	}
 
 	if apiResourceConfigSource.ResourceEnabled(version.WithResource("thirdpartyresources")) {
 		thirdPartyResourceStorage := thirdpartyresourcestore.NewREST(restOptionsGetter)
@@ -121,7 +116,7 @@ func (p RESTStorageProvider) PostStartHook() (string, genericapiserver.PostStart
 func (p RESTStorageProvider) postStartHookFunc(hookContext genericapiserver.PostStartHookContext) error {
 	clientset, err := extensionsclient.NewForConfig(hookContext.LoopbackClientConfig)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to initialize clusterroles: %v", err))
+		utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
 		return nil
 	}
 

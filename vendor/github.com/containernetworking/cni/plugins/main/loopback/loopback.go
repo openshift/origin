@@ -17,7 +17,7 @@ package main
 import (
 	"github.com/containernetworking/cni/pkg/ns"
 	"github.com/containernetworking/cni/pkg/skel"
-	"github.com/containernetworking/cni/pkg/types"
+	"github.com/containernetworking/cni/pkg/types/current"
 	"github.com/containernetworking/cni/pkg/version"
 	"github.com/vishvananda/netlink"
 )
@@ -41,7 +41,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 		return err // not tested
 	}
 
-	result := types.Result{}
+	result := current.Result{}
 	return result.Print()
 }
 
@@ -68,5 +68,5 @@ func cmdDel(args *skel.CmdArgs) error {
 }
 
 func main() {
-	skel.PluginMain(cmdAdd, cmdDel, version.Legacy)
+	skel.PluginMain(cmdAdd, cmdDel, version.All)
 }

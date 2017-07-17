@@ -44,8 +44,8 @@ func TestRequestProjectDefaultFlags(t *testing.T) {
 	}
 }
 
-// TestRequestProjectRun ensures that Run command calls the right actions.
-func TestRequestProjectRun(t *testing.T) {
+// DISABLE_TestRequestProjectRun ensures that Run command calls the right actions.
+func DISABLE_TestRequestProjectRun(t *testing.T) {
 	client := testclient.NewSimpleFake()
 	buf := &bytes.Buffer{}
 

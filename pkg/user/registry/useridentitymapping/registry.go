@@ -28,7 +28,7 @@ type Storage interface {
 	rest.Getter
 	rest.Deleter
 
-	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
 	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
@@ -52,7 +52,7 @@ func (s *storage) GetUserIdentityMapping(ctx apirequest.Context, name string, op
 }
 
 func (s *storage) CreateUserIdentityMapping(ctx apirequest.Context, mapping *userapi.UserIdentityMapping) (*userapi.UserIdentityMapping, error) {
-	obj, err := s.Create(ctx, mapping)
+	obj, err := s.Create(ctx, mapping, false)
 	if err != nil {
 		return nil, err
 	}

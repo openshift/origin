@@ -49,7 +49,7 @@ func NewLeaderElection(options configapi.MasterConfig, leader componentconfig.Le
 
 	lock := &rl.EndpointsLock{
 		EndpointsMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
-		Client:        kc,
+		Client:        kc.Core(),
 		LockConfig: rl.ResourceLockConfig{
 			Identity: id,
 		},

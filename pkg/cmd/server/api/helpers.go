@@ -520,7 +520,6 @@ func GetKubeletClientConfig(options MasterConfig) *kubeletclient.KubeletClientCo
 			string(api.NodeHostName),
 			string(api.NodeInternalIP),
 			string(api.NodeExternalIP),
-			string(api.NodeLegacyHostIP),
 		},
 	}
 

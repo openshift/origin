@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"reflect"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/conversion"
@@ -14,10 +13,6 @@ import (
 )
 
 func Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams(in *DeploymentTriggerImageChangeParams, out *newer.DeploymentTriggerImageChangeParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*DeploymentTriggerImageChangeParams))(in)
-	}
-
 	if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
 		return err
 	}
@@ -52,9 +47,8 @@ func Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImag
 }
 
 func Convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentStrategyParams(in *RollingDeploymentStrategyParams, out *newer.RollingDeploymentStrategyParams, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*RollingDeploymentStrategyParams))(in)
-	}
+	SetDefaults_RollingDeploymentStrategyParams(in)
+
 	out.UpdatePeriodSeconds = in.UpdatePeriodSeconds
 	out.IntervalSeconds = in.IntervalSeconds
 	out.TimeoutSeconds = in.TimeoutSeconds

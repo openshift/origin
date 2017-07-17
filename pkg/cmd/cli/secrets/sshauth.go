@@ -78,7 +78,7 @@ func NewCmdCreateSSHAuthSecret(name, fullName string, f kcmdutil.Factory, out io
 				kcmdutil.CheckErr(err)
 
 				mapper, _ := f.Object()
-				kcmdutil.CheckErr(f.PrintObject(c, mapper, secret, out))
+				kcmdutil.CheckErr(f.PrintObject(c, false, mapper, secret, out))
 				return
 			}
 

@@ -39,7 +39,7 @@ type Storage interface {
 	rest.Getter
 	rest.Watcher
 
-	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
 	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
@@ -73,7 +73,7 @@ func (s *storage) GetImageStream(ctx apirequest.Context, imageStreamID string, o
 }
 
 func (s *storage) CreateImageStream(ctx apirequest.Context, imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
-	obj, err := s.Create(ctx, imageStream)
+	obj, err := s.Create(ctx, imageStream, false)
 	if err != nil {
 		return nil, err
 	}
