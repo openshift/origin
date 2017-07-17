@@ -23,6 +23,8 @@ const (
 	// TemplateInstance API.
 	TemplateInstanceLabel = "template.openshift.io/template-instance"
 
+	TemplateInstanceAnnotation = "template.openshift.io/template-instance"
+
 	// RequesterUsernameParameterKey is the name of the key in the Open Service
 	// Broker API ProvisionRequest Parameters object where we receive the user
 	// name which will be impersonated during template provisioning.  The '/'

@@ -309,6 +309,13 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 			UID:        templateInstance.UID,
 		})
 		meta.SetOwnerReferences(ref)
+
+		annotations := meta.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[templateapi.TemplateInstanceAnnotation] = templateInstance.Namespace + "/" + templateInstance.Name
+		meta.SetAnnotations(annotations)
 	}
 
 	bulk := cmd.Bulk{
@@ -368,7 +375,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 				return createObj, createErr
 			}
 
-			if meta.GetLabels()[templateapi.TemplateInstanceLabel] == templateInstance.Name {
+			if meta.GetAnnotations()[templateapi.TemplateInstanceAnnotation] == templateInstance.Namespace+"/"+templateInstance.Name {
 				return obj, nil
 			}
 		}
