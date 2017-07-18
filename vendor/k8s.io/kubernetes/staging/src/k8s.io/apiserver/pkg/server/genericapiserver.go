@@ -141,6 +141,10 @@ type GenericAPIServer struct {
 	healthzLock    sync.Mutex
 	healthzChecks  []healthz.HealthzChecker
 	healthzCreated bool
+
+	// enableAPIResponseCompression indicates whether API Responses should support compression
+	// if the client requests it via Accept-Encoding
+	enableAPIResponseCompression bool
 }
 
 // DelegationTarget is an interface which allows for composition of API servers with top level handling that works
@@ -405,9 +409,10 @@ func (s *GenericAPIServer) newAPIGroupVersion(apiGroupInfo *APIGroupInfo, groupV
 		Linker: apiGroupInfo.GroupMeta.SelfLinker,
 		Mapper: apiGroupInfo.GroupMeta.RESTMapper,
 
-		Admit:             s.admissionControl,
-		Context:           s.RequestContextMapper(),
-		MinRequestTimeout: s.minRequestTimeout,
+		Admit:                        s.admissionControl,
+		Context:                      s.RequestContextMapper(),
+		MinRequestTimeout:            s.minRequestTimeout,
+		EnableAPIResponseCompression: s.enableAPIResponseCompression,
 	}
 }
 

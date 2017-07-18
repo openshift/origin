@@ -33,6 +33,12 @@ const (
 	// StreamingProxyRedirects controls whether the apiserver should intercept (and follow)
 	// redirects from the backend (Kubelet) for streaming requests (exec/attach/port-forward).
 	StreamingProxyRedirects utilfeature.Feature = "StreamingProxyRedirects"
+
+	// owner: @ilackams
+	// alpha: v1.7
+	//
+	// Enables compression of REST responses (GET and LIST only)
+	APIResponseCompression utilfeature.Feature = "APIResponseCompression"
 )
 
 func init() {
@@ -44,4 +50,5 @@ func init() {
 // available throughout Kubernetes binaries.
 var defaultKubernetesFeatureGates = map[utilfeature.Feature]utilfeature.FeatureSpec{
 	StreamingProxyRedirects: {Default: true, PreRelease: utilfeature.Beta},
+	APIResponseCompression:  {Default: false, PreRelease: utilfeature.Alpha},
 }

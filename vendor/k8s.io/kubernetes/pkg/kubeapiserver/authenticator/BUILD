@@ -21,6 +21,7 @@ go_library(
         "//vendor:k8s.io/apiserver/pkg/authentication/request/bearertoken",
         "//vendor:k8s.io/apiserver/pkg/authentication/request/headerrequest",
         "//vendor:k8s.io/apiserver/pkg/authentication/request/union",
+        "//vendor:k8s.io/apiserver/pkg/authentication/request/websocket",
         "//vendor:k8s.io/apiserver/pkg/authentication/request/x509",
         "//vendor:k8s.io/apiserver/pkg/authentication/token/tokenfile",
         "//vendor:k8s.io/apiserver/plugin/pkg/authenticator/password/keystone",
