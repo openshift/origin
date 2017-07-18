@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 
+	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -78,6 +79,10 @@ type PersistentVolumeAttachDetachControllerConfig struct {
 }
 
 func (c *PersistentVolumeAttachDetachControllerConfig) RunController(ctx kubecontroller.ControllerContext) (bool, error) {
+	if c.CloudProvider == nil {
+		glog.Warningf("No cloud provider is set for attach/detach controller, skipping initialization")
+		return true, nil
+	}
 	attachDetachController, err := attachdetachcontroller.NewAttachDetachController(
 		ctx.ClientBuilder.ClientOrDie("attachdetach-controller"),
 		ctx.InformerFactory.Core().V1().Pods(),
