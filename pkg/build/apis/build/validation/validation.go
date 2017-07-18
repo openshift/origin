@@ -2,7 +2,6 @@ package validation
 
 import (
 	"fmt"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -24,6 +23,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapivalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
 	"github.com/openshift/origin/pkg/util/labelselector"
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 // ValidateBuild tests required fields for a Build.
@@ -271,14 +271,18 @@ func validateGitSource(git *buildapi.GitBuildSource, fldPath *field.Path) field.
 	allErrs := field.ErrorList{}
 	if len(git.URI) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("uri"), ""))
-	} else if !IsValidURL(git.URI) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), git.URI, "uri is not a valid url"))
+	} else if _, err := s2igit.Parse(git.URI); err != nil {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("uri"), git.URI, err.Error()))
 	}
-	if git.HTTPProxy != nil && len(*git.HTTPProxy) != 0 && !IsValidURL(*git.HTTPProxy) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpproxy"), *git.HTTPProxy, "proxy is not a valid url"))
+	if git.HTTPProxy != nil && len(*git.HTTPProxy) != 0 {
+		if _, err := buildutil.ParseProxyURL(*git.HTTPProxy); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("httpproxy"), *git.HTTPProxy, err.Error()))
+		}
 	}
-	if git.HTTPSProxy != nil && len(*git.HTTPSProxy) != 0 && !IsValidURL(*git.HTTPSProxy) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), *git.HTTPSProxy, "proxy is not a valid url"))
+	if git.HTTPSProxy != nil && len(*git.HTTPSProxy) != 0 {
+		if _, err := buildutil.ParseProxyURL(*git.HTTPSProxy); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("httpsproxy"), *git.HTTPSProxy, err.Error()))
+		}
 	}
 	return allErrs
 }
@@ -635,11 +639,6 @@ func validateWebHook(webHook *buildapi.WebHookTrigger, fldPath *field.Path, isGe
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("allowEnv"), webHook, "git webhooks cannot allow env vars"))
 	}
 	return allErrs
-}
-
-func IsValidURL(uri string) bool {
-	_, err := url.Parse(uri)
-	return err == nil
 }
 
 func ValidateBuildLogOptions(opts *buildapi.BuildLogOptions) field.ErrorList {

@@ -841,7 +841,7 @@ func TestValidateSource(t *testing.T) {
 			path: "git.uri",
 			source: &buildapi.BuildSource{
 				Git: &buildapi.GitBuildSource{
-					URI: "::",
+					URI: "http://%",
 				},
 			},
 		},

@@ -6,13 +6,14 @@ import (
 
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
 	"github.com/openshift/origin/pkg/build/controller/build/defaults/api"
+	"github.com/openshift/origin/pkg/build/util"
 )
 
 // ValidateBuildDefaultsConfig tests required fields for a Build.
 func ValidateBuildDefaultsConfig(config *api.BuildDefaultsConfig) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, validateURL(config.GitHTTPProxy, field.NewPath("gitHTTPProxy"))...)
-	allErrs = append(allErrs, validateURL(config.GitHTTPSProxy, field.NewPath("gitHTTPSProxy"))...)
+	allErrs = append(allErrs, validateProxyURL(config.GitHTTPProxy, field.NewPath("gitHTTPProxy"))...)
+	allErrs = append(allErrs, validateProxyURL(config.GitHTTPSProxy, field.NewPath("gitHTTPSProxy"))...)
 	allErrs = append(allErrs, buildvalidation.ValidateStrategyEnv(config.Env, field.NewPath("env"))...)
 	allErrs = append(allErrs, buildvalidation.ValidateImageLabels(config.ImageLabels, field.NewPath("imageLabels"))...)
 	allErrs = append(allErrs, buildvalidation.ValidateNodeSelector(config.NodeSelector, field.NewPath("nodeSelector"))...)
@@ -21,10 +22,10 @@ func ValidateBuildDefaultsConfig(config *api.BuildDefaultsConfig) field.ErrorLis
 }
 
 //
-func validateURL(u string, path *field.Path) field.ErrorList {
+func validateProxyURL(u string, path *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
-	if !buildvalidation.IsValidURL(u) {
-		allErrs = append(allErrs, field.Invalid(path, u, "invalid URL"))
+	if _, err := util.ParseProxyURL(u); err != nil {
+		allErrs = append(allErrs, field.Invalid(path, u, err.Error()))
 	}
 	return allErrs
 }
