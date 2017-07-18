@@ -119,7 +119,7 @@ const (
 	DeploymentStatusFailed DeploymentStatus = "Failed"
 )
 
-// +genclient=true
+// +genclient
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current

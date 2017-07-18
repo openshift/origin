@@ -98,7 +98,7 @@ var (
 	WhitelistEnvVarNames = [2]string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
 )
 
-// +genclient=true
+// +genclient
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
@@ -989,7 +989,7 @@ type ImageLabel struct {
 	Value string
 }
 
-// +genclient=true
+// +genclient
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {

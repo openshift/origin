@@ -41,7 +41,7 @@ type IsPersonalSubjectAccessReview struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
-// +genclient=true
+// +genclient
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
@@ -62,7 +62,7 @@ func (t OptionalNames) String() string {
 	return fmt.Sprintf("%v", []string(t))
 }
 
-// +genclient=true
+// +genclient
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
@@ -97,7 +97,7 @@ type RoleBinding struct {
 
 type NamedRoles []NamedRole
 
-// +genclient=true
+// +genclient
 
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
@@ -115,7 +115,7 @@ type Policy struct {
 
 type NamedRoleBindings []NamedRoleBinding
 
-// +genclient=true
+// +genclient
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
@@ -359,8 +359,8 @@ type RoleList struct {
 	Items []Role `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
@@ -372,8 +372,8 @@ type ClusterRole struct {
 	Rules []PolicyRule `json:"rules" protobuf:"bytes,2,rep,name=rules"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
 // It adds who information via (Users and Groups) OR Subjects and namespace information by which namespace it exists in.
@@ -408,8 +408,8 @@ type ClusterRoleBinding struct {
 
 type NamedClusterRoles []NamedClusterRole
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
@@ -427,8 +427,8 @@ type ClusterPolicy struct {
 
 type NamedClusterRoleBindings []NamedClusterRoleBinding
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace

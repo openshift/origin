@@ -20,10 +20,12 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strings"
 
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
+	"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/util"
 )
 
 // genClientForType produces a file for each top-level type.
@@ -64,25 +66,26 @@ func genStatus(t *types.Type) bool {
 			break
 		}
 	}
-
-	// Allow overriding via a comment on the type
-	genStatus, err := types.ExtractSingleBoolCommentTag("+", "genclientstatus", hasStatus, t.SecondClosestCommentLines)
+	tags, err := util.ParseClientGenTags(t.SecondClosestCommentLines)
 	if err != nil {
-		fmt.Printf("error looking up +genclientstatus: %v\n", err)
+		fmt.Printf("error parsing tags: %v\n", err)
 	}
-	return genStatus
+	return hasStatus && !tags.NoStatus
 }
 
 // GenerateType makes the body of a file implementing the individual typed client for type t.
 func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w io.Writer) error {
 	sw := generator.NewSnippetWriter(w, c, "$", "$")
 	pkg := filepath.Base(t.Name.Package)
-	namespaced := !extractBoolTagOrDie("nonNamespaced", t.SecondClosestCommentLines)
+	tags, err := util.ParseClientGenTags(t.SecondClosestCommentLines)
+	if err != nil {
+		return err
+	}
 	m := map[string]interface{}{
 		"type":                 t,
 		"package":              pkg,
 		"Package":              namer.IC(pkg),
-		"namespaced":           namespaced,
+		"namespaced":           !tags.NonNamespaced,
 		"Group":                namer.IC(g.group),
 		"GroupVersion":         namer.IC(g.group) + namer.IC(g.version),
 		"DeleteOptions":        c.Universe.Type(types.Name{Package: "k8s.io/apimachinery/pkg/apis/meta/v1", Name: "DeleteOptions"}),
@@ -95,48 +98,109 @@ func (g *genClientForType) GenerateType(c *generator.Context, t *types.Type, w i
 	}
 
 	sw.Do(getterComment, m)
-	if namespaced {
-		sw.Do(getterNamesapced, m)
+	if tags.NonNamespaced {
+		sw.Do(getterNonNamespaced, m)
 	} else {
-		sw.Do(getterNonNamesapced, m)
+		sw.Do(getterNamespaced, m)
 	}
-	noMethods := extractBoolTagOrDie("noMethods", t.SecondClosestCommentLines) == true
+
+	if len(tags.OnlyVerbs) > 0 {
+		tags.SkipVerbs = []string{}
+		for _, m := range util.SupportedVerbs {
+			skip := true
+			for _, o := range tags.OnlyVerbs {
+				if o == m {
+					skip = false
+					break
+				}
+			}
+			if skip {
+				tags.SkipVerbs = append(tags.SkipVerbs, m)
+			}
+		}
+	}
 
 	sw.Do(interfaceTemplate1, m)
-	if !noMethods {
-		sw.Do(interfaceTemplate2, m)
-		// Include the UpdateStatus method if the type has a status
-		if genStatus(t) {
-			sw.Do(interfaceUpdateStatusTemplate, m)
+	if !tags.NoVerbs {
+		if !genStatus(t) {
+			tags.SkipVerbs = append(tags.SkipVerbs, "updateStatus")
 		}
-		sw.Do(interfaceTemplate3, m)
+		sw.Do(generateInterface(tags.SkipVerbs), m)
 	}
 	sw.Do(interfaceTemplate4, m)
 
-	if namespaced {
-		sw.Do(structNamespaced, m)
-		sw.Do(newStructNamespaced, m)
-	} else {
+	if tags.NonNamespaced {
 		sw.Do(structNonNamespaced, m)
 		sw.Do(newStructNonNamespaced, m)
+	} else {
+		sw.Do(structNamespaced, m)
+		sw.Do(newStructNamespaced, m)
 	}
 
-	if !noMethods {
-		sw.Do(createTemplate, m)
-		sw.Do(updateTemplate, m)
-		// Generate the UpdateStatus method if the type has a status
-		if genStatus(t) {
+	if !tags.NoVerbs {
+		if !skipVerb("create", tags.SkipVerbs) {
+			sw.Do(createTemplate, m)
+		}
+		if !skipVerb("update", tags.SkipVerbs) {
+			sw.Do(updateTemplate, m)
+		}
+		if !skipVerb("updateStatus", tags.SkipVerbs) {
 			sw.Do(updateStatusTemplate, m)
 		}
-		sw.Do(deleteTemplate, m)
-		sw.Do(deleteCollectionTemplate, m)
-		sw.Do(getTemplate, m)
-		sw.Do(listTemplate, m)
-		sw.Do(watchTemplate, m)
-		sw.Do(patchTemplate, m)
+		if !skipVerb("delete", tags.SkipVerbs) {
+			sw.Do(deleteTemplate, m)
+		}
+		if !skipVerb("deleteCollection", tags.SkipVerbs) {
+			sw.Do(deleteCollectionTemplate, m)
+		}
+		if !skipVerb("get", tags.SkipVerbs) {
+			sw.Do(getTemplate, m)
+		}
+		if !skipVerb("list", tags.SkipVerbs) {
+			sw.Do(listTemplate, m)
+		}
+		if !skipVerb("watch", tags.SkipVerbs) {
+			sw.Do(watchTemplate, m)
+		}
+		if !skipVerb("patch", tags.SkipVerbs) {
+			sw.Do(patchTemplate, m)
+		}
 	}
 
 	return sw.Error()
+}
+
+func skipVerb(m string, skippedVerbs []string) bool {
+	for _, toSkip := range skippedVerbs {
+		if toSkip == m {
+			return true
+		}
+	}
+	return false
+}
+
+func generateInterface(skippedVerbs []string) string {
+	// need an ordered list here to guarantee order of generated methods.
+	out := []string{}
+	for _, m := range util.SupportedVerbs {
+		if skipVerb(m, skippedVerbs) {
+			continue
+		}
+		out = append(out, defaultVerbTemplates[m])
+	}
+	return strings.Join(out, "\n")
+}
+
+var defaultVerbTemplates = map[string]string{
+	"create":           `Create(*$.type|raw$) (*$.type|raw$, error)`,
+	"update":           `Update(*$.type|raw$) (*$.type|raw$, error)`,
+	"updateStatus":     `UpdateStatus(*$.type|raw$) (*$.type|raw$, error)`,
+	"delete":           `Delete(name string, options *$.DeleteOptions|raw$) error`,
+	"deleteCollection": `DeleteCollection(options *$.DeleteOptions|raw$, listOptions $.ListOptions|raw$) error`,
+	"get":              `Get(name string, options $.GetOptions|raw$) (*$.type|raw$, error)`,
+	"list":             `List(opts $.ListOptions|raw$) (*$.type|raw$List, error)`,
+	"watch":            `Watch(opts $.ListOptions|raw$) ($.watchInterface|raw$, error)`,
+	"patch":            `Patch(name string, pt $.PatchType|raw$, data []byte, subresources ...string) (result *$.type|raw$, err error)`,
 }
 
 // group client will implement this interface.
@@ -144,13 +208,13 @@ var getterComment = `
 // $.type|publicPlural$Getter has a method to return a $.type|public$Interface.
 // A group's client should implement this interface.`
 
-var getterNamesapced = `
+var getterNamespaced = `
 type $.type|publicPlural$Getter interface {
 	$.type|publicPlural$(namespace string) $.type|public$Interface
 }
 `
 
-var getterNonNamesapced = `
+var getterNonNamespaced = `
 type $.type|publicPlural$Getter interface {
 	$.type|publicPlural$() $.type|public$Interface
 }
@@ -160,22 +224,6 @@ type $.type|publicPlural$Getter interface {
 var interfaceTemplate1 = `
 // $.type|public$Interface has methods to work with $.type|public$ resources.
 type $.type|public$Interface interface {`
-
-var interfaceTemplate2 = `
-	Create(*$.type|raw$) (*$.type|raw$, error)
-	Update(*$.type|raw$) (*$.type|raw$, error)`
-
-var interfaceUpdateStatusTemplate = `
-	UpdateStatus(*$.type|raw$) (*$.type|raw$, error)`
-
-// template for the Interface
-var interfaceTemplate3 = `
-	Delete(name string, options *$.DeleteOptions|raw$) error
-	DeleteCollection(options *$.DeleteOptions|raw$, listOptions $.ListOptions|raw$) error
-	Get(name string, options $.GetOptions|raw$) (*$.type|raw$, error)
-	List(opts $.ListOptions|raw$) (*$.type|raw$List, error)
-	Watch(opts $.ListOptions|raw$) ($.watchInterface|raw$, error)
-	Patch(name string, pt $.PatchType|raw$, data []byte, subresources ...string) (result *$.type|raw$, err error)`
 
 var interfaceTemplate4 = `
 	$.type|public$Expansion

@@ -6,7 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-// +genclient=true
+// +genclient
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
@@ -76,7 +76,7 @@ type Parameter struct {
 	Required bool
 }
 
-// +genclient=true
+// +genclient
 
 // TemplateInstance requests and records the instantiation of a Template.
 // TemplateInstance is part of an experimental API.
@@ -159,8 +159,8 @@ type TemplateInstanceList struct {
 	Items []TemplateInstance
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // BrokerTemplateInstance holds the service broker-related state associated with
 // a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.

@@ -8,7 +8,7 @@ import (
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
-// +genclient=true
+// +genclient
 
 type User struct {
 	metav1.TypeMeta
