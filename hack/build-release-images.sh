@@ -21,7 +21,9 @@ for ver in "${OS_BUILD_ENV_GOLANG_VERSIONS[@]}"; do
       arches+=("${arch}")
     fi
   done
-  go_ver_arches[$ver]="${arches[@]}"
+  if (( "${#arches[@]}" )); then
+    go_ver_arches[$ver]="${arches[@]}"
+  fi
   unset arches
 done
 
