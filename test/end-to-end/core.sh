@@ -117,7 +117,7 @@ os::cmd::expect_success "oc login -u user0 -p pass"
 os::cmd::expect_success "oc new-project project0"
 # An image stream will be created that will track the source image and the resulting image
 # will be pushed to image stream "busybox:latest"
-os::cmd::expect_success "oc new-build -D \$'FROM busybox:glibc\nRUN echo abc >/tmp/foo'"
+os::cmd::expect_success "oc new-build -D \$'FROM $(os::util::busybox_base_img):glibc\nRUN echo abc >/tmp/foo'"
 os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.metadata.name}'" "busybox-1" "$(( 10*TIME_MIN ))"
 os::cmd::try_until_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" '^(Complete|Failed|Error)$' "$(( 10*TIME_MIN ))"
 os::cmd::expect_success_and_text "oc get build/busybox-1 -o 'jsonpath={.status.phase}'" 'Complete'
@@ -394,12 +394,12 @@ os::cmd::expect_success_and_text "cat '${LOG_DIR}/kubectl-with-token.log'" 'kube
 
 os::log::info "Testing deployment logs and failing pre and mid hooks ..."
 # test hook selectors
-os::cmd::expect_success "oc create -f ${OS_ROOT}/test/testdata/complete-dc-hooks.yaml"
+os::cmd::expect_success "oc process -f ${OS_ROOT}/test/testdata/complete-dc-hooks.yaml -p CONTAINER_IMAGE=$(os::util::busybox_base_img)| oc create -f -"
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-pre  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-mid  -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 os::cmd::try_until_text 'oc get pods -l openshift.io/deployer-pod.type=hook-post -o jsonpath={.items[*].status.phase}' '^Succeeded$'
 # test the pre hook on a rolling deployment
-os::cmd::expect_success 'oc create -f test/testdata/failing-dc.yaml'
+os::cmd::expect_success 'oc process -f test/testdata/failing-dc.yaml -p CONTAINER_IMAGE=$(os::util::centos_image) | oc create -f -'
 os::cmd::try_until_success 'oc get rc/failing-dc-1'
 os::cmd::expect_failure 'oc rollout status dc/failing-dc'
 os::cmd::expect_success_and_text 'oc logs dc/failing-dc' 'test pre hook executed'
@@ -412,7 +412,7 @@ os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:
 os::cmd::expect_success_and_text 'oc logs --previous --since-time=2000-01-01T12:34:56Z --loglevel=6 dc/failing-dc 2>&1' 'test pre hook executed'
 os::cmd::expect_success 'oc delete dc/failing-dc'
 # test the mid hook on a recreate deployment and the health check
-os::cmd::expect_success 'oc create -f test/testdata/failing-dc-mid.yaml'
+os::cmd::expect_success 'oc process -f test/testdata/failing-dc-mid.yaml -p CONTAINER_IMAGE=$(os::util::centos_image) | oc create -f -'
 os::cmd::try_until_success 'oc get rc/failing-dc-mid-1'
 os::cmd::expect_success 'oc logs -f dc/failing-dc-mid'
 os::cmd::expect_failure 'oc rollout status dc/failing-dc-mid'
