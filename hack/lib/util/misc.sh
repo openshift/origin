@@ -181,7 +181,7 @@ function os::util::curl_etcd() {
 			               -out "${etcd_client_cert_p12}" \
 			               -password "pass:${etcd_client_cert_p12_password}"
 		fi
-b
+
 		curl --fail --silent --cacert "${ca_bundle}" \
 		     --cert "${etcd_client_cert_p12}:${etcd_client_cert_p12_password}" "${full_url}"
 	else
