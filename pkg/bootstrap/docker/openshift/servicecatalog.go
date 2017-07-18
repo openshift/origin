@@ -29,7 +29,7 @@ const (
 )
 
 // InstallServiceCatalog checks whether the service catalog is installed and installs it if not already installed
-func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catalogHost string) error {
+func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catalogHost string, tag string) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -81,8 +81,9 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 	params := map[string]string{
 		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
 		"CORS_ALLOWED_ORIGIN":        publicMaster,
+		"SERVICE_CATALOG_TAG":        tag,
 	}
-	glog.V(2).Infof("instantiating service catalog template")
+	glog.V(2).Infof("instantiating service catalog template with parameters %v", params)
 
 	// Stands up the service catalog apiserver, etcd, and controller manager
 	err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), OpenshiftInfraNamespace, catalogTemplate, catalogNamespace, params)

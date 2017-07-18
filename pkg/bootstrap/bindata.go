@@ -13384,7 +13384,9 @@ objects:
       spec:
         serviceAccountName: service-catalog-apiserver
         containers:
-        - args:
+        - command: 
+          - apiserver
+          args:
           - --admission-control
           - KubernetesNamespaceLifecycle
           - --storage-type
@@ -13401,7 +13403,7 @@ objects:
           - "10"
           - --cors-allowed-origins
           - ${CORS_ALLOWED_ORIGIN}
-          image: quay.io/kubernetes-service-catalog/apiserver:${SERVICE_CATALOG_TAG}
+          image: openshift/origin-service-catalog:${SERVICE_CATALOG_TAG}
           imagePullPolicy: IfNotPresent
           name: apiserver
           ports:
@@ -13488,7 +13490,9 @@ objects:
       spec:
         serviceAccountName: service-catalog-controller
         containers:
-        - args:
+        - command: 
+          - controller-manager
+          args:
           - -v
           - "5"
           - --service-catalog-api-server-url
@@ -13497,7 +13501,7 @@ objects:
           - service-catalog
           - --broker-relist-interval
           - "5m"
-          image: quay.io/kubernetes-service-catalog/controller-manager:${SERVICE_CATALOG_TAG}
+          image: openshift/origin-service-catalog:${SERVICE_CATALOG_TAG}
           imagePullPolicy: IfNotPresent
           name: controller-manager
           ports:
@@ -13545,7 +13549,7 @@ parameters:
   displayName: Service catalog image tag
   name: SERVICE_CATALOG_TAG
   required: true
-  value: canary
+  value: latest
 - description: Cluster ip address for the service catalog service
   displayName: Service Catalog Service IP
   name: SERVICE_CATALOG_SERVICE_IP
