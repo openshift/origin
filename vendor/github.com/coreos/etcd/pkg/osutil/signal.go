@@ -1,4 +1,4 @@
-// Copyright 2016 The etcd Authors
+// Copyright 2017 The etcd Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !linux
+// +build !linux cov
 
-package backend
+package osutil
 
-import "github.com/boltdb/bolt"
+import "syscall"
 
-var boltOpenOptions *bolt.Options = nil
+func dflSignal(sig syscall.Signal) { /* nop */ }
