@@ -288,7 +288,7 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 
 	namespace := "foo"
 	serviceName := "TestService"
-	serviceWeight := int32(30)
+	serviceWeight := int32(240)
 
 	route := &routeapi.Route{
 		ObjectMeta: metav1.ObjectMeta{

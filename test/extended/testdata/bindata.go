@@ -10758,6 +10758,23 @@ objects:
         name: http
       - containerPort: 100
         protocol: UDP
+- apiVersion: v1
+  kind: Pod
+  metadata:
+    name: endpoint-3
+    labels:
+      test: weightedrouter2
+      endpoints: weightedrouter2
+  spec:
+    terminationGracePeriodSeconds: 1
+    containers:
+    - name: test
+      image: openshift/hello-openshift
+      ports:
+      - containerPort: 8080
+        name: http
+      - containerPort: 100
+        protocol: UDP
 `)
 
 func testExtendedTestdataWeightedRouterYamlBytes() ([]byte, error) {
