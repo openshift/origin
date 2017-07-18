@@ -36,6 +36,11 @@ function os::build::environment::create() {
 
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
   if [[ -n "${env_arch}" && "$(os::util::sys_arch ${env_arch})" != "$(os::util::sys_arch)" ]]; then
+    if [[ "$(os::util::env::sys_arch ${env_arch})" != "x86_64" ]]; then
+      os::log::error "user mode emulation of arch environments only supported for x86_64"
+      exit 1
+    fi
+
     docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
     local qemu_binary=qemu-$(os::util::sys_arch ${env_arch})-static
