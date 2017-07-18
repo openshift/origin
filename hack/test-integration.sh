@@ -106,13 +106,19 @@ loop="${TIMES:-1}"
 # hack/test-integration.sh WatchBuilds
 # hack/test-integration.sh Template*
 # hack/test-integration.sh "(WatchBuilds|Template)"
-tests=( $(go run "${OS_ROOT}/hack/listtests.go" -prefix="${OS_GO_PACKAGE}/${package}.Test" "${testexec}" | grep -E "${1-Test}") )
+listTemplate='{{ range $i,$file := .TestGoFiles }}{{$.Dir}}/{{ $file }}{{ "\n" }}{{end}}'
+tests=( $(go list -f "${listTemplate}" "./${package}" | xargs grep -E -o --no-filename '^func Test[^(]+' | cut -d ' ' -f 2 | grep -E "${1-Test}") )
+
+if [[ "${#tests[@]}" == "0" ]]; then
+	os::text::print_red "No tests found matching \"${1-Test}\""
+	exit 1
+fi
 
 # run each test as its own process
 ret=0
 test_result="ok"
 pushd "${OS_ROOT}/${package}" &>/dev/null
-test_start_time=$(date +%s%3N)
+test_start_time=$(date +%s)
 for test in "${tests[@]}"; do
 	for((i=0;i<${loop};i+=1)); do
 		if ! (exectest "${test}" ${@:2}); then
@@ -121,10 +127,10 @@ for test in "${tests[@]}"; do
 		fi
 	done
 done
-test_end_time=$(date +%s%3N)
+test_end_time=$(date +%s)
 test_duration=$((test_end_time - test_start_time))
 
-echo "${test_result}        github.com/openshift/origin/test/integration    $((test_duration / 1000)).$((test_duration % 1000))s" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
+echo "${test_result}        github.com/openshift/origin/test/integration    $((test_duration)).000s" >> "${JUNIT_REPORT_OUTPUT:-/dev/null}"
 
 popd &>/dev/null
 

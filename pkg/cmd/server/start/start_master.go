@@ -23,6 +23,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
+	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/cloudprovider"
@@ -402,17 +404,24 @@ func (m *Master) Start() error {
 		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
 	}
 
-	// informers are shared amongst all the various components we build
-	informers, err := NewInformers(*m.config)
-	if err != nil {
-		return err
+	if len(m.config.AggregatorConfig.ProxyClientInfo.KeyFile) > 0 {
+		// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
+		// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
+		// TODO: make scheme threadsafe and do this as part of aggregator config building
+		aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 	}
+
 	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
 	// as a separate API server which can be chained as a delegate
 	var controllerPlug plug.Plug
 
 	controllersEnabled := m.controllers && m.config.Controllers != configapi.ControllersDisabled
 	if controllersEnabled {
+		// informers are shared amongst all the various controllers we build
+		informers, err := NewInformers(*m.config)
+		if err != nil {
+			return err
+		}
 		kubeInternal, _, err := configapi.GetInternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
@@ -497,6 +506,11 @@ func (m *Master) Start() error {
 	}
 
 	if m.api {
+		// informers are shared amongst all the various api components we build
+		informers, err := NewInformers(*m.config)
+		if err != nil {
+			return err
+		}
 		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
 		if err != nil {
 			return err

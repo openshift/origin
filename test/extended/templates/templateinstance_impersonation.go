@@ -6,8 +6,10 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/retry"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -34,10 +36,17 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 		dummytemplateinstance *templateapi.TemplateInstance
 
+		dummycondition = templateapi.TemplateInstanceCondition{
+			Type:   templateapi.TemplateInstanceConditionType("dummy"),
+			Status: kapi.ConditionTrue,
+		}
+
 		tests []struct {
 			user                      *userapi.User
-			expectCreateUpdateSuccess bool
+			expectCreateSuccess       bool
 			expectDeleteSuccess       bool
+			hasUpdatePermission       bool
+			hasUpdateStatusPermission bool
 		}
 	)
 
@@ -60,6 +69,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 						Name:      "template",
 						Namespace: "dummy",
 					},
+					Objects: []runtime.Object{},
 				},
 				// all the tests work with a templateinstance which is set up to
 				// impersonate edituser1
@@ -71,38 +81,52 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 
 		tests = []struct {
 			user                      *userapi.User
-			expectCreateUpdateSuccess bool
+			expectCreateSuccess       bool
 			expectDeleteSuccess       bool
+			hasUpdatePermission       bool
+			hasUpdateStatusPermission bool
 		}{
 			{
-				user: nil, // system-admin
-				expectCreateUpdateSuccess: true, // can impersonate anyone
+				user:                      nil,  // system-admin
+				expectCreateSuccess:       true, // can impersonate anyone
 				expectDeleteSuccess:       true,
+				hasUpdatePermission:       true,
+				hasUpdateStatusPermission: true,
 			},
 			{
-				user: adminuser,
-				expectCreateUpdateSuccess: false, // cannot impersonate edituser1
+				user:                      adminuser,
+				expectCreateSuccess:       false, // cannot impersonate edituser1
 				expectDeleteSuccess:       true,
+				hasUpdatePermission:       true,
+				hasUpdateStatusPermission: false,
 			},
 			{
-				user: impersonateuser,
-				expectCreateUpdateSuccess: true, // can impersonate edituser1
+				user:                      impersonateuser,
+				expectCreateSuccess:       true, // can impersonate edituser1
 				expectDeleteSuccess:       true,
+				hasUpdatePermission:       true,
+				hasUpdateStatusPermission: false,
 			},
 			{
-				user: edituser1,
-				expectCreateUpdateSuccess: true, // is edituser1
+				user:                      edituser1,
+				expectCreateSuccess:       true, // is edituser1
 				expectDeleteSuccess:       true,
+				hasUpdatePermission:       true,
+				hasUpdateStatusPermission: false,
 			},
 			{
-				user: edituser2,
-				expectCreateUpdateSuccess: false, // cannot impersonate edituser1
+				user:                      edituser2,
+				expectCreateSuccess:       false, // cannot impersonate edituser1
 				expectDeleteSuccess:       true,
+				hasUpdatePermission:       true,
+				hasUpdateStatusPermission: false,
 			},
 			{
-				user: viewuser,
-				expectCreateUpdateSuccess: false, // cannot create things and cannot impersonate edituser1
+				user:                      viewuser,
+				expectCreateSuccess:       false, // cannot create things and cannot impersonate edituser1
 				expectDeleteSuccess:       false,
+				hasUpdatePermission:       false,
+				hasUpdateStatusPermission: false,
 			},
 		}
 
@@ -168,7 +192,7 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			templateinstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
 
-			if !test.expectCreateUpdateSuccess {
+			if !test.expectCreateSuccess {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
 			} else {
@@ -181,39 +205,87 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 	})
 
 	g.It("should pass impersonation update tests", func() {
-		// check who can update TemplateInstances (anyone with project write access
-		// AND is/can impersonate spec.requester.username)
+		// check who can update TemplateInstances.  Via Update(), spec updates
+		// should be rejected (with the exception of spec.metadata fields used
+		// by the garbage collector, not tested here).  Status updates should be
+		// silently ignored.  Via UpdateStatus(), spec updates should be
+		// silently ignored.  Status should only be updatable by a user with
+		// update access to that endpoint.  In practice this is intended only to
+		// be the templateinstance controller and system:admin.
 		for _, test := range tests {
+			var templateinstancecopy *templateapi.TemplateInstance
 			setUser(cli, test.user)
 
-			templateinstancecopy, err := kapi.Scheme.DeepCopy(dummytemplateinstance)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(templateinstancecopy.(*templateapi.TemplateInstance))
+			templateinstance, err := cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Create(dummytemplateinstance)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			var newtemplateinstance *templateapi.TemplateInstance
-			for try := 0; try < 3; try++ {
-				newtemplateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
-				if kerrors.IsConflict(err) {
-					templateinstance, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
-					o.Expect(err).NotTo(o.HaveOccurred())
-				} else {
-					break
-				}
-			}
-			if !test.expectCreateUpdateSuccess {
+			// ensure spec (particularly including spec.requester.username) is
+			// immutable via Update()
+			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				templateinstancecopy.Spec.Requester.Username = edituser2.Name
+
+				_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
+				return err
+			})
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
+
+			// ensure status changes are ignored via Update()
+			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				templateinstancecopy.Status.Conditions = append(templateinstancecopy.Status.Conditions, dummycondition)
+
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstancecopy)
+				return err
+			})
+			if !test.hasUpdatePermission {
 				o.Expect(err).To(o.HaveOccurred())
 				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
 			} else {
 				o.Expect(err).NotTo(o.HaveOccurred())
-				templateinstance = newtemplateinstance
+				o.Expect(templateinstancecopy.Status.Conditions).NotTo(o.ContainElement(dummycondition))
 			}
 
-			// ensure spec (particularly including spec.requester.username) is
-			// immutable
-			templateinstance.Spec.Requester.Username = edituser2.Name
-			_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Update(templateinstance)
-			o.Expect(err).To(o.HaveOccurred())
+			// ensure spec changes are ignored via UpdateStatus()
+			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				templateinstancecopy.Spec.Requester.Username = edituser2.Name
+
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).UpdateStatus(templateinstancecopy)
+				return err
+			})
+			if !test.hasUpdateStatusPermission {
+				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
+			} else {
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(templateinstancecopy.Spec).To(o.Equal(dummytemplateinstance.Spec))
+			}
+
+			// ensure status changes are allowed via UpdateStatus()
+			err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(templateinstance.Name, metav1.GetOptions{})
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				templateinstancecopy.Status.Conditions = []templateapi.TemplateInstanceCondition{dummycondition}
+
+				templateinstancecopy, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).UpdateStatus(templateinstancecopy)
+				return err
+			})
+			if !test.hasUpdateStatusPermission {
+				o.Expect(err).To(o.HaveOccurred())
+				o.Expect(kerrors.IsInvalid(err) || kerrors.IsForbidden(err)).To(o.BeTrue())
+			} else {
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(templateinstancecopy.Status.Conditions).To(o.ContainElement(dummycondition))
+			}
 
 			err = cli.AdminTemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)
 			o.Expect(err).NotTo(o.HaveOccurred())
