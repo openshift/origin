@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pmezard/go-difflib/difflib"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -89,13 +92,34 @@ func (d *RouteCertificateValidation) Check() types.DiagnosticResult {
 
 		if len(errs) == 0 {
 			if !kapi.Semantic.DeepEqual(original, &route) {
-				err := fmt.Errorf("Route was normalized when extended validation was run (route/%s -n %s).\nPlease verify that this route certificate contains no invalid data.\n", route.Name, route.Namespace)
-				r.Warn("DRouCert2004", nil, err.Error())
+				diffs, err := diff.ObjectReflectDiffs(original, &route)
+				if err != nil {
+					err := fmt.Errorf("Route was normalized when extended validation was run (route/%s -n %s).\nPlease verify that this route certificate contains no invalid data.", route.Name, route.Namespace)
+					r.Warn("DRouCert2005", nil, err.Error())
+					continue
+				}
+				var fields []string
+				for _, d := range diffs {
+					diff, err := difflib.GetUnifiedDiffString(difflib.UnifiedDiff{
+						A:       strings.SplitAfter(fmt.Sprintf("%v", d.A), "\n"),
+						B:       strings.SplitAfter(fmt.Sprintf("%v", d.B), "\n"),
+						Context: 2,
+						Eol:     "\n",
+					})
+					if err == nil {
+						fields = append(fields, fmt.Sprintf("* %s altered:\n%s\n", d.Path, diff))
+					} else {
+						fields = append(fields, fmt.Sprintf("* %s altered:\n  A: %v\n  B: %v\n", d.Path, d.A, d.B))
+					}
+				}
+				err = fmt.Errorf("Route was normalized when extended validation was run (route/%s -n %s).\nPlease verify that this route certificate contains no invalid data.\n\n%s", route.Name, route.Namespace, strings.Join(fields, "\n"))
+				r.Warn("DRouCert2006", nil, err.Error())
+				continue
 			}
 			continue
 		}
 		err = fmt.Errorf("Route failed extended validation (route/%s -n %s):\n%s", route.Name, route.Namespace, flattenErrors(errs))
-		r.Error("DRouCert2005", nil, err.Error())
+		r.Error("DRouCert2004", nil, err.Error())
 	}
 	return r
 }

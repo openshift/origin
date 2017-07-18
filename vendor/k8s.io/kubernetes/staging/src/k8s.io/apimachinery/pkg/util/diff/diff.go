@@ -98,6 +98,26 @@ func ObjectReflectDiff(a, b interface{}) string {
 	return strings.Join(out, "\n")
 }
 
+// ObjectReflectDiffs returns the differences between two identical typed objects or an error
+// if the types do not match.
+func ObjectReflectDiffs(a, b interface{}) ([]Diff, error) {
+	vA, vB := reflect.ValueOf(a), reflect.ValueOf(b)
+	if vA.Type() != vB.Type() {
+		return nil, fmt.Errorf("type A %T and type B %T do not match", a, b)
+	}
+	diffs := objectReflectDiff(field.NewPath("object"), vA, vB)
+	var out []Diff
+	for _, d := range diffs {
+		out = append(out, Diff{Path: d.path, A: d.a, B: d.b})
+	}
+	return out, nil
+}
+
+type Diff struct {
+	Path *field.Path
+	A, B interface{}
+}
+
 func limit(s string, max int) string {
 	if len(s) > max {
 		return s[:max]
