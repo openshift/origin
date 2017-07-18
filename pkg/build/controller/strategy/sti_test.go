@@ -125,7 +125,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		if v.Name == buildapi.AllowedUIDs && v.Value == "1-" {
 			foundAllowedUIDs = true
 		}
-		if v.Name == buildapi.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID,SYS_CHROOT" {
+		if v.Name == buildapi.DropCapabilities && v.Value == "KILL,MKNOD,SETGID,SETUID" {
 			foundDropCaps = true
 		}
 	}
