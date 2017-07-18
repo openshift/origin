@@ -19,6 +19,8 @@ function os::build::cross_images() {
 	local directory=$2
 	shift 2
 
+	local host_arch="$(os::util::go_arch)"
+
 	# process arches params
 	local -a arches
 	while (( "$#" )); do
@@ -37,6 +39,11 @@ function os::build::cross_images() {
 		exit 1
 	fi
 
+	if [[ "${host_arch}" != "amd64" && ("${arches[0]}" != "${host_arch}" || "${#arches[@]}" > 1) ]]; then
+		os::log::error "cross building images is only supported for amd64 systems"
+		exit 1
+	fi
+
 	# process tags params
 	local -a tags_to_apply
 	while (( "$#" )); do
@@ -49,20 +56,19 @@ function os::build::cross_images() {
 		tags_to_apply=("latest" "$(os::build::image::internal::release_commit)")
 	fi
 
-	local host_arch="$(os::util::go_arch)"
 	local orig_build_image_args=${OS_BUILD_IMAGE_ARGS:-}
 
 	# cross builds are only supported with imagebuilder
 	os::util::ensure::gopath_binary_exists imagebuilder
 
-	# remove all previously registered binfmt_misc entries and
-	# register qemu-*-static for all supported processors except the current one
-	docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
 	for arch in ${arches[@]}; do
 		local sys_arch=$(os::util::sys_arch $arch)
 		OS_BUILD_IMAGE_ARGS=""
 		if [[ "${arch}" != "${host_arch}" ]]; then
+			# remove all previously registered binfmt_misc entries and
+			# register qemu-*-static for all supported processors except the current one
+			docker run --rm --privileged multiarch/qemu-user-static:register --reset
 			local qemu_binary=qemu-${sys_arch}-static
 			os::util::ensure::system_binary_exists $qemu_binary
 			local qemu_binary_path=$(os::util::find::system_binary $qemu_binary)
