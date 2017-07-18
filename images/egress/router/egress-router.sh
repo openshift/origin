@@ -31,12 +31,12 @@ function setup_network() {
     # The pod may die and get restarted; only try to add the
     # address/route/rules if they are not already there.
     if ! ip route get "${EGRESS_GATEWAY}" | grep -q macvlan0; then
-	ip addr add "${EGRESS_SOURCE}"/32 dev macvlan0
-	ip link set up dev macvlan0
+    ip addr add "${EGRESS_SOURCE}"/32 dev macvlan0
+    ip link set up dev macvlan0
 
-	ip route add "${EGRESS_GATEWAY}"/32 dev macvlan0
-	ip route del default
-	ip route add default via "${EGRESS_GATEWAY}" dev macvlan0
+    ip route add "${EGRESS_GATEWAY}"/32 dev macvlan0
+    ip route del default
+    ip route add default via "${EGRESS_GATEWAY}" dev macvlan0
     fi
 
     # Update neighbor ARP caches in case another node previously had the IP. (This is
@@ -61,44 +61,43 @@ function gen_iptables_rules() {
     did_fallback=
     declare -A used_ports=()
     while read dest; do
-	if [[ "${dest}" =~ ^${BLANK_LINE_OR_COMMENT_REGEX}$ ]]; then
+        if [[ "${dest}" =~ ^${BLANK_LINE_OR_COMMENT_REGEX}$ ]]; then
             # comment or blank line
             continue
-	fi
-	if [[ -n "${did_fallback}" ]]; then
+        fi
+        if [[ -n "${did_fallback}" ]]; then
             die "EGRESS_DESTINATION fallback IP must be the last line" 1>&2
-	fi
+        fi
 
-	localport=""
-	if [[ "${dest}" =~ ^${IP_REGEX}$ ]]; then
+        localport=""
+        if [[ "${dest}" =~ ^${IP_REGEX}$ ]]; then
             # single IP address: do fallback "all ports to same IP"
             echo -A PREROUTING -i eth0 -j DNAT --to-destination "${dest}"
             did_fallback=1
 
-	elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}$ ]]; then
+        elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}$ ]]; then
             read localport proto destip <<< "${dest}"
             echo -A PREROUTING -i eth0 -p "${proto}" --dport "${localport}" -j DNAT --to-destination "${destip}"
 
-	elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}\ +${PORT_REGEX}$ ]]; then
+        elif [[ "${dest}" =~ ^${PORT_REGEX}\ +${PROTO_REGEX}\ +${IP_REGEX}\ +${PORT_REGEX}$ ]]; then
             read localport proto destip destport <<< "${dest}"
-	    validate_port ${destport}
+            validate_port ${destport}
             echo -A PREROUTING -i eth0 -p "${proto}" --dport "${localport}" -j DNAT --to-destination "${destip}:${destport}"
 
-	else
+        else
             die "EGRESS_DESTINATION value '${dest}' is invalid" 1>&2
 
-	fi
+        fi
 
-	if [[ -n "${localport}" ]]; then
-	    validate_port ${localport}
+        if [[ -n "${localport}" ]]; then
+            validate_port ${localport}
 
             if [[ "${used_ports[${localport}]:-}" == "" ]]; then
                 used_ports[${localport}]=1
             else
                 die "EGRESS_DESTINATION localport $localport is already used, must be unique for each destination"
-	    fi
+            fi
         fi
-
     done <<< "${EGRESS_DESTINATION}"
     echo -A POSTROUTING -j SNAT --to-source "${EGRESS_SOURCE}"
 }
@@ -133,23 +132,23 @@ function wait_until_killed() {
 
 case "${EGRESS_ROUTER_MODE:=legacy}" in
     init)
-	setup_network
-	setup_iptables
-	;;
+        setup_network
+        setup_iptables
+        ;;
 
     legacy)
-	setup_network
-	setup_iptables
-	wait_until_killed
-	;;
+        setup_network
+        setup_iptables
+        wait_until_killed
+        ;;
 
     http-proxy)
-	setup_network
-	;;
+        setup_network
+        ;;
 
     unit-test)
-	gen_iptables_rules
-	;;
+        gen_iptables_rules
+        ;;
 
     *)
         die "Unrecognized EGRESS_ROUTER_MODE '${EGRESS_ROUTER_MODE}'"
