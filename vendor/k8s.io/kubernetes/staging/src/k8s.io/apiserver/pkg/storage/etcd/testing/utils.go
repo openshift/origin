@@ -169,6 +169,7 @@ func configureTestCluster(t *testing.T, name string, https bool) *EtcdTestServer
 	if err != nil {
 		t.Fatal(err)
 	}
+	m.AuthToken = "simple"
 
 	clusterStr := fmt.Sprintf("%s=http://%s", name, pln.Addr().String())
 	m.InitialPeerURLsMap, err = types.NewURLsMap(clusterStr)
@@ -190,7 +191,7 @@ func (m *EtcdTestServer) launch(t *testing.T) error {
 	if m.s, err = etcdserver.NewServer(&m.ServerConfig); err != nil {
 		return fmt.Errorf("failed to initialize the etcd server: %v", err)
 	}
-	m.s.SyncTicker = time.Tick(500 * time.Millisecond)
+	m.s.SyncTicker = time.NewTicker(500 * time.Millisecond)
 	m.s.Start()
 	m.raftHandler = &testutil.PauseableHandler{Next: v2http.NewPeerHandler(m.s)}
 	for _, ln := range m.PeerListeners {
