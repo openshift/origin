@@ -6,12 +6,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"github.com/openshift/origin/pkg/build/admission/overrides/api"
-	"github.com/openshift/origin/pkg/build/admission/overrides/api/v1"
+	"github.com/openshift/origin/pkg/build/controller/build/defaults/api"
+	"github.com/openshift/origin/pkg/build/controller/build/defaults/api/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/build/admission/overrides/api"
+const importPrefix = "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
 
 var accessor = meta.NewAccessor()
 

@@ -7,9 +7,9 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/kubernetes/pkg/api/v1"
 
-	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	u "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

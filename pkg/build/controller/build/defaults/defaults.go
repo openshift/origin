@@ -6,9 +6,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 
 	buildadmission "github.com/openshift/origin/pkg/build/admission"
-	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
-	"github.com/openshift/origin/pkg/build/admission/defaults/api/validation"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
+	"github.com/openshift/origin/pkg/build/controller/build/defaults/api/validation"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"

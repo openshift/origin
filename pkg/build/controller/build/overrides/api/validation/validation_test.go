@@ -5,8 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
 )
 
 func TestValidateBuildOverridesConfig(t *testing.T) {
