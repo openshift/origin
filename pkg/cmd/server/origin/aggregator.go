@@ -41,11 +41,8 @@ import (
 	"k8s.io/kubernetes/pkg/master/thirdparty"
 )
 
-func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
-	// make a shallow copy to let us twiddle a few things
-	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the aggregator
-	genericConfig := kubeAPIServerConfig
-
+func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
+	// this is a shallow copy so let's twiddle a few things
 	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
 	genericConfig.EnableSwaggerUI = false
 	genericConfig.SwaggerConfig = nil
@@ -58,13 +55,18 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 		c.ClientGoKubeInformers.Core().V1().Services().Lister(),
 	)
 
-	certBytes, err := ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.CertFile)
-	if err != nil {
-		return nil, err
-	}
-	keyBytes, err := ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile)
-	if err != nil {
-		return nil, err
+	var certBytes []byte
+	var keyBytes []byte
+	var err error
+	if len(c.Options.AggregatorConfig.ProxyClientInfo.CertFile) > 0 {
+		certBytes, err = ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.CertFile)
+		if err != nil {
+			return nil, err
+		}
+		keyBytes, err = ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	aggregatorConfig := &aggregatorapiserver.Config{

@@ -403,12 +403,10 @@ func (m *Master) Start() error {
 		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
 	}
 
-	if len(m.config.AggregatorConfig.ProxyClientInfo.KeyFile) > 0 {
-		// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
-		// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
-		// TODO: make scheme threadsafe and do this as part of aggregator config building
-		aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
-	}
+	// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
+	// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
+	// TODO: make scheme threadsafe and do this as part of aggregator config building
+	aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 
 	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
 	// as a separate API server which can be chained as a delegate

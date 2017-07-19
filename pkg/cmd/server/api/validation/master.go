@@ -229,6 +229,9 @@ func ValidateAggregatorConfig(config api.AggregatorConfig, fldPath *field.Path) 
 	validationResults := ValidationResults{}
 
 	validationResults.AddErrors(ValidateCertInfo(config.ProxyClientInfo, false, fldPath.Child("proxyClientInfo"))...)
+	if len(config.ProxyClientInfo.CertFile) == 0 && len(config.ProxyClientInfo.KeyFile) == 0 {
+		validationResults.AddWarnings(field.Invalid(fldPath.Child("proxyClientInfo"), "", "if no client certificate is specified, the aggregator will be unable to proxy to remote servers"))
+	}
 
 	return validationResults
 }
