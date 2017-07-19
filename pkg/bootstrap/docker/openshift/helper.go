@@ -88,6 +88,7 @@ var (
 	}
 	version15 = semver.MustParse("1.5.0")
 	version35 = semver.MustParse("3.5.0")
+	version37 = semver.MustParse("3.7.0")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -689,6 +690,10 @@ func useDNSIP(version semver.Version) bool {
 	return version.GTE(version35)
 }
 
+func useAggregator(version semver.Version) bool {
+	return version.GTE(version37)
+}
+
 func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
@@ -746,45 +751,12 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 		cfg.AdmissionConfig.PluginConfig[defaultsapi.BuildDefaultsPlugin] = buildDefaultsConfig
 	}
 
-	if opt.ServiceCatalog {
-
-		// podpresets is a v1alpha1 api so we need to enable those apis explicitly.
-		cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/settings.k8s.io/v1alpha1=true")
-
-		if cfg.AdmissionConfig.PluginConfig == nil {
-			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
-		}
-
-		cfg.AdmissionConfig.PluginConfig["PodPreset"] = configapi.AdmissionPluginConfig{
-			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
-		}
-
-		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
-			TemplateNamespaces: []string{OpenshiftNamespace},
-		}
-		if cfg.AssetConfig == nil {
-			cfg.AssetConfig = &configapi.AssetConfig{}
-		}
-		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtensionPath)
-
-		extension := `
-window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
-  service_catalog_landing_page: true,
-  template_service_broker: true,
-  pod_presets: true
-};
-`
-		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
-		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
-		if err != nil {
-			return err
-		}
-		err = h.hostHelper.UploadFileToContainer(extensionPath, serviceCatalogExtensionPath)
-		if err != nil {
-			return err
-		}
-
-		// setup the api aggegrator needed by the service catalog
+	version, err := h.ServerVersion()
+	if err != nil {
+		return err
+	}
+	if useAggregator(version) || opt.ServiceCatalog {
+		// setup the api aggegrator
 		cfg.AggregatorConfig = configapi.AggregatorConfig{
 			ProxyClientInfo: configapi.CertInfo{
 				CertFile: aggregatorCert,
@@ -845,6 +817,44 @@ window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
 		if err != nil {
 			return err
 		}
+	}
+
+	if opt.ServiceCatalog {
+		// podpresets is a v1alpha1 api so we need to enable those apis explicitly.
+		cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"] = append(cfg.KubernetesMasterConfig.APIServerArguments["runtime-config"], "apis/settings.k8s.io/v1alpha1=true")
+
+		if cfg.AdmissionConfig.PluginConfig == nil {
+			cfg.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{}
+		}
+
+		cfg.AdmissionConfig.PluginConfig["PodPreset"] = configapi.AdmissionPluginConfig{
+			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
+		}
+
+		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
+			TemplateNamespaces: []string{OpenshiftNamespace},
+		}
+		if cfg.AssetConfig == nil {
+			cfg.AssetConfig = &configapi.AssetConfig{}
+		}
+		cfg.AssetConfig.ExtensionScripts = append(cfg.AssetConfig.ExtensionScripts, serviceCatalogExtensionPath)
+
+		extension := `
+window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
+  service_catalog_landing_page: true,
+  template_service_broker: true,
+  pod_presets: true
+};
+`
+		extensionPath := filepath.Join(configDir, "master", "servicecatalog-extension.js")
+		err = ioutil.WriteFile(extensionPath, []byte(extension), 0644)
+		if err != nil {
+			return err
+		}
+		err = h.hostHelper.UploadFileToContainer(extensionPath, serviceCatalogExtensionPath)
+		if err != nil {
+			return err
+		}
 
 	}
 
@@ -863,10 +873,6 @@ window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
 		return err
 	}
 	nodeCfg, nodeConfigPath, err := h.GetNodeConfigFromLocalDir(configDir)
-	if err != nil {
-		return err
-	}
-	version, err := h.ServerVersion()
 	if err != nil {
 		return err
 	}
