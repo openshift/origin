@@ -982,7 +982,10 @@ func newFakeBuildController(openshiftClient client.Interface, buildClient buildi
 		kubeExternalClient = fakeKubeExternalClientSet()
 	}
 	if kubeInternalClient == nil {
-		kubeInternalClient = fakeKubeInternalClientSet()
+		builderSA := kapi.ServiceAccount{}
+		builderSA.Name = "builder"
+		builderSA.Namespace = "namespace"
+		kubeInternalClient = fakeKubeInternalClientSet(&builderSA)
 	}
 
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)

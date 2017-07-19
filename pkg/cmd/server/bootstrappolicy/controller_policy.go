@@ -66,6 +66,7 @@ func init() {
 			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
 			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 			rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 			eventsRule(),
 		},
 	})

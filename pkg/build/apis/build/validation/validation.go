@@ -69,8 +69,17 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "phase"), build.Status.Phase, "phase cannot be updated from a terminal state"))
 	}
-	if !kapihelper.Semantic.DeepEqual(build.Spec, older.Spec) {
-		diff, err := diffBuildSpec(build.Spec, older.Spec)
+
+	// lie about the old build's pushsecret value so we can allow it to be updated.
+	olderCopy, err := buildutil.BuildDeepCopy(older)
+	if err != nil {
+		glog.V(2).Infof("Error copying build for update validation: %v", err)
+		allErrs = append(allErrs, field.InternalError(field.NewPath(""), fmt.Errorf("Unable to copy build for update validation: %v", err)))
+	}
+	olderCopy.Spec.Output.PushSecret = build.Spec.Output.PushSecret
+
+	if !kapihelper.Semantic.DeepEqual(build.Spec, olderCopy.Spec) {
+		diff, err := diffBuildSpec(build.Spec, olderCopy.Spec)
 		if err != nil {
 			glog.V(2).Infof("Error calculating build spec patch: %v", err)
 			diff = "[unknown]"
