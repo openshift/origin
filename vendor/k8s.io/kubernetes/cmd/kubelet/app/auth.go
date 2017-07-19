@@ -34,6 +34,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/server"
 )
 
+// BuildAuth creates an authenticator, an authorizer, and a matching authorizer attributes getter compatible with the kubelet's needs
 func BuildAuth(nodeName types.NodeName, client clientset.Interface, config componentconfig.KubeletConfiguration) (server.AuthInterface, error) {
 	// Get clients, if provided
 	var (
@@ -60,6 +61,7 @@ func BuildAuth(nodeName types.NodeName, client clientset.Interface, config compo
 	return server.NewKubeletAuth(authenticator, attributes, authorizer), nil
 }
 
+// BuildAuthn creates an authenticator compatible with the kubelet's needs
 func BuildAuthn(client authenticationclient.TokenReviewInterface, authn componentconfig.KubeletAuthentication) (authenticator.Request, error) {
 	authenticatorConfig := authenticatorfactory.DelegatingAuthenticatorConfig{
 		Anonymous:    authn.Anonymous.Enabled,
@@ -78,6 +80,7 @@ func BuildAuthn(client authenticationclient.TokenReviewInterface, authn componen
 	return authenticator, err
 }
 
+// BuildAuthz creates an authorizer compatible with the kubelet's needs
 func BuildAuthz(client authorizationclient.SubjectAccessReviewInterface, authz componentconfig.KubeletAuthorization) (authorizer.Authorizer, error) {
 	switch authz.Mode {
 	case componentconfig.KubeletAuthorizationModeAlwaysAllow:

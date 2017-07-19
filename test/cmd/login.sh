@@ -52,14 +52,12 @@ echo "login and status messages: ok"
 # login and logout tests
 # bad token should error
 os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' --token=badvalue" 'The token provided is invalid or expired'
-# bad --api-version should error
-os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user -p test-password --api-version=foo/bar/baz" 'error.*foo/bar/baz'
 # --token and --username are mutually exclusive
 os::cmd::expect_failure_and_text "oc login ${KUBERNETES_MASTER} -u test-user --token=tmp --insecure-skip-tls-verify" 'mutually exclusive'
 # must only accept one arg (server)
 os::cmd::expect_failure_and_text "oc login https://server1 https://server2.com" 'Only the server URL may be specified'
 # logs in with a valid certificate authority
-os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 os::cmd::expect_success_and_text "cat ${HOME}/.kube/config" "v1"
 os::cmd::expect_success 'oc logout'
 # logs in skipping certificate check
@@ -88,7 +86,7 @@ os::cmd::expect_failure_and_text 'oc get pods' '"system:anonymous" cannot list p
 echo "login warnings: ok"
 
 # login and create serviceaccount and test login and logout with a service account token
-os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything --api-version=v1"
+os::cmd::expect_success "oc login ${KUBERNETES_MASTER} --certificate-authority='${MASTER_CONFIG_DIR}/ca.crt' -u test-user -p anything"
 os::cmd::expect_success_and_text "oc create sa testserviceaccount" "serviceaccount \"testserviceaccount\" created"
 os::cmd::try_until_success "oc sa get-token testserviceaccount"
 os::cmd::expect_success_and_text "oc login --token=$(oc sa get-token testserviceaccount)" "system:serviceaccount:project-foo:testserviceaccount"

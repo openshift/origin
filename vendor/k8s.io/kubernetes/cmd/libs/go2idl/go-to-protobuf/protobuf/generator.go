@@ -513,10 +513,13 @@ func memberTypeToProtobufField(locator ProtobufLocator, field *protoField, t *ty
 				log.Printf("failed to alias: %s %s: err %v", t.Name, t.Underlying.Name, err)
 				return err
 			}
-			if field.Extras == nil {
-				field.Extras = make(map[string]string)
+			// If this is not an alias to a slice, cast to the alias
+			if !field.Repeated {
+				if field.Extras == nil {
+					field.Extras = make(map[string]string)
+				}
+				field.Extras["(gogoproto.casttype)"] = strconv.Quote(locator.CastTypeName(t.Name))
 			}
-			field.Extras["(gogoproto.casttype)"] = strconv.Quote(locator.CastTypeName(t.Name))
 		}
 	case types.Slice:
 		if t.Elem.Name.Name == "byte" && len(t.Elem.Name.Package) == 0 {
@@ -599,7 +602,7 @@ func protobufTagToField(tag string, field *protoField, m types.Member, t *types.
 			protoExtra[parts[0]] = parts[1]
 		case "casttype", "castkey", "castvalue":
 			parts[0] = fmt.Sprintf("(gogoproto.%s)", parts[0])
-			protoExtra[parts[0]] = parts[1]
+			protoExtra[parts[0]] = strconv.Quote(parts[1])
 		}
 	}
 

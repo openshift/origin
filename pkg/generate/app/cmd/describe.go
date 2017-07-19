@@ -157,7 +157,7 @@ func describeBuildPipelineWithImage(out io.Writer, ref app.ComponentReference, p
 			source = "binary input"
 		case len(s.DockerfileContents) > 0:
 			source = "a predefined Dockerfile"
-		case s.URL != nil && len(s.URL.Host) > 0:
+		case s.URL != nil && len(s.URL.URL.Host) > 0:
 			source = fmt.Sprintf("source code from %s", s.URL)
 		case s.URL != nil:
 			noSource = true

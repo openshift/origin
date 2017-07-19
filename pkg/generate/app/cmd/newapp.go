@@ -114,9 +114,10 @@ type AppConfig struct {
 
 	Resolvers
 
-	Typer        runtime.ObjectTyper
-	Mapper       meta.RESTMapper
-	ClientMapper resource.ClientMapper
+	Typer            runtime.ObjectTyper
+	Mapper           meta.RESTMapper
+	CategoryExpander resource.CategoryExpander
+	ClientMapper     resource.ClientMapper
 
 	OSClient        client.Interface
 	OriginNamespace string
@@ -206,10 +207,11 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 		Namespaces:                namespaces,
 	}
 	c.TemplateFileSearcher = &app.TemplateFileSearcher{
-		Typer:        c.Typer,
-		Mapper:       c.Mapper,
-		ClientMapper: c.ClientMapper,
-		Namespace:    OriginNamespace,
+		Typer:            c.Typer,
+		Mapper:           c.Mapper,
+		ClientMapper:     c.ClientMapper,
+		CategoryExpander: c.CategoryExpander,
+		Namespace:        OriginNamespace,
 	}
 	// the hierarchy of docker searching is:
 	// 1) if we have an openshift client - query docker registries via openshift,
@@ -412,7 +414,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 				}
 
 				glog.V(4).Infof("will use %q as the base image for a source build of %q", ref, refInput.Uses)
-				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, image, refInput.Uses); err != nil {
+				if pipeline, err = pipelineBuilder.NewBuildPipeline(from, image, refInput.Uses, c.BinaryBuild); err != nil {
 					return nil, fmt.Errorf("can't build %q: %v", refInput.Uses, err)
 				}
 			default:

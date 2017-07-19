@@ -15,10 +15,11 @@ import (
 	"github.com/openshift/origin/pkg/util/labelselector"
 )
 
-func init() {
-	admission.RegisterPlugin("OriginPodNodeEnvironment", func(config io.Reader) (admission.Interface, error) {
-		return NewPodNodeEnvironment()
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register("OriginPodNodeEnvironment",
+		func(config io.Reader) (admission.Interface, error) {
+			return NewPodNodeEnvironment()
+		})
 }
 
 // podNodeEnvironment is an implementation of admission.Interface.

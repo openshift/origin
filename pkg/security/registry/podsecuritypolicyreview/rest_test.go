@@ -150,7 +150,7 @@ func TestNoErrors(t *testing.T) {
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
-		obj, err := storage.Create(ctx, testcase.request)
+		obj, err := storage.Create(ctx, testcase.request, false)
 		if err != nil {
 			t.Errorf("%s - Unexpected error: %v", testName, err)
 			continue
@@ -247,7 +247,7 @@ func TestErrors(t *testing.T) {
 
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
-		_, err := storage.Create(ctx, testcase.request)
+		_, err := storage.Create(ctx, testcase.request, false)
 		if err == nil {
 			t.Errorf("%s - Expected error", testName)
 			continue
@@ -404,7 +404,7 @@ func TestSpecificSAs(t *testing.T) {
 		csf := clientsetfake.NewSimpleClientset(namespace)
 		storage := REST{oscc.NewDefaultSCCMatcher(sccCache), saCache, csf}
 		ctx := apirequest.WithNamespace(apirequest.NewContext(), namespace.Name)
-		_, err := storage.Create(ctx, testcase.request)
+		_, err := storage.Create(ctx, testcase.request, false)
 		switch {
 		case err == nil && len(testcase.errorMessage) == 0:
 			continue

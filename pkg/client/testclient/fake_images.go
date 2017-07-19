@@ -19,6 +19,7 @@ type FakeImages struct {
 var _ client.ImageInterface = &FakeImages{}
 
 var imagesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "images"}
+var imagesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Image"}
 
 func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Image, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewRootGetAction(imagesResource, name), &imageapi.Image{})
@@ -30,7 +31,7 @@ func (c *FakeImages) Get(name string, options metav1.GetOptions) (*imageapi.Imag
 }
 
 func (c *FakeImages) List(opts metav1.ListOptions) (*imageapi.ImageList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(imagesResource, opts), &imageapi.ImageList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(imagesResource, imagesKind, opts), &imageapi.ImageList{})
 	if obj == nil {
 		return nil, err
 	}

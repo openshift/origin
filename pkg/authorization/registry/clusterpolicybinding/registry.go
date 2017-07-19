@@ -64,7 +64,7 @@ func (s *storage) ListClusterPolicyBindings(ctx apirequest.Context, options *met
 }
 
 func (s *storage) CreateClusterPolicyBinding(ctx apirequest.Context, policyBinding *authorizationapi.ClusterPolicyBinding) error {
-	_, err := s.Create(ctx, policyBinding)
+	_, err := s.Create(ctx, policyBinding, false)
 	return err
 }
 

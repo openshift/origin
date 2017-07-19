@@ -5,8 +5,8 @@ import (
 
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
+	"k8s.io/client-go/tools/remotecommand"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )

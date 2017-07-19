@@ -53,7 +53,7 @@ func (s *storage) GetDeploymentConfig(ctx apirequest.Context, name string, optio
 }
 
 func (s *storage) CreateDeploymentConfig(ctx apirequest.Context, deploymentConfig *deployapi.DeploymentConfig) error {
-	_, err := s.Create(ctx, deploymentConfig)
+	_, err := s.Create(ctx, deploymentConfig, false)
 	return err
 }
 

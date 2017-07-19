@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -723,7 +724,7 @@ func TestCanTrigger(t *testing.T) {
 		if test.expected != got {
 			t.Errorf("expected to trigger: %t, got: %t", test.expected, got)
 		}
-		if !kapi.Semantic.DeepEqual(test.expectedCauses, gotCauses) {
+		if !kapihelper.Semantic.DeepEqual(test.expectedCauses, gotCauses) {
 			t.Errorf("expected causes:\n%#v\ngot:\n%#v", test.expectedCauses, gotCauses)
 		}
 	}

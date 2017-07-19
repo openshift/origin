@@ -34,7 +34,7 @@ type Storage interface {
 	rest.Lister
 	rest.Getter
 
-	Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error)
+	Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error)
 	Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error)
 }
 
@@ -66,7 +66,7 @@ func (s *storage) GetIdentity(ctx apirequest.Context, name string, options *meta
 }
 
 func (s *storage) CreateIdentity(ctx apirequest.Context, identity *userapi.Identity) (*userapi.Identity, error) {
-	obj, err := s.Create(ctx, identity)
+	obj, err := s.Create(ctx, identity, false)
 	if err != nil {
 		return nil, err
 	}

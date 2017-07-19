@@ -18,6 +18,8 @@ type FakeImageStreams struct {
 
 var imagestreamsResource = schema.GroupVersionResource{Group: "image.openshift.io", Version: "v1", Resource: "imagestreams"}
 
+var imagestreamsKind = schema.GroupVersionKind{Group: "image.openshift.io", Version: "v1", Kind: "ImageStream"}
+
 func (c *FakeImageStreams) Create(imageStream *v1.ImageStream) (result *v1.ImageStream, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(imagestreamsResource, c.ns, imageStream), &v1.ImageStream{})
@@ -74,7 +76,7 @@ func (c *FakeImageStreams) Get(name string, options meta_v1.GetOptions) (result 
 
 func (c *FakeImageStreams) List(opts meta_v1.ListOptions) (result *v1.ImageStreamList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(imagestreamsResource, c.ns, opts), &v1.ImageStreamList{})
+		Invokes(testing.NewListAction(imagestreamsResource, imagestreamsKind, c.ns, opts), &v1.ImageStreamList{})
 
 	if obj == nil {
 		return nil, err

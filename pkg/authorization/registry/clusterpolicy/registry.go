@@ -64,7 +64,7 @@ func (s *storage) ListClusterPolicies(ctx apirequest.Context, options *metainter
 }
 
 func (s *storage) CreateClusterPolicy(ctx apirequest.Context, policy *authorizationapi.ClusterPolicy) error {
-	_, err := s.Create(ctx, policy)
+	_, err := s.Create(ctx, policy, false)
 	return err
 }
 

@@ -15,6 +15,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
@@ -422,7 +423,7 @@ func TestHandleScenarios(t *testing.T) {
 		}
 		for i := 0; i < len(expectedDeployments); i++ {
 			expected, actual := expectedDeployments[i], actualDeployments[i]
-			if !kapi.Semantic.DeepEqual(expected, actual) {
+			if !kapihelper.Semantic.DeepEqual(expected, actual) {
 				t.Errorf("actual deployment don't match expected: %v", diff.ObjectDiff(expected, actual))
 			}
 		}

@@ -15,6 +15,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/endpoints/discovery"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/util"
@@ -338,7 +339,8 @@ func (s *TestHttpService) startMaster() error {
 	masterServer.HandleFunc("/apis/extensions/v1beta1/ingresses", s.handleIngressList)
 	masterServer.HandleFunc("/apis/extensions/v1beta1/watch/ingresses", s.handleIngressWatch)
 
-	h := discovery.NewRootAPIsHandler(discovery.DefaultAddresses{DefaultAddress: s.MasterHttpAddr}, kapi.Codecs)
+	contextMapper := apirequest.NewRequestContextMapper()
+	h := discovery.NewRootAPIsHandler(discovery.DefaultAddresses{DefaultAddress: s.MasterHttpAddr}, kapi.Codecs, contextMapper)
 	h.AddGroup(metav1.APIGroup{
 		Name:     "route.openshift.io",
 		Versions: []metav1.GroupVersionForDiscovery{{GroupVersion: "route.openshift.io/v1", Version: "v1"}},

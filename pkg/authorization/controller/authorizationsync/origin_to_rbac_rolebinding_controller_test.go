@@ -135,7 +135,7 @@ func TestSyncRoleBinding(t *testing.T) {
 				return nil
 			},
 			reactions: map[reactionMatch]clienttesting.ReactionFunc{
-				reactionMatch{verb: "update", resource: "rolebindings"}: func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+				{verb: "update", resource: "rolebindings"}: func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
 					return true, nil, apierrors.NewInvalid(rbac.Kind("RoleBinding"), "dummy", nil)
 				},
 			},

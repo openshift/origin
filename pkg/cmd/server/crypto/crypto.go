@@ -74,6 +74,7 @@ var ciphers = map[string]uint16{
 	"TLS_RSA_WITH_3DES_EDE_CBC_SHA":           tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
 	"TLS_RSA_WITH_AES_128_CBC_SHA":            tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 	"TLS_RSA_WITH_AES_256_CBC_SHA":            tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_RSA_WITH_AES_128_CBC_SHA256":         tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
 	"TLS_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
 	"TLS_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
 	"TLS_ECDHE_ECDSA_WITH_RC4_128_SHA":        tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
@@ -83,10 +84,14 @@ var ciphers = map[string]uint16{
 	"TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA":     tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
 	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
 	"TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA":      tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	"TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
 	"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 	"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 	"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 	"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	"TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305":    tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 }
 
 func CipherSuite(cipherName string) (uint16, error) {
@@ -120,44 +125,27 @@ func ValidCipherSuites() []string {
 }
 func DefaultCiphers() []uint16 {
 	return []uint16{
-		// Ciphers below are selected and ordered based on the recommended "Intermediate compatibility" suite
-		// Compare with available ciphers when bumping Go versions
-		//
-		// Available ciphers from last comparison (go 1.6):
-		// TLS_RSA_WITH_RC4_128_SHA - no
-		// TLS_RSA_WITH_3DES_EDE_CBC_SHA
-		// TLS_RSA_WITH_AES_128_CBC_SHA
-		// TLS_RSA_WITH_AES_256_CBC_SHA
-		// TLS_RSA_WITH_AES_128_GCM_SHA256
-		// TLS_RSA_WITH_AES_256_GCM_SHA384
-		// TLS_ECDHE_ECDSA_WITH_RC4_128_SHA - no
-		// TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-		// TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-		// TLS_ECDHE_RSA_WITH_RC4_128_SHA - no
-		// TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
-		// TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-		// TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-		// TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-		// TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-		// TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-		// TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-
+		tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+		tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, // required by http/2
 		tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		// the next two are in the intermediate suite, but go1.6 http2 complains when they are included at the recommended index
-		// fixed in https://github.com/golang/go/commit/b5aae1a2845f157a2565b856fb2d7773a0f7af25 in go1.7
-		// tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
-		// tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
-		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
-		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
-		tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA, // forbidden by http/2
+		tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA, // forbidden by http/2
+		tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,   // forbidden by http/2
+		tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,   // forbidden by http/2
+		tls.TLS_RSA_WITH_AES_128_GCM_SHA256,      // forbidden by http/2
+		tls.TLS_RSA_WITH_AES_256_GCM_SHA384,      // forbidden by http/2
+		// the next one is in the intermediate suite, but go1.8 http2isBadCipher() complains when it is included at the recommended index
+		// because it comes after ciphers forbidden by the http/2 spec
+		// tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+		tls.TLS_RSA_WITH_AES_128_CBC_SHA,        // forbidden by http/2
+		tls.TLS_RSA_WITH_AES_256_CBC_SHA,        // forbidden by http/2
+		tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA, // forbidden by http/2
+		tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,       // forbidden by http/2
 	}
 }
 

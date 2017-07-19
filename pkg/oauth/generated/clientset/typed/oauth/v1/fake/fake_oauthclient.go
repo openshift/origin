@@ -18,6 +18,8 @@ type FakeOAuthClients struct {
 
 var oauthclientsResource = schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "v1", Resource: "oauthclients"}
 
+var oauthclientsKind = schema.GroupVersionKind{Group: "oauth.openshift.io", Version: "v1", Kind: "OAuthClient"}
+
 func (c *FakeOAuthClients) Create(oAuthClient *v1.OAuthClient) (result *v1.OAuthClient, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(oauthclientsResource, c.ns, oAuthClient), &v1.OAuthClient{})
@@ -64,7 +66,7 @@ func (c *FakeOAuthClients) Get(name string, options meta_v1.GetOptions) (result 
 
 func (c *FakeOAuthClients) List(opts meta_v1.ListOptions) (result *v1.OAuthClientList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(oauthclientsResource, c.ns, opts), &v1.OAuthClientList{})
+		Invokes(testing.NewListAction(oauthclientsResource, oauthclientsKind, c.ns, opts), &v1.OAuthClientList{})
 
 	if obj == nil {
 		return nil, err

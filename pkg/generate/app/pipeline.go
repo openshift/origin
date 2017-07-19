@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -26,7 +27,7 @@ import (
 type PipelineBuilder interface {
 	To(string) PipelineBuilder
 
-	NewBuildPipeline(string, *ImageRef, *SourceRepository) (*Pipeline, error)
+	NewBuildPipeline(string, *ImageRef, *SourceRepository, bool) (*Pipeline, error)
 	NewImagePipeline(string, *ImageRef) (*Pipeline, error)
 }
 
@@ -60,7 +61,7 @@ func (pb *pipelineBuilder) To(name string) PipelineBuilder {
 
 // NewBuildPipeline creates a new pipeline with components that are expected to
 // be built.
-func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, sourceRepository *SourceRepository) (*Pipeline, error) {
+func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, sourceRepository *SourceRepository, binary bool) (*Pipeline, error) {
 	strategy, source, err := StrategyAndSourceForRepository(sourceRepository, input)
 	if err != nil {
 		return nil, fmt.Errorf("can't build %q: %v", from, err)
@@ -123,6 +124,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		Output:   output,
 		Env:      pb.environment,
 		DockerStrategyOptions: pb.dockerStrategyOptions,
+		Binary:                binary,
 	}
 
 	return &Pipeline{
@@ -415,7 +417,7 @@ func (acceptNew) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	if len(meta.ResourceVersion) > 0 {
+	if len(meta.GetResourceVersion()) > 0 {
 		return false
 	}
 	return true
@@ -436,7 +438,7 @@ func (a *acceptUnique) Accept(from interface{}) bool {
 	if err != nil {
 		return false
 	}
-	key := fmt.Sprintf("%s/%s/%s", gvk[0].Kind, meta.Namespace, meta.Name)
+	key := fmt.Sprintf("%s/%s/%s", gvk[0].Kind, meta.GetNamespace(), meta.GetName())
 	_, exists := a.objects[key]
 	if exists {
 		return false
@@ -454,12 +456,12 @@ func NewAcceptUnique(typer runtime.ObjectTyper) Acceptor {
 	}
 }
 
-func objectMetaData(raw interface{}) (runtime.Object, *metav1.ObjectMeta, error) {
+func objectMetaData(raw interface{}) (runtime.Object, metav1.Object, error) {
 	obj, ok := raw.(runtime.Object)
 	if !ok {
 		return nil, nil, fmt.Errorf("%#v is not a runtime.Object", raw)
 	}
-	meta, err := metav1.ObjectMetaFor(obj)
+	meta, err := meta.Accessor(obj)
 	if err != nil {
 		return nil, nil, err
 	}

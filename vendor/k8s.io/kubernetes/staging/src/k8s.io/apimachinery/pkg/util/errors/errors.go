@@ -80,13 +80,6 @@ func (agg aggregate) Errors() []error {
 	return []error(agg)
 }
 
-// Len, Swap, and Less needed for Sorting
-func (agg aggregate) Len() int      { return len(agg) }
-func (agg aggregate) Swap(i, j int) { agg[i], agg[j] = agg[j], agg[i] }
-func (agg aggregate) Less(i, j int) bool {
-	return agg[i].Error() < agg[j].Error()
-}
-
 // Matcher is used to match errors.  Returns true if the error matches.
 type Matcher func(error) bool
 

@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/golang/glog"
@@ -32,11 +33,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	v1informers "k8s.io/client-go/informers/core/v1"
+	v1listers "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/kubernetes/pkg/api"
-	internalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
-	internallisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
@@ -47,6 +48,10 @@ import (
 
 var cloner = conversion.NewCloner()
 
+type ServiceResolver interface {
+	ResolveEndpoint(namespace, name string) (*url.URL, error)
+}
+
 type AvailableConditionController struct {
 	apiServiceClient apiregistrationclient.APIServicesGetter
 
@@ -54,11 +59,14 @@ type AvailableConditionController struct {
 	apiServiceSynced cache.InformerSynced
 
 	// serviceLister is used to get the IP to create the transport for
-	serviceLister  internallisters.ServiceLister
+	serviceLister  v1listers.ServiceLister
 	servicesSynced cache.InformerSynced
 
-	endpointsLister internallisters.EndpointsLister
+	endpointsLister v1listers.EndpointsLister
 	endpointsSynced cache.InformerSynced
+
+	enableAggregatorRouting bool
+	serviceResolver         ServiceResolver
 
 	// To allow injection for testing.
 	syncFn func(key string) error
@@ -68,19 +76,23 @@ type AvailableConditionController struct {
 
 func NewAvailableConditionController(
 	apiServiceInformer informers.APIServiceInformer,
-	serviceInformer internalinformers.ServiceInformer,
-	endpointsInformer internalinformers.EndpointsInformer,
+	serviceInformer v1informers.ServiceInformer,
+	endpointsInformer v1informers.EndpointsInformer,
 	apiServiceClient apiregistrationclient.APIServicesGetter,
+	enableAggregatorRouting bool,
+	serviceResolver ServiceResolver,
 ) *AvailableConditionController {
 	c := &AvailableConditionController{
-		apiServiceClient: apiServiceClient,
-		apiServiceLister: apiServiceInformer.Lister(),
-		apiServiceSynced: apiServiceInformer.Informer().HasSynced,
-		serviceLister:    serviceInformer.Lister(),
-		servicesSynced:   serviceInformer.Informer().HasSynced,
-		endpointsLister:  endpointsInformer.Lister(),
-		endpointsSynced:  endpointsInformer.Informer().HasSynced,
-		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "AvailableConditionController"),
+		apiServiceClient:        apiServiceClient,
+		apiServiceLister:        apiServiceInformer.Lister(),
+		apiServiceSynced:        apiServiceInformer.Informer().HasSynced,
+		serviceLister:           serviceInformer.Lister(),
+		servicesSynced:          serviceInformer.Informer().HasSynced,
+		endpointsLister:         endpointsInformer.Lister(),
+		endpointsSynced:         endpointsInformer.Informer().HasSynced,
+		enableAggregatorRouting: enableAggregatorRouting,
+		serviceResolver:         serviceResolver,
+		queue:                   workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "AvailableConditionController"),
 	}
 
 	apiServiceInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -153,7 +165,7 @@ func (c *AvailableConditionController) sync(key string) error {
 		return err
 	}
 
-	if service.Spec.Type == api.ServiceTypeClusterIP {
+	if service.Spec.Type == v1.ServiceTypeClusterIP {
 		endpoints, err := c.endpointsLister.Endpoints(apiService.Spec.Service.Namespace).Get(apiService.Spec.Service.Name)
 		if apierrors.IsNotFound(err) {
 			availableCondition.Status = apiregistration.ConditionFalse
@@ -186,10 +198,13 @@ func (c *AvailableConditionController) sync(key string) error {
 			return err
 		}
 	}
-	// actually try to hit the discovery endpoint
-	if apiService.Spec.Service != nil {
-		destinationHost := getDestinationHost(apiService, c.serviceLister)
-		discoveryURL := "https://" + destinationHost + "/apis"
+	// actually try to hit the discovery endpoint when it isn't local and when we're routing as a service.
+	// TODO figure out if the kube-proxy code handling has similar problems
+	if apiService.Spec.Service != nil && !c.enableAggregatorRouting && c.serviceResolver != nil {
+		discoveryURL, err := c.serviceResolver.ResolveEndpoint(apiService.Spec.Service.Namespace, apiService.Spec.Service.Name)
+		if err != nil {
+			return err
+		}
 		// construct an http client that will ignore TLS verification (if someone owns the network and messes with your status
 		// that's not so bad) and sets a very short timeout.
 		httpClient := &http.Client{
@@ -202,14 +217,13 @@ func (c *AvailableConditionController) sync(key string) error {
 
 		errCh := make(chan error)
 		go func() {
-			resp, err := httpClient.Get(discoveryURL)
+			resp, err := httpClient.Get(discoveryURL.String())
 			if resp != nil {
 				resp.Body.Close()
 			}
 			errCh <- err
 		}()
 
-		var err error
 		select {
 		case err = <-errCh:
 		case <-time.After(6 * time.Second):
@@ -236,28 +250,6 @@ func (c *AvailableConditionController) sync(key string) error {
 	apiregistration.SetAPIServiceCondition(apiService, availableCondition)
 	_, err = c.apiServiceClient.APIServices().UpdateStatus(apiService)
 	return err
-}
-
-func getDestinationHost(apiService *apiregistration.APIService, serviceLister internallisters.ServiceLister) string {
-	if apiService.Spec.Service == nil {
-		return ""
-	}
-
-	destinationHost := apiService.Spec.Service.Name + "." + apiService.Spec.Service.Namespace + ".svc"
-	service, err := serviceLister.Services(apiService.Spec.Service.Namespace).Get(apiService.Spec.Service.Name)
-	if err != nil {
-		return destinationHost
-	}
-	switch {
-	// use IP from a clusterIP for these service types
-	case service.Spec.Type == api.ServiceTypeClusterIP,
-		service.Spec.Type == api.ServiceTypeNodePort,
-		service.Spec.Type == api.ServiceTypeLoadBalancer:
-		return service.Spec.ClusterIP
-	}
-
-	// return the normal DNS name by default
-	return destinationHost
 }
 
 func (c *AvailableConditionController) Run(stopCh <-chan struct{}) {
@@ -368,26 +360,26 @@ func (c *AvailableConditionController) getAPIServicesFor(obj runtime.Object) []*
 // TODO, think of a way to avoid checking on every service manipulation
 
 func (c *AvailableConditionController) addService(obj interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*api.Service)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Service)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) updateService(obj, _ interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*api.Service)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Service)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) deleteService(obj interface{}) {
-	castObj, ok := obj.(*api.Service)
+	castObj, ok := obj.(*v1.Service)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			glog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
-		castObj, ok = tombstone.Obj.(*api.Service)
+		castObj, ok = tombstone.Obj.(*v1.Service)
 		if !ok {
 			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return
@@ -399,26 +391,26 @@ func (c *AvailableConditionController) deleteService(obj interface{}) {
 }
 
 func (c *AvailableConditionController) addEndpoints(obj interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*api.Endpoints)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Endpoints)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) updateEndpoints(obj, _ interface{}) {
-	for _, apiService := range c.getAPIServicesFor(obj.(*api.Endpoints)) {
+	for _, apiService := range c.getAPIServicesFor(obj.(*v1.Endpoints)) {
 		c.enqueue(apiService)
 	}
 }
 
 func (c *AvailableConditionController) deleteEndpoints(obj interface{}) {
-	castObj, ok := obj.(*api.Endpoints)
+	castObj, ok := obj.(*v1.Endpoints)
 	if !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			glog.Errorf("Couldn't get object from tombstone %#v", obj)
 			return
 		}
-		castObj, ok = tombstone.Obj.(*api.Endpoints)
+		castObj, ok = tombstone.Obj.(*v1.Endpoints)
 		if !ok {
 			glog.Errorf("Tombstone contained object that is not expected %#v", obj)
 			return

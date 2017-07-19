@@ -75,6 +75,11 @@ var (
 	securityContextConstraintsColumns = []string{"NAME", "PRIV", "CAPS", "SELINUX", "RUNASUSER", "FSGROUP", "SUPGROUP", "PRIORITY", "READONLYROOTFS", "VOLUMES"}
 )
 
+func init() {
+	// TODO this should be eliminated
+	kprinters.NewHumanReadablePrinterFn = NewHumanReadablePrinter
+}
+
 // NewHumanReadablePrinter returns a new HumanReadablePrinter
 func NewHumanReadablePrinter(encoder runtime.Encoder, decoder runtime.Decoder, printOptions kprinters.PrintOptions) *kprinters.HumanReadablePrinter {
 	// TODO: support cross namespace listing
@@ -1038,10 +1043,10 @@ func printEgressNetworkPolicyList(list *sdnapi.EgressNetworkPolicyList, w io.Wri
 }
 
 func appendItemLabels(itemLabels map[string]string, w io.Writer, columnLabels []string, showLabels bool) error {
-	if _, err := fmt.Fprint(w, kinternalprinters.AppendLabels(itemLabels, columnLabels)); err != nil {
+	if _, err := fmt.Fprint(w, kprinters.AppendLabels(itemLabels, columnLabels)); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprint(w, kinternalprinters.AppendAllLabels(showLabels, itemLabels)); err != nil {
+	if _, err := fmt.Fprint(w, kprinters.AppendAllLabels(showLabels, itemLabels)); err != nil {
 		return err
 	}
 	return nil
@@ -1059,10 +1064,10 @@ func printClusterResourceQuota(resourceQuota *quotaapi.ClusterResourceQuota, w i
 	if _, err := fmt.Fprintf(w, "\t%s", resourceQuota.Spec.Selector.AnnotationSelector); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprint(w, kinternalprinters.AppendLabels(resourceQuota.Labels, options.ColumnLabels)); err != nil {
+	if _, err := fmt.Fprint(w, kprinters.AppendLabels(resourceQuota.Labels, options.ColumnLabels)); err != nil {
 		return err
 	}
-	_, err := fmt.Fprint(w, kinternalprinters.AppendAllLabels(options.ShowLabels, resourceQuota.Labels))
+	_, err := fmt.Fprint(w, kprinters.AppendAllLabels(options.ShowLabels, resourceQuota.Labels))
 	return err
 }
 

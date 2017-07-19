@@ -15,6 +15,7 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -68,7 +69,7 @@ func ValidateBuildUpdate(build *buildapi.Build, older *buildapi.Build) field.Err
 	if buildutil.IsBuildComplete(older) && older.Status.Phase != build.Status.Phase {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status", "phase"), build.Status.Phase, "phase cannot be updated from a terminal state"))
 	}
-	if !kapi.Semantic.DeepEqual(build.Spec, older.Spec) {
+	if !kapihelper.Semantic.DeepEqual(build.Spec, older.Spec) {
 		diff, err := diffBuildSpec(build.Spec, older.Spec)
 		if err != nil {
 			glog.V(2).Infof("Error calculating build spec patch: %v", err)

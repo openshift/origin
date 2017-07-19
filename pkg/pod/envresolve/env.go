@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/resource"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/fieldpath"
 )
@@ -66,7 +67,7 @@ func getFieldRef(obj runtime.Object, from *kapi.EnvVarSource) (string, error) {
 
 // getResourceFieldRef returns the value of a resource in the given container
 func getResourceFieldRef(from *kapi.EnvVarSource, c *kapi.Container) (string, error) {
-	return fieldpath.InternalExtractContainerResourceValue(from.ResourceFieldRef, c)
+	return resource.ExtractContainerResourceValue(from.ResourceFieldRef, c)
 }
 
 // GenEnvVarRefValue returns the value referenced by the supplied EnvVarSource given the other supplied information

@@ -86,7 +86,7 @@ func TestCreateValidationError(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
-	_, err := storage.Create(ctx, roleBinding)
+	_, err := storage.Create(ctx, roleBinding, false)
 	if err == nil {
 		t.Errorf("Expected validation error")
 	}
@@ -100,7 +100,7 @@ func TestCreateValidAutoCreateMasterPolicyBindings(t *testing.T) {
 	}
 
 	ctx := apirequest.WithUser(apirequest.WithNamespace(apirequest.NewContext(), "unittest"), &user.DefaultInfo{Name: "system:admin"})
-	obj, err := storage.Create(ctx, roleBinding)
+	obj, err := storage.Create(ctx, roleBinding, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -125,7 +125,7 @@ func TestCreateValid(t *testing.T) {
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
 	}
 
-	obj, err := storage.Create(ctx, roleBinding)
+	obj, err := storage.Create(ctx, roleBinding, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -147,7 +147,7 @@ func TestUpdate(t *testing.T) {
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
-	})
+	}, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
@@ -189,7 +189,7 @@ func TestUnconditionalUpdate(t *testing.T) {
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
-	})
+	}, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
@@ -232,7 +232,7 @@ func TestConflictingUpdate(t *testing.T) {
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
-	})
+	}, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
@@ -259,7 +259,7 @@ func TestUpdateNoOp(t *testing.T) {
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-roleBinding"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
-	})
+	}, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
@@ -299,7 +299,7 @@ func TestUpdateError(t *testing.T) {
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
-	})
+	}, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return
@@ -328,7 +328,7 @@ func TestUpdateCannotChangeRoleRefError(t *testing.T) {
 	obj, err := storage.Create(ctx, &authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-different"},
 		RoleRef:    kapi.ObjectReference{Name: "admin"},
-	})
+	}, false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		return

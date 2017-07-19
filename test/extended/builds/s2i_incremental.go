@@ -6,6 +6,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -56,7 +57,7 @@ var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the service to become available")
-			err = oc.KubeFramework().WaitForAnEndpoint(buildTestService)
+			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), buildTestService)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the pod container has saved artifacts")

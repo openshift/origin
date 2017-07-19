@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -28,6 +29,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/filters"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	kubeinformers "k8s.io/client-go/informers"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -109,7 +111,7 @@ func (o *AggregatorOptions) Complete() error {
 
 func (o AggregatorOptions) RunAggregator(stopCh <-chan struct{}) error {
 	// TODO have a "real" external address
-	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost"); err != nil {
+	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", nil, nil); err != nil {
 		return fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
@@ -142,10 +144,13 @@ func (o AggregatorOptions) RunAggregator(stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
+	kubeInformers := kubeinformers.NewSharedInformerFactory(coreAPIServerClient, 5*time.Minute)
+	serviceResolver := apiserver.NewClusterIPServiceResolver(kubeInformers.Core().V1().Services().Lister())
 
 	config := apiserver.Config{
-		GenericConfig:       serverConfig,
-		CoreAPIServerClient: coreAPIServerClient,
+		GenericConfig:     serverConfig,
+		CoreKubeInformers: kubeInformers,
+		ServiceResolver:   serviceResolver,
 	}
 
 	config.ProxyClientCert, err = ioutil.ReadFile(o.ProxyClientCertFile)
@@ -157,7 +162,7 @@ func (o AggregatorOptions) RunAggregator(stopCh <-chan struct{}) error {
 		return err
 	}
 
-	server, err := config.Complete().NewWithDelegate(genericapiserver.EmptyDelegate, stopCh)
+	server, err := config.Complete().NewWithDelegate(genericapiserver.EmptyDelegate)
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,8 @@ type FakeProjects struct {
 
 var projectsResource = schema.GroupVersionResource{Group: "project.openshift.io", Version: "", Resource: "projects"}
 
+var projectsKind = schema.GroupVersionKind{Group: "project.openshift.io", Version: "", Kind: "Project"}
+
 func (c *FakeProjects) Create(projectResource *project.Project) (result *project.Project, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(projectsResource, projectResource), &project.Project{})
@@ -68,7 +70,7 @@ func (c *FakeProjects) Get(name string, options v1.GetOptions) (result *project.
 
 func (c *FakeProjects) List(opts v1.ListOptions) (result *project.ProjectList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(projectsResource, opts), &project.ProjectList{})
+		Invokes(testing.NewRootListAction(projectsResource, projectsKind, opts), &project.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}

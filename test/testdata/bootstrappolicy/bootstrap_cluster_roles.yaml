@@ -92,6 +92,7 @@ items:
     - apps
     attributeRestrictions: null
     resources:
+    - controllerrevisions
     - deployments
     - deployments/scale
     - deployments/status
@@ -149,6 +150,15 @@ items:
     - replicationcontrollers/scale
     - storageclasses
     - thirdpartyresources
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - networking.k8s.io
+    attributeRestrictions: null
+    resources:
+    - networkpolicies
     verbs:
     - get
     - list
@@ -2838,90 +2848,120 @@ items:
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:replication-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:endpoint-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:replicaset-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:garbage-collector-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:job-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:hpa-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:daemonset-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:disruption-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:namespace-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:gc-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:certificate-signing-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:statefulset-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:build-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:deploymentconfig-controller
   rules: []
 - apiVersion: v1
   kind: ClusterRole
   metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
     creationTimestamp: null
     name: system:deployment-controller
   rules: []
@@ -3218,6 +3258,7 @@ items:
     resources:
     - deploymentconfigs
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -4056,6 +4097,7 @@ items:
     resources:
     - cronjobs
     verbs:
+    - delete
     - get
     - list
     - update
@@ -4070,6 +4112,7 @@ items:
     - delete
     - get
     - list
+    - patch
     - update
     - watch
   - apiGroups:
@@ -4113,6 +4156,7 @@ items:
     resources:
     - daemonsets
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -4150,6 +4194,18 @@ items:
     verbs:
     - create
   - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - controllerrevisions
+    verbs:
+    - create
+    - delete
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
@@ -4176,6 +4232,7 @@ items:
     resources:
     - deployments
     verbs:
+    - delete
     - get
     - list
     - update
@@ -4479,6 +4536,7 @@ items:
     resources:
     - jobs
     verbs:
+    - delete
     - get
     - list
     - update
@@ -4499,6 +4557,7 @@ items:
     - create
     - delete
     - list
+    - patch
     - watch
   - apiGroups:
     - ""
@@ -4576,6 +4635,7 @@ items:
     resources:
     - nodes/status
     verbs:
+    - patch
     - update
   - apiGroups:
     - ""
@@ -4753,6 +4813,7 @@ items:
     resources:
     - replicasets
     verbs:
+    - delete
     - get
     - list
     - update
@@ -4801,6 +4862,7 @@ items:
     resources:
     - replicationcontrollers
     verbs:
+    - delete
     - get
     - list
     - update
@@ -4998,6 +5060,7 @@ items:
     resources:
     - statefulsets
     verbs:
+    - delete
     - get
     - list
     - watch
@@ -5019,6 +5082,19 @@ items:
     - get
     - patch
     - update
+  - apiGroups:
+    - apps
+    attributeRestrictions: null
+    resources:
+    - controllerrevisions
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+    - patch
+    - update
+    - watch
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -5094,6 +5170,13 @@ items:
     - certificatesigningrequests/status
     verbs:
     - update
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -5266,6 +5349,7 @@ items:
     resources:
     - endpoints
     - namespaces
+    - secrets
     - serviceaccounts
     verbs:
     - get
@@ -5274,6 +5358,7 @@ items:
     attributeRestrictions: null
     resources:
     - endpoints
+    - secrets
     - serviceaccounts
     verbs:
     - update

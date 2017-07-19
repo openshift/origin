@@ -20,8 +20,8 @@ import (
 	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
-func init() {
-	admission.RegisterPlugin("openshift.io/RestrictSubjectBindings",
+func Register(plugins *admission.Plugins) {
+	plugins.Register("openshift.io/RestrictSubjectBindings",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewRestrictUsersAdmission()
 		})

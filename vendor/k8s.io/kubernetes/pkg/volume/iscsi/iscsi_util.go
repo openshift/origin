@@ -18,7 +18,6 @@ package iscsi
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -216,7 +215,7 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 
 		if iscsiTransport == "" {
 			glog.Errorf("iscsi: could not find transport name in iface %s", b.Iface)
-			return errors.New(fmt.Sprintf("Could not parse iface file for %s", b.Iface))
+			return fmt.Errorf("Could not parse iface file for %s", b.Iface)
 		} else if iscsiTransport == "tcp" {
 			devicePath = strings.Join([]string{"/dev/disk/by-path/ip", tp, "iscsi", b.Iqn, "lun", b.lun}, "-")
 		} else {

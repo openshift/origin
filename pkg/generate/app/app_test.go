@@ -2,7 +2,6 @@ package app
 
 import (
 	"log"
-	"net/url"
 	"reflect"
 	"strings"
 	"testing"
@@ -13,6 +12,7 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -57,7 +57,7 @@ func TestWithType(t *testing.T) {
 }
 
 func TestBuildConfigNoOutput(t *testing.T) {
-	url, err := url.Parse("https://github.com/openshift/origin.git")
+	url, err := git.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestBuildConfigNoOutput(t *testing.T) {
 }
 
 func TestBuildConfigWithSecrets(t *testing.T) {
-	url, err := url.Parse("https://github.com/openshift/origin.git")
+	url, err := git.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -92,6 +92,65 @@ func TestBuildConfigWithSecrets(t *testing.T) {
 	secrets := config.Spec.Source.Secrets
 	if got := len(secrets); got != 2 {
 		t.Errorf("expected 2 source secrets in build config, got %d", got)
+	}
+}
+
+func TestBuildConfigBinaryWithImageSource(t *testing.T) {
+	source := &SourceRef{
+		Name: "binarybuild",
+		SourceImage: &ImageRef{
+			Reference: imageapi.DockerImageReference{
+				Name:     "foo",
+				Registry: "bar",
+			},
+		},
+	}
+	build := &BuildRef{Source: source, Binary: true}
+	config, err := build.BuildConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+			t.Fatalf("binary build should not have any imagechangetriggers")
+		}
+		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
+			t.Fatalf("binary build should not have a buildconfig change trigger")
+		}
+
+	}
+}
+
+func TestBuildConfigWithImageSource(t *testing.T) {
+	source := &SourceRef{
+		Name: "binarybuild",
+		SourceImage: &ImageRef{
+			Reference: imageapi.DockerImageReference{
+				Name:     "foo",
+				Registry: "bar",
+			},
+		},
+	}
+	build := &BuildRef{Source: source, Binary: false}
+	config, err := build.BuildConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	foundICT := false
+	foundCCT := false
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+			foundICT = true
+		}
+		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
+			foundCCT = true
+		}
+	}
+	if !foundICT {
+		t.Fatalf("expected to find an imagechangetrigger on the build")
+	}
+	if !foundCCT {
+		t.Fatalf("expected to find a configchangetrigger on the build")
 	}
 }
 
@@ -113,7 +172,7 @@ func TestSourceRefBuildSourceURI(t *testing.T) {
 		},
 	}
 	for _, tst := range tests {
-		u, _ := url.Parse(tst.input)
+		u, _ := git.Parse(tst.input)
 		s := SourceRef{
 			URL: u,
 		}
@@ -129,7 +188,7 @@ func TestGenerateSimpleDockerApp(t *testing.T) {
 	// TODO: determine whether we want to clone this repo, or use it directly. Using it directly would require setting hooks
 	// if we have source, assume we are going to go into a build flow.
 	// TODO: get info about git url: does this need STI?
-	url, _ := url.Parse("https://github.com/openshift/origin.git")
+	url, _ := git.Parse("https://github.com/openshift/origin.git")
 	source := &SourceRef{URL: url}
 	// generate a local name for the repo
 	name, _ := source.SuggestName()
@@ -341,33 +400,33 @@ func TestIsParameterizableValue(t *testing.T) {
 }
 
 func TestNameFromGitURL(t *testing.T) {
-	gitURL, err := url.Parse("https://github.com/openshift/origin.git")
+	gitURL, err := git.Parse("https://github.com/openshift/origin.git")
 	if err != nil {
 		t.Fatalf("failed parsing git url: %v", err)
 	}
 
-	emptyHostURL, err := url.Parse("https://")
+	emptyHostURL, err := git.Parse("https://")
 	if err != nil {
 		t.Fatalf("failed parsing empty host url: %v", err)
 	}
 
-	hostPortURL, err := url.Parse("https://www.example.com:80")
+	hostPortURL, err := git.Parse("https://www.example.com:80")
 	if err != nil {
 		t.Fatalf("failed parsing host port url: %v", err)
 	}
 
-	nonStandardHostPortURL, err := url.Parse("https://www.example.com:8888")
+	nonStandardHostPortURL, err := git.Parse("https://www.example.com:8888")
 	if err != nil {
 		t.Fatalf("failed parsing host port url: %v", err)
 	}
 
-	hostURL, err := url.Parse("https://www.example.com")
+	hostURL, err := git.Parse("https://www.example.com")
 	if err != nil {
 		t.Fatalf("failed parsing host url: %v", err)
 	}
 
 	tests := map[string]struct {
-		url             *url.URL
+		url             *git.URL
 		expectedName    string
 		expectedSuccess bool
 	}{

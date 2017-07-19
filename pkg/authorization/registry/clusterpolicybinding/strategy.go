@@ -83,12 +83,12 @@ func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) 
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	policyBinding, ok := obj.(*authorizationapi.ClusterPolicyBinding)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a ClusterPolicyBinding")
+		return nil, nil, false, fmt.Errorf("not a ClusterPolicyBinding")
 	}
-	return labels.Set(policyBinding.ObjectMeta.Labels), authorizationapi.ClusterPolicyBindingToSelectableFields(policyBinding), nil
+	return labels.Set(policyBinding.ObjectMeta.Labels), authorizationapi.ClusterPolicyBindingToSelectableFields(policyBinding), policyBinding.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

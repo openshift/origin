@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudflare/cfssl/helpers"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -29,6 +31,8 @@ import (
 
 var expectedGroupPreferredVersions []string = []string{
 	// keep this sorted:
+	"admission.k8s.io/v1alpha1",
+	"admissionregistration.k8s.io/v1alpha1",
 	"apps/v1beta1,authentication.k8s.io/v1",
 	"authorization.k8s.io/v1",
 	"autoscaling/v1",
@@ -38,10 +42,11 @@ var expectedGroupPreferredVersions []string = []string{
 	"extensions/v1beta1",
 	"federation/v1beta1",
 	"imagepolicy.k8s.io/v1alpha1",
+	"networking.k8s.io/v1",
 	"policy/v1beta1",
 	"rbac.authorization.k8s.io/v1beta1",
 	"settings.k8s.io/v1alpha1",
-	"storage.k8s.io/v1beta1",
+	"storage.k8s.io/v1",
 	"v1",
 }
 
@@ -68,7 +73,9 @@ func TestAPIServerDefaults(t *testing.T) {
 			MaxRequestsInFlight:         400,
 			MaxMutatingRequestsInFlight: 200,
 			MinRequestTimeout:           1800,
-			AdmissionControl:            "AlwaysAdmit",
+		},
+		Admission: &apiserveroptions.AdmissionOptions{
+			PluginNames: []string{"AlwaysAdmit"},
 		},
 		Etcd: &apiserveroptions.EtcdOptions{
 			StorageConfig: storagebackend.Config{
@@ -105,27 +112,32 @@ func TestAPIServerDefaults(t *testing.T) {
 				string(apiv1.NodeInternalIP),
 				string(apiv1.NodeExternalDNS),
 				string(apiv1.NodeExternalIP),
-				string(apiv1.NodeLegacyHostIP),
 			},
 			EnableHttps: true,
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
-		Audit: &apiserveroptions.AuditLogOptions{},
+		Audit: &apiserveroptions.AuditOptions{
+			WebhookOptions: apiserveroptions.AuditWebhookOptions{
+				Mode: "batch",
+			},
+		},
 		Features: &apiserveroptions.FeatureOptions{
 			EnableProfiling: true,
 		},
 		Authentication: &kubeoptions.BuiltInAuthenticationOptions{
-			Anonymous:       &kubeoptions.AnonymousAuthenticationOptions{Allow: true},
-			AnyToken:        &kubeoptions.AnyTokenAuthenticationOptions{},
-			BootstrapToken:  &kubeoptions.BootstrapTokenAuthenticationOptions{},
-			ClientCert:      &apiserveroptions.ClientCertAuthenticationOptions{},
-			Keystone:        &kubeoptions.KeystoneAuthenticationOptions{},
-			OIDC:            &kubeoptions.OIDCAuthenticationOptions{},
-			PasswordFile:    &kubeoptions.PasswordFileAuthenticationOptions{},
-			RequestHeader:   &apiserveroptions.RequestHeaderAuthenticationOptions{},
-			ServiceAccounts: &kubeoptions.ServiceAccountAuthenticationOptions{},
-			TokenFile:       &kubeoptions.TokenFileAuthenticationOptions{},
-			WebHook:         &kubeoptions.WebHookAuthenticationOptions{CacheTTL: 2 * time.Minute},
+			Anonymous:      &kubeoptions.AnonymousAuthenticationOptions{Allow: true},
+			AnyToken:       &kubeoptions.AnyTokenAuthenticationOptions{},
+			BootstrapToken: &kubeoptions.BootstrapTokenAuthenticationOptions{},
+			ClientCert:     &apiserveroptions.ClientCertAuthenticationOptions{},
+			Keystone:       &kubeoptions.KeystoneAuthenticationOptions{},
+			OIDC:           &kubeoptions.OIDCAuthenticationOptions{},
+			PasswordFile:   &kubeoptions.PasswordFileAuthenticationOptions{},
+			RequestHeader:  &apiserveroptions.RequestHeaderAuthenticationOptions{},
+			ServiceAccounts: &kubeoptions.ServiceAccountAuthenticationOptions{
+				Lookup: true,
+			},
+			TokenFile: &kubeoptions.TokenFileAuthenticationOptions{},
+			WebHook:   &kubeoptions.WebHookAuthenticationOptions{CacheTTL: 2 * time.Minute},
 		},
 		Authorization: &kubeoptions.BuiltInAuthorizationOptions{
 			Mode: "AlwaysAllow",
@@ -140,7 +152,11 @@ func TestAPIServerDefaults(t *testing.T) {
 		APIEnablement: &kubeoptions.APIEnablementOptions{
 			RuntimeConfig: utilconfig.ConfigurationMap{},
 		},
+		EnableLogsHandler: true, // we disable this
 	}
+
+	// clear the non-serializeable bit
+	defaults.Admission.Plugins = nil
 
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
 		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
@@ -180,39 +196,41 @@ func TestCMServerDefaults(t *testing.T) {
 	// Once we've reacted to the changes appropriately in BuildKubernetesMasterConfig(), update this expected default to match the new upstream defaults
 	expectedDefaults := &cmapp.CMServer{
 		KubeControllerManagerConfiguration: componentconfig.KubeControllerManagerConfiguration{
-			Port:                              10252, // disabled
-			Address:                           "0.0.0.0",
-			ConcurrentEndpointSyncs:           5,
-			ConcurrentRCSyncs:                 5,
-			ConcurrentRSSyncs:                 5,
-			ConcurrentDaemonSetSyncs:          2,
-			ConcurrentJobSyncs:                5,
-			ConcurrentResourceQuotaSyncs:      5,
-			ConcurrentDeploymentSyncs:         5,
-			ConcurrentNamespaceSyncs:          10,
-			ConcurrentSATokenSyncs:            5,
-			ConcurrentServiceSyncs:            1,
-			ConcurrentGCSyncs:                 20,
-			LookupCacheSizeForRC:              4096,
-			LookupCacheSizeForRS:              4096,
-			LookupCacheSizeForDaemonSet:       1024,
-			ConfigureCloudRoutes:              true,
-			NodeCIDRMaskSize:                  24,
-			ServiceSyncPeriod:                 metav1.Duration{Duration: 5 * time.Minute},
-			ResourceQuotaSyncPeriod:           metav1.Duration{Duration: 5 * time.Minute},
-			NamespaceSyncPeriod:               metav1.Duration{Duration: 5 * time.Minute},
-			PVClaimBinderSyncPeriod:           metav1.Duration{Duration: 15 * time.Second},
-			HorizontalPodAutoscalerSyncPeriod: metav1.Duration{Duration: 30 * time.Second},
-			DeploymentControllerSyncPeriod:    metav1.Duration{Duration: 30 * time.Second},
-			MinResyncPeriod:                   metav1.Duration{Duration: 12 * time.Hour},
-			RegisterRetryCount:                10,
-			RouteReconciliationPeriod:         metav1.Duration{Duration: 10 * time.Second},
-			PodEvictionTimeout:                metav1.Duration{Duration: 5 * time.Minute},
-			NodeMonitorGracePeriod:            metav1.Duration{Duration: 40 * time.Second},
-			NodeStartupGracePeriod:            metav1.Duration{Duration: 60 * time.Second},
-			NodeMonitorPeriod:                 metav1.Duration{Duration: 5 * time.Second},
-			ClusterName:                       "kubernetes",
-			TerminatedPodGCThreshold:          12500,
+			Port:                                            10252, // disabled
+			Address:                                         "0.0.0.0",
+			ConcurrentEndpointSyncs:                         5,
+			ConcurrentRCSyncs:                               5,
+			ConcurrentRSSyncs:                               5,
+			ConcurrentDaemonSetSyncs:                        2,
+			ConcurrentJobSyncs:                              5,
+			ConcurrentResourceQuotaSyncs:                    5,
+			ConcurrentDeploymentSyncs:                       5,
+			ConcurrentNamespaceSyncs:                        10,
+			ConcurrentSATokenSyncs:                          5,
+			ConcurrentServiceSyncs:                          1,
+			ConcurrentGCSyncs:                               20,
+			LookupCacheSizeForRC:                            4096,
+			LookupCacheSizeForRS:                            4096,
+			LookupCacheSizeForDaemonSet:                     1024,
+			ConfigureCloudRoutes:                            true,
+			NodeCIDRMaskSize:                                24,
+			ServiceSyncPeriod:                               metav1.Duration{Duration: 5 * time.Minute},
+			ResourceQuotaSyncPeriod:                         metav1.Duration{Duration: 5 * time.Minute},
+			NamespaceSyncPeriod:                             metav1.Duration{Duration: 5 * time.Minute},
+			PVClaimBinderSyncPeriod:                         metav1.Duration{Duration: 15 * time.Second},
+			HorizontalPodAutoscalerSyncPeriod:               metav1.Duration{Duration: 30 * time.Second},
+			DeploymentControllerSyncPeriod:                  metav1.Duration{Duration: 30 * time.Second},
+			MinResyncPeriod:                                 metav1.Duration{Duration: 12 * time.Hour},
+			RegisterRetryCount:                              10,
+			RouteReconciliationPeriod:                       metav1.Duration{Duration: 10 * time.Second},
+			PodEvictionTimeout:                              metav1.Duration{Duration: 5 * time.Minute},
+			NodeMonitorGracePeriod:                          metav1.Duration{Duration: 40 * time.Second},
+			NodeStartupGracePeriod:                          metav1.Duration{Duration: 60 * time.Second},
+			NodeMonitorPeriod:                               metav1.Duration{Duration: 5 * time.Second},
+			HorizontalPodAutoscalerUpscaleForbiddenWindow:   metav1.Duration{Duration: 3 * time.Minute},
+			HorizontalPodAutoscalerDownscaleForbiddenWindow: metav1.Duration{Duration: 5 * time.Minute},
+			ClusterName:              "kubernetes",
+			TerminatedPodGCThreshold: 12500,
 			VolumeConfiguration: componentconfig.VolumeConfiguration{
 				EnableDynamicProvisioning:  true,
 				EnableHostPathProvisioning: false,
@@ -229,6 +247,7 @@ func TestCMServerDefaults(t *testing.T) {
 			KubeAPIQPS:   20.0,
 			KubeAPIBurst: 30,
 			LeaderElection: componentconfig.LeaderElectionConfiguration{
+				ResourceLock:  "endpoints",
 				LeaderElect:   true,
 				LeaseDuration: metav1.Duration{Duration: 15 * time.Second},
 				RenewDeadline: metav1.Duration{Duration: 10 * time.Second},
@@ -236,6 +255,7 @@ func TestCMServerDefaults(t *testing.T) {
 			},
 			ClusterSigningCertFile: "/etc/kubernetes/ca/ca.pem",
 			ClusterSigningKeyFile:  "/etc/kubernetes/ca/ca.key",
+			ClusterSigningDuration: metav1.Duration{Duration: helpers.OneYear},
 			EnableGarbageCollector: true,
 			GCIgnoredResources: []componentconfig.GroupResource{
 				{Group: "extensions", Resource: "replicationcontrollers"},
@@ -247,6 +267,7 @@ func TestCMServerDefaults(t *testing.T) {
 				{Group: "authorization.k8s.io", Resource: "selfsubjectaccessreviews"},
 				{Group: "authorization.k8s.io", Resource: "localsubjectaccessreviews"},
 				{Group: "apiregistration.k8s.io", Resource: "apiservices"},
+				{Group: "apiextensions.k8s.io", Resource: "customresourcedefinitions"},
 			},
 			DisableAttachDetachReconcilerSync: false,
 			ReconcilerSyncLoopPeriod:          metav1.Duration{Duration: 60 * time.Second},
@@ -282,7 +303,8 @@ func TestSchedulerServerDefaults(t *testing.T) {
 			HardPodAffinitySymmetricWeight: 1,
 			FailureDomains:                 "kubernetes.io/hostname,failure-domain.beta.kubernetes.io/zone,failure-domain.beta.kubernetes.io/region",
 			LeaderElection: componentconfig.LeaderElectionConfiguration{
-				LeaderElect: true,
+				ResourceLock: "endpoints",
+				LeaderElect:  true,
 				LeaseDuration: metav1.Duration{
 					Duration: 15 * time.Second,
 				},
@@ -293,6 +315,9 @@ func TestSchedulerServerDefaults(t *testing.T) {
 					Duration: 2 * time.Second,
 				},
 			},
+			LockObjectNamespace:      "kube-system",
+			LockObjectName:           "kube-scheduler",
+			PolicyConfigMapNamespace: "kube-system",
 		},
 	}
 

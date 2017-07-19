@@ -143,7 +143,10 @@ func TestTokenDeletion(t *testing.T) {
 			DeletedSecret: serviceAccountTokenSecret(),
 
 			ExpectedActions: []clientgotesting.Action{
-				clientgotesting.NewListAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector.String()}),
+				clientgotesting.NewListAction(
+					schema.GroupVersionResource{Resource: "secrets", Version: "v1"},
+					schema.GroupVersionKind{Kind: "Secret", Version: "v1"},
+					"default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector.String()}),
 				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", "default-dockercfg-fplln"),
 			},
 		},
@@ -152,7 +155,10 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []clientgotesting.Action{
-				clientgotesting.NewListAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector.String()}),
+				clientgotesting.NewListAction(
+					schema.GroupVersionResource{Resource: "secrets", Version: "v1"},
+					schema.GroupVersionKind{Kind: "Secret", Version: "v1"},
+					"default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector.String()}),
 				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", "default-dockercfg-fplln"),
 			},
 		},
@@ -161,7 +167,10 @@ func TestTokenDeletion(t *testing.T) {
 
 			DeletedSecret: serviceAccountTokenSecret(),
 			ExpectedActions: []clientgotesting.Action{
-				clientgotesting.NewListAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector.String()}),
+				clientgotesting.NewListAction(
+					schema.GroupVersionResource{Resource: "secrets", Version: "v1"},
+					schema.GroupVersionKind{Kind: "Secret", Version: "v1"},
+					"default", metav1.ListOptions{FieldSelector: dockercfgSecretFieldSelector.String()}),
 				clientgotesting.NewDeleteAction(schema.GroupVersionResource{Resource: "secrets", Version: "v1"}, "default", "default-dockercfg-fplln"),
 			},
 		},

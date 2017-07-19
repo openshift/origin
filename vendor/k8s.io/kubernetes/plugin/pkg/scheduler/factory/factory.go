@@ -31,9 +31,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
-	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/v1"
+	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	appsinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/apps/v1beta1"
 	coreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
@@ -229,7 +229,7 @@ func (c *ConfigFactory) GetScheduledPodLister() corelisters.PodLister {
 	return c.scheduledPodLister
 }
 
-// TODO(harryz) need to update all the handlers here and below for equivalence cache
+// TODO(resouer) need to update all the handlers here and below for equivalence cache
 func (c *ConfigFactory) addPodToCache(obj interface{}) {
 	pod, ok := obj.(*v1.Pod)
 	if !ok {
@@ -378,15 +378,30 @@ func (f *ConfigFactory) CreateFromConfig(policy schedulerapi.Policy) (*scheduler
 			}
 		}
 	}
+	// Providing HardPodAffinitySymmetricWeight in the policy config is the new and preferred way of providing the value.
+	// Give it higher precedence than scheduler CLI configuration when it is provided.
+	if policy.HardPodAffinitySymmetricWeight != 0 {
+		f.hardPodAffinitySymmetricWeight = policy.HardPodAffinitySymmetricWeight
+	}
 	return f.CreateFromKeys(predicateKeys, priorityKeys, extenders)
+}
+
+// getBinder returns an extender that supports bind or a default binder.
+func (f *ConfigFactory) getBinder(extenders []algorithm.SchedulerExtender) scheduler.Binder {
+	for i := range extenders {
+		if extenders[i].IsBinder() {
+			return extenders[i]
+		}
+	}
+	return &binder{f.client}
 }
 
 // Creates a scheduler from a set of registered fit predicate keys and priority keys.
 func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, extenders []algorithm.SchedulerExtender) (*scheduler.Config, error) {
 	glog.V(2).Infof("Creating scheduler with fit predicates '%v' and priority functions '%v", predicateKeys, priorityKeys)
 
-	if f.GetHardPodAffinitySymmetricWeight() < 0 || f.GetHardPodAffinitySymmetricWeight() > 100 {
-		return nil, fmt.Errorf("invalid hardPodAffinitySymmetricWeight: %d, must be in the range 0-100", f.GetHardPodAffinitySymmetricWeight())
+	if f.GetHardPodAffinitySymmetricWeight() < 1 || f.GetHardPodAffinitySymmetricWeight() > 100 {
+		return nil, fmt.Errorf("invalid hardPodAffinitySymmetricWeight: %d, must be in the range 1-100", f.GetHardPodAffinitySymmetricWeight())
 	}
 
 	predicateFuncs, err := f.GetPredicates(predicateKeys)
@@ -410,15 +425,18 @@ func (f *ConfigFactory) CreateFromKeys(predicateKeys, priorityKeys sets.String, 
 	}
 
 	// TODO(resouer) use equivalence cache instead of nil here when #36238 get merged
-	algo := core.NewGenericScheduler(f.schedulerCache, predicateFuncs, predicateMetaProducer, priorityConfigs, priorityMetaProducer, extenders)
+	algo := core.NewGenericScheduler(f.schedulerCache, nil, predicateFuncs, predicateMetaProducer, priorityConfigs, priorityMetaProducer, extenders)
 	podBackoff := util.CreateDefaultPodBackoff()
 	return &scheduler.Config{
 		SchedulerCache: f.schedulerCache,
 		// The scheduler only needs to consider schedulable nodes.
 		NodeLister:          &nodePredicateLister{f.nodeLister},
 		Algorithm:           algo,
-		Binder:              &binder{f.client},
+		Binder:              f.getBinder(extenders),
 		PodConditionUpdater: &podConditionUpdater{f.client},
+		WaitForCacheSync: func() bool {
+			return cache.WaitForCacheSync(f.StopEverything, f.scheduledPodsHasSynced)
+		},
 		NextPod: func() *v1.Pod {
 			return f.getNextPod()
 		},
@@ -705,10 +723,7 @@ type binder struct {
 // Bind just does a POST binding RPC.
 func (b *binder) Bind(binding *v1.Binding) error {
 	glog.V(3).Infof("Attempting to bind %v to %v", binding.Name, binding.Target.Name)
-	ctx := genericapirequest.WithNamespace(genericapirequest.NewContext(), binding.Namespace)
-	return b.Client.Core().RESTClient().Post().Namespace(genericapirequest.NamespaceValue(ctx)).Resource("bindings").Body(binding).Do().Error()
-	// TODO: use Pods interface for binding once clusters are upgraded
-	// return b.Pods(binding.Namespace).Bind(binding)
+	return b.Client.CoreV1().Pods(binding.Namespace).Bind(binding)
 }
 
 type podConditionUpdater struct {
@@ -717,7 +732,7 @@ type podConditionUpdater struct {
 
 func (p *podConditionUpdater) Update(pod *v1.Pod, condition *v1.PodCondition) error {
 	glog.V(2).Infof("Updating pod condition for %s/%s to (%s==%s)", pod.Namespace, pod.Name, condition.Type, condition.Status)
-	if v1.UpdatePodCondition(&pod.Status, condition) {
+	if podutil.UpdatePodCondition(&pod.Status, condition) {
 		_, err := p.Client.Core().Pods(pod.Namespace).UpdateStatus(pod)
 		return err
 	}

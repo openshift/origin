@@ -14,7 +14,6 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -45,7 +44,6 @@ type LoginOptions struct {
 	Server      string
 	CAFile      string
 	InsecureTLS bool
-	APIVersion  schema.GroupVersion
 
 	// flags and printing helpers
 	Username string
@@ -151,11 +149,6 @@ func (o *LoginOptions) getClientConfig() (*restclient.Config, error) {
 			}
 			return nil, err
 		}
-	}
-
-	// check for matching api version
-	if !o.APIVersion.Empty() {
-		clientConfig.GroupVersion = &o.APIVersion
 	}
 
 	o.Config = clientConfig

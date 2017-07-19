@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"encoding/json"
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/pkg/api"
 	v1 "k8s.io/client-go/pkg/api/v1"
-	"k8s.io/client-go/pkg/apis/autoscaling"
 	"k8s.io/client-go/pkg/apis/extensions"
+	"k8s.io/client-go/pkg/apis/networking"
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
@@ -45,15 +44,18 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_v1beta1_RollingUpdateDaemonSet_To_extensions_RollingUpdateDaemonSet,
 		Convert_extensions_ReplicaSetSpec_To_v1beta1_ReplicaSetSpec,
 		Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec,
-		// autoscaling
-		Convert_v1beta1_HorizontalPodAutoscaler_To_autoscaling_HorizontalPodAutoscaler,
-		Convert_autoscaling_HorizontalPodAutoscaler_To_v1beta1_HorizontalPodAutoscaler,
-		Convert_autoscaling_CrossVersionObjectReference_To_v1beta1_SubresourceReference,
-		Convert_v1beta1_SubresourceReference_To_autoscaling_CrossVersionObjectReference,
-		Convert_autoscaling_HorizontalPodAutoscalerSpec_To_v1beta1_HorizontalPodAutoscalerSpec,
-		Convert_v1beta1_HorizontalPodAutoscalerSpec_To_autoscaling_HorizontalPodAutoscalerSpec,
-		Convert_autoscaling_HorizontalPodAutoscalerStatus_To_v1beta1_HorizontalPodAutoscalerStatus,
-		Convert_v1beta1_HorizontalPodAutoscalerStatus_To_autoscaling_HorizontalPodAutoscalerStatus,
+		Convert_v1beta1_NetworkPolicy_To_networking_NetworkPolicy,
+		Convert_networking_NetworkPolicy_To_v1beta1_NetworkPolicy,
+		Convert_v1beta1_NetworkPolicyIngressRule_To_networking_NetworkPolicyIngressRule,
+		Convert_networking_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule,
+		Convert_v1beta1_NetworkPolicyList_To_networking_NetworkPolicyList,
+		Convert_networking_NetworkPolicyList_To_v1beta1_NetworkPolicyList,
+		Convert_v1beta1_NetworkPolicyPeer_To_networking_NetworkPolicyPeer,
+		Convert_networking_NetworkPolicyPeer_To_v1beta1_NetworkPolicyPeer,
+		Convert_v1beta1_NetworkPolicyPort_To_networking_NetworkPolicyPort,
+		Convert_networking_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort,
+		Convert_v1beta1_NetworkPolicySpec_To_networking_NetworkPolicySpec,
+		Convert_networking_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec,
 	)
 	if err != nil {
 		return err
@@ -273,225 +275,154 @@ func Convert_v1beta1_ReplicaSetSpec_To_extensions_ReplicaSetSpec(in *ReplicaSetS
 	return nil
 }
 
-func Convert_autoscaling_CrossVersionObjectReference_To_v1beta1_SubresourceReference(in *autoscaling.CrossVersionObjectReference, out *SubresourceReference, s conversion.Scope) error {
-	out.Kind = in.Kind
-	out.Name = in.Name
-	out.APIVersion = in.APIVersion
-	out.Subresource = "scale"
-	return nil
+func Convert_v1beta1_NetworkPolicy_To_networking_NetworkPolicy(in *NetworkPolicy, out *networking.NetworkPolicy, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	return Convert_v1beta1_NetworkPolicySpec_To_networking_NetworkPolicySpec(&in.Spec, &out.Spec, s)
 }
 
-func Convert_v1beta1_SubresourceReference_To_autoscaling_CrossVersionObjectReference(in *SubresourceReference, out *autoscaling.CrossVersionObjectReference, s conversion.Scope) error {
-	out.Kind = in.Kind
-	out.Name = in.Name
-	out.APIVersion = in.APIVersion
-	return nil
+func Convert_networking_NetworkPolicy_To_v1beta1_NetworkPolicy(in *networking.NetworkPolicy, out *NetworkPolicy, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	return Convert_networking_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(&in.Spec, &out.Spec, s)
 }
 
-func Convert_autoscaling_HorizontalPodAutoscaler_To_v1beta1_HorizontalPodAutoscaler(in *autoscaling.HorizontalPodAutoscaler, out *HorizontalPodAutoscaler, s conversion.Scope) error {
-	if err := autoConvert_autoscaling_HorizontalPodAutoscaler_To_v1beta1_HorizontalPodAutoscaler(in, out, s); err != nil {
+func Convert_v1beta1_NetworkPolicySpec_To_networking_NetworkPolicySpec(in *NetworkPolicySpec, out *networking.NetworkPolicySpec, s conversion.Scope) error {
+	if err := s.Convert(&in.PodSelector, &out.PodSelector, 0); err != nil {
 		return err
 	}
-
-	otherMetrics := make([]MetricSpec, 0, len(in.Spec.Metrics))
-	for _, metric := range in.Spec.Metrics {
-		if metric.Type == autoscaling.ResourceMetricSourceType && metric.Resource != nil && metric.Resource.Name == api.ResourceCPU && metric.Resource.TargetAverageUtilization != nil {
-			continue
-		}
-
-		convMetric := MetricSpec{}
-		if err := Convert_autoscaling_MetricSpec_To_v1beta1_MetricSpec(&metric, &convMetric, s); err != nil {
-			return err
-		}
-		otherMetrics = append(otherMetrics, convMetric)
-	}
-
-	// NB: we need to save the status even if it maps to a CPU utilization status in order to save the raw value as well
-	currentMetrics := make([]MetricStatus, len(in.Status.CurrentMetrics))
-	for i, currentMetric := range in.Status.CurrentMetrics {
-		if err := Convert_autoscaling_MetricStatus_To_v1beta1_MetricStatus(&currentMetric, &currentMetrics[i], s); err != nil {
+	out.Ingress = make([]networking.NetworkPolicyIngressRule, len(in.Ingress))
+	for i := range in.Ingress {
+		if err := Convert_v1beta1_NetworkPolicyIngressRule_To_networking_NetworkPolicyIngressRule(&in.Ingress[i], &out.Ingress[i], s); err != nil {
 			return err
 		}
 	}
-
-	if len(otherMetrics) > 0 || len(in.Status.CurrentMetrics) > 0 {
-		old := out.Annotations
-		out.Annotations = make(map[string]string, len(old)+2)
-		if old != nil {
-			for k, v := range old {
-				out.Annotations[k] = v
-			}
-		}
-	}
-
-	if len(otherMetrics) > 0 {
-		otherMetricsEnc, err := json.Marshal(otherMetrics)
-		if err != nil {
-			return err
-		}
-		out.Annotations[autoscaling.MetricSpecsAnnotation] = string(otherMetricsEnc)
-	}
-
-	if len(in.Status.CurrentMetrics) > 0 {
-		currentMetricsEnc, err := json.Marshal(currentMetrics)
-		if err != nil {
-			return err
-		}
-		out.Annotations[autoscaling.MetricStatusesAnnotation] = string(currentMetricsEnc)
-	}
-
 	return nil
 }
 
-func Convert_v1beta1_HorizontalPodAutoscaler_To_autoscaling_HorizontalPodAutoscaler(in *HorizontalPodAutoscaler, out *autoscaling.HorizontalPodAutoscaler, s conversion.Scope) error {
-	if err := autoConvert_v1beta1_HorizontalPodAutoscaler_To_autoscaling_HorizontalPodAutoscaler(in, out, s); err != nil {
+func Convert_networking_NetworkPolicySpec_To_v1beta1_NetworkPolicySpec(in *networking.NetworkPolicySpec, out *NetworkPolicySpec, s conversion.Scope) error {
+	if err := s.Convert(&in.PodSelector, &out.PodSelector, 0); err != nil {
 		return err
 	}
-
-	if otherMetricsEnc, hasOtherMetrics := out.Annotations[autoscaling.MetricSpecsAnnotation]; hasOtherMetrics {
-		var otherMetrics []MetricSpec
-		if err := json.Unmarshal([]byte(otherMetricsEnc), &otherMetrics); err != nil {
+	out.Ingress = make([]NetworkPolicyIngressRule, len(in.Ingress))
+	for i := range in.Ingress {
+		if err := Convert_networking_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(&in.Ingress[i], &out.Ingress[i], s); err != nil {
 			return err
 		}
-
-		// the normal Spec conversion could have populated out.Spec.Metrics with a single element, so deal with that
-		outMetrics := make([]autoscaling.MetricSpec, len(otherMetrics)+len(out.Spec.Metrics))
-		for i, metric := range otherMetrics {
-			if err := Convert_v1beta1_MetricSpec_To_autoscaling_MetricSpec(&metric, &outMetrics[i], s); err != nil {
-				return err
-			}
-		}
-		if out.Spec.Metrics != nil {
-			outMetrics[len(otherMetrics)] = out.Spec.Metrics[0]
-		}
-		out.Spec.Metrics = outMetrics
-		delete(out.Annotations, autoscaling.MetricSpecsAnnotation)
 	}
-
-	if currentMetricsEnc, hasCurrentMetrics := out.Annotations[autoscaling.MetricStatusesAnnotation]; hasCurrentMetrics {
-		// ignore any existing status values -- the ones here have more information
-		var currentMetrics []MetricStatus
-		if err := json.Unmarshal([]byte(currentMetricsEnc), &currentMetrics); err != nil {
-			return err
-		}
-
-		out.Status.CurrentMetrics = make([]autoscaling.MetricStatus, len(currentMetrics))
-		for i, currentMetric := range currentMetrics {
-			if err := Convert_v1beta1_MetricStatus_To_autoscaling_MetricStatus(&currentMetric, &out.Status.CurrentMetrics[i], s); err != nil {
-				return err
-			}
-		}
-		delete(out.Annotations, autoscaling.MetricStatusesAnnotation)
-	}
-
-	// autoscaling/v1 formerly had an implicit default applied in the controller.  In v2alpha1, we apply it explicitly.
-	// We apply it here, explicitly, since we have access to the full set of metrics from the annotation.
-	if len(out.Spec.Metrics) == 0 {
-		// no other metrics, no explicit CPU value set
-		out.Spec.Metrics = []autoscaling.MetricSpec{
-			{
-				Type: autoscaling.ResourceMetricSourceType,
-				Resource: &autoscaling.ResourceMetricSource{
-					Name: api.ResourceCPU,
-				},
-			},
-		}
-		out.Spec.Metrics[0].Resource.TargetAverageUtilization = new(int32)
-		*out.Spec.Metrics[0].Resource.TargetAverageUtilization = autoscaling.DefaultCPUUtilization
-	}
-
 	return nil
 }
 
-func Convert_autoscaling_HorizontalPodAutoscalerSpec_To_v1beta1_HorizontalPodAutoscalerSpec(in *autoscaling.HorizontalPodAutoscalerSpec, out *HorizontalPodAutoscalerSpec, s conversion.Scope) error {
-	if err := Convert_autoscaling_CrossVersionObjectReference_To_v1beta1_SubresourceReference(&in.ScaleTargetRef, &out.ScaleRef, s); err != nil {
-		return err
+func Convert_v1beta1_NetworkPolicyIngressRule_To_networking_NetworkPolicyIngressRule(in *NetworkPolicyIngressRule, out *networking.NetworkPolicyIngressRule, s conversion.Scope) error {
+	out.Ports = make([]networking.NetworkPolicyPort, len(in.Ports))
+	for i := range in.Ports {
+		if err := Convert_v1beta1_NetworkPolicyPort_To_networking_NetworkPolicyPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+			return err
+		}
 	}
-	if in.MinReplicas != nil {
-		out.MinReplicas = new(int32)
-		*out.MinReplicas = *in.MinReplicas
+	out.From = make([]networking.NetworkPolicyPeer, len(in.From))
+	for i := range in.From {
+		if err := Convert_v1beta1_NetworkPolicyPeer_To_networking_NetworkPolicyPeer(&in.From[i], &out.From[i], s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_networking_NetworkPolicyIngressRule_To_v1beta1_NetworkPolicyIngressRule(in *networking.NetworkPolicyIngressRule, out *NetworkPolicyIngressRule, s conversion.Scope) error {
+	out.Ports = make([]NetworkPolicyPort, len(in.Ports))
+	for i := range in.Ports {
+		if err := Convert_networking_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(&in.Ports[i], &out.Ports[i], s); err != nil {
+			return err
+		}
+	}
+	out.From = make([]NetworkPolicyPeer, len(in.From))
+	for i := range in.From {
+		if err := Convert_networking_NetworkPolicyPeer_To_v1beta1_NetworkPolicyPeer(&in.From[i], &out.From[i], s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyPeer_To_networking_NetworkPolicyPeer(in *NetworkPolicyPeer, out *networking.NetworkPolicyPeer, s conversion.Scope) error {
+	if in.PodSelector != nil {
+		out.PodSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.PodSelector, out.PodSelector, 0); err != nil {
+			return err
+		}
 	} else {
-		out.MinReplicas = nil
+		out.PodSelector = nil
 	}
-	out.MaxReplicas = in.MaxReplicas
-
-	for _, metric := range in.Metrics {
-		if metric.Type == autoscaling.ResourceMetricSourceType && metric.Resource != nil && metric.Resource.Name == api.ResourceCPU {
-			if metric.Resource.TargetAverageUtilization != nil {
-				out.CPUUtilization = &CPUTargetUtilization{TargetPercentage: *metric.Resource.TargetAverageUtilization}
-			}
-			break
+	if in.NamespaceSelector != nil {
+		out.NamespaceSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.NamespaceSelector, out.NamespaceSelector, 0); err != nil {
+			return err
 		}
-	}
-
-	return nil
-}
-
-func Convert_v1beta1_HorizontalPodAutoscalerSpec_To_autoscaling_HorizontalPodAutoscalerSpec(in *HorizontalPodAutoscalerSpec, out *autoscaling.HorizontalPodAutoscalerSpec, s conversion.Scope) error {
-	if err := Convert_v1beta1_SubresourceReference_To_autoscaling_CrossVersionObjectReference(&in.ScaleRef, &out.ScaleTargetRef, s); err != nil {
-		return err
-	}
-	if in.MinReplicas != nil {
-		out.MinReplicas = new(int32)
-		*out.MinReplicas = int32(*in.MinReplicas)
 	} else {
-		out.MinReplicas = nil
-	}
-	out.MaxReplicas = int32(in.MaxReplicas)
-
-	if in.CPUUtilization != nil {
-		out.Metrics = []autoscaling.MetricSpec{
-			{
-				Type: autoscaling.ResourceMetricSourceType,
-				Resource: &autoscaling.ResourceMetricSource{
-					Name: api.ResourceCPU,
-				},
-			},
-		}
-		out.Metrics[0].Resource.TargetAverageUtilization = new(int32)
-		*out.Metrics[0].Resource.TargetAverageUtilization = in.CPUUtilization.TargetPercentage
-	}
-
-	return nil
-}
-
-func Convert_autoscaling_HorizontalPodAutoscalerStatus_To_v1beta1_HorizontalPodAutoscalerStatus(in *autoscaling.HorizontalPodAutoscalerStatus, out *HorizontalPodAutoscalerStatus, s conversion.Scope) error {
-	out.ObservedGeneration = in.ObservedGeneration
-	out.LastScaleTime = in.LastScaleTime
-
-	out.CurrentReplicas = in.CurrentReplicas
-	out.DesiredReplicas = in.DesiredReplicas
-
-	for _, metric := range in.CurrentMetrics {
-		if metric.Type == autoscaling.ResourceMetricSourceType && metric.Resource != nil && metric.Resource.Name == api.ResourceCPU {
-			if metric.Resource.CurrentAverageUtilization != nil {
-
-				out.CurrentCPUUtilizationPercentage = new(int32)
-				*out.CurrentCPUUtilizationPercentage = *metric.Resource.CurrentAverageUtilization
-			}
-		}
+		out.NamespaceSelector = nil
 	}
 	return nil
 }
 
-func Convert_v1beta1_HorizontalPodAutoscalerStatus_To_autoscaling_HorizontalPodAutoscalerStatus(in *HorizontalPodAutoscalerStatus, out *autoscaling.HorizontalPodAutoscalerStatus, s conversion.Scope) error {
-	out.ObservedGeneration = in.ObservedGeneration
-	out.LastScaleTime = in.LastScaleTime
-
-	out.CurrentReplicas = in.CurrentReplicas
-	out.DesiredReplicas = in.DesiredReplicas
-
-	if in.CurrentCPUUtilizationPercentage != nil {
-		out.CurrentMetrics = []autoscaling.MetricStatus{
-			{
-				Type: autoscaling.ResourceMetricSourceType,
-				Resource: &autoscaling.ResourceMetricStatus{
-					Name: api.ResourceCPU,
-				},
-			},
+func Convert_networking_NetworkPolicyPeer_To_v1beta1_NetworkPolicyPeer(in *networking.NetworkPolicyPeer, out *NetworkPolicyPeer, s conversion.Scope) error {
+	if in.PodSelector != nil {
+		out.PodSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.PodSelector, out.PodSelector, 0); err != nil {
+			return err
 		}
-		out.CurrentMetrics[0].Resource.CurrentAverageUtilization = new(int32)
-		*out.CurrentMetrics[0].Resource.CurrentAverageUtilization = *in.CurrentCPUUtilizationPercentage
+	} else {
+		out.PodSelector = nil
+	}
+	if in.NamespaceSelector != nil {
+		out.NamespaceSelector = new(metav1.LabelSelector)
+		if err := s.Convert(in.NamespaceSelector, out.NamespaceSelector, 0); err != nil {
+			return err
+		}
+	} else {
+		out.NamespaceSelector = nil
+	}
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyPort_To_networking_NetworkPolicyPort(in *NetworkPolicyPort, out *networking.NetworkPolicyPort, s conversion.Scope) error {
+	if in.Protocol != nil {
+		out.Protocol = new(api.Protocol)
+		*out.Protocol = api.Protocol(*in.Protocol)
+	} else {
+		out.Protocol = nil
+	}
+	out.Port = in.Port
+	return nil
+}
+
+func Convert_networking_NetworkPolicyPort_To_v1beta1_NetworkPolicyPort(in *networking.NetworkPolicyPort, out *NetworkPolicyPort, s conversion.Scope) error {
+	if in.Protocol != nil {
+		out.Protocol = new(v1.Protocol)
+		*out.Protocol = v1.Protocol(*in.Protocol)
+	} else {
+		out.Protocol = nil
+	}
+	out.Port = in.Port
+	return nil
+}
+
+func Convert_v1beta1_NetworkPolicyList_To_networking_NetworkPolicyList(in *NetworkPolicyList, out *networking.NetworkPolicyList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = make([]networking.NetworkPolicy, len(in.Items))
+	for i := range in.Items {
+		if err := Convert_v1beta1_NetworkPolicy_To_networking_NetworkPolicy(&in.Items[i], &out.Items[i], s); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Convert_networking_NetworkPolicyList_To_v1beta1_NetworkPolicyList(in *networking.NetworkPolicyList, out *NetworkPolicyList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = make([]NetworkPolicy, len(in.Items))
+	for i := range in.Items {
+		if err := Convert_networking_NetworkPolicy_To_v1beta1_NetworkPolicy(&in.Items[i], &out.Items[i], s); err != nil {
+			return err
+		}
 	}
 	return nil
 }

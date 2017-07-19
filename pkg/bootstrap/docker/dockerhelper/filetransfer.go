@@ -11,7 +11,7 @@ import (
 
 	"github.com/docker/engine-api/types"
 	s2itar "github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 )
 
 // removeLeadingDirectoryAdapter wraps a tar.Reader and strips the first leading
@@ -106,7 +106,7 @@ func DownloadDirFromContainer(client Interface, container, src, dst string) erro
 	defer response.Close()
 	tarReader := &removeLeadingDirectoryAdapter{Reader: tar.NewReader(response)}
 
-	t := s2itar.New(s2iutil.NewFileSystem())
+	t := s2itar.New(s2ifs.NewFileSystem())
 	return t.ExtractTarStreamFromTarReader(dst, tarReader, nil)
 }
 
@@ -114,7 +114,7 @@ func DownloadDirFromContainer(client Interface, container, src, dst string) erro
 func UploadFileToContainer(client Interface, container, src, dest string) error {
 	uploader, errch := newContainerUploader(client, container, path.Dir(dest))
 
-	t := s2itar.New(s2iutil.NewFileSystem())
+	t := s2itar.New(s2ifs.NewFileSystem())
 	tarWriter := s2itar.RenameAdapter{Writer: tar.NewWriter(uploader), Old: filepath.Base(src), New: path.Base(dest)}
 
 	err := t.CreateTarStreamToTarWriter(src, true, tarWriter, nil)

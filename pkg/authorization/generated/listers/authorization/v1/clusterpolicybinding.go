@@ -3,7 +3,6 @@
 package v1
 
 import (
-	authorization "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +45,7 @@ func (s *clusterPolicyBindingLister) Get(name string) (*v1.ClusterPolicyBinding,
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(authorization.Resource("clusterpolicybinding"), name)
+		return nil, errors.NewNotFound(v1.Resource("clusterpolicybinding"), name)
 	}
 	return obj.(*v1.ClusterPolicyBinding), nil
 }

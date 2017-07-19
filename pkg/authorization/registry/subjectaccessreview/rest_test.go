@@ -247,7 +247,7 @@ func (r *subjectAccessTest) runTest(t *testing.T) {
 		ctx = apirequest.WithUser(ctx, &user.DefaultInfo{Name: "dummy"})
 	}
 
-	obj, err := storage.Create(ctx, r.reviewRequest)
+	obj, err := storage.Create(ctx, r.reviewRequest, false)
 	switch {
 	case err == nil && len(r.expectedError) == 0:
 	case err == nil && len(r.expectedError) != 0:

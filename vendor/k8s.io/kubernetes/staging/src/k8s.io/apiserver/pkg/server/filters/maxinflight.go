@@ -24,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/apiserver/pkg/server/httplog"
 
 	"github.com/golang/glog"
 )
@@ -47,7 +46,7 @@ func WithMaxInFlightLimit(
 	nonMutatingLimit int,
 	mutatingLimit int,
 	requestContextMapper genericapirequest.RequestContextMapper,
-	longRunningRequestCheck LongRunningRequestCheck,
+	longRunningRequestCheck apirequest.LongRunningRequestCheck,
 ) http.Handler {
 	if nonMutatingLimit == 0 && mutatingLimit == 0 {
 		return handler
@@ -101,10 +100,6 @@ func WithMaxInFlightLimit(
 }
 
 func tooManyRequests(req *http.Request, w http.ResponseWriter) {
-	// "Too Many Requests" response is returned before logger is setup for the request.
-	// So we need to explicitly log it here.
-	defer httplog.NewLogged(req, &w).Log()
-
 	// Return a 429 status indicating "Too Many Requests"
 	w.Header().Set("Retry-After", retryAfter)
 	http.Error(w, "Too many requests, please try again later.", errors.StatusTooManyRequests)

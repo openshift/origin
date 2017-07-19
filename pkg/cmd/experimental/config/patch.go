@@ -83,12 +83,17 @@ func (o *PatchOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args [
 		return cmdutil.UsageError(cmd, fmt.Sprintf("--type must be one of %v, not %q", sets.StringKeySet(patchTypes).List(), patchTypeString))
 	}
 
-	o.Builder = resource.NewBuilder(configapiinstall.NewRESTMapper(), configapi.Scheme, resource.DisabledClientForMapping{}, configapi.Codecs.LegacyCodec())
+	o.Builder = resource.NewBuilder(configapiinstall.NewRESTMapper(), f.CategoryExpander(), configapi.Scheme, resource.DisabledClientForMapping{}, configapi.Codecs.LegacyCodec())
 
 	var err error
 	mapper, typer := f.Object()
 	decoders := []runtime.Decoder{f.Decoder(true), unstructured.UnstructuredJSONScheme}
-	o.Printer, _, err = kprinters.GetStandardPrinter("yaml", "", false, false, mapper, typer, decoders)
+	o.Printer, err = kprinters.GetStandardPrinter(
+		&kprinters.OutputOptions{
+			FmtType:          "yaml",
+			AllowMissingKeys: false,
+		},
+		false, mapper, typer, nil, decoders, kprinters.PrintOptions{})
 	if err != nil {
 		return err
 	}

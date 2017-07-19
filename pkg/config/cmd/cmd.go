@@ -5,12 +5,14 @@ import (
 	"io"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -280,11 +282,34 @@ func (b *BulkAction) BindForAction(flags *pflag.FlagSet) {
 
 // BindForOutput sets flags on this action for when setting -o will not execute the action (the point of the action is
 // primarily to generate the output). Passing -o is asking for output, not execution.
-func (b *BulkAction) BindForOutput(flags *pflag.FlagSet) {
-	flags.StringVarP(&b.Output, "output", "o", "", "Output results as yaml or json instead of executing, or use name for succint output (resource/name).")
-	flags.BoolVar(&b.DryRun, "dry-run", false, "If true, show the result of the operation without performing it.")
-	flags.Bool("no-headers", false, "Omit table headers for default output.")
-	flags.MarkHidden("no-headers")
+func (b *BulkAction) BindForOutput(flags *pflag.FlagSet, skippedFlags ...string) {
+	skipped := sets.NewString(skippedFlags...)
+
+	if !skipped.Has("output") {
+		flags.StringVarP(&b.Output, "output", "o", "", "Output results as yaml or json instead of executing, or use name for succint output (resource/name).")
+	}
+	if !skipped.Has("dry-run") {
+		flags.BoolVar(&b.DryRun, "dry-run", false, "If true, show the result of the operation without performing it.")
+	}
+	if !skipped.Has("no-headers") {
+		flags.Bool("no-headers", false, "Omit table headers for default output.")
+		flags.MarkHidden("no-headers")
+	}
+
+	// we really want to call the AddNonDeprecatedPrinterFlags method, but that is broken since it doesn't bind vars
+	if !skipped.Has("show-labels") {
+		flags.Bool("show-labels", false, "When printing, show all labels as the last column (default hide labels column)")
+	}
+	if !skipped.Has("template") {
+		flags.String("template", "", "Template string or path to template file to use when -o=go-template, -o=go-template-file. The template format is golang templates [http://golang.org/pkg/text/template/#pkg-overview].")
+		cobra.MarkFlagFilename(flags, "template")
+	}
+	if !skipped.Has("sort-by") {
+		flags.String("sort-by", "", "If non-empty, sort list types using this field specification.  The field specification is expressed as a JSONPath expression (e.g. '{.metadata.name}'). The field in the API resource specified by this JSONPath expression must be an integer or a string.")
+	}
+	if !skipped.Has("show-all") {
+		flags.BoolP("show-all", "a", false, "When printing, show all resources (default hide terminated pods.)")
+	}
 }
 
 // Compact sets the output to a minimal set

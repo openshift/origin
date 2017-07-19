@@ -9,7 +9,6 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
-import "k8s.io/apiserver/pkg/apis/example/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -124,6 +123,7 @@ message OAuthClient {
   optional bool respondWithChallenges = 4;
 
   // RedirectURIs is the valid redirection URIs associated with a client
+  // +patchStrategy=merge
   repeated string redirectURIs = 5;
 
   // GrantMethod determines how to handle grants for this client. If no method is provided, the

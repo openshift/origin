@@ -71,12 +71,12 @@ func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPred
 	}
 }
 
-func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
 	obj, ok := o.(*templateapi.BrokerTemplateInstance)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a BrokerTemplateInstance")
+		return nil, nil, false, fmt.Errorf("not a BrokerTemplateInstance")
 	}
-	return labels.Set(obj.Labels), SelectableFields(obj), nil
+	return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
 }
 
 // SelectableFields returns a field set that can be used for filter selection

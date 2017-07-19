@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	testingcore "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -402,7 +403,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 				t.Fatal(err)
 			}
 			err = r.ImageChanged(test.obj, fakeTagRetriever(test.tags))
-			if !kapi.Semantic.DeepEqual(initial, test.obj) {
+			if !kapihelper.Semantic.DeepEqual(initial, test.obj) {
 				t.Errorf("should not have mutated: %s", diff.ObjectReflectDiff(initial, test.obj))
 			}
 			switch {

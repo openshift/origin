@@ -182,7 +182,7 @@ func (o NodeOptions) StartNode() error {
 		return nil
 	}
 
-	go daemon.SdNotify("READY=1")
+	go daemon.SdNotify(false, "READY=1")
 	select {}
 }
 

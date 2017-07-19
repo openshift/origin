@@ -12,13 +12,31 @@ import (
 // Public to allow building arbitrary schemes.
 // All generated defaulters are covering - they call all nested defaulters.
 func RegisterDefaults(scheme *runtime.Scheme) error {
+	scheme.AddTypeDefaultingFunc(&ClusterPolicy{}, func(obj interface{}) { SetObjectDefaults_ClusterPolicy(obj.(*ClusterPolicy)) })
+	scheme.AddTypeDefaultingFunc(&ClusterPolicyList{}, func(obj interface{}) { SetObjectDefaults_ClusterPolicyList(obj.(*ClusterPolicyList)) })
 	scheme.AddTypeDefaultingFunc(&ClusterRole{}, func(obj interface{}) { SetObjectDefaults_ClusterRole(obj.(*ClusterRole)) })
 	scheme.AddTypeDefaultingFunc(&ClusterRoleList{}, func(obj interface{}) { SetObjectDefaults_ClusterRoleList(obj.(*ClusterRoleList)) })
+	scheme.AddTypeDefaultingFunc(&Policy{}, func(obj interface{}) { SetObjectDefaults_Policy(obj.(*Policy)) })
+	scheme.AddTypeDefaultingFunc(&PolicyList{}, func(obj interface{}) { SetObjectDefaults_PolicyList(obj.(*PolicyList)) })
 	scheme.AddTypeDefaultingFunc(&Role{}, func(obj interface{}) { SetObjectDefaults_Role(obj.(*Role)) })
 	scheme.AddTypeDefaultingFunc(&RoleList{}, func(obj interface{}) { SetObjectDefaults_RoleList(obj.(*RoleList)) })
 	scheme.AddTypeDefaultingFunc(&SelfSubjectRulesReview{}, func(obj interface{}) { SetObjectDefaults_SelfSubjectRulesReview(obj.(*SelfSubjectRulesReview)) })
 	scheme.AddTypeDefaultingFunc(&SubjectRulesReview{}, func(obj interface{}) { SetObjectDefaults_SubjectRulesReview(obj.(*SubjectRulesReview)) })
 	return nil
+}
+
+func SetObjectDefaults_ClusterPolicy(in *ClusterPolicy) {
+	for i := range in.Roles {
+		a := &in.Roles[i]
+		SetObjectDefaults_ClusterRole(&a.Role)
+	}
+}
+
+func SetObjectDefaults_ClusterPolicyList(in *ClusterPolicyList) {
+	for i := range in.Items {
+		a := &in.Items[i]
+		SetObjectDefaults_ClusterPolicy(a)
+	}
 }
 
 func SetObjectDefaults_ClusterRole(in *ClusterRole) {
@@ -32,6 +50,20 @@ func SetObjectDefaults_ClusterRoleList(in *ClusterRoleList) {
 	for i := range in.Items {
 		a := &in.Items[i]
 		SetObjectDefaults_ClusterRole(a)
+	}
+}
+
+func SetObjectDefaults_Policy(in *Policy) {
+	for i := range in.Roles {
+		a := &in.Roles[i]
+		SetObjectDefaults_Role(&a.Role)
+	}
+}
+
+func SetObjectDefaults_PolicyList(in *PolicyList) {
+	for i := range in.Items {
+		a := &in.Items[i]
+		SetObjectDefaults_Policy(a)
 	}
 }
 

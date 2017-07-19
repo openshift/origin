@@ -17,6 +17,8 @@ type FakeClusterPolicies struct {
 
 var clusterpoliciesResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "clusterpolicies"}
 
+var clusterpoliciesKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "ClusterPolicy"}
+
 func (c *FakeClusterPolicies) Create(clusterPolicy *v1.ClusterPolicy) (result *v1.ClusterPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(clusterpoliciesResource, clusterPolicy), &v1.ClusterPolicy{})
@@ -59,7 +61,7 @@ func (c *FakeClusterPolicies) Get(name string, options meta_v1.GetOptions) (resu
 
 func (c *FakeClusterPolicies) List(opts meta_v1.ListOptions) (result *v1.ClusterPolicyList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterpoliciesResource, opts), &v1.ClusterPolicyList{})
+		Invokes(testing.NewRootListAction(clusterpoliciesResource, clusterpoliciesKind, opts), &v1.ClusterPolicyList{})
 	if obj == nil {
 		return nil, err
 	}

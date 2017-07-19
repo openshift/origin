@@ -58,7 +58,7 @@ func (s *storage) GetBuildConfig(ctx apirequest.Context, name string, options *m
 }
 
 func (s *storage) CreateBuildConfig(ctx apirequest.Context, build *buildapi.BuildConfig) error {
-	_, err := s.Create(ctx, build)
+	_, err := s.Create(ctx, build, false)
 	return err
 }
 

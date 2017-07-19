@@ -58,7 +58,7 @@ func (s *storage) GetClient(ctx apirequest.Context, name string, options *metav1
 }
 
 func (s *storage) CreateClient(ctx apirequest.Context, client *oauthapi.OAuthClient) (*oauthapi.OAuthClient, error) {
-	obj, err := s.Create(ctx, client)
+	obj, err := s.Create(ctx, client, false)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@
 package v1
 
 import (
-	project "github.com/openshift/origin/pkg/project/apis/project"
 	v1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,7 +45,7 @@ func (s *projectLister) Get(name string) (*v1.Project, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(project.Resource("project"), name)
+		return nil, errors.NewNotFound(v1.Resource("project"), name)
 	}
 	return obj.(*v1.Project), nil
 }

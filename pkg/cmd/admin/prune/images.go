@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -196,9 +195,11 @@ func (o PruneImagesOptions) Validate() error {
 	if o.KeepTagRevisions != nil && *o.KeepTagRevisions < 0 {
 		return fmt.Errorf("--keep-tag-revisions must be greater than or equal to 0")
 	}
-	if _, err := url.Parse(o.RegistryUrlOverride); err != nil {
-		return fmt.Errorf("invalid --registry-url flag: %v", err)
-	}
+	// golang validation tighten and our code actually expects this to be scheme-less
+	// TODO figure out how to validate
+	// if _, err := url.Parse(o.RegistryUrlOverride); err != nil {
+	// 	return fmt.Errorf("invalid --registry-url flag: %v", err)
+	// }
 	if o.ForceInsecure && len(o.CABundle) > 0 {
 		return fmt.Errorf("--certificate-authority cannot be specified with --force-insecure")
 	}

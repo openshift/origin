@@ -155,7 +155,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		// "// +groupName=somegroup.foo.bar.io", use the first field (somegroup) as the name of the
 		// group when generating.
 		if override := types.ExtractCommentTags("+", p.DocComments)["groupName"]; override != nil {
-			gv.Group = clientgentypes.Group(strings.Split(override[0], ".")[0])
+			gv.Group = clientgentypes.Group(strings.SplitN(override[0], ".", 2)[0])
 		}
 
 		var typesToGenerate []*types.Type
