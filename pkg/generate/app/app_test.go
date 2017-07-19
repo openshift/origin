@@ -95,6 +95,65 @@ func TestBuildConfigWithSecrets(t *testing.T) {
 	}
 }
 
+func TestBuildConfigBinaryWithImageSource(t *testing.T) {
+	source := &SourceRef{
+		Name: "binarybuild",
+		SourceImage: &ImageRef{
+			Reference: imageapi.DockerImageReference{
+				Name:     "foo",
+				Registry: "bar",
+			},
+		},
+	}
+	build := &BuildRef{Source: source, Binary: true}
+	config, err := build.BuildConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+			t.Fatalf("binary build should not have any imagechangetriggers")
+		}
+		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
+			t.Fatalf("binary build should not have a buildconfig change trigger")
+		}
+
+	}
+}
+
+func TestBuildConfigWithImageSource(t *testing.T) {
+	source := &SourceRef{
+		Name: "binarybuild",
+		SourceImage: &ImageRef{
+			Reference: imageapi.DockerImageReference{
+				Name:     "foo",
+				Registry: "bar",
+			},
+		},
+	}
+	build := &BuildRef{Source: source, Binary: false}
+	config, err := build.BuildConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	foundICT := false
+	foundCCT := false
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == buildapi.ImageChangeBuildTriggerType {
+			foundICT = true
+		}
+		if trigger.Type == buildapi.ConfigChangeBuildTriggerType {
+			foundCCT = true
+		}
+	}
+	if !foundICT {
+		t.Fatalf("expected to find an imagechangetrigger on the build")
+	}
+	if !foundCCT {
+		t.Fatalf("expected to find a configchangetrigger on the build")
+	}
+}
+
 func TestSourceRefBuildSourceURI(t *testing.T) {
 	tests := []struct {
 		name     string
