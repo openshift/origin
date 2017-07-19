@@ -62,9 +62,12 @@ func TestSystemOnlyRoles(t *testing.T) {
 
 	for _, role := range GetBootstrapClusterRoles() {
 		if isControllerRole(&role) {
-			continue // assume all controller roles can be ignored
+			if !isSystemOnlyRole(&role) {
+				t.Errorf("Controller role %q is missing the system only annotation", role.Name)
+			}
+			continue // assume all controller roles can be ignored even though we require the annotation
 		}
-		if isSystemOnlyRole(role) {
+		if isSystemOnlyRole(&role) {
 			hide.Insert(role.Name)
 		} else {
 			show.Insert(role.Name)
@@ -86,7 +89,7 @@ func TestSystemOnlyRoles(t *testing.T) {
 
 // this logic must stay in sync w/the web console for this test to be valid/valuable
 // it is the same logic that is run on the membership page
-func isSystemOnlyRole(role authorizationapi.ClusterRole) bool {
+func isSystemOnlyRole(role *authorizationapi.ClusterRole) bool {
 	return role.Annotations[roleSystemOnly] == roleIsSystemOnly
 }
 
