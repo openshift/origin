@@ -41,6 +41,9 @@ func Convert_authorization_Role_To_rbac_Role(in *Role, out *rbac.Role, _ convers
 }
 
 func Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(in *ClusterRoleBinding, out *rbac.ClusterRoleBinding, _ conversion.Scope) error {
+	if len(in.RoleRef.Namespace) != 0 {
+		return fmt.Errorf("invalid origin cluster role binding %s: attempts to reference role in namespace %q instead of cluster scope", in.Name, in.RoleRef.Namespace)
+	}
 	var err error
 	if out.Subjects, err = convert_api_Subjects_To_rbac_Subjects(in.Subjects); err != nil {
 		return err
@@ -166,7 +169,9 @@ func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rba
 	if out.Subjects, err = convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
 	}
-	out.RoleRef = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, "")
+	if out.RoleRef, err = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, ""); err != nil {
+		return err
+	}
 	out.ObjectMeta = in.ObjectMeta
 	return nil
 }
@@ -176,7 +181,9 @@ func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding,
 	if out.Subjects, err = convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
 	}
-	out.RoleRef = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, in.Namespace)
+	if out.RoleRef, err = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, in.Namespace); err != nil {
+		return err
+	}
 	out.ObjectMeta = in.ObjectMeta
 	return nil
 }
@@ -205,13 +212,18 @@ func convert_rbac_Subjects_To_authorization_Subjects(in []rbac.Subject) ([]api.O
 	return subjects, nil
 }
 
-// rbac.RoleRef has no namespace field since that can be inferred.
-// The Origin role ref (api.ObjectReference) requires its namespace value to match the binding's namespace.
-// Thus we have to explicitly provide that value as a parameter.
-func convert_rbac_RoleRef_To_authorization_RoleRef(in *rbac.RoleRef, namespace string) api.ObjectReference {
-	return api.ObjectReference{
-		Name:      in.Name,
-		Namespace: namespace,
+// rbac.RoleRef has no namespace field since that can be inferred from the kind of referenced role.
+// The Origin role ref (api.ObjectReference) requires its namespace value to match the binding's namespace
+// for a binding to a role.  For a binding to a cluster role, the namespace value must be the empty string.
+// Thus we have to explicitly provide the namespace value as a parameter and use it based on the role's kind.
+func convert_rbac_RoleRef_To_authorization_RoleRef(in *rbac.RoleRef, namespace string) (api.ObjectReference, error) {
+	switch in.Kind {
+	case "ClusterRole":
+		return api.ObjectReference{Name: in.Name}, nil
+	case "Role":
+		return api.ObjectReference{Name: in.Name, Namespace: namespace}, nil
+	default:
+		return api.ObjectReference{}, fmt.Errorf("invalid kind %q for rbac role ref %q", in.Kind, in.Name)
 	}
 }
 
