@@ -15,6 +15,8 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/generate/git"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 var lazyInitMatch = regexp.MustCompile("^/([^\\/]+?)/info/refs$")
@@ -92,7 +94,7 @@ func RepositoryURL(config *Config, name string, r *http.Request) *url.URL {
 	return &url
 }
 
-func newRepository(config *Config, path string, hooks map[string]string, self *url.URL, origin *url.URL) ([]byte, error) {
+func newRepository(config *Config, path string, hooks map[string]string, self *url.URL, origin *s2igit.URL) ([]byte, error) {
 	var out []byte
 	repo := git.NewRepositoryForBinary(config.GitBinary)
 
@@ -103,7 +105,7 @@ func newRepository(config *Config, path string, hooks map[string]string, self *u
 	aliasPath := strings.TrimSuffix(barePath, ".git")
 
 	if origin != nil {
-		if err := repo.CloneMirror(barePath, origin.String()); err != nil {
+		if err := repo.CloneMirror(barePath, origin.StringNoFragment()); err != nil {
 			return out, err
 		}
 	} else {
@@ -165,8 +167,6 @@ func clone(config *Config) error {
 	errs := []error{}
 	for name, v := range config.InitialClones {
 		hooks := mergeHooks(defaultHooks, v.Hooks)
-		url := v.URL
-		url.Fragment = ""
 		path := filepath.Join(config.Home, name)
 		ok, err := git.IsBareRoot(path)
 		if err != nil {
@@ -183,10 +183,10 @@ func clone(config *Config) error {
 				continue
 			}
 		}
-		log.Printf("Cloning %s into %s", url.String(), path)
+		log.Printf("Cloning %s into %s", v.URL.StringNoFragment(), path)
 
 		self := RepositoryURL(config, name, nil)
-		if _, err := newRepository(config, path, hooks, self, &url); err != nil {
+		if _, err := newRepository(config, path, hooks, self, &v.URL); err != nil {
 			// TODO: tear this directory down
 			errs = append(errs, err)
 			continue

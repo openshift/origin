@@ -114,7 +114,7 @@ func TestCreateConflictingNamespace(t *testing.T) {
 	mapping := validNewMappingWithName()
 	mapping.Namespace = "some-value"
 
-	ch, err := storage.Create(apirequest.WithNamespace(apirequest.NewContext(), "legal-name"), mapping)
+	ch, err := storage.Create(apirequest.WithNamespace(apirequest.NewContext(), "legal-name"), mapping, false)
 	if ch != nil {
 		t.Error("Expected a nil obj, but we got a value")
 	}
@@ -131,7 +131,7 @@ func TestCreateImageStreamNotFoundWithName(t *testing.T) {
 	_, server, storage := setup(t)
 	defer server.Terminate(t)
 
-	obj, err := storage.Create(apirequest.NewDefaultContext(), validNewMappingWithName())
+	obj, err := storage.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), false)
 	if obj != nil {
 		t.Errorf("Unexpected non-nil obj %#v", obj)
 	}
@@ -173,7 +173,7 @@ func TestCreateSuccessWithName(t *testing.T) {
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &user.DefaultInfo{})
 
 	mapping := validNewMappingWithName()
-	_, err = storage.Create(ctx, mapping)
+	_, err = storage.Create(ctx, mapping, false)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
@@ -260,7 +260,7 @@ func TestAddExistingImageWithNewTag(t *testing.T) {
 		Tag:   "latest",
 	}
 	ctx := apirequest.NewDefaultContext()
-	_, err = storage.Create(ctx, &mapping)
+	_, err = storage.Create(ctx, &mapping, false)
 	if err != nil {
 		t.Errorf("Unexpected error creating image stream mapping%v", err)
 	}
@@ -356,7 +356,7 @@ func TestAddExistingImageOverridingDockerImageReference(t *testing.T) {
 		Tag:   "latest",
 	}
 	ctx := apirequest.NewDefaultContext()
-	_, err = storage.Create(ctx, &mapping)
+	_, err = storage.Create(ctx, &mapping, false)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %#v", err)
 	}
@@ -460,7 +460,7 @@ func TestAddExistingImageAndTag(t *testing.T) {
 		Image: *existingImage,
 		Tag:   "existingTag",
 	}
-	_, err = storage.Create(apirequest.NewDefaultContext(), &mapping)
+	_, err = storage.Create(apirequest.NewDefaultContext(), &mapping, false)
 	if !errors.IsInvalid(err) {
 		t.Fatalf("Unexpected non-error creating mapping: %#v", err)
 	}
@@ -548,7 +548,7 @@ func TestTrackingTags(t *testing.T) {
 
 	ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &user.DefaultInfo{})
 
-	_, err = storage.Create(ctx, &mapping)
+	_, err = storage.Create(ctx, &mapping, false)
 	if err != nil {
 		t.Fatalf("Unexpected error creating mapping: %v", err)
 	}
@@ -608,7 +608,7 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 			},
 		},
 	}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), validNewMappingWithName())
+	obj, err := rest.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), false)
 	if err == nil {
 		t.Errorf("expected an error")
 	}
@@ -650,7 +650,7 @@ func TestCreateRetryConflictNoTagDiff(t *testing.T) {
 			},
 		},
 	}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), validNewMappingWithName())
+	obj, err := rest.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), false)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -705,7 +705,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 			},
 		},
 	}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), validNewMappingWithName())
+	obj, err := rest.Create(apirequest.NewDefaultContext(), validNewMappingWithName(), false)
 	if err == nil {
 		t.Fatalf("expected an error")
 	}

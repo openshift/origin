@@ -12,6 +12,8 @@ import (
 
 var testPipeName = `\\.\pipe\winiotestpipe`
 
+var aLongTimeAgo = time.Unix(1, 0)
+
 func TestDialUnknownFailsImmediately(t *testing.T) {
 	_, err := DialPipe(testPipeName, nil)
 	if err.(*os.PathError).Err != syscall.ENOENT {
@@ -259,4 +261,162 @@ func TestDialTimesOutByDefault(t *testing.T) {
 	if err != ErrTimeout {
 		t.Fatalf("expected ErrTimeout, got %v", err)
 	}
+}
+
+func TestTimeoutPendingRead(t *testing.T) {
+	l, err := ListenPipe(testPipeName, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	serverDone := make(chan struct{})
+
+	go func() {
+		s, err := l.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(1 * time.Second)
+		s.Close()
+		close(serverDone)
+	}()
+
+	client, err := DialPipe(testPipeName, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	clientErr := make(chan error)
+	go func() {
+		buf := make([]byte, 10)
+		_, err = client.Read(buf)
+		clientErr <- err
+	}()
+
+	time.Sleep(100 * time.Millisecond) // make *sure* the pipe is reading before we set the deadline
+	client.SetReadDeadline(aLongTimeAgo)
+
+	select {
+	case err = <-clientErr:
+		if err != ErrTimeout {
+			t.Fatalf("expected ErrTimeout, got %v", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("timed out while waiting for read to cancel")
+		<-clientErr
+	}
+	<-serverDone
+}
+
+func TestTimeoutPendingWrite(t *testing.T) {
+	l, err := ListenPipe(testPipeName, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+
+	serverDone := make(chan struct{})
+
+	go func() {
+		s, err := l.Accept()
+		if err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(1 * time.Second)
+		s.Close()
+		close(serverDone)
+	}()
+
+	client, err := DialPipe(testPipeName, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	clientErr := make(chan error)
+	go func() {
+		_, err = client.Write([]byte("this should timeout"))
+		clientErr <- err
+	}()
+
+	time.Sleep(100 * time.Millisecond) // make *sure* the pipe is writing before we set the deadline
+	client.SetWriteDeadline(aLongTimeAgo)
+
+	select {
+	case err = <-clientErr:
+		if err != ErrTimeout {
+			t.Fatalf("expected ErrTimeout, got %v", err)
+		}
+	case <-time.After(100 * time.Millisecond):
+		t.Fatalf("timed out while waiting for write to cancel")
+		<-clientErr
+	}
+	<-serverDone
+}
+
+type CloseWriter interface {
+	CloseWrite() error
+}
+
+func TestEchoWithMessaging(t *testing.T) {
+	c := PipeConfig{
+		MessageMode:      true,  // Use message mode so that CloseWrite() is supported
+		InputBufferSize:  65536, // Use 64KB buffers to improve performance
+		OutputBufferSize: 65536,
+	}
+	l, err := ListenPipe(testPipeName, &c)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer l.Close()
+	listenerDone := make(chan bool)
+	clientDone := make(chan bool)
+	go func() {
+		// server echo
+		conn, e := l.Accept()
+		if e != nil {
+			t.Fatal(e)
+		}
+		time.Sleep(500 * time.Millisecond) // make *sure* we don't begin to read before eof signal is sent
+		io.Copy(conn, conn)
+		conn.(CloseWriter).CloseWrite()
+		close(listenerDone)
+	}()
+	timeout := 1 * time.Second
+	client, err := DialPipe(testPipeName, &timeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	go func() {
+		// client read back
+		bytes := make([]byte, 2)
+		n, e := client.Read(bytes)
+		if e != nil {
+			t.Fatal(e)
+		}
+		if n != 2 {
+			t.Fatalf("expected 2 bytes, got %v", n)
+		}
+		close(clientDone)
+	}()
+
+	payload := make([]byte, 2)
+	payload[0] = 0
+	payload[1] = 1
+
+	n, err := client.Write(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 {
+		t.Fatalf("expected 2 bytes, got %v", n)
+	}
+	client.(CloseWriter).CloseWrite()
+	<-listenerDone
+	<-clientDone
 }

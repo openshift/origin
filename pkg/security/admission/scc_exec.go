@@ -14,11 +14,12 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 )
 
-func init() {
-	admission.RegisterPlugin("SCCExecRestrictions", func(config io.Reader) (admission.Interface, error) {
-		execAdmitter := NewSCCExecRestrictions()
-		return execAdmitter, nil
-	})
+func RegisterSCCExecRestrictions(plugins *admission.Plugins) {
+	plugins.Register("SCCExecRestrictions",
+		func(config io.Reader) (admission.Interface, error) {
+			execAdmitter := NewSCCExecRestrictions()
+			return execAdmitter, nil
+		})
 }
 
 var _ admission.Interface = &sccExecRestrictions{}

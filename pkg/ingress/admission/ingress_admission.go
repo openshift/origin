@@ -24,14 +24,15 @@ const (
 	IngressAdmission = "openshift.io/IngressAdmission"
 )
 
-func init() {
-	admission.RegisterPlugin(IngressAdmission, func(config io.Reader) (admission.Interface, error) {
-		pluginConfig, err := readConfig(config)
-		if err != nil {
-			return nil, err
-		}
-		return NewIngressAdmission(pluginConfig), nil
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register(IngressAdmission,
+		func(config io.Reader) (admission.Interface, error) {
+			pluginConfig, err := readConfig(config)
+			if err != nil {
+				return nil, err
+			}
+			return NewIngressAdmission(pluginConfig), nil
+		})
 }
 
 type ingressAdmission struct {

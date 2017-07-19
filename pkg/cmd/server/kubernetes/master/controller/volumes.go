@@ -13,8 +13,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
-	"k8s.io/kubernetes/pkg/cloudprovider"
-	attachdetachcontroller "k8s.io/kubernetes/pkg/controller/volume/attachdetach"
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/volume/persistentvolume"
 	"k8s.io/kubernetes/pkg/volume"
 	"k8s.io/kubernetes/pkg/volume/aws_ebs"
@@ -31,15 +29,9 @@ import (
 
 type PersistentVolumeControllerConfig struct {
 	RecyclerImage string
-	CloudProvider cloudprovider.Interface
 }
 
 func (c *PersistentVolumeControllerConfig) RunController(ctx kubecontroller.ControllerContext) (bool, error) {
-	alphaProvisioner, err := kctrlmgr.NewAlphaVolumeProvisioner(c.CloudProvider, ctx.Options.VolumeConfiguration)
-	if err != nil {
-		return false, fmt.Errorf("A backward-compatible provisioner could not be created: %v, but one was expected. Provisioning will not work. This functionality is considered an early Alpha version.", err)
-	}
-
 	eventcast := record.NewBroadcaster()
 	recorder := eventcast.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "persistentvolume-controller"})
 	eventcast.StartRecordingToSink(
@@ -53,47 +45,23 @@ func (c *PersistentVolumeControllerConfig) RunController(ctx kubecontroller.Cont
 		return false, err
 	}
 
-	volumeController := persistentvolumecontroller.NewController(
+	volumeController, volumeControllerErr := persistentvolumecontroller.NewController(
 		persistentvolumecontroller.ControllerParameters{
 			KubeClient:                ctx.ClientBuilder.ClientOrDie("persistent-volume-binder"),
 			SyncPeriod:                ctx.Options.PVClaimBinderSyncPeriod.Duration,
-			AlphaProvisioner:          alphaProvisioner,
 			VolumePlugins:             plugins,
-			Cloud:                     c.CloudProvider,
+			Cloud:                     ctx.Cloud,
 			ClusterName:               ctx.Options.ClusterName,
 			VolumeInformer:            ctx.InformerFactory.Core().V1().PersistentVolumes(),
 			ClaimInformer:             ctx.InformerFactory.Core().V1().PersistentVolumeClaims(),
-			ClassInformer:             ctx.InformerFactory.Storage().V1beta1().StorageClasses(),
+			ClassInformer:             ctx.InformerFactory.Storage().V1().StorageClasses(),
 			EventRecorder:             recorder,
 			EnableDynamicProvisioning: ctx.Options.VolumeConfiguration.EnableDynamicProvisioning,
 		})
-
-	go volumeController.Run(ctx.Stop)
-
-	return true, nil
-}
-
-type PersistentVolumeAttachDetachControllerConfig struct {
-	CloudProvider cloudprovider.Interface
-}
-
-func (c *PersistentVolumeAttachDetachControllerConfig) RunController(ctx kubecontroller.ControllerContext) (bool, error) {
-	attachDetachController, err := attachdetachcontroller.NewAttachDetachController(
-		ctx.ClientBuilder.ClientOrDie("attachdetach-controller"),
-		ctx.InformerFactory.Core().V1().Pods(),
-		ctx.InformerFactory.Core().V1().Nodes(),
-		ctx.InformerFactory.Core().V1().PersistentVolumeClaims(),
-		ctx.InformerFactory.Core().V1().PersistentVolumes(),
-		c.CloudProvider,
-		kctrlmgr.ProbeAttachableVolumePlugins(ctx.Options.VolumeConfiguration),
-		ctx.Options.DisableAttachDetachReconcilerSync,
-		ctx.Options.ReconcilerSyncLoopPeriod.Duration,
-	)
-	if err != nil {
-		return false, fmt.Errorf("failed to start attach/detach persistent volume controller: %v", err)
+	if volumeControllerErr != nil {
+		return true, fmt.Errorf("failed to construct persistentvolume controller: %v", volumeControllerErr)
 	}
-
-	go attachDetachController.Run(ctx.Stop)
+	go volumeController.Run(ctx.Stop)
 
 	return true, nil
 }

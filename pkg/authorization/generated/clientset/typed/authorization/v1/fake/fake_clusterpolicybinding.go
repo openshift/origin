@@ -17,6 +17,8 @@ type FakeClusterPolicyBindings struct {
 
 var clusterpolicybindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "clusterpolicybindings"}
 
+var clusterpolicybindingsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "ClusterPolicyBinding"}
+
 func (c *FakeClusterPolicyBindings) Create(clusterPolicyBinding *v1.ClusterPolicyBinding) (result *v1.ClusterPolicyBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(clusterpolicybindingsResource, clusterPolicyBinding), &v1.ClusterPolicyBinding{})
@@ -59,7 +61,7 @@ func (c *FakeClusterPolicyBindings) Get(name string, options meta_v1.GetOptions)
 
 func (c *FakeClusterPolicyBindings) List(opts meta_v1.ListOptions) (result *v1.ClusterPolicyBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(clusterpolicybindingsResource, opts), &v1.ClusterPolicyBindingList{})
+		Invokes(testing.NewRootListAction(clusterpolicybindingsResource, clusterpolicybindingsKind, opts), &v1.ClusterPolicyBindingList{})
 	if obj == nil {
 		return nil, err
 	}

@@ -210,15 +210,6 @@ func SetObjectDefaults_Pod(in *Pod) {
 		if a.VolumeSource.ScaleIO != nil {
 			SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
-		if a.VolumeSource.Metadata != nil {
-			SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
-		}
 	}
 	for i := range in.Spec.InitContainers {
 		a := &in.Spec.InitContainers[i]
@@ -367,15 +358,6 @@ func SetObjectDefaults_PodTemplate(in *PodTemplate) {
 		if a.VolumeSource.ScaleIO != nil {
 			SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
-		if a.VolumeSource.Metadata != nil {
-			SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
-		}
 	}
 	for i := range in.Template.Spec.InitContainers {
 		a := &in.Template.Spec.InitContainers[i]
@@ -518,15 +500,6 @@ func SetObjectDefaults_ReplicationController(in *ReplicationController) {
 			if a.VolumeSource.ScaleIO != nil {
 				SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 			}
-			if a.VolumeSource.Metadata != nil {
-				SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-				for j := range a.VolumeSource.Metadata.Items {
-					b := &a.VolumeSource.Metadata.Items[j]
-					if b.FieldRef != nil {
-						SetDefaults_ObjectFieldSelector(b.FieldRef)
-					}
-				}
-			}
 		}
 		for i := range in.Spec.Template.Spec.InitContainers {
 			a := &in.Spec.Template.Spec.InitContainers[i]
@@ -647,7 +620,7 @@ func SetObjectDefaults_SecretList(in *SecretList) {
 }
 
 func SetObjectDefaults_Service(in *Service) {
-	SetDefaults_ServiceSpec(&in.Spec)
+	SetDefaults_Service(in)
 }
 
 func SetObjectDefaults_ServiceList(in *ServiceList) {

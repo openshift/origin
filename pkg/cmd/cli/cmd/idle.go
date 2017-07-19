@@ -116,7 +116,7 @@ func (o *IdleOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []
 	}
 
 	mapper, typer := f.Object()
-	o.svcBuilder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	o.svcBuilder = resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().AllNamespaces(o.allNamespaces).
 		Flatten().

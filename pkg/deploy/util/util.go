@@ -3,11 +3,13 @@ package util
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -616,11 +618,14 @@ func MaxSurge(config deployapi.DeploymentConfig) int32 {
 
 // annotationFor returns the annotation with key for obj.
 func annotationFor(obj runtime.Object, key string) string {
-	meta, err := metav1.ObjectMetaFor(obj)
+	meta, err := meta.Accessor(obj)
 	if err != nil {
 		return ""
 	}
-	return meta.Annotations[key]
+	if meta == nil || reflect.ValueOf(meta).IsNil() {
+		return ""
+	}
+	return meta.GetAnnotations()[key]
 }
 
 func int32AnnotationFor(obj runtime.Object, key string) (int32, bool) {

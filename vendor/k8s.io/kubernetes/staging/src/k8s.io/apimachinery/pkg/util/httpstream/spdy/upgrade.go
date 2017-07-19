@@ -19,9 +19,11 @@ package spdy
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"strings"
+	"sync/atomic"
 
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/runtime"
@@ -34,17 +36,28 @@ const HeaderSpdy31 = "SPDY/3.1"
 type responseUpgrader struct {
 }
 
-// connWrapper is used to wrap a hijacked connection its bufio.Reader. All
+// connWrapper is used to wrap a hijacked connection and its bufio.Reader. All
 // calls will be handled directly by the underlying net.Conn with the exception
-// of Read calls, which will read from the bufio.Reader. This ensures that data
-// already inside the used bufio.Reader instance is also read.
+// of Read and Close calls, which will consider data in the bufio.Reader. This
+// ensures that data already inside the used bufio.Reader instance is also
+// read.
 type connWrapper struct {
 	net.Conn
+	closed    int32
 	bufReader *bufio.Reader
 }
 
 func (w *connWrapper) Read(b []byte) (n int, err error) {
+	if atomic.LoadInt32(&w.closed) == 1 {
+		return 0, io.EOF
+	}
 	return w.bufReader.Read(b)
+}
+
+func (w *connWrapper) Close() error {
+	err := w.Conn.Close()
+	atomic.StoreInt32(&w.closed, 1)
+	return err
 }
 
 // NewResponseUpgrader returns a new httpstream.ResponseUpgrader that is

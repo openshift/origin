@@ -22,6 +22,9 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	crdinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion/apiextensions/internalversion"
+	crdlisters "k8s.io/apiextensions-apiserver/pkg/client/listers/apiextensions/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -33,6 +36,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/extensions/internalversion"
 	listers "k8s.io/kubernetes/pkg/client/listers/extensions/internalversion"
+	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/registry/extensions/thirdpartyresourcedata"
 )
 
@@ -48,6 +52,8 @@ type AutoAPIServiceRegistration interface {
 type tprRegistrationController struct {
 	tprLister listers.ThirdPartyResourceLister
 	tprSynced cache.InformerSynced
+	crdLister crdlisters.CustomResourceDefinitionLister
+	crdSynced cache.InformerSynced
 
 	apiServiceRegistration AutoAPIServiceRegistration
 
@@ -60,14 +66,18 @@ type tprRegistrationController struct {
 
 // NewAutoRegistrationController returns a controller which will register TPR GroupVersions with the auto APIService registration
 // controller so they automatically stay in sync.
-func NewAutoRegistrationController(tprInformer informers.ThirdPartyResourceInformer, apiServiceRegistration AutoAPIServiceRegistration) *tprRegistrationController {
+// In order to stay sane with both TPR and CRD present, we have a single controller that manages both.  When choosing whether to have an
+// APIService, we simply iterate through both.
+func NewAutoRegistrationController(tprInformer informers.ThirdPartyResourceInformer, crdinformer crdinformers.CustomResourceDefinitionInformer, apiServiceRegistration AutoAPIServiceRegistration) *tprRegistrationController {
 	c := &tprRegistrationController{
 		tprLister:              tprInformer.Lister(),
 		tprSynced:              tprInformer.Informer().HasSynced,
+		crdLister:              crdinformer.Lister(),
+		crdSynced:              crdinformer.Informer().HasSynced,
 		apiServiceRegistration: apiServiceRegistration,
 		queue: workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "tpr-autoregister"),
 	}
-	c.syncHandler = c.handleTPR
+	c.syncHandler = c.handleVersionUpdate
 
 	tprInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -96,6 +106,33 @@ func NewAutoRegistrationController(tprInformer informers.ThirdPartyResourceInfor
 		},
 	})
 
+	crdinformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			cast := obj.(*apiextensions.CustomResourceDefinition)
+			c.enqueueCRD(cast)
+		},
+		UpdateFunc: func(_, obj interface{}) {
+			cast := obj.(*apiextensions.CustomResourceDefinition)
+			c.enqueueCRD(cast)
+		},
+		DeleteFunc: func(obj interface{}) {
+			cast, ok := obj.(*apiextensions.CustomResourceDefinition)
+			if !ok {
+				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+				if !ok {
+					glog.V(2).Infof("Couldn't get object from tombstone %#v", obj)
+					return
+				}
+				cast, ok = tombstone.Obj.(*apiextensions.CustomResourceDefinition)
+				if !ok {
+					glog.V(2).Infof("Tombstone contained unexpected object: %#v", obj)
+					return
+				}
+			}
+			c.enqueueCRD(cast)
+		},
+	})
+
 	return c
 }
 
@@ -108,7 +145,7 @@ func (c *tprRegistrationController) Run(threadiness int, stopCh <-chan struct{})
 	defer glog.Infof("Shutting down tpr-autoregister controller")
 
 	// wait for your secondary caches to fill before starting your work
-	if !cache.WaitForCacheSync(stopCh, c.tprSynced) {
+	if !controller.WaitForCacheSync("tpr-autoregister", stopCh, c.tprSynced) {
 		return
 	}
 
@@ -172,14 +209,19 @@ func (c *tprRegistrationController) enqueueTPR(tpr *extensions.ThirdPartyResourc
 	}
 }
 
-func (c *tprRegistrationController) handleTPR(groupVersion schema.GroupVersion) error {
+func (c *tprRegistrationController) enqueueCRD(crd *apiextensions.CustomResourceDefinition) {
+	c.queue.Add(schema.GroupVersion{Group: crd.Spec.Group, Version: crd.Spec.Version})
+}
+
+func (c *tprRegistrationController) handleVersionUpdate(groupVersion schema.GroupVersion) error {
+	found := false
+	apiServiceName := groupVersion.Version + "." + groupVersion.Group
+
 	// check all TPRs.  There shouldn't that many, but if we have problems later we can index them
 	tprs, err := c.tprLister.List(labels.Everything())
 	if err != nil {
 		return err
 	}
-
-	found := false
 	for _, tpr := range tprs {
 		_, group, err := thirdpartyresourcedata.ExtractApiGroupAndKind(tpr)
 		if err != nil {
@@ -193,7 +235,17 @@ func (c *tprRegistrationController) handleTPR(groupVersion schema.GroupVersion) 
 		}
 	}
 
-	apiServiceName := groupVersion.Version + "." + groupVersion.Group
+	// check all CRDs.  There shouldn't that many, but if we have problems later we can index them
+	crds, err := c.crdLister.List(labels.Everything())
+	if err != nil {
+		return err
+	}
+	for _, crd := range crds {
+		if crd.Spec.Version == groupVersion.Version && crd.Spec.Group == groupVersion.Group {
+			found = true
+			break
+		}
+	}
 
 	if !found {
 		c.apiServiceRegistration.RemoveAPIServiceToSync(apiServiceName)

@@ -20,7 +20,7 @@ import (
 
 func TestCreateErrorDepr(t *testing.T) {
 	rest := DeprecatedREST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfig{}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -33,7 +33,7 @@ func TestCreateErrorDepr(t *testing.T) {
 
 func TestCreateInvalidDepr(t *testing.T) {
 	rest := DeprecatedREST{}
-	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{})
+	obj, err := rest.Create(apirequest.NewDefaultContext(), &deployapi.DeploymentConfigRollback{}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -68,7 +68,7 @@ func TestCreateOkDepr(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 		},
-	})
+	}, false)
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -107,7 +107,7 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 		},
-	})
+	}, false)
 
 	if err == nil || !strings.Contains(err.Error(), "something terrible happened") {
 		t.Errorf("Unexpected error: %v", err)
@@ -140,7 +140,7 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -180,7 +180,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")
@@ -216,7 +216,7 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 			},
 		},
-	})
+	}, false)
 
 	if err == nil {
 		t.Errorf("Expected an error")

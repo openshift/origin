@@ -7,6 +7,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	e2e "k8s.io/kubernetes/test/e2e/framework"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -71,7 +73,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 					o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
 					g.By("expecting a db endpoint is available")
-					err = oc.KubeFramework().WaitForAnEndpoint(c.dbServiceName)
+					err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), c.dbServiceName)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
 
@@ -81,7 +83,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				o.Expect(serviceIP).ShouldNot(o.Equal(""))
 
 				g.By("expecting an app endpoint is available")
-				err = oc.KubeFramework().WaitForAnEndpoint(c.serviceName)
+				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), c.serviceName)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying string from app request")

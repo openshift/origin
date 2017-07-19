@@ -97,10 +97,10 @@ os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all bc/ruby-sam
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=all ruby-sample-build' 'github'
 os::cmd::expect_success_and_text 'oc start-build --list-webhooks=github ruby-sample-build' 'secret101'
 os::cmd::expect_failure 'oc start-build --list-webhooks=blah'
-os::cmd::expect_success_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)'" "build \"ruby-sample-build-[0-9]\" started"
-os::cmd::expect_failure_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)/foo'" "error: server rejected our request"
+os::cmd::expect_success_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)'" "build \"ruby-sample-build-[0-9]\" started"
+os::cmd::expect_failure_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)/foo'" "error: server rejected our request"
 os::cmd::expect_success "oc patch bc/ruby-sample-build -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"from\":{\"name\":\"asdf:7\"}}}}}'"
-os::cmd::expect_failure_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build --api-version=v1 | head -n 1)'" "Error resolving ImageStreamTag asdf:7"
+os::cmd::expect_failure_and_text "oc start-build --from-webhook='$(oc start-build --list-webhooks='generic' ruby-sample-build | head -n 1)'" "Error resolving ImageStreamTag asdf:7"
 os::cmd::expect_success 'oc get builds'
 os::cmd::expect_success 'oc delete all -l build=docker'
 echo "buildConfig: ok"

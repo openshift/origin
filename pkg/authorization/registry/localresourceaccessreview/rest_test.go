@@ -74,7 +74,7 @@ func TestConflictingNamespace(t *testing.T) {
 
 	storage := NewREST(resourceaccessreview.NewRegistry(resourceaccessreview.NewREST(authorizer, authorizer)))
 	ctx := apirequest.WithNamespace(apirequest.NewContext(), "bar")
-	_, err := storage.Create(ctx, reviewRequest)
+	_, err := storage.Create(ctx, reviewRequest, false)
 	if err == nil {
 		t.Fatalf("unexpected non-error: %v", err)
 	}
@@ -131,7 +131,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(nil, r.reviewRequest.Action.Namespace, r.reviewRequest.Action)
 
 	ctx := apirequest.WithNamespace(apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{}), r.reviewRequest.Action.Namespace)
-	obj, err := storage.Create(ctx, r.reviewRequest)
+	obj, err := storage.Create(ctx, r.reviewRequest, false)
 	if err != nil && len(r.authorizer.err) == 0 {
 		t.Fatalf("unexpected error: %v", err)
 	}

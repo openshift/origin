@@ -245,7 +245,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
 
-	o.Action.BindForOutput(cmd.Flags())
+	o.Action.BindForOutput(cmd.Flags(), "template")
 	cmd.Flags().String("output-version", "", "The preferred API versions of the output objects")
 
 	return cmd
@@ -375,7 +375,7 @@ func (o *NewAppOptions) RunNewApp() error {
 	return nil
 }
 
-type LogsForObjectFunc func(object, options runtime.Object) (*restclient.Request, error)
+type LogsForObjectFunc func(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error)
 
 func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, logsForObjectFn LogsForObjectFunc) error {
 	fmt.Fprintf(config.Out, "--> Installing ...\n")
@@ -396,7 +396,6 @@ func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, l
 		},
 		Mapper:        config.Mapper,
 		Typer:         config.Typer,
-		ClientMapper:  config.ClientMapper,
 		LogsForObject: logsForObjectFn,
 		Out:           config.Out,
 	}
@@ -502,6 +501,9 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 	}
 	if config.ClientMapper == nil {
 		config.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
+	}
+	if config.CategoryExpander == nil {
+		config.CategoryExpander = f.CategoryExpander()
 	}
 
 	namespace, _, err := f.DefaultNamespace()

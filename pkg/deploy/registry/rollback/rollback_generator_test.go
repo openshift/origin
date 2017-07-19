@@ -5,6 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
@@ -118,5 +119,5 @@ func hasReplicationMetaDiff(a, b *deployapi.DeploymentConfig) bool {
 
 func hasPodTemplateDiff(a, b *deployapi.DeploymentConfig) bool {
 	specA, specB := a.Spec.Template.Spec, b.Spec.Template.Spec
-	return !kapi.Semantic.DeepEqual(specA, specB)
+	return !kapihelper.Semantic.DeepEqual(specA, specB)
 }

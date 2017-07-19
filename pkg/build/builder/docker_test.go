@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
@@ -261,7 +261,7 @@ func TestDockerfilePath(t *testing.T) {
 			dockerClient: dockerClient,
 			build:        build,
 			gitClient:    git.NewRepository(),
-			tar:          tar.New(s2iutil.NewFileSystem()),
+			tar:          tar.New(s2ifs.NewFileSystem()),
 		}
 
 		// this will validate that the Dockerfile is readable
@@ -385,7 +385,7 @@ USER 1001`
 		build:        build,
 		dockerClient: dockerClient,
 		gitClient:    git.NewRepository(),
-		tar:          tar.New(s2iutil.NewFileSystem()),
+		tar:          tar.New(s2ifs.NewFileSystem()),
 	}
 
 	if err := dockerBuilder.Build(); err != nil {

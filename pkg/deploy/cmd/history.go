@@ -67,7 +67,7 @@ func (h *DeploymentConfigHistoryViewer) ViewHistory(namespace, name string, revi
 		}
 
 		buf := bytes.NewBuffer([]byte{})
-		kinternalprinters.DescribePodTemplate(desired, buf)
+		kinternalprinters.DescribePodTemplate(desired, kinternalprinters.NewPrefixWriter(buf))
 		return buf.String(), nil
 	}
 

@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -268,7 +269,7 @@ func (o *ReconcileSCCOptions) computeUpdatedSCC(expected securityapi.SecurityCon
 	updated.ObjectMeta.Labels = expected.Labels
 	updated.ObjectMeta.Annotations = expected.Annotations
 
-	if !kapi.Semantic.DeepEqual(updated, actual) {
+	if !kapihelper.Semantic.DeepEqual(updated, actual) {
 		needsUpdate = true
 	}
 

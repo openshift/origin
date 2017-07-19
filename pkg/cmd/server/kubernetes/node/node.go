@@ -13,8 +13,8 @@ import (
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/proxy/hybrid"
-	"github.com/openshift/origin/pkg/proxy/unidler"
+	// "github.com/openshift/origin/pkg/proxy/hybrid"
+	// "github.com/openshift/origin/pkg/proxy/unidler"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -29,9 +29,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubelet/cadvisor"
 	cadvisortesting "k8s.io/kubernetes/pkg/kubelet/cadvisor/testing"
 	"k8s.io/kubernetes/pkg/kubelet/cm"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	proxy "k8s.io/kubernetes/pkg/proxy"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
+	"k8s.io/kubernetes/pkg/proxy/healthcheck"
 	"k8s.io/kubernetes/pkg/proxy/iptables"
 	"k8s.io/kubernetes/pkg/proxy/userspace"
 	utildbus "k8s.io/kubernetes/pkg/util/dbus"
@@ -340,8 +341,8 @@ func (c *NodeConfig) RunProxy() {
 	iptInterface := utiliptables.New(execer, dbus, protocol)
 
 	var proxier proxy.ProxyProvider
-	var servicesHandler pconfig.ServiceConfigHandler
-	var endpointsHandler pconfig.EndpointsConfigHandler
+	var servicesHandler pconfig.ServiceHandler
+	var endpointsHandler pconfig.EndpointsHandler
 
 	switch c.ProxyConfig.Mode {
 	case componentconfig.ProxyModeIPTables:
@@ -349,7 +350,11 @@ func (c *NodeConfig) RunProxy() {
 		if bindAddr.Equal(net.IPv4zero) {
 			bindAddr = getNodeIP(c.Client, hostname)
 		}
-		if c.ProxyConfig.IPTablesMasqueradeBit == nil {
+		var healthzServer *healthcheck.HealthzServer
+		if len(c.ProxyConfig.HealthzBindAddress) > 0 {
+			healthzServer = healthcheck.NewDefaultHealthzServer(c.ProxyConfig.HealthzBindAddress, 2*c.ProxyConfig.IPTables.SyncPeriod.Duration)
+		}
+		if c.ProxyConfig.IPTables.MasqueradeBit == nil {
 			// IPTablesMasqueradeBit must be specified or defaulted.
 			glog.Fatalf("Unable to read IPTablesMasqueradeBit from config")
 		}
@@ -357,15 +362,17 @@ func (c *NodeConfig) RunProxy() {
 			iptInterface,
 			utilsysctl.New(),
 			execer,
-			c.ProxyConfig.IPTablesSyncPeriod.Duration,
-			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
-			c.ProxyConfig.MasqueradeAll,
-			int(*c.ProxyConfig.IPTablesMasqueradeBit),
+			c.ProxyConfig.IPTables.SyncPeriod.Duration,
+			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
+			c.ProxyConfig.IPTables.MasqueradeAll,
+			int(*c.ProxyConfig.IPTables.MasqueradeBit),
 			c.ProxyConfig.ClusterCIDR,
 			hostname,
 			bindAddr,
 			recorder,
+			healthzServer,
 		)
+
 		if err != nil {
 			if c.Containerized {
 				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
@@ -382,9 +389,9 @@ func (c *NodeConfig) RunProxy() {
 	case componentconfig.ProxyModeUserspace:
 		glog.V(0).Info("Using userspace Proxier.")
 		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
-		// our config.EndpointsConfigHandler.
+		// our config.EndpointsHandler.
 		loadBalancer := userspace.NewLoadBalancerRR()
-		// set EndpointsConfigHandler to our loadBalancer
+		// set EndpointsHandler to our loadBalancer
 		endpointsHandler = loadBalancer
 
 		execer := utilexec.New()
@@ -394,8 +401,8 @@ func (c *NodeConfig) RunProxy() {
 			iptInterface,
 			execer,
 			*portRange,
-			c.ProxyConfig.IPTablesSyncPeriod.Duration,
-			c.ProxyConfig.IPTablesMinSyncPeriod.Duration,
+			c.ProxyConfig.IPTables.SyncPeriod.Duration,
+			c.ProxyConfig.IPTables.MinSyncPeriod.Duration,
 			c.ProxyConfig.UDPIdleTimeout.Duration,
 		)
 		if err != nil {
@@ -420,48 +427,48 @@ func (c *NodeConfig) RunProxy() {
 	// are registered yet.
 	serviceConfig := pconfig.NewServiceConfig(
 		c.InternalKubeInformers.Core().InternalVersion().Services(),
-		c.ProxyConfig.ConfigSyncPeriod,
+		c.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 
-	if c.EnableUnidling {
-		unidlingLoadBalancer := userspace.NewLoadBalancerRR()
-		signaler := unidler.NewEventSignaler(recorder)
-		unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.IPTablesMinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, signaler)
-		if err != nil {
-			if c.Containerized {
-				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
-			} else {
-				glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
-			}
-		}
-		hybridProxier, err := hybrid.NewHybridProxier(
-			unidlingLoadBalancer,
-			unidlingUserspaceProxy,
-			endpointsHandler,
-			proxier,
-			servicesHandler,
-			c.ProxyConfig.IPTablesSyncPeriod.Duration,
-			c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
-		)
-		if err != nil {
-			if c.Containerized {
-				glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
-			} else {
-				glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
-			}
-		}
-		endpointsHandler = hybridProxier
-		servicesHandler = hybridProxier
-		proxier = hybridProxier
-	}
+	// if c.EnableUnidling {
+	// 	unidlingLoadBalancer := userspace.NewLoadBalancerRR()
+	// 	signaler := unidler.NewEventSignaler(recorder)
+	// 	unidlingUserspaceProxy, err := unidler.NewUnidlerProxier(unidlingLoadBalancer, bindAddr, iptInterface, execer, *portRange, c.ProxyConfig.IPTablesSyncPeriod.Duration, c.ProxyConfig.IPTablesMinSyncPeriod.Duration, c.ProxyConfig.UDPIdleTimeout.Duration, signaler)
+	// 	if err != nil {
+	// 		if c.Containerized {
+	// 			glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
+	// 		} else {
+	// 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+	// 		}
+	// 	}
+	// 	hybridProxier, err := hybrid.NewHybridProxier(
+	// 		unidlingLoadBalancer,
+	// 		unidlingUserspaceProxy,
+	// 		endpointsHandler,
+	// 		proxier,
+	// 		servicesHandler,
+	// 		c.ProxyConfig.IPTablesSyncPeriod.Duration,
+	// 		c.InternalKubeInformers.Core().InternalVersion().Services().Lister(),
+	// 	)
+	// 	if err != nil {
+	// 		if c.Containerized {
+	// 			glog.Fatalf("error: Could not initialize Kubernetes Proxy: %v\n When running in a container, you must run the container in the host network namespace with --net=host and with --privileged", err)
+	// 		} else {
+	// 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root to use the service proxy: %v", err)
+	// 		}
+	// 	}
+	// 	endpointsHandler = hybridProxier
+	// 	servicesHandler = hybridProxier
+	// 	proxier = hybridProxier
+	// }
 
 	iptInterface.AddReloadFunc(proxier.Sync)
-	serviceConfig.RegisterHandler(servicesHandler)
+	serviceConfig.RegisterEventHandler(servicesHandler)
 	go serviceConfig.Run(utilwait.NeverStop)
 
 	endpointsConfig := pconfig.NewEndpointsConfig(
 		c.InternalKubeInformers.Core().InternalVersion().Endpoints(),
-		c.ProxyConfig.ConfigSyncPeriod,
+		c.ProxyConfig.ConfigSyncPeriod.Duration,
 	)
 	// customized handling registration that inserts a filter if needed
 	if c.SDNProxy != nil {
@@ -470,10 +477,8 @@ func (c *NodeConfig) RunProxy() {
 		}
 		endpointsHandler = c.SDNProxy
 	}
-	endpointsConfig.RegisterHandler(endpointsHandler)
+	endpointsConfig.RegisterEventHandler(endpointsHandler)
 	go endpointsConfig.Run(utilwait.NeverStop)
-
-	recorder.Eventf(c.ProxyConfig.NodeRef, kapi.EventTypeNormal, "Starting", "Starting kube-proxy.")
 
 	// periodically sync k8s iptables rules
 	go utilwait.Forever(proxier.SyncLoop, 0)

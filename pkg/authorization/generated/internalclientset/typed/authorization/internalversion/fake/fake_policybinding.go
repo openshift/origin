@@ -18,6 +18,8 @@ type FakePolicyBindings struct {
 
 var policybindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "policybindings"}
 
+var policybindingsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "", Kind: "PolicyBinding"}
+
 func (c *FakePolicyBindings) Create(policyBinding *authorization.PolicyBinding) (result *authorization.PolicyBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(policybindingsResource, c.ns, policyBinding), &authorization.PolicyBinding{})
@@ -64,7 +66,7 @@ func (c *FakePolicyBindings) Get(name string, options v1.GetOptions) (result *au
 
 func (c *FakePolicyBindings) List(opts v1.ListOptions) (result *authorization.PolicyBindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(policybindingsResource, c.ns, opts), &authorization.PolicyBindingList{})
+		Invokes(testing.NewListAction(policybindingsResource, policybindingsKind, c.ns, opts), &authorization.PolicyBindingList{})
 
 	if obj == nil {
 		return nil, err

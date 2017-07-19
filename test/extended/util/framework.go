@@ -1214,7 +1214,7 @@ func ParseLabelsOrDie(str string) labels.Selector {
 
 // GetEndpointAddress will return an "ip:port" string for the endpoint.
 func GetEndpointAddress(oc *CLI, name string) (string, error) {
-	err := oc.KubeFramework().WaitForAnEndpoint(name)
+	err := framework.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), name)
 	if err != nil {
 		return "", err
 	}

@@ -5,6 +5,7 @@ import (
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -33,7 +34,7 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the mariadb service get endpoints")
-			err = oc.KubeFramework().WaitForAnEndpoint("mariadb")
+			err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "mariadb")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})

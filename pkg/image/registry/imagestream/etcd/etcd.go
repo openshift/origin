@@ -98,8 +98,8 @@ func (r *InternalREST) New() runtime.Object {
 }
 
 // Create alters both the spec and status of the object.
-func (r *InternalREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
-	return r.store.Create(ctx, obj)
+func (r *InternalREST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
+	return r.store.Create(ctx, obj, false)
 }
 
 // Update alters both the spec and status of the object.

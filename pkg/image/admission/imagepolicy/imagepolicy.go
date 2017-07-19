@@ -28,25 +28,26 @@ import (
 	"github.com/openshift/origin/pkg/project/cache"
 )
 
-func init() {
-	admission.RegisterPlugin(api.PluginName, func(input io.Reader) (admission.Interface, error) {
-		obj, err := configlatest.ReadYAML(input)
-		if err != nil {
-			return nil, err
-		}
-		if obj == nil {
-			return nil, nil
-		}
-		config, ok := obj.(*api.ImagePolicyConfig)
-		if !ok {
-			return nil, fmt.Errorf("unexpected config object: %#v", obj)
-		}
-		if errs := validation.Validate(config); len(errs) > 0 {
-			return nil, errs.ToAggregate()
-		}
-		glog.V(5).Infof("%s admission controller loaded with config: %#v", api.PluginName, config)
-		return newImagePolicyPlugin(config)
-	})
+func Register(plugins *admission.Plugins) {
+	plugins.Register(api.PluginName,
+		func(input io.Reader) (admission.Interface, error) {
+			obj, err := configlatest.ReadYAML(input)
+			if err != nil {
+				return nil, err
+			}
+			if obj == nil {
+				return nil, nil
+			}
+			config, ok := obj.(*api.ImagePolicyConfig)
+			if !ok {
+				return nil, fmt.Errorf("unexpected config object: %#v", obj)
+			}
+			if errs := validation.Validate(config); len(errs) > 0 {
+				return nil, errs.ToAggregate()
+			}
+			glog.V(5).Infof("%s admission controller loaded with config: %#v", api.PluginName, config)
+			return newImagePolicyPlugin(config)
+		})
 }
 
 type imagePolicyPlugin struct {

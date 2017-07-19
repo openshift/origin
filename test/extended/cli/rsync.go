@@ -39,7 +39,7 @@ var _ = g.Describe("[cli][Slow] can use rsync to upload files to pods", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("expecting the jenkins service get endpoints")
-		err = oc.KubeFramework().WaitForAnEndpoint("jenkins")
+		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), "jenkins")
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("Getting the jenkins pod name")

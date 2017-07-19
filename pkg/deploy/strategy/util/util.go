@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiref "k8s.io/kubernetes/pkg/api/ref"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
@@ -25,7 +26,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
 	}
-	ref, err := kapi.GetReference(kapi.Scheme, obj)
+	ref, err := kapiref.GetReference(kapi.Scheme, obj)
 	if err != nil {
 		glog.Errorf("Unable to get reference for %#v: %v", obj, err)
 		return

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
-	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -23,6 +22,8 @@ import (
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/util"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 const (
@@ -84,30 +85,29 @@ func (g *Generated) WithType(slicePtr interface{}) bool {
 	return found
 }
 
-func nameFromGitURL(url *url.URL) (string, bool) {
+func nameFromGitURL(url *s2igit.URL) (string, bool) {
 	if url == nil {
 		return "", false
 	}
 	// from path
-	if name, ok := git.NameFromRepositoryURL(url); ok {
+	if name, ok := git.NameFromRepositoryURL(&url.URL); ok {
 		return name, true
 	}
 	// TODO: path is questionable
-	if len(url.Host) > 0 {
+	if len(url.URL.Host) > 0 {
 		// from host with port
-		if host, _, err := net.SplitHostPort(url.Host); err == nil {
+		if host, _, err := net.SplitHostPort(url.URL.Host); err == nil {
 			return host, true
 		}
 		// from host without port
-		return url.Host, true
+		return url.URL.Host, true
 	}
 	return "", false
 }
 
 // SourceRef is a reference to a build source
 type SourceRef struct {
-	URL        *url.URL
-	Ref        string
+	URL        *s2igit.URL
 	Dir        string
 	Name       string
 	ContextDir string
@@ -122,11 +122,6 @@ type SourceRef struct {
 	Binary bool
 
 	RequiresAuth bool
-}
-
-func urlWithoutRef(url url.URL) string {
-	url.Fragment = ""
-	return url.String()
 }
 
 // SuggestName returns a name derived from the source URL
@@ -164,8 +159,8 @@ func (r *SourceRef) BuildSource() (*buildapi.BuildSource, []buildapi.BuildTrigge
 	}
 	if r.URL != nil {
 		source.Git = &buildapi.GitBuildSource{
-			URI: urlWithoutRef(*r.URL),
-			Ref: r.Ref,
+			URI: r.URL.StringNoFragment(),
+			Ref: r.URL.URL.Fragment,
 		}
 		source.ContextDir = r.ContextDir
 	}

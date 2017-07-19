@@ -65,7 +65,9 @@ var _ = math.Inf
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the proto package it is being compiled against.
-const _ = proto.GoGoProtoPackageIsVersion1
+// A compilation error at this line likely means your copy of the
+// proto package needs to be updated.
+const _ = proto.GoGoProtoPackageIsVersion2 // please upgrade the proto package
 
 func (m *DockerImageReference) Reset()                    { *m = DockerImageReference{} }
 func (*DockerImageReference) ProtoMessage()               {}
@@ -226,93 +228,93 @@ func init() {
 	proto.RegisterType((*TagReference)(nil), "github.com.openshift.origin.pkg.image.apis.image.v1.TagReference")
 	proto.RegisterType((*TagReferencePolicy)(nil), "github.com.openshift.origin.pkg.image.apis.image.v1.TagReferencePolicy")
 }
-func (m *DockerImageReference) Marshal() (data []byte, err error) {
+func (m *DockerImageReference) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *DockerImageReference) MarshalTo(data []byte) (int, error) {
+func (m *DockerImageReference) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Registry)))
-	i += copy(data[i:], m.Registry)
-	data[i] = 0x12
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Registry)))
+	i += copy(dAtA[i:], m.Registry)
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Namespace)))
-	i += copy(data[i:], m.Namespace)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Namespace)))
+	i += copy(dAtA[i:], m.Namespace)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Name)))
-	i += copy(data[i:], m.Name)
-	data[i] = 0x22
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Name)))
+	i += copy(dAtA[i:], m.Name)
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Tag)))
-	i += copy(data[i:], m.Tag)
-	data[i] = 0x2a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Tag)))
+	i += copy(dAtA[i:], m.Tag)
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.ID)))
-	i += copy(data[i:], m.ID)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ID)))
+	i += copy(dAtA[i:], m.ID)
 	return i, nil
 }
 
-func (m *Image) Marshal() (data []byte, err error) {
+func (m *Image) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *Image) MarshalTo(data []byte) (int, error) {
+func (m *Image) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n1, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n1, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n1
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageReference)))
-	i += copy(data[i:], m.DockerImageReference)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageReference)))
+	i += copy(dAtA[i:], m.DockerImageReference)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.DockerImageMetadata.Size()))
-	n2, err := m.DockerImageMetadata.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.DockerImageMetadata.Size()))
+	n2, err := m.DockerImageMetadata.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n2
-	data[i] = 0x22
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageMetadataVersion)))
-	i += copy(data[i:], m.DockerImageMetadataVersion)
-	data[i] = 0x2a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageMetadataVersion)))
+	i += copy(dAtA[i:], m.DockerImageMetadataVersion)
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageManifest)))
-	i += copy(data[i:], m.DockerImageManifest)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageManifest)))
+	i += copy(dAtA[i:], m.DockerImageManifest)
 	if len(m.DockerImageLayers) > 0 {
 		for _, msg := range m.DockerImageLayers {
-			data[i] = 0x32
+			dAtA[i] = 0x32
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -321,10 +323,10 @@ func (m *Image) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.Signatures) > 0 {
 		for _, msg := range m.Signatures {
-			data[i] = 0x3a
+			dAtA[i] = 0x3a
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -333,76 +335,76 @@ func (m *Image) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.DockerImageSignatures) > 0 {
 		for _, b := range m.DockerImageSignatures {
-			data[i] = 0x42
+			dAtA[i] = 0x42
 			i++
-			i = encodeVarintGenerated(data, i, uint64(len(b)))
-			i += copy(data[i:], b)
+			i = encodeVarintGenerated(dAtA, i, uint64(len(b)))
+			i += copy(dAtA[i:], b)
 		}
 	}
-	data[i] = 0x4a
+	dAtA[i] = 0x4a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageManifestMediaType)))
-	i += copy(data[i:], m.DockerImageManifestMediaType)
-	data[i] = 0x52
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageManifestMediaType)))
+	i += copy(dAtA[i:], m.DockerImageManifestMediaType)
+	dAtA[i] = 0x52
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageConfig)))
-	i += copy(data[i:], m.DockerImageConfig)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageConfig)))
+	i += copy(dAtA[i:], m.DockerImageConfig)
 	return i, nil
 }
 
-func (m *ImageImportSpec) Marshal() (data []byte, err error) {
+func (m *ImageImportSpec) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageImportSpec) MarshalTo(data []byte) (int, error) {
+func (m *ImageImportSpec) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.From.Size()))
-	n3, err := m.From.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.From.Size()))
+	n3, err := m.From.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n3
 	if m.To != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.To.Size()))
-		n4, err := m.To.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.To.Size()))
+		n4, err := m.To.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n4
 	}
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ImportPolicy.Size()))
-	n5, err := m.ImportPolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ImportPolicy.Size()))
+	n5, err := m.ImportPolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n5
-	data[i] = 0x20
+	dAtA[i] = 0x20
 	i++
 	if m.IncludeManifest {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
-	data[i] = 0x2a
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ReferencePolicy.Size()))
-	n6, err := m.ReferencePolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ReferencePolicy.Size()))
+	n6, err := m.ReferencePolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -410,104 +412,104 @@ func (m *ImageImportSpec) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageImportStatus) Marshal() (data []byte, err error) {
+func (m *ImageImportStatus) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageImportStatus) MarshalTo(data []byte) (int, error) {
+func (m *ImageImportStatus) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n7, err := m.Status.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Status.Size()))
+	n7, err := m.Status.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n7
 	if m.Image != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-		n8, err := m.Image.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.Image.Size()))
+		n8, err := m.Image.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n8
 	}
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Tag)))
-	i += copy(data[i:], m.Tag)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Tag)))
+	i += copy(dAtA[i:], m.Tag)
 	return i, nil
 }
 
-func (m *ImageLayer) Marshal() (data []byte, err error) {
+func (m *ImageLayer) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageLayer) MarshalTo(data []byte) (int, error) {
+func (m *ImageLayer) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Name)))
-	i += copy(data[i:], m.Name)
-	data[i] = 0x10
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Name)))
+	i += copy(dAtA[i:], m.Name)
+	dAtA[i] = 0x10
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LayerSize))
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(m.LayerSize))
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.MediaType)))
-	i += copy(data[i:], m.MediaType)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.MediaType)))
+	i += copy(dAtA[i:], m.MediaType)
 	return i, nil
 }
 
-func (m *ImageList) Marshal() (data []byte, err error) {
+func (m *ImageList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageList) MarshalTo(data []byte) (int, error) {
+func (m *ImageList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n9, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n9, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n9
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -517,81 +519,81 @@ func (m *ImageList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageLookupPolicy) Marshal() (data []byte, err error) {
+func (m *ImageLookupPolicy) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageLookupPolicy) MarshalTo(data []byte) (int, error) {
+func (m *ImageLookupPolicy) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0x18
+	dAtA[i] = 0x18
 	i++
 	if m.Local {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	return i, nil
 }
 
-func (m *ImageSignature) Marshal() (data []byte, err error) {
+func (m *ImageSignature) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageSignature) MarshalTo(data []byte) (int, error) {
+func (m *ImageSignature) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n10, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n10, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n10
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Type)))
-	i += copy(data[i:], m.Type)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Type)))
+	i += copy(dAtA[i:], m.Type)
 	if m.Content != nil {
-		data[i] = 0x1a
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(len(m.Content)))
-		i += copy(data[i:], m.Content)
+		i = encodeVarintGenerated(dAtA, i, uint64(len(m.Content)))
+		i += copy(dAtA[i:], m.Content)
 	}
 	if len(m.Conditions) > 0 {
 		for _, msg := range m.Conditions {
-			data[i] = 0x22
+			dAtA[i] = 0x22
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n
 		}
 	}
-	data[i] = 0x2a
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.ImageIdentity)))
-	i += copy(data[i:], m.ImageIdentity)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ImageIdentity)))
+	i += copy(dAtA[i:], m.ImageIdentity)
 	if len(m.SignedClaims) > 0 {
 		keysForSignedClaims := make([]string, 0, len(m.SignedClaims))
 		for k := range m.SignedClaims {
@@ -599,46 +601,46 @@ func (m *ImageSignature) MarshalTo(data []byte) (int, error) {
 		}
 		github_com_gogo_protobuf_sortkeys.Strings(keysForSignedClaims)
 		for _, k := range keysForSignedClaims {
-			data[i] = 0x32
+			dAtA[i] = 0x32
 			i++
 			v := m.SignedClaims[string(k)]
 			mapSize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
-			i = encodeVarintGenerated(data, i, uint64(mapSize))
-			data[i] = 0xa
+			i = encodeVarintGenerated(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
 			i++
-			i = encodeVarintGenerated(data, i, uint64(len(k)))
-			i += copy(data[i:], k)
-			data[i] = 0x12
+			i = encodeVarintGenerated(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(len(v)))
-			i += copy(data[i:], v)
+			i = encodeVarintGenerated(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
 		}
 	}
 	if m.Created != nil {
-		data[i] = 0x3a
+		dAtA[i] = 0x3a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Created.Size()))
-		n11, err := m.Created.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.Created.Size()))
+		n11, err := m.Created.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n11
 	}
 	if m.IssuedBy != nil {
-		data[i] = 0x42
+		dAtA[i] = 0x42
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.IssuedBy.Size()))
-		n12, err := m.IssuedBy.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.IssuedBy.Size()))
+		n12, err := m.IssuedBy.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n12
 	}
 	if m.IssuedTo != nil {
-		data[i] = 0x4a
+		dAtA[i] = 0x4a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.IssuedTo.Size()))
-		n13, err := m.IssuedTo.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.IssuedTo.Size()))
+		n13, err := m.IssuedTo.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -647,41 +649,41 @@ func (m *ImageSignature) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStream) Marshal() (data []byte, err error) {
+func (m *ImageStream) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStream) MarshalTo(data []byte) (int, error) {
+func (m *ImageStream) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n14, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n14, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n14
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
-	n15, err := m.Spec.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Spec.Size()))
+	n15, err := m.Spec.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n15
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n16, err := m.Status.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Status.Size()))
+	n16, err := m.Status.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -689,33 +691,33 @@ func (m *ImageStream) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamImage) Marshal() (data []byte, err error) {
+func (m *ImageStreamImage) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamImage) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamImage) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n17, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n17, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n17
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-	n18, err := m.Image.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Image.Size()))
+	n18, err := m.Image.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -723,41 +725,41 @@ func (m *ImageStreamImage) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamImport) Marshal() (data []byte, err error) {
+func (m *ImageStreamImport) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamImport) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamImport) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n19, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n19, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n19
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Spec.Size()))
-	n20, err := m.Spec.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Spec.Size()))
+	n20, err := m.Spec.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n20
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n21, err := m.Status.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Status.Size()))
+	n21, err := m.Status.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -765,34 +767,34 @@ func (m *ImageStreamImport) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamImportSpec) Marshal() (data []byte, err error) {
+func (m *ImageStreamImportSpec) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamImportSpec) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamImportSpec) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0x8
+	dAtA[i] = 0x8
 	i++
 	if m.Import {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	if m.Repository != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Repository.Size()))
-		n22, err := m.Repository.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.Repository.Size()))
+		n22, err := m.Repository.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -800,10 +802,10 @@ func (m *ImageStreamImportSpec) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.Images) > 0 {
 		for _, msg := range m.Images {
-			data[i] = 0x1a
+			dAtA[i] = 0x1a
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -813,36 +815,36 @@ func (m *ImageStreamImportSpec) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamImportStatus) Marshal() (data []byte, err error) {
+func (m *ImageStreamImportStatus) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamImportStatus) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamImportStatus) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
 	if m.Import != nil {
-		data[i] = 0xa
+		dAtA[i] = 0xa
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Import.Size()))
-		n23, err := m.Import.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.Import.Size()))
+		n23, err := m.Import.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n23
 	}
 	if m.Repository != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Repository.Size()))
-		n24, err := m.Repository.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.Repository.Size()))
+		n24, err := m.Repository.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
@@ -850,10 +852,10 @@ func (m *ImageStreamImportStatus) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.Images) > 0 {
 		for _, msg := range m.Images {
-			data[i] = 0x1a
+			dAtA[i] = 0x1a
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -863,35 +865,35 @@ func (m *ImageStreamImportStatus) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamList) Marshal() (data []byte, err error) {
+func (m *ImageStreamList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamList) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n25, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n25, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n25
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -901,79 +903,79 @@ func (m *ImageStreamList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamMapping) Marshal() (data []byte, err error) {
+func (m *ImageStreamMapping) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamMapping) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamMapping) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n26, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n26, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n26
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-	n27, err := m.Image.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Image.Size()))
+	n27, err := m.Image.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n27
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Tag)))
-	i += copy(data[i:], m.Tag)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Tag)))
+	i += copy(dAtA[i:], m.Tag)
 	return i, nil
 }
 
-func (m *ImageStreamSpec) Marshal() (data []byte, err error) {
+func (m *ImageStreamSpec) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamSpec) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamSpec) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageRepository)))
-	i += copy(data[i:], m.DockerImageRepository)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageRepository)))
+	i += copy(dAtA[i:], m.DockerImageRepository)
 	if len(m.Tags) > 0 {
 		for _, msg := range m.Tags {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n
 		}
 	}
-	data[i] = 0x1a
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LookupPolicy.Size()))
-	n28, err := m.LookupPolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.LookupPolicy.Size()))
+	n28, err := m.LookupPolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -981,31 +983,31 @@ func (m *ImageStreamSpec) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamStatus) Marshal() (data []byte, err error) {
+func (m *ImageStreamStatus) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamStatus) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamStatus) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageRepository)))
-	i += copy(data[i:], m.DockerImageRepository)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageRepository)))
+	i += copy(dAtA[i:], m.DockerImageRepository)
 	if len(m.Tags) > 0 {
 		for _, msg := range m.Tags {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -1015,66 +1017,66 @@ func (m *ImageStreamStatus) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamTag) Marshal() (data []byte, err error) {
+func (m *ImageStreamTag) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamTag) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamTag) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ObjectMeta.Size()))
-	n29, err := m.ObjectMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ObjectMeta.Size()))
+	n29, err := m.ObjectMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n29
 	if m.Tag != nil {
-		data[i] = 0x12
+		dAtA[i] = 0x12
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.Tag.Size()))
-		n30, err := m.Tag.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.Tag.Size()))
+		n30, err := m.Tag.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n30
 	}
-	data[i] = 0x18
+	dAtA[i] = 0x18
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Generation))
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Generation))
 	if len(m.Conditions) > 0 {
 		for _, msg := range m.Conditions {
-			data[i] = 0x22
+			dAtA[i] = 0x22
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
 			i += n
 		}
 	}
-	data[i] = 0x2a
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Image.Size()))
-	n31, err := m.Image.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Image.Size()))
+	n31, err := m.Image.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n31
-	data[i] = 0x32
+	dAtA[i] = 0x32
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LookupPolicy.Size()))
-	n32, err := m.LookupPolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.LookupPolicy.Size()))
+	n32, err := m.LookupPolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -1082,35 +1084,35 @@ func (m *ImageStreamTag) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *ImageStreamTagList) Marshal() (data []byte, err error) {
+func (m *ImageStreamTagList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *ImageStreamTagList) MarshalTo(data []byte) (int, error) {
+func (m *ImageStreamTagList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ListMeta.Size()))
-	n33, err := m.ListMeta.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ListMeta.Size()))
+	n33, err := m.ListMeta.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n33
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -1120,31 +1122,31 @@ func (m *ImageStreamTagList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *NamedTagEventList) Marshal() (data []byte, err error) {
+func (m *NamedTagEventList) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *NamedTagEventList) MarshalTo(data []byte) (int, error) {
+func (m *NamedTagEventList) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Tag)))
-	i += copy(data[i:], m.Tag)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Tag)))
+	i += copy(dAtA[i:], m.Tag)
 	if len(m.Items) > 0 {
 		for _, msg := range m.Items {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -1153,10 +1155,10 @@ func (m *NamedTagEventList) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.Conditions) > 0 {
 		for _, msg := range m.Conditions {
-			data[i] = 0x1a
+			dAtA[i] = 0x1a
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -1166,49 +1168,49 @@ func (m *NamedTagEventList) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RepositoryImportSpec) Marshal() (data []byte, err error) {
+func (m *RepositoryImportSpec) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *RepositoryImportSpec) MarshalTo(data []byte) (int, error) {
+func (m *RepositoryImportSpec) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.From.Size()))
-	n34, err := m.From.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.From.Size()))
+	n34, err := m.From.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n34
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ImportPolicy.Size()))
-	n35, err := m.ImportPolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ImportPolicy.Size()))
+	n35, err := m.ImportPolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n35
-	data[i] = 0x18
+	dAtA[i] = 0x18
 	i++
 	if m.IncludeManifest {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
-	data[i] = 0x22
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ReferencePolicy.Size()))
-	n36, err := m.ReferencePolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ReferencePolicy.Size()))
+	n36, err := m.ReferencePolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -1216,35 +1218,35 @@ func (m *RepositoryImportSpec) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *RepositoryImportStatus) Marshal() (data []byte, err error) {
+func (m *RepositoryImportStatus) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *RepositoryImportStatus) MarshalTo(data []byte) (int, error) {
+func (m *RepositoryImportStatus) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Status.Size()))
-	n37, err := m.Status.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Status.Size()))
+	n37, err := m.Status.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n37
 	if len(m.Images) > 0 {
 		for _, msg := range m.Images {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(msg.Size()))
-			n, err := msg.MarshalTo(data[i:])
+			i = encodeVarintGenerated(dAtA, i, uint64(msg.Size()))
+			n, err := msg.MarshalTo(dAtA[i:])
 			if err != nil {
 				return 0, err
 			}
@@ -1253,117 +1255,117 @@ func (m *RepositoryImportStatus) MarshalTo(data []byte) (int, error) {
 	}
 	if len(m.AdditionalTags) > 0 {
 		for _, s := range m.AdditionalTags {
-			data[i] = 0x1a
+			dAtA[i] = 0x1a
 			i++
 			l = len(s)
 			for l >= 1<<7 {
-				data[i] = uint8(uint64(l)&0x7f | 0x80)
+				dAtA[i] = uint8(uint64(l)&0x7f | 0x80)
 				l >>= 7
 				i++
 			}
-			data[i] = uint8(l)
+			dAtA[i] = uint8(l)
 			i++
-			i += copy(data[i:], s)
+			i += copy(dAtA[i:], s)
 		}
 	}
 	return i, nil
 }
 
-func (m *SignatureCondition) Marshal() (data []byte, err error) {
+func (m *SignatureCondition) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *SignatureCondition) MarshalTo(data []byte) (int, error) {
+func (m *SignatureCondition) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Type)))
-	i += copy(data[i:], m.Type)
-	data[i] = 0x12
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Type)))
+	i += copy(dAtA[i:], m.Type)
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Status)))
-	i += copy(data[i:], m.Status)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Status)))
+	i += copy(dAtA[i:], m.Status)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LastProbeTime.Size()))
-	n38, err := m.LastProbeTime.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.LastProbeTime.Size()))
+	n38, err := m.LastProbeTime.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n38
-	data[i] = 0x22
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
-	n39, err := m.LastTransitionTime.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.LastTransitionTime.Size()))
+	n39, err := m.LastTransitionTime.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n39
-	data[i] = 0x2a
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
-	i += copy(data[i:], m.Reason)
-	data[i] = 0x32
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Reason)))
+	i += copy(dAtA[i:], m.Reason)
+	dAtA[i] = 0x32
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Message)))
-	i += copy(data[i:], m.Message)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Message)))
+	i += copy(dAtA[i:], m.Message)
 	return i, nil
 }
 
-func (m *SignatureGenericEntity) Marshal() (data []byte, err error) {
+func (m *SignatureGenericEntity) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *SignatureGenericEntity) MarshalTo(data []byte) (int, error) {
+func (m *SignatureGenericEntity) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Organization)))
-	i += copy(data[i:], m.Organization)
-	data[i] = 0x12
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Organization)))
+	i += copy(dAtA[i:], m.Organization)
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.CommonName)))
-	i += copy(data[i:], m.CommonName)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.CommonName)))
+	i += copy(dAtA[i:], m.CommonName)
 	return i, nil
 }
 
-func (m *SignatureIssuer) Marshal() (data []byte, err error) {
+func (m *SignatureIssuer) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *SignatureIssuer) MarshalTo(data []byte) (int, error) {
+func (m *SignatureIssuer) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.SignatureGenericEntity.Size()))
-	n40, err := m.SignatureGenericEntity.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.SignatureGenericEntity.Size()))
+	n40, err := m.SignatureGenericEntity.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -1371,171 +1373,171 @@ func (m *SignatureIssuer) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *SignatureSubject) Marshal() (data []byte, err error) {
+func (m *SignatureSubject) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *SignatureSubject) MarshalTo(data []byte) (int, error) {
+func (m *SignatureSubject) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.SignatureGenericEntity.Size()))
-	n41, err := m.SignatureGenericEntity.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.SignatureGenericEntity.Size()))
+	n41, err := m.SignatureGenericEntity.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n41
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.PublicKeyID)))
-	i += copy(data[i:], m.PublicKeyID)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.PublicKeyID)))
+	i += copy(dAtA[i:], m.PublicKeyID)
 	return i, nil
 }
 
-func (m *TagEvent) Marshal() (data []byte, err error) {
+func (m *TagEvent) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *TagEvent) MarshalTo(data []byte) (int, error) {
+func (m *TagEvent) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Created.Size()))
-	n42, err := m.Created.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Created.Size()))
+	n42, err := m.Created.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n42
-	data[i] = 0x12
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.DockerImageReference)))
-	i += copy(data[i:], m.DockerImageReference)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.DockerImageReference)))
+	i += copy(dAtA[i:], m.DockerImageReference)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Image)))
-	i += copy(data[i:], m.Image)
-	data[i] = 0x20
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Image)))
+	i += copy(dAtA[i:], m.Image)
+	dAtA[i] = 0x20
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Generation))
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Generation))
 	return i, nil
 }
 
-func (m *TagEventCondition) Marshal() (data []byte, err error) {
+func (m *TagEventCondition) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *TagEventCondition) MarshalTo(data []byte) (int, error) {
+func (m *TagEventCondition) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Type)))
-	i += copy(data[i:], m.Type)
-	data[i] = 0x12
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Type)))
+	i += copy(dAtA[i:], m.Type)
+	dAtA[i] = 0x12
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Status)))
-	i += copy(data[i:], m.Status)
-	data[i] = 0x1a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Status)))
+	i += copy(dAtA[i:], m.Status)
+	dAtA[i] = 0x1a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.LastTransitionTime.Size()))
-	n43, err := m.LastTransitionTime.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.LastTransitionTime.Size()))
+	n43, err := m.LastTransitionTime.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n43
-	data[i] = 0x22
+	dAtA[i] = 0x22
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Reason)))
-	i += copy(data[i:], m.Reason)
-	data[i] = 0x2a
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Reason)))
+	i += copy(dAtA[i:], m.Reason)
+	dAtA[i] = 0x2a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Message)))
-	i += copy(data[i:], m.Message)
-	data[i] = 0x30
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Message)))
+	i += copy(dAtA[i:], m.Message)
+	dAtA[i] = 0x30
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.Generation))
+	i = encodeVarintGenerated(dAtA, i, uint64(m.Generation))
 	return i, nil
 }
 
-func (m *TagImportPolicy) Marshal() (data []byte, err error) {
+func (m *TagImportPolicy) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *TagImportPolicy) MarshalTo(data []byte) (int, error) {
+func (m *TagImportPolicy) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0x8
+	dAtA[i] = 0x8
 	i++
 	if m.Insecure {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
-	data[i] = 0x10
+	dAtA[i] = 0x10
 	i++
 	if m.Scheduled {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	return i, nil
 }
 
-func (m *TagReference) Marshal() (data []byte, err error) {
+func (m *TagReference) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *TagReference) MarshalTo(data []byte) (int, error) {
+func (m *TagReference) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Name)))
-	i += copy(data[i:], m.Name)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Name)))
+	i += copy(dAtA[i:], m.Name)
 	if len(m.Annotations) > 0 {
 		keysForAnnotations := make([]string, 0, len(m.Annotations))
 		for k := range m.Annotations {
@@ -1543,56 +1545,56 @@ func (m *TagReference) MarshalTo(data []byte) (int, error) {
 		}
 		github_com_gogo_protobuf_sortkeys.Strings(keysForAnnotations)
 		for _, k := range keysForAnnotations {
-			data[i] = 0x12
+			dAtA[i] = 0x12
 			i++
 			v := m.Annotations[string(k)]
 			mapSize := 1 + len(k) + sovGenerated(uint64(len(k))) + 1 + len(v) + sovGenerated(uint64(len(v)))
-			i = encodeVarintGenerated(data, i, uint64(mapSize))
-			data[i] = 0xa
+			i = encodeVarintGenerated(dAtA, i, uint64(mapSize))
+			dAtA[i] = 0xa
 			i++
-			i = encodeVarintGenerated(data, i, uint64(len(k)))
-			i += copy(data[i:], k)
-			data[i] = 0x12
+			i = encodeVarintGenerated(dAtA, i, uint64(len(k)))
+			i += copy(dAtA[i:], k)
+			dAtA[i] = 0x12
 			i++
-			i = encodeVarintGenerated(data, i, uint64(len(v)))
-			i += copy(data[i:], v)
+			i = encodeVarintGenerated(dAtA, i, uint64(len(v)))
+			i += copy(dAtA[i:], v)
 		}
 	}
 	if m.From != nil {
-		data[i] = 0x1a
+		dAtA[i] = 0x1a
 		i++
-		i = encodeVarintGenerated(data, i, uint64(m.From.Size()))
-		n44, err := m.From.MarshalTo(data[i:])
+		i = encodeVarintGenerated(dAtA, i, uint64(m.From.Size()))
+		n44, err := m.From.MarshalTo(dAtA[i:])
 		if err != nil {
 			return 0, err
 		}
 		i += n44
 	}
-	data[i] = 0x20
+	dAtA[i] = 0x20
 	i++
 	if m.Reference {
-		data[i] = 1
+		dAtA[i] = 1
 	} else {
-		data[i] = 0
+		dAtA[i] = 0
 	}
 	i++
 	if m.Generation != nil {
-		data[i] = 0x28
+		dAtA[i] = 0x28
 		i++
-		i = encodeVarintGenerated(data, i, uint64(*m.Generation))
+		i = encodeVarintGenerated(dAtA, i, uint64(*m.Generation))
 	}
-	data[i] = 0x32
+	dAtA[i] = 0x32
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ImportPolicy.Size()))
-	n45, err := m.ImportPolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ImportPolicy.Size()))
+	n45, err := m.ImportPolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
 	i += n45
-	data[i] = 0x3a
+	dAtA[i] = 0x3a
 	i++
-	i = encodeVarintGenerated(data, i, uint64(m.ReferencePolicy.Size()))
-	n46, err := m.ReferencePolicy.MarshalTo(data[i:])
+	i = encodeVarintGenerated(dAtA, i, uint64(m.ReferencePolicy.Size()))
+	n46, err := m.ReferencePolicy.MarshalTo(dAtA[i:])
 	if err != nil {
 		return 0, err
 	}
@@ -1600,53 +1602,53 @@ func (m *TagReference) MarshalTo(data []byte) (int, error) {
 	return i, nil
 }
 
-func (m *TagReferencePolicy) Marshal() (data []byte, err error) {
+func (m *TagReferencePolicy) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
-	data = make([]byte, size)
-	n, err := m.MarshalTo(data)
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
 	if err != nil {
 		return nil, err
 	}
-	return data[:n], nil
+	return dAtA[:n], nil
 }
 
-func (m *TagReferencePolicy) MarshalTo(data []byte) (int, error) {
+func (m *TagReferencePolicy) MarshalTo(dAtA []byte) (int, error) {
 	var i int
 	_ = i
 	var l int
 	_ = l
-	data[i] = 0xa
+	dAtA[i] = 0xa
 	i++
-	i = encodeVarintGenerated(data, i, uint64(len(m.Type)))
-	i += copy(data[i:], m.Type)
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.Type)))
+	i += copy(dAtA[i:], m.Type)
 	return i, nil
 }
 
-func encodeFixed64Generated(data []byte, offset int, v uint64) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
-	data[offset+4] = uint8(v >> 32)
-	data[offset+5] = uint8(v >> 40)
-	data[offset+6] = uint8(v >> 48)
-	data[offset+7] = uint8(v >> 56)
+func encodeFixed64Generated(dAtA []byte, offset int, v uint64) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
+	dAtA[offset+4] = uint8(v >> 32)
+	dAtA[offset+5] = uint8(v >> 40)
+	dAtA[offset+6] = uint8(v >> 48)
+	dAtA[offset+7] = uint8(v >> 56)
 	return offset + 8
 }
-func encodeFixed32Generated(data []byte, offset int, v uint32) int {
-	data[offset] = uint8(v)
-	data[offset+1] = uint8(v >> 8)
-	data[offset+2] = uint8(v >> 16)
-	data[offset+3] = uint8(v >> 24)
+func encodeFixed32Generated(dAtA []byte, offset int, v uint32) int {
+	dAtA[offset] = uint8(v)
+	dAtA[offset+1] = uint8(v >> 8)
+	dAtA[offset+2] = uint8(v >> 16)
+	dAtA[offset+3] = uint8(v >> 24)
 	return offset + 4
 }
-func encodeVarintGenerated(data []byte, offset int, v uint64) int {
+func encodeVarintGenerated(dAtA []byte, offset int, v uint64) int {
 	for v >= 1<<7 {
-		data[offset] = uint8(v&0x7f | 0x80)
+		dAtA[offset] = uint8(v&0x7f | 0x80)
 		v >>= 7
 		offset++
 	}
-	data[offset] = uint8(v)
+	dAtA[offset] = uint8(v)
 	return offset + 1
 }
 func (m *DockerImageReference) Size() (n int) {
@@ -2576,8 +2578,8 @@ func valueToStringGenerated(v interface{}) string {
 	pv := reflect.Indirect(rv).Interface()
 	return fmt.Sprintf("*%v", pv)
 }
-func (m *DockerImageReference) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *DockerImageReference) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2589,7 +2591,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2617,7 +2619,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2632,7 +2634,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Registry = string(data[iNdEx:postIndex])
+			m.Registry = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -2646,7 +2648,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2661,7 +2663,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Namespace = string(data[iNdEx:postIndex])
+			m.Namespace = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2675,7 +2677,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2690,7 +2692,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Name = string(data[iNdEx:postIndex])
+			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 2 {
@@ -2704,7 +2706,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2719,7 +2721,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Tag = string(data[iNdEx:postIndex])
+			m.Tag = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -2733,7 +2735,7 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2748,11 +2750,11 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ID = string(data[iNdEx:postIndex])
+			m.ID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -2771,8 +2773,8 @@ func (m *DockerImageReference) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *Image) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *Image) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -2784,7 +2786,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -2812,7 +2814,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2826,7 +2828,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2842,7 +2844,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2857,7 +2859,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageReference = string(data[iNdEx:postIndex])
+			m.DockerImageReference = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -2871,7 +2873,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2885,7 +2887,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.DockerImageMetadata.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.DockerImageMetadata.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2901,7 +2903,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2916,7 +2918,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageMetadataVersion = string(data[iNdEx:postIndex])
+			m.DockerImageMetadataVersion = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -2930,7 +2932,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2945,7 +2947,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageManifest = string(data[iNdEx:postIndex])
+			m.DockerImageManifest = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -2959,7 +2961,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -2974,7 +2976,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.DockerImageLayers = append(m.DockerImageLayers, ImageLayer{})
-			if err := m.DockerImageLayers[len(m.DockerImageLayers)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.DockerImageLayers[len(m.DockerImageLayers)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -2990,7 +2992,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3005,7 +3007,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Signatures = append(m.Signatures, ImageSignature{})
-			if err := m.Signatures[len(m.Signatures)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Signatures[len(m.Signatures)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3021,7 +3023,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3036,7 +3038,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.DockerImageSignatures = append(m.DockerImageSignatures, make([]byte, postIndex-iNdEx))
-			copy(m.DockerImageSignatures[len(m.DockerImageSignatures)-1], data[iNdEx:postIndex])
+			copy(m.DockerImageSignatures[len(m.DockerImageSignatures)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 9:
 			if wireType != 2 {
@@ -3050,7 +3052,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3065,7 +3067,7 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageManifestMediaType = string(data[iNdEx:postIndex])
+			m.DockerImageManifestMediaType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 10:
 			if wireType != 2 {
@@ -3079,7 +3081,7 @@ func (m *Image) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3094,11 +3096,11 @@ func (m *Image) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageConfig = string(data[iNdEx:postIndex])
+			m.DockerImageConfig = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3117,8 +3119,8 @@ func (m *Image) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageImportSpec) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageImportSpec) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3130,7 +3132,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3158,7 +3160,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3172,7 +3174,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.From.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.From.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3188,7 +3190,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3205,7 +3207,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 			if m.To == nil {
 				m.To = &k8s_io_kubernetes_pkg_api_v1.LocalObjectReference{}
 			}
-			if err := m.To.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.To.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3221,7 +3223,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3235,7 +3237,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ImportPolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ImportPolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3251,7 +3253,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3271,7 +3273,7 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3285,13 +3287,13 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ReferencePolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ReferencePolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3310,8 +3312,8 @@ func (m *ImageImportSpec) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageImportStatus) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageImportStatus) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3323,7 +3325,7 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3351,7 +3353,7 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3365,7 +3367,7 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Status.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3381,7 +3383,7 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3398,7 +3400,7 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 			if m.Image == nil {
 				m.Image = &Image{}
 			}
-			if err := m.Image.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Image.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3414,7 +3416,7 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3429,11 +3431,11 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Tag = string(data[iNdEx:postIndex])
+			m.Tag = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3452,8 +3454,8 @@ func (m *ImageImportStatus) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageLayer) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageLayer) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3465,7 +3467,7 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3493,7 +3495,7 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3508,7 +3510,7 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Name = string(data[iNdEx:postIndex])
+			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 0 {
@@ -3522,7 +3524,7 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.LayerSize |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3541,7 +3543,7 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3556,11 +3558,11 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.MediaType = string(data[iNdEx:postIndex])
+			m.MediaType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3579,8 +3581,8 @@ func (m *ImageLayer) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3592,7 +3594,7 @@ func (m *ImageList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3620,7 +3622,7 @@ func (m *ImageList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3634,7 +3636,7 @@ func (m *ImageList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3650,7 +3652,7 @@ func (m *ImageList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3665,13 +3667,13 @@ func (m *ImageList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, Image{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3690,8 +3692,8 @@ func (m *ImageList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageLookupPolicy) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageLookupPolicy) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3703,7 +3705,7 @@ func (m *ImageLookupPolicy) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3731,7 +3733,7 @@ func (m *ImageLookupPolicy) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3741,7 +3743,7 @@ func (m *ImageLookupPolicy) Unmarshal(data []byte) error {
 			m.Local = bool(v != 0)
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -3760,8 +3762,8 @@ func (m *ImageLookupPolicy) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageSignature) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageSignature) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -3773,7 +3775,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -3801,7 +3803,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3815,7 +3817,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3831,7 +3833,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3846,7 +3848,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Type = string(data[iNdEx:postIndex])
+			m.Type = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -3860,7 +3862,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				byteLen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3874,7 +3876,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Content = append(m.Content[:0], data[iNdEx:postIndex]...)
+			m.Content = append(m.Content[:0], dAtA[iNdEx:postIndex]...)
 			if m.Content == nil {
 				m.Content = []byte{}
 			}
@@ -3891,7 +3893,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3906,7 +3908,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Conditions = append(m.Conditions, SignatureCondition{})
-			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -3922,7 +3924,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3937,7 +3939,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.ImageIdentity = string(data[iNdEx:postIndex])
+			m.ImageIdentity = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -3951,7 +3953,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3973,7 +3975,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				keykey |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -3988,7 +3990,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLenmapkey |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4003,52 +4005,57 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if postStringIndexmapkey > l {
 				return io.ErrUnexpectedEOF
 			}
-			mapkey := string(data[iNdEx:postStringIndexmapkey])
+			mapkey := string(dAtA[iNdEx:postStringIndexmapkey])
 			iNdEx = postStringIndexmapkey
-			var valuekey uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				valuekey |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			var stringLenmapvalue uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLenmapvalue |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLenmapvalue := int(stringLenmapvalue)
-			if intStringLenmapvalue < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-			if postStringIndexmapvalue > l {
-				return io.ErrUnexpectedEOF
-			}
-			mapvalue := string(data[iNdEx:postStringIndexmapvalue])
-			iNdEx = postStringIndexmapvalue
 			if m.SignedClaims == nil {
 				m.SignedClaims = make(map[string]string)
 			}
-			m.SignedClaims[mapkey] = mapvalue
+			if iNdEx < postIndex {
+				var valuekey uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowGenerated
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					valuekey |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				var stringLenmapvalue uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowGenerated
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLenmapvalue |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLenmapvalue := int(stringLenmapvalue)
+				if intStringLenmapvalue < 0 {
+					return ErrInvalidLengthGenerated
+				}
+				postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+				if postStringIndexmapvalue > l {
+					return io.ErrUnexpectedEOF
+				}
+				mapvalue := string(dAtA[iNdEx:postStringIndexmapvalue])
+				iNdEx = postStringIndexmapvalue
+				m.SignedClaims[mapkey] = mapvalue
+			} else {
+				var mapvalue string
+				m.SignedClaims[mapkey] = mapvalue
+			}
 			iNdEx = postIndex
 		case 7:
 			if wireType != 2 {
@@ -4062,7 +4069,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4079,7 +4086,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if m.Created == nil {
 				m.Created = &k8s_io_apimachinery_pkg_apis_meta_v1.Time{}
 			}
-			if err := m.Created.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Created.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4095,7 +4102,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4112,7 +4119,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if m.IssuedBy == nil {
 				m.IssuedBy = &SignatureIssuer{}
 			}
-			if err := m.IssuedBy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.IssuedBy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4128,7 +4135,7 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4145,13 +4152,13 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 			if m.IssuedTo == nil {
 				m.IssuedTo = &SignatureSubject{}
 			}
-			if err := m.IssuedTo.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.IssuedTo.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4170,8 +4177,8 @@ func (m *ImageSignature) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStream) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStream) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4183,7 +4190,7 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4211,7 +4218,7 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4225,7 +4232,7 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4241,7 +4248,7 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4255,7 +4262,7 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Spec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4271,7 +4278,7 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4285,13 +4292,13 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Status.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4310,8 +4317,8 @@ func (m *ImageStream) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamImage) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamImage) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4323,7 +4330,7 @@ func (m *ImageStreamImage) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4351,7 +4358,7 @@ func (m *ImageStreamImage) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4365,7 +4372,7 @@ func (m *ImageStreamImage) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4381,7 +4388,7 @@ func (m *ImageStreamImage) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4395,13 +4402,13 @@ func (m *ImageStreamImage) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Image.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Image.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4420,8 +4427,8 @@ func (m *ImageStreamImage) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamImport) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamImport) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4433,7 +4440,7 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4461,7 +4468,7 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4475,7 +4482,7 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4491,7 +4498,7 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4505,7 +4512,7 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Spec.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Spec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4521,7 +4528,7 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4535,13 +4542,13 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Status.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4560,8 +4567,8 @@ func (m *ImageStreamImport) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamImportSpec) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4573,7 +4580,7 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4601,7 +4608,7 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4621,7 +4628,7 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4638,7 +4645,7 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 			if m.Repository == nil {
 				m.Repository = &RepositoryImportSpec{}
 			}
-			if err := m.Repository.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Repository.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4654,7 +4661,7 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4669,13 +4676,13 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Images = append(m.Images, ImageImportSpec{})
-			if err := m.Images[len(m.Images)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Images[len(m.Images)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4694,8 +4701,8 @@ func (m *ImageStreamImportSpec) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamImportStatus) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4707,7 +4714,7 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4735,7 +4742,7 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4752,7 +4759,7 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 			if m.Import == nil {
 				m.Import = &ImageStream{}
 			}
-			if err := m.Import.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Import.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4768,7 +4775,7 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4785,7 +4792,7 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 			if m.Repository == nil {
 				m.Repository = &RepositoryImportStatus{}
 			}
-			if err := m.Repository.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Repository.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4801,7 +4808,7 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4816,13 +4823,13 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Images = append(m.Images, ImageImportStatus{})
-			if err := m.Images[len(m.Images)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Images[len(m.Images)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4841,8 +4848,8 @@ func (m *ImageStreamImportStatus) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4854,7 +4861,7 @@ func (m *ImageStreamList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4882,7 +4889,7 @@ func (m *ImageStreamList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4896,7 +4903,7 @@ func (m *ImageStreamList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -4912,7 +4919,7 @@ func (m *ImageStreamList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -4927,13 +4934,13 @@ func (m *ImageStreamList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, ImageStream{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -4952,8 +4959,8 @@ func (m *ImageStreamList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamMapping) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamMapping) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -4965,7 +4972,7 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -4993,7 +5000,7 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5007,7 +5014,7 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5023,7 +5030,7 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5037,7 +5044,7 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Image.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Image.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5053,7 +5060,7 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5068,11 +5075,11 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Tag = string(data[iNdEx:postIndex])
+			m.Tag = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5091,8 +5098,8 @@ func (m *ImageStreamMapping) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamSpec) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamSpec) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5104,7 +5111,7 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -5132,7 +5139,7 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5147,7 +5154,7 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageRepository = string(data[iNdEx:postIndex])
+			m.DockerImageRepository = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -5161,7 +5168,7 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5176,7 +5183,7 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Tags = append(m.Tags, TagReference{})
-			if err := m.Tags[len(m.Tags)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Tags[len(m.Tags)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5192,7 +5199,7 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5206,13 +5213,13 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.LookupPolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.LookupPolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5231,8 +5238,8 @@ func (m *ImageStreamSpec) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamStatus) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamStatus) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5244,7 +5251,7 @@ func (m *ImageStreamStatus) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -5272,7 +5279,7 @@ func (m *ImageStreamStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5287,7 +5294,7 @@ func (m *ImageStreamStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageRepository = string(data[iNdEx:postIndex])
+			m.DockerImageRepository = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -5301,7 +5308,7 @@ func (m *ImageStreamStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5316,13 +5323,13 @@ func (m *ImageStreamStatus) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Tags = append(m.Tags, NamedTagEventList{})
-			if err := m.Tags[len(m.Tags)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Tags[len(m.Tags)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5341,8 +5348,8 @@ func (m *ImageStreamStatus) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamTag) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamTag) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5354,7 +5361,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -5382,7 +5389,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5396,7 +5403,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ObjectMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ObjectMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5412,7 +5419,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5429,7 +5436,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 			if m.Tag == nil {
 				m.Tag = &TagReference{}
 			}
-			if err := m.Tag.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Tag.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5445,7 +5452,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.Generation |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5464,7 +5471,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5479,7 +5486,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Conditions = append(m.Conditions, TagEventCondition{})
-			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5495,7 +5502,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5509,7 +5516,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Image.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Image.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5525,7 +5532,7 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5539,13 +5546,13 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.LookupPolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.LookupPolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5564,8 +5571,8 @@ func (m *ImageStreamTag) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *ImageStreamTagList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *ImageStreamTagList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5577,7 +5584,7 @@ func (m *ImageStreamTagList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -5605,7 +5612,7 @@ func (m *ImageStreamTagList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5619,7 +5626,7 @@ func (m *ImageStreamTagList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ListMeta.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ListMeta.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5635,7 +5642,7 @@ func (m *ImageStreamTagList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5650,13 +5657,13 @@ func (m *ImageStreamTagList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, ImageStreamTag{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5675,8 +5682,8 @@ func (m *ImageStreamTagList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *NamedTagEventList) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *NamedTagEventList) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5688,7 +5695,7 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -5716,7 +5723,7 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5731,7 +5738,7 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Tag = string(data[iNdEx:postIndex])
+			m.Tag = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -5745,7 +5752,7 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5760,7 +5767,7 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Items = append(m.Items, TagEvent{})
-			if err := m.Items[len(m.Items)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Items[len(m.Items)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5776,7 +5783,7 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5791,13 +5798,13 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Conditions = append(m.Conditions, TagEventCondition{})
-			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Conditions[len(m.Conditions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5816,8 +5823,8 @@ func (m *NamedTagEventList) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *RepositoryImportSpec) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5829,7 +5836,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -5857,7 +5864,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5871,7 +5878,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.From.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.From.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5887,7 +5894,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5901,7 +5908,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ImportPolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ImportPolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -5917,7 +5924,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5937,7 +5944,7 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -5951,13 +5958,13 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ReferencePolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ReferencePolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -5976,8 +5983,8 @@ func (m *RepositoryImportSpec) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *RepositoryImportStatus) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -5989,7 +5996,7 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6017,7 +6024,7 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6031,7 +6038,7 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Status.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Status.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6047,7 +6054,7 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6062,7 +6069,7 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			m.Images = append(m.Images, ImageImportStatus{})
-			if err := m.Images[len(m.Images)-1].Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Images[len(m.Images)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6078,7 +6085,7 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6093,11 +6100,11 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.AdditionalTags = append(m.AdditionalTags, string(data[iNdEx:postIndex]))
+			m.AdditionalTags = append(m.AdditionalTags, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -6116,8 +6123,8 @@ func (m *RepositoryImportStatus) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *SignatureCondition) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *SignatureCondition) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -6129,7 +6136,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6157,7 +6164,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6172,7 +6179,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Type = SignatureConditionType(data[iNdEx:postIndex])
+			m.Type = SignatureConditionType(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -6186,7 +6193,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6201,7 +6208,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Status = k8s_io_kubernetes_pkg_api_v1.ConditionStatus(data[iNdEx:postIndex])
+			m.Status = k8s_io_kubernetes_pkg_api_v1.ConditionStatus(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -6215,7 +6222,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6229,7 +6236,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.LastProbeTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.LastProbeTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6245,7 +6252,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6259,7 +6266,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.LastTransitionTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.LastTransitionTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6275,7 +6282,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6290,7 +6297,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Reason = string(data[iNdEx:postIndex])
+			m.Reason = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 2 {
@@ -6304,7 +6311,7 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6319,11 +6326,11 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Message = string(data[iNdEx:postIndex])
+			m.Message = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -6342,8 +6349,8 @@ func (m *SignatureCondition) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *SignatureGenericEntity) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -6355,7 +6362,7 @@ func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6383,7 +6390,7 @@ func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6398,7 +6405,7 @@ func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Organization = string(data[iNdEx:postIndex])
+			m.Organization = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -6412,7 +6419,7 @@ func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6427,11 +6434,11 @@ func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.CommonName = string(data[iNdEx:postIndex])
+			m.CommonName = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -6450,8 +6457,8 @@ func (m *SignatureGenericEntity) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *SignatureIssuer) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *SignatureIssuer) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -6463,7 +6470,7 @@ func (m *SignatureIssuer) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6491,7 +6498,7 @@ func (m *SignatureIssuer) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6505,13 +6512,13 @@ func (m *SignatureIssuer) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.SignatureGenericEntity.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.SignatureGenericEntity.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -6530,8 +6537,8 @@ func (m *SignatureIssuer) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *SignatureSubject) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *SignatureSubject) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -6543,7 +6550,7 @@ func (m *SignatureSubject) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6571,7 +6578,7 @@ func (m *SignatureSubject) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6585,7 +6592,7 @@ func (m *SignatureSubject) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.SignatureGenericEntity.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.SignatureGenericEntity.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6601,7 +6608,7 @@ func (m *SignatureSubject) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6616,11 +6623,11 @@ func (m *SignatureSubject) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.PublicKeyID = string(data[iNdEx:postIndex])
+			m.PublicKeyID = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -6639,8 +6646,8 @@ func (m *SignatureSubject) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *TagEvent) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *TagEvent) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -6652,7 +6659,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6680,7 +6687,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6694,7 +6701,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.Created.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.Created.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6710,7 +6717,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6725,7 +6732,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.DockerImageReference = string(data[iNdEx:postIndex])
+			m.DockerImageReference = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -6739,7 +6746,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6754,7 +6761,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Image = string(data[iNdEx:postIndex])
+			m.Image = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 4:
 			if wireType != 0 {
@@ -6768,7 +6775,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.Generation |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6777,7 +6784,7 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 			}
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -6796,8 +6803,8 @@ func (m *TagEvent) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *TagEventCondition) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *TagEventCondition) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -6809,7 +6816,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -6837,7 +6844,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6852,7 +6859,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Type = TagEventConditionType(data[iNdEx:postIndex])
+			m.Type = TagEventConditionType(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -6866,7 +6873,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6881,7 +6888,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Status = k8s_io_kubernetes_pkg_api_v1.ConditionStatus(data[iNdEx:postIndex])
+			m.Status = k8s_io_kubernetes_pkg_api_v1.ConditionStatus(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -6895,7 +6902,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6909,7 +6916,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.LastTransitionTime.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.LastTransitionTime.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -6925,7 +6932,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6940,7 +6947,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Reason = string(data[iNdEx:postIndex])
+			m.Reason = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 5:
 			if wireType != 2 {
@@ -6954,7 +6961,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6969,7 +6976,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Message = string(data[iNdEx:postIndex])
+			m.Message = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 6:
 			if wireType != 0 {
@@ -6983,7 +6990,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				m.Generation |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -6992,7 +6999,7 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 			}
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -7011,8 +7018,8 @@ func (m *TagEventCondition) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *TagImportPolicy) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *TagImportPolicy) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -7024,7 +7031,7 @@ func (m *TagImportPolicy) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -7052,7 +7059,7 @@ func (m *TagImportPolicy) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7072,7 +7079,7 @@ func (m *TagImportPolicy) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7082,7 +7089,7 @@ func (m *TagImportPolicy) Unmarshal(data []byte) error {
 			m.Scheduled = bool(v != 0)
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -7101,8 +7108,8 @@ func (m *TagImportPolicy) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *TagReference) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *TagReference) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -7114,7 +7121,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -7142,7 +7149,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7157,7 +7164,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Name = string(data[iNdEx:postIndex])
+			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -7171,7 +7178,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7193,7 +7200,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				keykey |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7208,7 +7215,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLenmapkey |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7223,52 +7230,57 @@ func (m *TagReference) Unmarshal(data []byte) error {
 			if postStringIndexmapkey > l {
 				return io.ErrUnexpectedEOF
 			}
-			mapkey := string(data[iNdEx:postStringIndexmapkey])
+			mapkey := string(dAtA[iNdEx:postStringIndexmapkey])
 			iNdEx = postStringIndexmapkey
-			var valuekey uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				valuekey |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			var stringLenmapvalue uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenerated
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := data[iNdEx]
-				iNdEx++
-				stringLenmapvalue |= (uint64(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLenmapvalue := int(stringLenmapvalue)
-			if intStringLenmapvalue < 0 {
-				return ErrInvalidLengthGenerated
-			}
-			postStringIndexmapvalue := iNdEx + intStringLenmapvalue
-			if postStringIndexmapvalue > l {
-				return io.ErrUnexpectedEOF
-			}
-			mapvalue := string(data[iNdEx:postStringIndexmapvalue])
-			iNdEx = postStringIndexmapvalue
 			if m.Annotations == nil {
 				m.Annotations = make(map[string]string)
 			}
-			m.Annotations[mapkey] = mapvalue
+			if iNdEx < postIndex {
+				var valuekey uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowGenerated
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					valuekey |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				var stringLenmapvalue uint64
+				for shift := uint(0); ; shift += 7 {
+					if shift >= 64 {
+						return ErrIntOverflowGenerated
+					}
+					if iNdEx >= l {
+						return io.ErrUnexpectedEOF
+					}
+					b := dAtA[iNdEx]
+					iNdEx++
+					stringLenmapvalue |= (uint64(b) & 0x7F) << shift
+					if b < 0x80 {
+						break
+					}
+				}
+				intStringLenmapvalue := int(stringLenmapvalue)
+				if intStringLenmapvalue < 0 {
+					return ErrInvalidLengthGenerated
+				}
+				postStringIndexmapvalue := iNdEx + intStringLenmapvalue
+				if postStringIndexmapvalue > l {
+					return io.ErrUnexpectedEOF
+				}
+				mapvalue := string(dAtA[iNdEx:postStringIndexmapvalue])
+				iNdEx = postStringIndexmapvalue
+				m.Annotations[mapkey] = mapvalue
+			} else {
+				var mapvalue string
+				m.Annotations[mapkey] = mapvalue
+			}
 			iNdEx = postIndex
 		case 3:
 			if wireType != 2 {
@@ -7282,7 +7294,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7299,7 +7311,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 			if m.From == nil {
 				m.From = &k8s_io_kubernetes_pkg_api_v1.ObjectReference{}
 			}
-			if err := m.From.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.From.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7315,7 +7327,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7335,7 +7347,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				v |= (int64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7355,7 +7367,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7369,7 +7381,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ImportPolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ImportPolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
@@ -7385,7 +7397,7 @@ func (m *TagReference) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				msglen |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7399,13 +7411,13 @@ func (m *TagReference) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			if err := m.ReferencePolicy.Unmarshal(data[iNdEx:postIndex]); err != nil {
+			if err := m.ReferencePolicy.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -7424,8 +7436,8 @@ func (m *TagReference) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func (m *TagReferencePolicy) Unmarshal(data []byte) error {
-	l := len(data)
+func (m *TagReferencePolicy) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		preIndex := iNdEx
@@ -7437,7 +7449,7 @@ func (m *TagReferencePolicy) Unmarshal(data []byte) error {
 			if iNdEx >= l {
 				return io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -7465,7 +7477,7 @@ func (m *TagReferencePolicy) Unmarshal(data []byte) error {
 				if iNdEx >= l {
 					return io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				stringLen |= (uint64(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7480,11 +7492,11 @@ func (m *TagReferencePolicy) Unmarshal(data []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Type = TagReferencePolicyType(data[iNdEx:postIndex])
+			m.Type = TagReferencePolicyType(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
-			skippy, err := skipGenerated(data[iNdEx:])
+			skippy, err := skipGenerated(dAtA[iNdEx:])
 			if err != nil {
 				return err
 			}
@@ -7503,8 +7515,8 @@ func (m *TagReferencePolicy) Unmarshal(data []byte) error {
 	}
 	return nil
 }
-func skipGenerated(data []byte) (n int, err error) {
-	l := len(data)
+func skipGenerated(dAtA []byte) (n int, err error) {
+	l := len(dAtA)
 	iNdEx := 0
 	for iNdEx < l {
 		var wire uint64
@@ -7515,7 +7527,7 @@ func skipGenerated(data []byte) (n int, err error) {
 			if iNdEx >= l {
 				return 0, io.ErrUnexpectedEOF
 			}
-			b := data[iNdEx]
+			b := dAtA[iNdEx]
 			iNdEx++
 			wire |= (uint64(b) & 0x7F) << shift
 			if b < 0x80 {
@@ -7533,7 +7545,7 @@ func skipGenerated(data []byte) (n int, err error) {
 					return 0, io.ErrUnexpectedEOF
 				}
 				iNdEx++
-				if data[iNdEx-1] < 0x80 {
+				if dAtA[iNdEx-1] < 0x80 {
 					break
 				}
 			}
@@ -7550,7 +7562,7 @@ func skipGenerated(data []byte) (n int, err error) {
 				if iNdEx >= l {
 					return 0, io.ErrUnexpectedEOF
 				}
-				b := data[iNdEx]
+				b := dAtA[iNdEx]
 				iNdEx++
 				length |= (int(b) & 0x7F) << shift
 				if b < 0x80 {
@@ -7573,7 +7585,7 @@ func skipGenerated(data []byte) (n int, err error) {
 					if iNdEx >= l {
 						return 0, io.ErrUnexpectedEOF
 					}
-					b := data[iNdEx]
+					b := dAtA[iNdEx]
 					iNdEx++
 					innerWire |= (uint64(b) & 0x7F) << shift
 					if b < 0x80 {
@@ -7584,7 +7596,7 @@ func skipGenerated(data []byte) (n int, err error) {
 				if innerWireType == 4 {
 					break
 				}
-				next, err := skipGenerated(data[start:])
+				next, err := skipGenerated(dAtA[start:])
 				if err != nil {
 					return 0, err
 				}
@@ -7608,152 +7620,155 @@ var (
 	ErrIntOverflowGenerated   = fmt.Errorf("proto: integer overflow")
 )
 
+func init() {
+	proto.RegisterFile("github.com/openshift/origin/pkg/image/apis/image/v1/generated.proto", fileDescriptorGenerated)
+}
+
 var fileDescriptorGenerated = []byte{
-	// 2324 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x09, 0x6e, 0x88, 0x02, 0xff, 0xdc, 0x1a, 0xdd, 0x8f, 0x1b, 0x47,
-	0x3d, 0xbb, 0xeb, 0xaf, 0xfb, 0xd9, 0xb9, 0xcb, 0x4d, 0x73, 0xa9, 0x6b, 0x52, 0x5f, 0xb4, 0x25,
-	0x55, 0x40, 0xa9, 0x4d, 0xae, 0x80, 0x42, 0x10, 0x2d, 0xf1, 0x39, 0x89, 0xdc, 0xdc, 0x91, 0x63,
-	0xce, 0xed, 0x03, 0x54, 0x2a, 0x73, 0xeb, 0xb9, 0xbd, 0xe1, 0xec, 0x5d, 0x6b, 0x77, 0x7d, 0xad,
-	0x53, 0x84, 0xfa, 0x54, 0x01, 0x42, 0x02, 0xf1, 0xc8, 0x2b, 0x42, 0xe2, 0x3f, 0xc8, 0x9f, 0x40,
-	0xc4, 0x03, 0xaa, 0x2a, 0x81, 0x8a, 0x54, 0x9d, 0x88, 0x81, 0x37, 0x24, 0x5e, 0x10, 0x0f, 0x15,
-	0x42, 0x68, 0x67, 0x67, 0x3f, 0xbd, 0x76, 0x2e, 0xf6, 0xc5, 0x11, 0xbc, 0x9d, 0xe7, 0xf7, 0x39,
-	0xbf, 0xef, 0xf9, 0xed, 0xc1, 0xa6, 0xce, 0x9c, 0x83, 0xc1, 0x5e, 0x4d, 0x33, 0x7b, 0x75, 0xb3,
-	0x4f, 0x0d, 0xfb, 0x80, 0xed, 0x3b, 0x75, 0xd3, 0x62, 0x3a, 0x33, 0xea, 0xfd, 0x43, 0xbd, 0xce,
-	0x7a, 0x44, 0xa7, 0x75, 0xd2, 0x67, 0xb6, 0xf8, 0xf3, 0xe8, 0x5a, 0x5d, 0xa7, 0x06, 0xb5, 0x88,
-	0x43, 0x3b, 0xb5, 0xbe, 0x65, 0x3a, 0x26, 0x7a, 0x35, 0x64, 0x52, 0x0b, 0x98, 0xd4, 0x3c, 0x26,
-	0xb5, 0xfe, 0xa1, 0x5e, 0xe3, 0x94, 0x35, 0x97, 0x89, 0xf8, 0xf3, 0xe8, 0x5a, 0xe5, 0x95, 0x88,
-	0x64, 0xdd, 0xd4, 0xcd, 0x3a, 0xe7, 0xb5, 0x37, 0xd8, 0xe7, 0xbf, 0xf8, 0x0f, 0xfe, 0x97, 0x27,
-	0xa3, 0xf2, 0xe5, 0xc3, 0xeb, 0x76, 0x8d, 0x99, 0xae, 0x26, 0x3d, 0xa2, 0x1d, 0x30, 0x83, 0x5a,
-	0x43, 0xae, 0x20, 0x57, 0xad, 0x47, 0x1d, 0x92, 0xa2, 0x59, 0xa5, 0x3e, 0x89, 0xca, 0x1a, 0x18,
-	0x0e, 0xeb, 0xd1, 0x31, 0x82, 0xaf, 0x3e, 0x8e, 0xc0, 0xd6, 0x0e, 0x68, 0x8f, 0x8c, 0xd1, 0xbd,
-	0x3a, 0x89, 0x6e, 0xe0, 0xb0, 0x6e, 0x9d, 0x19, 0x8e, 0xed, 0x58, 0x63, 0x44, 0x91, 0x3b, 0xd9,
-	0xd4, 0x3a, 0xa2, 0x56, 0x78, 0x21, 0xfa, 0x1e, 0xe9, 0xf5, 0xbb, 0x69, 0xd6, 0xae, 0x5c, 0x15,
-	0x54, 0x87, 0x83, 0x3d, 0x6a, 0x19, 0xd4, 0xa1, 0xb6, 0x4f, 0x96, 0x82, 0xad, 0x7e, 0x2c, 0xc1,
-	0xf9, 0xa6, 0xa9, 0x1d, 0x52, 0xab, 0xe5, 0x5a, 0x1e, 0xd3, 0x7d, 0x6a, 0x51, 0x43, 0xa3, 0xe8,
-	0x2a, 0x14, 0x2c, 0xaa, 0x33, 0xdb, 0xb1, 0x86, 0x65, 0xe9, 0x92, 0x74, 0x65, 0xa9, 0x71, 0xee,
-	0xe1, 0xf1, 0xfa, 0x99, 0xd1, 0xf1, 0x7a, 0x01, 0x8b, 0x73, 0x1c, 0x60, 0xa0, 0x3a, 0x2c, 0x19,
-	0xa4, 0x47, 0xed, 0x3e, 0xd1, 0x68, 0x59, 0xe6, 0xe8, 0xab, 0x02, 0x7d, 0xe9, 0x5b, 0x3e, 0x00,
-	0x87, 0x38, 0xe8, 0x12, 0x64, 0xdc, 0x1f, 0x65, 0x85, 0xe3, 0x96, 0x04, 0x6e, 0xc6, 0xc5, 0xc5,
-	0x1c, 0x82, 0x5e, 0x04, 0xc5, 0x21, 0x7a, 0x39, 0xc3, 0x11, 0x8a, 0x02, 0x41, 0x69, 0x13, 0x1d,
-	0xbb, 0xe7, 0xa8, 0x02, 0x32, 0x6b, 0x96, 0xb3, 0x1c, 0x0a, 0x02, 0x2a, 0xb7, 0x9a, 0x58, 0x66,
-	0x4d, 0xf5, 0x9f, 0x79, 0xc8, 0xf2, 0xeb, 0xa0, 0xef, 0x41, 0xc1, 0xf5, 0x7d, 0x87, 0x38, 0x84,
-	0xdf, 0xa2, 0xb8, 0xf1, 0xa5, 0x9a, 0x67, 0x9f, 0x5a, 0xd4, 0x15, 0x3c, 0x0a, 0x79, 0xfc, 0xb9,
-	0xd8, 0xb5, 0xa3, 0x6b, 0xb5, 0x7b, 0x7b, 0xdf, 0xa7, 0x9a, 0xb3, 0x4d, 0x1d, 0xd2, 0x40, 0x82,
-	0x3b, 0x84, 0x67, 0x38, 0xe0, 0x8a, 0x76, 0xe0, 0x7c, 0x27, 0xc5, 0x7e, 0xc2, 0x08, 0x17, 0x05,
-	0x6d, 0xaa, 0x8d, 0x71, 0x2a, 0x25, 0xfa, 0x01, 0x3c, 0x17, 0x39, 0xdf, 0xf6, 0xd5, 0x57, 0xb8,
-	0xfa, 0xaf, 0x4c, 0x54, 0x5f, 0x44, 0x60, 0x0d, 0x93, 0x77, 0x6f, 0xbd, 0xe7, 0x50, 0xc3, 0x66,
-	0xa6, 0xd1, 0xf8, 0x9c, 0x90, 0xff, 0x5c, 0x73, 0x9c, 0x23, 0x4e, 0x13, 0x83, 0xf6, 0xa0, 0x92,
-	0x72, 0xfc, 0x16, 0xb5, 0x5c, 0x7e, 0xc2, 0x1b, 0xaa, 0xe0, 0x5a, 0x69, 0x4e, 0xc4, 0xc4, 0x53,
-	0xb8, 0xa0, 0xed, 0xf8, 0x0d, 0x89, 0xc1, 0xf6, 0xa9, 0xed, 0x08, 0x67, 0xa6, 0xaa, 0x2c, 0x50,
-	0x70, 0x1a, 0x1d, 0xfa, 0x91, 0x04, 0xab, 0x91, 0xf3, 0x2d, 0x32, 0xa4, 0x96, 0x5d, 0xce, 0x5d,
-	0x52, 0xae, 0x14, 0x37, 0x5e, 0xaf, 0xcd, 0x50, 0x7c, 0x6a, 0x21, 0x9f, 0xc6, 0x0b, 0x42, 0x9d,
-	0xd5, 0x66, 0x52, 0x02, 0x1e, 0x17, 0x8a, 0xde, 0x05, 0xb0, 0x99, 0x6e, 0x10, 0x67, 0x60, 0x51,
-	0xbb, 0x9c, 0xe7, 0x2a, 0x6c, 0xce, 0xae, 0xc2, 0xae, 0xcf, 0x2b, 0x0c, 0xc2, 0xe0, 0xc8, 0xc6,
-	0x11, 0x51, 0xe8, 0x1e, 0xac, 0x45, 0xb4, 0x09, 0x91, 0xca, 0x85, 0x4b, 0xca, 0x95, 0x52, 0xe3,
-	0x85, 0xd1, 0xf1, 0xfa, 0x5a, 0x33, 0x0d, 0x01, 0xa7, 0xd3, 0xa1, 0x03, 0xb8, 0x98, 0x62, 0xeb,
-	0x6d, 0xda, 0x61, 0xa4, 0x3d, 0xec, 0xd3, 0xf2, 0x12, 0x77, 0xd6, 0xe7, 0x85, 0x5a, 0x17, 0x9b,
-	0x53, 0x70, 0xf1, 0x54, 0x4e, 0xe8, 0x4e, 0xcc, 0x7b, 0x9b, 0xa6, 0xb1, 0xcf, 0xf4, 0x32, 0x70,
-	0xf6, 0x69, 0xc6, 0xf7, 0x10, 0xf0, 0x38, 0x8d, 0xfa, 0x1f, 0x05, 0x56, 0xf8, 0xef, 0x56, 0xaf,
-	0x6f, 0x5a, 0xce, 0x6e, 0x9f, 0x6a, 0xe8, 0x1e, 0x64, 0xf6, 0x2d, 0xb3, 0x27, 0x92, 0x3f, 0xc8,
-	0x9e, 0xb0, 0x38, 0xfa, 0xa9, 0x1f, 0x26, 0x7d, 0x90, 0x89, 0x61, 0x59, 0xba, 0x6d, 0x99, 0x3d,
-	0xcc, 0x19, 0xa1, 0x37, 0x40, 0x76, 0x4c, 0x9e, 0xdd, 0xc5, 0x8d, 0x8d, 0xe9, 0xec, 0xb6, 0x4c,
-	0x8d, 0x74, 0x93, 0x3c, 0x73, 0x6e, 0x9d, 0x6a, 0x9b, 0x58, 0x76, 0x4c, 0xf4, 0x43, 0x28, 0x31,
-	0xae, 0xea, 0x8e, 0xd9, 0x65, 0xda, 0x50, 0xa4, 0x78, 0x73, 0xa6, 0x78, 0x69, 0x13, 0xbd, 0x15,
-	0xe1, 0xd5, 0x38, 0x2f, 0x74, 0x2f, 0x45, 0x4f, 0x71, 0x4c, 0x1e, 0xba, 0x09, 0x2b, 0xcc, 0xd0,
-	0xba, 0x83, 0x4e, 0x98, 0x83, 0x6e, 0x82, 0x17, 0x1a, 0xcf, 0x0b, 0xe2, 0x95, 0x56, 0x1c, 0x8c,
-	0x93, 0xf8, 0xe8, 0x27, 0x12, 0xac, 0x58, 0xfe, 0xe5, 0xc4, 0x35, 0xb2, 0xfc, 0x1a, 0x77, 0x66,
-	0xbd, 0x06, 0x8e, 0xb3, 0x0b, 0x95, 0x49, 0x00, 0x70, 0x52, 0xb0, 0xfa, 0x37, 0x09, 0x56, 0xa3,
-	0x01, 0xe0, 0x10, 0x67, 0x60, 0xa3, 0x36, 0xe4, 0x6c, 0xfe, 0x97, 0x08, 0x82, 0xab, 0x27, 0xeb,
-	0x00, 0x1e, 0x75, 0x63, 0x59, 0x48, 0xcf, 0x79, 0xbf, 0xb1, 0xe0, 0x85, 0xbe, 0x0b, 0x59, 0xae,
-	0xb4, 0x08, 0x85, 0x1b, 0xb3, 0x27, 0x79, 0x63, 0x69, 0x74, 0xbc, 0xee, 0xf5, 0x2b, 0xec, 0xf1,
-	0xf4, 0x7b, 0x9f, 0x92, 0xde, 0xfb, 0xd4, 0x0f, 0x25, 0x80, 0xb0, 0xea, 0x04, 0xbd, 0x54, 0x9a,
-	0xd8, 0x4b, 0x2f, 0x43, 0xc6, 0x66, 0xf7, 0x3d, 0x5d, 0x95, 0xb0, 0x33, 0x73, 0xf2, 0x5d, 0x76,
-	0x9f, 0x62, 0x0e, 0x76, 0xbb, 0x78, 0x2f, 0x48, 0x70, 0x25, 0xde, 0xc5, 0xc3, 0x6c, 0x0e, 0x71,
-	0xd4, 0xdf, 0x49, 0xb0, 0xe4, 0x29, 0xc2, 0x6c, 0x07, 0xbd, 0x3d, 0xd6, 0x6c, 0x6b, 0x27, 0x33,
-	0xb5, 0x4b, 0xcd, 0x5b, 0x6d, 0x30, 0x62, 0xf8, 0x27, 0x91, 0x46, 0xfb, 0x0e, 0x64, 0x99, 0x43,
-	0x7b, 0x76, 0x59, 0xe6, 0x55, 0x75, 0x1e, 0x83, 0x9f, 0x15, 0x62, 0xb2, 0x2d, 0x97, 0x21, 0xf6,
-	0xf8, 0xaa, 0xd7, 0x45, 0xf0, 0x6c, 0x99, 0xe6, 0xe1, 0xa0, 0x2f, 0x52, 0xe4, 0x25, 0xc8, 0x76,
-	0xdd, 0x34, 0xe6, 0xe6, 0x28, 0x84, 0x94, 0x3c, 0xb7, 0xb1, 0x07, 0x53, 0xff, 0x9d, 0x83, 0xe5,
-	0x78, 0xfd, 0x5c, 0xc0, 0xe0, 0x71, 0x09, 0x32, 0x8e, 0xeb, 0x27, 0x39, 0xee, 0x75, 0xee, 0x22,
-	0x0e, 0x41, 0x97, 0x21, 0xaf, 0x99, 0x86, 0x43, 0x0d, 0x87, 0x6b, 0x5f, 0x6a, 0x14, 0x47, 0xc7,
-	0xeb, 0xf9, 0x4d, 0xef, 0x08, 0xfb, 0x30, 0xf4, 0x3e, 0x80, 0x66, 0x1a, 0x1d, 0xe6, 0x30, 0xd3,
-	0xb0, 0xcb, 0x19, 0x6e, 0xdd, 0xd9, 0x92, 0x37, 0xb8, 0xfe, 0xa6, 0xcf, 0x2f, 0xbc, 0x43, 0x70,
-	0x64, 0xe3, 0x88, 0x38, 0xf4, 0x75, 0x38, 0xcb, 0xc9, 0x5b, 0x1d, 0x6a, 0x38, 0xcc, 0x19, 0x8a,
-	0x21, 0x60, 0x4d, 0x90, 0x9d, 0x6d, 0x45, 0x81, 0x38, 0x8e, 0x8b, 0x7e, 0x26, 0x41, 0xc9, 0xed,
-	0x81, 0xb4, 0xb3, 0xd9, 0x25, 0xac, 0xe7, 0xf7, 0xfc, 0x37, 0x4f, 0xa1, 0xe1, 0xf2, 0xbb, 0xf8,
-	0x7c, 0x6f, 0x19, 0x8e, 0x15, 0xa9, 0xa8, 0x51, 0x10, 0x8e, 0x29, 0x80, 0xbe, 0x0d, 0x79, 0xcd,
-	0xa2, 0xee, 0x7c, 0x5d, 0xce, 0x73, 0xaf, 0x7f, 0xf1, 0x64, 0x5e, 0x6f, 0xb3, 0x1e, 0x15, 0xee,
-	0xf1, 0xc8, 0xb1, 0xcf, 0x07, 0x19, 0x50, 0x60, 0xb6, 0x3d, 0xa0, 0x9d, 0xc6, 0xb0, 0x5c, 0x98,
-	0xa3, 0x41, 0x04, 0x57, 0x6b, 0xb9, 0xdc, 0xac, 0x46, 0xc9, 0xcd, 0xb3, 0x96, 0xe0, 0x8c, 0x03,
-	0x19, 0xc8, 0xf4, 0xe5, 0xb5, 0x4d, 0xde, 0xe4, 0x8b, 0x1b, 0xb7, 0xe6, 0x93, 0xb7, 0x3b, 0xe0,
-	0xe1, 0x1b, 0x15, 0xd8, 0x36, 0x71, 0x20, 0xa4, 0xf2, 0x3a, 0xac, 0x8e, 0x19, 0x1b, 0x9d, 0x03,
-	0xe5, 0x90, 0x8a, 0x97, 0x07, 0x76, 0xff, 0x44, 0xe7, 0x21, 0x7b, 0x44, 0xba, 0x03, 0x11, 0xf0,
-	0xd8, 0xfb, 0x71, 0x43, 0xbe, 0x2e, 0xa9, 0xbf, 0x95, 0xa1, 0xe8, 0x79, 0xcf, 0xb1, 0x28, 0xe9,
-	0x2d, 0x20, 0xf7, 0xf6, 0x21, 0x63, 0xf7, 0xa9, 0x26, 0x6a, 0x7f, 0x73, 0x8e, 0x78, 0xe3, 0x1a,
-	0xbb, 0x93, 0x4a, 0x98, 0xc1, 0xee, 0x2f, 0xcc, 0xf9, 0x23, 0x23, 0x68, 0x5d, 0xde, 0x68, 0x70,
-	0x7b, 0x6e, 0x49, 0x53, 0x9b, 0x9a, 0xfa, 0x07, 0x09, 0xce, 0x45, 0xb0, 0x17, 0xf5, 0x86, 0x7a,
-	0xe7, 0xf4, 0x7a, 0x69, 0x58, 0xda, 0x23, 0xfd, 0x54, 0xfd, 0x93, 0x2c, 0x6a, 0xbb, 0x7f, 0x2f,
-	0x77, 0x3c, 0x58, 0xc0, 0xc5, 0xba, 0xb1, 0x38, 0x79, 0x63, 0x5e, 0xef, 0x85, 0x73, 0x6d, 0x6a,
-	0xb4, 0x38, 0x89, 0x68, 0xd9, 0x3a, 0x25, 0x79, 0xd3, 0x63, 0xe6, 0x37, 0x32, 0xac, 0xa5, 0xea,
-	0x88, 0x5e, 0x86, 0x9c, 0x37, 0x6e, 0x72, 0xeb, 0x16, 0x42, 0x0e, 0x1e, 0x0e, 0x16, 0x50, 0x34,
-	0x04, 0xb0, 0x68, 0xdf, 0xb4, 0x99, 0x63, 0x5a, 0x43, 0x61, 0xab, 0xd6, 0x4c, 0xba, 0xe3, 0x80,
-	0x4d, 0xc4, 0x54, 0xcb, 0xae, 0x7b, 0x42, 0x08, 0x8e, 0x08, 0x43, 0x5d, 0x57, 0x45, 0xa2, 0x53,
-	0xd7, 0x64, 0xca, 0x7c, 0xa9, 0x1c, 0x95, 0x18, 0x5e, 0xd4, 0xe5, 0x8d, 0x85, 0x0c, 0xf5, 0xef,
-	0x32, 0x3c, 0x3f, 0xc1, 0xbc, 0xa8, 0x13, 0x33, 0x56, 0x71, 0xe3, 0x9b, 0xf3, 0x3a, 0xaf, 0x01,
-	0x29, 0xa6, 0x7e, 0x3f, 0xc5, 0xd4, 0x77, 0x4f, 0xc7, 0xd4, 0x22, 0x4a, 0xa6, 0x18, 0xdb, 0x48,
-	0x18, 0xfb, 0xf6, 0xdc, 0xc6, 0x4e, 0x44, 0x66, 0xc2, 0xdc, 0x7f, 0x94, 0xc4, 0x7b, 0xd0, 0x33,
-	0xc8, 0x02, 0x66, 0x54, 0x1a, 0x9f, 0x51, 0xe7, 0xf7, 0x61, 0xfa, 0xa4, 0xfa, 0x2f, 0x09, 0x50,
-	0x04, 0x6b, 0x9b, 0xf4, 0xfb, 0xcc, 0xd0, 0xff, 0x0f, 0x0a, 0xf5, 0xe3, 0x1e, 0x3e, 0xbf, 0x97,
-	0x63, 0x1e, 0xe5, 0x55, 0x66, 0x37, 0xb6, 0xf9, 0x08, 0x43, 0x4f, 0x3c, 0x87, 0x5e, 0x14, 0x4c,
-	0xd6, 0x9a, 0x69, 0x48, 0x38, 0x9d, 0x16, 0x69, 0x90, 0x71, 0x88, 0xee, 0xfb, 0xf1, 0xe6, 0xdc,
-	0x4f, 0xd9, 0xc8, 0x7c, 0x4e, 0x74, 0x1b, 0x73, 0xe6, 0xe8, 0x03, 0x09, 0x4a, 0xdd, 0xc8, 0x63,
-	0x63, 0xfe, 0x26, 0x1f, 0x7d, 0xba, 0x84, 0xf3, 0x6a, 0xf4, 0x14, 0xc7, 0x24, 0xaa, 0x1f, 0x4b,
-	0xb1, 0xc6, 0x28, 0x6a, 0xd1, 0x53, 0x31, 0xe9, 0x41, 0xcc, 0xa4, 0xb3, 0x5d, 0xd2, 0x7d, 0xd2,
-	0x76, 0xda, 0x44, 0xbf, 0x75, 0x44, 0x0d, 0xc7, 0xcd, 0xbf, 0x34, 0xbb, 0xaa, 0x7f, 0xcd, 0xf8,
-	0xcf, 0x31, 0x7e, 0xa9, 0x36, 0x59, 0x44, 0x6a, 0xbc, 0xed, 0x45, 0xae, 0x97, 0x18, 0xa7, 0x10,
-	0x30, 0xf9, 0xd8, 0xb6, 0x7b, 0x03, 0x40, 0x6c, 0xee, 0x99, 0x69, 0xf0, 0x38, 0x51, 0x42, 0x7d,
-	0xee, 0x04, 0x10, 0x1c, 0xc1, 0x42, 0xf7, 0x53, 0xde, 0x75, 0xb7, 0x67, 0x55, 0x8c, 0x5b, 0xfc,
-	0xe4, 0xcf, 0xba, 0xa0, 0x50, 0x64, 0x9f, 0x52, 0xa1, 0x18, 0xcb, 0x9d, 0xdc, 0xc2, 0x73, 0xe7,
-	0xd3, 0x78, 0x15, 0x6e, 0x13, 0x7d, 0x01, 0x1d, 0xe6, 0x20, 0xde, 0x61, 0x36, 0xe7, 0xed, 0x30,
-	0x6d, 0xa2, 0x4f, 0x68, 0x32, 0xbf, 0x90, 0x61, 0x75, 0x2c, 0xdf, 0xfc, 0x02, 0x2d, 0x4d, 0xf8,
-	0x2a, 0xb3, 0x17, 0x57, 0xef, 0x1b, 0x73, 0x85, 0x5b, 0xba, 0x62, 0x89, 0xb8, 0x56, 0x16, 0x19,
-	0xd7, 0xea, 0x03, 0x05, 0xce, 0xa7, 0x0d, 0x99, 0xa7, 0xbf, 0x67, 0x4e, 0xee, 0x86, 0xe5, 0x67,
-	0xbf, 0x1b, 0x56, 0x4e, 0x61, 0x37, 0x9c, 0x79, 0x56, 0xbb, 0xe1, 0x5f, 0xca, 0x70, 0x21, 0x7d,
-	0x66, 0x7d, 0x4a, 0x0b, 0xe2, 0x70, 0xda, 0x95, 0x17, 0x31, 0xed, 0xa2, 0x1b, 0xb0, 0x4c, 0x3a,
-	0x5e, 0x9c, 0x92, 0xae, 0xdb, 0x0d, 0x79, 0x6a, 0x2c, 0x35, 0xd0, 0xe8, 0x78, 0x7d, 0xf9, 0x66,
-	0x0c, 0x82, 0x13, 0x98, 0xea, 0xa7, 0x0a, 0xa0, 0xf1, 0xe5, 0x1d, 0xba, 0x21, 0x56, 0x8c, 0x5e,
-	0xb6, 0xbf, 0x1c, 0x5d, 0x31, 0x7e, 0x76, 0xbc, 0x7e, 0x61, 0x9c, 0x22, 0xb2, 0x7c, 0x7c, 0x2b,
-	0x30, 0xaa, 0xb7, 0xa0, 0x7c, 0x2d, 0x6e, 0xa6, 0xcf, 0x8e, 0xd7, 0xa7, 0x7e, 0xa8, 0xae, 0x05,
-	0x3c, 0x13, 0x66, 0xd5, 0xe1, 0x6c, 0x97, 0xd8, 0xce, 0x8e, 0x65, 0xee, 0xd1, 0x36, 0x13, 0x5f,
-	0x90, 0x9f, 0x6c, 0xcf, 0x16, 0x2c, 0x17, 0xb7, 0xa2, 0x8c, 0x70, 0x9c, 0x2f, 0x3a, 0x02, 0xe4,
-	0x1e, 0xb4, 0x2d, 0x62, 0xd8, 0xde, 0xe5, 0x5c, 0x69, 0x99, 0x27, 0x96, 0x56, 0x11, 0xd2, 0xd0,
-	0xd6, 0x18, 0x37, 0x9c, 0x22, 0xc1, 0x7d, 0x35, 0x5b, 0x94, 0xd8, 0xa6, 0x21, 0x56, 0xa1, 0x81,
-	0xbf, 0x31, 0x3f, 0xc5, 0x02, 0x8a, 0xbe, 0x00, 0xf9, 0x1e, 0xb5, 0x6d, 0xb7, 0xc9, 0xe6, 0x38,
-	0xe2, 0x8a, 0x40, 0xcc, 0x6f, 0x7b, 0xc7, 0xd8, 0x87, 0xab, 0x1f, 0x4a, 0x10, 0x3a, 0x8b, 0x4f,
-	0x0b, 0x4c, 0xbb, 0xe5, 0xad, 0x50, 0xaf, 0x43, 0xc9, 0xb4, 0x74, 0x62, 0xb0, 0xfb, 0xde, 0x68,
-	0xe1, 0xb9, 0x3a, 0x28, 0x10, 0xf7, 0x22, 0x30, 0x1c, 0xc3, 0x74, 0x47, 0x12, 0xcd, 0xec, 0xf5,
-	0x4c, 0xc3, 0x6d, 0x12, 0xc2, 0xc9, 0x91, 0xf2, 0xe9, 0x43, 0x70, 0x04, 0x4b, 0x7d, 0x20, 0xc1,
-	0x4a, 0x62, 0x0f, 0x89, 0x7e, 0x25, 0xc1, 0x05, 0x3b, 0x55, 0x39, 0x91, 0x8e, 0x77, 0xe7, 0x5b,
-	0x3f, 0xc6, 0x58, 0x36, 0xaa, 0x42, 0xc3, 0x09, 0xf6, 0xc0, 0x13, 0x54, 0x51, 0xff, 0x21, 0xc1,
-	0xb9, 0xe4, 0x46, 0xf3, 0x7f, 0x43, 0x75, 0xf4, 0x15, 0x28, 0xf6, 0x07, 0x7b, 0x5d, 0xa6, 0xdd,
-	0xa5, 0xc3, 0x56, 0x53, 0x78, 0xea, 0x39, 0xc1, 0xac, 0xb8, 0x13, 0x82, 0x70, 0x14, 0x4f, 0xfd,
-	0xa9, 0x0c, 0x05, 0xbf, 0x41, 0xa2, 0x37, 0xc3, 0xbd, 0xb6, 0xf4, 0xc4, 0x19, 0x10, 0x04, 0xe6,
-	0xd8, 0x6e, 0xfb, 0xf4, 0xff, 0x79, 0xe2, 0x25, 0x7f, 0xf0, 0xf4, 0x9e, 0x90, 0xe9, 0xc3, 0x63,
-	0x7c, 0x9a, 0xce, 0x9c, 0x64, 0x9a, 0x56, 0x7f, 0xad, 0xc0, 0xea, 0xd8, 0xbc, 0x80, 0xbe, 0x16,
-	0xab, 0x90, 0x97, 0x13, 0x15, 0x72, 0x6d, 0x8c, 0x60, 0x01, 0x05, 0x32, 0xbd, 0x6e, 0x29, 0x0b,
-	0xac, 0x5b, 0x99, 0x93, 0xd6, 0xad, 0xec, 0xf4, 0xba, 0x95, 0xf0, 0x53, 0xee, 0x44, 0x7e, 0xea,
-	0xc3, 0x4a, 0x62, 0xdc, 0x41, 0x57, 0xa1, 0xc0, 0x0c, 0x9b, 0x6a, 0x03, 0x8b, 0x8a, 0x4d, 0x64,
-	0x30, 0x61, 0xb7, 0xc4, 0x39, 0x0e, 0x30, 0x50, 0x1d, 0x96, 0x6c, 0xed, 0x80, 0x76, 0x06, 0x5d,
-	0xda, 0xe1, 0xae, 0x29, 0x84, 0x1f, 0x41, 0x77, 0x7d, 0x00, 0x0e, 0x71, 0xd4, 0x07, 0x59, 0x28,
-	0x45, 0x47, 0x93, 0x13, 0x7c, 0x8f, 0xfd, 0xb1, 0x04, 0x45, 0x62, 0x18, 0xa6, 0x43, 0xbc, 0x21,
-	0xd6, 0x9b, 0x10, 0xf0, 0xdc, 0x53, 0x51, 0xed, 0x66, 0xc8, 0xd4, 0xfb, 0x68, 0x15, 0xe4, 0x79,
-	0x04, 0x82, 0xa3, 0xb2, 0xd1, 0x5d, 0x31, 0xb9, 0x2a, 0xb3, 0x4c, 0xae, 0x85, 0xc4, 0xd4, 0x5a,
-	0x87, 0xa5, 0x60, 0xf0, 0x12, 0xff, 0x4b, 0x10, 0x18, 0x2f, 0x4c, 0xdd, 0x10, 0x07, 0xd5, 0x62,
-	0x2e, 0xce, 0x72, 0x17, 0x2f, 0x4f, 0x79, 0xd4, 0x26, 0xc7, 0xe2, 0xdc, 0x82, 0xc7, 0xe2, 0xb4,
-	0x99, 0x36, 0xff, 0x8c, 0x66, 0xda, 0xca, 0x6b, 0x70, 0x2e, 0xe9, 0xf0, 0x27, 0xfa, 0x70, 0xb6,
-	0x03, 0x68, 0x5c, 0xfe, 0xe3, 0xa6, 0xbe, 0x71, 0x8a, 0xb0, 0xa8, 0x35, 0xae, 0x3c, 0x7c, 0x54,
-	0x3d, 0xf3, 0xd1, 0xa3, 0xea, 0x99, 0x4f, 0x1e, 0x55, 0xcf, 0x7c, 0x30, 0xaa, 0x4a, 0x0f, 0x47,
-	0x55, 0xe9, 0xa3, 0x51, 0x55, 0xfa, 0x64, 0x54, 0x95, 0xfe, 0x3c, 0xaa, 0x4a, 0x3f, 0xff, 0x4b,
-	0xf5, 0xcc, 0x77, 0xe4, 0xa3, 0x6b, 0xff, 0x0d, 0x00, 0x00, 0xff, 0xff, 0x88, 0x78, 0x50, 0x9d,
-	0x5a, 0x2a, 0x00, 0x00,
+	// 2309 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xdc, 0x3a, 0xdb, 0x6f, 0x1b, 0x59,
+	0xf9, 0x9d, 0x19, 0xdf, 0xf2, 0xd9, 0x4d, 0x9a, 0xd3, 0xa6, 0xeb, 0xcd, 0xaf, 0xeb, 0x44, 0xb3,
+	0xbf, 0xae, 0x0a, 0xea, 0xda, 0x34, 0x0b, 0xa8, 0x14, 0xb1, 0x4b, 0x1d, 0xa7, 0x95, 0xb7, 0x09,
+	0x0d, 0x27, 0xde, 0x7d, 0x80, 0x95, 0x96, 0x93, 0xf1, 0xc9, 0xe4, 0x10, 0x7b, 0xc6, 0x9a, 0x19,
+	0x67, 0x71, 0x17, 0xa1, 0x7d, 0x5a, 0x01, 0x42, 0x02, 0xf1, 0xc8, 0x2b, 0x42, 0xe2, 0x3f, 0xe8,
+	0x9f, 0x40, 0xc5, 0x03, 0x5a, 0xad, 0x04, 0x5a, 0xa4, 0x55, 0x44, 0x0d, 0xbc, 0x21, 0xf1, 0x82,
+	0x78, 0x58, 0x21, 0x84, 0xe6, 0xcc, 0x99, 0xab, 0xc7, 0x6e, 0x6a, 0xa7, 0xae, 0xe0, 0x2d, 0x3e,
+	0xdf, 0xf5, 0x7c, 0xf7, 0xf3, 0x4d, 0x60, 0x53, 0x67, 0xce, 0x61, 0x7f, 0xbf, 0xaa, 0x99, 0xdd,
+	0x9a, 0xd9, 0xa3, 0x86, 0x7d, 0xc8, 0x0e, 0x9c, 0x9a, 0x69, 0x31, 0x9d, 0x19, 0xb5, 0xde, 0x91,
+	0x5e, 0x63, 0x5d, 0xa2, 0xd3, 0x1a, 0xe9, 0x31, 0x5b, 0xfc, 0x79, 0x7c, 0xa3, 0xa6, 0x53, 0x83,
+	0x5a, 0xc4, 0xa1, 0xed, 0x6a, 0xcf, 0x32, 0x1d, 0x13, 0xbd, 0x16, 0x32, 0xa9, 0x06, 0x4c, 0xaa,
+	0x1e, 0x93, 0x6a, 0xef, 0x48, 0xaf, 0x72, 0xca, 0xaa, 0xcb, 0x44, 0xfc, 0x79, 0x7c, 0x63, 0xf5,
+	0xd5, 0x88, 0x64, 0xdd, 0xd4, 0xcd, 0x1a, 0xe7, 0xb5, 0xdf, 0x3f, 0xe0, 0xbf, 0xf8, 0x0f, 0xfe,
+	0x97, 0x27, 0x63, 0xf5, 0x8b, 0x47, 0x37, 0xed, 0x2a, 0x33, 0x5d, 0x4d, 0xba, 0x44, 0x3b, 0x64,
+	0x06, 0xb5, 0x06, 0x5c, 0x41, 0xae, 0x5a, 0x97, 0x3a, 0x24, 0x45, 0xb3, 0xd5, 0xda, 0x38, 0x2a,
+	0xab, 0x6f, 0x38, 0xac, 0x4b, 0x47, 0x08, 0xbe, 0xfc, 0x24, 0x02, 0x5b, 0x3b, 0xa4, 0x5d, 0x32,
+	0x42, 0xf7, 0xda, 0x38, 0xba, 0xbe, 0xc3, 0x3a, 0x35, 0x66, 0x38, 0xb6, 0x63, 0x8d, 0x10, 0x5d,
+	0x17, 0x44, 0x47, 0xfd, 0x7d, 0x6a, 0x19, 0xd4, 0xa1, 0xb6, 0x7f, 0xa3, 0x94, 0xbb, 0xa8, 0x1f,
+	0x4b, 0x70, 0xa9, 0x61, 0x6a, 0x47, 0xd4, 0x6a, 0xba, 0x36, 0xc4, 0xf4, 0x80, 0x5a, 0xd4, 0xd0,
+	0x28, 0xba, 0x0e, 0x05, 0x8b, 0xea, 0xcc, 0x76, 0xac, 0x41, 0x59, 0x5a, 0x97, 0xae, 0x2d, 0xd4,
+	0x2f, 0x3c, 0x3a, 0x59, 0x3b, 0x37, 0x3c, 0x59, 0x2b, 0x60, 0x71, 0x8e, 0x03, 0x0c, 0x54, 0x83,
+	0x05, 0x83, 0x74, 0xa9, 0xdd, 0x23, 0x1a, 0x2d, 0xcb, 0x1c, 0x7d, 0x59, 0xa0, 0x2f, 0x7c, 0xc3,
+	0x07, 0xe0, 0x10, 0x07, 0xad, 0x43, 0xc6, 0xfd, 0x51, 0x56, 0x38, 0x6e, 0x49, 0xe0, 0x66, 0x5c,
+	0x5c, 0xcc, 0x21, 0xe8, 0x25, 0x50, 0x1c, 0xa2, 0x97, 0x33, 0x1c, 0xa1, 0x28, 0x10, 0x94, 0x16,
+	0xd1, 0xb1, 0x7b, 0x8e, 0x56, 0x41, 0x66, 0x8d, 0x72, 0x96, 0x43, 0x41, 0x40, 0xe5, 0x66, 0x03,
+	0xcb, 0xac, 0xa1, 0xfe, 0x23, 0x0f, 0x59, 0x7e, 0x1d, 0xf4, 0x1d, 0x28, 0xb8, 0x5e, 0x6c, 0x13,
+	0x87, 0xf0, 0x5b, 0x14, 0x37, 0xbe, 0x50, 0xf5, 0xec, 0x53, 0x8d, 0x1a, 0x95, 0xc7, 0x13, 0x8f,
+	0x24, 0x17, 0xbb, 0x7a, 0x7c, 0xa3, 0x7a, 0x7f, 0xff, 0xbb, 0x54, 0x73, 0x76, 0xa8, 0x43, 0xea,
+	0x48, 0x70, 0x87, 0xf0, 0x0c, 0x07, 0x5c, 0xd1, 0x2e, 0x5c, 0x6a, 0xa7, 0xd8, 0x4f, 0x18, 0xe1,
+	0x8a, 0xa0, 0x4d, 0xb5, 0x31, 0x4e, 0xa5, 0x44, 0xdf, 0x87, 0x8b, 0x91, 0xf3, 0x1d, 0x5f, 0x7d,
+	0x85, 0xab, 0xff, 0xea, 0x58, 0xf5, 0x45, 0x2c, 0x55, 0x31, 0x79, 0x6f, 0xeb, 0x7b, 0x0e, 0x35,
+	0x6c, 0x66, 0x1a, 0xf5, 0xff, 0x13, 0xf2, 0x2f, 0x36, 0x46, 0x39, 0xe2, 0x34, 0x31, 0x68, 0x1f,
+	0x56, 0x53, 0x8e, 0xdf, 0xa6, 0x96, 0xcb, 0x4f, 0x78, 0x43, 0x15, 0x5c, 0x57, 0x1b, 0x63, 0x31,
+	0xf1, 0x04, 0x2e, 0x68, 0x27, 0x7e, 0x43, 0x62, 0xb0, 0x03, 0x6a, 0x3b, 0xc2, 0x99, 0xa9, 0x2a,
+	0x0b, 0x14, 0x9c, 0x46, 0x87, 0x7e, 0x28, 0xc1, 0x72, 0xe4, 0x7c, 0x9b, 0x0c, 0xa8, 0x65, 0x97,
+	0x73, 0xeb, 0xca, 0xb5, 0xe2, 0xc6, 0x1b, 0xd5, 0x29, 0xca, 0x48, 0x35, 0xe4, 0x53, 0x7f, 0x51,
+	0xa8, 0xb3, 0xdc, 0x48, 0x4a, 0xc0, 0xa3, 0x42, 0xd1, 0x7b, 0x00, 0x36, 0xd3, 0x0d, 0xe2, 0xf4,
+	0x2d, 0x6a, 0x97, 0xf3, 0x5c, 0x85, 0xcd, 0xe9, 0x55, 0xd8, 0xf3, 0x79, 0x85, 0x41, 0x18, 0x1c,
+	0xd9, 0x38, 0x22, 0x0a, 0xdd, 0x87, 0x95, 0x88, 0x36, 0x21, 0x52, 0xb9, 0xb0, 0xae, 0x5c, 0x2b,
+	0xd5, 0x5f, 0x1c, 0x9e, 0xac, 0xad, 0x34, 0xd2, 0x10, 0x70, 0x3a, 0x1d, 0x3a, 0x84, 0x2b, 0x29,
+	0xb6, 0xde, 0xa1, 0x6d, 0x46, 0x5a, 0x83, 0x1e, 0x2d, 0x2f, 0x70, 0x67, 0xfd, 0xbf, 0x50, 0xeb,
+	0x4a, 0x63, 0x02, 0x2e, 0x9e, 0xc8, 0x09, 0xdd, 0x8d, 0x79, 0x6f, 0xd3, 0x34, 0x0e, 0x98, 0x5e,
+	0x06, 0xce, 0x3e, 0xcd, 0xf8, 0x1e, 0x02, 0x1e, 0xa5, 0x51, 0xff, 0xad, 0xc0, 0x12, 0xff, 0xdd,
+	0xec, 0xf6, 0x4c, 0xcb, 0xd9, 0xeb, 0x51, 0x0d, 0xdd, 0x87, 0xcc, 0x81, 0x65, 0x76, 0x45, 0xf2,
+	0x07, 0xd9, 0x13, 0x16, 0x47, 0x3f, 0xf5, 0xc3, 0xa4, 0x0f, 0x32, 0x31, 0x2c, 0x4b, 0x77, 0x2c,
+	0xb3, 0x8b, 0x39, 0x23, 0xf4, 0x26, 0xc8, 0x8e, 0xc9, 0xb3, 0xbb, 0xb8, 0xb1, 0x31, 0x99, 0xdd,
+	0xb6, 0xa9, 0x91, 0x4e, 0x92, 0x67, 0xce, 0xad, 0x53, 0x2d, 0x13, 0xcb, 0x8e, 0x89, 0x7e, 0x00,
+	0x25, 0xc6, 0x55, 0xdd, 0x35, 0x3b, 0x4c, 0x1b, 0x88, 0x14, 0x6f, 0x4c, 0x15, 0x2f, 0x2d, 0xa2,
+	0x37, 0x23, 0xbc, 0xea, 0x97, 0x84, 0xee, 0xa5, 0xe8, 0x29, 0x8e, 0xc9, 0x43, 0xb7, 0x61, 0x89,
+	0x19, 0x5a, 0xa7, 0xdf, 0x0e, 0x73, 0xd0, 0x4d, 0xf0, 0x42, 0xfd, 0x05, 0x41, 0xbc, 0xd4, 0x8c,
+	0x83, 0x71, 0x12, 0x1f, 0xfd, 0x58, 0x82, 0x25, 0xcb, 0xbf, 0x9c, 0xb8, 0x46, 0x96, 0x5f, 0xe3,
+	0xee, 0xb4, 0xd7, 0xc0, 0x71, 0x76, 0xa1, 0x32, 0x09, 0x00, 0x4e, 0x0a, 0x56, 0xff, 0x2a, 0xc1,
+	0x72, 0x34, 0x00, 0x1c, 0xe2, 0xf4, 0x6d, 0xd4, 0x82, 0x9c, 0xcd, 0xff, 0x12, 0x41, 0x70, 0xfd,
+	0x74, 0x1d, 0xc0, 0xa3, 0xae, 0x2f, 0x0a, 0xe9, 0x39, 0xef, 0x37, 0x16, 0xbc, 0xd0, 0xb7, 0x21,
+	0xcb, 0x95, 0x16, 0xa1, 0x70, 0x6b, 0xfa, 0x24, 0xaf, 0x2f, 0x0c, 0x4f, 0xd6, 0xbc, 0x7e, 0x85,
+	0x3d, 0x9e, 0x7e, 0xef, 0x53, 0xd2, 0x7b, 0x9f, 0xfa, 0xa1, 0x04, 0x10, 0x56, 0x9d, 0xa0, 0x97,
+	0x4a, 0x63, 0x7b, 0xe9, 0x55, 0xc8, 0xd8, 0xec, 0x81, 0xa7, 0xab, 0x12, 0x76, 0x66, 0x4e, 0xbe,
+	0xc7, 0x1e, 0x50, 0xcc, 0xc1, 0x6e, 0x17, 0xef, 0x06, 0x09, 0xae, 0xc4, 0xbb, 0x78, 0x98, 0xcd,
+	0x21, 0x8e, 0xfa, 0x5b, 0x09, 0x16, 0x3c, 0x45, 0x98, 0xed, 0xa0, 0x77, 0x46, 0x9a, 0x6d, 0xf5,
+	0x74, 0xa6, 0x76, 0xa9, 0x79, 0xab, 0x0d, 0x46, 0x0c, 0xff, 0x24, 0xd2, 0x68, 0xdf, 0x85, 0x2c,
+	0x73, 0x68, 0xd7, 0x2e, 0xcb, 0xbc, 0xaa, 0xce, 0x62, 0xf0, 0xf3, 0x42, 0x4c, 0xb6, 0xe9, 0x32,
+	0xc4, 0x1e, 0x5f, 0xf5, 0xa6, 0x08, 0x9e, 0x6d, 0xd3, 0x3c, 0xea, 0xf7, 0x44, 0x8a, 0xbc, 0x0c,
+	0xd9, 0x8e, 0x9b, 0xc6, 0xdc, 0x1c, 0x85, 0x90, 0x92, 0xe7, 0x36, 0xf6, 0x60, 0xea, 0xbf, 0x72,
+	0xb0, 0x18, 0xaf, 0x9f, 0x73, 0x18, 0x3c, 0xd6, 0x21, 0xe3, 0xb8, 0x7e, 0x92, 0xe3, 0x5e, 0xe7,
+	0x2e, 0xe2, 0x10, 0x74, 0x15, 0xf2, 0x9a, 0x69, 0x38, 0xd4, 0x70, 0xb8, 0xf6, 0xa5, 0x7a, 0x71,
+	0x78, 0xb2, 0x96, 0xdf, 0xf4, 0x8e, 0xb0, 0x0f, 0x43, 0xef, 0x03, 0x68, 0xa6, 0xd1, 0x66, 0x0e,
+	0x33, 0x0d, 0xbb, 0x9c, 0xe1, 0xd6, 0x9d, 0x2e, 0x79, 0x83, 0xeb, 0x6f, 0xfa, 0xfc, 0xc2, 0x3b,
+	0x04, 0x47, 0x36, 0x8e, 0x88, 0x43, 0x5f, 0x85, 0xf3, 0x9c, 0xbc, 0xd9, 0xa6, 0x86, 0xc3, 0x9c,
+	0x81, 0x18, 0x02, 0x56, 0x04, 0xd9, 0xf9, 0x66, 0x14, 0x88, 0xe3, 0xb8, 0xe8, 0xa7, 0x12, 0x94,
+	0xdc, 0x1e, 0x48, 0xdb, 0x9b, 0x1d, 0xc2, 0xba, 0x7e, 0xcf, 0x7f, 0xeb, 0x0c, 0x1a, 0x2e, 0xbf,
+	0x8b, 0xcf, 0x77, 0xcb, 0x70, 0xac, 0x48, 0x45, 0x8d, 0x82, 0x70, 0x4c, 0x01, 0xf4, 0x4d, 0xc8,
+	0x6b, 0x16, 0x75, 0xe7, 0xeb, 0x72, 0x9e, 0x7b, 0xfd, 0xf3, 0xa7, 0xf3, 0x7a, 0x8b, 0x75, 0xa9,
+	0x70, 0x8f, 0x47, 0x8e, 0x7d, 0x3e, 0xc8, 0x80, 0x02, 0xb3, 0xed, 0x3e, 0x6d, 0xd7, 0x07, 0xe5,
+	0xc2, 0x0c, 0x0d, 0x22, 0xb8, 0x5a, 0xd3, 0xe5, 0x66, 0xd5, 0x4b, 0x6e, 0x9e, 0x35, 0x05, 0x67,
+	0x1c, 0xc8, 0x40, 0xa6, 0x2f, 0xaf, 0x65, 0xf2, 0x26, 0x5f, 0xdc, 0xd8, 0x9a, 0x4d, 0xde, 0x5e,
+	0x9f, 0x87, 0x6f, 0x54, 0x60, 0xcb, 0xc4, 0x81, 0x90, 0xd5, 0x37, 0x60, 0x79, 0xc4, 0xd8, 0xe8,
+	0x02, 0x28, 0x47, 0x54, 0xbc, 0x3c, 0xb0, 0xfb, 0x27, 0xba, 0x04, 0xd9, 0x63, 0xd2, 0xe9, 0x8b,
+	0x80, 0xc7, 0xde, 0x8f, 0x5b, 0xf2, 0x4d, 0x49, 0xfd, 0x8d, 0x0c, 0x45, 0xcf, 0x7b, 0x8e, 0x45,
+	0x49, 0x77, 0x0e, 0xb9, 0x77, 0x00, 0x19, 0xbb, 0x47, 0x35, 0x51, 0xfb, 0x1b, 0x33, 0xc4, 0x1b,
+	0xd7, 0xd8, 0x9d, 0x54, 0xc2, 0x0c, 0x76, 0x7f, 0x61, 0xce, 0x1f, 0x19, 0x41, 0xeb, 0xf2, 0x46,
+	0x83, 0x3b, 0x33, 0x4b, 0x9a, 0xd8, 0xd4, 0xd4, 0xdf, 0x4b, 0x70, 0x21, 0x82, 0x3d, 0xaf, 0x37,
+	0xd4, 0xbb, 0x67, 0xd7, 0x4b, 0xc3, 0xd2, 0x1e, 0xe9, 0xa7, 0xea, 0x1f, 0x65, 0x51, 0xdb, 0xfd,
+	0x7b, 0xb9, 0xe3, 0xc1, 0x1c, 0x2e, 0xd6, 0x89, 0xc5, 0xc9, 0x9b, 0xb3, 0x7a, 0x2f, 0x9c, 0x6b,
+	0x53, 0xa3, 0xc5, 0x49, 0x44, 0xcb, 0xf6, 0x19, 0xc9, 0x9b, 0x1c, 0x33, 0xbf, 0x96, 0x61, 0x25,
+	0x55, 0x47, 0xf4, 0x0a, 0xe4, 0xbc, 0x71, 0x93, 0x5b, 0xb7, 0x10, 0x72, 0xf0, 0x70, 0xb0, 0x80,
+	0xa2, 0x01, 0x80, 0x45, 0x7b, 0xa6, 0xcd, 0x1c, 0xd3, 0x1a, 0x08, 0x5b, 0x35, 0xa7, 0xd2, 0x1d,
+	0x07, 0x6c, 0x22, 0xa6, 0x5a, 0x74, 0xdd, 0x13, 0x42, 0x70, 0x44, 0x18, 0xea, 0xb8, 0x2a, 0x12,
+	0x9d, 0xba, 0x26, 0x53, 0x66, 0x4b, 0xe5, 0xa8, 0xc4, 0xf0, 0xa2, 0x2e, 0x6f, 0x2c, 0x64, 0xa8,
+	0x7f, 0x93, 0xe1, 0x85, 0x31, 0xe6, 0x45, 0xed, 0x98, 0xb1, 0x8a, 0x1b, 0x5f, 0x9f, 0xd5, 0x79,
+	0x75, 0x48, 0x31, 0xf5, 0xfb, 0x29, 0xa6, 0xbe, 0x77, 0x36, 0xa6, 0x16, 0x51, 0x32, 0xc1, 0xd8,
+	0x46, 0xc2, 0xd8, 0x77, 0x66, 0x36, 0x76, 0x22, 0x32, 0x13, 0xe6, 0xfe, 0x83, 0x24, 0xde, 0x83,
+	0x9e, 0x41, 0xe6, 0x30, 0xa3, 0xd2, 0xf8, 0x8c, 0x3a, 0xbb, 0x0f, 0xd3, 0x27, 0xd5, 0x7f, 0x4a,
+	0x80, 0x22, 0x58, 0x3b, 0xa4, 0xd7, 0x63, 0x86, 0xfe, 0x3f, 0x50, 0xa8, 0x9f, 0xf4, 0xf0, 0xf9,
+	0x9d, 0x1c, 0xf3, 0x28, 0xaf, 0x32, 0x7b, 0xb1, 0xcd, 0x47, 0x18, 0x7a, 0xe2, 0x39, 0xf4, 0x92,
+	0x60, 0xb2, 0xd2, 0x48, 0x43, 0xc2, 0xe9, 0xb4, 0x48, 0x83, 0x8c, 0x43, 0x74, 0xdf, 0x8f, 0xb7,
+	0x67, 0x7e, 0xca, 0x46, 0xe6, 0x73, 0xa2, 0xdb, 0x98, 0x33, 0x47, 0x1f, 0x48, 0x50, 0xea, 0x44,
+	0x1e, 0x1b, 0xb3, 0x37, 0xf9, 0xe8, 0xd3, 0x25, 0x9c, 0x57, 0xa3, 0xa7, 0x38, 0x26, 0x51, 0xfd,
+	0x58, 0x8a, 0x35, 0x46, 0x51, 0x8b, 0x9e, 0x89, 0x49, 0x0f, 0x63, 0x26, 0x9d, 0xee, 0x92, 0xee,
+	0x93, 0xb6, 0xdd, 0x22, 0xfa, 0xd6, 0x31, 0x35, 0x1c, 0x37, 0xff, 0xd2, 0xec, 0xaa, 0xfe, 0x25,
+	0xe3, 0x3f, 0xc7, 0xf8, 0xa5, 0x5a, 0x64, 0x1e, 0xa9, 0xf1, 0x8e, 0x17, 0xb9, 0x5e, 0x62, 0x9c,
+	0x41, 0xc0, 0xe4, 0x63, 0xdb, 0xee, 0x0d, 0x00, 0xb1, 0xb9, 0x67, 0xa6, 0xc1, 0xe3, 0x44, 0x09,
+	0xf5, 0xb9, 0x1b, 0x40, 0x70, 0x04, 0x0b, 0x3d, 0x48, 0x79, 0xd7, 0xdd, 0x99, 0x56, 0x31, 0x6e,
+	0xf1, 0xd3, 0x3f, 0xeb, 0x82, 0x42, 0x91, 0x7d, 0x46, 0x85, 0x62, 0x24, 0x77, 0x72, 0x73, 0xcf,
+	0x9d, 0x4f, 0xe3, 0x55, 0xb8, 0x45, 0xf4, 0x39, 0x74, 0x98, 0xc3, 0x78, 0x87, 0xd9, 0x9c, 0xb5,
+	0xc3, 0xb4, 0x88, 0x3e, 0xa6, 0xc9, 0xfc, 0x5c, 0x86, 0xe5, 0x91, 0x7c, 0xf3, 0x0b, 0xb4, 0x34,
+	0xe6, 0xab, 0xcc, 0x7e, 0x5c, 0xbd, 0xaf, 0xcd, 0x14, 0x6e, 0xe9, 0x8a, 0x25, 0xe2, 0x5a, 0x99,
+	0x67, 0x5c, 0xab, 0x0f, 0x15, 0xb8, 0x94, 0x36, 0x64, 0x9e, 0xfd, 0x9e, 0x39, 0xb9, 0x1b, 0x96,
+	0x9f, 0xff, 0x6e, 0x58, 0x39, 0x83, 0xdd, 0x70, 0xe6, 0x79, 0xed, 0x86, 0x7f, 0x21, 0xc3, 0xe5,
+	0xf4, 0x99, 0xf5, 0x19, 0x2d, 0x88, 0xc3, 0x69, 0x57, 0x9e, 0xc7, 0xb4, 0x8b, 0x6e, 0xc1, 0x22,
+	0x69, 0x7b, 0x71, 0x4a, 0x3a, 0x6e, 0x37, 0xe4, 0xa9, 0xb1, 0x50, 0x47, 0xc3, 0x93, 0xb5, 0xc5,
+	0xdb, 0x31, 0x08, 0x4e, 0x60, 0xaa, 0x9f, 0x2a, 0x80, 0x46, 0x97, 0x77, 0xe8, 0x96, 0x58, 0x31,
+	0x7a, 0xd9, 0xfe, 0x4a, 0x74, 0xc5, 0xf8, 0xd9, 0xc9, 0xda, 0xe5, 0x51, 0x8a, 0xc8, 0xf2, 0xf1,
+	0xed, 0xc0, 0xa8, 0xde, 0x82, 0xf2, 0xf5, 0xb8, 0x99, 0x3e, 0x3b, 0x59, 0x9b, 0xf8, 0xa1, 0xba,
+	0x1a, 0xf0, 0x4c, 0x98, 0x55, 0x87, 0xf3, 0x1d, 0x62, 0x3b, 0xbb, 0x96, 0xb9, 0x4f, 0x5b, 0x4c,
+	0x7c, 0x41, 0x7e, 0xba, 0x3d, 0x5b, 0xb0, 0x5c, 0xdc, 0x8e, 0x32, 0xc2, 0x71, 0xbe, 0xe8, 0x18,
+	0x90, 0x7b, 0xd0, 0xb2, 0x88, 0x61, 0x7b, 0x97, 0x73, 0xa5, 0x65, 0x9e, 0x5a, 0xda, 0xaa, 0x90,
+	0x86, 0xb6, 0x47, 0xb8, 0xe1, 0x14, 0x09, 0xee, 0xab, 0xd9, 0xa2, 0xc4, 0x36, 0x0d, 0xb1, 0x0a,
+	0x0d, 0xfc, 0x8d, 0xf9, 0x29, 0x16, 0x50, 0xf4, 0x39, 0xc8, 0x77, 0xa9, 0x6d, 0xbb, 0x4d, 0x36,
+	0xc7, 0x11, 0x97, 0x04, 0x62, 0x7e, 0xc7, 0x3b, 0xc6, 0x3e, 0x5c, 0xfd, 0x50, 0x82, 0xd0, 0x59,
+	0x7c, 0x5a, 0x60, 0xda, 0x96, 0xb7, 0x42, 0xbd, 0x09, 0x25, 0xd3, 0xd2, 0x89, 0xc1, 0x1e, 0x78,
+	0xa3, 0x85, 0xe7, 0xea, 0xa0, 0x40, 0xdc, 0x8f, 0xc0, 0x70, 0x0c, 0xd3, 0x1d, 0x49, 0x34, 0xb3,
+	0xdb, 0x35, 0x0d, 0xb7, 0x49, 0x08, 0x27, 0x47, 0xca, 0xa7, 0x0f, 0xc1, 0x11, 0x2c, 0xf5, 0xa1,
+	0x04, 0x4b, 0x89, 0x3d, 0x24, 0xfa, 0xa5, 0x04, 0x97, 0xed, 0x54, 0xe5, 0x44, 0x3a, 0xde, 0x9b,
+	0x6d, 0xfd, 0x18, 0x63, 0x59, 0xaf, 0x08, 0x0d, 0xc7, 0xd8, 0x03, 0x8f, 0x51, 0x45, 0xfd, 0xbb,
+	0x04, 0x17, 0x92, 0x1b, 0xcd, 0xff, 0x0e, 0xd5, 0xd1, 0x97, 0xa0, 0xd8, 0xeb, 0xef, 0x77, 0x98,
+	0x76, 0x8f, 0x0e, 0x9a, 0x0d, 0xe1, 0xa9, 0x8b, 0x82, 0x59, 0x71, 0x37, 0x04, 0xe1, 0x28, 0x9e,
+	0xfa, 0x13, 0x19, 0x0a, 0x7e, 0x83, 0x44, 0x6f, 0x85, 0x7b, 0x6d, 0xe9, 0xa9, 0x33, 0x20, 0x08,
+	0xcc, 0x91, 0xdd, 0xf6, 0xd9, 0xff, 0xf3, 0xc4, 0xcb, 0xfe, 0xe0, 0xe9, 0x3d, 0x21, 0xd3, 0x87,
+	0xc7, 0xf8, 0x34, 0x9d, 0x39, 0xcd, 0x34, 0xad, 0xfe, 0x4a, 0x81, 0xe5, 0x91, 0x79, 0x01, 0x7d,
+	0x25, 0x56, 0x21, 0xaf, 0x26, 0x2a, 0xe4, 0xca, 0x08, 0xc1, 0x1c, 0x0a, 0x64, 0x7a, 0xdd, 0x52,
+	0xe6, 0x58, 0xb7, 0x32, 0xa7, 0xad, 0x5b, 0xd9, 0xc9, 0x75, 0x2b, 0xe1, 0xa7, 0xdc, 0xa9, 0xfc,
+	0xd4, 0x83, 0xa5, 0xc4, 0xb8, 0x83, 0xae, 0x43, 0x81, 0x19, 0x36, 0xd5, 0xfa, 0x16, 0x15, 0x9b,
+	0xc8, 0x60, 0xc2, 0x6e, 0x8a, 0x73, 0x1c, 0x60, 0xa0, 0x1a, 0x2c, 0xd8, 0xda, 0x21, 0x6d, 0xf7,
+	0x3b, 0xb4, 0xcd, 0x5d, 0x53, 0x08, 0x3f, 0x82, 0xee, 0xf9, 0x00, 0x1c, 0xe2, 0xa8, 0x0f, 0xb3,
+	0x50, 0x8a, 0x8e, 0x26, 0xa7, 0xf8, 0x1e, 0xfb, 0x23, 0x09, 0x8a, 0xc4, 0x30, 0x4c, 0x87, 0x78,
+	0x43, 0xac, 0x37, 0x21, 0xe0, 0x99, 0xa7, 0xa2, 0xea, 0xed, 0x90, 0xa9, 0xf7, 0xd1, 0x2a, 0xc8,
+	0xf3, 0x08, 0x04, 0x47, 0x65, 0xa3, 0x7b, 0x62, 0x72, 0x55, 0xa6, 0x99, 0x5c, 0x0b, 0x89, 0xa9,
+	0xb5, 0x06, 0x0b, 0xc1, 0xe0, 0x25, 0xfe, 0x97, 0x20, 0x30, 0x5e, 0x98, 0xba, 0x21, 0x0e, 0xaa,
+	0xc6, 0x5c, 0x9c, 0xe5, 0x2e, 0x5e, 0x9c, 0xf0, 0xa8, 0x4d, 0x8e, 0xc5, 0xb9, 0x39, 0x8f, 0xc5,
+	0x69, 0x33, 0x6d, 0xfe, 0x39, 0xcd, 0xb4, 0xab, 0xaf, 0xc3, 0x85, 0xa4, 0xc3, 0x9f, 0xea, 0xc3,
+	0xd9, 0x2e, 0xa0, 0x51, 0xf9, 0x4f, 0x9a, 0xfa, 0x46, 0x29, 0xc2, 0xa2, 0x56, 0xbf, 0xf6, 0xe8,
+	0x71, 0xe5, 0xdc, 0x47, 0x8f, 0x2b, 0xe7, 0x3e, 0x79, 0x5c, 0x39, 0xf7, 0xc1, 0xb0, 0x22, 0x3d,
+	0x1a, 0x56, 0xa4, 0x8f, 0x86, 0x15, 0xe9, 0x93, 0x61, 0x45, 0xfa, 0xd3, 0xb0, 0x22, 0xfd, 0xec,
+	0xcf, 0x95, 0x73, 0xdf, 0x92, 0x8f, 0x6f, 0xfc, 0x27, 0x00, 0x00, 0xff, 0xff, 0x31, 0x85, 0x5d,
+	0x03, 0x24, 0x2a, 0x00, 0x00,
 }

@@ -3,9 +3,9 @@ package scmauth
 import (
 	"fmt"
 	"io/ioutil"
-	"net/url"
 	"path/filepath"
-	"strings"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 const (
@@ -18,12 +18,12 @@ const (
 
 // CACert implements SCMAuth interface for using a custom certificate authority
 type CACert struct {
-	SourceURL url.URL
+	SourceURL s2igit.URL
 }
 
 // Setup creates a .gitconfig fragment that points to the given ca.crt
 func (s CACert) Setup(baseDir string, context SCMAuthContext) error {
-	if strings.ToLower(s.SourceURL.Scheme) != "https" {
+	if !(s.SourceURL.Type == s2igit.URLTypeURL && s.SourceURL.URL.Scheme == "https" && s.SourceURL.URL.Opaque == "") {
 		return nil
 	}
 	gitconfig, err := ioutil.TempFile("", "ca.crt.")

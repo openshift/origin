@@ -26,9 +26,6 @@ func Config(client docker.Client, config *api.Config) string {
 		describeBuilderImage(client, config, config.BuilderImage, out)
 		describeRuntimeImage(config, out)
 		fmt.Fprintf(out, "Source:\t%s\n", config.Source)
-		if len(config.Ref) > 0 {
-			fmt.Fprintf(out, "Source Ref:\t%s\n", config.Ref)
-		}
 		if len(config.ContextDir) > 0 {
 			fmt.Fprintf(out, "Context Directory:\t%s\n", config.ContextDir)
 		}

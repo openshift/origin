@@ -10,7 +10,7 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	"k8s.io/kubernetes/pkg/kubelet/leaky"
 )
 
@@ -37,7 +37,7 @@ func dockerSandboxNameToInfraPodNamePrefix(name string) (string, error) {
 	return fmt.Sprintf("/k8s_%s_%s_%s_%s", leaky.PodInfraContainerName, parts[2], parts[3], parts[4]), nil
 }
 
-func killInfraContainerForPod(docker dockertools.DockerInterface, containers []dockertypes.Container, cid kcontainer.ContainerID) error {
+func killInfraContainerForPod(docker dockertools.Interface, containers []dockertypes.Container, cid kcontainer.ContainerID) error {
 	// FIXME: handle CRI-O; but unfortunately CRI-O supports multiple
 	// "runtimes" which depend on the filename of that runtime binary,
 	// so we have no idea what cid.Type will be.
@@ -73,7 +73,7 @@ func killInfraContainerForPod(docker dockertools.DockerInterface, containers []d
 
 // This function finds the ContainerID of a failed pod, parses it, and kills
 // any matching Infra container for that pod.
-func killUpdateFailedPods(docker dockertools.DockerInterface, pods []kapi.Pod) error {
+func killUpdateFailedPods(docker dockertools.Interface, pods []kapi.Pod) error {
 	containers, err := docker.ListContainers(dockertypes.ContainerListOptions{All: true})
 	if err != nil {
 		return fmt.Errorf("failed to list docker containers: %v", err)

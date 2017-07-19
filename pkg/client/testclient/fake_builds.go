@@ -18,6 +18,7 @@ type FakeBuilds struct {
 }
 
 var buildsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "builds"}
+var buildKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "Build"}
 
 func (c *FakeBuilds) Get(name string, options metav1.GetOptions) (*buildapi.Build, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(buildsResource, c.Namespace, name), &buildapi.Build{})
@@ -29,7 +30,7 @@ func (c *FakeBuilds) Get(name string, options metav1.GetOptions) (*buildapi.Buil
 }
 
 func (c *FakeBuilds) List(opts metav1.ListOptions) (*buildapi.BuildList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildsResource, c.Namespace, opts), &buildapi.BuildList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(buildsResource, buildKind, c.Namespace, opts), &buildapi.BuildList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -81,6 +82,11 @@ func (c *FakeBuilds) Clone(request *buildapi.BuildRequest) (result *buildapi.Bui
 		return nil, err
 	}
 
+	if br, ok := obj.(*buildapi.BuildRequest); ok {
+		return &buildapi.Build{
+			ObjectMeta: br.ObjectMeta,
+		}, err
+	}
 	return obj.(*buildapi.Build), err
 }
 

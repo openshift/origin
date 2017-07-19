@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"reflect"
-
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -12,10 +10,6 @@ import (
 )
 
 func Convert_v1_ResourceQuotasStatusByNamespace_To_quota_ResourceQuotasStatusByNamespace(in *ResourceQuotasStatusByNamespace, out *internal.ResourceQuotasStatusByNamespace, s conversion.Scope) error {
-	if defaulting, found := s.DefaultingInterface(reflect.TypeOf(*in)); found {
-		defaulting.(func(*ResourceQuotasStatusByNamespace))(in)
-	}
-
 	if in == nil {
 		return nil
 	}

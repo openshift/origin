@@ -13,6 +13,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
@@ -202,7 +203,7 @@ func TestHandle_createPodOk(t *testing.T) {
 		t.Fatalf("expected container env value %s, got %s", expectedContainer.Env[0].Value, actualContainer.Env[0].Value)
 	}
 
-	if e, a := expectedContainer.Resources, actualContainer.Resources; !kapi.Semantic.DeepEqual(e, a) {
+	if e, a := expectedContainer.Resources, actualContainer.Resources; !kapihelper.Semantic.DeepEqual(e, a) {
 		t.Fatalf("expected container resources %v, got %v", expectedContainer.Resources, actualContainer.Resources)
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiref "k8s.io/kubernetes/pkg/api/ref"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
@@ -38,7 +39,7 @@ func (r *REST) New() runtime.Object {
 }
 
 // Create registers a given new PodSecurityPolicySubjectReview instance to r.registry.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	pspsr, ok := obj.(*securityapi.PodSecurityPolicySubjectReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a PodSecurityPolicySubjectReview: %#v", obj))
@@ -102,7 +103,7 @@ func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySu
 		s.Reason = "CantAssignSecurityContextConstraintProvider"
 		return false, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())
 	}
-	ref, err := kapi.GetReference(kapi.Scheme, constraint)
+	ref, err := kapiref.GetReference(kapi.Scheme, constraint)
 	if err != nil {
 		s.Reason = "CantObtainReference"
 		return false, fmt.Errorf("unable to get SecurityContextConstraints reference: %v", err)

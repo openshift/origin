@@ -14,14 +14,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
 	knet "k8s.io/apimachinery/pkg/util/net"
+	kubeletremotecommand "k8s.io/apimachinery/pkg/util/remotecommand"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/client-go/tools/remotecommand"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/client/unversioned/remotecommand"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
-	kubeletremotecommand "k8s.io/kubernetes/pkg/kubelet/server/remotecommand"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -52,7 +52,7 @@ func (s *InstantiateREST) New() runtime.Object {
 }
 
 // Create instantiates a new build from a build configuration
-func (s *InstantiateREST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *InstantiateREST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(Strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -241,7 +241,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to node, could not retrieve TLS client config: %v", err))
 	}
-	upgrader := spdy.NewRoundTripper(tlsClientConfig)
+	upgrader := spdy.NewRoundTripper(tlsClientConfig, false)
 	exec, err := remotecommand.NewStreamExecutor(upgrader, nil, "POST", location)
 	if err != nil {
 		return nil, errors.NewInternalError(fmt.Errorf("unable to connect to server: %v", err))

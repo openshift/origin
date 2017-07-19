@@ -105,47 +105,28 @@ func ValidateOutputArgs(cmd *cobra.Command) error {
 	return nil
 }
 
-// PrinterForCommand returns the default printer for this command.
-// Requires that printer flags have been added to cmd (see AddPrinterFlags).
-func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime.ObjectTyper, decoders []runtime.Decoder) (printers.ResourcePrinter, bool, error) {
-	outputFormat := GetFlagString(cmd, "output")
+// PrinterForCommand returns the printer for the outputOptions (if given) or
+// returns the default printer for the command. Requires that printer flags have
+// been added to cmd (see AddPrinterFlags).
+// TODO: remove the dependency on cmd object
+func PrinterForCommand(cmd *cobra.Command, outputOpts *printers.OutputOptions, mapper meta.RESTMapper, typer runtime.ObjectTyper, encoder runtime.Encoder, decoders []runtime.Decoder, options printers.PrintOptions) (printers.ResourcePrinter, error) {
 
-	// templates are logically optional for specifying a format.
-	// TODO once https://github.com/kubernetes/kubernetes/issues/12668 is fixed, this should fall back to GetFlagString
-	templateFile, _ := cmd.Flags().GetString("template")
-	if len(outputFormat) == 0 && len(templateFile) != 0 {
-		outputFormat = "template"
-	}
-
-	templateFormat := []string{
-		"go-template=", "go-template-file=", "jsonpath=", "jsonpath-file=", "custom-columns=", "custom-columns-file=",
-	}
-	for _, format := range templateFormat {
-		if strings.HasPrefix(outputFormat, format) {
-			templateFile = outputFormat[len(format):]
-			outputFormat = format[:len(format)-1]
-		}
+	if outputOpts == nil {
+		outputOpts = extractOutputOptions(cmd)
 	}
 
 	// this function may be invoked by a command that did not call AddPrinterFlags first, so we need
-	// to be safe about how we access the allow-missing-template-keys and no-headers flag
-	allowMissingTemplateKeys := false
-	if cmd.Flags().Lookup("allow-missing-template-keys") != nil {
-		allowMissingTemplateKeys = GetFlagBool(cmd, "allow-missing-template-keys")
-	}
+	// to be safe about how we access the no-headers flag
 	noHeaders := false
 	if cmd.Flags().Lookup("no-headers") != nil {
 		noHeaders = GetFlagBool(cmd, "no-headers")
 	}
-	printer, generic, err := printers.GetStandardPrinter(
-		outputFormat, templateFile, noHeaders, allowMissingTemplateKeys,
-		mapper, typer, decoders,
-	)
+	printer, err := printers.GetStandardPrinter(outputOpts, noHeaders, mapper, typer, encoder, decoders, options)
 	if err != nil {
-		return nil, generic, err
+		return nil, err
 	}
 
-	return maybeWrapSortingPrinter(cmd, printer), generic, nil
+	return maybeWrapSortingPrinter(cmd, printer), nil
 }
 
 // PrintResourceInfoForCommand receives a *cobra.Command and a *resource.Info and
@@ -153,17 +134,63 @@ func PrinterForCommand(cmd *cobra.Command, mapper meta.RESTMapper, typer runtime
 // object passed is non-generic, it attempts to print the object using a HumanReadablePrinter.
 // Requires that printer flags have been added to cmd (see AddPrinterFlags).
 func PrintResourceInfoForCommand(cmd *cobra.Command, info *resource.Info, f Factory, out io.Writer) error {
-	printer, generic, err := f.PrinterForCommand(cmd)
+	printer, err := f.PrinterForCommand(cmd, false, nil, printers.PrintOptions{})
 	if err != nil {
 		return err
 	}
-	if !generic || printer == nil {
-		printer, err = f.PrinterForMapping(cmd, nil, false)
+	if !printer.IsGeneric() {
+		printer, err = f.PrinterForMapping(cmd, false, nil, nil, false)
 		if err != nil {
 			return err
 		}
 	}
 	return printer.PrintObj(info.Object, out)
+}
+
+// extractOutputOptions parses printer specific commandline args and returns
+// printers.OutputsOptions object.
+func extractOutputOptions(cmd *cobra.Command) *printers.OutputOptions {
+	flags := cmd.Flags()
+
+	var outputFormat string
+	if flags.Lookup("output") != nil {
+		outputFormat = GetFlagString(cmd, "output")
+	}
+
+	// templates are logically optional for specifying a format.
+	// TODO once https://github.com/kubernetes/kubernetes/issues/12668 is fixed, this should fall back to GetFlagString
+	var templateFile string
+	if flag := flags.Lookup("template"); flag != nil {
+		if flag.Value.Type() == "string" {
+			templateFile = GetFlagString(cmd, "template")
+		}
+	}
+	if len(outputFormat) == 0 && len(templateFile) != 0 {
+		outputFormat = "template"
+	}
+
+	templateFormats := []string{
+		"go-template=", "go-template-file=", "jsonpath=", "jsonpath-file=", "custom-columns=", "custom-columns-file=",
+	}
+	for _, format := range templateFormats {
+		if strings.HasPrefix(outputFormat, format) {
+			templateFile = outputFormat[len(format):]
+			outputFormat = format[:len(format)-1]
+		}
+	}
+
+	// this function may be invoked by a command that did not call AddPrinterFlags first, so we need
+	// to be safe about how we access the allow-missing-template-keys flag
+	allowMissingTemplateKeys := false
+	if flags.Lookup("allow-missing-template-keys") != nil {
+		allowMissingTemplateKeys = GetFlagBool(cmd, "allow-missing-template-keys")
+	}
+
+	return &printers.OutputOptions{
+		FmtType:          outputFormat,
+		FmtArg:           templateFile,
+		AllowMissingKeys: allowMissingTemplateKeys,
+	}
 }
 
 func maybeWrapSortingPrinter(cmd *cobra.Command, printer printers.ResourcePrinter) printers.ResourcePrinter {

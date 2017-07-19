@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/source-to-image/pkg/scm/git"
 	utilglog "github.com/openshift/source-to-image/pkg/util/glog"
-
 	"github.com/openshift/source-to-image/pkg/util/user"
 )
 
@@ -113,10 +113,7 @@ type Config struct {
 	IgnoreSubmodules bool
 
 	// Source URL describing the location of sources used to build the result image.
-	Source string
-
-	// Ref is a tag/branch to be used for build.
-	Ref string
+	Source *git.URL
 
 	// Tag is a result image tag name.
 	Tag string
@@ -236,7 +233,7 @@ type Config struct {
 
 	// SourceInfo provides the info about the source to be built rather than relying
 	// on the Downloader to retrieve it.
-	SourceInfo *SourceInfo
+	SourceInfo *git.SourceInfo
 }
 
 // EnvironmentSpec specifies a single environment variable.
@@ -459,56 +456,6 @@ type InstallResult struct {
 	// FailedSources is a list of sources that were attempted but failed
 	// when downloading this script
 	FailedSources []string
-}
-
-// SourceInfo stores information about the source code
-type SourceInfo struct {
-	// Ref represents a commit SHA-1, valid Git branch name or a Git tag
-	// The output image will contain this information as 'io.openshift.build.commit.ref' label.
-	Ref string
-
-	// CommitID represents an arbitrary extended object reference in Git as SHA-1
-	// The output image will contain this information as 'io.openshift.build.commit.id' label.
-	CommitID string
-
-	// Date contains a date when the committer created the commit.
-	// The output image will contain this information as 'io.openshift.build.commit.date' label.
-	Date string
-
-	// AuthorName contains the name of the author
-	// The output image will contain this information (along with AuthorEmail) as 'io.openshift.build.commit.author' label.
-	AuthorName string
-
-	// AuthorEmail contains the e-mail of the author
-	// The output image will contain this information (along with AuthorName) as 'io.openshift.build.commit.author' lablel.
-	AuthorEmail string
-
-	// CommitterName contains the name of the committer
-	CommitterName string
-
-	// CommitterEmail contains the e-mail of the committer
-	CommitterEmail string
-
-	// Message represents the first 80 characters from the commit message.
-	// The output image will contain this information as 'io.openshift.build.commit.message' label.
-	Message string
-
-	// Location contains a valid URL to the original repository.
-	// The output image will contain this information as 'io.openshift.build.source-location' label.
-	Location string
-
-	// ContextDir contains path inside the Location directory that
-	// contains the application source code.
-	// The output image will contain this information as 'io.openshift.build.source-context-dir'
-	// label.
-	ContextDir string
-}
-
-// CloneConfig specifies the options used when cloning the application source
-// code.
-type CloneConfig struct {
-	Recursive bool
-	Quiet     bool
 }
 
 // DockerNetworkMode specifies the network mode setting for the docker container

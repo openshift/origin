@@ -31,6 +31,7 @@ type NodeOptions struct {
 
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
+	CategoryExpander  resource.CategoryExpander
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	Printer           func(mapping *meta.RESTMapping, printOptions kprinters.PrintOptions) (kprinters.ResourcePrinter, error)
 
@@ -53,7 +54,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
-	cmdPrinter, output, err := f.PrinterForCommand(c)
+	cmdPrinter, err := f.PrinterForCommand(c, false, nil, kprinters.PrintOptions{})
 	if err != nil {
 		return err
 	}
@@ -65,16 +66,17 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	n.ErrWriter = errout
 	n.Mapper = mapper
 	n.Typer = typer
+	n.CategoryExpander = f.CategoryExpander()
 	n.RESTClientFactory = f.ClientForMapping
 	n.NodeNames = []string{}
 	n.CmdPrinter = cmdPrinter
 	n.CmdPrinterOutput = false
 
 	n.Printer = func(mapping *meta.RESTMapping, printOptions kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
-		return f.PrinterForMapping(c, mapping, printOptions.WithNamespace)
+		return f.PrinterForMapping(c, false, nil, mapping, printOptions.WithNamespace)
 	}
 
-	if output {
+	if cmdPrinter.IsGeneric() {
 		n.CmdPrinterOutput = true
 	}
 	if len(args) != 0 {
@@ -112,7 +114,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 		nameArgs = append(nameArgs, n.NodeNames...)
 	}
 
-	r := resource.NewBuilder(n.Mapper, n.Typer, resource.ClientMapperFunc(n.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
+	r := resource.NewBuilder(n.Mapper, n.CategoryExpander, n.Typer, resource.ClientMapperFunc(n.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(n.DefaultNamespace).
 		SelectorParam(n.Selector).

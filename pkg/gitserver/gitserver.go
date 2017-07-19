@@ -26,6 +26,8 @@ import (
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
+
+	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 const (
@@ -120,7 +122,7 @@ type Config struct {
 
 // Clone is a repository to clone
 type Clone struct {
-	URL   url.URL
+	URL   s2igit.URL
 	Hooks map[string]string
 }
 
@@ -140,6 +142,23 @@ func NewDefaultConfig() *Config {
 		Listen:       ":8080",
 		MaxHookBytes: 50 * 1024,
 	}
+}
+
+func checkURLIsAllowed(url *s2igit.URL) bool {
+	switch url.Type {
+	case s2igit.URLTypeLocal:
+		return false
+	case s2igit.URLTypeURL:
+		if url.URL.Opaque != "" {
+			return false
+		}
+		switch url.URL.Scheme {
+		case "git", "http", "https", "ssh":
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // NewEnvironmentConfig sets up the initial config from environment variables
@@ -333,18 +352,16 @@ func NewEnvironmentConfig() (*Config, error) {
 			return nil, fmt.Errorf("%s may only have two segments (<url> or <url>;<name>)", key)
 		}
 
-		url, err := git.ParseRepository(uri)
+		url, err := s2igit.Parse(uri)
 		if err != nil {
 			return nil, fmt.Errorf("%s is not a valid repository URI: %v", key, err)
 		}
-		switch url.Scheme {
-		case "http", "https", "git", "ssh":
-		default:
+		if !checkURLIsAllowed(url) {
 			return nil, fmt.Errorf("%s %q must be a http, https, git, or ssh URL", key, uri)
 		}
 
 		if len(name) == 0 {
-			if n, ok := git.NameFromRepositoryURL(url); ok {
+			if n, ok := git.NameFromRepositoryURL(&url.URL); ok {
 				name = n + ".git"
 			}
 		}

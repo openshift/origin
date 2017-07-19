@@ -28,12 +28,13 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
-	kubeletapi "k8s.io/kubernetes/pkg/kubelet/api"
-	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
-	"k8s.io/kubernetes/pkg/kubelet/dockertools"
+	kubeletapi "k8s.io/kubernetes/pkg/kubelet/apis/cri"
+	kruntimeapi "k8s.io/kubernetes/pkg/kubelet/apis/cri/v1alpha1/runtime"
+	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
@@ -120,7 +121,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	// we're ready yet
 	os.Remove(filepath.Join(cniDirPath, openshiftCNIFile))
 
-	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, proxyConfig.IPTablesSyncPeriod.Duration.String())
+	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, proxyConfig.IPTables.SyncPeriod.Duration.String())
 	if hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
@@ -163,7 +164,7 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 		localIP:            selfIP,
 		hostName:           hostname,
 		useConnTrack:       useConnTrack,
-		iptablesSyncPeriod: proxyConfig.IPTablesSyncPeriod.Duration,
+		iptablesSyncPeriod: proxyConfig.IPTables.SyncPeriod.Duration,
 		mtu:                mtu,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 		egressDNS:          NewEgressDNS(),
@@ -225,7 +226,7 @@ func (node *OsdnNode) dockerPreCNICleanup() error {
 	return nil
 }
 
-func ensureDockerClient() (dockertools.DockerInterface, error) {
+func ensureDockerClient() (dockertools.Interface, error) {
 	endpoint := os.Getenv("DOCKER_HOST")
 	if endpoint == "" {
 		endpoint = "unix:///var/run/docker.sock"
@@ -344,7 +345,7 @@ func (node *OsdnNode) Start() error {
 	// our network plugin is ready
 	return ioutil.WriteFile(filepath.Join(cniDirPath, openshiftCNIFile), []byte(`
 {
-  "cniVersion": "0.1.0",
+  "cniVersion": "0.2.0",
   "name": "openshift-sdn",
   "type": "openshift-sdn"
 }
@@ -417,7 +418,7 @@ func (node *OsdnNode) watchServices() {
 func (node *OsdnNode) handleAddOrUpdateService(obj, oldObj interface{}, eventType watch.EventType) {
 	serv := obj.(*kapi.Service)
 	// Ignore headless services
-	if !kapi.IsServiceIPSet(serv) {
+	if !kapihelper.IsServiceIPSet(serv) {
 		return
 	}
 

@@ -18,6 +18,8 @@ type FakeRoutes struct {
 
 var routesResource = schema.GroupVersionResource{Group: "route.openshift.io", Version: "", Resource: "routes"}
 
+var routesKind = schema.GroupVersionKind{Group: "route.openshift.io", Version: "", Kind: "Route"}
+
 func (c *FakeRoutes) Create(routeResource *route.Route) (result *route.Route, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(routesResource, c.ns, routeResource), &route.Route{})
@@ -74,7 +76,7 @@ func (c *FakeRoutes) Get(name string, options v1.GetOptions) (result *route.Rout
 
 func (c *FakeRoutes) List(opts v1.ListOptions) (result *route.RouteList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(routesResource, c.ns, opts), &route.RouteList{})
+		Invokes(testing.NewListAction(routesResource, routesKind, c.ns, opts), &route.RouteList{})
 
 	if obj == nil {
 		return nil, err

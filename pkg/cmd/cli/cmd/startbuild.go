@@ -19,7 +19,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/openshift/source-to-image/pkg/tar"
-	s2iutil "github.com/openshift/source-to-image/pkg/util"
+	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -599,7 +599,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 			pr, pw := io.Pipe()
 			go func() {
 				w := gzip.NewWriter(pw)
-				if err := tar.New(s2iutil.NewFileSystem()).CreateTarStream(path, false, w); err != nil {
+				if err := tar.New(s2ifs.NewFileSystem()).CreateTarStream(path, false, w); err != nil {
 					pw.CloseWithError(err)
 				} else {
 					w.Close()

@@ -18,6 +18,8 @@ type FakeRoles struct {
 
 var rolesResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "v1", Resource: "roles"}
 
+var rolesKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "Role"}
+
 func (c *FakeRoles) Create(role *v1.Role) (result *v1.Role, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(rolesResource, c.ns, role), &v1.Role{})
@@ -64,7 +66,7 @@ func (c *FakeRoles) Get(name string, options meta_v1.GetOptions) (result *v1.Rol
 
 func (c *FakeRoles) List(opts meta_v1.ListOptions) (result *v1.RoleList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(rolesResource, c.ns, opts), &v1.RoleList{})
+		Invokes(testing.NewListAction(rolesResource, rolesKind, c.ns, opts), &v1.RoleList{})
 
 	if obj == nil {
 		return nil, err

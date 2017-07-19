@@ -23,8 +23,8 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 )
 
-func init() {
-	admission.RegisterPlugin("SecurityContextConstraint",
+func Register(plugins *admission.Plugins) {
+	plugins.Register("SecurityContextConstraint",
 		func(config io.Reader) (admission.Interface, error) {
 			return NewConstraint(), nil
 		})

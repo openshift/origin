@@ -15,6 +15,7 @@ type FakeOAuthAccessTokens struct {
 }
 
 var oAuthAccessTokensResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthaccesstokens"}
+var oAuthAccessTokensKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "OAuthAccessToken"}
 
 func (c *FakeOAuthAccessTokens) Delete(name string) error {
 	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(oAuthAccessTokensResource, name), &oauthapi.OAuthAccessToken{})
@@ -41,7 +42,7 @@ func (c *FakeOAuthAccessTokens) Get(name string, options metav1.GetOptions) (*oa
 }
 
 func (c *FakeOAuthAccessTokens) List(opts metav1.ListOptions) (*oauthapi.OAuthAccessTokenList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthAccessTokensResource, opts), &oauthapi.OAuthAccessTokenList{})
+	obj, err := c.Fake.Invokes(clientgotesting.NewRootListAction(oAuthAccessTokensResource, oAuthAccessTokensKind, opts), &oauthapi.OAuthAccessTokenList{})
 	if obj == nil {
 		return nil, err
 	}

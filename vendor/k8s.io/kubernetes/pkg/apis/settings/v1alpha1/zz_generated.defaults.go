@@ -87,15 +87,6 @@ func SetObjectDefaults_PodPreset(in *PodPreset) {
 		if a.VolumeSource.ScaleIO != nil {
 			v1.SetDefaults_ScaleIOVolumeSource(a.VolumeSource.ScaleIO)
 		}
-		if a.VolumeSource.Metadata != nil {
-			v1.SetDefaults_DeprecatedDownwardAPIVolumeSource(a.VolumeSource.Metadata)
-			for j := range a.VolumeSource.Metadata.Items {
-				b := &a.VolumeSource.Metadata.Items[j]
-				if b.FieldRef != nil {
-					v1.SetDefaults_ObjectFieldSelector(b.FieldRef)
-				}
-			}
-		}
 	}
 }
 

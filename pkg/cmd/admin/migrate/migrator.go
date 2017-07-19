@@ -15,6 +15,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
+	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -94,7 +95,7 @@ func (o *ResourceOptions) Bind(c *cobra.Command) {
 func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error {
 	switch {
 	case len(o.Output) > 0:
-		printer, _, err := f.PrinterForCommand(c)
+		printer, err := f.PrinterForCommand(c, false, nil, kprinters.PrintOptions{})
 		if err != nil {
 			return err
 		}
@@ -211,7 +212,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		break
 	}
 
-	o.Builder = f.NewBuilder().
+	o.Builder = f.NewBuilder(true).
 		AllNamespaces(allNamespaces).
 		FilenameParam(false, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
 		ContinueOnError().

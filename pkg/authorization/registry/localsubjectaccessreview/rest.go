@@ -28,7 +28,7 @@ func (r *REST) New() runtime.Object {
 
 // Create transforms a LocalSAR into an ClusterSAR that is requesting a namespace.  That collapses the code paths.
 // LocalSubjectAccessReview exists to allow clean expression of policy.
-func (r *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	localSAR, ok := obj.(*authorizationapi.LocalSubjectAccessReview)
 	if !ok {
 		return nil, kapierrors.NewBadRequest(fmt.Sprintf("not a localSubjectAccessReview: %#v", obj))

@@ -158,14 +158,6 @@ func (d *discoveryRESTMapper) RESTMappings(gk schema.GroupKind, versions ...stri
 	return delegate.RESTMappings(gk, versions...)
 }
 
-func (d *discoveryRESTMapper) AliasesForResource(resource string) ([]string, bool) {
-	delegate, err := d.getDelegate()
-	if err != nil {
-		return nil, false
-	}
-	return delegate.AliasesForResource(resource)
-}
-
 func (d *discoveryRESTMapper) ResourceSingularizer(resource string) (singular string, err error) {
 	delegate, err := d.getDelegate()
 	if err != nil {

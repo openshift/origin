@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -50,7 +50,7 @@ func (r *REST) New() runtime.Object {
 // with a resource conflict, the update will be retried if the newer
 // ImageStream has no tag diffs from the previous state. If tag diffs are
 // detected, the conflict error is returned.
-func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Object, error) {
+func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runtime.Object, error) {
 	if err := rest.BeforeCreate(s.strategy, ctx, obj); err != nil {
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object) (runtime.Objec
 		// generation and creation time differences are ignored
 		lastEvent.Generation = newerEvent.Generation
 		lastEvent.Created = newerEvent.Created
-		if kapi.Semantic.DeepEqual(lastEvent, newerEvent) {
+		if kapihelper.Semantic.DeepEqual(lastEvent, newerEvent) {
 			// The tag hasn't changed, so try again with the updated stream.
 			stream = latestStream
 			return false, nil

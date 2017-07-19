@@ -5,7 +5,7 @@ import (
 
 	"github.com/gonum/graph"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -24,12 +24,12 @@ const (
 )
 
 func GetUniqueRuntimeObjectNodeName(nodeKind string, obj runtime.Object) UniqueName {
-	meta, err := metav1.ObjectMetaFor(obj)
+	meta, err := meta.Accessor(obj)
 	if err != nil {
 		panic(err)
 	}
 
-	return UniqueName(fmt.Sprintf("%s|%s/%s", nodeKind, meta.Namespace, meta.Name))
+	return UniqueName(fmt.Sprintf("%s|%s/%s", nodeKind, meta.GetNamespace(), meta.GetName()))
 }
 
 // GetTopLevelContainerNode traverses the reverse ContainsEdgeKind edges until it finds a node

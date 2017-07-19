@@ -67,12 +67,12 @@ func (enpStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Objec
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(o runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
 	obj, ok := o.(*sdnapi.EgressNetworkPolicy)
 	if !ok {
-		return nil, nil, fmt.Errorf("not an EgressNetworkPolicy")
+		return nil, nil, false, fmt.Errorf("not an EgressNetworkPolicy")
 	}
-	return labels.Set(obj.Labels), SelectableFields(obj), nil
+	return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

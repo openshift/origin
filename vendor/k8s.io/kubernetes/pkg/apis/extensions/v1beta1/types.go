@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kubernetes/pkg/api/v1"
+	appsv1beta1 "k8s.io/kubernetes/pkg/apis/apps/v1beta1"
 )
 
 // describes the attributes of a scale subresource
@@ -44,7 +45,7 @@ type ScaleStatus struct {
 	// avoid introspection in the clients. The string will be in the same format as the
 	// query-param syntax. If the target type only supports map-based selectors, both this
 	// field and map-based selector field are populated.
-	// More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	// +optional
 	TargetSelector string `json:"targetSelector,omitempty" protobuf:"bytes,3,opt,name=targetSelector"`
 }
@@ -55,15 +56,15 @@ type ScaleStatus struct {
 // represents a scaling request for a resource.
 type Scale struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object metadata; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata.
+	// Standard object metadata; More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// defines the behavior of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status.
+	// defines the behavior of the scale. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status.
 	// +optional
 	Spec ScaleSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
-	// current status of the scale. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status. Read-only.
+	// current status of the scale. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status. Read-only.
 	// +optional
 	Status ScaleStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
@@ -71,28 +72,6 @@ type Scale struct {
 // Dummy definition
 type ReplicationControllerDummy struct {
 	metav1.TypeMeta `json:",inline"`
-}
-
-// SubresourceReference contains enough information to let you inspect or modify the referred subresource.
-type SubresourceReference struct {
-	// Kind of the referent; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
-	// +optional
-	Kind string `json:"kind,omitempty" protobuf:"bytes,1,opt,name=kind"`
-	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
-	// +optional
-	Name string `json:"name,omitempty" protobuf:"bytes,2,opt,name=name"`
-	// API version of the referent
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,3,opt,name=apiVersion"`
-	// Subresource name of the referent
-	// +optional
-	Subresource string `json:"subresource,omitempty" protobuf:"bytes,4,opt,name=subresource"`
-}
-
-type CPUTargetUtilization struct {
-	// fraction of the requested CPU that should be utilized/used,
-	// e.g. 70 means that 70% of the requested CPU should be in use.
-	TargetPercentage int32 `json:"targetPercentage" protobuf:"varint,1,opt,name=targetPercentage"`
 }
 
 // Alpha-level support for Custom Metrics in HPA (as annotations).
@@ -116,241 +95,6 @@ type CustomMetricCurrentStatus struct {
 
 type CustomMetricCurrentStatusList struct {
 	Items []CustomMetricCurrentStatus `json:"items" protobuf:"bytes,1,rep,name=items"`
-}
-
-// CrossVersionObjectReference contains enough information to let you identify the referred resource.
-type CrossVersionObjectReference struct {
-	// Kind of the referent; More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds"
-	Kind string `json:"kind" protobuf:"bytes,1,opt,name=kind"`
-	// Name of the referent; More info: http://kubernetes.io/docs/user-guide/identifiers#names
-	Name string `json:"name" protobuf:"bytes,2,opt,name=name"`
-	// API version of the referent
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty" protobuf:"bytes,3,opt,name=apiVersion"`
-}
-
-// the types below are used in the alpha metrics annotation
-
-// MetricSourceType indicates the type of metric.
-type MetricSourceType string
-
-var (
-	// ObjectMetricSourceType is a metric describing a kubernetes object
-	// (for example, hits-per-second on an Ingress object).
-	ObjectMetricSourceType MetricSourceType = "Object"
-	// PodsMetricSourceType is a metric describing each pod in the current scale
-	// target (for example, transactions-processed-per-second).  The values
-	// will be averaged together before being compared to the target value.
-	PodsMetricSourceType MetricSourceType = "Pods"
-	// ResourceMetricSourceType is a resource metric known to Kubernetes, as
-	// specified in requests and limits, describing each pod in the current
-	// scale target (e.g. CPU or memory).  Such metrics are built in to
-	// Kubernetes, and have special scaling options on top of those available
-	// to normal per-pod metrics (the "pods" source).
-	ResourceMetricSourceType MetricSourceType = "Resource"
-)
-
-// MetricSpec specifies how to scale based on a single metric
-// (only `type` and one other matching field should be set at once).
-type MetricSpec struct {
-	// type is the type of metric source.  It should match one of the fields below.
-	Type MetricSourceType `json:"type" protobuf:"bytes,1,name=type"`
-
-	// object refers to a metric describing a single kubernetes object
-	// (for example, hits-per-second on an Ingress object).
-	// +optional
-	Object *ObjectMetricSource `json:"object,omitempty" protobuf:"bytes,2,opt,name=object"`
-	// pods refers to a metric describing each pod in the current scale target
-	// (for example, transactions-processed-per-second).  The values will be
-	// averaged together before being compared to the target value.
-	// +optional
-	Pods *PodsMetricSource `json:"pods,omitempty" protobuf:"bytes,3,opt,name=pods"`
-	// resource refers to a resource metric (such as those specified in
-	// requests and limits) known to Kubernetes describing each pod in the
-	// current scale target (e.g. CPU or memory). Such metrics are built in to
-	// Kubernetes, and have special scaling options on top of those available
-	// to normal per-pod metrics using the "pods" source.
-	// +optional
-	Resource *ResourceMetricSource `json:"resource,omitempty" protobuf:"bytes,4,opt,name=resource"`
-}
-
-// ObjectMetricSource indicates how to scale on a metric describing a
-// kubernetes object (for example, hits-per-second on an Ingress object).
-type ObjectMetricSource struct {
-	// target is the described Kubernetes object.
-	Target CrossVersionObjectReference `json:"target" protobuf:"bytes,1,name=target"`
-
-	// metricName is the name of the metric in question.
-	MetricName string `json:"metricName" protobuf:"bytes,2,name=metricName"`
-	// targetValue is the target value of the metric (as a quantity).
-	TargetValue resource.Quantity `json:"targetValue" protobuf:"bytes,3,name=targetValue"`
-}
-
-// PodsMetricSource indicates how to scale on a metric describing each pod in
-// the current scale target (for example, transactions-processed-per-second).
-// The values will be averaged together before being compared to the target
-// value.
-type PodsMetricSource struct {
-	// metricName is the name of the metric in question
-	MetricName string `json:"metricName" protobuf:"bytes,1,name=metricName"`
-	// targetAverageValue is the target value of the average of the
-	// metric across all relevant pods (as a quantity)
-	TargetAverageValue resource.Quantity `json:"targetAverageValue" protobuf:"bytes,2,name=targetAverageValue"`
-}
-
-// ResourceMetricSource indicates how to scale on a resource metric known to
-// Kubernetes, as specified in requests and limits, describing each pod in the
-// current scale target (e.g. CPU or memory).  The values will be averaged
-// together before being compared to the target.  Such metrics are built in to
-// Kubernetes, and have special scaling options on top of those available to
-// normal per-pod metrics using the "pods" source.  Only one "target" type
-// should be set.
-type ResourceMetricSource struct {
-	// name is the name of the resource in question.
-	Name v1.ResourceName `json:"name" protobuf:"bytes,1,name=name"`
-	// targetAverageUtilization is the target value of the average of the
-	// resource metric across all relevant pods, represented as a percentage of
-	// the requested value of the resource for the pods.
-	// +optional
-	TargetAverageUtilization *int32 `json:"targetAverageUtilization,omitempty" protobuf:"varint,2,opt,name=targetAverageUtilization"`
-	// targetAverageValue is the the target value of the average of the
-	// resource metric across all relevant pods, as a raw value (instead of as
-	// a percentage of the request), similar to the "pods" metric source type.
-	// +optional
-	TargetAverageValue *resource.Quantity `json:"targetAverageValue,omitempty" protobuf:"bytes,3,opt,name=targetAverageValue"`
-}
-
-// MetricStatus describes the last-read state of a single metric.
-type MetricStatus struct {
-	// type is the type of metric source.  It will match one of the fields below.
-	Type MetricSourceType `json:"type" protobuf:"bytes,1,name=type"`
-
-	// object refers to a metric describing a single kubernetes object
-	// (for example, hits-per-second on an Ingress object).
-	// +optional
-	Object *ObjectMetricStatus `json:"object,omitempty" protobuf:"bytes,2,opt,name=object"`
-	// pods refers to a metric describing each pod in the current scale target
-	// (for example, transactions-processed-per-second).  The values will be
-	// averaged together before being compared to the target value.
-	// +optional
-	Pods *PodsMetricStatus `json:"pods,omitempty" protobuf:"bytes,3,opt,name=pods"`
-	// resource refers to a resource metric (such as those specified in
-	// requests and limits) known to Kubernetes describing each pod in the
-	// current scale target (e.g. CPU or memory). Such metrics are built in to
-	// Kubernetes, and have special scaling options on top of those available
-	// to normal per-pod metrics using the "pods" source.
-	// +optional
-	Resource *ResourceMetricStatus `json:"resource,omitempty" protobuf:"bytes,4,opt,name=resource"`
-}
-
-// ObjectMetricStatus indicates the current value of a metric describing a
-// kubernetes object (for example, hits-per-second on an Ingress object).
-type ObjectMetricStatus struct {
-	// target is the described Kubernetes object.
-	Target CrossVersionObjectReference `json:"target" protobuf:"bytes,1,name=target"`
-
-	// metricName is the name of the metric in question.
-	MetricName string `json:"metricName" protobuf:"bytes,2,name=metricName"`
-	// currentValue is the current value of the metric (as a quantity).
-	CurrentValue resource.Quantity `json:"currentValue" protobuf:"bytes,3,name=currentValue"`
-}
-
-// PodsMetricStatus indicates the current value of a metric describing each pod in
-// the current scale target (for example, transactions-processed-per-second).
-type PodsMetricStatus struct {
-	// metricName is the name of the metric in question
-	MetricName string `json:"metricName" protobuf:"bytes,1,name=metricName"`
-	// currentAverageValue is the current value of the average of the
-	// metric across all relevant pods (as a quantity)
-	CurrentAverageValue resource.Quantity `json:"currentAverageValue" protobuf:"bytes,2,name=currentAverageValue"`
-}
-
-// ResourceMetricStatus indicates the current value of a resource metric known to
-// Kubernetes, as specified in requests and limits, describing each pod in the
-// current scale target (e.g. CPU or memory).  Such metrics are built in to
-// Kubernetes, and have special scaling options on top of those available to
-// normal per-pod metrics using the "pods" source.
-type ResourceMetricStatus struct {
-	// name is the name of the resource in question.
-	Name v1.ResourceName `json:"name" protobuf:"bytes,1,name=name"`
-	// currentAverageUtilization is the current value of the average of the
-	// resource metric across all relevant pods, represented as a percentage of
-	// the requested value of the resource for the pods.  It will only be
-	// present if `targetAverageValue` was set in the corresponding metric
-	// specification.
-	// +optional
-	CurrentAverageUtilization *int32 `json:"currentAverageUtilization,omitempty" protobuf:"bytes,2,opt,name=currentAverageUtilization"`
-	// currentAverageValue is the the current value of the average of the
-	// resource metric across all relevant pods, as a raw value (instead of as
-	// a percentage of the request), similar to the "pods" metric source type.
-	// It will always be set, regardless of the corresponding metric specification.
-	CurrentAverageValue resource.Quantity `json:"currentAverageValue" protobuf:"bytes,3,name=currentAverageValue"`
-}
-
-// specification of a horizontal pod autoscaler.
-type HorizontalPodAutoscalerSpec struct {
-	// reference to Scale subresource; horizontal pod autoscaler will learn the current resource consumption from its status,
-	// and will set the desired number of pods by modifying its spec.
-	ScaleRef SubresourceReference `json:"scaleRef" protobuf:"bytes,1,opt,name=scaleRef"`
-	// lower limit for the number of pods that can be set by the autoscaler, default 1.
-	// +optional
-	MinReplicas *int32 `json:"minReplicas,omitempty" protobuf:"varint,2,opt,name=minReplicas"`
-	// upper limit for the number of pods that can be set by the autoscaler; cannot be smaller than MinReplicas.
-	MaxReplicas int32 `json:"maxReplicas" protobuf:"varint,3,opt,name=maxReplicas"`
-	// target average CPU utilization (represented as a percentage of requested CPU) over all the pods;
-	// if not specified it defaults to the target CPU utilization at 80% of the requested resources.
-	// +optional
-	CPUUtilization *CPUTargetUtilization `json:"cpuUtilization,omitempty" protobuf:"bytes,4,opt,name=cpuUtilization"`
-}
-
-// current status of a horizontal pod autoscaler
-type HorizontalPodAutoscalerStatus struct {
-	// most recent generation observed by this autoscaler.
-	// +optional
-	ObservedGeneration *int64 `json:"observedGeneration,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
-
-	// last time the HorizontalPodAutoscaler scaled the number of pods;
-	// used by the autoscaler to control how often the number of pods is changed.
-	// +optional
-	LastScaleTime *metav1.Time `json:"lastScaleTime,omitempty" protobuf:"bytes,2,opt,name=lastScaleTime"`
-
-	// current number of replicas of pods managed by this autoscaler.
-	CurrentReplicas int32 `json:"currentReplicas" protobuf:"varint,3,opt,name=currentReplicas"`
-
-	// desired number of replicas of pods managed by this autoscaler.
-	DesiredReplicas int32 `json:"desiredReplicas" protobuf:"varint,4,opt,name=desiredReplicas"`
-
-	// current average CPU utilization over all pods, represented as a percentage of requested CPU,
-	// e.g. 70 means that an average pod is using now 70% of its requested CPU.
-	// +optional
-	CurrentCPUUtilizationPercentage *int32 `json:"currentCPUUtilizationPercentage,omitempty" protobuf:"varint,5,opt,name=currentCPUUtilizationPercentage"`
-}
-
-// configuration of a horizontal pod autoscaler.
-type HorizontalPodAutoscaler struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// behaviour of autoscaler. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status.
-	// +optional
-	Spec HorizontalPodAutoscalerSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-
-	// current information about the autoscaler.
-	// +optional
-	Status HorizontalPodAutoscalerStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-}
-
-// list of horizontal pod autoscaler objects.
-type HorizontalPodAutoscalerList struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// list of horizontal pod autoscaler objects.
-	Items []HorizontalPodAutoscaler `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // +genclient=true
@@ -485,7 +229,7 @@ type DeploymentRollback struct {
 }
 
 type RollbackConfig struct {
-	// The revision to rollback to. If set to 0, rollbck to the last revision.
+	// The revision to rollback to. If set to 0, rollback to the last revision.
 	// +optional
 	Revision int64 `json:"revision,omitempty" protobuf:"varint,1,opt,name=revision"`
 }
@@ -579,7 +323,15 @@ type DeploymentStatus struct {
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
 
 	// Represents the latest available observations of a deployment's current state.
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	Conditions []DeploymentCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,6,rep,name=conditions"`
+
+	// Count of hash collisions for the Deployment. The Deployment controller uses this
+	// field as a collision avoidance mechanism when it needs to create the name for the
+	// newest ReplicaSet.
+	// +optional
+	CollisionCount *int64 `json:"collisionCount,omitempty" protobuf:"varint,8,opt,name=collisionCount"`
 }
 
 type DeploymentConditionType string
@@ -635,7 +387,7 @@ type DaemonSetUpdateStrategy struct {
 	// Rolling update config params. Present only if type = "RollingUpdate".
 	//---
 	// TODO: Update this to follow our convention for oneOf, whatever we decide it
-	// to be. Same as DeploymentStrategy.RollingUpdate.
+	// to be. Same as Deployment `strategy.rollingUpdate`.
 	// See https://github.com/kubernetes/kubernetes/issues/35345
 	// +optional
 	RollingUpdate *RollingUpdateDaemonSet `json:"rollingUpdate,omitempty" protobuf:"bytes,2,opt,name=rollingUpdate"`
@@ -676,7 +428,7 @@ type DaemonSetSpec struct {
 	// A label query over pods that are managed by the daemon set.
 	// Must match in order to be controlled.
 	// If empty, defaulted to labels on Pod template.
-	// More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,1,opt,name=selector"`
 
@@ -684,7 +436,7 @@ type DaemonSetSpec struct {
 	// The DaemonSet will create exactly one copy of this pod on every node
 	// that matches the template's node selector (or on every node if no node
 	// selector is specified).
-	// More info: http://kubernetes.io/docs/user-guide/replication-controller#pod-template
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
 	Template v1.PodTemplateSpec `json:"template" protobuf:"bytes,2,opt,name=template"`
 
 	// An update strategy to replace existing DaemonSet pods with new pods.
@@ -698,27 +450,34 @@ type DaemonSetSpec struct {
 	// +optional
 	MinReadySeconds int32 `json:"minReadySeconds,omitempty" protobuf:"varint,4,opt,name=minReadySeconds"`
 
+	// DEPRECATED.
 	// A sequence number representing a specific generation of the template.
 	// Populated by the system. It can be set only during the creation.
 	// +optional
 	TemplateGeneration int64 `json:"templateGeneration,omitempty" protobuf:"varint,5,opt,name=templateGeneration"`
+
+	// The number of old history to retain to allow rollback.
+	// This is a pointer to distinguish between explicit zero and not specified.
+	// Defaults to 10.
+	// +optional
+	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty" protobuf:"varint,6,opt,name=revisionHistoryLimit"`
 }
 
 // DaemonSetStatus represents the current status of a daemon set.
 type DaemonSetStatus struct {
 	// The number of nodes that are running at least 1
 	// daemon pod and are supposed to run the daemon pod.
-	// More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 	CurrentNumberScheduled int32 `json:"currentNumberScheduled" protobuf:"varint,1,opt,name=currentNumberScheduled"`
 
 	// The number of nodes that are running the daemon pod, but are
 	// not supposed to run the daemon pod.
-	// More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 	NumberMisscheduled int32 `json:"numberMisscheduled" protobuf:"varint,2,opt,name=numberMisscheduled"`
 
 	// The total number of nodes that should be running the daemon
 	// pod (including nodes correctly running the daemon pod).
-	// More info: http://releases.k8s.io/HEAD/docs/admin/daemons.md
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/daemonset/
 	DesiredNumberScheduled int32 `json:"desiredNumberScheduled" protobuf:"varint,3,opt,name=desiredNumberScheduled"`
 
 	// The number of nodes that should be running the daemon pod and have one
@@ -744,6 +503,12 @@ type DaemonSetStatus struct {
 	// (ready for at least spec.minReadySeconds)
 	// +optional
 	NumberUnavailable int32 `json:"numberUnavailable,omitempty" protobuf:"varint,8,opt,name=numberUnavailable"`
+
+	// Count of hash collisions for the DaemonSet. The DaemonSet controller
+	// uses this field as a collision avoidance mechanism when it needs to
+	// create the name for the newest ControllerRevision.
+	// +optional
+	CollisionCount *int64 `json:"collisionCount,omitempty" protobuf:"varint,9,opt,name=collisionCount"`
 }
 
 // +genclient=true
@@ -752,12 +517,12 @@ type DaemonSetStatus struct {
 type DaemonSet struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// The desired behavior of this daemon set.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
 	Spec DaemonSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
@@ -765,23 +530,29 @@ type DaemonSet struct {
 	// out of date by some window of time.
 	// Populated by the system.
 	// Read-only.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
 	Status DaemonSetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 const (
+	// DEPRECATED: DefaultDaemonSetUniqueLabelKey is used instead.
 	// DaemonSetTemplateGenerationKey is the key of the labels that is added
 	// to daemon set pods to distinguish between old and new pod templates
 	// during DaemonSet template update.
 	DaemonSetTemplateGenerationKey string = "pod-template-generation"
+
+	// DefaultDaemonSetUniqueLabelKey is the default label key that is added
+	// to existing DaemonSet pods to distinguish between old and new
+	// DaemonSet pods during DaemonSet template updates.
+	DefaultDaemonSetUniqueLabelKey = appsv1beta1.ControllerRevisionHashLabelKey
 )
 
 // DaemonSetList is a collection of daemon sets.
 type DaemonSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -793,7 +564,7 @@ type DaemonSetList struct {
 type ThirdPartyResourceDataList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -810,17 +581,17 @@ type ThirdPartyResourceDataList struct {
 type Ingress struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec is the desired state of the Ingress.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
 	Spec IngressSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status is the current state of the Ingress.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
 	Status IngressStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
@@ -829,7 +600,7 @@ type Ingress struct {
 type IngressList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -975,12 +746,12 @@ type ReplicaSet struct {
 
 	// If the Labels of a ReplicaSet are empty, they are defaulted to
 	// be the same as the Pod(s) that the ReplicaSet manages.
-	// Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the specification of the desired behavior of the ReplicaSet.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
 	Spec ReplicaSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
@@ -988,7 +759,7 @@ type ReplicaSet struct {
 	// This data may be out of date by some window of time.
 	// Populated by the system.
 	// Read-only.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#spec-and-status
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
 	Status ReplicaSetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
@@ -997,12 +768,12 @@ type ReplicaSet struct {
 type ReplicaSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#types-kinds
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of ReplicaSets.
-	// More info: http://kubernetes.io/docs/user-guide/replication-controller
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller
 	Items []ReplicaSet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
@@ -1011,7 +782,7 @@ type ReplicaSetSpec struct {
 	// Replicas is the number of desired replicas.
 	// This is a pointer to distinguish between explicit zero and unspecified.
 	// Defaults to 1.
-	// More info: http://kubernetes.io/docs/user-guide/replication-controller#what-is-a-replication-controller
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
 
@@ -1024,13 +795,13 @@ type ReplicaSetSpec struct {
 	// Selector is a label query over pods that should match the replica count.
 	// If the selector is empty, it is defaulted to the labels present on the pod template.
 	// Label keys and values that must match in order to be controlled by this replica set.
-	// More info: http://kubernetes.io/docs/user-guide/labels#label-selectors
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
 	// +optional
 	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
 
 	// Template is the object that describes the pod that will be created if
 	// insufficient replicas are detected.
-	// More info: http://kubernetes.io/docs/user-guide/replication-controller#pod-template
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
 	// +optional
 	Template v1.PodTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
 }
@@ -1038,7 +809,7 @@ type ReplicaSetSpec struct {
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 type ReplicaSetStatus struct {
 	// Replicas is the most recently oberved number of replicas.
-	// More info: http://kubernetes.io/docs/user-guide/replication-controller#what-is-a-replication-controller
+	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
 	Replicas int32 `json:"replicas" protobuf:"varint,1,opt,name=replicas"`
 
 	// The number of pods that have labels matching the labels of the pod template of the replicaset.
@@ -1059,6 +830,8 @@ type ReplicaSetStatus struct {
 
 	// Represents the latest available observations of a replica set's current state.
 	// +optional
+	// +patchMergeKey=type
+	// +patchStrategy=merge
 	Conditions []ReplicaSetCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,6,rep,name=conditions"`
 }
 
@@ -1097,7 +870,7 @@ type ReplicaSetCondition struct {
 type PodSecurityPolicy struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -1200,7 +973,7 @@ type SELinuxStrategyOptions struct {
 	// type is the strategy that will dictate the allowable labels that may be set.
 	Rule SELinuxStrategy `json:"rule" protobuf:"bytes,1,opt,name=rule,casttype=SELinuxStrategy"`
 	// seLinuxOptions required to run as; required for MustRunAs
-	// More info: http://releases.k8s.io/HEAD/docs/design/security_context.md#security-context
+	// More info: https://git.k8s.io/community/contributors/design-proposals/security_context.md
 	// +optional
 	SELinuxOptions *v1.SELinuxOptions `json:"seLinuxOptions,omitempty" protobuf:"bytes,2,opt,name=seLinuxOptions"`
 }
@@ -1294,7 +1067,7 @@ const (
 type PodSecurityPolicyList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -1302,10 +1075,11 @@ type PodSecurityPolicyList struct {
 	Items []PodSecurityPolicy `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// NetworkPolicy describes what network traffic is allowed for a set of Pods
 type NetworkPolicy struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
@@ -1323,13 +1097,12 @@ type NetworkPolicySpec struct {
 	PodSelector metav1.LabelSelector `json:"podSelector" protobuf:"bytes,1,opt,name=podSelector"`
 
 	// List of ingress rules to be applied to the selected pods.
-	// Traffic is allowed to a pod if namespace.networkPolicy.ingress.isolation is undefined and cluster policy allows it,
+	// Traffic is allowed to a pod if there are no NetworkPolicies selecting the pod
 	// OR if the traffic source is the pod's local node,
 	// OR if the traffic matches at least one ingress rule across all of the NetworkPolicy
 	// objects whose podSelector matches the pod.
-	// If this field is empty then this NetworkPolicy does not affect ingress isolation.
-	// If this field is present and contains at least one rule, this policy allows any traffic
-	// which matches at least one of the ingress rules in this list.
+	// If this field is empty then this NetworkPolicy does not allow any traffic
+	// (and serves solely to ensure that the pods it selects are isolated by default).
 	// +optional
 	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty" protobuf:"bytes,2,rep,name=ingress"`
 }
@@ -1338,21 +1111,17 @@ type NetworkPolicySpec struct {
 type NetworkPolicyIngressRule struct {
 	// List of ports which should be made accessible on the pods selected for this rule.
 	// Each item in this list is combined using a logical OR.
-	// If this field is not provided, this rule matches all ports (traffic not restricted by port).
-	// If this field is empty, this rule matches no ports (no traffic matches).
+	// If this field is empty or missing, this rule matches all ports (traffic not restricted by port).
 	// If this field is present and contains at least one item, then this rule allows traffic
 	// only if the traffic matches at least one port in the list.
-	// TODO: Update this to be a pointer to slice as soon as auto-generation supports it.
 	// +optional
 	Ports []NetworkPolicyPort `json:"ports,omitempty" protobuf:"bytes,1,rep,name=ports"`
 
 	// List of sources which should be able to access the pods selected for this rule.
 	// Items in this list are combined using a logical OR operation.
-	// If this field is not provided, this rule matches all sources (traffic not restricted by source).
-	// If this field is empty, this rule matches no sources (no traffic matches).
+	// If this field is empty or missing, this rule matches all sources (traffic not restricted by source).
 	// If this field is present and contains at least on item, this rule allows traffic only if the
 	// traffic matches at least one item in the from list.
-	// TODO: Update this to be a pointer to slice as soon as auto-generation supports it.
 	// +optional
 	From []NetworkPolicyPeer `json:"from,omitempty" protobuf:"bytes,2,rep,name=from"`
 }
@@ -1377,7 +1146,6 @@ type NetworkPolicyPeer struct {
 
 	// This is a label selector which selects Pods in this namespace.
 	// This field follows standard label selector semantics.
-	// If not provided, this selector selects no pods.
 	// If present but empty, this selector selects all pods in this namespace.
 	// +optional
 	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty" protobuf:"bytes,1,opt,name=podSelector"`
@@ -1385,7 +1153,6 @@ type NetworkPolicyPeer struct {
 	// Selects Namespaces using cluster scoped-labels.  This
 	// matches all pods in all namespaces selected by this label selector.
 	// This field follows standard label selector semantics.
-	// If omitted, this selector selects no namespaces.
 	// If present but empty, this selector selects all namespaces.
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty" protobuf:"bytes,2,opt,name=namespaceSelector"`
@@ -1395,7 +1162,7 @@ type NetworkPolicyPeer struct {
 type NetworkPolicyList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
-	// More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata
+	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 

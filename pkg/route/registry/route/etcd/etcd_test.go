@@ -90,7 +90,7 @@ func TestCreateWithAllocation(t *testing.T) {
 	defer server.Terminate(t)
 	defer storage.Store.DestroyFunc()
 
-	obj, err := storage.Create(apirequest.NewDefaultContext(), validRoute())
+	obj, err := storage.Create(apirequest.NewDefaultContext(), validRoute(), false)
 	if err != nil {
 		t.Fatalf("unable to create object: %v", err)
 	}

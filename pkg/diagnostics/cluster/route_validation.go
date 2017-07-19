@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
@@ -88,7 +89,7 @@ func (d *RouteCertificateValidation) Check() types.DiagnosticResult {
 		errs := validation.ExtendedValidateRoute(&route)
 
 		if len(errs) == 0 {
-			if !kapi.Semantic.DeepEqual(original, &route) {
+			if !kapihelper.Semantic.DeepEqual(original, &route) {
 				err := fmt.Errorf("Route was normalized when extended validation was run (route/%s -n %s).\nPlease verify that this route certificate contains no invalid data.\n", route.Name, route.Namespace)
 				r.Warn("DRouCert2004", nil, err.Error())
 			}

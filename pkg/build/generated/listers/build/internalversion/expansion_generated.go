@@ -7,7 +7,7 @@ package internalversion
 type BuildListerExpansion interface{}
 
 // BuildNamespaceListerExpansion allows custom methods to be added to
-// BuildNamespaeLister.
+// BuildNamespaceLister.
 type BuildNamespaceListerExpansion interface{}
 
 // BuildConfigListerExpansion allows custom methods to be added to
@@ -15,5 +15,5 @@ type BuildNamespaceListerExpansion interface{}
 type BuildConfigListerExpansion interface{}
 
 // BuildConfigNamespaceListerExpansion allows custom methods to be added to
-// BuildConfigNamespaeLister.
+// BuildConfigNamespaceLister.
 type BuildConfigNamespaceListerExpansion interface{}

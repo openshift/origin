@@ -3,7 +3,6 @@
 package v1
 
 import (
-	build "github.com/openshift/origin/pkg/build/apis/build"
 	v1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -73,7 +72,7 @@ func (s buildNamespaceLister) Get(name string) (*v1.Build, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(build.Resource("build"), name)
+		return nil, errors.NewNotFound(v1.Resource("build"), name)
 	}
 	return obj.(*v1.Build), nil
 }

@@ -126,12 +126,12 @@ func (s legacyStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionP
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	buildConfig, ok := obj.(*buildapi.BuildConfig)
 	if !ok {
-		return nil, nil, fmt.Errorf("not a BuildConfig")
+		return nil, nil, false, fmt.Errorf("not a BuildConfig")
 	}
-	return labels.Set(buildConfig.ObjectMeta.Labels), buildapi.BuildConfigToSelectableFields(buildConfig), nil
+	return labels.Set(buildConfig.ObjectMeta.Labels), buildapi.BuildConfigToSelectableFields(buildConfig), buildConfig.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.

@@ -18,6 +18,8 @@ type FakeBuilds struct {
 
 var buildsResource = schema.GroupVersionResource{Group: "build.openshift.io", Version: "", Resource: "builds"}
 
+var buildsKind = schema.GroupVersionKind{Group: "build.openshift.io", Version: "", Kind: "Build"}
+
 func (c *FakeBuilds) Create(buildResource *build.Build) (result *build.Build, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(buildsResource, c.ns, buildResource), &build.Build{})
@@ -74,7 +76,7 @@ func (c *FakeBuilds) Get(name string, options v1.GetOptions) (result *build.Buil
 
 func (c *FakeBuilds) List(opts v1.ListOptions) (result *build.BuildList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(buildsResource, c.ns, opts), &build.BuildList{})
+		Invokes(testing.NewListAction(buildsResource, buildsKind, c.ns, opts), &build.BuildList{})
 
 	if obj == nil {
 		return nil, err

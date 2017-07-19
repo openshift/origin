@@ -16,5 +16,5 @@ type RunOnceDurationConfig struct {
 	// won't make any changes to the pod
 	// TODO: change the external name of this field to reflect that it is a limit, not an override
 	// It is kept this way for compatibility. Only change it in a new version of the API.
-	ActiveDeadlineSecondsOverride *int64 `json:"activeDeadlineSecondsOverride,omitempty",description:"maximum value for activeDeadlineSeconds in run-once pods"`
+	ActiveDeadlineSecondsOverride *int64 `json:"activeDeadlineSecondsOverride,omitempty" description:"maximum value for activeDeadlineSeconds in run-once pods"`
 }

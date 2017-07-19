@@ -57,7 +57,7 @@ func (s *storage) GetAuthorizeToken(ctx apirequest.Context, name string, options
 }
 
 func (s *storage) CreateAuthorizeToken(ctx apirequest.Context, token *oauthapi.OAuthAuthorizeToken) (*oauthapi.OAuthAuthorizeToken, error) {
-	obj, err := s.Create(ctx, token)
+	obj, err := s.Create(ctx, token, false)
 	if err != nil {
 		return nil, err
 	}

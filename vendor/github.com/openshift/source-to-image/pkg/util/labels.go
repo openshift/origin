@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/openshift/source-to-image/pkg/api"
+	"github.com/openshift/source-to-image/pkg/scm/git"
 )
 
 // GenerateOutputImageLabels generate the labels based on the s2i Config
 // and source repository informations.
-func GenerateOutputImageLabels(info *api.SourceInfo, config *api.Config) map[string]string {
+func GenerateOutputImageLabels(info *git.SourceInfo, config *api.Config) map[string]string {
 	labels := map[string]string{}
 	namespace := api.DefaultNamespace
 	if len(config.LabelNamespace) > 0 {
@@ -38,7 +39,7 @@ func GenerateLabelsFromConfig(labels map[string]string, config *api.Config, name
 
 // GenerateLabelsFromSourceInfo generate the labels based on the source repository
 // informations.
-func GenerateLabelsFromSourceInfo(labels map[string]string, info *api.SourceInfo, namespace string) map[string]string {
+func GenerateLabelsFromSourceInfo(labels map[string]string, info *git.SourceInfo, namespace string) map[string]string {
 	if info == nil {
 		glog.V(3).Info("Unable to fetch source informations, the output image labels will not be set")
 		return labels

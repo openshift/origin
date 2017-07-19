@@ -164,7 +164,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.PrintTable = (len(args) == 0 && !o.All) || o.List
 
 	mapper, typer := f.Object()
-	o.Builder = resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	o.Builder = resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -195,7 +195,7 @@ func (o *ImageLookupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	output := kcmdutil.GetFlagString(cmd, "output")
 	if len(output) != 0 || o.Local || kcmdutil.GetDryRunFlag(cmd) {
-		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, mapper, obj, o.Out) }
+		o.PrintObject = func(obj runtime.Object) error { return f.PrintObject(cmd, o.Local, mapper, obj, o.Out) }
 	}
 
 	o.Encoder = f.JSONEncoder()

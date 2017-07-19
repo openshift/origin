@@ -169,6 +169,19 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		return nil, err
 	}
 
+	metricsReload := prometheus.NewSummary(prometheus.SummaryOpts{
+		Namespace: "template_router",
+		Name:      "reload_seconds",
+		Help:      "Measures the time spent reloading the router in seconds.",
+	})
+	prometheus.MustRegister(metricsReload)
+	metricWriteConfig := prometheus.NewSummary(prometheus.SummaryOpts{
+		Namespace: "template_router",
+		Name:      "write_config_seconds",
+		Help:      "Measures the time spent writing out the router configuration to disk in seconds.",
+	})
+	prometheus.MustRegister(metricWriteConfig)
+
 	router := &templateRouter{
 		dir:                      dir,
 		templates:                cfg.templates,
@@ -190,16 +203,8 @@ func newTemplateRouter(cfg templateRouterCfg) (*templateRouter, error) {
 		peerEndpoints:            []Endpoint{},
 		bindPortsAfterSync:       cfg.bindPortsAfterSync,
 
-		metricReload: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
-			Namespace: "template_router",
-			Name:      "reload_seconds",
-			Help:      "Measures the time spent reloading the router in seconds.",
-		})).(prometheus.Summary),
-		metricWriteConfig: prometheus.MustRegisterOrGet(prometheus.NewSummary(prometheus.SummaryOpts{
-			Namespace: "template_router",
-			Name:      "write_config_seconds",
-			Help:      "Measures the time spent writing out the router configuration to disk in seconds.",
-		})).(prometheus.Summary),
+		metricReload:      metricsReload,
+		metricWriteConfig: metricWriteConfig,
 
 		rateLimitedCommitFunction:    nil,
 		rateLimitedCommitStopChannel: make(chan struct{}),

@@ -94,7 +94,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	}
 
 	mapper, typer := f.Object()
-	r := resource.NewBuilder(mapper, typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	r := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
 		ContinueOnError().
 		NamespaceParam(namespace).DefaultNamespace().
 		FilenameParam(enforceNamespace, &resource.FilenameOptions{Recursive: false, Filenames: kcmdutil.GetFlagStringSlice(cmd, "filename")}).

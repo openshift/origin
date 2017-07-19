@@ -13,10 +13,11 @@ import (
 
 const ExternalIPPluginName = "ExternalIPRanger"
 
-func init() {
-	admission.RegisterPlugin("ExternalIPRanger", func(config io.Reader) (admission.Interface, error) {
-		return NewExternalIPRanger(nil, nil, false), nil
-	})
+func RegisterExternalIP(plugins *admission.Plugins) {
+	plugins.Register("ExternalIPRanger",
+		func(config io.Reader) (admission.Interface, error) {
+			return NewExternalIPRanger(nil, nil, false), nil
+		})
 }
 
 type externalIPRanger struct {

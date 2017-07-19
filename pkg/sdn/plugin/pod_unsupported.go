@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 )
 
-func (m *podManager) setup(req *cniserver.PodRequest) (*cnitypes.Result, *runningPod, error) {
+func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *runningPod, error) {
 	return nil, nil, fmt.Errorf("openshift-sdn is unsupported on this OS!")
 }
 
