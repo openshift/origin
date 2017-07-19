@@ -313,7 +313,7 @@ func (r *repository) SubmoduleUpdate(location string, init, recursive bool) erro
 
 // ShowFormat formats the ref with the given git show format string
 func (r *repository) ShowFormat(location, ref, format string) (string, error) {
-	out, _, err := r.git(location, "show", "--quiet", ref, fmt.Sprintf("--format=%s", format))
+	out, _, err := r.git(location, "show", "-s", ref, fmt.Sprintf("--format=%s", format))
 	return out, err
 }
 
