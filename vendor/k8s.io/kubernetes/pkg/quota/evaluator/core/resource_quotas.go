@@ -20,27 +20,42 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 )
 
-// NewResourceQuotaEvaluator returns an evaluator that can evaluate resource quotas
-func NewResourceQuotaEvaluator(kubeClient clientset.Interface) quota.Evaluator {
+// listResourceQuotasByNamespaceFuncUsingClient returns a resourceQuota listing function based on the provided client.
+func listResourceQuotasByNamespaceFuncUsingClient(kubeClient clientset.Interface) generic.ListFuncByNamespace {
+	// TODO: ideally, we could pass dynamic client pool down into this code, and have one way of doing this.
+	// unfortunately, dynamic client works with Unstructured objects, and when we calculate Usage, we require
+	// structured objects.
+	return func(namespace string, options metav1.ListOptions) ([]runtime.Object, error) {
+		itemList, err := kubeClient.Core().ResourceQuotas(namespace).List(options)
+		if err != nil {
+			return nil, err
+		}
+		results := make([]runtime.Object, 0, len(itemList.Items))
+		for i := range itemList.Items {
+			results = append(results, &itemList.Items[i])
+		}
+		return results, nil
+	}
+}
+
+// NewResourceQuotaEvaluator returns an evaluator that can evaluate resourceQuotas
+// if the specified shared informer factory is not nil, evaluator may use it to support listing functions.
+func NewResourceQuotaEvaluator(kubeClient clientset.Interface, f informers.SharedInformerFactory) quota.Evaluator {
+	listFuncByNamespace := listResourceQuotasByNamespaceFuncUsingClient(kubeClient)
+	if f != nil {
+		listFuncByNamespace = generic.ListResourceUsingInformerFunc(f, v1.SchemeGroupVersion.WithResource("resourcequotas"))
+	}
 	return &generic.ObjectCountEvaluator{
 		AllowCreateOnUpdate: false,
 		InternalGroupKind:   api.Kind("ResourceQuota"),
 		ResourceName:        api.ResourceQuotas,
-		ListFuncByNamespace: func(namespace string, options metav1.ListOptions) ([]runtime.Object, error) {
-			itemList, err := kubeClient.Core().ResourceQuotas(namespace).List(options)
-			if err != nil {
-				return nil, err
-			}
-			results := make([]runtime.Object, 0, len(itemList.Items))
-			for i := range itemList.Items {
-				results = append(results, &itemList.Items[i])
-			}
-			return results, nil
-		},
+		ListFuncByNamespace: listFuncByNamespace,
 	}
 }
