@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 6457f32aa21c59385e374806386a2c5019be9e07
+%global commit 5332f5de023dcca53cdc5b629159238caac8ecf6
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.152 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=6457f32
+%global os_git_vars OS_GIT_MINOR=6+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.6.153 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=5332f5d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -52,7 +52,7 @@
 Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
-Version:        3.6.153
+Version:        3.6.154
 Release:        1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
@@ -641,6 +641,124 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Jul 19 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.154-1
+- disable a few failing e2e tests (deads@redhat.com)
+- disable projectrequest unit test because the fake client is weird
+  (deads@redhat.com)
+- defer adding new oc/kubectl commands until after the rebase
+  (deads@redhat.com)
+- add FSStorageOS to SCC (deads@redhat.com)
+- sdn: additional kube-1.7 rebase fixup (dcbw@redhat.com)
+- Fix cross-platform compile of pod manager (jliggitt@redhat.com)
+- node default config value changes (deads@redhat.com)
+- disable registry url validation in prune (deads@redhat.com)
+- disable go version checking (deads@redhat.com)
+- boring: generated (deads@redhat.com)
+- remove dead volume source migrator (deads@redhat.com)
+- storage changes in 3.7 (deads@redhat.com)
+- remove old hpa serialization tests (deads@redhat.com)
+- new openshift permissions (deads@redhat.com)
+- react to upstream flag changes: api-version was removed (deads@redhat.com)
+- minor API updates to allow generation (deads@redhat.com)
+- rewire openshift start (deads@redhat.com)
+- Update default enabled ciphers for go1.8 (jliggitt@redhat.com)
+- fix pkg/sdn/plugin unit tests for CNI bump (danw@redhat.com)
+- Port SDN proxy filter to new EndpointsHandler (danw@redhat.com)
+- wire up new kubeproxy (deads@redhat.com)
+- sdn: update for CNI changes (dcbw@redhat.com)
+- endpointsconfighandler changes, can't remove from history (deads@redhat.com)
+- DISABLE UNIDLER (deads@redhat.com)
+- adjust to new systemd library (deads@redhat.com)
+- router metrics changed/disabled! (deads@redhat.com)
+- directly depend on the scc admission plugin (deads@redhat.com)
+- proxy command changed a lot.  This may be a wrapper now (deads@redhat.com)
+- React to upstream NewBuilder changes (deads@redhat.com)
+- react to upstream command changes in wrappers (deads@redhat.com)
+- handle printer changes (deads@redhat.com)
+- react to client factory changes in oc/kubectl (deads@redhat.com)
+- update admission plugins (deads@redhat.com)
+- remove NodeLegacyHostIP per
+  https://github.com/kubernetes/kubernetes/pull/44830 (deads@redhat.com)
+- handle upstream storage controller changes (deads@redhat.com)
+- rewire controllers (deads@redhat.com)
+- update defaulting to handle new kube (deads@redhat.com)
+- update build for 1.8 (deads@redhat.com)
+- update generators to work again (deads@redhat.com)
+- boring: fake client update (deads@redhat.com)
+- boring: simple method moves (deads@redhat.com)
+- UPSTREAM: 48884: Do not mutate pods on update (ccoleman@redhat.com)
+- UPSTREAM: 48613: proxy/userspace: honor listen IP address as host IP if given
+  (dcbw@redhat.com)
+- UPSTREAM: 48733: Never prevent deletion of resources as part of namespace
+  lifecycle (jliggitt@redhat.com)
+- UPSTREAM: 48578: run must output message on container error
+  (ffranz@redhat.com)
+- UPSTREAM: 48582: Fixes oc delete ignoring --grace-period. (ffranz@redhat.com)
+- UPSTREAM: 48481: protect against nil panic in apply (ffranz@redhat.com)
+- UPSTREAM: 49139: expose proxy default (deads@redhat.com)
+- UPSTREAM: <drop>: restore normal alias test (deads@redhat.com)
+- UPSTREAM: <drop>: disable suspicously failing tests (deads@redhat.com)
+- UPSTREAM: <carry>: allow separate mapping fo kind (deads@redhat.com)
+- UPSTREAM: 49137: proxier is it really nil (deads@redhat.com)
+- UPSTREAM: <carry>: squash to SCC (deads@redhat.com)
+- UPSTREAM: <carry>: generator updates (deads@redhat.com)
+- UPSTREAM: 45294: Fix protobuf generator for aliases to repeated types
+  (deads@redhat.com)
+- UPSTREAM: <drop>: hack out portworx to avoid double proto registration
+  (deads@redhat.com)
+- UPSTREAM: 49136: don't mutate printers after creation (deads@redhat.com)
+- UPSTREAM: 49134: tolerate missing template (deads@redhat.com)
+- UPSTREAM: 49133: update permissions to allow block owner deletion
+  (deads@redhat.com)
+- UPSTREAM: <carry>: increase wait in kubecontrollers (deads@redhat.com)
+- UPSTREAM: <carry>: compensate for poor printer behavior (deads@redhat.com)
+- UPSTREAM: <carry>: make wiring in kubeproxy easy until we sort out config
+  (deads@redhat.com)
+- UPSTREAM: 49132: make a union categoryexpander (deads@redhat.com)
+- UPSTREAM: 49131: expose direct from config new scheduler method
+  (deads@redhat.com)
+- UPSTREAM: 49130: expose RegisterAllAdmissionPlugins (deads@redhat.com)
+- UPSTREAM: <drop>: keep old pod available (deads@redhat.com)
+- UPSTREAM: <drop>: regenerated openapi because it's not commited
+  (deads@redhat.com)
+- UPSTREAM: <carry>: allow to use * as a capability in Security Context
+  Constraints. (vsemushi@redhat.com)
+- UPSTREAM: 45894: Export BaseControllerRefManager (deads@redhat.com)
+- UPSTREAM: coreos/etcd: <carry>: vendor grpc v1.0.4 locally
+  (agoldste@redhat.com)
+- UPSTREAM: docker/engine-api: 26718: Add Logs to ContainerAttachOptions
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: 2140: Add 'ca-central-1' region for registry
+  S3 storage driver (mfojtik@redhat.com)
+- UPSTREAM: opencontainers/runc: 1216: Fix thread safety of SelinuxEnabled and
+  getSelinuxMountPoint (pmorie@redhat.com)
+- UPSTREAM: docker/distribution: 2008: Honor X-Forwarded-Port and Forwarded
+  headers (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Update dependencies
+  (agladkov@redhat.com)
+- UPSTREAM: docker/distribution: 1857: Provide stat descriptor for Create
+  method during cross-repo mount (jliggitt@redhat.com)
+- UPSTREAM: docker/distribution: 1757: Export storage.CreateOptions in top-
+  level package (miminar@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- BREAK logstash formatting (deads@redhat.com)
+- UPSTREAM: <drop>: generated updates (deads@redhat.com)
+- UPSTREAM: <drop>: squash to bump, copy (deads@redhat.com)
+- bump(k8s.io/kubernetes): 695b5616baa050ac185abdddb3c750205a08a19b
+  (deads@redhat.com)
+- use revamped source-to-image git url parser (jminter@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  7da3d3e97565e652a59fd81286f3956fd43e85a8 (jminter@redhat.com)
+- update godeps.json to run bump checkers (deads@redhat.com)
+- UPSTREAM: <drop>: revert up to 43e60df912 UPSTREAM: 48884: Do not mutate pods
+  on update (deads@redhat.com)
+- update bootstrappolicy/dead addDeadClusterRole to include systemOnly
+  annotation (admin@benjaminapetersen.me)
+- UPSTREAM: 48813: maxinflight handle should let panicrecovery handler call
+  NewLogged (deads@redhat.com)
+- don't add ICT for source images if build is binary (bparees@redhat.com)
+
 * Tue Jul 18 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.6.153-1
 - Remove test-integration.sh dependance on symbols (jliggitt@redhat.com)
 - Fix hack/test-integration.sh on OSX (jliggitt@redhat.com)
