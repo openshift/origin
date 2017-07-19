@@ -4,6 +4,7 @@ import (
 	"net"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/record"
@@ -18,23 +19,20 @@ import (
 type NeedPodsSignaler interface {
 	// NeedPods signals that endpoint addresses are needed in order to
 	// service a traffic coming to the given service and port
-	NeedPods(serviceRef api.ObjectReference, port string) error
+	NeedPods(serviceName types.NamespacedName, port string) error
 }
 
 type eventSignaler struct {
 	recorder record.EventRecorder
 }
 
-func (sig *eventSignaler) NeedPods(serviceRefInt api.ObjectReference, port string) error {
-	// TODO(directxman12): fix upstream so that it passes around v1.ObjectReference instead of api.ObjectReference
-	// NB: api.ObjectReference doesn't appear to be registered as a type, so we have to do manual conversion...
+func (sig *eventSignaler) NeedPods(serviceName types.NamespacedName, port string) error {
+	// TODO: we need to fake this since upstream removed our handle to the ObjectReference
+	// This *should* be sufficient for the unidling controller
 	serviceRef := v1.ObjectReference{
-		Kind:            serviceRefInt.Kind,
-		Namespace:       serviceRefInt.Namespace,
-		Name:            serviceRefInt.Name,
-		UID:             serviceRefInt.UID,
-		APIVersion:      serviceRefInt.APIVersion,
-		ResourceVersion: serviceRefInt.ResourceVersion,
+		Kind:      "Service",
+		Namespace: serviceName.Namespace,
+		Name:      serviceName.Name,
 	}
 
 	// HACK: make the message different to prevent event aggregation
