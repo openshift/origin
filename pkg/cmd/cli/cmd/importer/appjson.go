@@ -199,7 +199,7 @@ func (o *AppJSONOptions) Run() error {
 		return o.PrintObject(out)
 	}
 
-	result, err := appcmd.TransformTemplate(template, o.Client, o.Namespace, nil)
+	result, err := appcmd.TransformTemplate(template, o.Client, o.Namespace, nil, false)
 	if err != nil {
 		return err
 	}

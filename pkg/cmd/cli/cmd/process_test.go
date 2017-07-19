@@ -19,7 +19,7 @@ func TestInjectUserVars(t *testing.T) {
 		"parameter_foo_bar_error":    "value_foo_bar_error=value_foo_bar_error",
 	}
 
-	errors := injectUserVars(testParam, template)
+	errors := injectUserVars(testParam, template, false)
 	if len(errors) != 2 {
 		for index, err := range errors {
 			fmt.Printf("errors[%d] : %v\n", index, err)

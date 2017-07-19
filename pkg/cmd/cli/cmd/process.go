@@ -92,6 +92,7 @@ func NewCmdProcess(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 	cmd.Flags().StringArrayVarP(params, "param", "p", nil, "Specify a key-value pair (eg. -p FOO=BAR) to set/override a parameter value in the template.")
 	cmd.Flags().StringArray("param-file", []string{}, "File containing template parameter values to set/override in the template.")
 	cmd.MarkFlagFilename("param-file")
+	cmd.Flags().Bool("ignore-unknown-parameters", false, "If true, will not stop processing if a provided parameter does not exist in the template.")
 	cmd.Flags().BoolP("local", "", false, "If true process the template locally instead of contacting the server.")
 	cmd.Flags().BoolP("parameters", "", false, "If true, do not process but only print available parameters")
 	cmd.Flags().StringP("labels", "l", "", "Label to set in all resources for this template")
@@ -275,7 +276,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	if paramErr != nil {
 		return paramErr
 	}
-	if errs := injectUserVars(params, obj); errs != nil {
+	if errs := injectUserVars(params, obj, kcmdutil.GetFlagBool(cmd, "ignore-unknown-parameters")); errs != nil {
 		return kerrors.NewAggregate(errs)
 	}
 
@@ -339,13 +340,14 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 }
 
 // injectUserVars injects user specified variables into the Template
-func injectUserVars(values app.Environment, t *templateapi.Template) []error {
+func injectUserVars(values app.Environment, t *templateapi.Template, ignoreUnknownParameters bool) []error {
 	var errors []error
 	for param, val := range values {
-		if v := template.GetParameterByName(t, param); v != nil {
+		v := template.GetParameterByName(t, param)
+		if v != nil {
 			v.Value = val
 			v.Generate = ""
-		} else {
+		} else if !ignoreUnknownParameters {
 			errors = append(errors, fmt.Errorf("unknown parameter name %q\n", param))
 		}
 	}

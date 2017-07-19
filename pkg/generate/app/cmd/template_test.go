@@ -23,7 +23,7 @@ func TestTransformTemplate(t *testing.T) {
 
 	fakeosClient := &testclient.Fake{}
 
-	template, err := TransformTemplate(templatefoobar, fakeosClient, "foo_bar_namespace", testParamMap)
+	template, err := TransformTemplate(templatefoobar, fakeosClient, "foo_bar_namespace", testParamMap, false)
 	if err != nil {
 		t.Errorf("unexpect err : %v", err)
 	}
