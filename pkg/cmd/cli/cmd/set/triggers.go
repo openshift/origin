@@ -656,8 +656,13 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 			allNames.Insert(container.Name)
 		}
 		for _, trigger := range t.ImageChange {
+			// If we have only one container, assume the triggers should be set for that
+			// container and do not require --containers to be specified.
+			if len(allNames) == 1 {
+				trigger.Names = []string{allNames.List()[0]}
+			}
 			if len(trigger.Names) == 0 {
-				return fmt.Errorf("you must specify --containers when setting --from-image")
+				return fmt.Errorf("you must specify --containers when setting --from-image and multiple containers (%s) are present", strings.Join(allNames.List(), ","))
 			}
 			if !allNames.HasAll(trigger.Names...) {
 				return fmt.Errorf(
