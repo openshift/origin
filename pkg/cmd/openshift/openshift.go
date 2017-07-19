@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
+	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/admin"
@@ -81,7 +82,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "kubelet":
 		cmd = kubernetes.NewKubeletCommand(basename, basename, out)
 	case "kube-proxy":
-		cmd = kubernetes.NewProxyCommand(basename, basename, out)
+		cmd = proxyapp.NewProxyCommand()
 	case "kube-scheduler":
 		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
 	case "kubernetes":
