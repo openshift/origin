@@ -1,8 +1,7 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-# TODO skip the version check until we update for 1.8
-# os::golang::verify_go_version
+os::golang::verify_go_version
 
 bad_files=$(os::util::list_go_src_files | xargs gofmt -s -l)
 if [[ -n "${bad_files}" ]]; then
