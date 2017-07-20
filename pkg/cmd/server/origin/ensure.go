@@ -54,15 +54,7 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 		return
 	}
 
-	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
-	for _, saName := range bootstrappolicy.InfraSAs.GetServiceAccounts() {
-		_, err := c.KubeClientsetInternal().Core().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: saName}})
-		if err != nil && !kapierror.IsAlreadyExists(err) {
-			glog.Errorf("Error creating service account %s/%s: %v", ns, saName, err)
-		}
-
-		role, _ := bootstrappolicy.InfraSAs.RoleFor(saName)
-
+	for _, role := range bootstrappolicy.ControllerRoles() {
 		reconcileRole := &policy.ReconcileClusterRolesOptions{
 			RolesToReconcile: []string{role.Name},
 			Confirmed:        true,
@@ -73,16 +65,17 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 		if err := reconcileRole.RunReconcileClusterRoles(nil, nil); err != nil {
 			glog.Errorf("Could not reconcile %v: %v\n", role.Name, err)
 		}
-
-		addRole := &policy.RoleModificationOptions{
-			RoleName:            role.Name,
-			RoleBindingAccessor: roleAccessor,
-			Subjects:            []kapi.ObjectReference{{Namespace: ns, Name: saName, Kind: "ServiceAccount"}},
+	}
+	for _, roleBinding := range bootstrappolicy.ControllerRoleBindings() {
+		reconcileRoleBinding := &policy.ReconcileClusterRoleBindingsOptions{
+			RolesToReconcile:  []string{roleBinding.RoleRef.Name},
+			Confirmed:         true,
+			Union:             true,
+			Out:               ioutil.Discard,
+			RoleBindingClient: c.PrivilegedLoopbackOpenShiftClient.ClusterRoleBindings(),
 		}
-		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error { return addRole.AddRole() }); err != nil {
-			glog.Errorf("Could not add %v service accounts to the %v cluster role: %v\n", saName, role.Name, err)
-		} else {
-			glog.V(2).Infof("Added %v service accounts to the %v cluster role: %v\n", saName, role.Name, err)
+		if err := reconcileRoleBinding.RunReconcileClusterRoleBindings(nil, nil); err != nil {
+			glog.Errorf("Could not reconcile %v: %v\n", roleBinding.Name, err)
 		}
 	}
 

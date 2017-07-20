@@ -2971,90 +2971,6 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
-    name: system:node-bootstrapper
-  rules:
-  - apiGroups:
-    - certificates.k8s.io
-    attributeRestrictions: null
-    resources:
-    - certificatesigningrequests
-    verbs:
-    - create
-    - get
-    - list
-    - watch
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:openshift:template-service-broker
-  rules:
-  - apiGroups:
-    - authorization.k8s.io
-    attributeRestrictions: null
-    resources:
-    - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
-    - template.openshift.io
-    attributeRestrictions: null
-    resources:
-    - brokertemplateinstances
-    verbs:
-    - create
-    - delete
-    - get
-    - update
-  - apiGroups:
-    - template.openshift.io
-    attributeRestrictions: null
-    resources:
-    - templateinstances
-    verbs:
-    - assign
-    - create
-    - delete
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - secrets
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - configmaps
-    verbs:
-    - list
-  - apiGroups:
-    - route.openshift.io
-    attributeRestrictions: null
-    resources:
-    - routes
-    verbs:
-    - list
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
     name: system:openshift:controller:build-controller
   rules:
   - apiGroups:
@@ -4033,6 +3949,82 @@ items:
     - deploymentconfigs/scale
     verbs:
     - get
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:template-service-broker
+  rules:
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.openshift.io
+    attributeRestrictions: null
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - brokertemplateinstances
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - templateinstances
+    verbs:
+    - assign
+    - create
+    - delete
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    - services
+    verbs:
+    - list
+  - apiGroups:
+    - route.openshift.io
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
     - update
 - apiVersion: v1
   kind: ClusterRole
@@ -5269,6 +5261,27 @@ items:
     - create
     - patch
     - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:node-bootstrapper
+  rules:
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests
+    verbs:
+    - create
+    - get
+    - list
+    - watch
 - apiVersion: v1
   kind: ClusterRole
   metadata:

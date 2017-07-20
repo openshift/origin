@@ -56,5 +56,4 @@ func init() {
 	addDeadClusterRole("system:build-controller")
 	addDeadClusterRole("system:deploymentconfig-controller")
 	addDeadClusterRole("system:deployment-controller")
-
 }

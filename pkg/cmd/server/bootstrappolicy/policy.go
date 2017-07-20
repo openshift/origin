@@ -959,7 +959,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	// dead cluster roles need to be checked for conflicts (in case something new comes up)
 	// so add them to this list.
 	openshiftClusterRoles = append(openshiftClusterRoles, GetDeadClusterRoles()...)
-	openshiftSAClusterRoles := InfraSAs.AllRoles()
 	kubeClusterRoles, err := GetKubeBootstrapClusterRoles()
 	// coder error
 	if err != nil {
@@ -984,9 +983,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 	for _, clusterRole := range openshiftClusterRoles {
 		openshiftClusterRoleNames.Insert(clusterRole.Name)
 	}
-	for _, clusterRole := range openshiftSAClusterRoles {
-		openshiftClusterRoleNames.Insert(clusterRole.Name)
-	}
 	for _, clusterRole := range kubeClusterRoles {
 		kubeClusterRoleNames.Insert(clusterRole.Name)
 	}
@@ -1005,7 +1001,6 @@ func GetBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 	finalClusterRoles := []authorizationapi.ClusterRole{}
 	finalClusterRoles = append(finalClusterRoles, openshiftClusterRoles...)
-	finalClusterRoles = append(finalClusterRoles, openshiftSAClusterRoles...)
 	finalClusterRoles = append(finalClusterRoles, openshiftControllerRoles...)
 	finalClusterRoles = append(finalClusterRoles, kubeSAClusterRoles...)
 	for i := range kubeClusterRoles {
@@ -1263,9 +1258,6 @@ var clusterRoleConflicts = sets.NewString(
 
 	// TODO this should probably be re-swizzled to be the delta on top of the kube role
 	"system:discovery",
-
-	// TODO deconflict this
-	"system:node-bootstrapper",
 
 	// TODO these should be reconsidered
 	"cluster-admin",
