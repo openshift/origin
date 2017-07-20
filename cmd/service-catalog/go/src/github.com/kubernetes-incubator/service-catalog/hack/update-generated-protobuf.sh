@@ -17,7 +17,7 @@ To skip protobuf generation, set \$PROTO_OPTIONAL."
 fi
 
 os::build::setup_env
-os::util::ensure::gopath_binary_exists 'goimports'
+os::util::find::system_binary 'goimports' >/dev/null 2>&1 || os::util::ensure::gopath_binary_exists 'goimports'
 
 os::util::ensure::built_binary_exists 'genprotobuf'
 os::util::ensure::built_binary_exists 'protoc-gen-gogo' vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
