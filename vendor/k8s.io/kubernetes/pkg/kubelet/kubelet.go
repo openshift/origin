@@ -18,8 +18,6 @@ package kubelet
 
 import (
 	"crypto/tls"
-	"crypto/x509"
-	"crypto/x509/pkix"
 	"fmt"
 	"net"
 	"net/http"
@@ -56,11 +54,9 @@ import (
 	"k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	certificates "k8s.io/kubernetes/pkg/apis/certificates/v1beta1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	componentconfigv1alpha1 "k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	clientcertificates "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/certificates/v1beta1"
 	corelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/features"
@@ -711,7 +707,7 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 		}
 		ips = append(ips, cloudIPs...)
 		names := append([]string{klet.GetHostname(), hostnameOverride}, cloudNames...)
-		klet.serverCertificateManager, err = initializeServerCertificateManager(klet.kubeClient, kubeCfg, klet.nodeName, ips, names)
+		klet.serverCertificateManager, err = certificate.NewKubeletServerCertificateManager(klet.kubeClient, kubeCfg, klet.nodeName, ips, names)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize certificate manager: %v", err)
 		}
@@ -1114,48 +1110,6 @@ type Kubelet struct {
 	// dockerLegacyService contains some legacy methods for backward compatibility.
 	// It should be set only when docker is using non json-file logging driver.
 	dockerLegacyService dockershim.DockerLegacyService
-}
-
-func initializeServerCertificateManager(kubeClient clientset.Interface, kubeCfg *componentconfig.KubeletConfiguration, nodeName types.NodeName, ips []net.IP, hostnames []string) (certificate.Manager, error) {
-	var certSigningRequestClient clientcertificates.CertificateSigningRequestInterface
-	if kubeClient != nil && kubeClient.Certificates() != nil {
-		certSigningRequestClient = kubeClient.Certificates().CertificateSigningRequests()
-	}
-	certificateStore, err := certificate.NewFileStore(
-		"kubelet-server",
-		kubeCfg.CertDirectory,
-		kubeCfg.CertDirectory,
-		kubeCfg.TLSCertFile,
-		kubeCfg.TLSPrivateKeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize certificate store: %v", err)
-	}
-	return certificate.NewManager(&certificate.Config{
-		CertificateSigningRequestClient: certSigningRequestClient,
-		Template: &x509.CertificateRequest{
-			Subject: pkix.Name{
-				CommonName:   fmt.Sprintf("system:node:%s", nodeName),
-				Organization: []string{"system:nodes"},
-			},
-			DNSNames:    hostnames,
-			IPAddresses: ips,
-		},
-		Usages: []certificates.KeyUsage{
-			// https://tools.ietf.org/html/rfc5280#section-4.2.1.3
-			//
-			// Digital signature allows the certificate to be used to verify
-			// digital signatures used during TLS negotiation.
-			certificates.UsageDigitalSignature,
-			// KeyEncipherment allows the cert/key pair to be used to encrypt
-			// keys, including the symetric keys negotiated during TLS setup
-			// and used for data transfer.
-			certificates.UsageKeyEncipherment,
-			// ServerAuth allows the cert to be used by a TLS server to
-			// authenticate itself to a TLS client.
-			certificates.UsageServerAuth,
-		},
-		CertificateStore: certificateStore,
-	})
 }
 
 func allLocalIPsWithoutLoopback() ([]net.IP, error) {
