@@ -23,6 +23,8 @@ const (
 	// TemplateInstance API.
 	TemplateInstanceLabel = "template.openshift.io/template-instance"
 
+	TemplateInstanceAnnotation = "template.openshift.io/template-instance"
+
 	// RequesterUsernameParameterKey is the name of the key in the Open Service
 	// Broker API ProvisionRequest Parameters object where we receive the user
 	// name which will be impersonated during template provisioning.  The '/'
@@ -56,4 +58,6 @@ const (
 	// Base64ExposeAnnotationPrefix is as ExposeAnnotationPrefix, except that
 	// any []byte values returned are base64 encoded.
 	Base64ExposeAnnotationPrefix = "template.openshift.io/base64-expose-"
+
+	WaitAnnotation = "template.openshift.io/wait-for-completion-seconds"
 )

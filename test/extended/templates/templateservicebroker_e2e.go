@@ -180,6 +180,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-persistent", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
+		o.Expect(examplesecret.Annotations[templateapi.TemplateInstanceAnnotation]).To(o.Equal(templateInstance.Namespace + "/" + templateInstance.Name))
 		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))
 		o.Expect(examplesecret.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
 			APIVersion: templateapiv1.SchemeGroupVersion.String(),
@@ -199,6 +200,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bindsecret",
 				Annotations: map[string]string{
+					templateapi.TemplateInstanceAnnotation:                    cli.Namespace() + "/" + instanceID,
 					templateapi.ExposeAnnotationPrefix + "configmap-username": "{.data['username']}",
 				},
 				Labels: map[string]string{
@@ -215,6 +217,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bindsecret",
 				Annotations: map[string]string{
+					templateapi.TemplateInstanceAnnotation:                       cli.Namespace() + "/" + instanceID,
 					templateapi.ExposeAnnotationPrefix + "secret-username":       "{.data['username']}",
 					templateapi.Base64ExposeAnnotationPrefix + "secret-password": "{.data['password']}",
 				},
@@ -233,6 +236,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bindservice",
 				Annotations: map[string]string{
+					templateapi.TemplateInstanceAnnotation:             cli.Namespace() + "/" + instanceID,
 					templateapi.ExposeAnnotationPrefix + "service-uri": `http://{.spec.clusterIP}:{.spec.ports[?(.name=="port")].port}`,
 				},
 				Labels: map[string]string{
@@ -254,6 +258,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bindroute",
 				Annotations: map[string]string{
+					templateapi.TemplateInstanceAnnotation:           cli.Namespace() + "/" + instanceID,
 					templateapi.ExposeAnnotationPrefix + "route-uri": "http://{.spec.host}{.spec.path}",
 				},
 				Labels: map[string]string{
