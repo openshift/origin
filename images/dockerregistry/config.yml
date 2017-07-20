@@ -43,3 +43,7 @@ openshift:
     # Attention! A weak secret can lead to the leakage of private data.
     #
     # secret: TopSecretLongToken
+  storage:
+    # The maximum value of the concurrent write requests.
+    # There is no limit if set to 0.
+    maxwriters: 0
