@@ -5,7 +5,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/golang/glog"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -19,25 +20,27 @@ type SDNControllerConfig struct {
 
 func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	// TODO: Switch SDN to use client.Interface
-	osClientConfig, err := ctx.ClientBuilder.Config(bootstrappolicy.InfraSDNControllerServiceAccountName)
+	clientConfig, err := ctx.ClientBuilder.Config(bootstrappolicy.InfraSDNControllerServiceAccountName)
 	if err != nil {
 		return false, err
 	}
-	osClient, err := osclient.New(osClientConfig)
+	osClient, err := osclient.New(clientConfig)
 	if err != nil {
 		return false, err
 	}
-	go func() {
-		err := sdnplugin.StartMaster(
-			c.NetworkConfig,
-			osClient,
-			ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
-			ctx.InternalKubeInformers,
-		)
-		if err != nil {
-			glog.Errorf("failed to start SDN plugin controller: %v", err)
-		}
-	}()
+	kClient, err := kclientsetinternal.NewForConfig(clientConfig)
+	if err != nil {
+		return false, err
+	}
+	err = sdnplugin.StartMaster(
+		c.NetworkConfig,
+		osClient,
+		kClient,
+		ctx.InternalKubeInformers,
+	)
+	if err != nil {
+		return false, fmt.Errorf("failed to start SDN plugin controller: %v", err)
+	}
 	return true, nil
 }
 
