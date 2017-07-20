@@ -1,4 +1,4 @@
-package template
+package processor
 
 import (
 	"math/rand"
@@ -11,10 +11,10 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/generator"
+	"github.com/openshift/origin/pkg/template/processor"
 )
 
 // REST implements RESTStorage interface for processing Template objects.
@@ -50,7 +50,7 @@ func (s *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	generators := map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	}
-	processor := template.NewProcessor(generators)
+	processor := processor.NewProcessor(generators)
 	if errs := processor.Process(tpl); len(errs) > 0 {
 		glog.V(1).Infof(errs.ToAggregate().Error())
 		return nil, errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)

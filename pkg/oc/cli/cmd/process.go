@@ -32,6 +32,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	"github.com/openshift/origin/pkg/template/generator"
+	templateprocessor "github.com/openshift/origin/pkg/template/processor"
 )
 
 var (
@@ -354,7 +355,7 @@ func processTemplateLocally(tpl *templateapi.Template) error {
 	if errs := templatevalidation.ValidateProcessedTemplate(tpl); len(errs) > 0 {
 		return errors.NewInvalid(templateapi.Kind("Template"), tpl.Name, errs)
 	}
-	processor := template.NewProcessor(map[string]generator.Generator{
+	processor := templateprocessor.NewProcessor(map[string]generator.Generator{
 		"expression": generator.NewExpressionValueGenerator(rand.New(rand.NewSource(time.Now().UnixNano()))),
 	})
 	if errs := processor.Process(tpl); len(errs) > 0 {
