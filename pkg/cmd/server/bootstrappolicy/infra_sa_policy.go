@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
-	"k8s.io/kubernetes/pkg/apis/certificates"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
@@ -39,9 +38,6 @@ const (
 	InfraServiceIngressIPControllerServiceAccountName           = "service-ingress-ip-controller"
 	InfraPersistentVolumeRecyclerControllerServiceAccountName   = "pv-recycler-controller"
 	InfraResourceQuotaControllerServiceAccountName              = "resourcequota-controller"
-
-	InfraNodeBootstrapServiceAccountName = "node-bootstrapper"
-	NodeBootstrapRoleName                = "system:node-bootstrapper"
 
 	// template instance controller watches for TemplateInstance object creation
 	// and instantiates templates as a result.
@@ -129,27 +125,6 @@ func init() {
 
 	InfraSAs.serviceAccounts = sets.String{}
 	InfraSAs.saToRole = map[string]authorizationapi.ClusterRole{}
-
-	err = InfraSAs.addServiceAccount(
-		InfraNodeBootstrapServiceAccountName,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: NodeBootstrapRoleName,
-			},
-			Rules: []authorizationapi.PolicyRule{
-				{
-					APIGroups: []string{certificates.GroupName},
-					// match the upstream role for now
-					// TODO sort out how to deconflict this with upstream
-					Verbs:     sets.NewString("create", "get", "list", "watch"),
-					Resources: sets.NewString("certificatesigningrequests"),
-				},
-			},
-		},
-	)
-	if err != nil {
-		panic(err)
-	}
 
 	err = InfraSAs.addServiceAccount(
 		InfraTemplateServiceBrokerServiceAccountName,

@@ -1264,9 +1264,6 @@ var clusterRoleConflicts = sets.NewString(
 	// TODO this should probably be re-swizzled to be the delta on top of the kube role
 	"system:discovery",
 
-	// TODO deconflict this
-	"system:node-bootstrapper",
-
 	// TODO these should be reconsidered
 	"cluster-admin",
 	"system:node",
