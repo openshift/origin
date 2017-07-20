@@ -87,6 +87,10 @@ In order to do builds locally, install the following build dependencies:
 ----
 $ sudo dnf install golang golang-race make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel
 ----
+The following might also be useful if you prefer as much of the build and test chain as possible to be installed via rpm packages:
+----
+$ sudo dnf install golang-googlecode-tools-goimports
+----
 
 ===== CentOS / RHEL
 
