@@ -85,7 +85,7 @@ $ sudo dnf install git docker-latest
 ----
 In order to do builds locally, install the following build dependencies:
 ----
-$ sudo dnf install golang golang-race make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel
+$ sudo dnf install golang golang-race make gcc zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel protobuf-compiler
 ----
 
 ===== CentOS / RHEL
