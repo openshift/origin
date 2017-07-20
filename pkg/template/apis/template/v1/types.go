@@ -37,6 +37,10 @@ type Template struct {
 	// labels is a optional set of labels that are applied to every
 	// object during the Template to Config transformation.
 	ObjectLabels map[string]string `json:"labels,omitempty" protobuf:"bytes,5,rep,name=labels"`
+
+	// completion contains the requirements used to detect successful or failed
+	// instantiations of the Template.
+	Completion *TemplateCompletion `json:"completion,omitempty" protobuf:"bytes,6,opt,name=completion"`
 }
 
 // TemplateList is a list of Template objects.
@@ -94,6 +98,18 @@ type Parameter struct {
 	Required bool `json:"required,omitempty" protobuf:"varint,7,opt,name=required"`
 }
 
+// TemplateCompletion contains the requirements used to detect successful or
+// failed instantiations of a Template.
+type TemplateCompletion struct {
+	// deadlineSeconds is the number of seconds after which a template
+	// instantiation will be considered to be failed, if it has not already
+	// succeeded.
+	DeadlineSeconds int64 `json:"deadlineSeconds" protobuf:"varint,1,opt,name=deadlineSeconds"`
+
+	// objects reference the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObject `json:"objects,omitempty" protobuf:"bytes,2,rep,name=objects"`
+}
+
 // +genclient=true
 
 // TemplateInstance requests and records the instantiation of a Template.
@@ -135,7 +151,10 @@ type TemplateInstanceRequester struct {
 type TemplateInstanceStatus struct {
 	// conditions represent the latest available observations of a
 	// TemplateInstance's current state.
-	Conditions []TemplateInstanceCondition `json:"conditions" protobuf:"bytes,1,rep,name=conditions"`
+	Conditions []TemplateInstanceCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
+
+	// Objects reference the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObject `json:"objects,omitempty" protobuf:"bytes,2,rep,name=objects"`
 }
 
 // TemplateInstanceCondition contains condition information for a
@@ -162,11 +181,66 @@ type TemplateInstanceConditionType string
 
 const (
 	// TemplateInstanceReady indicates the readiness of the template
-	// instantiation.
+	// instantiation or one of its objects.
 	TemplateInstanceReady TemplateInstanceConditionType = "Ready"
 	// TemplateInstanceInstantiateFailure indicates the failure of the template
-	// instantiation
+	// instantiation or one of its objects.
 	TemplateInstanceInstantiateFailure TemplateInstanceConditionType = "InstantiateFailure"
+	// TemplateInstanceWaiting indicates waiting for readiness or failure of the
+	// template instantiation or one of its objects.
+	TemplateInstanceWaiting TemplateInstanceConditionType = "Waiting"
+)
+
+// TemplateInstanceObject references an object created by a TemplateInstance.
+type TemplateInstanceObject struct {
+	// ref is a reference to the created object.  When used under .spec, only
+	// name and namespace are used; these can contain references to parameters
+	// which will be substituted following the usual rules.
+	Ref kapiv1.ObjectReference `json:"ref,omitempty" protobuf:"bytes,1,opt,name=ref"`
+
+	// successRequirements hold all the requirements that must be met to
+	// consider the Template instantiation a success.  These requirements are
+	// ANDed together.
+	SuccessRequirements []TemplateCompletionRequirement `json:"successRequirements,omitempty" protobuf:"bytes,2,rep,name=successRequirements"`
+
+	// failureRequirements hold the requirements that if any is met will cause
+	// the Template instantiation to be considered a failure.  These
+	// requirements are ORed together.
+	FailureRequirements []TemplateCompletionRequirement `json:"failureRequirements,omitempty" protobuf:"bytes,3,rep,name=failureRequirements"`
+
+	// conditions represent the latest available observations of the object's
+	// current state.
+	Conditions []TemplateInstanceCondition `json:"conditions,omitempty" protobuf:"bytes,4,rep,name=conditions"`
+}
+
+// TemplateCompletionRequirement holds a single requirement that is matched to
+// partially determine success or failure of a Template instantiation.
+type TemplateCompletionRequirement struct {
+	// type is the kind of TemplateCompletionRequirement.
+	// +k8s:conversion-gen=false
+	Type TemplateCompletionRequirementType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=TemplateCompletionRequirementType"`
+
+	// jsonPath specifies a JSONPath expression which is run against an object.
+	JSONPath *string `json:"jsonPath,omitempty" protobuf:"bytes,2,opt,name=jsonPath"`
+
+	// condition specifies the name of a condition to be looked up on an object.
+	Condition *string `json:"condition,omitempty" protobuf:"bytes,3,opt,name=condition"`
+
+	// equals is the value which should be matched for the requirement to be
+	// fulfilled.
+	Equals string `json:"equals" protobuf:"bytes,4,opt,name=equals"`
+}
+
+// TemplateCompletionRequirementType describes the type of
+// TemplateCompletionRequirement.
+type TemplateCompletionRequirementType string
+
+const (
+	// JSONPathTemplateCompletionRequirementType is a JSONPathRequirement
+	JSONPathTemplateCompletionRequirementType TemplateCompletionRequirementType = "JSONPath"
+
+	// ConditionTemplateCompletionRequirementType is a ConditionRequirement
+	ConditionTemplateCompletionRequirementType TemplateCompletionRequirementType = "Condition"
 )
 
 // TemplateInstanceList is a list of TemplateInstance objects.

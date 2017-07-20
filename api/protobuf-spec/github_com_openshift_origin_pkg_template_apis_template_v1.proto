@@ -120,6 +120,40 @@ message Template {
   // labels is a optional set of labels that are applied to every
   // object during the Template to Config transformation.
   map<string, string> labels = 5;
+
+  // completion contains the requirements used to detect successful or failed
+  // instantiations of the Template.
+  optional TemplateCompletion completion = 6;
+}
+
+// TemplateCompletion contains the requirements used to detect successful or
+// failed instantiations of a Template.
+message TemplateCompletion {
+  // deadlineSeconds is the number of seconds after which a template
+  // instantiation will be considered to be failed, if it has not already
+  // succeeded.
+  optional int64 deadlineSeconds = 1;
+
+  // objects reference the objects created by the TemplateInstance.
+  repeated TemplateInstanceObject objects = 2;
+}
+
+// TemplateCompletionRequirement holds a single requirement that is matched to
+// partially determine success or failure of a Template instantiation.
+message TemplateCompletionRequirement {
+  // type is the kind of TemplateCompletionRequirement.
+  // +k8s:conversion-gen=false
+  optional string type = 1;
+
+  // jsonPath specifies a JSONPath expression which is run against an object.
+  optional string jsonPath = 2;
+
+  // condition specifies the name of a condition to be looked up on an object.
+  optional string condition = 3;
+
+  // equals is the value which should be matched for the requirement to be
+  // fulfilled.
+  optional string equals = 4;
 }
 
 // TemplateInstance requests and records the instantiation of a Template.
@@ -166,6 +200,28 @@ message TemplateInstanceList {
   repeated TemplateInstance items = 2;
 }
 
+// TemplateInstanceObject references an object created by a TemplateInstance.
+message TemplateInstanceObject {
+  // ref is a reference to the created object.  When used under .spec, only
+  // name and namespace are used; these can contain references to parameters
+  // which will be substituted following the usual rules.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference ref = 1;
+
+  // successRequirements hold all the requirements that must be met to
+  // consider the Template instantiation a success.  These requirements are
+  // ANDed together.
+  repeated TemplateCompletionRequirement successRequirements = 2;
+
+  // failureRequirements hold the requirements that if any is met will cause
+  // the Template instantiation to be considered a failure.  These
+  // requirements are ORed together.
+  repeated TemplateCompletionRequirement failureRequirements = 3;
+
+  // conditions represent the latest available observations of the object's
+  // current state.
+  repeated TemplateInstanceCondition conditions = 4;
+}
+
 // TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
 message TemplateInstanceRequester {
@@ -192,6 +248,9 @@ message TemplateInstanceStatus {
   // conditions represent the latest available observations of a
   // TemplateInstance's current state.
   repeated TemplateInstanceCondition conditions = 1;
+
+  // Objects reference the objects created by the TemplateInstance.
+  repeated TemplateInstanceObject objects = 2;
 }
 
 // TemplateList is a list of Template objects.

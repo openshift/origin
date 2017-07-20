@@ -36,6 +36,10 @@ type Template struct {
 	// objectLabels is an optional set of labels that are applied to every
 	// object during the Template to Config transformation.
 	ObjectLabels map[string]string
+
+	// completion contains the requirements used to detect successful or failed
+	// instantiations of the Template.
+	Completion *TemplateCompletion
 }
 
 // TemplateList is a list of Template objects.
@@ -74,6 +78,18 @@ type Parameter struct {
 
 	// Optional: Indicates the parameter must have a value.  Defaults to false.
 	Required bool
+}
+
+// TemplateCompletion contains the requirements used to detect successful or
+// failed instantiations of a Template.
+type TemplateCompletion struct {
+	// deadlineSeconds is the number of seconds after which a template
+	// instantiation will be considered to be failed, if it has not already
+	// succeeded.
+	DeadlineSeconds int64
+
+	// objects reference the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObject
 }
 
 // +genclient=true
@@ -117,6 +133,9 @@ type TemplateInstanceStatus struct {
 	// Conditions represent the latest available observations of a
 	// TemplateInstance's current state.
 	Conditions []TemplateInstanceCondition
+
+	// Objects reference the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObject
 }
 
 // TemplateInstanceCondition contains condition information for a
@@ -143,12 +162,51 @@ type TemplateInstanceConditionType string
 
 const (
 	// TemplateInstanceReady indicates the readiness of the template
-	// instantiation.
+	// instantiation or one of its objects.
 	TemplateInstanceReady TemplateInstanceConditionType = "Ready"
 	// TemplateInstanceInstantiateFailure indicates the failure of the template
-	// instantiation
+	// instantiation or one of its objects.
 	TemplateInstanceInstantiateFailure TemplateInstanceConditionType = "InstantiateFailure"
+	// TemplateInstanceWaiting indicates waiting for readiness or failure of the
+	// template instantiation or one of its objects.
+	TemplateInstanceWaiting TemplateInstanceConditionType = "Waiting"
 )
+
+// TemplateInstanceObject references an object created by a TemplateInstance.
+type TemplateInstanceObject struct {
+	// ref is a reference to the created object.  When used under .spec, only
+	// name and namespace are used; these can contain references to parameters
+	// which will be substituted following the usual rules.
+	Ref kapi.ObjectReference
+
+	// successRequirements hold all the requirements that must be met to
+	// consider the Template instantiation a success.  These requirements are
+	// ANDed together.
+	SuccessRequirements []TemplateCompletionRequirement
+
+	// failureRequirements hold the requirements that if any is met will cause
+	// the Template instantiation to be considered a failure.  These
+	// requirements are ORed together.
+	FailureRequirements []TemplateCompletionRequirement
+
+	// conditions represent the latest available observations of the object's
+	// current state.  This is not used in .spec.
+	Conditions []TemplateInstanceCondition
+}
+
+// TemplateCompletionRequirement holds a single requirement that is matched to
+// partially determine success or failure of a Template instantiation.
+type TemplateCompletionRequirement struct {
+	// jsonPath specifies a JSONPath expression which is run against an object.
+	JSONPath *string
+
+	// condition specifies the name of a condition to be looked up on an object.
+	Condition *string
+
+	// equals is the value which should be matched for the requirement to be
+	// fulfilled.
+	Equals string
+}
 
 // TemplateInstanceList is a list of TemplateInstance objects.
 type TemplateInstanceList struct {
