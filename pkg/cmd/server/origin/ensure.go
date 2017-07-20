@@ -54,6 +54,54 @@ func (c *MasterConfig) ensureOpenShiftInfraNamespace() {
 		return
 	}
 
+	controllerRoles := []authorizationapi.ClusterRole{}
+	if roles, err := bootstrappolicy.GetKubeControllerBootstrapClusterRoles(); err != nil {
+		glog.Error(err)
+	} else {
+		controllerRoles = append(controllerRoles, roles...)
+	}
+	if roles, err := bootstrappolicy.GetOpenshiftControllerBootstrapClusterRoles(); err != nil {
+		glog.Error(err)
+	} else {
+		controllerRoles = append(controllerRoles, roles...)
+	}
+	for _, role := range controllerRoles {
+		reconcileRole := &policy.ReconcileClusterRolesOptions{
+			RolesToReconcile: []string{role.Name},
+			Confirmed:        true,
+			Union:            true,
+			Out:              ioutil.Discard,
+			RoleClient:       c.PrivilegedLoopbackOpenShiftClient.ClusterRoles(),
+		}
+		if err := reconcileRole.RunReconcileClusterRoles(nil, nil); err != nil {
+			glog.Errorf("Could not reconcile %v: %v\n", role.Name, err)
+		}
+	}
+
+	controllerRoleBindings := []authorizationapi.ClusterRoleBinding{}
+	if bindings, err := bootstrappolicy.GetKubeControllerBootstrapClusterRoleBindings(); err != nil {
+		glog.Error(err)
+	} else {
+		controllerRoleBindings = append(controllerRoleBindings, bindings...)
+	}
+	if bindings, err := bootstrappolicy.GetOpenshiftControllerBootstrapClusterRoleBindings(); err != nil {
+		glog.Error(err)
+	} else {
+		controllerRoleBindings = append(controllerRoleBindings, bindings...)
+	}
+	for _, binding := range controllerRoleBindings {
+		reconcileRoleBinding := &policy.ReconcileClusterRoleBindingsOptions{
+			RolesToReconcile:  []string{binding.RoleRef.Name},
+			Confirmed:         true,
+			Union:             true,
+			Out:               ioutil.Discard,
+			RoleBindingClient: c.PrivilegedLoopbackOpenShiftClient.ClusterRoleBindings(),
+		}
+		if err := reconcileRoleBinding.RunReconcileClusterRoleBindings(nil, nil); err != nil {
+			glog.Errorf("Could not reconcile %v: %v\n", binding.RoleRef.Name, err)
+		}
+	}
+
 	roleAccessor := policy.NewClusterRoleBindingAccessor(c.ServiceAccountRoleBindingClient())
 	for _, saName := range bootstrappolicy.InfraSAs.GetServiceAccounts() {
 		_, err := c.KubeClientsetInternal().Core().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: saName}})
