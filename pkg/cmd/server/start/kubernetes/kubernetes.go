@@ -9,6 +9,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
@@ -33,7 +34,7 @@ func NewCommand(name, fullName string, out, errOut io.Writer) *cobra.Command {
 	cmds.AddCommand(NewAPIServerCommand("apiserver", fullName+" apiserver", out))
 	cmds.AddCommand(NewControllersCommand("controller-manager", fullName+" controller-manager", out))
 	cmds.AddCommand(NewKubeletCommand("kubelet", fullName+" kubelet", out))
-	cmds.AddCommand(NewProxyCommand("proxy", fullName+" proxy", out))
+	cmds.AddCommand(proxyapp.NewProxyCommand())
 	cmds.AddCommand(NewSchedulerCommand("scheduler", fullName+" scheduler", out))
 	if "hyperkube" == fullName {
 		cmds.AddCommand(cmd.NewCmdVersion(fullName, nil, out, cmd.VersionOptions{}))
