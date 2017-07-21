@@ -67,7 +67,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 
 	// try this for a while before just dying
 	var getError error
-	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {
+	err = wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
 		// reset this so that failures come through correctly.
 		getError = nil
 		existingCN, err := master.osClient.ClusterNetwork().Get(osapi.ClusterNetworkDefault, metav1.GetOptions{})
