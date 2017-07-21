@@ -6,6 +6,8 @@
 {{- define "/var/lib/haproxy/conf/haproxy.config" }}
 {{- $workingDir := .WorkingDir }}
 {{- $defaultDestinationCA := .DefaultDestinationCA }}
+{{- $router_ip_v4_v6_mode := env "ROUTER_IP_V4_V6_MODE" "v4" }}
+
 
 {{/* A bunch of regular expressions.  Each should be wrapped in (?:) so that it is safe to include bare */}}
 {{/* quadPattern: Match a quad in an IP address; e.g. 123 */}}
@@ -163,7 +165,14 @@ listen stats :1936
 
 {{ if .BindPorts -}}
 frontend public
-  bind :::{{env "ROUTER_SERVICE_HTTP_PORT" "80" }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+    {{ if eq "v4v6" $router_ip_v4_v6_mode }}
+  bind :::{{env "ROUTER_SERVICE_HTTP_PORT" "80"}} v4v6
+    {{- else if eq "v6" $router_ip_v4_v6_mode }}
+  bind :::{{env "ROUTER_SERVICE_HTTP_PORT" "80"}} v6only
+    {{- else }}
+  bind :{{env "ROUTER_SERVICE_HTTP_PORT" "80"}}
+    {{- end }}
+    {{- if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   mode http
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
@@ -199,7 +208,14 @@ frontend public
 # determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
 # that terminates encryption in this router (edge)
 frontend public_ssl
-  bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+    {{ if eq "v4v6" $router_ip_v4_v6_mode }}
+  bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}} v4v6
+    {{- else if eq "v6" $router_ip_v4_v6_mode }}
+  bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}} v6only
+    {{- else }}
+  bind :{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}}
+    {{- end }}
+    {{- if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
 
@@ -394,7 +410,13 @@ backend be_secure:{{$cfgIdx}}
   http-request set-header X-Forwarded-Port %[dst_port]
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
+  {{- if matchPattern "v6" $router_ip_v4_v6_mode }}
+  # See the quoting rules in https://tools.ietf.org/html/rfc7239 for IPv6 addresses (v4 addresses get translated to v6 when in hybrid mode)
+  http-request set-header Forwarded for="[%[src]]";host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
+  {{- else }}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
+  {{- end }}
+
   {{- if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
     {{- if and (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }} secure

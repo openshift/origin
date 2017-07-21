@@ -120,6 +120,7 @@
 // test/extended/testdata/roles/empty-role.yaml
 // test/extended/testdata/roles/policy-clusterroles.yaml
 // test/extended/testdata/roles/policy-roles.yaml
+// test/extended/testdata/router-http-echo-server.yaml
 // test/extended/testdata/router-metrics.yaml
 // test/extended/testdata/run_policy/parallel-bc.yaml
 // test/extended/testdata/run_policy/serial-bc.yaml
@@ -6393,6 +6394,79 @@ func testExtendedTestdataRolesPolicyRolesYaml() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/roles/policy-roles.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataRouterHttpEchoServerYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: router-http-echo
+  spec:
+    replicas: 1
+    selector:
+      app: router-http-echo
+      deploymentconfig: router-http-echo
+    strategy:
+      type: Rolling
+    template:
+      metadata:
+        labels:
+          app: router-http-echo
+          deploymentconfig: router-http-echo
+      spec:
+        containers:
+        - image: openshift/origin-base
+          name: router-http-echo
+          command:
+            - /usr/bin/socat
+            - TCP4-LISTEN:8676,reuseaddr,fork
+            - EXEC:'perl -e \"print qq(HTTP/1.0 200 OK\r\n\r\n); while (<>) { print; last if /^\r/}\"'
+          ports:
+          - containerPort: 8676
+            protocol: TCP
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        securityContext: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: router-http-echo
+    labels:
+      app: router-http-echo
+  spec:
+    selector:
+      app: router-http-echo
+    ports:
+      - port: 8676
+        name: router-http-echo
+        protocol: TCP
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: router-http-echo
+  spec:
+    host: router-headers.example.com
+    to:
+      kind: Service
+      name: router-http-echo
+`)
+
+func testExtendedTestdataRouterHttpEchoServerYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataRouterHttpEchoServerYaml, nil
+}
+
+func testExtendedTestdataRouterHttpEchoServerYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataRouterHttpEchoServerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/router-http-echo-server.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -20612,6 +20686,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/roles/empty-role.yaml": testExtendedTestdataRolesEmptyRoleYaml,
 	"test/extended/testdata/roles/policy-clusterroles.yaml": testExtendedTestdataRolesPolicyClusterrolesYaml,
 	"test/extended/testdata/roles/policy-roles.yaml": testExtendedTestdataRolesPolicyRolesYaml,
+	"test/extended/testdata/router-http-echo-server.yaml": testExtendedTestdataRouterHttpEchoServerYaml,
 	"test/extended/testdata/router-metrics.yaml": testExtendedTestdataRouterMetricsYaml,
 	"test/extended/testdata/run_policy/parallel-bc.yaml": testExtendedTestdataRun_policyParallelBcYaml,
 	"test/extended/testdata/run_policy/serial-bc.yaml": testExtendedTestdataRun_policySerialBcYaml,
@@ -21000,6 +21075,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"policy-clusterroles.yaml": &bintree{testExtendedTestdataRolesPolicyClusterrolesYaml, map[string]*bintree{}},
 					"policy-roles.yaml": &bintree{testExtendedTestdataRolesPolicyRolesYaml, map[string]*bintree{}},
 				}},
+				"router-http-echo-server.yaml": &bintree{testExtendedTestdataRouterHttpEchoServerYaml, map[string]*bintree{}},
 				"router-metrics.yaml": &bintree{testExtendedTestdataRouterMetricsYaml, map[string]*bintree{}},
 				"run_policy": &bintree{nil, map[string]*bintree{
 					"parallel-bc.yaml": &bintree{testExtendedTestdataRun_policyParallelBcYaml, map[string]*bintree{}},
