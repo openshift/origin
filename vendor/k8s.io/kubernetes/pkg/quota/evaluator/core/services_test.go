@@ -27,7 +27,7 @@ import (
 
 func TestServiceEvaluatorMatchesResources(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
-	evaluator := NewServiceEvaluator(kubeClient)
+	evaluator := NewServiceEvaluator(kubeClient, nil)
 	// we give a lot of resources
 	input := []api.ResourceName{
 		api.ResourceConfigMaps,
@@ -50,7 +50,7 @@ func TestServiceEvaluatorMatchesResources(t *testing.T) {
 
 func TestServiceEvaluatorUsage(t *testing.T) {
 	kubeClient := fake.NewSimpleClientset()
-	evaluator := NewServiceEvaluator(kubeClient)
+	evaluator := NewServiceEvaluator(kubeClient, nil)
 	testCases := map[string]struct {
 		service *api.Service
 		usage   api.ResourceList
@@ -63,6 +63,23 @@ func TestServiceEvaluatorUsage(t *testing.T) {
 			},
 			usage: api.ResourceList{
 				api.ResourceServicesNodePorts:     resource.MustParse("0"),
+				api.ResourceServicesLoadBalancers: resource.MustParse("1"),
+				api.ResourceServices:              resource.MustParse("1"),
+			},
+		},
+		"loadbalancer_ports": {
+			service: &api.Service{
+				Spec: api.ServiceSpec{
+					Type: api.ServiceTypeLoadBalancer,
+					Ports: []api.ServicePort{
+						{
+							Port: 27443,
+						},
+					},
+				},
+			},
+			usage: api.ResourceList{
+				api.ResourceServicesNodePorts:     resource.MustParse("1"),
 				api.ResourceServicesLoadBalancers: resource.MustParse("1"),
 				api.ResourceServices:              resource.MustParse("1"),
 			},
@@ -182,7 +199,7 @@ func TestServiceConstraintsFunc(t *testing.T) {
 	}
 
 	kubeClient := fake.NewSimpleClientset()
-	evaluator := NewServiceEvaluator(kubeClient)
+	evaluator := NewServiceEvaluator(kubeClient, nil)
 	for testName, test := range testCases {
 		err := evaluator.Constraints(test.required, test.service)
 		switch {
