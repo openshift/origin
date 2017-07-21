@@ -306,6 +306,11 @@ var (
 		"should perfer to scheduled to nodes pod can tolerate",
 		"should adopt matching orphans and release non-matching pods",
 		"should not deadlock when a pod's predecessor fails",
+
+		// slow as sin and twice as ugly (11m each)
+		"Pod should avoid to schedule to node that have avoidPod annotation",
+		"Pod should be schedule to node that satisify the PodAffinity",
+		"Pod should be prefer scheduled to node that satisify the NodeAffinity",
 	}
 	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
 
