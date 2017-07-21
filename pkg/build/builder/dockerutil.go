@@ -41,6 +41,9 @@ var (
 		"connection reset by peer",
 		"transport closed before response was received",
 		"connection refused",
+		"no route to host",
+		"unexpected end of JSON input",
+		"i/o timeout",
 	}
 )
 
