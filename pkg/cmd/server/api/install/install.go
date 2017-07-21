@@ -11,8 +11,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 
-	_ "github.com/openshift/origin/pkg/build/admission/defaults/api/install"
-	_ "github.com/openshift/origin/pkg/build/admission/overrides/api/install"
+	_ "github.com/openshift/origin/pkg/build/controller/build/defaults/api/install"
+	_ "github.com/openshift/origin/pkg/build/controller/build/overrides/api/install"
 	_ "github.com/openshift/origin/pkg/image/admission/imagepolicy/api/install"
 	_ "github.com/openshift/origin/pkg/ingress/admission/api/install"
 	_ "github.com/openshift/origin/pkg/project/admission/requestlimit/api/install"

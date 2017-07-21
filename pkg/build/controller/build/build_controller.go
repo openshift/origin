@@ -24,11 +24,11 @@ import (
 	v1lister "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"

@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
 	"github.com/openshift/origin/pkg/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
-	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
+	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"

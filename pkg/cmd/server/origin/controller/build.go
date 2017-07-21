@@ -3,9 +3,9 @@ package controller
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
-	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
+	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"

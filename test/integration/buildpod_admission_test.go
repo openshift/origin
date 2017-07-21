@@ -13,10 +13,10 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 
-	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
-	overridesapi "github.com/openshift/origin/pkg/build/admission/overrides/api"
 	buildtestutil "github.com/openshift/origin/pkg/build/admission/testutil"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
+	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
