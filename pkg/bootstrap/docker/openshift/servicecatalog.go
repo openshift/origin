@@ -3,6 +3,8 @@ package openshift
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"github.com/golang/glog"
@@ -29,7 +31,7 @@ const (
 )
 
 // InstallServiceCatalog checks whether the service catalog is installed and installs it if not already installed
-func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catalogHost string, tag string) error {
+func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMaster, catalogHost string, tag string) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -119,13 +121,18 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, publicMaster, catal
 		return errors.NewError(fmt.Sprintf("failed to create an api aggregation registration client: %v", err))
 	}
 
+	serviceCA, err := ioutil.ReadFile(filepath.Join(configDir, "master", "service-signer.crt"))
+	if err != nil {
+		return errors.NewError(fmt.Sprintf("failed to read the service certificate signer CA bundle: %v", err))
+	}
+
 	sc := &aggregatorapi.APIService{
 		Spec: aggregatorapi.APIServiceSpec{
-			InsecureSkipTLSVerify: true,
-			Version:               "v1alpha1",
-			Group:                 "servicecatalog.k8s.io",
-			GroupPriorityMinimum:  200,
-			VersionPriority:       20,
+			CABundle:             serviceCA,
+			Version:              "v1alpha1",
+			Group:                "servicecatalog.k8s.io",
+			GroupPriorityMinimum: 200,
+			VersionPriority:      20,
 			Service: &aggregatorapi.ServiceReference{
 				Name:      "apiserver",
 				Namespace: "service-catalog",
