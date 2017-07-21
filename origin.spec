@@ -382,7 +382,7 @@ install -p -m 644 contrib/systemd/origin-accounting.conf %{buildroot}%{_sysconfd
 # Excluder variables
 mkdir -p $RPM_BUILD_ROOT/usr/sbin
 %if 0%{?fedora}
-  OS_CONF_FILE="/etc/dnf.conf"
+  OS_CONF_FILE="/etc/dnf/dnf.conf"
 %else
   OS_CONF_FILE="/etc/yum.conf"
 %endif
