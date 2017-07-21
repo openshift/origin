@@ -267,7 +267,7 @@ func init() {
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraClusterQuotaReconciliationControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
-			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configMaps").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
 			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 			rbac.NewRule("update").Groups(quotaGroup, legacyQuotaGroup).Resources("clusterresourcequotas/status").RuleOrDie(),
 			eventsRule(),

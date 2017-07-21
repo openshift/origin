@@ -3676,7 +3676,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - configMaps
+    - configmaps
     verbs:
     - get
     - list
