@@ -329,6 +329,7 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 
 		}
 
+		options = append(options, "backup-volfile-servers="+dstrings.Join(addrlist[:], ":"))
 		mountOptions := volume.JoinMountOptions(b.mountOptions, options)
 
 		// Avoid mount storm, pick a host randomly.
