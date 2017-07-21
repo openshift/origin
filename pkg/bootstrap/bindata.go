@@ -12991,7 +12991,8 @@ objects:
           - -email-domain=*
           - -upstream=http://localhost:9090
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
-          - '-openshift-sar={"namespace": "${NAMESPACE}", "verb": "list", "resource": "services"}'
+          - '-openshift-sar={"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}'
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}}'
           - -tls-cert=/etc/tls/private/tls.crt
           - -tls-key=/etc/tls/private/tls.key
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
@@ -13001,7 +13002,9 @@ objects:
           - mountPath: /etc/tls/private
             name: prometheus-tls
           - mountPath: /etc/proxy/secrets
-            name: secrets
+            name: prometheus-secrets
+          - mountPath: /prometheus
+            name: prometheus-data
 
         - name: prometheus
           args:
@@ -13012,24 +13015,25 @@ objects:
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - mountPath: /etc/prometheus
-            name: config-volume
+            name: prometheus-config
           - mountPath: /prometheus
-            name: data-volume
+            name: prometheus-data
 
         restartPolicy: Always
         volumes:
-        - configMap:
+        - name: prometheus-config
+          configMap:
             defaultMode: 420
             name: prometheus
-          name: config-volume
-        - name: secrets
+        - name: prometheus-secrets
           secret:
             secretName: prometheus-proxy
         - name: prometheus-tls
           secret:
             secretName: prometheus-tls
-        - emptyDir: {}
-          name: data-volume
+        - name: prometheus-data
+          emptyDir: {}
+
 - apiVersion: v1
   kind: ConfigMap
   metadata:
@@ -13099,13 +13103,12 @@ objects:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
+        metrics_path: /metrics/cadvisor
+
         kubernetes_sd_configs:
         - role: node
 
         relabel_configs:
-        - action: replace
-          target_label: __metrics_path__
-          regex: /metrics/cadvisor
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
 
