@@ -197,6 +197,19 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		KubernetesMasterConfig: kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,
 
+		AuthConfig: configapi.MasterAuthConfig{
+			RequestHeader: &configapi.RequestHeaderAuthenticationOptions{
+				ClientCA:            admin.DefaultCertFilename(args.ConfigDir.Value(), admin.FrontProxyCAFilePrefix),
+				ClientCommonNames:   []string{bootstrappolicy.AggregatorUsername},
+				UsernameHeaders:     []string{"X-Remote-User"},
+				GroupHeaders:        []string{"X-Remote-Group"},
+				ExtraHeaderPrefixes: []string{"X-Remote-Extra-"}},
+		},
+
+		AggregatorConfig: configapi.AggregatorConfig{
+			ProxyClientInfo: admin.DefaultAggregatorClientCertInfo(args.ConfigDir.Value()).CertLocation,
+		},
+
 		OAuthConfig: oauthConfig,
 
 		PauseControllers: args.PauseControllers,
