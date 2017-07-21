@@ -13057,25 +13057,9 @@ objects:
         kubernetes_sd_configs:
         - role: endpoints
 
-        # Default to scraping over https. If required, just disable this or change to
-        # `+"`"+`http`+"`"+`.
         scheme: https
-
-        # This TLS & bearer token file config is used to connect to the actual scrape
-        # endpoints for cluster components. This is separate to discovery auth
-        # configuration because discovery & scraping are two separate concerns in
-        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-        # the cluster. Otherwise, more config options have to be provided within the
-        # <kubernetes_sd_config>.
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          # If your node certificates are self-signed or use a different CA to the
-          # master CA, then disable certificate verification below. Note that
-          # certificate verification is an integral part of a secure infrastructure
-          # so this should only be disabled in a controlled environment. You can
-          # disable certificate verification by uncommenting the line below.
-          #
-          # insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
         # Keep only the default/kubernetes service endpoints for the https port. This
@@ -13086,33 +13070,42 @@ objects:
           action: keep
           regex: default;kubernetes;https
 
+      # Scrape config for nodes.
+      #
+      # Each node exposes a /metrics endpoint that contains operational metrics for
+      # the Kubelet and other components.
       - job_name: 'kubernetes-nodes'
 
-        # Default to scraping over https. If required, just disable this or change to
-        # `+"`"+`http`+"`"+`.
         scheme: https
-
-        # This TLS & bearer token file config is used to connect to the actual scrape
-        # endpoints for cluster components. This is separate to discovery auth
-        # configuration because discovery & scraping are two separate concerns in
-        # Prometheus. The discovery auth config is automatic if Prometheus runs inside
-        # the cluster. Otherwise, more config options have to be provided within the
-        # <kubernetes_sd_config>.
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          # If your node certificates are self-signed or use a different CA to the
-          # master CA, then disable certificate verification below. Note that
-          # certificate verification is an integral part of a secure infrastructure
-          # so this should only be disabled in a controlled environment. You can
-          # disable certificate verification by uncommenting the line below.
-          #
-          # insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
 
         kubernetes_sd_configs:
         - role: node
 
         relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+
+      # Scrape config for cAdvisor.
+      #
+      # Beginning in Kube 1.7, each node exposes a /metrics/cadvisor endpoint that
+      # reports container metrics for each running pod. Scrape those by default.
+      - job_name: 'kubernetes-cadvisor'
+
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: node
+
+        relabel_configs:
+        - action: replace
+          target_label: __metrics_path__
+          regex: /metrics/cadvisor
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
 
