@@ -76,7 +76,6 @@ type CreateMasterCertsOptions struct {
 	SignerExpireDays int
 
 	APIServerCAFiles []string
-	CABundleFile     string
 
 	Hostnames []string
 

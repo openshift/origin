@@ -344,7 +344,6 @@ func (o MasterOptions) CreateCerts() error {
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
 		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,
-		CABundleFile:       admin.DefaultCABundleFile(o.MasterArgs.ConfigDir.Value()),
 		PublicAPIServerURL: publicMasterAddr.String(),
 		Output:             cmdutil.NewGLogWriterV(3),
 	}
