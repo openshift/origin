@@ -1,5 +1,5 @@
 Name:		golang
-Version:	v1.7.5
+Version:	v1.7.6
 Release:	1%{?dist}
 Summary:	Go install from source
 Group:		Fake

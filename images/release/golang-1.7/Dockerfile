@@ -6,7 +6,7 @@
 #
 FROM openshift/origin-base
 
-ENV VERSION=1.7.5 \
+ENV VERSION=1.7.6 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \
@@ -31,6 +31,3 @@ RUN mkdir $TMPDIR && \
 WORKDIR /go/src/github.com/openshift/origin
 LABEL io.k8s.display-name="OpenShift Origin Release Environment (golang-$VERSION)" \
       io.k8s.description="This is the standard release image for OpenShift Origin and contains the necessary build tools to build the platform."
-
-# Expect the working directory to be populated with the repo source
-CMD hack/build-cross.sh
