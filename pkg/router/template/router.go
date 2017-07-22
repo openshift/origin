@@ -592,15 +592,21 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 
 // CreateServiceUnit creates a new service named with the given id.
 func (r *templateRouter) CreateServiceUnit(id string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.createServiceUnitInternal(id)
+}
+
+// CreateServiceUnit creates a new service named with the given id - internal
+// lockless form, caller needs to ensure lock acquisition [and release].
+func (r *templateRouter) createServiceUnitInternal(id string) {
 	parts := strings.SplitN(id, "/", 2)
 	service := ServiceUnit{
 		Name:          id,
 		Hostname:      fmt.Sprintf("%s.%s.svc", parts[1], parts[0]),
 		EndpointTable: []Endpoint{},
 	}
-
-	r.lock.Lock()
-	defer r.lock.Unlock()
 
 	r.serviceUnits[id] = service
 	r.stateChanged = true
@@ -767,6 +773,11 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 
 	newConfig := r.createServiceAliasConfig(route, backendKey)
 
+	// We have to call the internal form of functions after this
+	// because we are holding the state lock.
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	if existingConfig, exists := r.state[backendKey]; exists {
 		if configsAreEqual(newConfig, &existingConfig) {
 			return
@@ -775,7 +786,7 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 		glog.V(4).Infof("Updating route %s/%s", route.Namespace, route.Name)
 
 		// Delete the route first, because modify is to be treated as delete+add
-		r.RemoveRoute(route)
+		r.removeRouteInternal(route)
 
 		// TODO - clean up service units that are no longer
 		// referenced.  This may be challenging if a service unit can
@@ -788,14 +799,11 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 
 	// Add service units referred to by the config
 	for key := range newConfig.ServiceUnitNames {
-		if _, ok := r.FindServiceUnit(key); !ok {
+		if _, ok := r.findMatchingServiceUnit(key); !ok {
 			glog.V(4).Infof("Creating new frontend for key: %v", key)
-			r.CreateServiceUnit(key)
+			r.createServiceUnitInternal(key)
 		}
 	}
-
-	r.lock.Lock()
-	defer r.lock.Unlock()
 
 	r.state[backendKey] = *newConfig
 	r.stateChanged = true
@@ -806,6 +814,12 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	r.removeRouteInternal(route)
+}
+
+// removeRouteInternal removes the given route - internal
+// lockless form, caller needs to ensure lock acquisition [and release].
+func (r *templateRouter) removeRouteInternal(route *routeapi.Route) {
 	routeKey := r.routeKey(route)
 	serviceAliasConfig, ok := r.state[routeKey]
 	if !ok {
