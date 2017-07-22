@@ -27,7 +27,7 @@ const (
 	// We must avoid creating processing deployment configs until the deployment config and image
 	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
 	// between checks.
-	storeSyncedPollPeriod = 100 * time.Millisecond
+	storeSyncedPollPeriod = 200 * time.Millisecond
 )
 
 // NewDeployerController creates a new DeploymentController.
