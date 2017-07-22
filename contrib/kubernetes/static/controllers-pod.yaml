@@ -1,0 +1,25 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: openshift-master-controller
+spec:
+  containers:
+  - name: controllers
+    image: openshift/origin:v3.6.0-rc.0
+    command: ["/usr/bin/openshift", "start", "master", "controllers"]
+    args:
+    - "--config=/etc/origin/master/master-config.yaml"
+    securityContext:
+      privileged: true
+    volumeMounts:
+     - mountPath: /etc/origin/master/
+       name: master-config
+     - mountPath: /etc/origin/cloudprovider/
+       name: master-cloud-provider
+  volumes:
+  - name: master-config
+    hostPath:
+      path: /etc/origin/master/
+  - name: master-cloud-provider
+    hostPath:
+      path: /etc/origin/cloudprovider

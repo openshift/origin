@@ -154,7 +154,7 @@ var map_ControllerElectionConfig = map[string]string{
 	"":              "ControllerElectionConfig contains configuration values for deciding how a controller will be elected to act as leader.",
 	"lockName":      "LockName is the resource name used to act as the lock for determining which controller instance should lead.",
 	"lockNamespace": "LockNamespace is the resource namespace used to act as the lock for determining which controller instance should lead. It defaults to \"kube-system\"",
-	"lockResource":  "LockResource is the group and resource name to use to coordinate for the controller lock. If unset, defaults to \"endpoints\".",
+	"lockResource":  "LockResource is the group and resource name to use to coordinate for the controller lock. If unset, defaults to \"configmaps\".",
 }
 
 func (ControllerElectionConfig) SwaggerDoc() map[string]string {

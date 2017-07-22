@@ -27,7 +27,7 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 			election.LockNamespace = "kube-system"
 		}
 		if len(election.LockResource.Group) == 0 && len(election.LockResource.Resource) == 0 {
-			election.LockResource.Resource = "endpoints"
+			election.LockResource.Resource = "configmaps"
 		}
 	}
 	if obj.ServingInfo.RequestTimeoutSeconds == 0 {

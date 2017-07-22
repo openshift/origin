@@ -1372,7 +1372,7 @@ type ControllerElectionConfig struct {
 	// controller instance should lead. It defaults to "kube-system"
 	LockNamespace string `json:"lockNamespace"`
 	// LockResource is the group and resource name to use to coordinate for the controller lock.
-	// If unset, defaults to "endpoints".
+	// If unset, defaults to "configmaps".
 	LockResource GroupResource `json:"lockResource"`
 }
 
