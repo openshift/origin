@@ -440,14 +440,14 @@ func scriptProxyConfig(build *buildapi.Build) (*s2iapi.ProxyConfig, error) {
 	}
 	config := &s2iapi.ProxyConfig{}
 	if len(httpProxy) > 0 {
-		proxyURL, err := url.Parse(httpProxy)
+		proxyURL, err := util.ParseProxyURL(httpProxy)
 		if err != nil {
 			return nil, err
 		}
 		config.HTTPProxy = proxyURL
 	}
 	if len(httpsProxy) > 0 {
-		proxyURL, err := url.Parse(httpsProxy)
+		proxyURL, err := util.ParseProxyURL(httpsProxy)
 		if err != nil {
 			return nil, err
 		}

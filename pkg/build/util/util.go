@@ -461,3 +461,23 @@ func FindDockerSecretAsReference(secrets []kapi.Secret, image string) *kapi.Loca
 	}
 	return nil
 }
+
+// ParseProxyURL parses a proxy URL and allows fallback to non-URLs like
+// myproxy:80 (for example) which url.Parse no longer accepts in Go 1.8.  The
+// logic is copied from net/http.ProxyFromEnvironment to try to maintain
+// backwards compatibility.
+func ParseProxyURL(proxy string) (*url.URL, error) {
+	proxyURL, err := url.Parse(proxy)
+
+	// logic copied from net/http.ProxyFromEnvironment
+	if err != nil || !strings.HasPrefix(proxyURL.Scheme, "http") {
+		// proxy was bogus. Try prepending "http://" to it and see if that
+		// parses correctly. If not, we fall through and complain about the
+		// original one.
+		if proxyURL, err := url.Parse("http://" + proxy); err == nil {
+			return proxyURL, nil
+		}
+	}
+
+	return proxyURL, err
+}
