@@ -29,7 +29,7 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 	)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
-		KubeClient:            ctx.ClientBuilder.ClientOrDie(saName),
+		QuotaClient:           ctx.ClientBuilder.ClientOrDie(saName).Core(),
 		ResourceQuotaInformer: ctx.ExternalKubeInformers.Core().V1().ResourceQuotas(),
 		ResyncPeriod:          controller.StaticResyncPeriodFunc(resourceQuotaSyncPeriod),
 		Registry:              resourceQuotaRegistry,
