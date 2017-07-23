@@ -581,10 +581,8 @@ func BuildKubeControllerConfig(options configapi.MasterConfig) (*kubecontrollers
 		return nil, kerrors.NewAggregate(err)
 	}
 	ret.SchedulerControllerConfig = kubecontrollers.SchedulerControllerConfig{
-		PrivilegedClient:               kubeExternal,
-		SchedulerName:                  schedulerserver.SchedulerName,
-		HardPodAffinitySymmetricWeight: int(schedulerserver.HardPodAffinitySymmetricWeight),
-		SchedulerPolicy:                schedulerPolicy,
+		PrivilegedClient: kubeExternal,
+		SchedulerServer:  schedulerserver,
 	}
 
 	imageTemplate := variable.NewDefaultImageTemplate()
