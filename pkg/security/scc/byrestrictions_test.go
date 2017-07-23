@@ -8,7 +8,8 @@ import (
 
 func TestPointValue(t *testing.T) {
 	newSCC := func(priv bool, seLinuxStrategy securityapi.SELinuxContextStrategyType, userStrategy securityapi.RunAsUserStrategyType) *securityapi.SecurityContextConstraints {
-		scc := &securityapi.SecurityContextConstraints{
+		return &securityapi.SecurityContextConstraints{
+			AllowPrivilegedContainer: priv,
 			SELinuxContext: securityapi.SELinuxContextStrategyOptions{
 				Type: seLinuxStrategy,
 			},
@@ -16,25 +17,18 @@ func TestPointValue(t *testing.T) {
 				Type: userStrategy,
 			},
 		}
-		if priv {
-			scc.AllowPrivilegedContainer = true
-		}
-
-		return scc
 	}
 
-	seLinuxStrategies := map[securityapi.SELinuxContextStrategyType]int{
-		securityapi.SELinuxStrategyRunAsAny:  4,
-		securityapi.SELinuxStrategyMustRunAs: 1,
+	seLinuxStrategies := map[securityapi.SELinuxContextStrategyType]points{
+		securityapi.SELinuxStrategyRunAsAny:  runAsAnyUserPoints,
+		securityapi.SELinuxStrategyMustRunAs: runAsUserPoints,
 	}
-	userStrategies := map[securityapi.RunAsUserStrategyType]int{
-		securityapi.RunAsUserStrategyRunAsAny:         4,
-		securityapi.RunAsUserStrategyMustRunAsNonRoot: 3,
-		securityapi.RunAsUserStrategyMustRunAsRange:   2,
-		securityapi.RunAsUserStrategyMustRunAs:        1,
+	userStrategies := map[securityapi.RunAsUserStrategyType]points{
+		securityapi.RunAsUserStrategyRunAsAny:         runAsAnyUserPoints,
+		securityapi.RunAsUserStrategyMustRunAsNonRoot: runAsNonRootPoints,
+		securityapi.RunAsUserStrategyMustRunAsRange:   runAsRangePoints,
+		securityapi.RunAsUserStrategyMustRunAs:        runAsUserPoints,
 	}
-
-	privilegedPoints := 20
 
 	// run through all combos of user strategy + seLinux strategy + priv
 	for userStrategy, userStrategyPoints := range userStrategies {
@@ -61,7 +55,9 @@ func TestPointValue(t *testing.T) {
 	scc := newSCC(false, securityapi.SELinuxStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAs)
 	scc.Volumes = []securityapi.FSType{securityapi.FSTypeHostPath}
 	actualPoints := pointValue(scc)
-	if actualPoints != 12 { //1 (SELinux) + 1 (User) + 10 (host path volume)
+	// SELinux + User + host path volume
+	expectedPoints := runAsUserPoints + runAsUserPoints + hostVolumePoints
+	if actualPoints != expectedPoints {
 		t.Errorf("volume score was not added to the scc point value correctly!")
 	}
 }
@@ -90,79 +86,79 @@ func TestVolumePointValue(t *testing.T) {
 
 	tests := map[string]struct {
 		scc            *securityapi.SecurityContextConstraints
-		expectedPoints int
+		expectedPoints points
 	}{
 		"all volumes": {
 			scc:            allowAllSCC,
-			expectedPoints: 10,
+			expectedPoints: hostVolumePoints,
 		},
 		"host volume": {
 			scc:            newSCC(true, false, false),
-			expectedPoints: 10,
+			expectedPoints: hostVolumePoints,
 		},
 		"host volume and non trivial volumes": {
 			scc:            newSCC(true, true, false),
-			expectedPoints: 10,
+			expectedPoints: hostVolumePoints,
 		},
 		"host volume, non trivial, and trivial": {
 			scc:            newSCC(true, true, true),
-			expectedPoints: 10,
+			expectedPoints: hostVolumePoints,
 		},
 		"non trivial": {
 			scc:            newSCC(false, true, false),
-			expectedPoints: 5,
+			expectedPoints: nonTrivialVolumePoints,
 		},
 		"non trivial and trivial": {
 			scc:            newSCC(false, true, true),
-			expectedPoints: 5,
+			expectedPoints: nonTrivialVolumePoints,
 		},
 		"trivial": {
 			scc:            newSCC(false, false, true),
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"trivial - secret": {
 			scc: &securityapi.SecurityContextConstraints{
 				Volumes: []securityapi.FSType{securityapi.FSTypeSecret},
 			},
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"trivial - configMap": {
 			scc: &securityapi.SecurityContextConstraints{
 				Volumes: []securityapi.FSType{securityapi.FSTypeConfigMap},
 			},
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"trivial - emptyDir": {
 			scc: &securityapi.SecurityContextConstraints{
 				Volumes: []securityapi.FSType{securityapi.FSTypeEmptyDir},
 			},
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"trivial - downwardAPI": {
 			scc: &securityapi.SecurityContextConstraints{
 				Volumes: []securityapi.FSType{securityapi.FSTypeDownwardAPI},
 			},
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"trivial - projected": {
 			scc: &securityapi.SecurityContextConstraints{
 				Volumes: []securityapi.FSType{securityapi.FSProjected},
 			},
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"trivial - none": {
 			scc: &securityapi.SecurityContextConstraints{
 				Volumes: []securityapi.FSType{securityapi.FSTypeNone},
 			},
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"no volumes allowed": {
 			scc:            newSCC(false, false, false),
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 		"nil volumes": {
 			scc:            nilVolumeSCC,
-			expectedPoints: 0,
+			expectedPoints: noPoints,
 		},
 	}
 	for k, v := range tests {
