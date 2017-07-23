@@ -168,15 +168,6 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	// this sets up the openapi endpoints
 	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()
 
-	// presence of the key indicates whether or not to enable the aggregator
-	if len(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile) == 0 {
-		go preparedKubeAPIServer.Run(utilwait.NeverStop)
-
-		// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-		cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-		return
-	}
-
 	aggregatorConfig, err := c.createAggregatorConfig(*kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		glog.Fatalf("Failed to create aggregator config: %v", err)

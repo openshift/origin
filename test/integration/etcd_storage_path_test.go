@@ -437,6 +437,13 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
+	// k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1
+	gvr("apiregistration.k8s.io", "v1beta1", "apiservices"): {
+		stub:             `{"metadata": {"name": "as1.foo.com"}, "spec": {"group": "foo.com", "version": "as1", "groupPriorityMinimum":100, "versionPriority":10}}`,
+		expectedEtcdPath: "kubernetes.io/apiservices/as1.foo.com",
+	},
+	// --
+
 	// k8s.io/kubernetes/pkg/apis/apps/v1beta1
 	gvr("apps", "v1beta1", "deployments"): {
 		stub:             `{"metadata": {"name": "deployment2"}, "spec": {"selector": {"matchLabels": {"f": "z"}}, "template": {"metadata": {"labels": {"f": "z"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container6"}]}}}}`,

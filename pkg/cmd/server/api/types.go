@@ -47,6 +47,8 @@ var (
 	APIGroupExtensions            = "extensions"
 	APIGroupApps                  = "apps"
 	APIGroupAdmissionRegistration = "admissionregistration.k8s.io"
+	APIGroupAPIExtensions         = "apiextensions.k8s.io"
+	APIGroupAPIRegistration       = "apiregistration.k8s.io"
 	APIGroupAuthentication        = "authentication.k8s.io"
 	APIGroupAuthorization         = "authorization.k8s.io"
 	APIGroupImagePolicy           = "imagepolicy.k8s.io"
@@ -82,6 +84,8 @@ var (
 		APIGroupExtensions:            {"v1beta1"},
 		APIGroupApps:                  {"v1beta1"},
 		APIGroupAdmissionRegistration: {}, // alpha disabled by default
+		APIGroupAPIExtensions:         {"v1beta1"},
+		APIGroupAPIRegistration:       {"v1beta1"},
 		APIGroupAuthentication:        {"v1", "v1beta1"},
 		APIGroupAuthorization:         {"v1", "v1beta1"},
 		APIGroupAuthorizationRbac:     {"v1beta1"},

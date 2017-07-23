@@ -46,19 +46,21 @@ var (
 	readWrite = []string{"get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"}
 	read      = []string{"get", "list", "watch"}
 
-	kapiGroup           = kapi.GroupName
-	appsGroup           = apps.GroupName
-	autoscalingGroup    = autoscaling.GroupName
-	batchGroup          = batch.GroupName
-	certificatesGroup   = certificates.GroupName
-	extensionsGroup     = extensions.GroupName
-	networkingGroup     = "networking.k8s.io"
-	policyGroup         = policy.GroupName
-	rbacGroup           = rbac.GroupName
-	securityGroup       = securityapi.GroupName
-	legacySecurityGroup = securityapi.LegacyGroupName
-	storageGroup        = storage.GroupName
-	settingsGroup       = settings.GroupName
+	kapiGroup            = kapi.GroupName
+	appsGroup            = apps.GroupName
+	autoscalingGroup     = autoscaling.GroupName
+	apiExtensionsGroup   = "apiextensions.k8s.io"
+	apiRegistrationGroup = "apiregistration.k8s.io"
+	batchGroup           = batch.GroupName
+	certificatesGroup    = certificates.GroupName
+	extensionsGroup      = extensions.GroupName
+	networkingGroup      = "networking.k8s.io"
+	policyGroup          = policy.GroupName
+	rbacGroup            = rbac.GroupName
+	securityGroup        = securityapi.GroupName
+	legacySecurityGroup  = securityapi.LegacyGroupName
+	storageGroup         = storage.GroupName
+	settingsGroup        = settings.GroupName
 
 	authzGroup          = authorizationapi.GroupName
 	kAuthzGroup         = kauthorizationapi.GroupName
@@ -161,6 +163,10 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 					"services/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(appsGroup).Resources("statefulsets", "statefulsets/status", "deployments", "deployments/scale", "deployments/status", "controllerrevisions").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(apiExtensionsGroup).Resources("customresourcedefinitions", "customresourcedefinitions/status").RuleOrDie(),
+
+				authorizationapi.NewRule(read...).Groups(apiRegistrationGroup).Resources("apiservices", "apiservices/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(autoscalingGroup).Resources("horizontalpodautoscalers", "horizontalpodautoscalers/status").RuleOrDie(),
 

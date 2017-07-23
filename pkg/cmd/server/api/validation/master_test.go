@@ -400,7 +400,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 	// these fields have warnings in the empty case
 	defaultWarningFields := sets.NewString(
 		"serviceAccountConfig.managedNames", "serviceAccountConfig.publicKeyFiles", "serviceAccountConfig.privateKeyFile", "serviceAccountConfig.masterCA",
-		"projectConfig.securityAllocator", "kubernetesMasterConfig.proxyClientInfo", "auditConfig.auditFilePath")
+		"projectConfig.securityAllocator", "kubernetesMasterConfig.proxyClientInfo", "auditConfig.auditFilePath", "aggregatorConfig.proxyClientInfo")
 
 	for _, tc := range testCases {
 		results := ValidateMasterConfig(&tc.options, nil)
