@@ -23,7 +23,10 @@ type SecurityContextConstraints struct {
 
 	// Priority influences the sort order of SCCs when evaluating which SCCs to try first for
 	// a given pod request based on access in the Users and Groups fields.  The higher the int, the
-	// higher priority.  If scores for multiple SCCs are equal they will be sorted by name.
+	// higher priority. An unset value is considered a 0 priority. If scores
+	// for multiple SCCs are equal they will be sorted from most restrictive to
+	// least restrictive. If both priorities and restrictions are equal the
+	// SCCs will be sorted by name.
 	Priority *int32 `json:"priority" protobuf:"varint,2,opt,name=priority"`
 
 	// AllowPrivilegedContainer determines if a container can request to be run as privileged.
