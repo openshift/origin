@@ -6,6 +6,7 @@ import (
 	"github.com/gonum/graph"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kdeplutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -162,10 +163,13 @@ func pvcMarker(g osgraph.Graph, f osgraph.Namer, dcNode *deploygraph.DeploymentC
 		}
 
 		dc := dcNode.DeploymentConfig
-		rollingParams := dc.Spec.Strategy.RollingParams
 		isBlockedBySize := dc.Spec.Replicas > 1
-		isBlockedRolling := rollingParams != nil && rollingParams.MaxSurge.IntValue() > 0
-
+		isBlockedRolling := false
+		rollingParams := dc.Spec.Strategy.RollingParams
+		if rollingParams != nil {
+			maxSurge, _, _ := kdeplutil.ResolveFenceposts(&rollingParams.MaxSurge, &rollingParams.MaxUnavailable, dc.Spec.Replicas)
+			isBlockedRolling = maxSurge > 0
+		}
 		// If the claim is not RWO or deployments will not have more than a pod running at any time
 		// then they should be fine.
 		if !hasRWOAccess(pvcNode) || (!isBlockedRolling && !isBlockedBySize) {
