@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -75,6 +76,7 @@ func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Con
 		ProxyClientCert:   certBytes,
 		ProxyClientKey:    keyBytes,
 		ServiceResolver:   serviceResolver,
+		ProxyTransport:    utilnet.SetTransportDefaults(&http.Transport{}),
 	}
 	return aggregatorConfig, nil
 }
