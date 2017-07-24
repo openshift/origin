@@ -52,6 +52,14 @@ a URL to access the management console for your cluster.
      ```
      INSECURE_REGISTRY='--insecure-registry 172.30.0.0/16'
      ```
+     or edit the `/etc/docker/daemon.json` file and add the following:
+     ```json
+     {
+        "insecure-registries": [
+          "172.30.0.0/16"
+        ]
+     }
+     ```
 
    - After editing the config, restart the Docker daemon.
      ```
