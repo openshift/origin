@@ -399,6 +399,11 @@
 			"Rev": "583e8937c61f1af6513608ccc75c97b6abdf4ff9"
 		},
 		{
+			"ImportPath": "github.com/bshuster-repo/logrus-logstash-hook",
+			"Comment": "v0.3",
+			"Rev": "0e6d502573042a6563419fbcce4f284600bfe929"
+		},
+		{
 			"ImportPath": "github.com/chai2010/gettext-go/gettext",
 			"Rev": "c6fed771bfd517099caf0f7a961671fa8ed08723"
 		},
