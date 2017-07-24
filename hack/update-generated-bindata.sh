@@ -4,7 +4,6 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-EXAMPLES=examples
 OUTPUT_PARENT=${OUTPUT_ROOT:-$OS_ROOT}
 
 pushd vendor/github.com/jteeuwen/go-bindata > /dev/null
@@ -23,15 +22,15 @@ pushd "${OS_ROOT}" > /dev/null
     -ignore ".*\.go$" \
     -ignore "\.DS_Store" \
     -ignore application-template.json \
-    ${EXAMPLES}/image-streams/... \
-    ${EXAMPLES}/db-templates/... \
-    ${EXAMPLES}/jenkins \
-    ${EXAMPLES}/jenkins/pipeline \
-    ${EXAMPLES}/quickstarts/... \
-    ${EXAMPLES}/logging/... \
-    ${EXAMPLES}/heapster/... \
-    ${EXAMPLES}/prometheus/... \
-    ${EXAMPLES}/service-catalog/... \
+    examples/image-streams/... \
+    examples/db-templates/... \
+    examples/jenkins \
+    examples/jenkins/pipeline \
+    examples/quickstarts/... \
+    examples/logging/... \
+    examples/heapster/... \
+    examples/prometheus/... \
+    examples/service-catalog/... \
     pkg/image/admission/imagepolicy/api/v1/...
 
 "$(os::util::find::gopath_binary go-bindata)" \
@@ -47,13 +46,14 @@ pushd "${OS_ROOT}" > /dev/null
     examples/db-templates \
     examples/image-streams \
     examples/sample-app \
+    examples/prometheus/... \
     examples/hello-openshift \
     examples/jenkins/...
 
 popd > /dev/null
 
 # If you hit this, please reduce other tests instead of importing more
-if [[ "$( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c )" -gt 700000 ]]; then
+if [[ "$( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c )" -gt 740000 ]]; then
     echo "error: extended bindata is $( cat "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" | wc -c ) bytes, reduce the size of the import" 1>&2
     exit 1
 fi
