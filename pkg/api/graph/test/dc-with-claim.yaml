@@ -19,7 +19,7 @@ items:
     replicas: 1
     strategy:
       rollingParams:
-        maxSurge: 1
+        maxSurge: 25%
       type: Rolling
     template:
       metadata:
