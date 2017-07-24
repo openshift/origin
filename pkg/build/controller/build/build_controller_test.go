@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -426,7 +427,6 @@ func TestCreateBuildPod(t *testing.T) {
 	expected.setPhase(buildapi.BuildPhasePending)
 	expected.setReason("")
 	expected.setMessage("")
-	expected.setOutputRef("")
 	validateUpdate(t, "create build pod", expected, update)
 	// Make sure that a pod was created
 	_, err = kubeClient.Core().Pods("namespace").Get(podName, metav1.GetOptions{})
@@ -440,18 +440,16 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	imageStream.Namespace = "isnamespace"
 	imageStream.Name = "isname"
 	imageStream.Status.DockerImageRepository = "namespace/image-name"
-	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	imageClient := fakeImageClient(imageStream)
+	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, nil, imageClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
 	podName := buildapi.GetBuildPodName(build)
 
 	update, err := bc.createBuildPod(build)
-
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-		return
+		t.Fatalf("unexpected error: %v", err)
 	}
 	expected := &buildUpdate{}
 	expected.setPodNameAnnotation(podName)
@@ -460,9 +458,12 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	expected.setMessage("")
 	expected.setOutputRef("namespace/image-name:latest")
 	validateUpdate(t, "create build pod with imagestream output", expected, update)
+	if len(bc.imageStreamQueue.Pop("isnamespace/isname")) > 0 {
+		t.Errorf("should not have queued build update")
+	}
 }
 
-func TestCreateBuildPodWithImageStreamError(t *testing.T) {
+func TestCreateBuildPodWithOutputImageStreamMissing(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
@@ -470,13 +471,61 @@ func TestCreateBuildPodWithImageStreamError(t *testing.T) {
 
 	update, err := bc.createBuildPod(build)
 
-	if err == nil {
-		t.Errorf("Expected error")
+	if err != nil {
+		t.Fatalf("Expected no error")
 	}
 	expected := &buildUpdate{}
 	expected.setReason(buildapi.StatusReasonInvalidOutputReference)
 	expected.setMessage(buildapi.StatusMessageInvalidOutputRef)
 	validateUpdate(t, "create build pod with image stream error", expected, update)
+	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("isnamespace/isname"), []string{"namespace/data-build"}) {
+		t.Errorf("should have queued build update: %#v", bc.imageStreamQueue)
+	}
+}
+
+func TestCreateBuildPodWithImageStreamMissing(t *testing.T) {
+	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Kind: "DockerImage"}
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+	build.Spec.Strategy.DockerStrategy.From = &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "isname:latest"}
+
+	update, err := bc.createBuildPod(build)
+	if err != nil {
+		t.Fatalf("Expected no error: %v", err)
+	}
+	expected := &buildUpdate{}
+	expected.setReason(buildapi.StatusReasonInvalidImageReference)
+	expected.setMessage(buildapi.StatusMessageInvalidImageRef)
+	validateUpdate(t, "create build pod with image stream error", expected, update)
+	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("namespace/isname"), []string{"namespace/data-build"}) {
+		t.Errorf("should have queued build update: %#v", bc.imageStreamQueue)
+	}
+}
+
+func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
+	imageStream := &imageapi.ImageStream{}
+	imageStream.Namespace = "isnamespace"
+	imageStream.Name = "isname"
+	imageStream.Status.DockerImageRepository = ""
+	imageClient := fakeImageClient(imageStream)
+	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
+	bc := newFakeBuildController(nil, nil, imageClient, nil, nil)
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+
+	update, err := bc.createBuildPod(build)
+
+	if err == nil {
+		t.Fatalf("Expected error")
+	}
+	expected := &buildUpdate{}
+	expected.setReason(buildapi.StatusReasonInvalidOutputReference)
+	expected.setMessage(buildapi.StatusMessageInvalidOutputRef)
+	validateUpdate(t, "create build pod with image stream error", expected, update)
+	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("isnamespace/isname"), []string{"namespace/data-build"}) {
+		t.Errorf("should have queued build update")
+	}
 }
 
 type errorStrategy struct{}

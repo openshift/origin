@@ -442,6 +442,10 @@ const (
 	// output is an invalid reference.
 	StatusReasonInvalidOutputReference StatusReason = "InvalidOutputReference"
 
+	// StatusReasonInvalidImageReference is an error condition when the build
+	// references an invalid image.
+	StatusReasonInvalidImageReference StatusReason = "InvalidImageReference"
+
 	// StatusReasonCancelBuildFailed is an error condition when cancelling a build
 	// fails.
 	StatusReasonCancelBuildFailed StatusReason = "CancelBuildFailed"
@@ -516,6 +520,7 @@ const (
 	StatusMessageCannotCreateBuildPodSpec        = "Failed to create pod spec."
 	StatusMessageCannotCreateBuildPod            = "Failed creating build pod."
 	StatusMessageInvalidOutputRef                = "Output image could not be resolved."
+	StatusMessageInvalidImageRef                 = "Referenced image could not be resolved."
 	StatusMessageCancelBuildFailed               = "Failed to cancel build."
 	StatusMessageBuildPodDeleted                 = "The pod for this build was deleted before the build completed."
 	StatusMessageExceededRetryTimeout            = "Build did not complete and retrying timed out."
