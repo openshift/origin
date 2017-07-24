@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"fmt"
 	"io/ioutil"
 	"time"
 
@@ -8,10 +9,13 @@ import (
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/pkg/client/retry"
+	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 
@@ -177,6 +181,39 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 		if err := admin.OverwriteBootstrapPolicy(c.RESTOptionsGetter, c.Options.PolicyConfig.BootstrapPolicyFile, admin.CreateBootstrapPolicyFileFullCommand, true, ioutil.Discard); err != nil {
 			glog.Errorf("Error creating bootstrap policy: %v", err)
+		}
+
+		// these are namespaced, so we can't reconcile them.  Just try to put them in until we work against rbac
+		// This only had to hold us until the transition is complete
+		// TODO remove this block and use a post-starthook
+		// ensure bootstrap namespaced roles are created or reconciled
+		for namespace, roles := range kbootstrappolicy.NamespaceRoles() {
+			for _, rbacRole := range roles {
+				role := &authorizationapi.Role{}
+				if err := authorizationapi.Convert_rbac_Role_To_authorization_Role(&rbacRole, role, nil); err != nil {
+					utilruntime.HandleError(fmt.Errorf("unable to convert role.%s/%s in %v: %v", rbac.GroupName, rbacRole.Name, namespace, err))
+					continue
+				}
+				if _, err := c.PrivilegedLoopbackOpenShiftClient.Roles(namespace).Create(role); err != nil {
+					// don't fail on failures, try to create as many as you can
+					utilruntime.HandleError(fmt.Errorf("unable to reconcile role.%s/%s in %v: %v", rbac.GroupName, role.Name, namespace, err))
+				}
+			}
+		}
+
+		// ensure bootstrap namespaced rolebindings are created or reconciled
+		for namespace, roleBindings := range kbootstrappolicy.NamespaceRoleBindings() {
+			for _, rbacRoleBinding := range roleBindings {
+				roleBinding := &authorizationapi.RoleBinding{}
+				if err := authorizationapi.Convert_rbac_RoleBinding_To_authorization_RoleBinding(&rbacRoleBinding, roleBinding, nil); err != nil {
+					utilruntime.HandleError(fmt.Errorf("unable to convert rolebinding.%s/%s in %v: %v", rbac.GroupName, rbacRoleBinding.Name, namespace, err))
+					continue
+				}
+				if _, err := c.PrivilegedLoopbackOpenShiftClient.RoleBindings(namespace).Create(roleBinding); err != nil {
+					// don't fail on failures, try to create as many as you can
+					utilruntime.HandleError(fmt.Errorf("unable to reconcile rolebinding.%s/%s in %v: %v", rbac.GroupName, roleBinding.Name, namespace, err))
+				}
+			}
 		}
 
 	} else {
