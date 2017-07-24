@@ -70,8 +70,6 @@ func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions
 	if err := imageapi.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
-	image.DockerImageManifest = ""
-	image.DockerImageConfig = ""
 
 	isi := imageapi.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
