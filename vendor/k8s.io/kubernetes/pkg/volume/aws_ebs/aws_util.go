@@ -184,7 +184,7 @@ func getDiskByIdPaths(partition string, devicePath string) []string {
 func getCloudProvider(cloudProvider cloudprovider.Interface) (*aws.Cloud, error) {
 	awsCloudProvider, ok := cloudProvider.(*aws.Cloud)
 	if !ok || awsCloudProvider == nil {
-		return nil, fmt.Errorf("Failed to get AWS Cloud Provider. GetCloudProvider returned %v instead", cloudProvider)
+		return nil, fmt.Errorf("Failed to get AWS Cloud Provider. GetCloudProvider returned %T instead: %#v", cloudProvider, cloudProvider)
 	}
 
 	return awsCloudProvider, nil
