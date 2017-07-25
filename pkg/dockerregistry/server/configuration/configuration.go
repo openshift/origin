@@ -28,11 +28,16 @@ type openshiftConfig struct {
 type Configuration struct {
 	Version configuration.Version `yaml:"version"`
 	Metrics Metrics               `yaml:"metrics"`
+	Storage Storage               `yaml:"storage"`
 }
 
 type Metrics struct {
 	Enabled bool   `yaml:"enabled"`
 	Secret  string `yaml:"secret"`
+}
+
+type Storage struct {
+	MaxWriters int `yaml:"maxwriters"`
 }
 
 type versionInfo struct {
