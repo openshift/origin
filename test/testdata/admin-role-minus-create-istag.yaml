@@ -105,6 +105,7 @@ rules:
   attributeRestrictions: null
   resources:
   - jobs
+  - cronjobs
   verbs:
   - create
   - delete
