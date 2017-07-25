@@ -1,0 +1,13 @@
+reviewers:
+  - markturansky
+  - jsafrane
+  - php-coder
+  - pweil-
+  - jim-minter
+  - rootfs
+  - coreydaley
+  - bparees
+approvers:
+  - jsafrane
+  - pweil-
+  - bparees
