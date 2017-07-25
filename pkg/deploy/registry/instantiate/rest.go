@@ -154,7 +154,7 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 				continue
 			}
 
-			if container.Image != latestReference {
+			if container.Image != latestReference || params.LastTriggeredImage != latestReference {
 				// Update the image
 				container.Image = latestReference
 				// Log the last triggered image ID
