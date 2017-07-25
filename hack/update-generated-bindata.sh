@@ -18,6 +18,7 @@ pushd "${OS_ROOT}" > /dev/null
     -prefix "bootstrap" \
     -pkg "bootstrap" \
     -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" \
+    -ignore "OWNERS" \
     -ignore "README.md" \
     -ignore ".*\.go$" \
     -ignore "\.DS_Store" \
@@ -39,6 +40,7 @@ pushd "${OS_ROOT}" > /dev/null
     -prefix "testextended" \
     -pkg "testdata" \
     -o "${OUTPUT_PARENT}/test/extended/testdata/bindata.go" \
+    -ignore "OWNERS" \
     -ignore "\.DS_Store" \
     -ignore ".*\.(go|md)$" \
     test/extended/testdata/... \
