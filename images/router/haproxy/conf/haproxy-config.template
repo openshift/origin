@@ -161,6 +161,7 @@ defaults
 
 {{ if .BindPorts -}}
 frontend public
+<<<<<<< HEAD
 
   {{ if ne (env "ROUTER_SERVICE_IP_ADDRESSES" "") "" }}
     {{ with $values := split (env "ROUTER_SERVICE_IP_ADDRESSES" "")  "," }}
@@ -174,6 +175,9 @@ frontend public
     bind :::{{env "ROUTER_SERVICE_HTTP_PORT" "80" }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   {{ end }}
 
+=======
+  bind :::{{env "ROUTER_SERVICE_HTTP_PORT" "80" }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+>>>>>>> parent of 77966db... Add ROUTER_SERVICE_IP_ADDRESSES for multi homed setup
   mode http
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
@@ -198,6 +202,7 @@ frontend public
 # determined by the next backend in the chain which may be an app backend (passthrough termination) or a backend
 # that terminates encryption in this router (edge)
 frontend public_ssl
+<<<<<<< HEAD
   {{ if ne (env "ROUTER_SERVICE_IP_ADDRESSES" "") "" }}
     {{ with $values := split (env "ROUTER_SERVICE_IP_ADDRESSES" "")  "," }}
       {{ range $idx, $ipaddr := $values }}
@@ -210,6 +215,9 @@ frontend public_ssl
     bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443" }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   {{ end }}
 
+=======
+  bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+>>>>>>> parent of 77966db... Add ROUTER_SERVICE_IP_ADDRESSES for multi homed setup
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
 
