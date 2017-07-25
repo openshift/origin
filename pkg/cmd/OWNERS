@@ -1,6 +1,5 @@
 reviewers:
   - smarterclayton
-  - deads2k
   - liggitt
   - mfojtik
   - kargakis
@@ -10,7 +9,6 @@ reviewers:
   - csrwng
 approvers:
   - smarterclayton
-  - deads2k
   - liggitt
   - mfojtik
   - kargakis

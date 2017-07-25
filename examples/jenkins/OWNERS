@@ -2,7 +2,6 @@ reviewers:
   - bparees
   - gabemontero
   - mfojtik
-  - deads2k
   - csrwng
   - smarterclayton
   - jim-minter
@@ -12,6 +11,5 @@ reviewers:
 approvers:
   - bparees
   - mfojtik
-  - deads2k
   - csrwng
   - smarterclayton

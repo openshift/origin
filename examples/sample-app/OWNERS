@@ -1,6 +1,5 @@
 reviewers:
   - bparees
-  - deads2k
   - smarterclayton
   - mfojtik
   - soltysh
@@ -8,7 +7,6 @@ reviewers:
   - liggitt
 approvers:
   - bparees
-  - deads2k
   - smarterclayton
   - mfojtik
   - soltysh

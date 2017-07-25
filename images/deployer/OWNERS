@@ -3,7 +3,6 @@ reviewers:
   - stevekuznetsov
   - kargakis
   - mfojtik
-  - deads2k
   - smarterclayton
   - ncdc
 approvers:
@@ -11,4 +10,3 @@ approvers:
   - stevekuznetsov
   - kargakis
   - mfojtik
-  - deads2k

@@ -1,5 +1,4 @@
 reviewers:
-  - deads2k
   - smarterclayton
   - pecameron
   - stevekuznetsov
@@ -7,7 +6,6 @@ reviewers:
   - liggitt
   - ncdc
 approvers:
-  - deads2k
   - smarterclayton
   - stevekuznetsov
   - kargakis
