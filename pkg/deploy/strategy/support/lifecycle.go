@@ -373,6 +373,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 				Name:      mount.Name,
 				ReadOnly:  mount.ReadOnly,
 				MountPath: mount.MountPath,
+				SubPath:   mount.SubPath,
 			})
 		}
 	}
