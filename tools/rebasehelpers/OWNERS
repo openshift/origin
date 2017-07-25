@@ -1,0 +1,15 @@
+reviewers:
+  - stevekuznetsov
+  - liggitt
+  - soltysh
+  - ncdc
+  - php-coder
+  - jpeeler
+  - deads2k
+  - smarterclayton
+approvers:
+  - stevekuznetsov
+  - liggitt
+  - soltysh
+  - deads2k
+  - smarterclayton

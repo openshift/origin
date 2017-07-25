@@ -1,0 +1,15 @@
+reviewers:
+  - smarterclayton
+  - sdodson
+  - tdawson
+  - kargakis
+  - rootfs
+  - stevekuznetsov
+  - sjenning
+  - csrwng
+approvers:
+  - smarterclayton
+  - sdodson
+  - tdawson
+  - kargakis
+  - stevekuznetsov
