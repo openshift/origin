@@ -332,11 +332,9 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		return nil, err
 	}
 
-	serviceAccountTokenGetter, err := newServiceAccountTokenGetter(options)
-	if err != nil {
-		return nil, err
-	}
-
+	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
+	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
+	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(privilegedLoopbackKubeClientsetExternal)
 	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, apiClientCAs, groupCache)
 	if err != nil {
 		return nil, err
@@ -911,50 +909,6 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	}
 
 	return admission.NewChainHandler(plugins...), nil
-}
-
-func newServiceAccountTokenGetter(options configapi.MasterConfig) (serviceaccount.ServiceAccountTokenGetter, error) {
-	if options.KubernetesMasterConfig == nil {
-		// When we're running against an external Kubernetes, use the external kubernetes client to validate service account tokens
-		// This prevents infinite auth loops if the privilegedLoopbackKubeClient authenticates using a service account token
-		kubeClientset, _, err := configapi.GetExternalKubeClient(options.MasterClients.ExternalKubernetesKubeConfig, options.MasterClients.ExternalKubernetesClientConnectionOverrides)
-		if err != nil {
-			return nil, err
-		}
-		return sacontroller.NewGetterFromClient(kubeClientset), nil
-	}
-
-	// TODO: could be hoisted if other Origin code needs direct access to etcd, otherwise discourage this access pattern
-	// as we move to be more on top of Kube.
-	apiserverOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
-	if err != nil {
-		return nil, err
-	}
-	kubeStorageFactory, err := kubernetes.BuildStorageFactory(options, apiserverOptions, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	storageConfigServiceAccounts, err := kubeStorageFactory.NewConfig(kapi.Resource("serviceaccounts"))
-	if err != nil {
-		return nil, err
-	}
-	storageConfigSecrets, err := kubeStorageFactory.NewConfig(kapi.Resource("secrets"))
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: by doing this we will not be able to authenticate while a master quorum is not present - reimplement
-	// as two storages called in succession (non quorum and then quorum).
-	storageConfigServiceAccounts.Quorum = true
-	storageConfigSecrets.Quorum = true
-
-	return sacontroller.NewGetterFromStorageInterface(
-		storageConfigServiceAccounts,
-		kubeStorageFactory.ResourcePrefix(kapi.Resource("serviceaccounts")),
-		storageConfigSecrets,
-		kubeStorageFactory.ResourcePrefix(kapi.Resource("secrets")),
-	), nil
 }
 
 func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
