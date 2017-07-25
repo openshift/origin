@@ -3,7 +3,8 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-os::util::ensure::built_binary_exists 'client-gen' 'vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen'
+#export KUBEGEN_PKG=./vendor/k8s.io/kubernetes/vendor/k8s.io/kube-gen
+os::util::ensure::built_binary_exists 'client-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/kube-gen/cmd/client-gen'
 
 # list of package to generate client set for
 packages=(
