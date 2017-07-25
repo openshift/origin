@@ -463,6 +463,8 @@ fi
 %files node
 %{_unitdir}/%{name}-node.service
 %{_sysconfdir}/systemd/system.conf.d/origin-accounting.conf
+%dir /opt/cni/bin
+/opt/cni/bin/*
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}-node
 %defattr(-,root,root,0700)
 %config(noreplace) %{_sysconfdir}/origin/node
@@ -485,11 +487,9 @@ fi
 %files sdn-ovs
 %dir %{_unitdir}/%{name}-node.service.d/
 %dir %{_sysconfdir}/cni/net.d
-%dir /opt/cni/bin
 %{_bindir}/openshift-sdn-ovs
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 %{_sysconfdir}/cni/net.d/80-openshift-sdn.conf
-/opt/cni/bin/*
 
 %posttrans sdn-ovs
 # This path was installed by older packages but the directory wasn't owned by
