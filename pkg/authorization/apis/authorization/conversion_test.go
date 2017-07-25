@@ -194,12 +194,36 @@ func TestConversionErrors(t *testing.T) {
 			},
 		},
 		{
+			name:     "invalid origin rol ref namespace",
+			expected: `invalid origin cluster role binding clusterrolebindingname: attempts to reference role in namespace "fancyns" instead of cluster scope`,
+			f: func() error {
+				return authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusterrolebindingname"},
+					RoleRef: api.ObjectReference{
+						Namespace: "fancyns",
+					},
+				}, &rbac.ClusterRoleBinding{}, nil)
+			},
+		},
+		{
 			name:     "invalid RBAC subject kind",
 			expected: `invalid kind for rbac subject: "evenfancieruser"`,
 			f: func() error {
 				return authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
 					Subjects: []rbac.Subject{
 						{Kind: "evenfancieruser"},
+					},
+				}, &authorizationapi.ClusterRoleBinding{}, nil)
+			},
+		},
+		{
+			name:     "invalid RBAC rol ref kind",
+			expected: `invalid kind "anewfancykind" for rbac role ref "fancyrolref"`,
+			f: func() error {
+				return authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
+					RoleRef: rbac.RoleRef{
+						Name: "fancyrolref",
+						Kind: "anewfancykind",
 					},
 				}, &authorizationapi.ClusterRoleBinding{}, nil)
 			},
@@ -349,7 +373,7 @@ func setRandomRBACRoleBindingData(subjects []rbac.Subject, roleRef *rbac.RoleRef
 		setValidRBACKindAndNamespace(subject, i, c)
 	}
 	roleRef.APIGroup = rbac.GroupName
-	roleRef.Kind = getRBACRoleRefKind(namespace)
+	roleRef.Kind = getRBACRoleRefKind(getRandomScope(namespace, c))
 }
 
 func setValidRBACKindAndNamespace(subject *rbac.Subject, i int, c fuzz.Continue) {
@@ -375,7 +399,15 @@ func setRandomOriginRoleBindingData(subjects []api.ObjectReference, roleRef *api
 	}
 	unsetUnusedOriginFields(roleRef)
 	roleRef.Kind = ""
-	roleRef.Namespace = namespace
+	roleRef.Namespace = getRandomScope(namespace, c)
+}
+
+// we want bindings to both cluster and local roles
+func getRandomScope(namespace string, c fuzz.Continue) string {
+	if c.RandBool() {
+		return ""
+	}
+	return namespace
 }
 
 func setValidOriginKindAndNamespace(subject *api.ObjectReference, i int, c fuzz.Continue) {
