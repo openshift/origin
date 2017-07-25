@@ -164,16 +164,12 @@ frontend public
 
   {{ if ne (env "ROUTER_SERVICE_IP_ADDRESSES" "") "" }}
     {{ with $values := split (env "ROUTER_SERVICE_IP_ADDRESSES" "")  "," }}
-      {{ $bindLine := "" }}
       {{ range $idx, $ipaddr := $values }}
-        {{- if and (gt $idx 0) ( gt ( len $ipaddr ) 0 )  }}
-          {{ $bindLine := createBindline  $ipaddr (env "ROUTER_SERVICE_HTTP_PORT" "80") }}
-        {{ else }}
-          {{ $bindLine := createBindline  $ipaddr (env "ROUTER_SERVICE_HTTP_PORT" "80") }}
-        {{ end }}
+        {{- if gt ( len $ipaddr ) 0 }}
+          bind {{ $ipaddr }}:{{ (env "ROUTER_SERVICE_HTTP_PORT" "80") }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+       {{ end }}
     {{ end }}{{/* end range IP addresses. */}}
   {{ end }}
-    bind {{ getBindline }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   {{ else }}
     bind :::{{env "ROUTER_SERVICE_HTTP_PORT" "80" }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   {{ end }}
@@ -203,18 +199,13 @@ frontend public
 # that terminates encryption in this router (edge)
 frontend public_ssl
   {{ if ne (env "ROUTER_SERVICE_IP_ADDRESSES" "") "" }}
-    {{ resetBindline }}
     {{ with $values := split (env "ROUTER_SERVICE_IP_ADDRESSES" "")  "," }}
-      {{ $bindLine := "" }}
       {{ range $idx, $ipaddr := $values }}
-        {{- if and (gt $idx 0) ( gt ( len $ipaddr ) 0 )  }}
-          {{ $bindLine := createBindline  $ipaddr (env "ROUTER_SERVICE_HTTPS_PORT" "443") }}
-        {{ else }}
-          {{ $bindLine := createBindline  $ipaddr (env "ROUTER_SERVICE_HTTPS_PORT" "443") }}
+        {{- if gt ( len $ipaddr ) 0 }}
+          bind {{ $ipaddr }}:{{ (env "ROUTER_SERVICE_HTTPS_PORT" "443") }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
         {{ end }}
-    {{ end }}{{/* end range IP addresses. */}}
-  {{ end }}
-    bind {{ getBindline }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+      {{ end }}{{/* end range IP addresses. */}}
+    {{ end }}
   {{ else }}
     bind :::{{env "ROUTER_SERVICE_HTTPS_PORT" "443" }} v4v6 {{ if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
   {{ end }}
