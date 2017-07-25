@@ -7,8 +7,8 @@
 		"github.com/golang/mock/gomock",
 		"github.com/containernetworking/cni/plugins/ipam/host-local",
 		"github.com/containernetworking/cni/plugins/main/loopback",
-		"k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo",
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen",
+		"k8s.io/kube-gen/cmd/go-to-protobuf/protoc-gen-gogo",
+		"k8s.io/kube-gen/cmd/client-gen",
 		"k8s.io/kubernetes/pkg/api/testing/compat",
 		"k8s.io/kubernetes/test/e2e/generated",
 		"github.com/onsi/ginkgo/ginkgo",
@@ -5807,67 +5807,67 @@
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/args",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen/args",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen/generators",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/fake",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen/generators/fake",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/generators/scheme",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen/generators/scheme",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/path",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen/path",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/types",
+			"ImportPath": "k8s.io/kube-gen/cmd/client-gen/types",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/conversion-gen/generators",
+			"ImportPath": "k8s.io/kube-gen/cmd/conversion-gen/generators",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protobuf",
+			"ImportPath": "k8s.io/kube-gen/cmd/go-to-protobuf/protobuf",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo",
+			"ImportPath": "k8s.io/kube-gen/cmd/go-to-protobuf/protoc-gen-gogo",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/informer-gen/generators",
+			"ImportPath": "k8s.io/kube-gen/cmd/informer-gen/generators",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/lister-gen/generators",
+			"ImportPath": "k8s.io/kube-gen/cmd/lister-gen/generators",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
 		{
-			"ImportPath": "k8s.io/kubernetes/cmd/libs/go2idl/openapi-gen/generators",
+			"ImportPath": "k8s.io/kube-gen/cmd/openapi-gen/generators",
 			"Comment": "v1.7.0-43-g695f48a16f",
 			"Rev": "d2e5420de791a3a5234eb1c3d84921d68ae2b6d6"
 		},
