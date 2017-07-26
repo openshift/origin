@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -22,13 +23,14 @@ import (
 	"github.com/openshift/origin/pkg/bootstrap/docker/errors"
 	dockerexec "github.com/openshift/origin/pkg/bootstrap/docker/exec"
 	"github.com/openshift/origin/pkg/bootstrap/docker/host"
-	"github.com/openshift/origin/pkg/bootstrap/docker/localcmd"
 	"github.com/openshift/origin/pkg/bootstrap/docker/run"
 	defaultsapi "github.com/openshift/origin/pkg/build/admission/defaults/api"
 	cliconfig "github.com/openshift/origin/pkg/cmd/cli/config"
+	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
+	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
@@ -805,32 +807,34 @@ window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
 		certPath := filepath.Join(configDir, aggregatorCert)
 		keyPath := filepath.Join(configDir, aggregatorKey)
 
-		// TODO: reconcile this oadm logic with https://github.com/openshift/origin/blob/master/pkg/bootstrap/docker/openshift/admin.go#L121-L149
-		out, err := localcmd.New("oc").Args(
-			"adm",
-			"ca",
-			"create-signer-cert",
-			"--cert", cacertPath,
-			"--key", cakeyPath,
-			"--serial", caserialPath,
-		).CombinedOutput()
+		cmdOutput := &bytes.Buffer{}
+		createSignerCertOptions := &admin.CreateSignerCertOptions{
+			CertFile:   cacertPath,
+			KeyFile:    cakeyPath,
+			SerialFile: caserialPath,
+			Output:     cmdOutput,
+		}
+		_, err = createSignerCertOptions.CreateSignerCert()
 		if err != nil {
-			return errors.NewError(fmt.Sprintf("failed generating signer certificate, command output: %s\nerror: %v", out, err))
+			return errors.NewError("cannot create signer cert").WithCause(err).WithDetails(cmdOutput.String())
 		}
 
-		// TODO: reconcile this oadm logic with https://github.com/openshift/origin/blob/master/pkg/bootstrap/docker/openshift/admin.go#L121-L149
-		out, err = localcmd.New("oc").Args(
-			"adm",
-			"create-api-client-config",
-			"--certificate-authority", cacertPath,
-			"--signer-cert", cacertPath,
-			"--signer-key", cakeyPath,
-			"--signer-serial", caserialPath,
-			"--user", "aggregator-front-proxy",
-			"--client-dir", configDir,
-		).CombinedOutput()
+		cmdOutput = &bytes.Buffer{}
+		signerCertOptions := admin.NewDefaultSignerCertOptions()
+		signerCertOptions.CertFile = cacertPath
+		signerCertOptions.KeyFile = cakeyPath
+		signerCertOptions.SerialFile = caserialPath
+
+		createClientOptions := &admin.CreateClientOptions{
+			SignerCertOptions: signerCertOptions,
+			ClientDir:         configDir,
+			ExpireDays:        crypto.DefaultCertificateLifetimeInDays,
+			User:              "aggregator-front-proxy",
+			Output:            cmdOutput,
+		}
+		err = createClientOptions.CreateClientFolder()
 		if err != nil {
-			return errors.NewError(fmt.Sprintf("failed generating client certificate, command output: %s\nerror: %v", out, err))
+			return errors.NewError("cannot create client config").WithCause(err).WithDetails(cmdOutput.String())
 		}
 
 		err = h.hostHelper.UploadFileToContainer(cacertPath, aggregatorCACertPath)
