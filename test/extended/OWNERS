@@ -7,9 +7,15 @@ reviewers:
   - kargakis
   - deads2k
   - jim-minter
+  - knobunc
+  - dcbw
+  - danw
 approvers:
   - smarterclayton
   - bparees
   - stevekuznetsov
   - mfojtik
   - kargakis
+  - knobunc
+  - dcbw
+  - danw

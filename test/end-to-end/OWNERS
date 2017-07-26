@@ -9,9 +9,15 @@ reviewers:
   - legionus
   - sosiouxme
   - bparees
+  - knobunc
+  - dcbw
+  - danw
 approvers:
   - kargakis
   - stevekuznetsov
   - smarterclayton
   - soltysh
   - liggitt
+  - knobunc
+  - dcbw
+  - danw

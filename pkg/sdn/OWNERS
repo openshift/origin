@@ -6,8 +6,13 @@ reviewers:
   - ncdc
   - rajatchopra
   - soltysh
+  - danw
+  - knobunc
 approvers:
   - pravisankar
   - dcbw
   - smarterclayton
   - mfojtik
+  - danw
+  - knobunc
+  - rajatchopra
