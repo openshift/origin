@@ -6366,14 +6366,6 @@ objects:
   - apiVersion: v1
     groupNames:
     - system:authenticated
-    kind: PolicyBinding
-    metadata:
-      name: "${NAMESPACE}:default"
-    policyRef:
-      namespace: ${NAMESPACE}
-  - apiVersion: v1
-    groupNames:
-    - system:authenticated
     kind: RoleBinding
     metadata:
       creationTimestamp: null
