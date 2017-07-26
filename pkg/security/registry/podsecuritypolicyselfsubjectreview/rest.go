@@ -8,6 +8,7 @@ import (
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -24,6 +25,8 @@ type REST struct {
 	sccMatcher oscc.SCCMatcher
 	client     clientset.Interface
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies..
 func NewREST(m oscc.SCCMatcher, c clientset.Interface) *REST {

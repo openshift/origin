@@ -46,6 +46,8 @@ type InstantiateREST struct {
 	generator *generator.BuildGenerator
 }
 
+var _ rest.Creater = &InstantiateREST{}
+
 // New creates a new build generation request
 func (s *InstantiateREST) New() runtime.Object {
 	return &buildapi.BuildRequest{}
@@ -86,6 +88,8 @@ type BinaryInstantiateREST struct {
 	ConnectionInfo kubeletclient.ConnectionInfoGetter
 	Timeout        time.Duration
 }
+
+var _ rest.Connecter = &BinaryInstantiateREST{}
 
 // New creates a new build generation request
 func (s *BinaryInstantiateREST) New() runtime.Object {

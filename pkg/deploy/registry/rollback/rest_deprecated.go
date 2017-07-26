@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -20,6 +21,8 @@ type DeprecatedREST struct {
 	generator GeneratorClient
 	codec     runtime.Codec
 }
+
+var _ rest.Creater = &REST{}
 
 // GeneratorClient defines a local interface to a rollback generator for testability.
 type GeneratorClient interface {

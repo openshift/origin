@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -24,6 +25,8 @@ type REST struct {
 	rn        kcoreclient.ReplicationControllersGetter
 	codec     runtime.Codec
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST safely creates a new REST.
 func NewREST(oc client.Interface, kc kclientset.Interface, codec runtime.Codec) *REST {

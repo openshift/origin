@@ -44,6 +44,9 @@ type REST struct {
 	policyBindings authorizationlister.PolicyBindingLister
 }
 
+var _ rest.Lister = &REST{}
+var _ rest.Creater = &REST{}
+
 func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, restConfig *restclient.Config, policyBindingCache authorizationlister.PolicyBindingLister) *REST {
 	return &REST{
 		message:           message,
