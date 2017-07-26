@@ -12,15 +12,6 @@ import (
 	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/admin"
-	diagnostics "github.com/openshift/origin/pkg/cmd/admin/diagnostics"
-	sync "github.com/openshift/origin/pkg/cmd/admin/groups/sync/cli"
-	"github.com/openshift/origin/pkg/cmd/admin/validate"
-	"github.com/openshift/origin/pkg/cmd/cli"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
-	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
-	configcmd "github.com/openshift/origin/pkg/cmd/experimental/config"
-	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
@@ -31,6 +22,15 @@ import (
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/oc/admin"
+	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
+	sync "github.com/openshift/origin/pkg/oc/admin/groups/sync/cli"
+	"github.com/openshift/origin/pkg/oc/admin/validate"
+	"github.com/openshift/origin/pkg/oc/cli"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
+	"github.com/openshift/origin/pkg/oc/experimental/buildchain"
+	configcmd "github.com/openshift/origin/pkg/oc/experimental/config"
+	exipfailover "github.com/openshift/origin/pkg/oc/experimental/ipfailover"
 )
 
 var (

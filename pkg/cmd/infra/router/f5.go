@@ -11,10 +11,10 @@ import (
 
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 	projectinternalclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"

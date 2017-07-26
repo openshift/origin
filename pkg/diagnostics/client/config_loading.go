@@ -8,9 +8,9 @@ import (
 	flag "github.com/spf13/pflag"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	"github.com/openshift/origin/pkg/diagnostics/util"
+	"github.com/openshift/origin/pkg/oc/cli/config"
 )
 
 // ConfigLoading is a little special in that it is run separately as a precondition

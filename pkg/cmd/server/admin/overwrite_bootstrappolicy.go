@@ -20,9 +20,9 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/util"
 
-	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
+	"github.com/openshift/origin/pkg/oc/cli/describe"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )

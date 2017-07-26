@@ -15,9 +15,9 @@ import (
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/cmd/cli/config"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	diagutil "github.com/openshift/origin/pkg/diagnostics/util"
+	"github.com/openshift/origin/pkg/oc/cli/config"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
