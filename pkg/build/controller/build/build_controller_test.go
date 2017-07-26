@@ -45,7 +45,9 @@ import (
 // TestHandleBuild is the main test for build updates through the controller
 func TestHandleBuild(t *testing.T) {
 
-	now := metav1.Now()
+	// patch appears to drop sub-second accuracy from times, which causes problems
+	// during equality testing later, so start with a rounded number of seconds for a time.
+	now := metav1.NewTime(time.Now().Round(time.Second))
 	before := metav1.NewTime(now.Time.Add(-1 * time.Hour))
 
 	build := func(phase buildapi.BuildPhase) *buildapi.Build {
@@ -60,8 +62,20 @@ func TestHandleBuild(t *testing.T) {
 		p := mockBuildPod(build(buildapi.BuildPhaseNew))
 		p.Status.Phase = phase
 		switch phase {
-		case v1.PodRunning, v1.PodFailed:
+		case v1.PodRunning:
 			p.Status.StartTime = &now
+		case v1.PodFailed:
+			p.Status.StartTime = &now
+			p.Status.ContainerStatuses = []v1.ContainerStatus{
+				{
+					Name: "container",
+					State: v1.ContainerState{
+						Terminated: &v1.ContainerStateTerminated{
+							ExitCode: 1,
+						},
+					},
+				},
+			}
 		case v1.PodSucceeded:
 			p.Status.StartTime = &now
 			p.Status.ContainerStatuses = []v1.ContainerStatus{
@@ -77,6 +91,15 @@ func TestHandleBuild(t *testing.T) {
 		}
 		return p
 	}
+	withTerminationMessage := func(pod *v1.Pod) *v1.Pod {
+		pod.Status.ContainerStatuses[0].State.Terminated.Message = "termination message"
+		return pod
+	}
+	withPodCreationTS := func(pod *v1.Pod, tm metav1.Time) *v1.Pod {
+		pod.CreationTimestamp = tm
+		return pod
+	}
+
 	cancelled := func(build *buildapi.Build) *buildapi.Build {
 		build.Status.Cancelled = true
 		return build
@@ -89,9 +112,9 @@ func TestHandleBuild(t *testing.T) {
 		build.CreationTimestamp = tm
 		return build
 	}
-	withPodCreationTS := func(pod *v1.Pod, tm metav1.Time) *v1.Pod {
-		pod.CreationTimestamp = tm
-		return pod
+	withLogSnippet := func(build *buildapi.Build) *buildapi.Build {
+		build.Status.LogSnippet = "termination message"
+		return build
 	}
 
 	tests := []struct {
@@ -268,15 +291,21 @@ func TestHandleBuild(t *testing.T) {
 				update,
 		},
 		{
-			name:             "failed -> failed with completion timestamp+message",
-			build:            withCompletionTS(build(buildapi.BuildPhaseFailed)),
-			pod:              pod(v1.PodFailed),
-			expectOnComplete: true,
+			name:  "failed -> failed with completion timestamp+message and no logsnippet",
+			build: withCompletionTS(build(buildapi.BuildPhaseFailed)),
+			pod:   withTerminationMessage(pod(v1.PodFailed)),
+			// no oncomplete call because the completion timestamp is already set.
+			expectOnComplete: false,
 			expectUpdate: newUpdate().
 				startTime(now).
-				completionTime(now).
-				logSnippet("").
+				logSnippet("termination message").
 				update,
+		},
+		{
+			name:             "failed -> failed with completion timestamp+message and logsnippet",
+			build:            withLogSnippet(withCompletionTS(build(buildapi.BuildPhaseFailed))),
+			pod:              withTerminationMessage(pod(v1.PodFailed)),
+			expectOnComplete: false,
 		},
 	}
 
