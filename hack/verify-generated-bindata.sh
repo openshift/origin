@@ -15,7 +15,7 @@ fi
 
 echo "Diffing current bootstrap bindata against freshly generated bindata"
 ret=0
-diff -Naup "${OS_ROOT}/pkg/bootstrap/bindata.go" "${TMP_GENERATED_BOOTSTRAP_DIR}/pkg/bootstrap/bindata.go" || ret=$?
+diff -Naup "${OS_ROOT}/pkg/oc/bootstrap/bindata.go" "${TMP_GENERATED_BOOTSTRAP_DIR}/pkg/oc/bootstrap/bindata.go" || ret=$?
 if [[ $ret -eq 0 ]]
 then
   echo "SUCCESS: Generated bootstrap bindata up to date."
