@@ -19,13 +19,16 @@ package filters
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Constant for the retry-after interval on rate limiting.
@@ -93,14 +96,42 @@ func WithMaxInFlightLimit(
 				defer func() { <-c }()
 				handler.ServeHTTP(w, r)
 			default:
-				tooManyRequests(r, w)
+				tooManyRequests(r, w, requestInfo)
 			}
 		}
 	})
 }
 
-func tooManyRequests(req *http.Request, w http.ResponseWriter) {
+func tooManyRequests(req *http.Request, w http.ResponseWriter, requestInfo *apirequest.RequestInfo) {
 	// Return a 429 status indicating "Too Many Requests"
 	w.Header().Set("Retry-After", retryAfter)
 	http.Error(w, "Too many requests, please try again later.", errors.StatusTooManyRequests)
+
+	if requestInfo.IsResourceRequest {
+		requestCounter.WithLabelValues(requestInfo.Verb, requestInfo.Resource, requestInfo.Subresource, cleanUserAgent(utilnet.GetHTTPClient(req)), "").Inc()
+	} else {
+		requestCounter.WithLabelValues(requestInfo.Verb, "", "", cleanUserAgent(utilnet.GetHTTPClient(req)), requestInfo.Path).Inc()
+	}
+}
+
+var (
+	requestCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "maxinflight_request_count",
+			Help: "Counter of rate-limited apiserver requests broken out by source. DEPRECATED: will be removed in 3.7.",
+		},
+		[]string{"verb", "resource", "subresource", "client", "path"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(requestCounter)
+}
+
+func cleanUserAgent(ua string) string {
+	// We collapse all "web browser"-type user agents into one "browser" to reduce metric cardinality.
+	if strings.HasPrefix(ua, "Mozilla/") {
+		return "Browser"
+	}
+	return ua
 }
