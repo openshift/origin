@@ -14,6 +14,7 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
+	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -39,6 +40,9 @@ type OAuthServerConfig struct {
 
 	// KubeClient is kubeclient with enough permission for the auth API
 	KubeClient kclientset.Interface
+
+	// EventsClient is for creating user events
+	EventsClient corev1.EventInterface
 
 	// RouteClient provides a client for OpenShift routes API.
 	RouteClient routeclient.Interface
@@ -80,11 +84,16 @@ func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *r
 	if err != nil {
 		return nil, err
 	}
+	eventsClient, err := corev1.NewForConfig(userClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	ret := &OAuthServerConfig{
 		GenericConfig:                  genericConfig,
 		Options:                        oauthConfig,
 		SessionAuth:                    sessionAuth,
+		EventsClient:                   eventsClient.Events(""),
 		IdentityClient:                 userClient.Identities(),
 		UserClient:                     userClient.Users(),
 		UserIdentityMappingClient:      userClient.UserIdentityMappings(),
