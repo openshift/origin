@@ -8,9 +8,15 @@ reviewers:
   - kargakis
   - fabianofranz
   - pecameron
+  - knobunc
+  - dcbw
+  - danw
 approvers:
   - smarterclayton
   - deads2k
   - stevekuznetsov
   - bparees
   - liggitt
+  - knobunc
+  - dcbw
+  - danw

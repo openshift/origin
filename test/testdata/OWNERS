@@ -8,9 +8,15 @@ reviewers:
   - ncdc
   - soltysh
   - jim-minter
+  - knobunc
+  - dcbw
+  - danw
 approvers:
   - deads2k
   - smarterclayton
   - mfojtik
   - enj
   - liggitt
+  - knobunc
+  - dcbw
+  - danw
