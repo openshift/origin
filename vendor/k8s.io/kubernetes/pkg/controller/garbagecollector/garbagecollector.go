@@ -36,6 +36,7 @@ import (
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/garbagecollector/metaonly"
+	_ "k8s.io/kubernetes/pkg/util/reflector/prometheus" // for reflector metric registration
 	// install the prometheus plugin
 	_ "k8s.io/kubernetes/pkg/util/workqueue/prometheus"
 	// import known versions
