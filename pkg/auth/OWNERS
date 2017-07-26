@@ -6,9 +6,11 @@ reviewers:
   - mfojtik
   - soltysh
   - sgallagher
+  - enj
 approvers:
   - liggitt
   - deads2k
   - stevekuznetsov
   - smarterclayton
   - mfojtik
+  - enj

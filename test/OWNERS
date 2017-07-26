@@ -8,9 +8,11 @@ reviewers:
   - kargakis
   - csrwng
   - soltysh
+  - enj
 approvers:
   - smarterclayton
   - deads2k
   - liggitt
   - bparees
   - stevekuznetsov
+  - enj
