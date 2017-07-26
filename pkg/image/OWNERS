@@ -1,7 +1,6 @@
 reviewers:
   - smarterclayton
   - ncdc
-  - deads2k
   - soltysh
   - miminar
   - mfojtik
@@ -9,7 +8,6 @@ reviewers:
   - legionus
 approvers:
   - smarterclayton
-  - deads2k
   - soltysh
   - mfojtik
   - liggitt

@@ -1,5 +1,4 @@
 reviewers:
-  - deads2k
   - smarterclayton
   - soltysh
   - ncdc
@@ -8,7 +7,6 @@ reviewers:
   - pravisankar
   - pweil-
 approvers:
-  - deads2k
   - smarterclayton
   - soltysh
   - mfojtik

@@ -1,7 +1,6 @@
 reviewers:
   - smarterclayton
   - bparees
-  - deads2k
   - coreydaley
   - soltysh
   - jim-minter
@@ -11,6 +10,5 @@ reviewers:
 approvers:
   - smarterclayton
   - bparees
-  - deads2k
   - soltysh
   - liggitt

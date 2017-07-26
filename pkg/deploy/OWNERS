@@ -2,7 +2,6 @@ reviewers:
   - kargakis
   - smarterclayton
   - mfojtik
-  - deads2k
   - ncdc
   - soltysh
   - abhgupta
@@ -10,5 +9,4 @@ approvers:
   - kargakis
   - smarterclayton
   - mfojtik
-  - deads2k
   - soltysh

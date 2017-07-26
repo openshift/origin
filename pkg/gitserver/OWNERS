@@ -2,7 +2,6 @@ reviewers:
   - smarterclayton
   - csrwng
   - liggitt
-  - deads2k
   - ncdc
   - kargakis
   - jim-minter
@@ -11,5 +10,4 @@ approvers:
   - smarterclayton
   - csrwng
   - liggitt
-  - deads2k
   - kargakis

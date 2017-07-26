@@ -4,7 +4,6 @@ reviewers:
   - smarterclayton
   - jim-minter
   - gabemontero
-  - deads2k
   - coreydaley
   - ncdc
   - php-coder
@@ -13,5 +12,4 @@ approvers:
   - csrwng
   - bparees
   - smarterclayton
-  - deads2k
   - jupierce

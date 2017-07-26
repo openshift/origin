@@ -1,6 +1,5 @@
 reviewers:
   - smarterclayton
-  - deads2k
   - aveshagarwal
   - pweil-
   - mfojtik
@@ -10,7 +9,6 @@ reviewers:
   - ironcladlou
 approvers:
   - smarterclayton
-  - deads2k
   - pweil-
   - mfojtik
   - soltysh

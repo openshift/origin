@@ -2,7 +2,6 @@ reviewers:
   - stevekuznetsov
   - smarterclayton
   - kargakis
-  - deads2k
   - soltysh
   - liggitt
   - jhadvig
@@ -11,5 +10,4 @@ approvers:
   - stevekuznetsov
   - smarterclayton
   - kargakis
-  - deads2k
   - soltysh
