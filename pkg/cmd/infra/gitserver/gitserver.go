@@ -34,10 +34,8 @@ var (
 )
 
 // CommandFor returns gitrepo-buildconfigs command or gitserver command
-func CommandFor(basename string) *cobra.Command {
+func CommandFor(basename string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	var cmd *cobra.Command
-
-	out := os.Stdout
 
 	setLogLevel()
 

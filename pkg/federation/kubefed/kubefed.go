@@ -14,9 +14,9 @@ import (
 	kubectl "k8s.io/kubernetes/pkg/kubectl/cmd"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/version"
+	oversion "github.com/openshift/origin/pkg/version"
 )
 
 // This file was copied from vendor/k8s.io/kubernetes/federation/pkg/kubefed and
@@ -36,7 +36,7 @@ var (
 
 // NewKubeFedCommand creates the `kubefed` command and its nested children.
 func NewKubeFedCommand(in io.Reader, out, err io.Writer) *cobra.Command {
-	defaultServerImage := fmt.Sprintf("%s:%s", serverImageName, version.Get())
+	defaultServerImage := fmt.Sprintf("%s:%s", serverImageName, oversion.Get())
 
 	// Parent command to which all subcommands are added.
 	cmds := &cobra.Command{
@@ -75,7 +75,7 @@ func NewKubeFedCommand(in io.Reader, out, err io.Writer) *cobra.Command {
 	templates.ActsAsRootCommand(cmds, filters, groups...)
 
 	// Use the openshift-specific version command
-	cmds.AddCommand(cmd.NewCmdVersion("kubefed", f, out, cmd.VersionOptions{PrintClientFeatures: true}))
+	cmds.AddCommand(version.NewCmdVersion("kubefed", f, out, version.VersionOptions{PrintClientFeatures: true}))
 
 	cmds.AddCommand(kubectl.NewCmdOptions(out))
 

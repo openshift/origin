@@ -2,9 +2,8 @@ package openshift
 
 import (
 	"fmt"
+	"io"
 	"os"
-	"runtime"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -18,10 +17,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/validate"
 	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	configcmd "github.com/openshift/origin/pkg/cmd/experimental/config"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
-	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
@@ -45,16 +44,8 @@ var (
 
 // CommandFor returns the appropriate command for this base name,
 // or the global OpenShift command
-func CommandFor(basename string) *cobra.Command {
+func CommandFor(basename string, in io.Reader, out, errout io.Writer) *cobra.Command {
 	var cmd *cobra.Command
-
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
-
-	// Make case-insensitive and strip executable suffix if present
-	if runtime.GOOS == "windows" {
-		basename = strings.ToLower(basename)
-		basename = strings.TrimSuffix(basename, ".exe")
-	}
 
 	switch basename {
 	case "openshift-router":
@@ -93,11 +84,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = NewCommandOpenShift("openshift")
 	}
 
-	if cmd.UsageFunc() == nil {
-		templates.ActsAsRootCommand(cmd, []string{"options"})
-	}
-	flagtypes.GLog(cmd.PersistentFlags())
-
 	return cmd
 }
 
@@ -121,7 +107,7 @@ func NewCommandOpenShift(name string) *cobra.Command {
 	root.AddCommand(cli.NewCmdKubectl("kube", out))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
-	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
+	root.AddCommand(version.NewCmdVersion(name, f, out, version.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
 
 	// infra commands are those that are bundled with the binary but not displayed to end users
 	// directly

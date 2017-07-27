@@ -12,7 +12,7 @@ import (
 	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -37,7 +37,7 @@ func NewCommand(name, fullName string, out, errOut io.Writer) *cobra.Command {
 	cmds.AddCommand(proxyapp.NewProxyCommand())
 	cmds.AddCommand(NewSchedulerCommand("scheduler", fullName+" scheduler", out))
 	if "hyperkube" == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, nil, out, cmd.VersionOptions{}))
+		cmds.AddCommand(version.NewCmdVersion(fullName, nil, out, version.VersionOptions{}))
 	}
 
 	return cmds

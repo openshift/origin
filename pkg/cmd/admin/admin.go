@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/admin/router"
 	"github.com/openshift/origin/pkg/cmd/admin/top"
 	"github.com/openshift/origin/pkg/cmd/cli/cmd"
+	"github.com/openshift/origin/pkg/cmd/cli/cmd/version"
 	"github.com/openshift/origin/pkg/cmd/experimental/buildchain"
 	exipfailover "github.com/openshift/origin/pkg/cmd/experimental/ipfailover"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -145,7 +146,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 	)
 
 	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{}))
+		cmds.AddCommand(version.NewCmdVersion(fullName, f, out, version.VersionOptions{}))
 	}
 
 	return cmds
