@@ -289,6 +289,8 @@ func (o NodeOptions) createNodeConfig() (string, error) {
 		SerialFile: admin.DefaultSerialFilename(o.NodeArgs.MasterCertDir, admin.CAFilePrefix),
 	}
 	createNodeConfigOptions := admin.CreateNodeConfigOptions{
+		Phases: admin.AllPhases,
+
 		SignerCertOptions: getSignerOptions,
 
 		NodeConfigDir: nodeConfigDir,

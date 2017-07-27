@@ -135,6 +135,7 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	// Create router cert
 	cmdOutput := &bytes.Buffer{}
 	createCertOptions := &admin.CreateServerCertOptions{
+		Phases: admin.AllPhases,
 		SignerCertOptions: &admin.SignerCertOptions{
 			CertFile:   filepath.Join(masterDir, "ca.crt"),
 			KeyFile:    filepath.Join(masterDir, "ca.key"),
@@ -147,12 +148,12 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 			// certs will use certs valid for their arbitrary subdomain names.
 			fmt.Sprintf("*.%s", routingSuffix),
 		},
+		CSRFile:  filepath.Join(masterDir, "router.crt.csr"),
 		CertFile: filepath.Join(masterDir, "router.crt"),
 		KeyFile:  filepath.Join(masterDir, "router.key"),
 		Output:   cmdOutput,
 	}
-	_, err = createCertOptions.CreateServerCert()
-	if err != nil {
+	if err := createCertOptions.CreateServerCert(); err != nil {
 		return errors.NewError("cannot create router cert").WithCause(err)
 	}
 

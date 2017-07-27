@@ -183,6 +183,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 	}
 
 	createMasterCerts := admin.CreateMasterCertsOptions{
+		Phases:            admin.AllPhases,
+		SignerCertOptions: &admin.SignerCertOptions{},
+
 		CertDir:    masterArgs.ConfigDir.Value(),
 		SignerName: admin.DefaultSignerName(),
 		Hostnames:  hostnames.List(),
@@ -196,6 +199,9 @@ func CreateMasterCerts(masterArgs *start.MasterArgs) error {
 		Output: os.Stderr,
 	}
 
+	if err := createMasterCerts.Complete(nil); err != nil {
+		return err
+	}
 	if err := createMasterCerts.Validate(nil); err != nil {
 		return err
 	}

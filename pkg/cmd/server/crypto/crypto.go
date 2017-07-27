@@ -9,6 +9,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -94,6 +95,35 @@ var ciphers = map[string]uint16{
 	"TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305":  tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
 }
 
+type basicConstraints struct {
+	IsCA       bool `asn1:"optional"`
+	MaxPathLen int  `asn1:"optional,default:-1"`
+}
+
+var (
+	oidExtensionKeyUsage         = asn1.ObjectIdentifier{2, 5, 29, 15}
+	oidExtensionExtKeyUsage      = asn1.ObjectIdentifier{2, 5, 29, 37}
+	oidExtensionBasicConstraints = asn1.ObjectIdentifier{2, 5, 29, 19}
+	oidExtensionSubjectAltNames  = asn1.ObjectIdentifier{2, 5, 29, 17}
+
+	oidExtKeyUsageServerAuth = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
+	oidExtKeyUsageClientAuth = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 2}
+
+	// 101 right-padded with 00000 is 160
+	KeyUsageEnciphermentDigitalSignature = pkix.Extension{Id: oidExtensionKeyUsage, Value: mustMarshal(asn1.BitString{BitLength: 3, Bytes: []byte{160}})}
+	KeyUsageServerAuthExtension          = pkix.Extension{Id: oidExtensionExtKeyUsage, Value: mustMarshal([]asn1.ObjectIdentifier{oidExtKeyUsageServerAuth})}
+	KeyUsageClientAuthExtension          = pkix.Extension{Id: oidExtensionExtKeyUsage, Value: mustMarshal([]asn1.ObjectIdentifier{oidExtKeyUsageClientAuth})}
+	BasicConstraintsValidExtension       = pkix.Extension{Id: oidExtensionBasicConstraints, Critical: true, Value: mustMarshal(basicConstraints{IsCA: false, MaxPathLen: -1})}
+)
+
+func mustMarshal(i interface{}) []byte {
+	data, err := asn1.Marshal(i)
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 func CipherSuite(cipherName string) (uint16, error) {
 	if cipher, ok := ciphers[cipherName]; ok {
 		return cipher, nil
@@ -172,7 +202,7 @@ type TLSCARoots struct {
 }
 
 func (c *TLSCertificateConfig) writeCertConfig(certFile, keyFile string) error {
-	if err := writeCertificates(certFile, c.Certs...); err != nil {
+	if err := WriteCertificates(certFile, c.Certs...); err != nil {
 		return err
 	}
 	if err := writeKeyFile(keyFile, c.Key); err != nil {
@@ -194,7 +224,7 @@ func (c *TLSCertificateConfig) GetPEMBytes() ([]byte, []byte, error) {
 }
 
 func (c *TLSCARoots) writeCARoots(rootFile string) error {
-	if err := writeCertificates(rootFile, c.Roots...); err != nil {
+	if err := WriteCertificates(rootFile, c.Roots...); err != nil {
 		return err
 	}
 	return nil
@@ -442,6 +472,92 @@ func (ca *CA) MakeAndWriteServerCert(certFile, keyFile string, hostnames sets.St
 		return server, err
 	}
 	return server, nil
+}
+
+func (ca *CA) SignRequest(req *x509.CertificateRequest, expireDays int, currentTime func() time.Time) ([]*x509.Certificate, error) {
+	var lifetimeInDays = DefaultCertificateLifetimeInDays
+	if expireDays > 0 {
+		lifetimeInDays = expireDays
+	}
+	if lifetimeInDays > DefaultCertificateLifetimeInDays {
+		warnAboutCertificateLifeTime(req.Subject.CommonName, DefaultCertificateLifetimeInDays)
+	}
+
+	lifetime := time.Duration(lifetimeInDays) * 24 * time.Hour
+	template := &x509.Certificate{
+		Subject:            req.Subject,
+		IPAddresses:        req.IPAddresses,
+		DNSNames:           req.DNSNames,
+		SignatureAlgorithm: req.SignatureAlgorithm,
+		NotBefore:          currentTime().Add(-1 * time.Second),
+		NotAfter:           currentTime().Add(lifetime),
+	}
+
+	// Convert extensions to the following fields: KeyUsage, ExtKeyUsage, BasicConstraintsValid
+	// Ignore extensions for SubjectAltNames
+	for _, ext := range req.Extensions {
+		switch {
+		case ext.Id.Equal(oidExtensionExtKeyUsage):
+			usages := []asn1.ObjectIdentifier{}
+			rest, err := asn1.Unmarshal(ext.Value, &usages)
+			if err != nil {
+				return nil, fmt.Errorf("error unmarshaling extKeyUsage: %v", err)
+			}
+			if len(rest) > 0 {
+				return nil, fmt.Errorf("trailing data after extKeyUsage")
+			}
+			for _, usage := range usages {
+				if usage.Equal(oidExtKeyUsageClientAuth) {
+					template.ExtKeyUsage = append(template.ExtKeyUsage, x509.ExtKeyUsageClientAuth)
+				}
+				if usage.Equal(oidExtKeyUsageServerAuth) {
+					template.ExtKeyUsage = append(template.ExtKeyUsage, x509.ExtKeyUsageServerAuth)
+				}
+			}
+
+		case ext.Id.Equal(oidExtensionKeyUsage):
+			usageBits := asn1.BitString{}
+			if rest, err := asn1.Unmarshal(ext.Value, &usageBits); err != nil {
+				return nil, fmt.Errorf("error unmarshaling KeyUsage: %v", err)
+			} else if len(rest) > 0 {
+				return nil, errors.New("trailing data after X.509 KeyUsage")
+			}
+
+			var usage int
+			for i := 0; i < 9; i++ {
+				if usageBits.At(i) != 0 {
+					usage |= 1 << uint(i)
+				}
+			}
+			template.KeyUsage = x509.KeyUsage(usage)
+
+		case ext.Id.Equal(oidExtensionBasicConstraints):
+			// RFC 5280, 4.2.1.9
+			var constraints basicConstraints
+			if rest, err := asn1.Unmarshal(ext.Value, &constraints); err != nil {
+				return nil, fmt.Errorf("error unmarshaling basic constraints: %v", err)
+			} else if len(rest) != 0 {
+				return nil, errors.New("trailing data after X.509 BasicConstraints")
+			}
+
+			template.BasicConstraintsValid = true
+			template.IsCA = constraints.IsCA
+			template.MaxPathLen = constraints.MaxPathLen
+			template.MaxPathLenZero = template.MaxPathLen == 0
+
+		case ext.Id.Equal(oidExtensionSubjectAltNames):
+			// no-op, already parsed into IPAddresses and DNSNames
+
+		default:
+			return nil, fmt.Errorf("unrecognized extension: %#v", ext.Id)
+		}
+	}
+
+	signed, err := ca.signCertificate(template, req.PublicKey.(crypto.PublicKey))
+	if err != nil {
+		return nil, err
+	}
+	return append([]*x509.Certificate{signed}, ca.Config.Certs...), nil
 }
 
 // CertificateExtensionFunc is passed a certificate that it may extend, or return an error
@@ -728,7 +844,7 @@ func encodeKey(key crypto.PrivateKey) ([]byte, error) {
 	return b.Bytes(), nil
 }
 
-func writeCertificates(path string, certs ...*x509.Certificate) error {
+func WriteCertificates(path string, certs ...*x509.Certificate) error {
 	// ensure parent dir
 	if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0755)); err != nil {
 		return err
