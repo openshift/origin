@@ -112,6 +112,7 @@ func MakeEtcdClientV3Config(etcdClientInfo configapi.EtcdConnectionInfo) (*clien
 		Endpoints:   etcdClientInfo.URLs,
 		DialTimeout: 30 * time.Second,
 		TLS:         tlsConfig,
+		DialOptions: clientv3.PrometheusInterceptors(),
 	}, nil
 }
 
