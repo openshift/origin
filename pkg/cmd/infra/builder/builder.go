@@ -8,8 +8,8 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/build/builder/cmd"
-	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/templates"
+	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 )
 
 var (

@@ -10,8 +10,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
-	policycmd "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 // ClusterRoles is a Diagnostic to check that the default cluster roles match expectations

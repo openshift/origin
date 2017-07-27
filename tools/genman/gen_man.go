@@ -7,9 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openshift/origin/pkg/cmd/admin"
-	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/openshift"
+	"github.com/openshift/origin/pkg/oc/admin"
+	"github.com/openshift/origin/pkg/oc/cli"
 	mangen "github.com/openshift/origin/tools/genman/md2man"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

@@ -13,7 +13,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
 
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	clusterpolicyregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicy"

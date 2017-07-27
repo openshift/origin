@@ -12,8 +12,8 @@ import (
 	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/cli/cmd"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	"github.com/openshift/origin/pkg/oc/cli/cmd"
 )
 
 const kubernetesLong = `

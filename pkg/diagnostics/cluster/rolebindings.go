@@ -9,8 +9,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
-	policycmd "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 // ClusterRoleBindings is a Diagnostic to check that the default cluster role bindings match expectations

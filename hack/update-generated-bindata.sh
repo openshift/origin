@@ -17,7 +17,7 @@ pushd "${OS_ROOT}" > /dev/null
     -nometadata \
     -prefix "bootstrap" \
     -pkg "bootstrap" \
-    -o "${OUTPUT_PARENT}/pkg/bootstrap/bindata.go" \
+    -o "${OUTPUT_PARENT}/pkg/oc/bootstrap/bindata.go" \
     -ignore "OWNERS" \
     -ignore "README.md" \
     -ignore ".*\.go$" \
