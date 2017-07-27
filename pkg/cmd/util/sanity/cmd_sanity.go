@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/spf13/cobra"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 )
 
 type CmdCheck func(cmd *cobra.Command) []error

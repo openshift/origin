@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 
 	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -34,7 +35,7 @@ import (
 )
 
 var (
-	openshiftLong = templates.LongDesc(`
+	openshiftLong = ktemplates.LongDesc(`
 		%[2]s
 
 		The %[3]s helps you build, deploy, and manage your applications on top of
@@ -182,13 +183,13 @@ func newExperimentalCommand(name, fullName string) *cobra.Command {
 }
 
 var (
-	completion_long = templates.LongDesc(`
+	completion_long = ktemplates.LongDesc(`
 		Output shell completion code for the given shell (bash or zsh).
 
 		This command prints shell code which must be evaluation to provide interactive
 		completion of kubectl commands.`)
 
-	completion_example = templates.Examples(`
+	completion_example = ktemplates.Examples(`
 		$ source <(kubectl completion bash)
 
 		will load the kubectl completion code for bash. Note that this depends on the bash-completion

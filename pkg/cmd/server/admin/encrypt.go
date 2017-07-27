@@ -15,10 +15,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/term"
 	"github.com/spf13/cobra"
 
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	pemutil "github.com/openshift/origin/pkg/cmd/util/pem"
 )
 

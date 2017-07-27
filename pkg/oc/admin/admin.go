@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -35,7 +36,7 @@ import (
 	exipfailover "github.com/openshift/origin/pkg/oc/experimental/ipfailover"
 )
 
-var adminLong = templates.LongDesc(`
+var adminLong = ktemplates.LongDesc(`
 	Administrative Commands
 
 	Commands for managing a cluster are exposed here. Many administrative
@@ -52,7 +53,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 
 	f := clientcmd.New(cmds.PersistentFlags())
 
-	groups := templates.CommandGroups{
+	groups := ktemplates.CommandGroups{
 		{
 			Message: "Component Installation:",
 			Commands: []*cobra.Command{
@@ -77,10 +78,10 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 			Commands: []*cobra.Command{
 				admin.NewCommandNodeConfig(admin.NodeConfigCommandName, fullName+" "+admin.NodeConfigCommandName, out),
 				node.NewCommandManageNode(f, node.ManageNodeCommandName, fullName+" "+node.ManageNodeCommandName, out, errout),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubecmd.NewCmdCordon(f, out))),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubecmd.NewCmdUncordon(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdCordon(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdUncordon(f, out))),
 				cmdutil.ReplaceCommandName("kubectl", fullName, kubecmd.NewCmdDrain(f, out, errout)),
-				cmdutil.ReplaceCommandName("kubectl", fullName, templates.Normalize(kubecmd.NewCmdTaint(f, out))),
+				cmdutil.ReplaceCommandName("kubectl", fullName, ktemplates.Normalize(kubecmd.NewCmdTaint(f, out))),
 				network.NewCmdPodNetwork(network.PodNetworkCommandName, fullName+" "+network.PodNetworkCommandName, f, out, errout),
 			},
 		},
