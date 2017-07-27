@@ -16,6 +16,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	externalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
@@ -24,10 +25,11 @@ import (
 )
 
 type NodeOptions struct {
-	DefaultNamespace string
-	KubeClient       kclientset.Interface
-	Writer           io.Writer
-	ErrWriter        io.Writer
+	DefaultNamespace   string
+	KubeClient         kclientset.Interface
+	ExternalKubeClient externalclientset.Interface
+	Writer             io.Writer
+	ErrWriter          io.Writer
 
 	Mapper            meta.RESTMapper
 	Typer             runtime.ObjectTyper
@@ -49,10 +51,21 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	if err != nil {
 		return err
 	}
+
 	_, kc, err := f.Clients()
 	if err != nil {
 		return err
 	}
+
+	config, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	externalkc, err := externalclientset.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
 	cmdPrinter, output, err := f.PrinterForCommand(c)
 	if err != nil {
 		return err
@@ -61,6 +74,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 
 	n.DefaultNamespace = defaultNamespace
 	n.KubeClient = kc
+	n.ExternalKubeClient = externalkc
 	n.Writer = out
 	n.ErrWriter = errout
 	n.Mapper = mapper
