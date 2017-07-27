@@ -21,7 +21,6 @@ import (
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
 	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	clientgoclientset "k8s.io/client-go/kubernetes"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
@@ -262,7 +261,7 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 }
 
 // TODO refactor this out of this package and split apiserver and controllers for good!
-func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeInternal kclientsetinternal.Interface) error {
+func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal clientgoclientset.Interface) error {
 	clientCAs, err := getClientCertCAPool(servingInfo)
 	if err != nil {
 		return err
@@ -276,12 +275,12 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeInternal kcl
 	genericroutes.MetricsWithReset{}.Install(mux)
 
 	// TODO: replace me with a service account for controller manager
-	tokenReview := clientgoclientset.New(kubeInternal.Authentication().RESTClient()).AuthenticationV1beta1().TokenReviews()
+	tokenReview := kubeExternal.AuthenticationV1beta1().TokenReviews()
 	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, clientCAs, 5*time.Minute)
 	if err != nil {
 		return err
 	}
-	sarClient := clientgoclientset.New(kubeInternal.Authorization().RESTClient()).AuthorizationV1beta1().SubjectAccessReviews()
+	sarClient := kubeExternal.AuthorizationV1beta1().SubjectAccessReviews()
 	remoteAuthz, err := authzwebhook.NewFromInterface(sarClient, 5*time.Minute, 5*time.Minute)
 	if err != nil {
 		return err

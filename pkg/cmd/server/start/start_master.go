@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	clientgoclientset "k8s.io/client-go/kubernetes"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -419,7 +420,11 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
-		kubeInternal, _, err := configapi.GetInternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		_, config, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		if err != nil {
+			return err
+		}
+		clientGoKubeExternal, err := clientgoclientset.NewForConfig(config)
 		if err != nil {
 			return err
 		}
@@ -436,7 +441,7 @@ func (m *Master) Start() error {
 			}
 			glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-			if err := origin.RunControllerServer(m.config.ServingInfo, kubeInternal); err != nil {
+			if err := origin.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
 				return err
 			}
 		}
