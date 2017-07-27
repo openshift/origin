@@ -864,7 +864,8 @@ func ignoreError(e error, saName string, roleBindingName string) bool {
 		return false
 	}
 	return (details.Kind == "serviceaccounts" && details.Name == saName) ||
-		(details.Kind == "clusterrolebinding" && details.Name == roleBindingName)
+		(details.Kind == "clusterrolebinding" && details.Name == roleBindingName) ||
+		(details.Kind == "clusterrolebindings" && details.Name == roleBindingName) // TODO we should not need to do this
 }
 
 // generateRoleBindingName generates a name for the rolebinding object if it is
