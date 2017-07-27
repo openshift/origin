@@ -107,6 +107,7 @@ type RegistryConfig struct {
 	Selector       string
 	ServiceAccount string
 	DaemonSet      bool
+	Deployment     bool
 	EnforceQuota   bool
 
 	// SupplementalGroups is list of int64, however cobra does not have appropriate func
@@ -190,6 +191,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 	cmd.Flags().StringSliceVar(&cfg.SupplementalGroups, "supplemental-groups", cfg.SupplementalGroups, "Specify supplemental groups which is an array of ID's that grants group access to registry shared storage")
 	cmd.Flags().StringVar(&cfg.FSGroup, "fs-group", "", "Specify fsGroup which is an ID that grants group access to registry block storage")
 	cmd.Flags().BoolVar(&cfg.DaemonSet, "daemonset", cfg.DaemonSet, "If true, use a daemonset instead of a deployment config.")
+	cmd.Flags().BoolVar(&cfg.Deployment, "deployment", cfg.Deployment, "If true, use a Kubernetes deployment instead of a deployment config.")
 	cmd.Flags().BoolVar(&cfg.EnforceQuota, "enforce-quota", cfg.EnforceQuota, "If true, the registry will refuse to write blobs if they exceed quota limits")
 
 	cfg.Action.BindForOutput(cmd.Flags())
@@ -424,6 +426,18 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 					ObjectMeta: podTemplate.ObjectMeta,
 					Spec:       podTemplate.Spec,
 				},
+			},
+		})
+	} else if opts.Config.Deployment {
+		objects = append(objects, &extensions.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   name,
+				Labels: opts.label,
+			},
+			Spec: extensions.DeploymentSpec{
+				Replicas: opts.Config.Replicas,
+				Selector: &metav1.LabelSelector{MatchLabels: opts.label},
+				Template: *podTemplate,
 			},
 		})
 	} else {
