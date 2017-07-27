@@ -43,8 +43,9 @@ func newETCD3Storage(c storagebackend.Config) (storage.Interface, DestroyFunc, e
 		tlsConfig = nil
 	}
 	cfg := clientv3.Config{
-		Endpoints: c.ServerList,
-		TLS:       tlsConfig,
+		Endpoints:   c.ServerList,
+		TLS:         tlsConfig,
+		DialOptions: clientv3.PrometheusInterceptors(),
 	}
 	client, err := clientv3.New(cfg)
 	if err != nil {
