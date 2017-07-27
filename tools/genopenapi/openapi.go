@@ -2,7 +2,7 @@ package main
 
 import (
 	"k8s.io/gengo/args"
-	"k8s.io/kubernetes/cmd/libs/go2idl/openapi-gen/generators"
+	"k8s.io/kube-gen/cmd/openapi-gen/generators"
 
 	"github.com/golang/glog"
 )
