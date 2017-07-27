@@ -56,7 +56,14 @@ func WithTimeoutForNonLongRunningRequests(handler http.Handler, requestContextMa
 		if longRunning(req, requestInfo) {
 			return nil, nil
 		}
-		return time.After(globalTimeout), apierrors.NewServerTimeout(schema.GroupResource{Group: requestInfo.APIGroup, Resource: requestInfo.Resource}, requestInfo.Verb, 0)
+
+		// when performing global calls, increase the timeout for very large clusters
+		timeout := globalTimeout
+		if requestInfo.IsResourceRequest && len(requestInfo.Namespace) == 0 {
+			timeout = timeout * 2
+		}
+
+		return time.After(timeout), apierrors.NewServerTimeout(schema.GroupResource{Group: requestInfo.APIGroup, Resource: requestInfo.Resource}, requestInfo.Verb, 0)
 	}
 	return WithTimeout(handler, timeoutFunc)
 }
