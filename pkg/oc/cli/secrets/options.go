@@ -8,9 +8,7 @@ import (
 	"os"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
@@ -27,11 +25,8 @@ type SecretOptions struct {
 
 	Namespace string
 
-	Mapper           meta.RESTMapper
-	Typer            runtime.ObjectTyper
-	CategoryExpander resource.CategoryExpander
-	ClientMapper     resource.ClientMapper
-	KubeCoreClient   kcoreclient.CoreInterface
+	BuilderFunc    func(bool) *resource.Builder
+	KubeCoreClient kcoreclient.CoreInterface
 
 	Out io.Writer
 }
@@ -43,6 +38,8 @@ func (o *SecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 	}
 	o.TargetName = args[0]
 	o.SecretNames = args[1:]
+
+	o.BuilderFunc = f.NewBuilder
 
 	var err error
 	kubeClientSet, err := f.ClientSet()
@@ -56,10 +53,6 @@ func (o *SecretOptions) Complete(f kcmdutil.Factory, args []string) error {
 		return err
 	}
 
-	o.Mapper, o.Typer = f.Object()
-	o.CategoryExpander = f.CategoryExpander()
-	o.ClientMapper = resource.ClientMapperFunc(f.ClientForMapping)
-
 	return nil
 }
 
@@ -71,15 +64,6 @@ func (o SecretOptions) Validate() error {
 	if len(o.SecretNames) == 0 {
 		return errors.New("secret name must be present")
 	}
-	if o.Mapper == nil {
-		return errors.New("Mapper must be present")
-	}
-	if o.Typer == nil {
-		return errors.New("Typer must be present")
-	}
-	if o.ClientMapper == nil {
-		return errors.New("ClientMapper must be present")
-	}
 	if o.KubeCoreClient == nil {
 		return errors.New("KubeCoreClient must be present")
 	}
@@ -89,7 +73,7 @@ func (o SecretOptions) Validate() error {
 
 // GetServiceAccount Retrieve the service account object specified by the command
 func (o SecretOptions) GetServiceAccount() (*kapi.ServiceAccount, error) {
-	r := resource.NewBuilder(o.Mapper, o.CategoryExpander, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
+	r := o.BuilderFunc(true).
 		NamespaceParam(o.Namespace).
 		ResourceNames("serviceaccounts", o.TargetName).
 		SingleResourceType().
@@ -155,7 +139,7 @@ func (o SecretOptions) GetSecrets(allowNonExisting bool) ([]*kapi.Secret, bool, 
 	hasNotFound := false
 
 	for _, secretName := range o.SecretNames {
-		r := resource.NewBuilder(o.Mapper, o.CategoryExpander, o.Typer, o.ClientMapper, kapi.Codecs.UniversalDecoder()).
+		r := o.BuilderFunc(true).
 			NamespaceParam(o.Namespace).
 			ResourceNames("secrets", secretName).
 			SingleResourceType().

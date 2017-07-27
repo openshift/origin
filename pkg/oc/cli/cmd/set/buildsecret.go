@@ -122,7 +122,7 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 var supportedBuildTypes = []string{"buildconfigs"}
 
 func (o *BuildSecretOptions) secretFromArg(f *clientcmd.Factory, mapper meta.RESTMapper, typer runtime.ObjectTyper, namespace, arg string) (string, error) {
-	builder := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	builder := f.NewBuilder(!o.Local).
 		NamespaceParam(namespace).DefaultNamespace().
 		RequireObject(false).
 		ContinueOnError().
@@ -174,7 +174,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 			return err
 		}
 	}
-	o.Builder = resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	o.Builder = f.NewBuilder(!o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -193,7 +193,7 @@ func (o *BuildSecretOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 	o.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, infos, o.Out)
+		return f.PrintResourceInfos(cmd, o.Local, infos, o.Out)
 	}
 
 	o.Encoder = f.JSONEncoder()

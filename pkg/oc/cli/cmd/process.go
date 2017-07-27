@@ -171,17 +171,12 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		infos   []*resource.Info
 
 		mapper meta.RESTMapper
-		typer  runtime.ObjectTyper
-
-		client          *client.Client
-		clientMappingFn resource.ClientMapperFunc
+		client *client.Client
 	)
 
 	if local {
 		// TODO: Change f.Object() so that it can fall back to local RESTMapper safely (currently glog.Fatals)
 		mapper = kapi.Registry.RESTMapper()
-		typer = kapi.Scheme
-		clientMappingFn = func(*meta.RESTMapping) (resource.RESTClient, error) { return nil, nil }
 		// client is deliberately left nil
 	} else {
 		client, _, err = f.Clients()
@@ -189,8 +184,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 			return err
 		}
 
-		mapper, typer = f.Object()
-		clientMappingFn = f.ClientForMapping
+		mapper, _ = f.Object()
 	}
 	mapping, err := mapper.RESTMapping(templateapi.Kind("Template"))
 	if err != nil {
@@ -226,7 +220,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		templateObj.CreationTimestamp = metav1.Now()
 		infos = append(infos, &resource.Info{Object: templateObj})
 	} else {
-		infos, err = resource.NewBuilder(mapper, f.CategoryExpander(), typer, clientMappingFn, kapi.Codecs.UniversalDecoder()).
+		infos, err = f.NewBuilder(!local).
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: []string{filename}}).
 			Do().
 			Infos()

@@ -225,8 +225,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.From) != 0 {
-		mapper, typer := f.Object()
-		b := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+		b := f.NewBuilder(!o.Local).
 			ContinueOnError().
 			NamespaceParam(cmdNamespace).DefaultNamespace().
 			FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -288,8 +287,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 		}
 	}
 
-	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), f.Decoder(true)).
+	b := f.NewBuilder(!o.Local).
 		ContinueOnError().
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		FilenameParam(explicit, &resource.FilenameOptions{Recursive: false, Filenames: o.Filenames}).
@@ -443,7 +441,7 @@ func (o *EnvOptions) RunEnv(f *clientcmd.Factory) error {
 	}
 
 	if len(o.Output) > 0 || o.Local || kcmdutil.GetDryRunFlag(o.Cmd) {
-		return f.PrintResourceInfos(o.Cmd, infos, o.Out)
+		return f.PrintResourceInfos(o.Cmd, o.Local, infos, o.Out)
 	}
 
 	objects, err := resource.AsVersionedObjects(infos, gv, kapi.Codecs.LegacyCodec(gv))
@@ -484,6 +482,7 @@ updates:
 			return fmt.Errorf("at least one environment variable must be provided")
 		}
 
+		mapper, _ := f.Object()
 		kcmdutil.PrintSuccess(mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
 	}
 	if failed {

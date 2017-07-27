@@ -170,7 +170,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 			err = opts.Complete(f, cmd, out, errOut)
 			kcmdutil.CheckErr(err)
 
-			err = opts.RunVolume(args)
+			err = opts.RunVolume(args, f)
 			if err == cmdutil.ErrExit {
 				os.Exit(1)
 			}
@@ -378,7 +378,7 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 
 	v.Output = kcmdutil.GetFlagString(cmd, "output")
 	v.PrintObject = func(infos []*resource.Info) error {
-		return f.PrintResourceInfos(cmd, infos, v.Out)
+		return f.PrintResourceInfos(cmd, v.Local, infos, v.Out)
 	}
 
 	v.Cmd = cmd
@@ -425,9 +425,8 @@ func (v *VolumeOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, out, 
 	return nil
 }
 
-func (v *VolumeOptions) RunVolume(args []string) error {
-	mapper := resource.ClientMapperFunc(v.RESTClientFactory)
-	b := resource.NewBuilder(v.Mapper, v.CategoryExpander, v.Typer, mapper, kapi.Codecs.UniversalDecoder()).
+func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
+	b := f.NewBuilder(!v.Local).
 		ContinueOnError().
 		NamespaceParam(v.DefaultNamespace).DefaultNamespace().
 		FilenameParam(v.ExplicitNamespace, &resource.FilenameOptions{Recursive: false, Filenames: v.Filenames}).
@@ -461,6 +460,7 @@ func (v *VolumeOptions) RunVolume(args []string) error {
 		if err != nil {
 			return err
 		}
+		mapper := resource.ClientMapperFunc(v.RESTClientFactory)
 		client, err := mapper.ClientForMapping(m)
 		if err != nil {
 			return err

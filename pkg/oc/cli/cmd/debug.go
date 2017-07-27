@@ -217,8 +217,8 @@ func (o *DebugOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args [
 		return err
 	}
 
-	mapper, typer := f.Object()
-	b := resource.NewBuilder(mapper, f.CategoryExpander(), typer, resource.ClientMapperFunc(f.ClientForMapping), kapi.Codecs.UniversalDecoder()).
+	mapper, _ := f.Object()
+	b := f.NewBuilder(true).
 		NamespaceParam(cmdNamespace).DefaultNamespace().
 		SingleResourceType().
 		ResourceNames("pods", resources...).

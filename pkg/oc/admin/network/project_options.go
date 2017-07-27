@@ -14,11 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
@@ -34,10 +32,9 @@ type ProjectOptions struct {
 	Kclient          kclientset.Interface
 	Out              io.Writer
 
-	Mapper            meta.RESTMapper
-	Typer             runtime.ObjectTyper
-	CategoryExpander  resource.CategoryExpander
 	RESTClientFactory func(mapping *meta.RESTMapping) (resource.RESTClient, error)
+
+	Builder *resource.Builder
 
 	ProjectNames []string
 
@@ -55,15 +52,12 @@ func (p *ProjectOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args [
 	if err != nil {
 		return err
 	}
-	mapper, typer := f.Object()
 
+	p.Builder = f.NewBuilder(true)
 	p.DefaultNamespace = defaultNamespace
 	p.Oclient = oc
 	p.Kclient = kc
 	p.Out = out
-	p.Mapper = mapper
-	p.Typer = typer
-	p.CategoryExpander = f.CategoryExpander()
 	p.RESTClientFactory = f.ClientForMapping
 	p.ProjectNames = []string{}
 	if len(args) != 0 {
@@ -108,7 +102,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 		nameArgs = append(nameArgs, p.ProjectNames...)
 	}
 
-	r := resource.NewBuilder(p.Mapper, p.CategoryExpander, p.Typer, resource.ClientMapperFunc(p.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
+	r := p.Builder.
 		ContinueOnError().
 		NamespaceParam(p.DefaultNamespace).
 		SelectorParam(p.Selector).
