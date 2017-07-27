@@ -9,6 +9,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
@@ -20,6 +21,8 @@ type REST struct {
 	authorizer     kauthorizer.Authorizer
 	subjectLocator authorizer.SubjectLocator
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies.
 func NewREST(authorizer kauthorizer.Authorizer, subjectLocator authorizer.SubjectLocator) *REST {

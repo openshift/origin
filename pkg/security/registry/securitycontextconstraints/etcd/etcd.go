@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 
@@ -15,6 +16,8 @@ import (
 type REST struct {
 	*registry.Store
 }
+
+var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a RESTStorage object that will work against security context constraints objects.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {

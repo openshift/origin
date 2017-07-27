@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
@@ -16,6 +17,8 @@ import (
 type REST struct {
 	secrets kcoreclient.SecretsGetter
 }
+
+var _ rest.GetterWithOptions = &REST{}
 
 // NewREST returns a new REST.
 func NewREST(secrets kcoreclient.SecretsGetter) *REST {

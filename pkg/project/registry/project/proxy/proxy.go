@@ -40,6 +40,11 @@ type REST struct {
 	projectCache *projectcache.ProjectCache
 }
 
+var _ rest.Lister = &REST{}
+var _ rest.CreaterUpdater = &REST{}
+var _ rest.Deleter = &REST{}
+var _ rest.Watcher = &REST{}
+
 // NewREST returns a RESTStorage object that will work against Project resources
 func NewREST(client kcoreclient.NamespaceInterface, lister projectauth.Lister, authCache *projectauth.AuthorizationCache, projectCache *projectcache.ProjectCache) *REST {
 	return &REST{
@@ -62,8 +67,6 @@ func (s *REST) New() runtime.Object {
 func (*REST) NewList() runtime.Object {
 	return &projectapi.ProjectList{}
 }
-
-var _ = rest.Lister(&REST{})
 
 // List retrieves a list of Projects that match label.
 

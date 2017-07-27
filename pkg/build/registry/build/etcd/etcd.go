@@ -17,6 +17,8 @@ type REST struct {
 	*registry.Store
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a RESTStorage object that will work against Build objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 	store := &registry.Store{
@@ -45,6 +47,8 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *DetailsREST, error) {
 type DetailsREST struct {
 	store *registry.Store
 }
+
+var _ rest.Updater = &DetailsREST{}
 
 // New returns an empty object that can be used with Update after request data has been put into it.
 func (r *DetailsREST) New() runtime.Object {

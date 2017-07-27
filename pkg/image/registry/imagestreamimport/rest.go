@@ -51,6 +51,8 @@ type REST struct {
 	sarClient         client.SubjectAccessReviewInterface
 }
 
+var _ rest.Creater = &REST{}
+
 // NewREST returns a REST storage implementation that handles importing images. The clientFn argument is optional
 // if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
 // include client certs unless you wish to allow the entire cluster to import using those certs.

@@ -31,6 +31,8 @@ type REST struct {
 	strategy            Strategy
 }
 
+var _ rest.Creater = &REST{}
+
 // NewREST returns a new REST.
 func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, defaultRegistry imageapi.DefaultRegistry) *REST {
 	return &REST{

@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
@@ -28,6 +29,8 @@ type REST struct {
 	saCache    kcorelisters.ServiceAccountLister
 	client     clientset.Interface
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies..
 func NewREST(m oscc.SCCMatcher, saCache kcorelisters.ServiceAccountLister, c clientset.Interface) *REST {

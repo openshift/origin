@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiref "k8s.io/kubernetes/pkg/api/ref"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -27,6 +28,8 @@ type REST struct {
 	sccMatcher oscc.SCCMatcher
 	client     clientset.Interface
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies..
 func NewREST(m oscc.SCCMatcher, c clientset.Interface) *REST {

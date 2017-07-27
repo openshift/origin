@@ -26,6 +26,10 @@ type REST struct {
 	identityRegistry identity.Registry
 }
 
+var _ rest.Getter = &REST{}
+var _ rest.CreaterUpdater = &REST{}
+var _ rest.Deleter = &REST{}
+
 // NewREST returns a new REST.
 func NewREST(userRegistry user.Registry, identityRegistry identity.Registry) *REST {
 	return &REST{userRegistry: userRegistry, identityRegistry: identityRegistry}

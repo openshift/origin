@@ -22,6 +22,8 @@ type REST struct {
 	subjectAccessReviewRegistry subjectaccessreview.Registry
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry imageapi.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
@@ -71,6 +73,9 @@ type StatusREST struct {
 	store *registry.Store
 }
 
+var _ rest.Getter = &StatusREST{}
+var _ rest.Updater = &StatusREST{}
+
 // StatusREST implements Patcher
 var _ = rest.Patcher(&StatusREST{})
 
@@ -92,6 +97,9 @@ func (r *StatusREST) Update(ctx apirequest.Context, name string, objInfo rest.Up
 type InternalREST struct {
 	store *registry.Store
 }
+
+var _ rest.Creater = &InternalREST{}
+var _ rest.Updater = &InternalREST{}
 
 func (r *InternalREST) New() runtime.Object {
 	return &imageapi.ImageStream{}
