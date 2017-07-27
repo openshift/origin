@@ -90,7 +90,6 @@ os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-git
 os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-webhook' 'deployment configs do not support web hooks'
 os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-gitlab' 'deployment configs do not support GitLab web hooks'
 os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-bitbucket' 'deployment configs do not support Bitbucket web hooks'
-os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest' 'you must specify --containers when setting --from-image'
 os::cmd::expect_failure_and_text 'oc set triggers dc/ruby-hello-world --from-image=test:latest --containers=other' 'not all container names exist: other \(accepts: ruby-hello-world\)'
 # print
 os::cmd::expect_success_and_text 'oc set triggers dc/ruby-hello-world' 'config.*true'
