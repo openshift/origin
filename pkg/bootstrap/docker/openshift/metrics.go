@@ -178,7 +178,7 @@ func metricsDeployerJob(hostName, imagePrefix, imageVersion string) *kbatch.Job 
 		},
 		{
 			Name:  "METRIC_RESOLUTION",
-			Value: "10s",
+			Value: "30s",
 		},
 	}
 	podSpec := kapi.PodSpec{
