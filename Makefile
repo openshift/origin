@@ -45,16 +45,20 @@ all build:
 #
 # Example:
 #   make build-tests
-build-tests: build-extended-test build-integration-test
+build-tests: build-extended-test build-integration-test build-router-e2e-test
 .PHONY: build-tests
 
 build-extended-test:
 	hack/build-go.sh test/extended/extended.test
 .PHONY: build-extended-test
 
-build-integration-test:
+build-integration-test: build-router-e2e-test
 	hack/build-go.sh test/integration/integration.test
 .PHONY: build-integration-test
+
+build-router-e2e-test:
+	hack/build-go.sh test/end-to-end/end-to-end.test
+.PHONY: build-router-e2e-test
 
 # Run core verification and all self contained tests.
 #
@@ -187,6 +191,7 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end: build
+	KUBE_COVER=" " KUBE_RACE=" " OS_TEST_PACKAGE=test/end-to-end hack/test-integration.sh
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 
