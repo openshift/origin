@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -178,6 +179,13 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out, errOut io.Writer
 	cmd := kcmd.NewCmdCreate(f, out, errOut)
 	cmd.Long = createLong
 	cmd.Example = fmt.Sprintf(createExample, parentName)
+
+	exclude := sets.NewString("clusterrole", "clusterrolebinding", "role", "rolebinding")
+	for _, c := range cmd.Commands() {
+		if exclude.Has(c.Name()) {
+			cmd.RemoveCommand(c)
+		}
+	}
 
 	// normalize long descs and examples
 	// TODO remove when normalization is moved upstream
