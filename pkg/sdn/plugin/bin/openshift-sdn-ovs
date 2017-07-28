@@ -79,6 +79,13 @@ del_ovs_flows() {
 }
 
 run() {
+    # With openshift 3.3 $2 was the netns path; check for that
+    if [[ "${veth_host}" =~ "/proc" ]]; then
+      echo "Old openshift calling new script; upgrade or restart the openshift node process!"
+      openshift-sdn-ovs-33 $@
+      exit 0
+    fi
+
     case "$action" in
 	setup)
 	    add_ovs_port

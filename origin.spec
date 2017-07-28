@@ -357,6 +357,7 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
 pushd pkg/sdn/plugin/bin
    install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
+   install -p -m 0755 openshift-sdn-ovs-33 %{buildroot}%{_bindir}/openshift-sdn-ovs-33
 popd
 install -d -m 0755 %{buildroot}/opt/cni/bin
 install -p -m 0755 _output/local/bin/${PLATFORM}/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
@@ -530,6 +531,7 @@ fi
 %dir %{_sysconfdir}/cni/net.d
 %dir /opt/cni/bin
 %{_bindir}/openshift-sdn-ovs
+%{_bindir}/openshift-sdn-ovs-33
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 /opt/cni/bin/*
 
