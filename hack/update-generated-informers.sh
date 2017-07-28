@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-os::util::ensure::built_binary_exists 'geninformers'
+os::util::ensure::built_binary_exists 'informer-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/kube-gen/cmd/informer-gen'
 
 # list of package to generate informers for
 packages=(
@@ -25,7 +25,7 @@ function generate_informers_for() {
   local package="$1";shift
   echo "-- Generating informers for ${package} ..."
   grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${package}/../..)
-  geninformers --logtostderr \
+  informer-gen --logtostderr \
                --go-header-file=hack/boilerplate.txt \
                --input-dirs="${package},${package}/v1" \
                --output-package="${grouppkg}/generated/informers" \

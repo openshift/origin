@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-os::util::ensure::built_binary_exists 'genlisters'
+os::util::ensure::built_binary_exists 'lister-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/kube-gen/cmd/lister-gen'
 
 # list of package to generate listers for
 packages=(
@@ -25,7 +25,7 @@ function generate_listers_for() {
   local package="$1";shift
   echo "-- Generating listers for ${package} ..."
   grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${package}/../..)
-  genlisters --logtostderr \
+  lister-gen --logtostderr \
              --go-header-file=hack/boilerplate.txt \
              --input-dirs="${package},${package}/v1" \
              --output-package="${grouppkg}/generated/listers" \

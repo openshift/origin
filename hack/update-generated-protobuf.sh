@@ -20,6 +20,6 @@ os::util::ensure::gopath_binary_exists 'goimports'
 os::build::setup_env
 
 os::util::ensure::built_binary_exists 'genprotobuf'
-os::util::ensure::built_binary_exists 'protoc-gen-gogo' vendor/k8s.io/kubernetes/cmd/libs/go2idl/go-to-protobuf/protoc-gen-gogo
+os::util::ensure::built_binary_exists 'protoc-gen-gogo' vendor/k8s.io/kube-gen/cmd/go-to-protobuf/protoc-gen-gogo
 
 genprotobuf --output-base="${GOPATH}/src" "$@"
