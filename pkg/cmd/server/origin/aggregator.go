@@ -46,6 +46,7 @@ func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Con
 	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
 	genericConfig.EnableSwaggerUI = false
 	genericConfig.SwaggerConfig = nil
+	genericConfig.OpenAPIConfig = nil
 
 	// This depends on aggregator types being registered into the kapi.Scheme, which is currently done in Start() to avoid concurrent scheme modification
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
