@@ -20,6 +20,7 @@ import (
 	authzapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
@@ -31,7 +32,7 @@ const (
 )
 
 // InstallServiceCatalog checks whether the service catalog is installed and installs it if not already installed
-func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMaster, catalogHost string, tag string) error {
+func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMaster, catalogHost string, imageFormat string) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -80,10 +81,14 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	}
 
 	// Instantiate service catalog
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = imageFormat
+	imageTemplate.Latest = false
+
 	params := map[string]string{
 		"SERVICE_CATALOG_SERVICE_IP": ServiceCatalogServiceIP,
 		"CORS_ALLOWED_ORIGIN":        publicMaster,
-		"SERVICE_CATALOG_TAG":        tag,
+		"SERVICE_CATALOG_IMAGE":      imageTemplate.ExpandOrDie("service-catalog"),
 	}
 	glog.V(2).Infof("instantiating service catalog template with parameters %v", params)
 

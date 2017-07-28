@@ -13399,7 +13399,7 @@ objects:
           - "10"
           - --cors-allowed-origins
           - ${CORS_ALLOWED_ORIGIN}
-          image: openshift/origin-service-catalog:${SERVICE_CATALOG_TAG}
+          image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: apiserver
           ports:
@@ -13497,7 +13497,7 @@ objects:
           - service-catalog
           - --broker-relist-interval
           - "5m"
-          image: openshift/origin-service-catalog:${SERVICE_CATALOG_TAG}
+          image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: controller-manager
           ports:
@@ -13541,11 +13541,11 @@ parameters:
   name: CORS_ALLOWED_ORIGIN
   required: true
   value: 10.192.213.116
-- description: Tag of the service catalog images to use for apiserver and controller-manager
-  displayName: Service catalog image tag
-  name: SERVICE_CATALOG_TAG
+- description: Name of the service catalog image to use for apiserver and controller-manager
+  displayName: Service catalog image name
+  name: SERVICE_CATALOG_IMAGE
   required: true
-  value: latest
+  value: openshift/origin-service-catalog:latest
 - description: Cluster ip address for the service catalog service
   displayName: Service Catalog Service IP
   name: SERVICE_CATALOG_SERVICE_IP
