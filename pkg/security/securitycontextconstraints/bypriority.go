@@ -1,4 +1,4 @@
-package scc
+package securitycontextconstraints
 
 import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"

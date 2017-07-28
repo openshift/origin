@@ -35,7 +35,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/security/legacyclient"
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
 

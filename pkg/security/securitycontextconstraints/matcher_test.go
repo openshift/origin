@@ -1,9 +1,8 @@
-package scc
+package securitycontextconstraints
 
 import (
 	"testing"
 
-	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -75,7 +74,7 @@ func TestAssignSecurityContext(t *testing.T) {
 			Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 		},
 	}
-	provider, err := kscc.NewSimpleProvider(scc)
+	provider, err := NewSimpleProvider(scc)
 	if err != nil {
 		t.Fatalf("failed to create provider: %v", err)
 	}
