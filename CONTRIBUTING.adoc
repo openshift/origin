@@ -50,7 +50,7 @@ can be built locally or in the `openshift/release` container environment. The
 http://golang.org/[Go] programming language is only necessary for building on
 the local host.
 
-Currently, OpenShift is built with `go` 1.7 and uses Docker 1.12. The exact
+Currently, OpenShift is built with `go` 1.8 and uses Docker 1.12. The exact
 requirement for Docker is documented
 https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
