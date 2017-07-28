@@ -869,13 +869,9 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 	return update, nil
 }
 
-// handleCompletedBuild will only be called on builds that are already in a terminal phase however, their completion timestamp
-// has not been set.
+// handleCompletedBuild will only be called on builds that are already in a terminal phase.  It is used to setup the
+// completion timestamp and failure logsnippet as needed.
 func (bc *BuildController) handleCompletedBuild(build *buildapi.Build, pod *v1.Pod) (*buildUpdate, error) {
-	// No-op if the completion timestamp and logsnippet data(for failed builds only) has already been set
-	if build.Status.CompletionTimestamp != nil && (len(build.Status.LogSnippet) > 0 || build.Status.Phase != buildapi.BuildPhaseFailed) {
-		return nil, nil
-	}
 
 	update := &buildUpdate{}
 	setBuildCompletionData(build, pod, update)
@@ -1152,25 +1148,25 @@ func isValidTransition(from, to buildapi.BuildPhase) bool {
 // if applicable.
 func setBuildCompletionData(build *buildapi.Build, pod *v1.Pod, update *buildUpdate) {
 	now := metav1.Now()
-	update.setCompletionTime(now)
-
-	var podStartTime *metav1.Time
-	if pod != nil {
-		podStartTime = pod.Status.StartTime
-	}
 
 	startTime := build.Status.StartTimestamp
 	if startTime == nil {
-		if podStartTime != nil {
-			startTime = podStartTime
-		} else {
+		if pod != nil {
+			startTime = pod.Status.StartTime
+		}
+
+		if startTime == nil {
 			startTime = &now
 		}
 		update.setStartTime(*startTime)
 	}
-	update.setDuration(now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time))
+	if build.Status.CompletionTimestamp == nil {
+		update.setCompletionTime(now)
+		update.setDuration(now.Rfc3339Copy().Time.Sub(startTime.Rfc3339Copy().Time))
+	}
 
-	if pod != nil && len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].State.Terminated != nil {
+	if build.Status.Phase == buildapi.BuildPhaseFailed && len(build.Status.LogSnippet) == 0 &&
+		pod != nil && len(pod.Status.ContainerStatuses) != 0 && pod.Status.ContainerStatuses[0].State.Terminated != nil {
 		msg := pod.Status.ContainerStatuses[0].State.Terminated.Message
 		if len(msg) != 0 {
 			parts := strings.Split(strings.TrimRight(msg, "\n"), "\n")
