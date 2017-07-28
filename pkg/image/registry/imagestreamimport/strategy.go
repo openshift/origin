@@ -71,9 +71,6 @@ func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) 
 func (s *strategy) PrepareImageForCreate(obj runtime.Object) {
 	image := obj.(*imageapi.Image)
 
-	// signatures can be added using "images" or "imagesignatures" resources
-	image.Signatures = nil
-
 	// Remove the raw manifest as it's very big and this leads to a large memory consumption in etcd.
 	image.DockerImageManifest = ""
 	image.DockerImageConfig = ""
