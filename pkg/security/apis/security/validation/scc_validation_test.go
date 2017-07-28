@@ -93,7 +93,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 
 	wildcardAllowedCapAndRequiredDrop := validSCC()
 	wildcardAllowedCapAndRequiredDrop.RequiredDropCapabilities = []kapi.Capability{"foo"}
-	wildcardAllowedCapAndRequiredDrop.AllowedCapabilities = []kapi.Capability{kapi.CapabilityAll}
+	wildcardAllowedCapAndRequiredDrop.AllowedCapabilities = []kapi.Capability{securityapi.AllowAllCapabilities}
 
 	errorCases := map[string]struct {
 		scc         *securityapi.SecurityContextConstraints

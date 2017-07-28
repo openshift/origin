@@ -6,6 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/kubernetes/pkg/api"
+
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 // defaultCapabilities implements the CapabilitiesSecurityContextConstraintsStrategy interface
@@ -86,7 +88,7 @@ func (s *defaultCapabilities) Validate(pod *api.Pod, container *api.Container) f
 	}
 
 	allowedAdd := makeCapSet(s.allowedCaps)
-	allowAllCaps := allowedAdd.Has(string(api.CapabilityAll))
+	allowAllCaps := allowedAdd.Has(string(securityapi.AllowAllCapabilities))
 	if allowAllCaps {
 		// skip validation against allowed/defaultAdd/requiredDrop because all capabilities are allowed by a wildcard
 		return allErrs
