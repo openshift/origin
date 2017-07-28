@@ -10,7 +10,6 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -218,23 +217,6 @@ func (c *MasterConfig) ensureComponentAuthorizationRules() {
 
 	} else {
 		glog.V(2).Infof("Ignoring bootstrap policy file because cluster policy found")
-	}
-
-	// Wait until the policy cache has caught up before continuing
-	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.Action{Verb: "get", Group: authorizationapi.GroupName, Resource: "clusterpolicies"}}
-	err = wait.PollImmediate(100*time.Millisecond, 30*time.Second, func() (done bool, err error) {
-		result, err := c.PolicyClient().SubjectAccessReviews().Create(review)
-		if err == nil && result.Allowed {
-			return true, nil
-		}
-		if kapierror.IsForbidden(err) || (err == nil && !result.Allowed) {
-			glog.V(2).Infof("waiting for policy cache to initialize")
-			return false, nil
-		}
-		return false, err
-	})
-	if err != nil {
-		glog.Errorf("error waiting for policy cache to initialize: %v", err)
 	}
 
 	// Reconcile roles that must exist for the cluster to function
