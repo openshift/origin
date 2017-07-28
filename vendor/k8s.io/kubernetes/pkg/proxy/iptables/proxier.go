@@ -505,7 +505,9 @@ func buildServiceMap(allServices []*api.Service, oldServiceMap proxyServiceMap) 
 			}
 
 			newServiceMap[serviceName] = info
-			glog.V(4).Infof("added serviceInfo(%s): %s", serviceName, spew.Sdump(info))
+			if glog.V(4) {
+				glog.Infof("added serviceInfo(%s): %s", serviceName, spew.Sdump(info))
+			}
 		}
 	}
 
