@@ -226,8 +226,6 @@ openshift-cli-config.1
 openshift-cli-convert.1
 openshift-cli-cp.1
 openshift-cli-create-clusterresourcequota.1
-openshift-cli-create-clusterrole.1
-openshift-cli-create-clusterrolebinding.1
 openshift-cli-create-configmap.1
 openshift-cli-create-deployment.1
 openshift-cli-create-deploymentconfig.1
@@ -237,8 +235,6 @@ openshift-cli-create-namespace.1
 openshift-cli-create-poddisruptionbudget.1
 openshift-cli-create-policybinding.1
 openshift-cli-create-quota.1
-openshift-cli-create-role.1
-openshift-cli-create-rolebinding.1
 openshift-cli-create-route-edge.1
 openshift-cli-create-route-passthrough.1
 openshift-cli-create-route-reencrypt.1

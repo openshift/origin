@@ -128,8 +128,6 @@ oc-config.1
 oc-convert.1
 oc-cp.1
 oc-create-clusterresourcequota.1
-oc-create-clusterrole.1
-oc-create-clusterrolebinding.1
 oc-create-configmap.1
 oc-create-deployment.1
 oc-create-deploymentconfig.1
@@ -139,8 +137,6 @@ oc-create-namespace.1
 oc-create-poddisruptionbudget.1
 oc-create-policybinding.1
 oc-create-quota.1
-oc-create-role.1
-oc-create-rolebinding.1
 oc-create-route-edge.1
 oc-create-route-passthrough.1
 oc-create-route-reencrypt.1
