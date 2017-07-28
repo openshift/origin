@@ -1,4 +1,4 @@
-package integration
+package endtoend
 
 import (
 	"crypto/tls"
