@@ -14,11 +14,11 @@ COPY scripts/* /usr/local/bin/
 COPY system-container/system-container-wrapper.sh /usr/local/bin/
 COPY system-container/manifest.json system-container/config.json.template system-container/service.template system-container/tmpfiles.template /exports/
 
-RUN INSTALL_PKGS="libmnl libnetfilter_conntrack conntrack-tools openvswitch \
+RUN INSTALL_PKGS="origin-sdn-ovs libmnl libnetfilter_conntrack conntrack-tools openvswitch \
       libnfnetlink iptables iproute bridge-utils procps-ng ethtool socat openssl \
       binutils xz kmod-libs kmod sysvinit-tools device-mapper-libs dbus \
       iscsi-initiator-utils bind-utils" && \
-    yum install -y $INSTALL_PKGS && \
+    yum --enablerepo=origin-local-release install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
     mkdir -p /usr/lib/systemd/system/origin-node.service.d /usr/lib/systemd/system/docker.service.d
