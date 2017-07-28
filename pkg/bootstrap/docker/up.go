@@ -1033,8 +1033,7 @@ func (c *ClientStartConfig) InstallServiceCatalog(out io.Writer) error {
 	if len(publicMaster) == 0 {
 		publicMaster = c.ServerIP
 	}
-	tag := c.ImageVersion
-	return c.OpenShiftHelper().InstallServiceCatalog(f, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), tag)
+	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), c.imageFormat())
 }
 
 // Login logs into the new server and sets up a default user and project
