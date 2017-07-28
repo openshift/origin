@@ -251,18 +251,20 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 		return nil
 	})
 
-	s.GenericAPIServer.PrepareOpenAPIService()
+	if false {
+		s.GenericAPIServer.PrepareOpenAPIService()
 
-	if s.GenericAPIServer.OpenAPIService != nil {
-		s.rootSpec = s.GenericAPIServer.OpenAPIService.GetSpec()
-		if err := s.updateOpenAPISpec(); err != nil {
-			return nil, err
-		}
-		s.GenericAPIServer.OpenAPIService.AddUpdateHook(func(r *http.Request) {
-			if s.tryLoadingOpenAPISpecs(r) {
-				s.updateOpenAPISpec()
+		if s.GenericAPIServer.OpenAPIService != nil {
+			s.rootSpec = s.GenericAPIServer.OpenAPIService.GetSpec()
+			if err := s.updateOpenAPISpec(); err != nil {
+				return nil, err
 			}
-		})
+			s.GenericAPIServer.OpenAPIService.AddUpdateHook(func(r *http.Request) {
+				if s.tryLoadingOpenAPISpecs(r) {
+					s.updateOpenAPISpec()
+				}
+			})
+		}
 	}
 
 	return s, nil
@@ -353,7 +355,9 @@ func (s *APIAggregator) RemoveAPIService(apiServiceName string) {
 	s.GenericAPIServer.Handler.NonGoRestfulMux.Unregister(proxyPath + "/")
 	delete(s.proxyHandlers, apiServiceName)
 	s.deleteApiSpec(apiServiceName)
-	s.updateOpenAPISpec()
+	if false {
+		s.updateOpenAPISpec()
+	}
 
 	// TODO unregister group level discovery when there are no more versions for the group
 	// We don't need this right away because the handler properly delegates when no versions are present
