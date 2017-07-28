@@ -5,7 +5,6 @@ reviewers:
   - soltysh
   - jim-minter
   - liggitt
-  - php-coder
   - stevekuznetsov
 approvers:
   - smarterclayton
