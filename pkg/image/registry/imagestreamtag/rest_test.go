@@ -466,3 +466,87 @@ func TestDeleteImageStreamTag(t *testing.T) {
 		}()
 	}
 }
+
+func TestCreateImageStreamTag(t *testing.T) {
+	tests := map[string]struct {
+		istag           runtime.Object
+		expectError     bool
+		errorTargetKind string
+		errorTargetID   string
+	}{
+		"valid istag": {
+			istag: &imageapi.ImageStreamTag{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test:tag",
+				},
+				Image: imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+				Tag: &imageapi.TagReference{
+					Name:            "latest",
+					From:            &kapi.ObjectReference{Kind: "DockerImage", Name: "foo/bar/baz"},
+					ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.SourceTagReferencePolicy},
+				},
+			},
+		},
+		"invalid tag": {
+			istag: &imageapi.ImageStreamTag{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test:tag",
+				},
+				Image: imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+				Tag:   &imageapi.TagReference{},
+			},
+			expectError:     true,
+			errorTargetKind: "ImageStreamTag",
+			errorTargetID:   "test:tag",
+		},
+		"nil tag": {
+			istag: &imageapi.ImageStreamTag{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test:tag",
+				},
+				Image: imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "10"}, DockerImageReference: "foo/bar/baz"},
+			},
+		},
+	}
+
+	for name, tc := range tests {
+		func() {
+			client, server, storage := setup(t)
+			defer server.Terminate(t)
+
+			client.Put(
+				context.TODO(),
+				etcdtest.AddPrefix("/imagestreams/default/test"),
+				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(v1.SchemeGroupVersion),
+					&imageapi.ImageStream{
+						ObjectMeta: metav1.ObjectMeta{
+							CreationTimestamp: metav1.Date(2015, 3, 24, 9, 38, 0, 0, time.UTC),
+							Namespace:         "default",
+							Name:              "test",
+						},
+						Spec: imageapi.ImageStreamSpec{
+							Tags: map[string]imageapi.TagReference{},
+						},
+					},
+				))
+
+			ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
+			_, err := storage.Create(ctx, tc.istag, false)
+			gotErr := err != nil
+			if e, a := tc.expectError, gotErr; e != a {
+				t.Errorf("%s: Expected err=%v: got %v: %v", name, e, a, err)
+				return
+			}
+			if tc.expectError {
+				status := err.(statusError).Status()
+				if status.Details.Kind != tc.errorTargetKind || status.Details.Name != tc.errorTargetID {
+					t.Errorf("%s: unexpected status: %#v", name, status.Details)
+					return
+				}
+			}
+		}()
+	}
+}
