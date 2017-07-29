@@ -197,6 +197,18 @@ func TestEgressRouterBad(t *testing.T) {
 			dest:    "80 sctp 10.4.5.6",
 			err:     "EGRESS_DESTINATION value '80 sctp 10.4.5.6' is invalid",
 		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "800000 tcp 10.4.5.6",
+			err:     "Invalid port: 800000, must be in the range 1 to 65535",
+		},
+		{
+			source:  "1.2.3.4",
+			gateway: "1.1.1.1",
+			dest:    "80 tcp 10.4.5.6\n8080 tcp 10.7.8.9 80\n80 tcp 10.7.8.9 900",
+			err:     "EGRESS_DESTINATION localport 80 is already used, must be unique for each destination",
+		},
 	}
 
 	for n, test := range tests {
