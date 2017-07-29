@@ -19,6 +19,14 @@ func getControllerContext(options configapi.MasterConfig, controllerManagerOptio
 	if err != nil {
 		return origincontrollers.ControllerContext{}, err
 	}
+	// divide up the QPS since it re-used separately for every client
+	// TODO, eventually make this configurable individually in some way.
+	if loopbackConfig.QPS > 0 {
+		loopbackConfig.QPS = loopbackConfig.QPS/10 + 1
+	}
+	if loopbackConfig.Burst > 0 {
+		loopbackConfig.Burst = loopbackConfig.Burst/10 + 1
+	}
 
 	rootClientBuilder := controller.SimpleControllerClientBuilder{
 		ClientConfig: loopbackConfig,
