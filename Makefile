@@ -240,7 +240,7 @@ clean:
 #
 # Example:
 #   make release
-official-release: build-rpms build-cross
+official-release: build-cross build-rpms
 	hack/build-images.sh
 .PHONY: official-release
 

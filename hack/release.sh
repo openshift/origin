@@ -15,10 +15,12 @@ elif [[ "$( git rev-parse "${tag}" )" != "$( git rev-parse HEAD )" ]]; then
 fi
 commit="$( git rev-parse ${tag} )"
 
-# Ensure that the build is using the latest release image
-docker pull "${OS_BUILD_ENV_IMAGE}"
+# Ensure that the build is using the latest release image and base content
+if [[ -z "${OS_RELEASE_STALE}" ]]; then
+  docker pull "${OS_BUILD_ENV_IMAGE}"
+  hack/build-base-images.sh
+fi
 
-hack/build-base-images.sh
 hack/env OS_GIT_COMMIT="${commit}" make official-release
 OS_PUSH_ALWAYS=1 OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh
 

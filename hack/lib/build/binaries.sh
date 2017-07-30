@@ -240,7 +240,7 @@ os::build::internal::build_binaries() {
       fi
 
       if [[ "$platform" == "windows/amd64" ]]; then
-        rm ${OS_ROOT}/cmd/oc/oc.syso
+        rm -f ${OS_ROOT}/cmd/oc/oc.syso
       fi
 
       for test in "${tests[@]:+${tests[@]}}"; do
@@ -261,6 +261,10 @@ readonly -f os::build::build_binaries
 # Generates the .syso file used to add compile-time VERSIONINFO metadata to the
 # Windows binary.
 function os::build::generate_windows_versioninfo() {
+  if ! os::util::find::system_binary "goversioninfo" >/dev/null 2>&1; then
+    os::log::warning "No system binary 'goversioninfo' found, skipping version info for Windows builds"
+    return 0
+  fi
   os::build::version::get_vars
   local major="${OS_GIT_MAJOR}"
   local minor="${OS_GIT_MINOR%+}"
