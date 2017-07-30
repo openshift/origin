@@ -966,7 +966,7 @@ func describeSourceRevision(rev *buildapi.SourceRevision) string {
 		if len(commit) > 7 {
 			commit = commit[:7]
 		}
-		return fmt.Sprintf("%s: %s%s", commit, rev.Git.Message, author)
+		return fmt.Sprintf("%s: %s%s", commit, strings.Split(rev.Git.Message, "\n")[0], author)
 	default:
 		return ""
 	}
