@@ -27,7 +27,7 @@ mkdir -p "${tito_tmp_dir}"
 tito build --offline --srpm --rpmbuild-options="--define 'dist .el7'" --output="${tito_tmp_dir}"
 tito build --output="${tito_tmp_dir}" --rpm --no-cleanup --quiet --offline \
            --rpmbuild-options="--define 'make_redistributable ${make_redistributable}' ${RPM_BUILD_OPTS:-}"
-tito tag --undo --offline
+tito tag --undo --offline || true
 
 os::log::info 'Unpacking tito artifacts for reuse...'
 output_directories=( $( find "${tito_tmp_dir}" -type d -name "rpmbuild-${OS_RPM_NAME}*" ) )
