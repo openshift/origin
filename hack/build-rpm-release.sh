@@ -52,9 +52,6 @@ if [[ -z "${tito_output_directory}" ]]; then
         os::log::fatal 'No _output artifact directory found in tito rpmbuild artifacts!'
 fi
 
-# clean up our local state so we can unpack the tito artifacts cleanly
-make clean
-
 # migrate the tito artifacts to the Origin directory
 mkdir -p "${OS_OUTPUT}"
 # mv exits prematurely with status 1 in the following scenario: running as root,
@@ -70,6 +67,7 @@ else
   cp -R "${tito_output_directory}"/* "${OS_OUTPUT}"
   rm -rf "${tito_output_directory}"/*
 fi
+rm -rf "${OS_OUTPUT_RPMPATH}"
 mkdir -p "${OS_OUTPUT_RPMPATH}"
 mv "${tito_tmp_dir}"/*src.rpm "${OS_OUTPUT_RPMPATH}"
 mv "${tito_tmp_dir}"/*/*.rpm "${OS_OUTPUT_RPMPATH}"
