@@ -102,6 +102,7 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 	}
 
 	if !startEtcd {
+		masterArgs.EtcdAddr.Provided = true
 		masterArgs.EtcdAddr.Set(util.GetEtcdURL())
 	}
 
@@ -126,6 +127,7 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	startOptions := start.MasterOptions{}
 	startOptions.MasterArgs, _, _, _, _ = setupStartOptions(startEtcd, useDefaultPort)
 	startOptions.Complete()
+	// reset, since Complete alters the default
 	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
 
 	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
