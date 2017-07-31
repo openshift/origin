@@ -415,8 +415,8 @@ const (
 	AlphaStorageNodeAffinityAnnotation = "volume.alpha.kubernetes.io/node-affinity"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 type PersistentVolume struct {
 	metav1.TypeMeta
@@ -490,7 +490,7 @@ type PersistentVolumeList struct {
 	Items []PersistentVolume
 }
 
-// +genclient=true
+// +genclient
 
 // PersistentVolumeClaim is a user's request for and claim to a persistent volume
 type PersistentVolumeClaim struct {
@@ -2353,7 +2353,7 @@ type PodStatusResult struct {
 	Status PodStatus
 }
 
-// +genclient=true
+// +genclient
 
 // Pod is a collection of containers, used as either input (create, update) or as output (list, get).
 type Pod struct {
@@ -2382,7 +2382,7 @@ type PodTemplateSpec struct {
 	Spec PodSpec
 }
 
-// +genclient=true
+// +genclient
 
 // PodTemplate describes a template for creating copies of a predefined pod.
 type PodTemplate struct {
@@ -2487,7 +2487,7 @@ type ReplicationControllerCondition struct {
 	Message string
 }
 
-// +genclient=true
+// +genclient
 
 // ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
@@ -2717,7 +2717,7 @@ type ServicePort struct {
 	NodePort int32
 }
 
-// +genclient=true
+// +genclient
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
 // (for example 3306) that the proxy listens on, and the selector that determines which pods
@@ -2736,7 +2736,7 @@ type Service struct {
 	Status ServiceStatus
 }
 
-// +genclient=true
+// +genclient
 
 // ServiceAccount binds together:
 // * a name, understood by users, and perhaps by peripheral systems, for an identity
@@ -2771,7 +2771,7 @@ type ServiceAccountList struct {
 	Items []ServiceAccount
 }
 
-// +genclient=true
+// +genclient
 
 // Endpoints is a collection of endpoints that implement the actual service.  Example:
 //   Name: "mysvc",
@@ -3110,8 +3110,8 @@ const (
 // ResourceList is a set of (resource name, quantity) pairs.
 type ResourceList map[ResourceName]resource.Quantity
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Node is a worker node in Kubernetes
 // The name of the node according to etcd is in ObjectMeta.Name.
@@ -3170,8 +3170,8 @@ const (
 	NamespaceTerminating NamespacePhase = "Terminating"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // A namespace provides a scope for Names.
 // Use of multiple namespaces is optional
@@ -3463,7 +3463,7 @@ const (
 	EventTypeWarning string = "Warning"
 )
 
-// +genclient=true
+// +genclient
 
 // Event is a report of an event somewhere in the cluster.
 // TODO: Decide whether to store these separately or with the object they apply to.
@@ -3567,7 +3567,7 @@ type LimitRangeSpec struct {
 	Limits []LimitRangeItem
 }
 
-// +genclient=true
+// +genclient
 
 // LimitRange sets resource usage limits for each kind of resource in a Namespace
 type LimitRange struct {
@@ -3657,7 +3657,7 @@ type ResourceQuotaStatus struct {
 	Used ResourceList
 }
 
-// +genclient=true
+// +genclient
 
 // ResourceQuota sets aggregate quota restrictions enforced per namespace
 type ResourceQuota struct {
@@ -3684,7 +3684,7 @@ type ResourceQuotaList struct {
 	Items []ResourceQuota
 }
 
-// +genclient=true
+// +genclient
 
 // Secret holds secret data of a certain type.  The total bytes of the values in
 // the Data field must be less than MaxSecretSize bytes.
@@ -3797,7 +3797,7 @@ type SecretList struct {
 	Items []Secret
 }
 
-// +genclient=true
+// +genclient
 
 // ConfigMap holds configuration data for components or applications to consume.
 type ConfigMap struct {
@@ -3879,8 +3879,8 @@ type ComponentCondition struct {
 	Error string
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ComponentStatus (and ComponentStatusList) holds the cluster validation info.
 type ComponentStatus struct {

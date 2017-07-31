@@ -56,8 +56,8 @@ type ScaleStatus struct {
 	TargetSelector string `json:"targetSelector,omitempty" protobuf:"bytes,3,opt,name=targetSelector"`
 }
 
-// +genclient=true
-// +noMethods=true
+// +genclient
+// +genclient:noVerbs
 
 // Scale represents a scaling request for a resource.
 type Scale struct {
@@ -75,7 +75,7 @@ type Scale struct {
 	Status ScaleStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
-// +genclient=true
+// +genclient
 
 // StatefulSet represents a set of pods with consistent identities.
 // Identities are defined as:
@@ -249,7 +249,7 @@ type StatefulSetList struct {
 	Items           []StatefulSet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // Deployment enables declarative updates for Pods and ReplicaSets.
 type Deployment struct {
@@ -478,7 +478,7 @@ type DeploymentList struct {
 	Items []Deployment `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // ControllerRevision implements an immutable snapshot of state data. Clients
 // are responsible for serializing and deserializing the objects that contain

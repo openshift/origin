@@ -109,8 +109,8 @@ type APIServiceStatus struct {
 	Conditions []APIServiceCondition
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // APIService represents a server for a particular GroupVersion.
 // Name must be "version.group".

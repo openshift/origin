@@ -32,7 +32,7 @@ type FlunderSpec struct {
 type FlunderStatus struct {
 }
 
-// +genclient=true
+// +genclient
 
 type Flunder struct {
 	metav1.TypeMeta   `json:",inline"`

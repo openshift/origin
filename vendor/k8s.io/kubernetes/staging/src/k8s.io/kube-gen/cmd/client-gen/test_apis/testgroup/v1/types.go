@@ -18,7 +18,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +genclient=true
+// +genclient
 
 type TestType struct {
 	metav1.TypeMeta `json:",inline"`

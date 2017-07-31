@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/pkg/api"
 )
 
-// +genclient=true
+// +genclient
 
 // Job represents the configuration of a single job.
 type Job struct {
@@ -187,7 +187,7 @@ type JobCondition struct {
 	Message string
 }
 
-// +genclient=true
+// +genclient
 
 // CronJob represents the configuration of a single cron job.
 type CronJob struct {

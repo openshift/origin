@@ -18,8 +18,8 @@ package storage
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // StorageClass describes a named "class" of storage offered in a cluster.
 // Different classes might map to quality-of-service levels, or to backup policies,

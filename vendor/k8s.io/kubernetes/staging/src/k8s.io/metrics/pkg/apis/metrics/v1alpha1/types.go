@@ -21,10 +21,10 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 // +resourceName=nodes
-// +readonly=true
-// +nonNamespaced=true
+// +genclient:readonly
+// +genclient:nonNamespaced
 
 // resource usage metrics of a node.
 type NodeMetrics struct {
@@ -51,9 +51,9 @@ type NodeMetricsList struct {
 	Items []NodeMetrics `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 // +resourceName=pods
-// +readonly=true
+// +genclient:readonly
 
 // resource usage metrics of a pod.
 type PodMetrics struct {

@@ -18,7 +18,7 @@ package testgroup
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +genclient=true
+// +genclient
 
 type TestType struct {
 	metav1.TypeMeta
