@@ -1833,3 +1833,85 @@ func TestDockerImageReferenceForImage(t *testing.T) {
 		t.Errorf("expected failure for unknown image")
 	}
 }
+
+func TestValidateRegistryURL(t *testing.T) {
+	for _, tc := range []struct {
+		input               string
+		expectedError       bool
+		expectedErrorString string
+	}{
+		{input: "172.30.30.30:5000"},
+		{input: ":5000"},
+		{input: "[fd12:3456:789a:1::1]:80/"},
+		{input: "[fd12:3456:789a:1::1]:80"},
+		{input: "http://172.30.30.30:5000"},
+		{input: "http://[fd12:3456:789a:1::1]:5000/"},
+		{input: "http://[fd12:3456:789a:1::1]:5000"},
+		{input: "http://registry.org:5000"},
+		{input: "https://172.30.30.30:5000"},
+		{input: "https://:80/"},
+		{input: "https://[fd12:3456:789a:1::1]/"},
+		{input: "https://[fd12:3456:789a:1::1]"},
+		{input: "https://[fd12:3456:789a:1::1]:5000/"},
+		{input: "https://[fd12:3456:789a:1::1]:5000"},
+		{input: "https://registry.org/"},
+		{input: "https://registry.org"},
+		{input: "localhost/"},
+		{input: "localhost"},
+		{input: "localhost:80"},
+		{input: "registry.org/"},
+		{input: "registry.org"},
+		{input: "registry.org:5000"},
+
+		{
+			input:               "httpss://registry.org",
+			expectedErrorString: "unsupported scheme: httpss",
+		},
+		{
+			input:               "ftp://registry.org",
+			expectedErrorString: "unsupported scheme: ftp",
+		},
+		{
+			input:               "http://registry.org://",
+			expectedErrorString: errNoRegistryURLPathAllowed.Error(),
+		},
+		{
+			input:               "http://registry.org/path",
+			expectedErrorString: errNoRegistryURLPathAllowed.Error(),
+		},
+		{
+			input:         "[fd12:3456:789a:1::1",
+			expectedError: true,
+		},
+		{
+			input:         "bad url",
+			expectedError: true,
+		},
+		{
+			input:               "/registry.org",
+			expectedErrorString: errNoRegistryURLPathAllowed.Error(),
+		},
+		{
+			input:               "https:///",
+			expectedErrorString: errRegistryURLHostEmpty.Error(),
+		},
+		{
+			input:               "http://registry.org?parm=arg",
+			expectedErrorString: errNoRegistryURLQueryAllowed.Error(),
+		},
+	} {
+
+		err := ValidateRegistryURL(tc.input)
+		if err != nil {
+			if len(tc.expectedErrorString) > 0 && err.Error() != tc.expectedErrorString {
+				t.Errorf("[%s] unexpected error string: %q != %q", tc.input, err.Error(), tc.expectedErrorString)
+			} else if len(tc.expectedErrorString) == 0 && !tc.expectedError {
+				t.Errorf("[%s] unexpected error: %q", tc.input, err.Error())
+			}
+		} else if len(tc.expectedErrorString) > 0 {
+			t.Errorf("[%s] got non-error while expecting %q", tc.input, tc.expectedErrorString)
+		} else if tc.expectedError {
+			t.Errorf("[%s] got unexpected non-error", tc.input)
+		}
+	}
+}

@@ -34,6 +34,8 @@ import (
 // PruneImagesRecommendedName is the recommended command name
 const PruneImagesRecommendedName = "images"
 
+var errNoToken = errors.New("you must use a client config with a token")
+
 var (
 	imagesLongDesc = templates.LongDesc(`
 		Remove image stream tags, images, and image layers by age or usage
@@ -57,9 +59,10 @@ var (
 		conditions holds true:
 
 		 1. --force-insecure is given  
-		 2. user's config allows for insecure connection (the user logged in to the cluster with
-			--insecure-skip-tls-verify or allowed for insecure connection)  
-		 3. registry url is a private or link-local address`)
+		 2. provided registry-url is prefixed with http://  
+		 3. registry url is a private or link-local address  
+		 4. user's config allows for insecure connection (the user logged in to the cluster with
+			--insecure-skip-tls-verify or allowed for insecure connection)`)
 
 	imagesExample = templates.Examples(`
 	  # See, what the prune command would delete if only images more than an hour old and obsoleted
@@ -74,7 +77,13 @@ var (
 	  %[1]s %[2]s --prune-over-size-limit
 
 	  # To actually perform the prune operation, the confirm flag must be appended
-	  %[1]s %[2]s --prune-over-size-limit --confirm`)
+	  %[1]s %[2]s --prune-over-size-limit --confirm
+
+	  # Force the insecure http protocol with the particular registry host name
+	  %[1]s %[2]s --registry-url=http://registry.example.org --confirm
+
+	  # Force a secure connection with a custom certificate authority to the particular registry host name
+	  %[1]s %[2]s --registry-url=registry.example.org --certificate-authority=/path/to/custom/ca.crt --confirm`)
 )
 
 var (
@@ -132,7 +141,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 	cmd.Flags().IntVar(opts.KeepTagRevisions, "keep-tag-revisions", *opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
 	cmd.Flags().BoolVar(opts.PruneOverSizeLimit, "prune-over-size-limit", *opts.PruneOverSizeLimit, "Specify if images which are exceeding LimitRanges (see 'openshift.io/Image'), specified in the same namespace, should be considered for pruning. This flag cannot be combined with --keep-younger-than nor --keep-tag-revisions.")
 	cmd.Flags().StringVar(&opts.CABundle, "certificate-authority", opts.CABundle, "The path to a certificate authority bundle to use when communicating with the managed Docker registries. Defaults to the certificate authority data from the current user's config file. It cannot be used together with --force-insecure.")
-	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works.")
+	cmd.Flags().StringVar(&opts.RegistryUrlOverride, "registry-url", opts.RegistryUrlOverride, "The address to use when contacting the registry, instead of using the default value. This is useful if you can't resolve or reach the registry (e.g.; the default is a cluster-internal URL) but you do have an alternative route that works. Particular transport protocol can be enforced using '<scheme>://' prefix.")
 	cmd.Flags().BoolVar(&opts.ForceInsecure, "force-insecure", opts.ForceInsecure, "If true, allow an insecure connection to the docker registry that is hosted via HTTP or has an invalid HTTPS certificate. Whenever possible, use --certificate-authority instead of this dangerous option.")
 
 	return cmd
@@ -193,11 +202,14 @@ func (o PruneImagesOptions) Validate() error {
 	if o.KeepTagRevisions != nil && *o.KeepTagRevisions < 0 {
 		return fmt.Errorf("--keep-tag-revisions must be greater than or equal to 0")
 	}
-	if _, err := url.Parse(o.RegistryUrlOverride); err != nil {
+	if err := imageapi.ValidateRegistryURL(o.RegistryUrlOverride); len(o.RegistryUrlOverride) > 0 && err != nil {
 		return fmt.Errorf("invalid --registry-url flag: %v", err)
 	}
 	if o.ForceInsecure && len(o.CABundle) > 0 {
 		return fmt.Errorf("--certificate-authority cannot be specified with --force-insecure")
+	}
+	if len(o.CABundle) > 0 && strings.HasPrefix(o.RegistryUrlOverride, "http://") {
+		return fmt.Errorf("--cerificate-authority cannot be specified for insecure http protocol")
 	}
 	return nil
 }
@@ -274,7 +286,8 @@ func (o PruneImagesOptions) Run() error {
 
 		insecure := o.ForceInsecure
 		if !insecure && len(o.CABundle) == 0 {
-			insecure = o.ClientConfig.TLSClientConfig.Insecure || netutils.IsPrivateAddress(registryHost)
+			insecure = o.ClientConfig.TLSClientConfig.Insecure || netutils.IsPrivateAddress(registryHost) ||
+				strings.HasPrefix(registryHost, "http://")
 		}
 
 		registryClient, err = getRegistryClient(o.ClientConfig, o.CABundle, insecure)
@@ -502,7 +515,7 @@ func getClients(f *clientcmd.Factory) (*client.Client, kclientset.Interface, err
 	}
 
 	if len(clientConfig.BearerToken) == 0 {
-		return nil, nil, noTokenError
+		return nil, nil, errNoToken
 	}
 
 	osClient, kubeClient, err := f.Clients()
@@ -523,7 +536,7 @@ func getRegistryClient(clientConfig *restclient.Config, registryCABundle string,
 	)
 
 	if len(token) == 0 {
-		return nil, noTokenError
+		return nil, errNoToken
 	}
 
 	if len(registryCABundle) > 0 {
