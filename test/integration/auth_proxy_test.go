@@ -31,13 +31,11 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	idp.Provider = &configapi.RequestHeaderIdentityProvider{Headers: []string{"X-Remote-User"}}
 	idp.MappingMethod = "claim"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.OAuthConfig.IdentityProviders = []configapi.IdentityProvider{idp}
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)

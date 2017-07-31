@@ -38,13 +38,12 @@ func TestOAuthCertFallback(t *testing.T) {
 		anonymousError    = `User "system:anonymous" cannot get users at the cluster scope`
 	)
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	// Build master config
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	// Start server
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)

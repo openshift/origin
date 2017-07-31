@@ -75,12 +75,11 @@ func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, a
 }
 
 func TestOadmPodNetwork(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.NetworkConfig.NetworkPluginName = sdnapi.MultiTenantPluginName
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {

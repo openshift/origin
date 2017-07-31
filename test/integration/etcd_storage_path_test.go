@@ -846,12 +846,12 @@ const testNamespace = "etcdstoragepathtestnamespace"
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
 func TestEtcd2StoragePath(t *testing.T) {
 	etcdServer := testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer etcdServer.DumpEtcdOnFailure(t)
 
 	getter := &etcd2Getter{
 		keys: etcd.NewKeysAPI(etcdServer.Client),
 	}
-	testEtcdStoragePath(t, etcdServer, getter)
+	testEtcdStoragePath(t, etcdServer.EtcdTestServer, getter)
 }
 
 // TestEtcd3StoragePath tests to make sure that all objects are stored in an expected location in etcd.

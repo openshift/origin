@@ -17,13 +17,11 @@ import (
 )
 
 func TestRestrictUsers(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"openshift.io/RestrictSubjectBindings": {

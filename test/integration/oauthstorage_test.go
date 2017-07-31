@@ -22,7 +22,6 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
-	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -53,13 +52,11 @@ func (u *testUser) ConvertFromAccessToken(*oauthapi.OAuthAccessToken) (interface
 }
 
 func TestOAuthStorage(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	optsGetter, err := originrest.StorageOptions(*masterOptions)
 	if err != nil {

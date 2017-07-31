@@ -29,12 +29,11 @@ import (
 
 // TestProjectIsNamespace verifies that a project is a namespace, and a namespace is a project
 func TestProjectIsNamespace(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	originClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -98,7 +97,7 @@ func TestProjectIsNamespace(t *testing.T) {
 // and that openshift content is cleaned up when a project is deleted.
 func TestProjectLifecycle(t *testing.T) {
 	etcdServer := testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer etcdServer.DumpEtcdOnFailure(t)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -211,12 +210,11 @@ func TestProjectLifecycle(t *testing.T) {
 }
 
 func TestProjectWatch(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -382,12 +380,11 @@ func waitForOnlyDelete(projectName string, w watch.Interface, t *testing.T) {
 }
 
 func TestScopedProjectAccess(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -514,12 +511,11 @@ func TestScopedProjectAccess(t *testing.T) {
 }
 
 func TestInvalidRoleRefs(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {

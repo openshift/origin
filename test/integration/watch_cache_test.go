@@ -114,13 +114,11 @@ func testWatchCacheWithConfig(t *testing.T, master *configapi.MasterConfig, expe
 }
 
 func TestDefaultWatchCacheSize(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, master)
 
 	// test that the origin default really applies and that we don't fall back to kube's default
 	etcdOptions := apiserveroptions.NewEtcdOptions(&storagebackend.Config{})
@@ -132,13 +130,11 @@ func TestDefaultWatchCacheSize(t *testing.T) {
 }
 
 func TestWatchCacheSizeWithFlag(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, master)
 	if master.KubernetesMasterConfig.APIServerArguments == nil {
 		master.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{}
 	}

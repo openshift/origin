@@ -13,7 +13,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/util"
-	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -27,8 +26,6 @@ const (
 )
 
 func TestSNI(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	// Create tempfiles with certs and keys we're going to use
 	certNames := map[string]string{}
 	for certName, certContents := range sniCerts {
@@ -48,6 +45,7 @@ func TestSNI(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	// Set custom cert
 	masterOptions.ServingInfo.NamedCertificates = []configapi.NamedCertificate{

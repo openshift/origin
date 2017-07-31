@@ -44,12 +44,11 @@ func TestOAuthRequestHeader(t *testing.T) {
 	}
 
 	// Get master config
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 	masterURL, _ := url.Parse(masterOptions.OAuthConfig.MasterPublicURL)
 
 	// Set up an auth proxy

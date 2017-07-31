@@ -17,7 +17,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/service/controller/ingressip"
-	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -26,12 +25,11 @@ const sentinelName = "sentinel"
 // TestIngressIPAllocation validates that ingress ip allocation is
 // performed correctly even when multiple controllers are running.
 func TestIngressIPAllocation(t *testing.T) {
-	testutil.RequireEtcd(t)
-
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.NetworkConfig.ExternalIPNetworkCIDRs = []string{"172.16.0.0/24"}
 	masterConfig.NetworkConfig.IngressIPNetworkCIDR = "172.16.1.0/24"
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterWithOptions(masterConfig, testserver.TestOptions{})

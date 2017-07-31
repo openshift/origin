@@ -44,53 +44,52 @@ type controllerCount struct {
 // TestConcurrentBuildControllers tests the transition of a build from new to pending. Ensures that only a single New -> Pending
 // transition happens and that only a single pod is created during a set period of time.
 func TestConcurrentBuildControllers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple BuildControllers
-	osClient, kClient := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	defer fn()
 	build.RunBuildControllerTest(t, osClient, kClient)
 }
 
 // TestConcurrentBuildControllersPodSync tests the lifecycle of a build pod when running multiple controllers.
 func TestConcurrentBuildControllersPodSync(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple BuildControllers
-	osClient, kClient := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	defer fn()
 	build.RunBuildControllerPodSyncTest(t, osClient, kClient)
 }
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple ImageChangeTrigger controllers
-	osClient, _ := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
+	osClient, _, fn := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
+	defer fn()
 	build.RunImageChangeTriggerTest(t, osClient)
 }
 
 func TestBuildDeleteController(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	defer fn()
 	build.RunBuildDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	defer fn()
 	build.RunBuildRunningPodDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildCompletePodDeleteController(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	defer fn()
 	build.RunBuildCompletePodDeleteTest(t, osClient, kClient)
 }
 
 func TestConcurrentBuildConfigControllers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	defer fn()
 	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface) {
-	testutil.RequireEtcd(t)
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface, func()) {
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
@@ -233,7 +232,9 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 			t.Fatal(err)
 		}
 	}
-	return clusterAdminClient, clusterAdminKubeClientset
+	return clusterAdminClient, clusterAdminKubeClientset, func() {
+		testserver.CleanupMasterEtcd(t, master)
+	}
 }
 
 type GenericResourceInformer interface {

@@ -67,8 +67,8 @@ func TestStorageVersions(t *testing.T) {
 	ns := "storageversions"
 	batchVersion := batch_v1.SchemeGroupVersion
 
-	defer testutil.DumpEtcdOnFailure(t)
 	etcdServer := testutil.RequireEtcd(t)
+	defer etcdServer.DumpEtcdOnFailure(t)
 	masterConfig, kubeClient := setupStorageTests(t, ns)
 
 	jobTestcases := map[string]struct {
