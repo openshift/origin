@@ -146,24 +146,40 @@ func (s routeStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.O
 	return errs
 }
 
-func certificateChanged(route, older *routeapi.Route) bool {
+func hasCertificateInfo(tls *routeapi.TLSConfig) bool {
+	if tls == nil {
+		return false
+	}
+	return len(tls.Certificate) > 0 ||
+		len(tls.Key) > 0 ||
+		len(tls.CACertificate) > 0 ||
+		len(tls.DestinationCACertificate) > 0
+}
+
+func certificateChangeRequiresAuth(route, older *routeapi.Route) bool {
 	switch {
 	case route.Spec.TLS != nil && older.Spec.TLS != nil:
 		a, b := route.Spec.TLS, older.Spec.TLS
+		if !hasCertificateInfo(a) {
+			// removing certificate info is allowed
+			return false
+		}
 		return a.CACertificate != b.CACertificate ||
 			a.Certificate != b.Certificate ||
 			a.DestinationCACertificate != b.DestinationCACertificate ||
 			a.Key != b.Key
-	case route.Spec.TLS == nil && older.Spec.TLS == nil:
-		return false
+	case route.Spec.TLS != nil:
+		// using any default certificate is allowed
+		return hasCertificateInfo(route.Spec.TLS)
 	default:
-		return true
+		// all other cases we are not adding additional certificate info
+		return false
 	}
 }
 
 func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *routeapi.Route) field.ErrorList {
 	hostChanged := route.Spec.Host != older.Spec.Host
-	certChanged := certificateChanged(route, older)
+	certChanged := certificateChangeRequiresAuth(route, older)
 	if !hostChanged && !certChanged {
 		return nil
 	}
@@ -190,6 +206,9 @@ func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *
 	if !res.Allowed {
 		if hostChanged {
 			return kvalidation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))
+		}
+		if route.Spec.TLS == nil || older.Spec.TLS == nil {
+			return kvalidation.ValidateImmutableField(route.Spec.TLS, older.Spec.TLS, field.NewPath("spec", "tls"))
 		}
 		errs := kvalidation.ValidateImmutableField(route.Spec.TLS.CACertificate, older.Spec.TLS.CACertificate, field.NewPath("spec", "tls", "caCertificate"))
 		errs = append(errs, kvalidation.ValidateImmutableField(route.Spec.TLS.Certificate, older.Spec.TLS.Certificate, field.NewPath("spec", "tls", "certificate"))...)
