@@ -552,11 +552,19 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 
 	// verify we can connect to etcd with the provided config
 	if len(kc.Options.APIServerArguments) > 0 && len(kc.Options.APIServerArguments["storage-backend"]) > 0 && kc.Options.APIServerArguments["storage-backend"][0] == "etcd3" {
-		if _, err := etcd.GetAndTestEtcdClientV3(oc.Options.EtcdClientInfo); err != nil {
+		etcdClient, err := etcd.MakeEtcdClientV3(oc.Options.EtcdClientInfo)
+		if err != nil {
+			return err
+		}
+		if err := etcd.TestEtcdClientV3(etcdClient); err != nil {
 			return err
 		}
 	} else {
-		if _, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
+		etcdClient, err := etcd.MakeEtcdClient(oc.Options.EtcdClientInfo)
+		if err != nil {
+			return err
+		}
+		if err := etcd.TestEtcdClient(etcdClient); err != nil {
 			return err
 		}
 	}

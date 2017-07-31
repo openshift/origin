@@ -119,6 +119,20 @@ func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConf
 	return start.StartAPI(openshiftConfig, kubeMasterConfig)
 }
 
+// getAndTestEtcdClient creates an etcd client based on the provided config. It will attempt to
+// connect to the etcd server and block until the server responds at least once, or return an
+// error if the server never responded.
+func getAndTestEtcdClient(etcdClientInfo configapi.EtcdConnectionInfo) (etcdclient.Client, error) {
+	etcdClient, err := etcd.MakeEtcdClient(etcdClientInfo)
+	if err != nil {
+		return nil, err
+	}
+	if err := etcd.TestEtcdClient(etcdClient); err != nil {
+		return nil, err
+	}
+	return etcdClient, nil
+}
+
 func (o *DebugAPIServerOptions) ImportEtcdDump(etcdClientInfo configapi.EtcdConnectionInfo) error {
 	infile, err := os.Open(o.EtcdDumpFile)
 	if err != nil {
@@ -130,7 +144,7 @@ func (o *DebugAPIServerOptions) ImportEtcdDump(etcdClientInfo configapi.EtcdConn
 	}
 
 	// Connect and setup etcd interfaces
-	etcdClient, err := etcd.GetAndTestEtcdClient(etcdClientInfo)
+	etcdClient, err := getAndTestEtcdClient(etcdClientInfo)
 	if err != nil {
 		return err
 	}
