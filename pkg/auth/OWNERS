@@ -3,7 +3,6 @@ reviewers:
   - deads2k
   - stevekuznetsov
   - smarterclayton
-  - mfojtik
   - soltysh
   - sgallagher
   - enj
@@ -12,5 +11,4 @@ approvers:
   - deads2k
   - stevekuznetsov
   - smarterclayton
-  - mfojtik
   - enj

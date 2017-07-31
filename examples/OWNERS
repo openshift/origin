@@ -1,7 +1,6 @@
 reviewers:
   - bparees
   - smarterclayton
-  - mfojtik
   - csrwng
   - gabemontero
   - soltysh
@@ -9,5 +8,4 @@ reviewers:
 approvers:
   - bparees
   - smarterclayton
-  - mfojtik
   - csrwng

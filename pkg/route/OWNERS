@@ -1,7 +1,6 @@
 reviewers:
   - smarterclayton
   - pweil-
-  - mfojtik
   - soltysh
   - ncdc
   - liggitt
@@ -14,6 +13,5 @@ reviewers:
 approvers:
   - smarterclayton
   - pweil-
-  - mfojtik
   - knobunc
   - rajatchopra

@@ -2,7 +2,6 @@ reviewers:
   - smarterclayton
   - deads2k
   - liggitt
-  - mfojtik
   - ncdc
   - soltysh
   - enj
@@ -11,6 +10,5 @@ approvers:
   - smarterclayton
   - deads2k
   - liggitt
-  - mfojtik
   - soltysh
   - enj

@@ -4,7 +4,6 @@ reviewers:
   - pweil-
   - soltysh
   - ncdc
-  - mfojtik
   - liggitt
   - php-coder
   - enj
@@ -13,5 +12,4 @@ approvers:
   - smarterclayton
   - pweil-
   - soltysh
-  - mfojtik
   - enj
