@@ -9,6 +9,8 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
@@ -78,7 +80,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
 	// and we should allow it in general, since you had the power to update and the power to delete.
 	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
-	if a.GetOldObject() != nil && oadmission.IsOnlyMutatingGCFields(a.GetObject(), a.GetOldObject()) {
+	if a.GetOldObject() != nil && rbacregistry.IsOnlyMutatingGCFields(a.GetObject(), a.GetOldObject(), kapihelper.Semantic) {
 		return nil
 	}
 
