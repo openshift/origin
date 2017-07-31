@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
 	"github.com/openshift/origin/pkg/dockerregistry/server/prune"
 	"github.com/openshift/origin/pkg/version"
 )
@@ -155,6 +156,10 @@ func Execute(configFile io.Reader) {
 	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
 	ctx = server.WithRegistryClient(ctx, registryClient)
 
+	readLimiter := newLimiter(extraConfig.Requests.Read)
+	writeLimiter := newLimiter(extraConfig.Requests.Write)
+	ctx = server.WithWriteLimiter(ctx, writeLimiter)
+
 	log.WithFields(versionFields()).Info("start registry")
 	// inject a logger into the uuid library. warns us if there is a problem
 	// with uuid generation under low entropy.
@@ -229,7 +234,9 @@ func Execute(configFile io.Reader) {
 	app.Config.HTTP.Headers.Set("X-Registry-Supports-Signatures", "1")
 
 	app.RegisterHealthChecks()
-	handler := alive("/", app)
+	handler := http.Handler(app)
+	handler = limit(readLimiter, writeLimiter, handler)
+	handler = alive("/", handler)
 	// TODO: temporarily keep for backwards compatibility; remove in the future
 	handler = alive("/healthz", handler)
 	handler = health.Handler(handler)
@@ -366,6 +373,34 @@ func logLevel(level configuration.Loglevel) log.Level {
 	}
 
 	return l
+}
+
+func newLimiter(c registryconfig.RequestsLimits) maxconnections.Limiter {
+	if c.MaxRunning <= 0 {
+		return nil
+	}
+	return maxconnections.NewLimiter(c.MaxRunning, c.MaxInQueue, c.MaxWaitInQueue)
+}
+
+func limit(readLimiter, writeLimiter maxconnections.Limiter, handler http.Handler) http.Handler {
+	readHandler := handler
+	if readLimiter != nil {
+		readHandler = maxconnections.New(readLimiter, readHandler)
+	}
+
+	writeHandler := handler
+	if writeLimiter != nil {
+		writeHandler = maxconnections.New(writeLimiter, writeHandler)
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch strings.ToUpper(r.Method) {
+		case "GET", "HEAD", "OPTIONS":
+			readHandler.ServeHTTP(w, r)
+		default:
+			writeHandler.ServeHTTP(w, r)
+		}
+	})
 }
 
 // alive simply wraps the handler with a route that always returns an http 200
