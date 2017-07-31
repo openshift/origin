@@ -410,7 +410,7 @@ backend be_secure:{{$cfgIdx}}
   http-request set-header X-Forwarded-Port %[dst_port]
   http-request set-header X-Forwarded-Proto http if !{ ssl_fc }
   http-request set-header X-Forwarded-Proto https if { ssl_fc }
-  {{- if matchPattern "v6" $router_ip_v4_v6_mode }}
+  {{- if matchPattern "(v4)?v6" $router_ip_v4_v6_mode }}
   # See the quoting rules in https://tools.ietf.org/html/rfc7239 for IPv6 addresses (v4 addresses get translated to v6 when in hybrid mode)
   http-request set-header Forwarded for="[%[src]]";host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   {{- else }}
