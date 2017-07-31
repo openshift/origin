@@ -163,7 +163,7 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
-	return DefaultMasterOptionsWithTweaks(false, false)
+	return DefaultMasterOptionsWithTweaks(true, false)
 }
 
 func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.MasterConfig, error) {
@@ -186,16 +186,6 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	}
 
 	masterConfig.DisableOpenAPI = true
-
-	// use etcd3
-	if km := masterConfig.KubernetesMasterConfig; km != nil {
-		if km.APIServerArguments == nil {
-			km.APIServerArguments = configapi.ExtendedArguments{}
-		}
-		km.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
-		km.APIServerArguments["storage-backend"] = []string{"etcd3"}
-	}
-
 	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
 	allowedRegistries := append(
 		*configapi.DefaultAllowedRegistriesForImport,
@@ -205,17 +195,6 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
-
-	// force etcd3 mode when we aren't launching an embedded etcd
-	if !startEtcd {
-		masterConfig.EtcdClientInfo.CA = ""
-		masterConfig.EtcdClientInfo.ClientCert.CertFile = ""
-		masterConfig.EtcdClientInfo.ClientCert.KeyFile = ""
-		masterConfig.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{
-			"storage-backend":    []string{"etcd3"},
-			"storage-media-type": []string{"application/vnd.kubernetes.protobuf"},
-		}
-	}
 
 	glog.Infof("Starting integration server from master %s", startOptions.MasterArgs.ConfigDir.Value())
 
@@ -306,7 +285,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *utilflags.ComponentFlag, error) {
 	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
-	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(false, false)
+	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(true, false)
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.NodeArgs.Components.Disable("plugins", "proxy", "dns")
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
@@ -328,26 +307,27 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 		return nil, nil, nil, err
 	}
 
-	masterOptions, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterConfig, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	masterOptions.DisableOpenAPI = true
+
+	masterConfig.DisableOpenAPI = true
 
 	if fn := startOptions.MasterOptions.MasterArgs.OverrideConfig; fn != nil {
-		if err := fn(masterOptions); err != nil {
+		if err := fn(masterConfig); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 
-	nodeOptions, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
+	nodeConfig, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	nodeOptions.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
-	nodeOptions.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
+	nodeConfig.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
+	nodeConfig.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
 
-	return masterOptions, nodeOptions, startOptions.NodeArgs.Components, nil
+	return masterConfig, nodeConfig, startOptions.NodeArgs.Components, nil
 }
 
 func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) (string, error) {
@@ -443,6 +423,9 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
 	guardMaster()
+	if masterConfig.EtcdConfig != nil && len(masterConfig.EtcdConfig.StorageDir) > 0 {
+		os.RemoveAll(masterConfig.EtcdConfig.StorageDir)
+	}
 	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}
