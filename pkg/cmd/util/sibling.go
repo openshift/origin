@@ -20,7 +20,7 @@ func SiblingCommand(cmd *cobra.Command, name string) string {
 	// Replace the root command with what was actually used
 	// in the command line
 	glog.V(4).Infof("Setting root command to: %s", os.Args[0])
-	command[0] = os.Args[0]
+	command[0] = "\"" + os.Args[0] + "\""
 
 	// Append the sibling command
 	command = append(command, name)
