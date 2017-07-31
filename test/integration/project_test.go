@@ -96,11 +96,14 @@ func TestProjectIsNamespace(t *testing.T) {
 // TestProjectLifecycle verifies that content cannot be added in a project that does not exist
 // and that openshift content is cleaned up when a project is deleted.
 func TestProjectLifecycle(t *testing.T) {
-	etcdServer := testutil.RequireEtcd(t)
-	defer etcdServer.DumpEtcdOnFailure(t)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+	_, etcd3, err := testserver.MasterEtcdClients(masterConfig)
+	if err != nil {
+		t.Fatal(err)
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
@@ -177,9 +180,8 @@ func TestProjectLifecycle(t *testing.T) {
 	}
 
 	// confirm that we see the build in etcd
-	keys := etcd.NewKeysAPI(etcdServer.Client)
-	buildEtcdKey := path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "builds", "test", "buildid")
-	if _, err := keys.Get(context.TODO(), buildEtcdKey, nil); err != nil {
+	buildEtcdKey := path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "builds", "test", "buildid")
+	if _, err := etcd3.KV.Get(context.TODO(), buildEtcdKey); err != nil {
 		t.Fatal(err)
 	}
 
@@ -203,10 +205,10 @@ func TestProjectLifecycle(t *testing.T) {
 	}
 
 	// confirm the build is gone in etcd
-	if _, err := keys.Get(context.TODO(), buildEtcdKey, nil); !etcd.IsKeyNotFound(err) {
-		t.Fatal("didn't delete the build")
+	resp, err := etcd3.KV.Get(context.TODO(), buildEtcdKey)
+	if !(etcd.IsKeyNotFound(err) || (resp != nil && len(resp.Kvs) == 0)) {
+		t.Fatalf("didn't delete the build: %v %#v", err, resp.Kvs)
 	}
-
 }
 
 func TestProjectWatch(t *testing.T) {

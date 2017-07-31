@@ -105,6 +105,10 @@ func TestOAuthStorage(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
+	if _, err := testserver.StartConfiguredMasterAPI(masterOptions); err != nil {
+		t.Fatal(err)
+	}
+
 	ch := make(chan *osincli.AccessData, 1)
 	var oaclient *osincli.Client
 	var authReq *osincli.AuthorizeRequest

@@ -6,13 +6,12 @@ import (
 	"sync"
 	"testing"
 
-	etcdclient "github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
@@ -402,18 +401,17 @@ func TestUserInitialization(t *testing.T) {
 		},
 	}
 
-	oldEtcdClient, err := etcd.MakeEtcdClient(masterConfig.EtcdClientInfo)
+	client, err := etcd.MakeEtcdClientV3(masterConfig.EtcdClientInfo)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	etcdClient := etcdclient.NewKeysAPI(oldEtcdClient)
 
 	for k, testcase := range testcases {
 		// Cleanup
-		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/users"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
+		if _, err := client.KV.Delete(context.Background(), path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/users"), clientv3.WithPrefix()); err != nil {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/useridentities"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
+		if _, err := client.KV.Delete(context.Background(), path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/useridentities"), clientv3.WithPrefix()); err != nil {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 

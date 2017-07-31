@@ -1,10 +1,12 @@
 package integration
 
 import (
+	"fmt"
 	"path"
 	"testing"
 
 	etcd "github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,6 +31,19 @@ func getGVKFromEtcd(etcdClient etcd.Client, masterConfig *configapi.MasterConfig
 		return nil, err
 	}
 	_, gvk, err := unstructured.UnstructuredJSONScheme.Decode([]byte(resp.Node.Value), nil, nil)
+	return gvk, err
+}
+
+func getGVKFromEtcd3(etcdClient *clientv3.Client, masterConfig *configapi.MasterConfig, prefix, ns, name string) (*schema.GroupVersionKind, error) {
+	key := path.Join("/", masterConfig.EtcdStorageConfig.KubernetesStoragePrefix, prefix, ns, name)
+	resp, err := etcdClient.KV.Get(context.TODO(), key)
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.Kvs) == 0 {
+		return nil, fmt.Errorf("no key found for %s", key)
+	}
+	_, gvk, err := kapi.Codecs.UniversalDeserializer().Decode(resp.Kvs[0].Value, nil, nil)
 	return gvk, err
 }
 
@@ -67,9 +82,12 @@ func TestStorageVersions(t *testing.T) {
 	ns := "storageversions"
 	batchVersion := batch_v1.SchemeGroupVersion
 
-	etcdServer := testutil.RequireEtcd(t)
-	defer etcdServer.DumpEtcdOnFailure(t)
 	masterConfig, kubeClient := setupStorageTests(t, ns)
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
+	_, etcdClient, err := testserver.MasterEtcdClients(masterConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	jobTestcases := map[string]struct {
 		creator kbatchclient.JobInterface
@@ -95,7 +113,7 @@ func TestStorageVersions(t *testing.T) {
 		}
 
 		// Ensure it is persisted correctly
-		if gvk, err := getGVKFromEtcd(etcdServer.Client, masterConfig, "jobs", ns, job.Name); err != nil {
+		if gvk, err := getGVKFromEtcd3(etcdClient, masterConfig, "jobs", ns, job.Name); err != nil {
 			t.Fatalf("%s: unexpected error reading Job: %v", name, err)
 		} else if *gvk != batchVersion.WithKind("Job") {
 			t.Fatalf("%s: expected api version %s in etcd, got %s reading Job", name, batchVersion, gvk)

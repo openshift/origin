@@ -845,7 +845,7 @@ const testNamespace = "etcdstoragepathtestnamespace"
 // It will also fail when a type gets moved to a different location. Be very careful in this situation because
 // it essentially means that you will be break old clusters unless you create some migration path for the old data.
 func TestEtcd2StoragePath(t *testing.T) {
-	etcdServer := testutil.RequireEtcd(t)
+	etcdServer := testutil.RequireEtcd2(t)
 	defer etcdServer.DumpEtcdOnFailure(t)
 
 	getter := &etcd2Getter{
@@ -874,7 +874,7 @@ func TestEtcd3StoragePath(t *testing.T) {
 */
 
 func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, getter etcdGetter) {
-	masterConfig, err := testserver.DefaultMasterOptions()
+	masterConfig, err := testserver.DefaultMasterOptionsWithTweaks(false, false)
 	if err != nil {
 		t.Fatalf("error getting master config: %#v", err)
 	}
