@@ -235,7 +235,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 
 	for i := 1; i <= numberOfImages; i++ {
 		tag := fmt.Sprintf("%s%d", tagPrefix, i)
-		dgst, err := imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true)
+		dgst, _, err := imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true, true)
 		if err != nil {
 			return nil, err
 		}
