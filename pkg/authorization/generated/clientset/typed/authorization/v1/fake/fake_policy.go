@@ -1,8 +1,8 @@
 package fake
 
 import (
-	v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	authorization_v1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
@@ -20,53 +20,21 @@ var policiesResource = schema.GroupVersionResource{Group: "authorization.openshi
 
 var policiesKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "Policy"}
 
-func (c *FakePolicies) Create(policy *v1.Policy) (result *v1.Policy, err error) {
+// Get takes name of the policy, and returns the corresponding policy object, and an error if there is any.
+func (c *FakePolicies) Get(name string, options v1.GetOptions) (result *authorization_v1.Policy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(policiesResource, c.ns, policy), &v1.Policy{})
+		Invokes(testing.NewGetAction(policiesResource, c.ns, name), &authorization_v1.Policy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.Policy), err
+	return obj.(*authorization_v1.Policy), err
 }
 
-func (c *FakePolicies) Update(policy *v1.Policy) (result *v1.Policy, err error) {
+// List takes label and field selectors, and returns the list of Policies that match those selectors.
+func (c *FakePolicies) List(opts v1.ListOptions) (result *authorization_v1.PolicyList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(policiesResource, c.ns, policy), &v1.Policy{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Policy), err
-}
-
-func (c *FakePolicies) Delete(name string, options *meta_v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(policiesResource, c.ns, name), &v1.Policy{})
-
-	return err
-}
-
-func (c *FakePolicies) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(policiesResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &v1.PolicyList{})
-	return err
-}
-
-func (c *FakePolicies) Get(name string, options meta_v1.GetOptions) (result *v1.Policy, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(policiesResource, c.ns, name), &v1.Policy{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Policy), err
-}
-
-func (c *FakePolicies) List(opts meta_v1.ListOptions) (result *v1.PolicyList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewListAction(policiesResource, policiesKind, c.ns, opts), &v1.PolicyList{})
+		Invokes(testing.NewListAction(policiesResource, policiesKind, c.ns, opts), &authorization_v1.PolicyList{})
 
 	if obj == nil {
 		return nil, err
@@ -76,8 +44,8 @@ func (c *FakePolicies) List(opts meta_v1.ListOptions) (result *v1.PolicyList, er
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1.PolicyList{}
-	for _, item := range obj.(*v1.PolicyList).Items {
+	list := &authorization_v1.PolicyList{}
+	for _, item := range obj.(*authorization_v1.PolicyList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -86,19 +54,57 @@ func (c *FakePolicies) List(opts meta_v1.ListOptions) (result *v1.PolicyList, er
 }
 
 // Watch returns a watch.Interface that watches the requested policies.
-func (c *FakePolicies) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *FakePolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(policiesResource, c.ns, opts))
 
 }
 
-// Patch applies the patch and returns the patched policy.
-func (c *FakePolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Policy, err error) {
+// Create takes the representation of a policy and creates it.  Returns the server's representation of the policy, and an error, if there is any.
+func (c *FakePolicies) Create(policy *authorization_v1.Policy) (result *authorization_v1.Policy, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(policiesResource, c.ns, name, data, subresources...), &v1.Policy{})
+		Invokes(testing.NewCreateAction(policiesResource, c.ns, policy), &authorization_v1.Policy{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.Policy), err
+	return obj.(*authorization_v1.Policy), err
+}
+
+// Update takes the representation of a policy and updates it. Returns the server's representation of the policy, and an error, if there is any.
+func (c *FakePolicies) Update(policy *authorization_v1.Policy) (result *authorization_v1.Policy, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(policiesResource, c.ns, policy), &authorization_v1.Policy{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization_v1.Policy), err
+}
+
+// Delete takes name of the policy and deletes it. Returns an error if one occurs.
+func (c *FakePolicies) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(policiesResource, c.ns, name), &authorization_v1.Policy{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakePolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(policiesResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &authorization_v1.PolicyList{})
+	return err
+}
+
+// Patch applies the patch and returns the patched policy.
+func (c *FakePolicies) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *authorization_v1.Policy, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(policiesResource, c.ns, name, data, subresources...), &authorization_v1.Policy{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization_v1.Policy), err
 }

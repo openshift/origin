@@ -20,50 +20,7 @@ var deploymentconfigsResource = schema.GroupVersionResource{Group: "apps.openshi
 
 var deploymentconfigsKind = schema.GroupVersionKind{Group: "apps.openshift.io", Version: "", Kind: "DeploymentConfig"}
 
-func (c *FakeDeploymentConfigs) Create(deploymentConfig *apps.DeploymentConfig) (result *apps.DeploymentConfig, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(deploymentconfigsResource, c.ns, deploymentConfig), &apps.DeploymentConfig{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*apps.DeploymentConfig), err
-}
-
-func (c *FakeDeploymentConfigs) Update(deploymentConfig *apps.DeploymentConfig) (result *apps.DeploymentConfig, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(deploymentconfigsResource, c.ns, deploymentConfig), &apps.DeploymentConfig{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*apps.DeploymentConfig), err
-}
-
-func (c *FakeDeploymentConfigs) UpdateStatus(deploymentConfig *apps.DeploymentConfig) (*apps.DeploymentConfig, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(deploymentconfigsResource, "status", c.ns, deploymentConfig), &apps.DeploymentConfig{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*apps.DeploymentConfig), err
-}
-
-func (c *FakeDeploymentConfigs) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(deploymentconfigsResource, c.ns, name), &apps.DeploymentConfig{})
-
-	return err
-}
-
-func (c *FakeDeploymentConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(deploymentconfigsResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &apps.DeploymentConfigList{})
-	return err
-}
-
+// Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
 func (c *FakeDeploymentConfigs) Get(name string, options v1.GetOptions) (result *apps.DeploymentConfig, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(deploymentconfigsResource, c.ns, name), &apps.DeploymentConfig{})
@@ -74,6 +31,7 @@ func (c *FakeDeploymentConfigs) Get(name string, options v1.GetOptions) (result 
 	return obj.(*apps.DeploymentConfig), err
 }
 
+// List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
 func (c *FakeDeploymentConfigs) List(opts v1.ListOptions) (result *apps.DeploymentConfigList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(deploymentconfigsResource, deploymentconfigsKind, c.ns, opts), &apps.DeploymentConfigList{})
@@ -100,6 +58,56 @@ func (c *FakeDeploymentConfigs) Watch(opts v1.ListOptions) (watch.Interface, err
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(deploymentconfigsResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a deploymentConfig and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
+func (c *FakeDeploymentConfigs) Create(deploymentConfig *apps.DeploymentConfig) (result *apps.DeploymentConfig, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(deploymentconfigsResource, c.ns, deploymentConfig), &apps.DeploymentConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*apps.DeploymentConfig), err
+}
+
+// Update takes the representation of a deploymentConfig and updates it. Returns the server's representation of the deploymentConfig, and an error, if there is any.
+func (c *FakeDeploymentConfigs) Update(deploymentConfig *apps.DeploymentConfig) (result *apps.DeploymentConfig, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(deploymentconfigsResource, c.ns, deploymentConfig), &apps.DeploymentConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*apps.DeploymentConfig), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeDeploymentConfigs) UpdateStatus(deploymentConfig *apps.DeploymentConfig) (*apps.DeploymentConfig, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(deploymentconfigsResource, "status", c.ns, deploymentConfig), &apps.DeploymentConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*apps.DeploymentConfig), err
+}
+
+// Delete takes name of the deploymentConfig and deletes it. Returns an error if one occurs.
+func (c *FakeDeploymentConfigs) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(deploymentconfigsResource, c.ns, name), &apps.DeploymentConfig{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeDeploymentConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(deploymentconfigsResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &apps.DeploymentConfigList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched deploymentConfig.

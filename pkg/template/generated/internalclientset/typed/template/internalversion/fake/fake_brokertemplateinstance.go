@@ -19,37 +19,7 @@ var brokertemplateinstancesResource = schema.GroupVersionResource{Group: "templa
 
 var brokertemplateinstancesKind = schema.GroupVersionKind{Group: "template.openshift.io", Version: "", Kind: "BrokerTemplateInstance"}
 
-func (c *FakeBrokerTemplateInstances) Create(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(brokertemplateinstancesResource, brokerTemplateInstance), &template.BrokerTemplateInstance{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*template.BrokerTemplateInstance), err
-}
-
-func (c *FakeBrokerTemplateInstances) Update(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(brokertemplateinstancesResource, brokerTemplateInstance), &template.BrokerTemplateInstance{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*template.BrokerTemplateInstance), err
-}
-
-func (c *FakeBrokerTemplateInstances) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(brokertemplateinstancesResource, name), &template.BrokerTemplateInstance{})
-	return err
-}
-
-func (c *FakeBrokerTemplateInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(brokertemplateinstancesResource, listOptions)
-
-	_, err := c.Fake.Invokes(action, &template.BrokerTemplateInstanceList{})
-	return err
-}
-
+// Get takes name of the brokerTemplateInstance, and returns the corresponding brokerTemplateInstance object, and an error if there is any.
 func (c *FakeBrokerTemplateInstances) Get(name string, options v1.GetOptions) (result *template.BrokerTemplateInstance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(brokertemplateinstancesResource, name), &template.BrokerTemplateInstance{})
@@ -59,6 +29,7 @@ func (c *FakeBrokerTemplateInstances) Get(name string, options v1.GetOptions) (r
 	return obj.(*template.BrokerTemplateInstance), err
 }
 
+// List takes label and field selectors, and returns the list of BrokerTemplateInstances that match those selectors.
 func (c *FakeBrokerTemplateInstances) List(opts v1.ListOptions) (result *template.BrokerTemplateInstanceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(brokertemplateinstancesResource, brokertemplateinstancesKind, opts), &template.BrokerTemplateInstanceList{})
@@ -83,6 +54,41 @@ func (c *FakeBrokerTemplateInstances) List(opts v1.ListOptions) (result *templat
 func (c *FakeBrokerTemplateInstances) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(brokertemplateinstancesResource, opts))
+}
+
+// Create takes the representation of a brokerTemplateInstance and creates it.  Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
+func (c *FakeBrokerTemplateInstances) Create(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateAction(brokertemplateinstancesResource, brokerTemplateInstance), &template.BrokerTemplateInstance{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*template.BrokerTemplateInstance), err
+}
+
+// Update takes the representation of a brokerTemplateInstance and updates it. Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
+func (c *FakeBrokerTemplateInstances) Update(brokerTemplateInstance *template.BrokerTemplateInstance) (result *template.BrokerTemplateInstance, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateAction(brokertemplateinstancesResource, brokerTemplateInstance), &template.BrokerTemplateInstance{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*template.BrokerTemplateInstance), err
+}
+
+// Delete takes name of the brokerTemplateInstance and deletes it. Returns an error if one occurs.
+func (c *FakeBrokerTemplateInstances) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewRootDeleteAction(brokertemplateinstancesResource, name), &template.BrokerTemplateInstance{})
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeBrokerTemplateInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(brokertemplateinstancesResource, listOptions)
+
+	_, err := c.Fake.Invokes(action, &template.BrokerTemplateInstanceList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched brokerTemplateInstance.

@@ -19,37 +19,7 @@ var securitycontextconstraintsResource = schema.GroupVersionResource{Group: "sec
 
 var securitycontextconstraintsKind = schema.GroupVersionKind{Group: "security.openshift.io", Version: "", Kind: "SecurityContextConstraints"}
 
-func (c *FakeSecurityContextConstraints) Create(securityContextConstraints *security.SecurityContextConstraints) (result *security.SecurityContextConstraints, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(securitycontextconstraintsResource, securityContextConstraints), &security.SecurityContextConstraints{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*security.SecurityContextConstraints), err
-}
-
-func (c *FakeSecurityContextConstraints) Update(securityContextConstraints *security.SecurityContextConstraints) (result *security.SecurityContextConstraints, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(securitycontextconstraintsResource, securityContextConstraints), &security.SecurityContextConstraints{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*security.SecurityContextConstraints), err
-}
-
-func (c *FakeSecurityContextConstraints) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(securitycontextconstraintsResource, name), &security.SecurityContextConstraints{})
-	return err
-}
-
-func (c *FakeSecurityContextConstraints) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(securitycontextconstraintsResource, listOptions)
-
-	_, err := c.Fake.Invokes(action, &security.SecurityContextConstraintsList{})
-	return err
-}
-
+// Get takes name of the securityContextConstraints, and returns the corresponding securityContextConstraints object, and an error if there is any.
 func (c *FakeSecurityContextConstraints) Get(name string, options v1.GetOptions) (result *security.SecurityContextConstraints, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(securitycontextconstraintsResource, name), &security.SecurityContextConstraints{})
@@ -59,6 +29,7 @@ func (c *FakeSecurityContextConstraints) Get(name string, options v1.GetOptions)
 	return obj.(*security.SecurityContextConstraints), err
 }
 
+// List takes label and field selectors, and returns the list of SecurityContextConstraints that match those selectors.
 func (c *FakeSecurityContextConstraints) List(opts v1.ListOptions) (result *security.SecurityContextConstraintsList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(securitycontextconstraintsResource, securitycontextconstraintsKind, opts), &security.SecurityContextConstraintsList{})
@@ -83,6 +54,41 @@ func (c *FakeSecurityContextConstraints) List(opts v1.ListOptions) (result *secu
 func (c *FakeSecurityContextConstraints) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(securitycontextconstraintsResource, opts))
+}
+
+// Create takes the representation of a securityContextConstraints and creates it.  Returns the server's representation of the securityContextConstraints, and an error, if there is any.
+func (c *FakeSecurityContextConstraints) Create(securityContextConstraints *security.SecurityContextConstraints) (result *security.SecurityContextConstraints, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateAction(securitycontextconstraintsResource, securityContextConstraints), &security.SecurityContextConstraints{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*security.SecurityContextConstraints), err
+}
+
+// Update takes the representation of a securityContextConstraints and updates it. Returns the server's representation of the securityContextConstraints, and an error, if there is any.
+func (c *FakeSecurityContextConstraints) Update(securityContextConstraints *security.SecurityContextConstraints) (result *security.SecurityContextConstraints, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateAction(securitycontextconstraintsResource, securityContextConstraints), &security.SecurityContextConstraints{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*security.SecurityContextConstraints), err
+}
+
+// Delete takes name of the securityContextConstraints and deletes it. Returns an error if one occurs.
+func (c *FakeSecurityContextConstraints) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewRootDeleteAction(securitycontextconstraintsResource, name), &security.SecurityContextConstraints{})
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeSecurityContextConstraints) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(securitycontextconstraintsResource, listOptions)
+
+	_, err := c.Fake.Invokes(action, &security.SecurityContextConstraintsList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched securityContextConstraints.

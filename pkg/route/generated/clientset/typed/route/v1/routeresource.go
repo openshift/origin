@@ -43,6 +43,41 @@ func newRoutes(c *RouteV1Client, namespace string) *routes {
 	}
 }
 
+// Get takes name of the routeResource, and returns the corresponding routeResource object, and an error if there is any.
+func (c *routes) Get(name string, options meta_v1.GetOptions) (result *v1.Route, err error) {
+	result = &v1.Route{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("routes").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Routes that match those selectors.
+func (c *routes) List(opts meta_v1.ListOptions) (result *v1.RouteList, err error) {
+	result = &v1.RouteList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("routes").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested routes.
+func (c *routes) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("routes").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a routeResource and creates it.  Returns the server's representation of the routeResource, and an error, if there is any.
 func (c *routes) Create(routeResource *v1.Route) (result *v1.Route, err error) {
 	result = &v1.Route{}
@@ -69,7 +104,7 @@ func (c *routes) Update(routeResource *v1.Route) (result *v1.Route, err error) {
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *routes) UpdateStatus(routeResource *v1.Route) (result *v1.Route, err error) {
 	result = &v1.Route{}
@@ -104,41 +139,6 @@ func (c *routes) DeleteCollection(options *meta_v1.DeleteOptions, listOptions me
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the routeResource, and returns the corresponding routeResource object, and an error if there is any.
-func (c *routes) Get(name string, options meta_v1.GetOptions) (result *v1.Route, err error) {
-	result = &v1.Route{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("routes").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Routes that match those selectors.
-func (c *routes) List(opts meta_v1.ListOptions) (result *v1.RouteList, err error) {
-	result = &v1.RouteList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("routes").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested routes.
-func (c *routes) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("routes").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched routeResource.

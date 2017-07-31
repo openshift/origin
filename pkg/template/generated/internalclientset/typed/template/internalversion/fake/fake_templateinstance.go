@@ -20,50 +20,7 @@ var templateinstancesResource = schema.GroupVersionResource{Group: "template.ope
 
 var templateinstancesKind = schema.GroupVersionKind{Group: "template.openshift.io", Version: "", Kind: "TemplateInstance"}
 
-func (c *FakeTemplateInstances) Create(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(templateinstancesResource, c.ns, templateInstance), &template.TemplateInstance{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*template.TemplateInstance), err
-}
-
-func (c *FakeTemplateInstances) Update(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(templateinstancesResource, c.ns, templateInstance), &template.TemplateInstance{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*template.TemplateInstance), err
-}
-
-func (c *FakeTemplateInstances) UpdateStatus(templateInstance *template.TemplateInstance) (*template.TemplateInstance, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(templateinstancesResource, "status", c.ns, templateInstance), &template.TemplateInstance{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*template.TemplateInstance), err
-}
-
-func (c *FakeTemplateInstances) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(templateinstancesResource, c.ns, name), &template.TemplateInstance{})
-
-	return err
-}
-
-func (c *FakeTemplateInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(templateinstancesResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &template.TemplateInstanceList{})
-	return err
-}
-
+// Get takes name of the templateInstance, and returns the corresponding templateInstance object, and an error if there is any.
 func (c *FakeTemplateInstances) Get(name string, options v1.GetOptions) (result *template.TemplateInstance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(templateinstancesResource, c.ns, name), &template.TemplateInstance{})
@@ -74,6 +31,7 @@ func (c *FakeTemplateInstances) Get(name string, options v1.GetOptions) (result 
 	return obj.(*template.TemplateInstance), err
 }
 
+// List takes label and field selectors, and returns the list of TemplateInstances that match those selectors.
 func (c *FakeTemplateInstances) List(opts v1.ListOptions) (result *template.TemplateInstanceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(templateinstancesResource, templateinstancesKind, c.ns, opts), &template.TemplateInstanceList{})
@@ -100,6 +58,56 @@ func (c *FakeTemplateInstances) Watch(opts v1.ListOptions) (watch.Interface, err
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(templateinstancesResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a templateInstance and creates it.  Returns the server's representation of the templateInstance, and an error, if there is any.
+func (c *FakeTemplateInstances) Create(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(templateinstancesResource, c.ns, templateInstance), &template.TemplateInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*template.TemplateInstance), err
+}
+
+// Update takes the representation of a templateInstance and updates it. Returns the server's representation of the templateInstance, and an error, if there is any.
+func (c *FakeTemplateInstances) Update(templateInstance *template.TemplateInstance) (result *template.TemplateInstance, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(templateinstancesResource, c.ns, templateInstance), &template.TemplateInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*template.TemplateInstance), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeTemplateInstances) UpdateStatus(templateInstance *template.TemplateInstance) (*template.TemplateInstance, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(templateinstancesResource, "status", c.ns, templateInstance), &template.TemplateInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*template.TemplateInstance), err
+}
+
+// Delete takes name of the templateInstance and deletes it. Returns an error if one occurs.
+func (c *FakeTemplateInstances) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(templateinstancesResource, c.ns, name), &template.TemplateInstance{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeTemplateInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(templateinstancesResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &template.TemplateInstanceList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched templateInstance.

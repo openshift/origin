@@ -20,40 +20,7 @@ var rolebindingsResource = schema.GroupVersionResource{Group: "authorization.ope
 
 var rolebindingsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "", Kind: "RoleBinding"}
 
-func (c *FakeRoleBindings) Create(roleBinding *authorization.RoleBinding) (result *authorization.RoleBinding, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(rolebindingsResource, c.ns, roleBinding), &authorization.RoleBinding{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.RoleBinding), err
-}
-
-func (c *FakeRoleBindings) Update(roleBinding *authorization.RoleBinding) (result *authorization.RoleBinding, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(rolebindingsResource, c.ns, roleBinding), &authorization.RoleBinding{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.RoleBinding), err
-}
-
-func (c *FakeRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(rolebindingsResource, c.ns, name), &authorization.RoleBinding{})
-
-	return err
-}
-
-func (c *FakeRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(rolebindingsResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &authorization.RoleBindingList{})
-	return err
-}
-
+// Get takes name of the roleBinding, and returns the corresponding roleBinding object, and an error if there is any.
 func (c *FakeRoleBindings) Get(name string, options v1.GetOptions) (result *authorization.RoleBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(rolebindingsResource, c.ns, name), &authorization.RoleBinding{})
@@ -64,6 +31,7 @@ func (c *FakeRoleBindings) Get(name string, options v1.GetOptions) (result *auth
 	return obj.(*authorization.RoleBinding), err
 }
 
+// List takes label and field selectors, and returns the list of RoleBindings that match those selectors.
 func (c *FakeRoleBindings) List(opts v1.ListOptions) (result *authorization.RoleBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(rolebindingsResource, rolebindingsKind, c.ns, opts), &authorization.RoleBindingList{})
@@ -90,6 +58,44 @@ func (c *FakeRoleBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(rolebindingsResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a roleBinding and creates it.  Returns the server's representation of the roleBinding, and an error, if there is any.
+func (c *FakeRoleBindings) Create(roleBinding *authorization.RoleBinding) (result *authorization.RoleBinding, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(rolebindingsResource, c.ns, roleBinding), &authorization.RoleBinding{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.RoleBinding), err
+}
+
+// Update takes the representation of a roleBinding and updates it. Returns the server's representation of the roleBinding, and an error, if there is any.
+func (c *FakeRoleBindings) Update(roleBinding *authorization.RoleBinding) (result *authorization.RoleBinding, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(rolebindingsResource, c.ns, roleBinding), &authorization.RoleBinding{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.RoleBinding), err
+}
+
+// Delete takes name of the roleBinding and deletes it. Returns an error if one occurs.
+func (c *FakeRoleBindings) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(rolebindingsResource, c.ns, name), &authorization.RoleBinding{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeRoleBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(rolebindingsResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &authorization.RoleBindingList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched roleBinding.

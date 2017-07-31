@@ -43,6 +43,41 @@ func newImageStreams(c *ImageV1Client, namespace string) *imageStreams {
 	}
 }
 
+// Get takes name of the imageStream, and returns the corresponding imageStream object, and an error if there is any.
+func (c *imageStreams) Get(name string, options meta_v1.GetOptions) (result *v1.ImageStream, err error) {
+	result = &v1.ImageStream{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("imagestreams").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of ImageStreams that match those selectors.
+func (c *imageStreams) List(opts meta_v1.ListOptions) (result *v1.ImageStreamList, err error) {
+	result = &v1.ImageStreamList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("imagestreams").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested imageStreams.
+func (c *imageStreams) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("imagestreams").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a imageStream and creates it.  Returns the server's representation of the imageStream, and an error, if there is any.
 func (c *imageStreams) Create(imageStream *v1.ImageStream) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
@@ -69,7 +104,7 @@ func (c *imageStreams) Update(imageStream *v1.ImageStream) (result *v1.ImageStre
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *imageStreams) UpdateStatus(imageStream *v1.ImageStream) (result *v1.ImageStream, err error) {
 	result = &v1.ImageStream{}
@@ -104,41 +139,6 @@ func (c *imageStreams) DeleteCollection(options *meta_v1.DeleteOptions, listOpti
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the imageStream, and returns the corresponding imageStream object, and an error if there is any.
-func (c *imageStreams) Get(name string, options meta_v1.GetOptions) (result *v1.ImageStream, err error) {
-	result = &v1.ImageStream{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("imagestreams").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ImageStreams that match those selectors.
-func (c *imageStreams) List(opts meta_v1.ListOptions) (result *v1.ImageStreamList, err error) {
-	result = &v1.ImageStreamList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("imagestreams").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested imageStreams.
-func (c *imageStreams) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("imagestreams").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched imageStream.

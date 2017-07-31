@@ -40,6 +40,38 @@ func newBrokerTemplateInstances(c *TemplateV1Client) *brokerTemplateInstances {
 	}
 }
 
+// Get takes name of the brokerTemplateInstance, and returns the corresponding brokerTemplateInstance object, and an error if there is any.
+func (c *brokerTemplateInstances) Get(name string, options meta_v1.GetOptions) (result *v1.BrokerTemplateInstance, err error) {
+	result = &v1.BrokerTemplateInstance{}
+	err = c.client.Get().
+		Resource("brokertemplateinstances").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of BrokerTemplateInstances that match those selectors.
+func (c *brokerTemplateInstances) List(opts meta_v1.ListOptions) (result *v1.BrokerTemplateInstanceList, err error) {
+	result = &v1.BrokerTemplateInstanceList{}
+	err = c.client.Get().
+		Resource("brokertemplateinstances").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested brokerTemplateInstances.
+func (c *brokerTemplateInstances) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Resource("brokertemplateinstances").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a brokerTemplateInstance and creates it.  Returns the server's representation of the brokerTemplateInstance, and an error, if there is any.
 func (c *brokerTemplateInstances) Create(brokerTemplateInstance *v1.BrokerTemplateInstance) (result *v1.BrokerTemplateInstance, err error) {
 	result = &v1.BrokerTemplateInstance{}
@@ -81,38 +113,6 @@ func (c *brokerTemplateInstances) DeleteCollection(options *meta_v1.DeleteOption
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the brokerTemplateInstance, and returns the corresponding brokerTemplateInstance object, and an error if there is any.
-func (c *brokerTemplateInstances) Get(name string, options meta_v1.GetOptions) (result *v1.BrokerTemplateInstance, err error) {
-	result = &v1.BrokerTemplateInstance{}
-	err = c.client.Get().
-		Resource("brokertemplateinstances").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of BrokerTemplateInstances that match those selectors.
-func (c *brokerTemplateInstances) List(opts meta_v1.ListOptions) (result *v1.BrokerTemplateInstanceList, err error) {
-	result = &v1.BrokerTemplateInstanceList{}
-	err = c.client.Get().
-		Resource("brokertemplateinstances").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested brokerTemplateInstances.
-func (c *brokerTemplateInstances) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Resource("brokertemplateinstances").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched brokerTemplateInstance.

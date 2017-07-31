@@ -40,6 +40,38 @@ func newClusterPolicies(c *AuthorizationClient) *clusterPolicies {
 	}
 }
 
+// Get takes name of the clusterPolicy, and returns the corresponding clusterPolicy object, and an error if there is any.
+func (c *clusterPolicies) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicy, err error) {
+	result = &authorization.ClusterPolicy{}
+	err = c.client.Get().
+		Resource("clusterpolicies").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of ClusterPolicies that match those selectors.
+func (c *clusterPolicies) List(opts v1.ListOptions) (result *authorization.ClusterPolicyList, err error) {
+	result = &authorization.ClusterPolicyList{}
+	err = c.client.Get().
+		Resource("clusterpolicies").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested clusterPolicies.
+func (c *clusterPolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Resource("clusterpolicies").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a clusterPolicy and creates it.  Returns the server's representation of the clusterPolicy, and an error, if there is any.
 func (c *clusterPolicies) Create(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
 	result = &authorization.ClusterPolicy{}
@@ -81,38 +113,6 @@ func (c *clusterPolicies) DeleteCollection(options *v1.DeleteOptions, listOption
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the clusterPolicy, and returns the corresponding clusterPolicy object, and an error if there is any.
-func (c *clusterPolicies) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicy, err error) {
-	result = &authorization.ClusterPolicy{}
-	err = c.client.Get().
-		Resource("clusterpolicies").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ClusterPolicies that match those selectors.
-func (c *clusterPolicies) List(opts v1.ListOptions) (result *authorization.ClusterPolicyList, err error) {
-	result = &authorization.ClusterPolicyList{}
-	err = c.client.Get().
-		Resource("clusterpolicies").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested clusterPolicies.
-func (c *clusterPolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Resource("clusterpolicies").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched clusterPolicy.

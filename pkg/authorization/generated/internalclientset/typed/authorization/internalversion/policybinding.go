@@ -42,6 +42,41 @@ func newPolicyBindings(c *AuthorizationClient, namespace string) *policyBindings
 	}
 }
 
+// Get takes name of the policyBinding, and returns the corresponding policyBinding object, and an error if there is any.
+func (c *policyBindings) Get(name string, options v1.GetOptions) (result *authorization.PolicyBinding, err error) {
+	result = &authorization.PolicyBinding{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("policybindings").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of PolicyBindings that match those selectors.
+func (c *policyBindings) List(opts v1.ListOptions) (result *authorization.PolicyBindingList, err error) {
+	result = &authorization.PolicyBindingList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("policybindings").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested policyBindings.
+func (c *policyBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("policybindings").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a policyBinding and creates it.  Returns the server's representation of the policyBinding, and an error, if there is any.
 func (c *policyBindings) Create(policyBinding *authorization.PolicyBinding) (result *authorization.PolicyBinding, err error) {
 	result = &authorization.PolicyBinding{}
@@ -87,41 +122,6 @@ func (c *policyBindings) DeleteCollection(options *v1.DeleteOptions, listOptions
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the policyBinding, and returns the corresponding policyBinding object, and an error if there is any.
-func (c *policyBindings) Get(name string, options v1.GetOptions) (result *authorization.PolicyBinding, err error) {
-	result = &authorization.PolicyBinding{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("policybindings").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of PolicyBindings that match those selectors.
-func (c *policyBindings) List(opts v1.ListOptions) (result *authorization.PolicyBindingList, err error) {
-	result = &authorization.PolicyBindingList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("policybindings").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested policyBindings.
-func (c *policyBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("policybindings").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched policyBinding.

@@ -43,6 +43,41 @@ func newBuilds(c *BuildV1Client, namespace string) *builds {
 	}
 }
 
+// Get takes name of the buildResource, and returns the corresponding buildResource object, and an error if there is any.
+func (c *builds) Get(name string, options meta_v1.GetOptions) (result *v1.Build, err error) {
+	result = &v1.Build{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("builds").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Builds that match those selectors.
+func (c *builds) List(opts meta_v1.ListOptions) (result *v1.BuildList, err error) {
+	result = &v1.BuildList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("builds").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested builds.
+func (c *builds) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("builds").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a buildResource and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
 func (c *builds) Create(buildResource *v1.Build) (result *v1.Build, err error) {
 	result = &v1.Build{}
@@ -69,7 +104,7 @@ func (c *builds) Update(buildResource *v1.Build) (result *v1.Build, err error) {
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *builds) UpdateStatus(buildResource *v1.Build) (result *v1.Build, err error) {
 	result = &v1.Build{}
@@ -104,41 +139,6 @@ func (c *builds) DeleteCollection(options *meta_v1.DeleteOptions, listOptions me
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the buildResource, and returns the corresponding buildResource object, and an error if there is any.
-func (c *builds) Get(name string, options meta_v1.GetOptions) (result *v1.Build, err error) {
-	result = &v1.Build{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("builds").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Builds that match those selectors.
-func (c *builds) List(opts meta_v1.ListOptions) (result *v1.BuildList, err error) {
-	result = &v1.BuildList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("builds").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested builds.
-func (c *builds) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("builds").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched buildResource.
