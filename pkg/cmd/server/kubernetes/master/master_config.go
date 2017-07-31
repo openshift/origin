@@ -624,6 +624,12 @@ func BuildKubernetesMasterConfig(
 		return nil, err
 	}
 
+	// we do this for integration tests to be able to turn it off for better startup speed
+	// TODO remove the entire option once openapi is faster
+	if masterConfig.DisableOpenAPI {
+		apiserverConfig.GenericConfig.OpenAPIConfig = nil
+	}
+
 	kmaster := &MasterConfig{
 		Options: *masterConfig.KubernetesMasterConfig,
 

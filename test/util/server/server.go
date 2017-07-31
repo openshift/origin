@@ -140,6 +140,7 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 		return nil, err
 	}
 
+	masterConfig.DisableOpenAPI = true
 	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
 	allowedRegistries := append(
 		*configapi.DefaultAllowedRegistriesForImport,
@@ -262,6 +263,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	if err != nil {
 		return nil, nil, nil, err
 	}
+	masterOptions.DisableOpenAPI = true
 
 	if fn := startOptions.MasterOptions.MasterArgs.OverrideConfig; fn != nil {
 		if err := fn(masterOptions); err != nil {
