@@ -7,7 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 
 // Upon log in, every user of the system receives a User and Identity resource. Administrators
 // may directly manipulate the attributes of the users for their own tracking, or set groups
