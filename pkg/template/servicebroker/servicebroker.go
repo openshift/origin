@@ -56,7 +56,7 @@ func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, in
 		// the broker is initialised asynchronously because fetching the service
 		// account token requires the main API server to be running.
 
-		glog.V(2).Infof("Template service broker: waiting for authentication token")
+		glog.Infof("Template service broker: waiting for authentication token")
 
 		restconfig, _, kc, extkc, err := serviceaccounts.Clients(
 			privrestconfig,
@@ -86,13 +86,13 @@ func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, in
 		b.extrouteclient = extrouteclientset
 		b.templateclient = templateclientset.Template()
 
-		glog.V(2).Infof("Template service broker: waiting for informer sync")
+		glog.Infof("Template service broker: waiting for informer sync")
 
 		for !informer.Informer().HasSynced() {
 			time.Sleep(100 * time.Millisecond)
 		}
 
-		glog.V(2).Infof("Template service broker: ready; reading namespaces %v", namespaces)
+		glog.Infof("Template service broker: ready; reading namespaces %v", namespaces)
 
 		close(b.ready)
 	}()
@@ -106,7 +106,7 @@ func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, in
 func (b *Broker) WaitForReady() error {
 	// delay up to 10 seconds if not ready (unlikely), before returning a
 	// "try again" response.
-	timer := time.NewTimer(10 * time.Second)
+	timer := time.NewTimer(5 * time.Minute)
 	defer timer.Stop()
 
 	select {
