@@ -10,10 +10,15 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"sync"
+	"testing"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
+	etcdclient "github.com/coreos/etcd/client"
+	etcdclientv3 "github.com/coreos/etcd/clientv3"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -24,6 +29,8 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -364,6 +371,33 @@ func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string
 
 	adminKubeConfigFile, err := StartConfiguredAllInOne(master, node, components)
 	return master, node, adminKubeConfigFile, err
+}
+
+func MasterEtcdClients(config *configapi.MasterConfig) (etcdclient.Client, *etcdclientv3.Client, error) {
+	etcd2, err := etcd.MakeEtcdClient(config.EtcdClientInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+	etcd3, err := etcd.MakeEtcdClientV3(config.EtcdClientInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+	return etcd2, etcd3, nil
+}
+
+func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
+	etcd2, etcd3, err := MasterEtcdClients(config)
+	if err != nil {
+		t.Logf("Unable to get etcd client available for master: %v", err)
+	}
+	util.DumpEtcdOnFailure(t, etcd2, etcd3)
+	if config.EtcdConfig != nil {
+		if len(config.EtcdConfig.StorageDir) > 0 {
+			if err := os.RemoveAll(config.EtcdConfig.StorageDir); err != nil {
+				t.Logf("Unable to clean up the config storage directory %s: %v", config.EtcdConfig.StorageDir, err)
+			}
+		}
+	}
 }
 
 type TestOptions struct {
