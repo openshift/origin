@@ -179,6 +179,16 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	}
 
 	masterConfig.DisableOpenAPI = true
+
+	// use etcd3
+	if km := masterConfig.KubernetesMasterConfig; km != nil {
+		if km.APIServerArguments == nil {
+			km.APIServerArguments = configapi.ExtendedArguments{}
+		}
+		km.APIServerArguments["storage-media-type"] = []string{"application/vnd.kubernetes.protobuf"}
+		km.APIServerArguments["storage-backend"] = []string{"etcd3"}
+	}
+
 	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
 	allowedRegistries := append(
 		*configapi.DefaultAllowedRegistriesForImport,
@@ -188,6 +198,20 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
+
+	// force etcd3 mode when we aren't launching an embedded etcd
+	if !startEtcd {
+		masterConfig.EtcdClientInfo.CA = ""
+		masterConfig.EtcdClientInfo.ClientCert.CertFile = ""
+		masterConfig.EtcdClientInfo.ClientCert.KeyFile = ""
+		masterConfig.KubernetesMasterConfig.APIServerArguments = configapi.ExtendedArguments{
+			"storage-backend":    []string{"etcd3"},
+			"storage-media-type": []string{"application/vnd.kubernetes.protobuf"},
+		}
+	}
+
+	glog.Infof("Starting integration server from master %s", startOptions.MasterArgs.ConfigDir.Value())
+
 	return masterConfig, nil
 }
 
