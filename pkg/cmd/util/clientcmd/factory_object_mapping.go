@@ -336,7 +336,7 @@ func (f *ring1Factory) Validator(validate bool, cacheDir string) (validation.Sch
 }
 
 func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiDeclaration, error) {
-	if !latest.OriginKind(gvk) {
+	if !latest.OriginLegacyKind(gvk) {
 		return f.kubeObjectMappingFactory.SwaggerSchema(gvk)
 	}
 	// TODO: we need to register the OpenShift API under the Kube group, and start returning the OpenShift

@@ -133,15 +133,12 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
-	// TODO this is eventually where we end up, with the openshift server completely discrete from the kube one
-	// but this only works *AFTER* we commit to the aggregator.  Right now the aggregator is optional, so we have
-	// to install ourselves in the kubeapiserver
-	// openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer, stopCh)
-	// if err != nil {
-	// 	glog.Fatalf("Failed to launch master: %v", err)
-	// }
-	// // this sets up the openapi endpoints
-	// preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
+	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer, stopCh)
+	if err != nil {
+		glog.Fatalf("Failed to launch master: %v", err)
+	}
+	// this sets up the openapi endpoints
+	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
 
 	// TODO move out of this function to somewhere we build the kubeAPIServerConfig
 	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, err = c.buildHandlerChain(assetConfig)
@@ -150,19 +147,10 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	}
 	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
 	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
-	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer, apiExtensionsConfig.CRDRESTOptionsGetter)
+	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(preparedOpenshiftAPIServer.GenericAPIServer, apiExtensionsConfig.CRDRESTOptionsGetter)
 	if err != nil {
 		glog.Fatalf("Failed to launch master: %v", err)
 	}
-	// TODO this goes away in 3.7 after we commit to the aggregator always being on (even if its just in local mode).
-	// this is installing the openshift APIs into the kubeapiserver
-	// ok, this is a big side-effect.  Openshift APIs run a different admission chain (always have), but since
-	// we're going through a "normal" API installation in the wrong server, we need to switch the admission chain
-	// *only while we're installing these APIs*.  There are tests that make sure this works and doesn't drop
-	// plugins and we'll remove it once we're aggregating
-	kubeAPIServer.GenericAPIServer.SetAdmission(openshiftAPIServerConfig.GenericConfig.AdmissionControl)
-	installAPIs(openshiftAPIServerConfig, kubeAPIServer.GenericAPIServer)
-	kubeAPIServer.GenericAPIServer.SetAdmission(kubeAPIServerConfig.GenericConfig.AdmissionControl)
 
 	// this sets up the openapi endpoints
 	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()

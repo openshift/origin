@@ -186,17 +186,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget,
 		GenericAPIServer: genericServer,
 	}
 
-	if err := installAPIs(c.OpenshiftAPIConfig, genericServer); err != nil {
-		return nil, err
-	}
-
-	return s, nil
-}
-
-func installAPIs(c *OpenshiftAPIConfig, server *genericapiserver.GenericAPIServer) error {
 	storage, err := c.GetRestStorage()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	groupVersions := map[string][]string{}
 
@@ -231,31 +223,31 @@ func installAPIs(c *OpenshiftAPIConfig, server *genericapiserver.GenericAPIServe
 			}
 		}
 
-		if err := server.InstallAPIGroup(&apiGroupInfo); err != nil {
-			return fmt.Errorf("unable to initialize %s API group: %v", apiGroupInfo.GroupMeta.GroupVersion, err)
+		if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
+			return nil, fmt.Errorf("unable to initialize %s API group: %v", apiGroupInfo.GroupMeta.GroupVersion, err)
 		}
 		glog.Infof("Starting Origin API at %s/%s/%s", api.GroupPrefix, apiGroupInfo.GroupMeta.GroupVersion.Group, apiGroupInfo.GroupMeta.GroupVersion.Version)
 	}
 
-	if err := server.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(storage))); err != nil {
-		return fmt.Errorf("Unable to initialize v1 API: %v", err)
+	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(storage))); err != nil {
+		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
 	}
 	glog.Infof("Started Origin API at %s/%s", api.Prefix, v1.SchemeGroupVersion.Version)
 
 	// fix API doc string
-	for _, service := range server.Handler.GoRestfulContainer.RegisteredWebServices() {
+	for _, service := range s.GenericAPIServer.Handler.GoRestfulContainer.RegisteredWebServices() {
 		if service.RootPath() == api.Prefix+"/"+v1.SchemeGroupVersion.Version {
 			service.Doc("OpenShift REST API, version v1").ApiVersion("v1")
 		}
 	}
 
 	// this remains a non-healthz endpoint so that you can be healthy without being ready.
-	initReadinessCheckRoute(server.Handler.NonGoRestfulMux, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
+	initReadinessCheckRoute(s.GenericAPIServer.Handler.NonGoRestfulMux, "/healthz/ready", c.ProjectAuthorizationCache.ReadyForAccess)
 
 	// this remains here and separate so that you can check both kube and openshift levels
-	initOpenshiftVersionRoute(server.Handler.GoRestfulContainer, "/version/openshift")
+	initOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
-	return nil
+	return s, nil
 }
 
 // apiLegacyV1 returns the resources and codec for API version v1.
