@@ -38,6 +38,35 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
 
+var (
+	// startLock protects access to the start vars
+	startLock sync.Mutex
+	// startedMaster is true if the master has already been started in process
+	startedMaster = false
+	// startedNode is true if the node has already been started in process
+	startedNode = false
+)
+
+// guardMaster prevents multiple master processes from being started at once
+func guardMaster() {
+	startLock.Lock()
+	defer startLock.Unlock()
+	if startedMaster {
+		panic("the master has already been started once in this process - run only a single test, or use the sub-shell")
+	}
+	startedMaster = true
+}
+
+// guardMaster prevents multiple master processes from being started at once
+func guardNode() {
+	startLock.Lock()
+	defer startLock.Unlock()
+	if startedNode {
+		panic("the node has already been started once in this process - run only a single test, or use the sub-shell")
+	}
+	startedNode = true
+}
+
 // ServiceAccountWaitTimeout is used to determine how long to wait for the service account
 // controllers to start up, and populate the service accounts in the test namespace
 const ServiceAccountWaitTimeout = 30 * time.Second
@@ -322,6 +351,7 @@ func DefaultTestOptions() TestOptions {
 }
 
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
+	guardNode()
 	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
 	kubernetes.SetFakeContainerManagerInterfaceForIntegrationTest()
 
@@ -354,6 +384,7 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 }
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
+	guardMaster()
 	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}
