@@ -593,7 +593,9 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		}
 	}
 
-	oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop)
+	if err := oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop); err != nil {
+		return err
+	}
 
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {

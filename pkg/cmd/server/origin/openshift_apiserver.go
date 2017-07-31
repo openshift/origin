@@ -176,7 +176,7 @@ func (c *OpenshiftAPIConfig) SkipComplete() completedConfig {
 	return completedConfig{c}
 }
 
-func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget, stopCh <-chan struct{}) (*OpenshiftAPIServer, error) {
+func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftAPIServer, error) {
 	genericServer, err := c.OpenshiftAPIConfig.GenericConfig.SkipComplete().New("openshift-apiserver", delegationTarget) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err

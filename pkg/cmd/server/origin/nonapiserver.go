@@ -45,7 +45,7 @@ func (c *OpenshiftNonAPIConfig) SkipComplete() completedOpenshiftNonAPIConfig {
 	return completedOpenshiftNonAPIConfig{c}
 }
 
-func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.DelegationTarget, stopCh <-chan struct{}) (*OpenshiftNonAPIServer, error) {
+func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftNonAPIServer, error) {
 	genericServer, err := c.OpenshiftNonAPIConfig.GenericConfig.SkipComplete().New("openshift-non-api-routes", delegationTarget) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err

@@ -2,6 +2,7 @@ package origin
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -21,10 +23,10 @@ import (
 	genericroutes "k8s.io/apiserver/pkg/server/routes"
 	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	clientgoclientset "k8s.io/client-go/kubernetes"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
-	"crypto/x509"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
@@ -113,79 +115,131 @@ func (c *MasterConfig) newTemplateServiceBrokerConfig(kubeAPIServerConfig apiser
 	return ret
 }
 
-// Run launches the OpenShift master by creating a kubernetes master, installing
-// OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) {
+func (c *MasterConfig) withTemplateServiceBroker(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+	if c.Options.TemplateServiceBrokerConfig == nil {
+		return delegateAPIServer, nil
+	}
+	tsbConfig := c.newTemplateServiceBrokerConfig(kubeAPIServerConfig)
+	tsbServer, err := tsbConfig.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+
+	return tsbServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
 	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
 	if err != nil {
-		glog.Fatalf("Failed: %v", err)
+		return nil, nil, err
 	}
 
-	var delegateAPIServer apiserver.DelegationTarget
-	delegateAPIServer = apiserver.EmptyDelegate
-	if c.Options.TemplateServiceBrokerConfig != nil {
-		tsbConfig := c.newTemplateServiceBrokerConfig(*kubeAPIServerConfig.GenericConfig)
-		tsbServer, err := tsbConfig.Complete().New(delegateAPIServer, stopCh)
-		if err != nil {
-			glog.Fatalf("Failed: %v", err)
-		}
-		delegateAPIServer = tsbServer.GenericAPIServer
-	}
-
-	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, kubeAPIServerOptions.Etcd)
+	apiExtensionsConfig, err := createAPIExtensionsConfig(kubeAPIServerConfig, kubeAPIServerOptions.Etcd)
 	if err != nil {
-		glog.Fatalf("Failed: %v", err)
+		return nil, nil, err
 	}
 	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, delegateAPIServer)
 	if err != nil {
-		glog.Fatalf("Failed: %v", err)
+		return nil, nil, err
 	}
+	return apiExtensionsServer.GenericAPIServer, apiExtensionsServer.Informers, nil
+}
 
-	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(*kubeAPIServerConfig.GenericConfig, controllerPlug)
-	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(apiExtensionsServer.GenericAPIServer, stopCh)
+func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) (apiserver.DelegationTarget, error) {
+	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig, controllerPlug)
+	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(delegateAPIServer)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
+	return openshiftNonAPIServer.GenericAPIServer, nil
+}
 
-	openshiftAPIServerConfig, err := c.newOpenshiftAPIConfig(*kubeAPIServerConfig.GenericConfig)
+func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+	openshiftAPIServerConfig, err := c.newOpenshiftAPIConfig(kubeAPIServerConfig)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
-	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer, stopCh)
+	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
+	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
+
+	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
 	// this sets up the openapi endpoints
 	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
 
+	return preparedOpenshiftAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig kubeapiserver.Config, assetConfig *AssetConfig) (apiserver.DelegationTarget, error) {
+	var err error
 	// TODO move out of this function to somewhere we build the kubeAPIServerConfig
 	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, err = c.buildHandlerChain(assetConfig)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
-	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
-	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
-	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(preparedOpenshiftAPIServer.GenericAPIServer, apiExtensionsConfig.CRDRESTOptionsGetter)
+	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(delegateAPIServer, nil /*this is only used for tpr migration and we don't have any to migrate*/)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
-
 	// this sets up the openapi endpoints
 	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()
 
-	aggregatorConfig, err := c.createAggregatorConfig(*kubeAPIServerConfig.GenericConfig)
+	return preparedKubeAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
+	aggregatorConfig, err := c.createAggregatorConfig(kubeAPIServerConfig)
 	if err != nil {
-		glog.Fatalf("Failed to create aggregator config: %v", err)
+		return nil, err
 	}
-	aggregatorServer, err := createAggregatorServer(aggregatorConfig, preparedKubeAPIServer.GenericAPIServer, c.InternalKubeInformers, apiExtensionsServer.Informers)
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, delegateAPIServer, c.InternalKubeInformers, apiExtensionsInformers)
 	if err != nil {
 		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
-		glog.Fatalf("Failed to create aggregator server: %v", err)
+		return nil, err
 	}
-	go aggregatorServer.GenericAPIServer.PrepareRun().Run(stopCh)
+
+	return aggregatorServer, nil
+}
+
+// Run launches the OpenShift master by creating a kubernetes master, installing
+// OpenShift APIs into it and then running it.
+func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) error {
+	var err error
+	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
+	var delegateAPIServer apiserver.DelegationTarget
+
+	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer, err = c.withTemplateServiceBroker(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *kubeAPIServerConfig.GenericConfig, controllerPlug)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *kubeAPIServerConfig, assetConfig)
+	if err != nil {
+		return err
+	}
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	if err != nil {
+		return err
+	}
+
+	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	return cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure http.Handler), error) {

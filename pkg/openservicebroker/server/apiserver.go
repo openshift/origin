@@ -38,7 +38,7 @@ func (c *TemplateServiceBrokerConfig) SkipComplete() completedTemplateServiceBro
 	return completedTemplateServiceBrokerConfig{c}
 }
 
-func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiserver.DelegationTarget, stopCh <-chan struct{}) (*TemplateServiceBrokerServer, error) {
+func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiserver.DelegationTarget) (*TemplateServiceBrokerServer, error) {
 	genericServer, err := c.TemplateServiceBrokerConfig.GenericConfig.SkipComplete().New("template-service-broker", delegationTarget) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
