@@ -440,7 +440,7 @@ func (m *Master) Start() error {
 			}
 			glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-			if err := origin.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
+			if err := origincontrollers.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
 				return err
 			}
 		}
