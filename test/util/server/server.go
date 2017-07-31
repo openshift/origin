@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
@@ -52,7 +53,13 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 		return "", errors.New("lowPort must be <= highPort")
 	}
 	for port := lowPort; port <= highPort; port++ {
-		l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		tryPort := port
+		if tryPort == 0 {
+			tryPort = int(rand.Int31n(int32(highPort-1024)) + 1024)
+		} else {
+			tryPort = int(rand.Int31n(int32(highPort-lowPort))) + lowPort
+		}
+		l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", tryPort))
 		if err != nil {
 			if port == 0 {
 				// Only get one shot to get an ephemeral port
@@ -90,7 +97,7 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 		// don't wait for nodes to come up
 		masterAddr := os.Getenv("OS_MASTER_ADDR")
 		if len(masterAddr) == 0 {
-			if addr, err := FindAvailableBindAddress(12000, 12999); err != nil {
+			if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
 				glog.Fatalf("Couldn't find free address for master: %v", err)
 			} else {
 				masterAddr = addr
@@ -108,7 +115,7 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
-		if addr, err := FindAvailableBindAddress(8053, 8100); err != nil {
+		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
 			glog.Fatalf("Couldn't find free address for DNS: %v", err)
 		} else {
 			dnsAddr = addr
