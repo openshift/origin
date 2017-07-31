@@ -679,7 +679,7 @@ func parseOpenshiftVersion(versionStr string) (semver.Version, error) {
 	// The OCP version may have > 4 parts to the version string,
 	// e.g. 3.5.1.1-prerelease, whereas Origin will be 3.5.1-prerelease,
 	// drop the 4th digit for OCP.
-	re := regexp.MustCompile("([0-9]+)\\.([0-9]+)\\.([0-9]+)\\.([0-9]+)(.*)")
+	re := regexp.MustCompile("([0-9]+)\\.([0-9]+)\\.([0-9]+)((?:\\.[0-9]+)+)(.*)")
 	versionStr = re.ReplaceAllString(versionStr, "${1}.${2}.${3}${5}")
 
 	return semver.Parse(versionStr)
