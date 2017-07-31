@@ -70,7 +70,7 @@ type OAuthAuthorizeToken struct {
 	CodeChallengeMethod string `json:"codeChallengeMethod,omitempty" protobuf:"bytes,10,opt,name=codeChallengeMethod"`
 }
 
-// +genclient=true
+// +genclient
 
 // OAuthClient describes an OAuth client
 type OAuthClient struct {

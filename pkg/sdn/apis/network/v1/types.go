@@ -8,7 +8,7 @@ const (
 	ClusterNetworkDefault = "default"
 )
 
-// +genclient=true
+// +genclient
 
 // ClusterNetwork describes the cluster network. There is normally only one object of this type,
 // named "default", which is created by the SDN network plugin based on the master configuration
