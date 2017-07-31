@@ -5,6 +5,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/types"
 )
 
 type contextKey string
@@ -33,6 +34,9 @@ const (
 
 	// configurationKey is the key for Configuration in Context.
 	configurationKey contextKey = "configuration"
+
+	// blobStoreFactoryKey is the key for BlobStoreFactory in Context.
+	blobStoreFactoryKey contextKey = "blobStoreFactory"
 )
 
 // withRepository returns a new Context that carries value repo.
@@ -116,4 +120,15 @@ func WithConfiguration(ctx context.Context, config *configuration.Configuration)
 // It will panic otherwise.
 func ConfigurationFrom(ctx context.Context) *configuration.Configuration {
 	return ctx.Value(configurationKey).(*configuration.Configuration)
+}
+
+// WithBlobStoreFactory returns a new Context with the provided BlobStore factory.
+func WithBlobStoreFactory(ctx context.Context, factory types.BlobStoreFactory) context.Context {
+	return context.WithValue(ctx, blobStoreFactoryKey, factory)
+}
+
+// BlobStoreFactoryFrom returns the BlobStore factory stored in ctx, if any.
+func BlobStoreFactoryFrom(ctx context.Context) (types.BlobStoreFactory, bool) {
+	factory, ok := ctx.Value(blobStoreFactoryKey).(types.BlobStoreFactory)
+	return factory, ok
 }

@@ -333,6 +333,10 @@ func (r *repository) Blobs(ctx context.Context) distribution.BlobStore {
 		}
 	}
 
+	if blobStoreFactory, ok := BlobStoreFactoryFrom(ctx); ok {
+		bs = blobStoreFactory.BlobStore(bs)
+	}
+
 	return bs
 }
 

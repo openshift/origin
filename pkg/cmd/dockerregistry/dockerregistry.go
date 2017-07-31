@@ -8,9 +8,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	"github.com/Sirupsen/logrus/formatters/logstash"
 	gorillahandlers "github.com/gorilla/handlers"
 
 	"github.com/docker/distribution/configuration"
@@ -34,14 +36,13 @@ import (
 	_ "github.com/docker/distribution/registry/storage/driver/s3-aws"
 	_ "github.com/docker/distribution/registry/storage/driver/swift"
 
-	"strings"
-
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/server/writelimiter"
 )
 
 // Execute runs the Docker registry.
@@ -77,6 +78,10 @@ func Execute(configFile io.Reader) {
 			Logger:           context.GetLogger(ctx),
 			SafeClientConfig: registryClient.SafeClientConfig(),
 		}
+	}
+
+	if extraConfig.Storage.MaxWriters > 0 {
+		ctx = server.WithBlobStoreFactory(ctx, writelimiter.NewBlobStoreFactory(extraConfig.Storage.MaxWriters))
 	}
 
 	app := handlers.NewApp(ctx, dockerConfig)
