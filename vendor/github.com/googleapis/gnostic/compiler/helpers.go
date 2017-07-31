@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // compiler helper functions, usually called from generated code
@@ -80,16 +81,37 @@ func ConvertInterfaceArrayToStringArray(interfaceArray []interface{}) []string {
 	return stringArray
 }
 
+var (
+	subpatternPattern = regexp.MustCompile("^.*(\\{.*\\}).*$")
+	patternCacheLock  sync.Mutex
+	patternCache      = make(map[string]*regexp.Regexp)
+)
+
+func cachedMatch(pattern string, value string) (bool, error) {
+	patternCacheLock.Lock()
+	r, ok := patternCache[pattern]
+	if !ok {
+		var err error
+		r, err = regexp.Compile(pattern)
+		if err != nil {
+			patternCacheLock.Unlock()
+			return false, err
+		}
+		patternCache[pattern] = r
+	}
+	patternCacheLock.Unlock()
+	return r.MatchString(value), nil
+}
+
 func PatternMatches(pattern string, value string) bool {
 	// if pattern contains a subpattern like "{path}", replace it with ".*"
 	if pattern[0] != '^' {
-		subpatternPattern := regexp.MustCompile("^.*(\\{.*\\}).*$")
-		if matches := subpatternPattern.FindSubmatch([]byte(pattern)); matches != nil {
+		if matches := subpatternPattern.FindStringSubmatch(pattern); matches != nil {
 			match := string(matches[1])
 			pattern = strings.Replace(pattern, match, ".*", -1)
 		}
 	}
-	matched, err := regexp.Match(pattern, []byte(value))
+	matched, err := cachedMatch(pattern, value)
 	if err != nil {
 		panic(err)
 	}
