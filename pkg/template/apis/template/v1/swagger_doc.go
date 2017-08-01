@@ -51,6 +51,17 @@ func (Parameter) SwaggerDoc() map[string]string {
 	return map_Parameter
 }
 
+var map_ParameterizeTemplateRequest = map[string]string{
+	"":         "ParameterizeTemplateRequest is a request to create a parameterized template from an existing template. Existing parameters in the template will not be modified. Only new parameters will be created.",
+	"metadata": "Standard object metadata.",
+	"aspects":  "Aspects specifies which aspects of the passed template to parameterize",
+	"template": "Template is the template to parameterize. It should at least have a name and a valid list of objects.",
+}
+
+func (ParameterizeTemplateRequest) SwaggerDoc() map[string]string {
+	return map_ParameterizeTemplateRequest
+}
+
 var map_Template = map[string]string{
 	"":           "Template contains the inputs needed to produce a Config.",
 	"metadata":   "Standard object's metadata.",
