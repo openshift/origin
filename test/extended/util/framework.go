@@ -1031,26 +1031,42 @@ func CreatePersistentVolume(name, capacity, hostPath string) *kapiv1.PersistentV
 func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapiv1.PersistentVolume, err error) {
 	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
 	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "Error creating pv dir %s: %v\n", TestContext.OutputDir, err)
 		return volumes, err
 	}
+	fmt.Fprintf(g.GinkgoWriter, "Created pv dir %s\n", rootDir)
 	for i := 0; i < count; i++ {
 		dir, err := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
 		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error creating pv subdir %s: %v\n", rootDir, err)
 			return volumes, err
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Created pv subdir %s\n", dir)
 		if _, err = exec.LookPath("chcon"); err == nil {
-			err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
+			fmt.Fprintf(g.GinkgoWriter, "Found chcon in path\n")
+			//err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
+			out, err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).CombinedOutput()
 			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "Error running chcon on %s, %s, %v\n", dir, string(out), err)
 				return volumes, err
 			}
+			fmt.Fprintf(g.GinkgoWriter, "Ran chcon on %s\n", dir)
+		}
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error finding chcon in path: %v\n", err)
+			return volumes, err
 		}
 		if err = os.Chmod(dir, 0777); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error running chmod on %s, %v\n", dir, err)
 			return volumes, err
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Ran chmod on %s\n", dir)
 		pv, err := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
 		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error defining PV %v\n", err)
 			return volumes, err
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Created PVs\n")
 		volumes = append(volumes, pv)
 	}
 	return volumes, err
