@@ -34,6 +34,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
@@ -90,18 +91,23 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 
 func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) *OpenshiftNonAPIConfig {
 	ret := &OpenshiftNonAPIConfig{
-		GenericConfig:               &kubeAPIServerConfig,
-		ControllerPlug:              controllerPlug,
-		EnableOAuth:                 c.Options.OAuthConfig != nil,
-		KubeClientInternal:          c.PrivilegedLoopbackKubernetesClientsetInternal,
-		EnableTemplateServiceBroker: c.Options.TemplateServiceBrokerConfig != nil,
-		TemplateInformers:           c.TemplateInformers,
+		GenericConfig:  &kubeAPIServerConfig,
+		ControllerPlug: controllerPlug,
+		EnableOAuth:    c.Options.OAuthConfig != nil,
 	}
 	if c.Options.OAuthConfig != nil {
 		ret.MasterPublicURL = c.Options.OAuthConfig.MasterPublicURL
 	}
-	if c.Options.TemplateServiceBrokerConfig != nil {
-		ret.TemplateNamespaces = c.Options.TemplateServiceBrokerConfig.TemplateNamespaces
+
+	return ret
+}
+
+func (c *MasterConfig) newTemplateServiceBrokerConfig(kubeAPIServerConfig apiserver.Config) *openservicebrokerserver.TemplateServiceBrokerConfig {
+	ret := &openservicebrokerserver.TemplateServiceBrokerConfig{
+		GenericConfig:      &kubeAPIServerConfig,
+		KubeClientInternal: c.PrivilegedLoopbackKubernetesClientsetInternal,
+		TemplateInformers:  c.TemplateInformers,
+		TemplateNamespaces: c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
 	}
 
 	return ret
@@ -114,11 +120,23 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		glog.Fatalf("Failed: %v", err)
 	}
+
+	var delegateAPIServer apiserver.DelegationTarget
+	delegateAPIServer = apiserver.EmptyDelegate
+	if c.Options.TemplateServiceBrokerConfig != nil {
+		tsbConfig := c.newTemplateServiceBrokerConfig(*kubeAPIServerConfig.GenericConfig)
+		tsbServer, err := tsbConfig.Complete().New(delegateAPIServer, stopCh)
+		if err != nil {
+			glog.Fatalf("Failed: %v", err)
+		}
+		delegateAPIServer = tsbServer.GenericAPIServer
+	}
+
 	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, kubeAPIServerOptions.Etcd)
 	if err != nil {
 		glog.Fatalf("Failed: %v", err)
 	}
-	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, apiserver.EmptyDelegate)
+	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, delegateAPIServer)
 	if err != nil {
 		glog.Fatalf("Failed: %v", err)
 	}
