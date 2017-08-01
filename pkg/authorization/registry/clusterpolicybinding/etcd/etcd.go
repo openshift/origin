@@ -21,7 +21,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicyBinding{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyBindingList{} },
-		PredicateFunc:     clusterpolicybinding.Matcher,
 		QualifiedResource: authorizationapi.Resource("clusterpolicybindings"),
 
 		CreateStrategy: clusterpolicybinding.Strategy,
@@ -29,7 +28,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: clusterpolicybinding.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterpolicybinding.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
