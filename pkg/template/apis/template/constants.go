@@ -56,4 +56,9 @@ const (
 	// Base64ExposeAnnotationPrefix is as ExposeAnnotationPrefix, except that
 	// any []byte values returned are base64 encoded.
 	Base64ExposeAnnotationPrefix = "template.openshift.io/base64-expose-"
+
+	// WaitForReadyAnnotation indicates that the TemplateInstance controller
+	// should wait for the object to be ready before reporting the template
+	// instantiation complete.
+	WaitForReadyAnnotation = "template.alpha.openshift.io/wait-for-ready"
 )

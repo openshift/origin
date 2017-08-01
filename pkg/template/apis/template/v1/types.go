@@ -135,7 +135,10 @@ type TemplateInstanceRequester struct {
 type TemplateInstanceStatus struct {
 	// conditions represent the latest available observations of a
 	// TemplateInstance's current state.
-	Conditions []TemplateInstanceCondition `json:"conditions" protobuf:"bytes,1,rep,name=conditions"`
+	Conditions []TemplateInstanceCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
+
+	// Objects references the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObject `json:"objects,omitempty" protobuf:"bytes,2,rep,name=objects"`
 }
 
 // TemplateInstanceCondition contains condition information for a
@@ -168,6 +171,14 @@ const (
 	// instantiation
 	TemplateInstanceInstantiateFailure TemplateInstanceConditionType = "InstantiateFailure"
 )
+
+// TemplateInstanceObject references an object created by a TemplateInstance.
+type TemplateInstanceObject struct {
+	// ref is a reference to the created object.  When used under .spec, only
+	// name and namespace are used; these can contain references to parameters
+	// which will be substituted following the usual rules.
+	Ref kapiv1.ObjectReference `json:"ref,omitempty" protobuf:"bytes,1,opt,name=ref"`
+}
 
 // TemplateInstanceList is a list of TemplateInstance objects.
 type TemplateInstanceList struct {
