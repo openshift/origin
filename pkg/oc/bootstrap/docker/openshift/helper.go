@@ -452,7 +452,7 @@ func (h *Helper) CheckNodes(kclient kclientset.Interface) error {
 		return errors.NewError("cannot retrieve nodes").WithCause(err)
 	}
 	if len(nodes.Items) > 1 {
-		glog.V(1).Infof("Found more than one node, will attempt to remove duplicate nodes")
+		glog.V(2).Infof("Found more than one node, will attempt to remove duplicate nodes")
 		nodesToRemove := []string{}
 
 		// First, find default node
@@ -474,7 +474,7 @@ func (h *Helper) CheckNodes(kclient kclientset.Interface) error {
 		}
 
 		for i := 0; i < len(nodesToRemove); i++ {
-			glog.V(1).Infof("Deleting extra node %s", nodesToRemove[i])
+			glog.V(2).Infof("Deleting extra node %s", nodesToRemove[i])
 			err = kclient.Core().Nodes().Delete(nodesToRemove[i], nil)
 			if err != nil {
 				return errors.NewError("cannot delete duplicate node %s", nodesToRemove[i]).WithCause(err)
@@ -598,7 +598,7 @@ func (h *Helper) GetNodeConfigFromLocalDir(configDir string) (*configapi.NodeCon
 	glog.V(1).Infof("Reading node config from %s", configPath)
 	cfg, err := configapilatest.ReadNodeConfig(configPath)
 	if err != nil {
-		glog.V(1).Infof("Could not read node config: %v", err)
+		glog.V(2).Infof("Could not read node config: %v", err)
 		return nil, "", err
 	}
 	return cfg, configPath, nil
@@ -609,7 +609,7 @@ func (h *Helper) GetConfigFromLocalDir(configDir string) (*configapi.MasterConfi
 	glog.V(1).Infof("Reading master config from %s", configPath)
 	cfg, err := configapilatest.ReadMasterConfig(configPath)
 	if err != nil {
-		glog.V(1).Infof("Could not read master config: %v", err)
+		glog.V(2).Infof("Could not read master config: %v", err)
 		return nil, "", err
 	}
 	return cfg, configPath, nil

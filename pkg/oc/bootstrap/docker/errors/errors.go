@@ -66,7 +66,7 @@ func LogError(err error) {
 	if err == nil {
 		return
 	}
-	glog.V(1).Infof("Unexpected error: %v", err)
+	glog.V(2).Infof("Unexpected error: %v", err)
 	if glog.V(5) {
 		debug.PrintStack()
 	}

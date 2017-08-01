@@ -64,11 +64,11 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 	glog.V(4).Infof("Killing previous socat tunnel")
 	err = openshift.KillExistingSocat()
 	if err != nil {
-		glog.V(1).Infof("error: cannot kill socat: %v", err)
+		glog.V(2).Infof("error: cannot kill socat: %v", err)
 	}
 	glog.V(4).Infof("Stopping and removing origin container")
 	if err = helper.StopAndRemoveContainer("origin"); err != nil {
-		glog.V(1).Infof("Error stopping origin container: %v", err)
+		glog.V(2).Infof("Error stopping origin container: %v", err)
 	}
 	names, err := helper.ListContainerNames()
 	if err != nil {
@@ -81,11 +81,11 @@ func (c *ClientStopConfig) Stop(out io.Writer) error {
 		name = strings.TrimLeft(name, "/")
 		glog.V(4).Infof("Stopping container %s", name)
 		if err = client.ContainerStop(name, 0); err != nil {
-			glog.V(1).Infof("Error stopping container %s: %v", name, err)
+			glog.V(2).Infof("Error stopping container %s: %v", name, err)
 		}
 		glog.V(4).Infof("Removing container %s", name)
 		if err = helper.RemoveContainer(name); err != nil {
-			glog.V(1).Infof("Error removing container %s: %v", name, err)
+			glog.V(2).Infof("Error removing container %s: %v", name, err)
 		}
 	}
 	return nil
