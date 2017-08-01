@@ -189,6 +189,9 @@ func (s *GenericAPIServer) ListedPaths() []string {
 	return s.listedPathProvider.ListedPaths()
 }
 func (s *GenericAPIServer) OpenAPISpec() *spec.Swagger {
+	if s.OpenAPIService == nil {
+		return nil
+	}
 	return s.OpenAPIService.GetSpec()
 }
 

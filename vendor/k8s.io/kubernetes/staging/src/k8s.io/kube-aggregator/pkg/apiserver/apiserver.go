@@ -193,6 +193,7 @@ func (c completedConfig) NewWithDelegate(delegationTarget genericapiserver.Deleg
 	s := &APIAggregator{
 		GenericAPIServer: genericServer,
 		delegateHandler:  delegationTarget.UnprotectedHandler(),
+		delegationSpec:   delegationTarget.OpenAPISpec(),
 		contextMapper:    c.GenericConfig.RequestContextMapper,
 		proxyClientCert:  c.ProxyClientCert,
 		proxyClientKey:   c.ProxyClientKey,
