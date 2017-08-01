@@ -37,6 +37,7 @@ var (
 	reportDir      string
 	reportFileName string
 	syntheticSuite string
+	skipTestsStr   string
 	quiet          bool
 )
 
@@ -54,6 +55,7 @@ func InitTest() {
 	e2e.RegisterCommonFlags()
 	e2e.RegisterClusterFlags()
 	flag.StringVar(&syntheticSuite, "suite", "", "Optional suite selector to filter which tests are run.")
+	flag.StringVar(&skipTestsStr, "skip-tests", "", "Optional list of tests to skip (each test separated with '|'). E.g. --skip-tests=e2e\stests|\sto\sskip|test")
 
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
@@ -371,6 +373,14 @@ func checkSuiteFocuses() {
 		textExcluded = textExcluded || serialConformanceTestsFilter.Match(testName)
 	} else if syntheticSuite == "serial.conformance.openshift.io" {
 		testFocused = serialConformanceTestsFilter.Match(testName)
+	}
+
+	// if some tests are to be skipped, update the regexp
+	if skipTestsStr != "" {
+		skipTestsList = strings.Split(skipTestsStr, "|")
+		excludedTestsFilter = regexp.MustCompile(strings.Join(append(skipTestsList, excludedTests...), `|`))
+		// evaluate the regexp only once
+		skipTestsStr = ""
 	}
 
 	if !testFocused || textExcluded {
