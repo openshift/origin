@@ -2,7 +2,6 @@ reviewers:
   - pravisankar
   - dcbw
   - smarterclayton
-  - mfojtik
   - ncdc
   - rajatchopra
   - soltysh
@@ -12,7 +11,6 @@ approvers:
   - pravisankar
   - dcbw
   - smarterclayton
-  - mfojtik
   - danwinship
   - knobunc
   - rajatchopra
