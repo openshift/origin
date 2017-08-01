@@ -533,8 +533,6 @@ func (m *Master) Start() error {
 		if err := StartAPI(openshiftConfig, kubeMasterConfig, informers, controllerPlug); err != nil {
 			return err
 		}
-
-		informers.Start(utilwait.NeverStop)
 	}
 
 	return nil
@@ -561,9 +559,6 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		}
 	}
 
-	// Must start policy and quota caching immediately
-	oc.QuotaInformers.Start(utilwait.NeverStop)
-	oc.AuthorizationInformers.Start(utilwait.NeverStop)
 	clusterQuotaMapping := origincontrollers.ClusterQuotaMappingControllerConfig{
 		ClusterQuotaMappingController: oc.ClusterQuotaMappingController,
 	}
@@ -597,8 +592,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 	}
 
 	// start up the informers that we're trying to use in the API server
-	informers.GetInternalKubeInformers().Start(utilwait.NeverStop)
-	informers.GetExternalKubeInformers().Start(utilwait.NeverStop)
+	informers.Start(utilwait.NeverStop)
 	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {
