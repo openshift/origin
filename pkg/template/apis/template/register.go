@@ -63,6 +63,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TemplateInstanceList{},
 		&BrokerTemplateInstance{},
 		&BrokerTemplateInstanceList{},
+		&ParameterizeTemplateRequest{},
 		&kapi.List{},
 	)
 	return nil
