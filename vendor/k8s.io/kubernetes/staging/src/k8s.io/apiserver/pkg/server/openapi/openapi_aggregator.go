@@ -431,7 +431,7 @@ func MergeSpecs(dest, source *spec.Swagger) error {
 	}
 	for k, v := range source.Paths.Paths {
 		if _, found := dest.Paths.Paths[k]; found {
-			return fmt.Errorf("Unable to merge: Duplicated path %s", k)
+			continue
 		}
 		dest.Paths.Paths[k] = v
 	}
