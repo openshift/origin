@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 )
@@ -90,7 +91,12 @@ func (l *ListPodsOptions) runListPods(node *kapi.Node, printer kprinters.Resourc
 // objects for every node, into a single list. This allows output containing multiple nodes to be
 // printed to a single writer, and be easily parsed as a single data format.
 func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kprinters.ResourcePrinter) []error {
-	unifiedPodList := &kapi.PodList{}
+	unifiedPodList := &kapiv1.PodList{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "List",
+			APIVersion: "v1",
+		},
+	}
 
 	errList := []error{}
 	for _, node := range nodes {
@@ -101,7 +107,7 @@ func (l *ListPodsOptions) handleRESTOutput(nodes []*kapi.Node, printer kprinters
 		}
 		fieldSelector := fields.Set{GetPodHostFieldLabel(node.TypeMeta.APIVersion): node.ObjectMeta.Name}.AsSelector()
 
-		pods, err := l.Options.KubeClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector.String(), FieldSelector: fieldSelector.String()})
+		pods, err := l.Options.ExternalKubeClient.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: labelSelector.String(), FieldSelector: fieldSelector.String()})
 		if err != nil {
 			errList = append(errList, err)
 			continue

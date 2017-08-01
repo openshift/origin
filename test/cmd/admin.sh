@@ -78,6 +78,8 @@ os::cmd::expect_success_and_not_text 'oadm manage-node --selector= --schedulable
 os::cmd::expect_success_and_not_text 'oc get node -o yaml' 'unschedulable: true'
 os::cmd::expect_success_and_text 'oadm manage-node --selector= --schedulable=false' 'SchedulingDisabled'
 os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
+# ensure correct serialization of podList output
+os::cmd::expect_success_and_text "oadm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
 echo "manage-node: ok"
 os::test::junit::declare_suite_end
 
