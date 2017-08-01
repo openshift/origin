@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrs "k8s.io/apimachinery/pkg/util/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -294,7 +295,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	errs := runtime.DecodeList(template.Objects, kapi.Codecs.UniversalDecoder())
 	if len(errs) > 0 {
-		return errs[0]
+		return kerrs.NewAggregate(errs)
 	}
 
 	// We add an OwnerReference to all objects we create - this is also needed
@@ -360,25 +361,48 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		if kerrors.IsAlreadyExists(createErr) {
 			obj, err := helper.Get(namespace, info.Name, false)
 			if err != nil {
-				return createObj, createErr
+				return nil, err
 			}
 
 			meta, err := meta.Accessor(obj)
 			if err != nil {
-				return createObj, createErr
+				return nil, err
 			}
 
 			if meta.GetLabels()[templateapi.TemplateInstanceLabel] == templateInstance.Name {
-				return obj, nil
+				createObj, createErr = obj, nil
 			}
 		}
 
-		return createObj, createErr
+		if createErr != nil {
+			return createObj, createErr
+		}
+
+		meta, err := meta.Accessor(createObj)
+		if err != nil {
+			return nil, err
+		}
+
+		templateInstance.Status.Objects = append(templateInstance.Status.Objects,
+			templateapi.TemplateInstanceObject{
+				Ref: kapi.ObjectReference{
+					Kind:       info.Mapping.GroupVersionKind.Kind,
+					Namespace:  namespace,
+					Name:       info.Name,
+					UID:        meta.GetUID(),
+					APIVersion: info.Mapping.GroupVersionKind.GroupVersion().String(),
+				},
+			},
+		)
+
+		return createObj, nil
 	}
 
 	// Second, create the objects, being tolerant if they already exist and are
 	// labelled as having previously been created by us.
 	glog.V(4).Infof("TemplateInstance controller: creating objects for %s/%s", templateInstance.Namespace, templateInstance.Name)
+
+	templateInstance.Status.Objects = nil
 
 	errs = bulk.Run(&kapi.List{Items: template.Objects}, templateInstance.Namespace)
 	if len(errs) > 0 {
