@@ -493,7 +493,7 @@ func calculateRoughDataSize(logger io.Writer, wantedImageSize uint64, numberOfLa
 		// TODO(miminar): shall we use some better logging mechanism?
 		logger.Write([]byte(fmt.Sprintf("Failed to get docker version: %v\n", err)))
 	}
-	if (major >= 1 && minor >= 9) || version == "" {
+	if major > 1 || major == 1 && minor >= 9 || version == "" {
 		// running Docker version 1.9+
 		return uint64(float64(wantedImageSize) / (float64(numberOfLayers) * layerSizeMultiplierForLatestDocker))
 	}
