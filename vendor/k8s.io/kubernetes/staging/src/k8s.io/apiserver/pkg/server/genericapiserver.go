@@ -25,6 +25,7 @@ import (
 	"time"
 
 	systemd "github.com/coreos/go-systemd/daemon"
+	"github.com/emicklei/go-restful"
 	"github.com/emicklei/go-restful-swagger12"
 	"github.com/golang/glog"
 
@@ -135,6 +136,9 @@ type GenericAPIServer struct {
 	// Enables updating OpenAPI spec using update method.
 	OpenAPIService *openapi.OpenAPIService
 
+	// delegationTarget only exists
+	openAPIDelegationTarget OpenAPIDelegationTarget
+
 	// PostStartHooks are each called after the server has started listening, in a separate go func for each
 	// with no guarantee of ordering between them.  The map key is a name used for error reporting.
 	// It may kill the process with a panic if it wishes to by returning an error.
@@ -155,6 +159,8 @@ type GenericAPIServer struct {
 // DelegationTarget is an interface which allows for composition of API servers with top level handling that works
 // as expected.
 type DelegationTarget interface {
+	OpenAPIDelegationTarget
+
 	// UnprotectedHandler returns a handler that is NOT protected by a normal chain
 	UnprotectedHandler() http.Handler
 
@@ -170,6 +176,15 @@ type DelegationTarget interface {
 
 	// ListedPaths returns the paths for supporting an index
 	ListedPaths() []string
+}
+
+// OpenAPIDelegationTarget provides methods for access the openapi and swagger bits of the delegate server
+// so that they can be later unioned.  This is the only post-construction side-effect we know of
+type OpenAPIDelegationTarget interface {
+	// SwaggerAPIContainer gives all the restful containers involved in this API server to be used to aggregate swagger
+	// It must include all containers it delegates to as well.  Individual entries may be nil an order must be most recent to
+	// least recent.
+	SwaggerAPIContainers() []*restful.Container
 
 	// OpenAPISpec returns the OpenAPI spec of the delegation target if exists, nil otherwise.
 	OpenAPISpec() *spec.Swagger
@@ -178,6 +193,9 @@ type DelegationTarget interface {
 func (s *GenericAPIServer) UnprotectedHandler() http.Handler {
 	// when we delegate, we need the server we're delegating to choose whether or not to use gorestful
 	return s.Handler.Director
+}
+func (s *GenericAPIServer) SwaggerAPIContainers() []*restful.Container {
+	return append([]*restful.Container{s.Handler.GoRestfulContainer}, s.openAPIDelegationTarget.SwaggerAPIContainers()...)
 }
 func (s *GenericAPIServer) PostStartHooks() map[string]postStartHookEntry {
 	return s.postStartHooks
@@ -205,6 +223,9 @@ type emptyDelegate struct {
 
 func (s emptyDelegate) UnprotectedHandler() http.Handler {
 	return nil
+}
+func (s emptyDelegate) SwaggerAPIContainers() []*restful.Container {
+	return []*restful.Container{}
 }
 func (s emptyDelegate) PostStartHooks() map[string]postStartHookEntry {
 	return map[string]postStartHookEntry{}
@@ -248,9 +269,11 @@ type preparedGenericAPIServer struct {
 // PrepareRun does post API installation setup steps.
 func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 	if s.swaggerConfig != nil {
-		routes.Swagger{Config: s.swaggerConfig}.Install(s.Handler.GoRestfulContainer)
+		routes.Swagger{Config: s.swaggerConfig}.Install(s.SwaggerAPIContainers(), s.Handler.GoRestfulContainer)
 	}
-	s.PrepareOpenAPIService()
+	if err := s.PrepareOpenAPIService(); err != nil {
+		panic(err)
+	}
 
 	s.installHealthz()
 
@@ -258,12 +281,32 @@ func (s *GenericAPIServer) PrepareRun() preparedGenericAPIServer {
 }
 
 // PrepareOpenAPIService installs OpenAPI handler if it does not exists.
-func (s *GenericAPIServer) PrepareOpenAPIService() {
+func (s *GenericAPIServer) PrepareOpenAPIService() error {
 	if s.openAPIConfig != nil && s.OpenAPIService == nil {
-		s.OpenAPIService = routes.OpenAPI{
+		openAPIService := routes.OpenAPI{
 			Config: s.openAPIConfig,
 		}.Install(s.Handler.GoRestfulContainer, s.Handler.NonGoRestfulMux)
+
+		// if we have delegate, we now need to merge it in
+		delegateOpenAPISpec := s.openAPIDelegationTarget.OpenAPISpec()
+		if delegateOpenAPISpec != nil {
+			currentOpenAPISpec := openAPIService.GetSpec()
+
+			openAPISpecCopy, err := openapi.CloneSpec(currentOpenAPISpec)
+			if err != nil {
+				return err
+			}
+			if err := openapi.MergeSpecs(openAPISpecCopy, delegateOpenAPISpec); err != nil {
+				return err
+			}
+
+			openAPIService.UpdateSpec(openAPISpecCopy)
+		}
+
+		s.OpenAPIService = openAPIService
 	}
+
+	return nil
 }
 
 // Run spawns the secure http server. It only returns if stopCh is closed
