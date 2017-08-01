@@ -352,7 +352,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("admin", "edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/log", "deploymentconfigs/status").RuleOrDie(),
 
@@ -413,7 +413,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				// access to jenkins.  multiple values to ensure that covers relationships
 				authorizationapi.NewRule("edit", "view").Groups(buildapi.GroupName).Resources("jenkins").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
+				authorizationapi.NewRule(readWrite...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs", "deploymentconfigs/scale").RuleOrDie(),
 				authorizationapi.NewRule("create").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigrollbacks", "deploymentconfigs/rollback", "deploymentconfigs/instantiate").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/log", "deploymentconfigs/status").RuleOrDie(),
 

@@ -693,8 +693,6 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 				op = "createProcessedTemplateForAllNamespacesV1"
 			} else if strings.HasPrefix(path, "/apis/template.openshift.io/v1/processedtemplates") {
 				op = "createProcessedTemplateForAllNamespaces"
-			} else if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/generatedeploymentconfigs") {
-				op = "generateNamespacedDeploymentConfig"
 			}
 			if op != r.Operation {
 				return op, []string{}, nil
