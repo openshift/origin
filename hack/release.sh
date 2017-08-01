@@ -15,12 +15,22 @@ elif [[ "$( git rev-parse "${tag}" )" != "$( git rev-parse HEAD )" ]]; then
 fi
 commit="$( git rev-parse ${tag} )"
 
-# Ensure that the build is using the latest release image
-docker pull "${OS_BUILD_ENV_IMAGE}"
+export OS_GIT_TREE_STATE=clean
+export OS_BUILD_ENV_PRESERVE=_output/local/releases 
 
-hack/build-base-images.sh
-hack/env OS_GIT_COMMIT="${commit}" make official-release
-OS_PUSH_ALWAYS=1 OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh
+# Build images and push to the hub
+if [[ -z "${1-}" || "${1-}" == "images" ]]; then
+  # Ensure that the build is using the latest release image
+  docker pull "${OS_BUILD_ENV_IMAGE}"
+  hack/build-base-images.sh
+  hack/env OS_GIT_COMMIT="${commit}" make build-images
+  OS_PUSH_ALWAYS=1 OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh
+fi
+
+# Build the release binaries
+if [[ -z "${1-}" || "${1-}" == "cross" ]]; then
+  hack/env OS_GIT_COMMIT="${commit}" make build-cross
+fi
 
 echo
 echo "Pushed ${tag} to DockerHub"

@@ -245,27 +245,16 @@ clean:
 #
 # Example:
 #   make release
-official-release: build-rpms build-cross
-	hack/build-images.sh
+official-release: build-images build-cross
 .PHONY: official-release
 
 # Build a release of OpenShift for linux/amd64 and the images that depend on it.
 #
 # Example:
 #   make release
-release: build-rpms
-	hack/build-images.sh
+release: build-images
 	hack/extract-release.sh
 .PHONY: release
-
-# Build only the release binaries for OpenShift
-#
-# Example:
-#   make release-binaries
-release-binaries:
-	hack/build-release.sh
-	hack/extract-release.sh
-.PHONY: release-binaries
 
 # Build the cross compiled release binaries
 #
@@ -302,6 +291,16 @@ build-rpms:
 build-rpms-redistributable:
 	hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
+
+# Build images from the official RPMs
+# 
+# Args:
+#
+# Example:
+#   make build-images
+build-images: build-rpms
+	hack/build-images.sh
+.PHONY: build-images
 
 # Vendor the Origin Web Console
 #
