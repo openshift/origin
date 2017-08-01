@@ -190,12 +190,6 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 		},
 		{
 			resource:      job,
-			kind:          extensions.Kind("Job"),
-			groupresource: extensions.Resource("jobs"),
-			prefix:        "Job",
-		},
-		{
-			resource:      job,
 			kind:          batch.Kind("Job"),
 			groupresource: batch.Resource("jobs"),
 			prefix:        "Job",

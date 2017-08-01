@@ -716,7 +716,6 @@ items:
     - deployments/rollback
     - deployments/scale
     - horizontalpodautoscalers
-    - jobs
     - networkpolicies
     - replicasets
     - replicasets/scale
@@ -1174,7 +1173,6 @@ items:
     - deployments/rollback
     - deployments/scale
     - horizontalpodautoscalers
-    - jobs
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -1512,7 +1510,6 @@ items:
     - deployments
     - deployments/scale
     - horizontalpodautoscalers
-    - jobs
     - replicasets
     - replicasets/scale
     verbs:

@@ -442,8 +442,7 @@ func (config resolutionConfig) FailOnResolutionFailure(gr schema.GroupResource) 
 
 var skipImageRewriteOnUpdate = map[schema.GroupResource]struct{}{
 	// Job template specs are immutable, they cannot be updated.
-	{Group: "extensions", Resource: "jobs"}: {},
-	{Group: "batch", Resource: "jobs"}:      {},
+	{Group: "batch", Resource: "jobs"}: {},
 	// Build specs are immutable, they cannot be updated.
 	{Group: "", Resource: "builds"}:                   {},
 	{Group: "build.openshift.io", Resource: "builds"}: {},
