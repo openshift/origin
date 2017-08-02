@@ -66,7 +66,7 @@ type OAuthAuthorizeToken struct {
 	CodeChallengeMethod string
 }
 
-// +genclient=true
+// +genclient
 
 type OAuthClient struct {
 	metav1.TypeMeta

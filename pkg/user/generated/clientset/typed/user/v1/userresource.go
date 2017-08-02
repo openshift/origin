@@ -42,6 +42,41 @@ func newUsers(c *UserV1Client, namespace string) *users {
 	}
 }
 
+// Get takes name of the userResource, and returns the corresponding userResource object, and an error if there is any.
+func (c *users) Get(name string, options meta_v1.GetOptions) (result *v1.User, err error) {
+	result = &v1.User{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("users").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Users that match those selectors.
+func (c *users) List(opts meta_v1.ListOptions) (result *v1.UserList, err error) {
+	result = &v1.UserList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("users").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested users.
+func (c *users) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("users").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a userResource and creates it.  Returns the server's representation of the userResource, and an error, if there is any.
 func (c *users) Create(userResource *v1.User) (result *v1.User, err error) {
 	result = &v1.User{}
@@ -87,41 +122,6 @@ func (c *users) DeleteCollection(options *meta_v1.DeleteOptions, listOptions met
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the userResource, and returns the corresponding userResource object, and an error if there is any.
-func (c *users) Get(name string, options meta_v1.GetOptions) (result *v1.User, err error) {
-	result = &v1.User{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("users").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Users that match those selectors.
-func (c *users) List(opts meta_v1.ListOptions) (result *v1.UserList, err error) {
-	result = &v1.UserList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("users").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested users.
-func (c *users) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("users").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched userResource.

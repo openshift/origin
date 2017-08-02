@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 
 // Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
 // A single deployment configuration is usually analogous to a single micro-service. Can support many different

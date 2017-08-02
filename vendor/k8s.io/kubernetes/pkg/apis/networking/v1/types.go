@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 
 // NetworkPolicy describes what network traffic is allowed for a set of Pods
 type NetworkPolicy struct {

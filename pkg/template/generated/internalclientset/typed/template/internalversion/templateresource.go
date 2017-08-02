@@ -42,6 +42,41 @@ func newTemplates(c *TemplateClient, namespace string) *templates {
 	}
 }
 
+// Get takes name of the templateResource, and returns the corresponding templateResource object, and an error if there is any.
+func (c *templates) Get(name string, options v1.GetOptions) (result *template.Template, err error) {
+	result = &template.Template{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("templates").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Templates that match those selectors.
+func (c *templates) List(opts v1.ListOptions) (result *template.TemplateList, err error) {
+	result = &template.TemplateList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("templates").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested templates.
+func (c *templates) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("templates").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a templateResource and creates it.  Returns the server's representation of the templateResource, and an error, if there is any.
 func (c *templates) Create(templateResource *template.Template) (result *template.Template, err error) {
 	result = &template.Template{}
@@ -87,41 +122,6 @@ func (c *templates) DeleteCollection(options *v1.DeleteOptions, listOptions v1.L
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the templateResource, and returns the corresponding templateResource object, and an error if there is any.
-func (c *templates) Get(name string, options v1.GetOptions) (result *template.Template, err error) {
-	result = &template.Template{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("templates").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Templates that match those selectors.
-func (c *templates) List(opts v1.ListOptions) (result *template.TemplateList, err error) {
-	result = &template.TemplateList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("templates").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested templates.
-func (c *templates) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("templates").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched templateResource.

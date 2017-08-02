@@ -31,8 +31,8 @@ type ProjectStatus struct {
 	Phase kapi.NamespacePhase `json:"phase,omitempty" protobuf:"bytes,1,opt,name=phase,casttype=k8s.io/kubernetes/pkg/api/v1.NamespacePhase"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Projects are the unit of isolation and collaboration in OpenShift. A project has one or more members,
 // a quota on the resources that the project may consume, and the security controls on the resources in

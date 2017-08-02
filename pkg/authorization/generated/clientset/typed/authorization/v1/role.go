@@ -42,6 +42,41 @@ func newRoles(c *AuthorizationV1Client, namespace string) *roles {
 	}
 }
 
+// Get takes name of the role, and returns the corresponding role object, and an error if there is any.
+func (c *roles) Get(name string, options meta_v1.GetOptions) (result *v1.Role, err error) {
+	result = &v1.Role{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("roles").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Roles that match those selectors.
+func (c *roles) List(opts meta_v1.ListOptions) (result *v1.RoleList, err error) {
+	result = &v1.RoleList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("roles").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested roles.
+func (c *roles) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("roles").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a role and creates it.  Returns the server's representation of the role, and an error, if there is any.
 func (c *roles) Create(role *v1.Role) (result *v1.Role, err error) {
 	result = &v1.Role{}
@@ -87,41 +122,6 @@ func (c *roles) DeleteCollection(options *meta_v1.DeleteOptions, listOptions met
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the role, and returns the corresponding role object, and an error if there is any.
-func (c *roles) Get(name string, options meta_v1.GetOptions) (result *v1.Role, err error) {
-	result = &v1.Role{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("roles").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Roles that match those selectors.
-func (c *roles) List(opts meta_v1.ListOptions) (result *v1.RoleList, err error) {
-	result = &v1.RoleList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("roles").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested roles.
-func (c *roles) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("roles").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched role.

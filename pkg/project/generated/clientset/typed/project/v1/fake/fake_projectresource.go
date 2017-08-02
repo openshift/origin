@@ -1,8 +1,8 @@
 package fake
 
 import (
-	v1 "github.com/openshift/origin/pkg/project/apis/project/v1"
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	project_v1 "github.com/openshift/origin/pkg/project/apis/project/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
@@ -19,58 +19,20 @@ var projectsResource = schema.GroupVersionResource{Group: "project.openshift.io"
 
 var projectsKind = schema.GroupVersionKind{Group: "project.openshift.io", Version: "v1", Kind: "Project"}
 
-func (c *FakeProjects) Create(projectResource *v1.Project) (result *v1.Project, err error) {
+// Get takes name of the projectResource, and returns the corresponding projectResource object, and an error if there is any.
+func (c *FakeProjects) Get(name string, options v1.GetOptions) (result *project_v1.Project, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(projectsResource, projectResource), &v1.Project{})
+		Invokes(testing.NewRootGetAction(projectsResource, name), &project_v1.Project{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.Project), err
+	return obj.(*project_v1.Project), err
 }
 
-func (c *FakeProjects) Update(projectResource *v1.Project) (result *v1.Project, err error) {
+// List takes label and field selectors, and returns the list of Projects that match those selectors.
+func (c *FakeProjects) List(opts v1.ListOptions) (result *project_v1.ProjectList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(projectsResource, projectResource), &v1.Project{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Project), err
-}
-
-func (c *FakeProjects) UpdateStatus(projectResource *v1.Project) (*v1.Project, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(projectsResource, "status", projectResource), &v1.Project{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Project), err
-}
-
-func (c *FakeProjects) Delete(name string, options *meta_v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(projectsResource, name), &v1.Project{})
-	return err
-}
-
-func (c *FakeProjects) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(projectsResource, listOptions)
-
-	_, err := c.Fake.Invokes(action, &v1.ProjectList{})
-	return err
-}
-
-func (c *FakeProjects) Get(name string, options meta_v1.GetOptions) (result *v1.Project, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(projectsResource, name), &v1.Project{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Project), err
-}
-
-func (c *FakeProjects) List(opts meta_v1.ListOptions) (result *v1.ProjectList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(projectsResource, projectsKind, opts), &v1.ProjectList{})
+		Invokes(testing.NewRootListAction(projectsResource, projectsKind, opts), &project_v1.ProjectList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -79,8 +41,8 @@ func (c *FakeProjects) List(opts meta_v1.ListOptions) (result *v1.ProjectList, e
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1.ProjectList{}
-	for _, item := range obj.(*v1.ProjectList).Items {
+	list := &project_v1.ProjectList{}
+	for _, item := range obj.(*project_v1.ProjectList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -89,17 +51,63 @@ func (c *FakeProjects) List(opts meta_v1.ListOptions) (result *v1.ProjectList, e
 }
 
 // Watch returns a watch.Interface that watches the requested projects.
-func (c *FakeProjects) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeProjects) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(projectsResource, opts))
 }
 
-// Patch applies the patch and returns the patched projectResource.
-func (c *FakeProjects) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Project, err error) {
+// Create takes the representation of a projectResource and creates it.  Returns the server's representation of the projectResource, and an error, if there is any.
+func (c *FakeProjects) Create(projectResource *project_v1.Project) (result *project_v1.Project, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(projectsResource, name, data, subresources...), &v1.Project{})
+		Invokes(testing.NewRootCreateAction(projectsResource, projectResource), &project_v1.Project{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.Project), err
+	return obj.(*project_v1.Project), err
+}
+
+// Update takes the representation of a projectResource and updates it. Returns the server's representation of the projectResource, and an error, if there is any.
+func (c *FakeProjects) Update(projectResource *project_v1.Project) (result *project_v1.Project, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateAction(projectsResource, projectResource), &project_v1.Project{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*project_v1.Project), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeProjects) UpdateStatus(projectResource *project_v1.Project) (*project_v1.Project, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateSubresourceAction(projectsResource, "status", projectResource), &project_v1.Project{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*project_v1.Project), err
+}
+
+// Delete takes name of the projectResource and deletes it. Returns an error if one occurs.
+func (c *FakeProjects) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewRootDeleteAction(projectsResource, name), &project_v1.Project{})
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeProjects) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(projectsResource, listOptions)
+
+	_, err := c.Fake.Invokes(action, &project_v1.ProjectList{})
+	return err
+}
+
+// Patch applies the patch and returns the patched projectResource.
+func (c *FakeProjects) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *project_v1.Project, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootPatchSubresourceAction(projectsResource, name, data, subresources...), &project_v1.Project{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*project_v1.Project), err
 }

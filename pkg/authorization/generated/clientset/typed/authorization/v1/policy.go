@@ -42,6 +42,41 @@ func newPolicies(c *AuthorizationV1Client, namespace string) *policies {
 	}
 }
 
+// Get takes name of the policy, and returns the corresponding policy object, and an error if there is any.
+func (c *policies) Get(name string, options meta_v1.GetOptions) (result *v1.Policy, err error) {
+	result = &v1.Policy{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("policies").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Policies that match those selectors.
+func (c *policies) List(opts meta_v1.ListOptions) (result *v1.PolicyList, err error) {
+	result = &v1.PolicyList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("policies").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested policies.
+func (c *policies) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("policies").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a policy and creates it.  Returns the server's representation of the policy, and an error, if there is any.
 func (c *policies) Create(policy *v1.Policy) (result *v1.Policy, err error) {
 	result = &v1.Policy{}
@@ -87,41 +122,6 @@ func (c *policies) DeleteCollection(options *meta_v1.DeleteOptions, listOptions 
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the policy, and returns the corresponding policy object, and an error if there is any.
-func (c *policies) Get(name string, options meta_v1.GetOptions) (result *v1.Policy, err error) {
-	result = &v1.Policy{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("policies").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Policies that match those selectors.
-func (c *policies) List(opts meta_v1.ListOptions) (result *v1.PolicyList, err error) {
-	result = &v1.PolicyList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("policies").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested policies.
-func (c *policies) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("policies").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched policy.

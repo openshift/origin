@@ -35,9 +35,9 @@ const (
 	ImpersonateUserExtraHeaderPrefix = "Impersonate-Extra-"
 )
 
-// +genclient=true
-// +nonNamespaced=true
-// +noMethods=true
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noVerbs
 
 // TokenReview attempts to authenticate a token to a known user.
 type TokenReview struct {

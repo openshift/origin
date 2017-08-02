@@ -22,9 +22,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient=true
-// +nonNamespaced=true
-// +noMethods=true
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noVerbs
 
 // SubjectAccessReview checks whether or not a user or group can perform an action.
 type SubjectAccessReview struct {
@@ -40,9 +40,9 @@ type SubjectAccessReview struct {
 	Status SubjectAccessReviewStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
-// +noMethods=true
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:noVerbs
 
 // SelfSubjectAccessReview checks whether or the current user can perform an action.  Not filling in a
 // spec.namespace means "in all namespaces".  Self is a special case, because users should always be able
@@ -60,8 +60,8 @@ type SelfSubjectAccessReview struct {
 	Status SubjectAccessReviewStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
-// +genclient=true
-// +noMethods=true
+// +genclient
+// +genclient:noVerbs
 
 // LocalSubjectAccessReview checks whether or not a user or group can perform an action in a given namespace.
 // Having a namespace scoped resource makes it much easier to grant namespace scoped policy that includes permissions

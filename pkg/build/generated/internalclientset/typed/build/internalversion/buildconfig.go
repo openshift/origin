@@ -43,6 +43,41 @@ func newBuildConfigs(c *BuildClient, namespace string) *buildConfigs {
 	}
 }
 
+// Get takes name of the buildConfig, and returns the corresponding buildConfig object, and an error if there is any.
+func (c *buildConfigs) Get(name string, options v1.GetOptions) (result *build.BuildConfig, err error) {
+	result = &build.BuildConfig{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("buildconfigs").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of BuildConfigs that match those selectors.
+func (c *buildConfigs) List(opts v1.ListOptions) (result *build.BuildConfigList, err error) {
+	result = &build.BuildConfigList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("buildconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested buildConfigs.
+func (c *buildConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("buildconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a buildConfig and creates it.  Returns the server's representation of the buildConfig, and an error, if there is any.
 func (c *buildConfigs) Create(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
 	result = &build.BuildConfig{}
@@ -69,7 +104,7 @@ func (c *buildConfigs) Update(buildConfig *build.BuildConfig) (result *build.Bui
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *buildConfigs) UpdateStatus(buildConfig *build.BuildConfig) (result *build.BuildConfig, err error) {
 	result = &build.BuildConfig{}
@@ -104,41 +139,6 @@ func (c *buildConfigs) DeleteCollection(options *v1.DeleteOptions, listOptions v
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the buildConfig, and returns the corresponding buildConfig object, and an error if there is any.
-func (c *buildConfigs) Get(name string, options v1.GetOptions) (result *build.BuildConfig, err error) {
-	result = &build.BuildConfig{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("buildconfigs").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of BuildConfigs that match those selectors.
-func (c *buildConfigs) List(opts v1.ListOptions) (result *build.BuildConfigList, err error) {
-	result = &build.BuildConfigList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("buildconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested buildConfigs.
-func (c *buildConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("buildconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched buildConfig.

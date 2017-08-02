@@ -74,7 +74,7 @@ type PodDisruptionBudgetStatus struct {
 	ExpectedPods int32 `json:"expectedPods" protobuf:"varint,6,opt,name=expectedPods"`
 }
 
-// +genclient=true
+// +genclient
 
 // PodDisruptionBudget is an object to define the max disruption that can be caused to a collection of pods
 type PodDisruptionBudget struct {
@@ -94,8 +94,8 @@ type PodDisruptionBudgetList struct {
 	Items           []PodDisruptionBudget `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
-// +noMethods=true
+// +genclient
+// +genclient:noVerbs
 
 // Eviction evicts a pod from its node subject to certain policies and safety constraints.
 // This is a subresource of Pod.  A request to cause such an eviction is

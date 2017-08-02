@@ -275,7 +275,7 @@ type ResourceMetricStatus struct {
 	CurrentAverageValue resource.Quantity `json:"currentAverageValue" protobuf:"bytes,3,name=currentAverageValue"`
 }
 
-// +genclient=true
+// +genclient
 
 // HorizontalPodAutoscaler is the configuration for a horizontal pod
 // autoscaler, which automatically manages the replica count of any resource

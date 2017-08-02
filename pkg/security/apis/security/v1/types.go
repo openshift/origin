@@ -10,8 +10,8 @@ import (
 // capabilities are allowed to be requested.
 var AllowAllCapabilities kapi.Capability = "*"
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // SecurityContextConstraints governs the ability to make requests that affect the SecurityContext
 // that will be applied to a container.

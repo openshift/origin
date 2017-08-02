@@ -41,6 +41,38 @@ func newProjects(c *ProjectV1Client) *projects {
 	}
 }
 
+// Get takes name of the projectResource, and returns the corresponding projectResource object, and an error if there is any.
+func (c *projects) Get(name string, options meta_v1.GetOptions) (result *v1.Project, err error) {
+	result = &v1.Project{}
+	err = c.client.Get().
+		Resource("projects").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Projects that match those selectors.
+func (c *projects) List(opts meta_v1.ListOptions) (result *v1.ProjectList, err error) {
+	result = &v1.ProjectList{}
+	err = c.client.Get().
+		Resource("projects").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested projects.
+func (c *projects) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Resource("projects").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a projectResource and creates it.  Returns the server's representation of the projectResource, and an error, if there is any.
 func (c *projects) Create(projectResource *v1.Project) (result *v1.Project, err error) {
 	result = &v1.Project{}
@@ -65,7 +97,7 @@ func (c *projects) Update(projectResource *v1.Project) (result *v1.Project, err 
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *projects) UpdateStatus(projectResource *v1.Project) (result *v1.Project, err error) {
 	result = &v1.Project{}
@@ -97,38 +129,6 @@ func (c *projects) DeleteCollection(options *meta_v1.DeleteOptions, listOptions 
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the projectResource, and returns the corresponding projectResource object, and an error if there is any.
-func (c *projects) Get(name string, options meta_v1.GetOptions) (result *v1.Project, err error) {
-	result = &v1.Project{}
-	err = c.client.Get().
-		Resource("projects").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Projects that match those selectors.
-func (c *projects) List(opts meta_v1.ListOptions) (result *v1.ProjectList, err error) {
-	result = &v1.ProjectList{}
-	err = c.client.Get().
-		Resource("projects").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested projects.
-func (c *projects) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Resource("projects").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched projectResource.

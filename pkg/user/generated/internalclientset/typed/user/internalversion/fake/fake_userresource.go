@@ -20,40 +20,7 @@ var usersResource = schema.GroupVersionResource{Group: "user.openshift.io", Vers
 
 var usersKind = schema.GroupVersionKind{Group: "user.openshift.io", Version: "", Kind: "User"}
 
-func (c *FakeUsers) Create(userResource *user.User) (result *user.User, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(usersResource, c.ns, userResource), &user.User{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*user.User), err
-}
-
-func (c *FakeUsers) Update(userResource *user.User) (result *user.User, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(usersResource, c.ns, userResource), &user.User{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*user.User), err
-}
-
-func (c *FakeUsers) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(usersResource, c.ns, name), &user.User{})
-
-	return err
-}
-
-func (c *FakeUsers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(usersResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &user.UserList{})
-	return err
-}
-
+// Get takes name of the userResource, and returns the corresponding userResource object, and an error if there is any.
 func (c *FakeUsers) Get(name string, options v1.GetOptions) (result *user.User, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(usersResource, c.ns, name), &user.User{})
@@ -64,6 +31,7 @@ func (c *FakeUsers) Get(name string, options v1.GetOptions) (result *user.User, 
 	return obj.(*user.User), err
 }
 
+// List takes label and field selectors, and returns the list of Users that match those selectors.
 func (c *FakeUsers) List(opts v1.ListOptions) (result *user.UserList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(usersResource, usersKind, c.ns, opts), &user.UserList{})
@@ -90,6 +58,44 @@ func (c *FakeUsers) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(usersResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a userResource and creates it.  Returns the server's representation of the userResource, and an error, if there is any.
+func (c *FakeUsers) Create(userResource *user.User) (result *user.User, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(usersResource, c.ns, userResource), &user.User{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*user.User), err
+}
+
+// Update takes the representation of a userResource and updates it. Returns the server's representation of the userResource, and an error, if there is any.
+func (c *FakeUsers) Update(userResource *user.User) (result *user.User, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(usersResource, c.ns, userResource), &user.User{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*user.User), err
+}
+
+// Delete takes name of the userResource and deletes it. Returns an error if one occurs.
+func (c *FakeUsers) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(usersResource, c.ns, name), &user.User{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeUsers) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(usersResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &user.UserList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched userResource.

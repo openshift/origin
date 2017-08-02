@@ -92,8 +92,8 @@ type ClusterStatus struct {
 	Region string `json:"region,omitempty" protobuf:"bytes,6,opt,name=region"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Information about a registered cluster in a federated kubernetes setup. Clusters are not namespaced and have unique names in the federation.
 type Cluster struct {

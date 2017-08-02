@@ -464,8 +464,8 @@ const (
 	AlphaStorageNodeAffinityAnnotation = "volume.alpha.kubernetes.io/node-affinity"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // PersistentVolume (PV) is a storage resource provisioned by an administrator.
 // It is analogous to a node.
@@ -563,7 +563,7 @@ type PersistentVolumeList struct {
 	Items []PersistentVolume `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // PersistentVolumeClaim is a user's request for and claim to a persistent volume
 type PersistentVolumeClaim struct {
@@ -2655,7 +2655,7 @@ type PodStatusResult struct {
 	Status PodStatus `json:"status,omitempty" protobuf:"bytes,2,opt,name=status"`
 }
 
-// +genclient=true
+// +genclient
 
 // Pod is a collection of containers that can run on a host. This resource is created
 // by clients and scheduled onto hosts.
@@ -2706,7 +2706,7 @@ type PodTemplateSpec struct {
 	Spec PodSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
-// +genclient=true
+// +genclient
 
 // PodTemplate describes a template for creating copies of a predefined pod.
 type PodTemplate struct {
@@ -2827,7 +2827,7 @@ type ReplicationControllerCondition struct {
 	Message string `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
 }
 
-// +genclient=true
+// +genclient
 
 // ReplicationController represents the configuration of a replication controller.
 type ReplicationController struct {
@@ -3078,7 +3078,7 @@ type ServicePort struct {
 	NodePort int32 `json:"nodePort,omitempty" protobuf:"varint,5,opt,name=nodePort"`
 }
 
-// +genclient=true
+// +genclient
 
 // Service is a named abstraction of software service (for example, mysql) consisting of local port
 // (for example 3306) that the proxy listens on, and the selector that determines which pods
@@ -3121,7 +3121,7 @@ type ServiceList struct {
 	Items []Service `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // ServiceAccount binds together:
 // * a name, understood by users, and perhaps by peripheral systems, for an identity
@@ -3167,7 +3167,7 @@ type ServiceAccountList struct {
 	Items []ServiceAccount `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // Endpoints is a collection of endpoints that implement the actual service. Example:
 //   Name: "mysvc",
@@ -3547,8 +3547,8 @@ const (
 // ResourceList is a set of (resource name, quantity) pairs.
 type ResourceList map[ResourceName]resource.Quantity
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Node is a worker node in Kubernetes.
 // Each node will have a unique identifier in the cache (i.e. in etcd).
@@ -3619,8 +3619,8 @@ const (
 	NamespaceTerminating NamespacePhase = "Terminating"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Namespace provides a scope for Names.
 // Use of multiple namespaces is optional.
@@ -3988,7 +3988,7 @@ const (
 	EventTypeWarning string = "Warning"
 )
 
-// +genclient=true
+// +genclient
 
 // Event is a report of an event somewhere in the cluster.
 // TODO: Decide whether to store these separately or with the object they apply to.
@@ -4097,7 +4097,7 @@ type LimitRangeSpec struct {
 	Limits []LimitRangeItem `json:"limits" protobuf:"bytes,1,rep,name=limits"`
 }
 
-// +genclient=true
+// +genclient
 
 // LimitRange sets resource usage limits for each kind of resource in a Namespace.
 type LimitRange struct {
@@ -4195,7 +4195,7 @@ type ResourceQuotaStatus struct {
 	Used ResourceList `json:"used,omitempty" protobuf:"bytes,2,rep,name=used,casttype=ResourceList,castkey=ResourceName"`
 }
 
-// +genclient=true
+// +genclient
 
 // ResourceQuota sets aggregate quota restrictions enforced per namespace
 type ResourceQuota struct {
@@ -4229,7 +4229,7 @@ type ResourceQuotaList struct {
 	Items []ResourceQuota `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // Secret holds secret data of a certain type. The total bytes of the values in
 // the Data field must be less than MaxSecretSize bytes.
@@ -4356,7 +4356,7 @@ type SecretList struct {
 	Items []Secret `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // ConfigMap holds configuration data for pods to consume.
 type ConfigMap struct {
@@ -4410,8 +4410,8 @@ type ComponentCondition struct {
 	Error string `json:"error,omitempty" protobuf:"bytes,4,opt,name=error"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ComponentStatus (and ComponentStatusList) holds the cluster validation info.
 type ComponentStatus struct {

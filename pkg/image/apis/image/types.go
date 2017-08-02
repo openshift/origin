@@ -51,8 +51,8 @@ const (
 	LimitTypeImageStream kapi.LimitType = "openshift.io/ImageStream"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
@@ -192,7 +192,7 @@ type ImageStreamList struct {
 	Items []ImageStream
 }
 
-// +genclient=true
+// +genclient
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a Docker image

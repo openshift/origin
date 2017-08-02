@@ -20,8 +20,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // InitializerConfiguration describes the configuration of initializers.
 type InitializerConfiguration struct {
@@ -120,8 +120,8 @@ const (
 	Fail FailurePolicyType = "Fail"
 )
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ExternalAdmissionHookConfiguration describes the configuration of initializers.
 type ExternalAdmissionHookConfiguration struct {

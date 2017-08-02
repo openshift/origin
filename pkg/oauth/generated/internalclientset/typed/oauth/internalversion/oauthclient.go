@@ -42,6 +42,41 @@ func newOAuthClients(c *OauthClient, namespace string) *oAuthClients {
 	}
 }
 
+// Get takes name of the oAuthClient, and returns the corresponding oAuthClient object, and an error if there is any.
+func (c *oAuthClients) Get(name string, options v1.GetOptions) (result *oauth.OAuthClient, err error) {
+	result = &oauth.OAuthClient{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("oauthclients").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of OAuthClients that match those selectors.
+func (c *oAuthClients) List(opts v1.ListOptions) (result *oauth.OAuthClientList, err error) {
+	result = &oauth.OAuthClientList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("oauthclients").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested oAuthClients.
+func (c *oAuthClients) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("oauthclients").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a oAuthClient and creates it.  Returns the server's representation of the oAuthClient, and an error, if there is any.
 func (c *oAuthClients) Create(oAuthClient *oauth.OAuthClient) (result *oauth.OAuthClient, err error) {
 	result = &oauth.OAuthClient{}
@@ -87,41 +122,6 @@ func (c *oAuthClients) DeleteCollection(options *v1.DeleteOptions, listOptions v
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the oAuthClient, and returns the corresponding oAuthClient object, and an error if there is any.
-func (c *oAuthClients) Get(name string, options v1.GetOptions) (result *oauth.OAuthClient, err error) {
-	result = &oauth.OAuthClient{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("oauthclients").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of OAuthClients that match those selectors.
-func (c *oAuthClients) List(opts v1.ListOptions) (result *oauth.OAuthClientList, err error) {
-	result = &oauth.OAuthClientList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("oauthclients").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested oAuthClients.
-func (c *oAuthClients) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("oauthclients").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched oAuthClient.

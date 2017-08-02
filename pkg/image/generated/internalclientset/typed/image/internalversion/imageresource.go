@@ -40,6 +40,38 @@ func newImages(c *ImageClient) *images {
 	}
 }
 
+// Get takes name of the imageResource, and returns the corresponding imageResource object, and an error if there is any.
+func (c *images) Get(name string, options v1.GetOptions) (result *image.Image, err error) {
+	result = &image.Image{}
+	err = c.client.Get().
+		Resource("images").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of Images that match those selectors.
+func (c *images) List(opts v1.ListOptions) (result *image.ImageList, err error) {
+	result = &image.ImageList{}
+	err = c.client.Get().
+		Resource("images").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested images.
+func (c *images) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Resource("images").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a imageResource and creates it.  Returns the server's representation of the imageResource, and an error, if there is any.
 func (c *images) Create(imageResource *image.Image) (result *image.Image, err error) {
 	result = &image.Image{}
@@ -81,38 +113,6 @@ func (c *images) DeleteCollection(options *v1.DeleteOptions, listOptions v1.List
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the imageResource, and returns the corresponding imageResource object, and an error if there is any.
-func (c *images) Get(name string, options v1.GetOptions) (result *image.Image, err error) {
-	result = &image.Image{}
-	err = c.client.Get().
-		Resource("images").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Images that match those selectors.
-func (c *images) List(opts v1.ListOptions) (result *image.ImageList, err error) {
-	result = &image.ImageList{}
-	err = c.client.Get().
-		Resource("images").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested images.
-func (c *images) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Resource("images").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched imageResource.

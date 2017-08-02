@@ -40,6 +40,38 @@ func newSecurityContextConstraints(c *SecurityClient) *securityContextConstraint
 	}
 }
 
+// Get takes name of the securityContextConstraints, and returns the corresponding securityContextConstraints object, and an error if there is any.
+func (c *securityContextConstraints) Get(name string, options v1.GetOptions) (result *security.SecurityContextConstraints, err error) {
+	result = &security.SecurityContextConstraints{}
+	err = c.client.Get().
+		Resource("securitycontextconstraints").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of SecurityContextConstraints that match those selectors.
+func (c *securityContextConstraints) List(opts v1.ListOptions) (result *security.SecurityContextConstraintsList, err error) {
+	result = &security.SecurityContextConstraintsList{}
+	err = c.client.Get().
+		Resource("securitycontextconstraints").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested securityContextConstraints.
+func (c *securityContextConstraints) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Resource("securitycontextconstraints").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a securityContextConstraints and creates it.  Returns the server's representation of the securityContextConstraints, and an error, if there is any.
 func (c *securityContextConstraints) Create(securityContextConstraints *security.SecurityContextConstraints) (result *security.SecurityContextConstraints, err error) {
 	result = &security.SecurityContextConstraints{}
@@ -81,38 +113,6 @@ func (c *securityContextConstraints) DeleteCollection(options *v1.DeleteOptions,
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the securityContextConstraints, and returns the corresponding securityContextConstraints object, and an error if there is any.
-func (c *securityContextConstraints) Get(name string, options v1.GetOptions) (result *security.SecurityContextConstraints, err error) {
-	result = &security.SecurityContextConstraints{}
-	err = c.client.Get().
-		Resource("securitycontextconstraints").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of SecurityContextConstraints that match those selectors.
-func (c *securityContextConstraints) List(opts v1.ListOptions) (result *security.SecurityContextConstraintsList, err error) {
-	result = &security.SecurityContextConstraintsList{}
-	err = c.client.Get().
-		Resource("securitycontextconstraints").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested securityContextConstraints.
-func (c *securityContextConstraints) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Resource("securitycontextconstraints").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched securityContextConstraints.

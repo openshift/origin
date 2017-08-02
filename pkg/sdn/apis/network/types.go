@@ -9,7 +9,7 @@ const (
 	EgressNetworkPolicyMaxRules = 50
 )
 
-// +genclient=true
+// +genclient
 
 type ClusterNetwork struct {
 	metav1.TypeMeta

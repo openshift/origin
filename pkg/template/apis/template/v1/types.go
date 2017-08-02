@@ -6,7 +6,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
@@ -94,7 +94,7 @@ type Parameter struct {
 	Required bool `json:"required,omitempty" protobuf:"varint,7,opt,name=required"`
 }
 
-// +genclient=true
+// +genclient
 
 // TemplateInstance requests and records the instantiation of a Template.
 // TemplateInstance is part of an experimental API.
@@ -179,8 +179,8 @@ type TemplateInstanceList struct {
 	Items []TemplateInstance `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // BrokerTemplateInstance holds the service broker-related state associated with
 // a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.

@@ -113,8 +113,8 @@ type CustomResourceDefinitionStatus struct {
 // a CustomResourceDefinition
 const CustomResourceCleanupFinalizer = "customresourcecleanup.apiextensions.k8s.io"
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // CustomResourceDefinition represents a resource that should be exposed on the API server.  Its name MUST be in the format
 // <.spec.name>.<.spec.group>.

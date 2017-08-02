@@ -41,6 +41,38 @@ func newClusterResourceQuotas(c *QuotaV1Client) *clusterResourceQuotas {
 	}
 }
 
+// Get takes name of the clusterResourceQuota, and returns the corresponding clusterResourceQuota object, and an error if there is any.
+func (c *clusterResourceQuotas) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterResourceQuota, err error) {
+	result = &v1.ClusterResourceQuota{}
+	err = c.client.Get().
+		Resource("clusterresourcequotas").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of ClusterResourceQuotas that match those selectors.
+func (c *clusterResourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
+	result = &v1.ClusterResourceQuotaList{}
+	err = c.client.Get().
+		Resource("clusterresourcequotas").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested clusterResourceQuotas.
+func (c *clusterResourceQuotas) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Resource("clusterresourcequotas").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a clusterResourceQuota and creates it.  Returns the server's representation of the clusterResourceQuota, and an error, if there is any.
 func (c *clusterResourceQuotas) Create(clusterResourceQuota *v1.ClusterResourceQuota) (result *v1.ClusterResourceQuota, err error) {
 	result = &v1.ClusterResourceQuota{}
@@ -65,7 +97,7 @@ func (c *clusterResourceQuotas) Update(clusterResourceQuota *v1.ClusterResourceQ
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *clusterResourceQuotas) UpdateStatus(clusterResourceQuota *v1.ClusterResourceQuota) (result *v1.ClusterResourceQuota, err error) {
 	result = &v1.ClusterResourceQuota{}
@@ -97,38 +129,6 @@ func (c *clusterResourceQuotas) DeleteCollection(options *meta_v1.DeleteOptions,
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the clusterResourceQuota, and returns the corresponding clusterResourceQuota object, and an error if there is any.
-func (c *clusterResourceQuotas) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterResourceQuota, err error) {
-	result = &v1.ClusterResourceQuota{}
-	err = c.client.Get().
-		Resource("clusterresourcequotas").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ClusterResourceQuotas that match those selectors.
-func (c *clusterResourceQuotas) List(opts meta_v1.ListOptions) (result *v1.ClusterResourceQuotaList, err error) {
-	result = &v1.ClusterResourceQuotaList{}
-	err = c.client.Get().
-		Resource("clusterresourcequotas").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested clusterResourceQuotas.
-func (c *clusterResourceQuotas) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Resource("clusterresourcequotas").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched clusterResourceQuota.
