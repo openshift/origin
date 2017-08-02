@@ -6,7 +6,7 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	imagesutil "github.com/openshift/origin/test/extended/images"
+	registryutil "github.com/openshift/origin/test/extended/registry/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
@@ -33,7 +33,7 @@ var _ = g.Describe("[imageapis][registry] image signature workflow", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("looking up the openshift registry URL")
-		registryURL, err := imagesutil.GetDockerRegistryURL(oc)
+		registryURL, err := registryutil.GetDockerRegistryURL(oc)
 		signerImage := fmt.Sprintf("%s/%s/signer:latest", registryURL, oc.Namespace())
 		signedImage := fmt.Sprintf("%s/%s/signed:latest", registryURL, oc.Namespace())
 		o.Expect(err).NotTo(o.HaveOccurred())
