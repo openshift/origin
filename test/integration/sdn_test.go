@@ -22,13 +22,8 @@ func createProject(osClient *osclient.Client, clientConfig *restclient.Config, n
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
 	}
 
-	backoff := utilwait.Backoff{
-		Duration: 100 * time.Millisecond,
-		Factor:   2,
-		Steps:    5,
-	}
 	var netns *sdnapi.NetNamespace
-	err = utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+	err = utilwait.Poll(time.Second/2, 30*time.Second, func() (bool, error) {
 		netns, err = osClient.NetNamespaces().Get(name, metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			return false, nil
@@ -38,7 +33,7 @@ func createProject(osClient *osclient.Client, clientConfig *restclient.Config, n
 		return true, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("could not get NetNamepsace %q: %v", name, err)
+		return nil, fmt.Errorf("could not get NetNamespace %q: %v", name, err)
 	}
 	return netns, nil
 }
@@ -50,13 +45,8 @@ func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, a
 		return nil, err
 	}
 
-	backoff := utilwait.Backoff{
-		Duration: 100 * time.Millisecond,
-		Factor:   2,
-		Steps:    5,
-	}
 	name := netns.Name
-	err = utilwait.ExponentialBackoff(backoff, func() (bool, error) {
+	err = utilwait.Poll(time.Second/2, 30*time.Second, func() (bool, error) {
 		netns, err = osClient.NetNamespaces().Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
