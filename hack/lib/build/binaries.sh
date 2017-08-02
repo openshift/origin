@@ -13,51 +13,6 @@ function os::build::binaries_from_targets() {
 }
 readonly -f os::build::binaries_from_targets
 
-# Asks golang what it thinks the host platform is.  The go tool chain does some
-# slightly different things when the target platform matches the host platform.
-function os::build::host_platform() {
-  echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::build::host_platform
-
-# Create a user friendly version of host_platform for end users
-function os::build::host_platform_friendly() {
-  local platform=${1:-}
-  if [[ -z "${platform}" ]]; then
-    platform=$(os::build::host_platform)
-  fi
-  if [[ $platform == "windows/amd64" ]]; then
-    echo "windows"
-  elif [[ $platform == "darwin/amd64" ]]; then
-    echo "mac"
-  elif [[ $platform == "linux/386" ]]; then
-    echo "linux-32bit"
-  elif [[ $platform == "linux/amd64" ]]; then
-    echo "linux-64bit"
-  elif [[ $platform == "linux/ppc64le" ]]; then
-    echo "linux-powerpc64"
-  elif [[ $platform == "linux/arm64" ]]; then
-    echo "linux-arm64"
-  elif [[ $platform == "linux/s390x" ]]; then
-    echo "linux-s390"
-  else
-    echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
-  fi
-}
-readonly -f os::build::host_platform_friendly
-
-# This converts from platform/arch to PLATFORM_ARCH, host platform will be
-# considered if no parameter passed
-function os::build::platform_arch() {
-  local platform=${1:-}
-  if [[ -z "${platform}" ]]; then
-    platform=$(os::build::host_platform)
-  fi
-
-  echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
-}
-readonly -f os::build::platform_arch
-
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is
 # good enough for the Kubernetes build.
@@ -197,7 +152,7 @@ os::build::internal::build_binaries() {
       fi
     done
 
-    local host_platform=$(os::build::host_platform)
+    local host_platform=$(os::util::host_platform)
     local platform
     for platform in "${platforms[@]+"${platforms[@]}"}"; do
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
@@ -210,8 +165,8 @@ os::build::internal::build_binaries() {
         unset GOBIN
       fi
 
-      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(os::build::platform_arch ${platform})
-      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(os::build::platform_arch ${platform})
+      local platform_gotags_envvar=OS_GOFLAGS_TAGS_$(os::util::platform_arch ${platform})
+      local platform_gotags_test_envvar=OS_GOFLAGS_TAGS_TEST_$(os::util::platform_arch ${platform})
 
       # work around https://github.com/golang/go/issues/11887
       local local_ldflags="${version_ldflags}"
@@ -355,7 +310,7 @@ readonly -f os::build::export_targets
 function os::build::place_bins() {
   (
     local host_platform
-    host_platform=$(os::build::host_platform)
+    host_platform=$(os::util::host_platform)
 
     if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::version::get_vars
@@ -414,7 +369,7 @@ function os::build::place_bins() {
       done
 
       # Create the release archive.
-      platform="$( os::build::host_platform_friendly "${platform}" )"
+      platform="$( os::util::host_platform_friendly "${platform}" )"
       if [[ ${OS_RELEASE_ARCHIVE} == "openshift-origin" ]]; then
         for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
           cp "${file}" "${release_binpath}/"
@@ -465,7 +420,7 @@ readonly -f os::build::release_sha
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/bin/${platform}
 function os::build::make_openshift_binary_symlinks() {
-  platform=$(os::build::host_platform)
+  platform=$(os::util::host_platform)
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
       ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"
