@@ -178,8 +178,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		}))
 
 		o.Expect(templateInstance.Status.Conditions).To(o.HaveLen(1))
-		o.Expect(templateInstance.Status.Conditions[0].Type).To(o.Equal(templateapi.TemplateInstanceReady))
-		o.Expect(templateInstance.Status.Conditions[0].Status).To(o.Equal(kapi.ConditionTrue))
+		o.Expect(templateInstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue)).To(o.Equal(true))
 
 		o.Expect(templateInstance.Status.Objects).To(o.HaveLen(len(template.Objects)))
 		for i, obj := range templateInstance.Status.Objects {

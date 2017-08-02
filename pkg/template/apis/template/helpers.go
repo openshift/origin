@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -47,16 +48,30 @@ func AddObjectsToTemplate(template *Template, objects []runtime.Object, targetVe
 	return nil
 }
 
-// FilterTemplateInstanceCondition returns a new []TemplateInstanceCondition,
-// ensuring that it does not contain conditions of condType.
-func FilterTemplateInstanceCondition(conditions []TemplateInstanceCondition, condType TemplateInstanceConditionType) []TemplateInstanceCondition {
-	newConditions := make([]TemplateInstanceCondition, 0, len(conditions)+1)
+func (templateInstance *TemplateInstance) HasCondition(typ TemplateInstanceConditionType, status kapi.ConditionStatus) bool {
+	for _, c := range templateInstance.Status.Conditions {
+		if c.Type == typ && c.Status == status {
+			return true
+		}
+	}
+	return false
+}
 
-	for _, c := range conditions {
-		if c.Type != condType {
-			newConditions = append(newConditions, c)
+func (templateInstance *TemplateInstance) SetCondition(condition TemplateInstanceCondition) {
+	condition.LastTransitionTime = metav1.Now()
+
+	for i, c := range templateInstance.Status.Conditions {
+		if c.Type == condition.Type {
+			if c.Message == condition.Message &&
+				c.Reason == condition.Reason &&
+				c.Status == condition.Status {
+				return
+			}
+
+			templateInstance.Status.Conditions[i] = condition
+			return
 		}
 	}
 
-	return newConditions
+	templateInstance.Status.Conditions = append(templateInstance.Status.Conditions, condition)
 }
