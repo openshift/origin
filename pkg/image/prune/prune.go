@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -82,14 +83,14 @@ type ImageStreamDeleter interface {
 type BlobDeleter interface {
 	// DeleteBlob uses registryClient to ask the registry at registryURL
 	// to remove the blob.
-	DeleteBlob(registryClient *http.Client, registryURL, blob string) error
+	DeleteBlob(ctx context.Context, registryClient *http.Client, registryURL, blob string) error
 }
 
 // LayerLinkDeleter knows how to delete a repository layer link from the Docker registry.
 type LayerLinkDeleter interface {
 	// DeleteLayerLink uses registryClient to ask the registry at registryURL to
 	// delete the repository layer link.
-	DeleteLayerLink(registryClient *http.Client, registryURL, repo, linkName string) error
+	DeleteLayerLink(ctx context.Context, registryClient *http.Client, registryURL, repo, linkName string) error
 }
 
 // ManifestDeleter knows how to delete image manifest data for a repository from
@@ -97,7 +98,7 @@ type LayerLinkDeleter interface {
 type ManifestDeleter interface {
 	// DeleteManifest uses registryClient to ask the registry at registryURL to
 	// delete the repository's image manifest data.
-	DeleteManifest(registryClient *http.Client, registryURL, repo, manifest string) error
+	DeleteManifest(ctx context.Context, registryClient *http.Client, registryURL, repo, manifest string) error
 }
 
 // PrunerOptions contains the fields used to initialize a new Pruner.
@@ -154,7 +155,7 @@ type Pruner interface {
 	// manifestPruner to remove images that have been identified as candidates
 	// for pruning based on the Pruner's internal pruning algorithm.
 	// Please see NewPruner for details on the algorithm.
-	Prune(imagePruner ImageDeleter, streamPruner ImageStreamDeleter, layerLinkPruner LayerLinkDeleter, blobPruner BlobDeleter, manifestPruner ManifestDeleter) error
+	Prune(ctx context.Context, imagePruner ImageDeleter, streamPruner ImageStreamDeleter, layerLinkPruner LayerLinkDeleter, blobPruner BlobDeleter, manifestPruner ManifestDeleter) error
 }
 
 // pruner is an object that knows how to prune a data set
@@ -883,6 +884,7 @@ func (p *pruner) determineRegistry(imageNodes []*imagegraph.ImageNode, isNodes [
 // image configs and layers  eligible for pruning, invoking layerLinkPruner for each registry URL that has
 // layers or configs that can be pruned.
 func (p *pruner) Prune(
+	ctx context.Context,
 	imagePruner ImageDeleter,
 	streamPruner ImageStreamDeleter,
 	layerLinkPruner LayerLinkDeleter,
@@ -917,9 +919,9 @@ func (p *pruner) Prune(
 
 	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
 	prunableComponents := calculatePrunableImageComponents(graphWithoutPrunableImages)
-	errs = append(errs, pruneImageComponents(p.g, p.registryClient, registryURL, prunableComponents, layerLinkPruner)...)
-	errs = append(errs, pruneBlobs(p.g, p.registryClient, registryURL, prunableComponents, blobPruner)...)
-	errs = append(errs, pruneManifests(p.g, p.registryClient, registryURL, prunableImageNodes, manifestPruner)...)
+	errs = append(errs, pruneImageComponents(ctx, p.g, p.registryClient, registryURL, prunableComponents, layerLinkPruner)...)
+	errs = append(errs, pruneBlobs(ctx, p.g, p.registryClient, registryURL, prunableComponents, blobPruner)...)
+	errs = append(errs, pruneManifests(ctx, p.g, p.registryClient, registryURL, prunableImageNodes, manifestPruner)...)
 
 	if len(errs) > 0 {
 		// If we had any errors removing image references from image streams or deleting
@@ -962,6 +964,7 @@ func streamsReferencingImageComponent(g graph.Graph, cn *imagegraph.ImageCompone
 // pruneImageComponents invokes layerLinkDeleter.DeleteLayerLink for each repository layer link to
 // be deleted from the registry.
 func pruneImageComponents(
+	ctx context.Context,
 	g graph.Graph,
 	registryClient *http.Client,
 	registryURL string,
@@ -979,7 +982,7 @@ func pruneImageComponents(
 			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
 			glog.V(4).Infof("Pruning registry=%q, repo=%q, %s", registryURL, streamName, cn.Describe())
-			if err := layerLinkDeleter.DeleteLayerLink(registryClient, registryURL, streamName, cn.Component); err != nil {
+			if err := layerLinkDeleter.DeleteLayerLink(ctx, registryClient, registryURL, streamName, cn.Component); err != nil {
 				errs = append(errs, fmt.Errorf("error pruning layer link %s in repo %q: %v", cn.Component, streamName, err))
 			}
 		}
@@ -991,6 +994,7 @@ func pruneImageComponents(
 // pruneBlobs invokes blobPruner.DeleteBlob for each blob to be deleted from the
 // registry.
 func pruneBlobs(
+	ctx context.Context,
 	g graph.Graph,
 	registryClient *http.Client,
 	registryURL string,
@@ -1000,7 +1004,7 @@ func pruneBlobs(
 	errs := []error{}
 
 	for _, cn := range componentNodes {
-		if err := blobPruner.DeleteBlob(registryClient, registryURL, cn.Component); err != nil {
+		if err := blobPruner.DeleteBlob(ctx, registryClient, registryURL, cn.Component); err != nil {
 			errs = append(errs, fmt.Errorf("error removing blob from registry %s: blob %q: %v",
 				registryURL, cn.Component, err))
 		}
@@ -1011,7 +1015,7 @@ func pruneBlobs(
 
 // pruneManifests invokes manifestPruner.DeleteManifest for each repository
 // manifest to be deleted from the registry.
-func pruneManifests(g graph.Graph, registryClient *http.Client, registryURL string, imageNodes []*imagegraph.ImageNode, manifestPruner ManifestDeleter) []error {
+func pruneManifests(ctx context.Context, g graph.Graph, registryClient *http.Client, registryURL string, imageNodes []*imagegraph.ImageNode, manifestPruner ManifestDeleter) []error {
 	errs := []error{}
 
 	for _, imageNode := range imageNodes {
@@ -1025,7 +1029,7 @@ func pruneManifests(g graph.Graph, registryClient *http.Client, registryURL stri
 			repoName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 
 			glog.V(4).Infof("Pruning manifest for registry %q, repo %q, image %q", registryURL, repoName, imageNode.Image.Name)
-			if err := manifestPruner.DeleteManifest(registryClient, registryURL, repoName, imageNode.Image.Name); err != nil {
+			if err := manifestPruner.DeleteManifest(ctx, registryClient, registryURL, repoName, imageNode.Image.Name); err != nil {
 				errs = append(errs, fmt.Errorf("error pruning manifest for registry %q, repo %q, image %q: %v", registryURL, repoName, imageNode.Image.Name, err))
 			}
 		}
@@ -1076,12 +1080,13 @@ func (p *imageStreamDeleter) DeleteImageStream(stream *imageapi.ImageStream, ima
 // deleteFromRegistry uses registryClient to send a DELETE request to the
 // provided url. It attempts an https request first; if that fails, it fails
 // back to http.
-func deleteFromRegistry(registryClient *http.Client, url string) error {
+func deleteFromRegistry(ctx context.Context, registryClient *http.Client, url string) error {
 	deleteFunc := func(proto, url string) error {
 		req, err := http.NewRequest("DELETE", url, nil)
 		if err != nil {
 			return err
 		}
+		req = req.WithContext(ctx)
 
 		glog.V(4).Infof("Sending request to registry")
 		resp, err := registryClient.Do(req)
@@ -1147,9 +1152,9 @@ func NewLayerLinkDeleter() LayerLinkDeleter {
 	return &layerLinkDeleter{}
 }
 
-func (p *layerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL, repoName, linkName string) error {
+func (p *layerLinkDeleter) DeleteLayerLink(ctx context.Context, registryClient *http.Client, registryURL, repoName, linkName string) error {
 	glog.V(4).Infof("Deleting layer link from registry %q: repo %q, layer link %q", registryURL, repoName, linkName)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/blobs/%s", registryURL, repoName, linkName))
+	return deleteFromRegistry(ctx, registryClient, fmt.Sprintf("%s/v2/%s/blobs/%s", registryURL, repoName, linkName))
 }
 
 // blobDeleter removes a blob from the registry.
@@ -1162,9 +1167,9 @@ func NewBlobDeleter() BlobDeleter {
 	return &blobDeleter{}
 }
 
-func (p *blobDeleter) DeleteBlob(registryClient *http.Client, registryURL, blob string) error {
+func (p *blobDeleter) DeleteBlob(ctx context.Context, registryClient *http.Client, registryURL, blob string) error {
 	glog.V(4).Infof("Deleting blob from registry %q: blob %q", registryURL, blob)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/admin/blobs/%s", registryURL, blob))
+	return deleteFromRegistry(ctx, registryClient, fmt.Sprintf("%s/admin/blobs/%s", registryURL, blob))
 }
 
 // manifestDeleter deletes repository manifest data from the registry.
@@ -1177,9 +1182,9 @@ func NewManifestDeleter() ManifestDeleter {
 	return &manifestDeleter{}
 }
 
-func (p *manifestDeleter) DeleteManifest(registryClient *http.Client, registryURL, repoName, manifest string) error {
+func (p *manifestDeleter) DeleteManifest(ctx context.Context, registryClient *http.Client, registryURL, repoName, manifest string) error {
 	glog.V(4).Infof("Deleting manifest from registry %q: repo %q, manifest %q", registryURL, repoName, manifest)
-	return deleteFromRegistry(registryClient, fmt.Sprintf("%s/v2/%s/manifests/%s", registryURL, repoName, manifest))
+	return deleteFromRegistry(ctx, registryClient, fmt.Sprintf("%s/v2/%s/manifests/%s", registryURL, repoName, manifest))
 }
 
 func getName(obj runtime.Object) string {
