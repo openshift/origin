@@ -33,7 +33,7 @@ func ValidateSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 	case securityapi.RunAsUserStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAsNonRoot, securityapi.RunAsUserStrategyRunAsAny, securityapi.RunAsUserStrategyMustRunAsRange:
 		//good types
 	default:
-		msg := fmt.Sprintf("invalid strategy type.  Valid values are %s, %s, %s", securityapi.RunAsUserStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAsNonRoot, securityapi.RunAsUserStrategyRunAsAny)
+		msg := fmt.Sprintf("invalid strategy type.  Valid values are %s, %s, %s, %s", securityapi.RunAsUserStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAsNonRoot, securityapi.RunAsUserStrategyMustRunAsRange, securityapi.RunAsUserStrategyRunAsAny)
 		allErrs = append(allErrs, field.Invalid(runAsUserPath.Child("type"), scc.RunAsUser.Type, msg))
 	}
 

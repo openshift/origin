@@ -103,7 +103,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		"no user options": {
 			scc:         noUserOptions,
 			errorType:   field.ErrorTypeInvalid,
-			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, MustRunAsRange, RunAsAny",
 		},
 		"no selinux options": {
 			scc:         noSELinuxOptions,
@@ -123,7 +123,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		"invalid user strategy type": {
 			scc:         invalidUserStratType,
 			errorType:   field.ErrorTypeInvalid,
-			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, RunAsAny",
+			errorDetail: "invalid strategy type.  Valid values are MustRunAs, MustRunAsNonRoot, MustRunAsRange, RunAsAny",
 		},
 		"invalid selinux strategy type": {
 			scc:         invalidSELinuxStratType,
@@ -189,7 +189,7 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 
 	for k, v := range errorCases {
 		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) == 0 || errs[0].Type != v.errorType || errs[0].Detail != v.errorDetail {
-			t.Errorf("Expected error type %s with detail %s for %s, got %v", v.errorType, v.errorDetail, k, errs)
+			t.Errorf("Expected error type %q with detail %q for %q, got %v", v.errorType, v.errorDetail, k, errs)
 		}
 	}
 
