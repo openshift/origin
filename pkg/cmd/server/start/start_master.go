@@ -440,7 +440,7 @@ func (m *Master) Start() error {
 			}
 			glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-			if err := origin.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
+			if err := origincontrollers.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
 				return err
 			}
 		}
@@ -593,7 +593,9 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		}
 	}
 
-	oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop)
+	if err := oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop); err != nil {
+		return err
+	}
 
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {

@@ -1,7 +1,6 @@
 package origin
 
 import (
-	"crypto/tls"
 	"io"
 	"net/http"
 	"net/url"
@@ -11,24 +10,16 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserver "k8s.io/apiserver/pkg/server"
 	apiserverfilters "k8s.io/apiserver/pkg/server/filters"
-	"k8s.io/apiserver/pkg/server/healthz"
-	genericmux "k8s.io/apiserver/pkg/server/mux"
-	genericroutes "k8s.io/apiserver/pkg/server/routes"
-	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
-	clientgoclientset "k8s.io/client-go/kubernetes"
+	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
-	"crypto/x509"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -113,79 +104,131 @@ func (c *MasterConfig) newTemplateServiceBrokerConfig(kubeAPIServerConfig apiser
 	return ret
 }
 
-// Run launches the OpenShift master by creating a kubernetes master, installing
-// OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) {
+func (c *MasterConfig) withTemplateServiceBroker(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+	if c.Options.TemplateServiceBrokerConfig == nil {
+		return delegateAPIServer, nil
+	}
+	tsbConfig := c.newTemplateServiceBrokerConfig(kubeAPIServerConfig)
+	tsbServer, err := tsbConfig.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+
+	return tsbServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
 	kubeAPIServerOptions, err := kubernetes.BuildKubeAPIserverOptions(c.Options)
 	if err != nil {
-		glog.Fatalf("Failed: %v", err)
+		return nil, nil, err
 	}
 
-	var delegateAPIServer apiserver.DelegationTarget
-	delegateAPIServer = apiserver.EmptyDelegate
-	if c.Options.TemplateServiceBrokerConfig != nil {
-		tsbConfig := c.newTemplateServiceBrokerConfig(*kubeAPIServerConfig.GenericConfig)
-		tsbServer, err := tsbConfig.Complete().New(delegateAPIServer, stopCh)
-		if err != nil {
-			glog.Fatalf("Failed: %v", err)
-		}
-		delegateAPIServer = tsbServer.GenericAPIServer
-	}
-
-	apiExtensionsConfig, err := createAPIExtensionsConfig(*kubeAPIServerConfig.GenericConfig, kubeAPIServerOptions.Etcd)
+	apiExtensionsConfig, err := createAPIExtensionsConfig(kubeAPIServerConfig, kubeAPIServerOptions.Etcd)
 	if err != nil {
-		glog.Fatalf("Failed: %v", err)
+		return nil, nil, err
 	}
 	apiExtensionsServer, err := createAPIExtensionsServer(apiExtensionsConfig, delegateAPIServer)
 	if err != nil {
-		glog.Fatalf("Failed: %v", err)
+		return nil, nil, err
 	}
+	return apiExtensionsServer.GenericAPIServer, apiExtensionsServer.Informers, nil
+}
 
-	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(*kubeAPIServerConfig.GenericConfig, controllerPlug)
-	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(apiExtensionsServer.GenericAPIServer, stopCh)
+func (c *MasterConfig) withNonAPIRoutes(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, controllerPlug plug.Plug) (apiserver.DelegationTarget, error) {
+	openshiftNonAPIConfig := c.newOpenshiftNonAPIConfig(kubeAPIServerConfig, controllerPlug)
+	openshiftNonAPIServer, err := openshiftNonAPIConfig.Complete().New(delegateAPIServer)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
+	return openshiftNonAPIServer.GenericAPIServer, nil
+}
 
-	openshiftAPIServerConfig, err := c.newOpenshiftAPIConfig(*kubeAPIServerConfig.GenericConfig)
+func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
+	openshiftAPIServerConfig, err := c.newOpenshiftAPIConfig(kubeAPIServerConfig)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
-	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(openshiftNonAPIServer.GenericAPIServer, stopCh)
+	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
+	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
+
+	openshiftAPIServer, err := openshiftAPIServerConfig.Complete().New(delegateAPIServer)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
 	// this sets up the openapi endpoints
 	preparedOpenshiftAPIServer := openshiftAPIServer.GenericAPIServer.PrepareRun()
 
+	return preparedOpenshiftAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig kubeapiserver.Config, assetConfig *AssetConfig) (apiserver.DelegationTarget, error) {
+	var err error
 	// TODO move out of this function to somewhere we build the kubeAPIServerConfig
 	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, err = c.buildHandlerChain(assetConfig)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
-	// We need to add an openshift type to the kube's core storage until at least 3.8.  This does that by using a patch we carry.
-	kcorestorage.LegacyStorageMutatorFn = sccstorage.AddSCC(openshiftAPIServerConfig.SCCStorage)
-	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(preparedOpenshiftAPIServer.GenericAPIServer, apiExtensionsConfig.CRDRESTOptionsGetter)
+	kubeAPIServer, err := kubeAPIServerConfig.Complete().New(delegateAPIServer, nil /*this is only used for tpr migration and we don't have any to migrate*/)
 	if err != nil {
-		glog.Fatalf("Failed to launch master: %v", err)
+		return nil, err
 	}
-
 	// this sets up the openapi endpoints
 	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()
 
-	aggregatorConfig, err := c.createAggregatorConfig(*kubeAPIServerConfig.GenericConfig)
+	return preparedKubeAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
+	aggregatorConfig, err := c.createAggregatorConfig(kubeAPIServerConfig)
 	if err != nil {
-		glog.Fatalf("Failed to create aggregator config: %v", err)
+		return nil, err
 	}
-	aggregatorServer, err := createAggregatorServer(aggregatorConfig, preparedKubeAPIServer.GenericAPIServer, c.InternalKubeInformers, apiExtensionsServer.Informers)
+	aggregatorServer, err := createAggregatorServer(aggregatorConfig, delegateAPIServer, c.InternalKubeInformers, apiExtensionsInformers)
 	if err != nil {
 		// we don't need special handling for innerStopCh because the aggregator server doesn't create any go routines
-		glog.Fatalf("Failed to create aggregator server: %v", err)
+		return nil, err
 	}
-	go aggregatorServer.GenericAPIServer.PrepareRun().Run(stopCh)
+
+	return aggregatorServer, nil
+}
+
+// Run launches the OpenShift master by creating a kubernetes master, installing
+// OpenShift APIs into it and then running it.
+func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) error {
+	var err error
+	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
+	var delegateAPIServer apiserver.DelegationTarget
+
+	delegateAPIServer = apiserver.EmptyDelegate
+	delegateAPIServer, err = c.withTemplateServiceBroker(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *kubeAPIServerConfig.GenericConfig, controllerPlug)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	if err != nil {
+		return err
+	}
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *kubeAPIServerConfig, assetConfig)
+	if err != nil {
+		return err
+	}
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	if err != nil {
+		return err
+	}
+
+	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+	return cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
 func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure http.Handler), error) {
@@ -264,113 +307,6 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 
 		return handler
 	}, nil
-}
-
-// TODO refactor this out of this package and split apiserver and controllers for good!
-func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal clientgoclientset.Interface) error {
-	clientCAs, err := getClientCertCAPool(servingInfo)
-	if err != nil {
-		return err
-	}
-
-	mux := genericmux.NewPathRecorderMux("master-healthz")
-
-	healthz.InstallHandler(mux, healthz.PingHealthz)
-	initReadinessCheckRoute(mux, "/healthz/ready", func() bool { return true })
-	genericroutes.Profiling{}.Install(mux)
-	genericroutes.MetricsWithReset{}.Install(mux)
-
-	// TODO: replace me with a service account for controller manager
-	tokenReview := kubeExternal.AuthenticationV1beta1().TokenReviews()
-	authn, err := serverauthenticator.NewRemoteAuthenticator(tokenReview, clientCAs, 5*time.Minute)
-	if err != nil {
-		return err
-	}
-	sarClient := kubeExternal.AuthorizationV1beta1().SubjectAccessReviews()
-	remoteAuthz, err := authzwebhook.NewFromInterface(sarClient, 5*time.Minute, 5*time.Minute)
-	if err != nil {
-		return err
-	}
-
-	// requestInfoFactory for controllers only needs to be able to handle non-API endpoints
-	requestInfoResolver := apiserver.NewRequestInfoResolver(&apiserver.Config{})
-	// the request context mapper for controllers is always separate
-	requestContextMapper := apirequest.NewRequestContextMapper()
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, requestInfoResolver)
-
-	// we use direct bypass to allow readiness and health to work regardless of the master health
-	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
-	handler := serverhandlers.AuthorizationFilter(mux, authz, authorizationAttributeBuilder, requestContextMapper)
-	handler = serverhandlers.AuthenticationHandlerFilter(handler, authn, requestContextMapper)
-	handler = apiserverfilters.WithPanicRecovery(handler)
-	handler = apifilters.WithRequestInfo(handler, requestInfoResolver, requestContextMapper)
-	handler = apirequest.WithRequestContext(handler, requestContextMapper)
-
-	serveControllers(servingInfo, handler)
-	return nil
-}
-
-// serve starts serving the provided http.Handler using security settings derived from the MasterConfig
-func serveControllers(servingInfo configapi.HTTPServingInfo, handler http.Handler) {
-	timeout := servingInfo.RequestTimeoutSeconds
-	if timeout == -1 {
-		timeout = 0
-	}
-
-	server := &http.Server{
-		Addr:           servingInfo.BindAddress,
-		Handler:        handler,
-		ReadTimeout:    time.Duration(timeout) * time.Second,
-		WriteTimeout:   time.Duration(timeout) * time.Second,
-		MaxHeaderBytes: 1 << 20,
-	}
-
-	clientCAs, err := getClientCertCAPool(servingInfo)
-	if err != nil {
-		glog.Fatal(err)
-	}
-
-	go utilwait.Forever(func() {
-		glog.Infof("Started health checks at %s", servingInfo.BindAddress)
-
-		if configapi.UseTLS(servingInfo.ServingInfo) {
-			extraCerts, err := configapi.GetNamedCertificateMap(servingInfo.NamedCertificates)
-			if err != nil {
-				glog.Fatal(err)
-			}
-			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  clientCAs,
-				// Set SNI certificate func
-				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-				MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
-				CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
-			})
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.ServerCert.CertFile, servingInfo.ServerCert.KeyFile))
-		} else {
-			glog.Fatal(server.ListenAndServe())
-		}
-	}, 0)
-}
-
-func getClientCertCAPool(servingInfo configapi.HTTPServingInfo) (*x509.CertPool, error) {
-	if !configapi.UseTLS(servingInfo.ServingInfo) {
-		return nil, nil
-	}
-
-	roots := x509.NewCertPool()
-	// Add CAs for API
-	certs, err := cmdutil.CertificatesFromFile(servingInfo.ClientCA)
-	if err != nil {
-		return nil, err
-	}
-	for _, root := range certs {
-		roots.AddCert(root)
-	}
-
-	return roots, nil
 }
 
 // InitializeObjects ensures objects in Kubernetes and etcd are properly populated.
