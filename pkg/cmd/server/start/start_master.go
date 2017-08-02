@@ -568,13 +568,6 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		}
 	}
 
-	clusterQuotaMapping := origincontrollers.ClusterQuotaMappingControllerConfig{
-		ClusterQuotaMappingController: oc.ClusterQuotaMappingController,
-	}
-	clusterQuotaMapping.RunController(origincontrollers.ControllerContext{Stop: utilwait.NeverStop})
-	oc.RunGroupCache()
-	oc.RunProjectCache()
-
 	var standaloneAssetConfig, embeddedAssetConfig *origin.AssetConfig
 	if oc.WebConsoleEnabled() {
 		overrideConfig, err := getResourceOverrideConfig(oc)
@@ -604,13 +597,11 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 
 	// start up the informers that we're trying to use in the API server
 	informers.Start(utilwait.NeverStop)
-	oc.InitializeObjects()
 
 	if standaloneAssetConfig != nil {
 		standaloneAssetConfig.Run()
 	}
 
-	oc.RunProjectAuthorizationCache()
 	return nil
 }
 

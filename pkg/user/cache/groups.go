@@ -59,11 +59,6 @@ func NewGroupCache(groupRegistry groupregistry.Registry) *GroupCache {
 	}
 }
 
-// Run begins watching and synchronizing the cache
-func (c *GroupCache) Run() {
-	c.reflector.Run()
-}
-
 // RunUntil starts a watch and handles watch events. Will restart the watch if it is closed.
 // RunUntil starts a goroutine and returns immediately. It will exit when stopCh is closed.
 func (c *GroupCache) RunUntil(stopChannel <-chan struct{}) {

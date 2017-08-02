@@ -567,6 +567,9 @@ func TestAdmission(t *testing.T) {
 		},
 	}
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
 	for _, tc := range testCases {
 		kclientset := fake.NewSimpleClientset(otestclient.UpstreamObjects(tc.objects)...)
 		oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(tc.objects)...)
@@ -581,7 +584,7 @@ func TestAdmission(t *testing.T) {
 
 		groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
 		plugin.(oadmission.WantsGroupCache).SetGroupCache(groupCache)
-		groupCache.Run()
+		groupCache.RunUntil(stopCh)
 
 		err = admission.Validate(plugin)
 		if err != nil {
