@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -46,10 +47,7 @@ import (
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
-	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -568,25 +566,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		}
 	}
 
-	var standaloneAssetConfig, embeddedAssetConfig *origin.AssetConfig
-	if oc.WebConsoleEnabled() {
-		overrideConfig, err := getResourceOverrideConfig(oc)
-		if err != nil {
-			return err
-		}
-		config, err := origin.NewAssetConfig(*oc.Options.AssetConfig, overrideConfig)
-		if err != nil {
-			return err
-		}
-
-		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {
-			embeddedAssetConfig = config
-		} else {
-			standaloneAssetConfig = config
-		}
-	}
-
-	if err := oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop); err != nil {
+	if err := oc.Run(kc.Master, controllerPlug, utilwait.NeverStop); err != nil {
 		return err
 	}
 
@@ -598,50 +578,22 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 	// start up the informers that we're trying to use in the API server
 	informers.Start(utilwait.NeverStop)
 
-	if standaloneAssetConfig != nil {
-		standaloneAssetConfig.Run()
+	// if the webconsole is configured to be standalone, go ahead and create and run it
+	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
+		config, err := origin.NewAssetServerConfigFromMasterConfig(oc.Options)
+		if err != nil {
+			return err
+		}
+		assetServer, err := config.Complete().New(genericapiserver.EmptyDelegate)
+		if err != nil {
+			return err
+		}
+		if err := origin.RunAssetServer(assetServer, utilwait.NeverStop); err != nil {
+			return err
+		}
 	}
 
 	return nil
-}
-
-// getResourceOverrideConfig looks in two potential places where ClusterResourceOverrideConfig can be specified
-func getResourceOverrideConfig(oc *origin.MasterConfig) (*overrideapi.ClusterResourceOverrideConfig, error) {
-	overrideConfig, err := checkForOverrideConfig(oc.Options.AdmissionConfig)
-	if err != nil {
-		return nil, err
-	}
-	if overrideConfig != nil {
-		return overrideConfig, nil
-	}
-	if oc.Options.KubernetesMasterConfig == nil { // external kube gets you a nil pointer here
-		return nil, nil
-	}
-	overrideConfig, err = checkForOverrideConfig(oc.Options.KubernetesMasterConfig.AdmissionConfig)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
-}
-
-// checkForOverrideConfig looks for ClusterResourceOverrideConfig plugin cfg in the admission PluginConfig
-func checkForOverrideConfig(ac configapi.AdmissionConfig) (*overrideapi.ClusterResourceOverrideConfig, error) {
-	overridePluginConfigFile, err := pluginconfig.GetPluginConfigFile(ac.PluginConfig, overrideapi.PluginName, "")
-	if err != nil {
-		return nil, err
-	}
-	if overridePluginConfigFile == "" {
-		return nil, nil
-	}
-	configFile, err := os.Open(overridePluginConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	overrideConfig, err := override.ReadConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
 }
 
 type GenericResourceInformer interface {

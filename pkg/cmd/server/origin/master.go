@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -161,10 +162,8 @@ func (c *MasterConfig) withOpenshiftAPI(delegateAPIServer apiserver.DelegationTa
 	return preparedOpenshiftAPIServer.GenericAPIServer, nil
 }
 
-func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig kubeapiserver.Config, assetConfig *AssetConfig) (apiserver.DelegationTarget, error) {
+func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig kubeapiserver.Config) (apiserver.DelegationTarget, error) {
 	var err error
-	// TODO move out of this function to somewhere we build the kubeAPIServerConfig
-	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, err = c.buildHandlerChain(assetConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -176,6 +175,22 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	preparedKubeAPIServer := kubeAPIServer.GenericAPIServer.PrepareRun()
 
 	return preparedKubeAPIServer.GenericAPIServer, nil
+}
+
+func (c *MasterConfig) newAssetServerHandler() (http.Handler, error) {
+	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
+		return http.NotFoundHandler(), nil
+	}
+
+	config, err := NewAssetServerConfigFromMasterConfig(c.Options)
+	if err != nil {
+		return nil, err
+	}
+	assetServer, err := config.Complete().New(apiserver.EmptyDelegate)
+	if err != nil {
+		return nil, err
+	}
+	return assetServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
 }
 
 func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
@@ -194,10 +209,16 @@ func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarg
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfig *AssetConfig, controllerPlug plug.Plug, stopCh <-chan struct{}) error {
+func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controllerPlug plug.Plug, stopCh <-chan struct{}) error {
 	var err error
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
 	var delegateAPIServer apiserver.DelegationTarget
+
+	assetHandler, err := c.newAssetServerHandler()
+	if err != nil {
+		return err
+	}
+	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = c.buildHandlerChain(assetHandler)
 
 	delegateAPIServer = apiserver.EmptyDelegate
 	delegateAPIServer, err = c.withTemplateServiceBroker(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
@@ -216,7 +237,7 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *kubeAPIServerConfig, assetConfig)
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *kubeAPIServerConfig)
 	if err != nil {
 		return err
 	}
@@ -236,25 +257,20 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
-	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
-	return cmdutil.WaitForSuccessfulDial(c.TLS, c.Options.ServingInfo.BindNetwork, c.Options.ServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
-}
-
-func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Handler, *apiserver.Config) (secure http.Handler), error) {
+	// TODO find a better home for this output
 	if c.Options.OAuthConfig != nil {
 		glog.Infof("Starting OAuth2 API at %s", oauthutil.OpenShiftOAuthAPIPrefix)
 	}
-
-	if assetConfig != nil {
-		publicURL, err := url.Parse(assetConfig.Options.PublicURL)
-		if err != nil {
-			return nil, err
-		}
-		glog.Infof("Starting Web Console %s", publicURL.Path)
+	if c.WebConsoleEnabled() && !c.WebConsoleStandalone() {
+		glog.Infof("Starting Web Console %s", c.Options.AssetConfig.PublicURL)
 	}
 
-	// TODO(sttts): resync with upstream handler chain and re-use upstream filters as much as possible
-	return func(apiHandler http.Handler, kc *apiserver.Config) (secure http.Handler) {
+	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
+	return cmdutil.WaitForSuccessfulDial(true, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindNetwork, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(apiHandler http.Handler, kc *apiserver.Config) http.Handler {
+	return func(apiHandler http.Handler, kc *apiserver.Config) http.Handler {
 		contextMapper := c.getRequestContextMapper()
 
 		handler := c.versionSkewFilter(apiHandler, contextMapper)
@@ -292,11 +308,6 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 			}
 		}
 
-		handler, err := assetConfig.WithAssets(handler)
-		if err != nil {
-			glog.Fatalf("Failed to setup serving of assets: %v", err)
-		}
-
 		if c.WebConsoleEnabled() {
 			handler = WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 		}
@@ -311,8 +322,34 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 		handler = apirequest.WithRequestContext(handler, contextMapper)
 		handler = apiserverfilters.WithPanicRecovery(handler)
 
+		// these handlers are actually separate API servers which have their own handler chains.
+		// our server embeds these
+		handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)
+
 		return handler
-	}, nil
+	}
+}
+
+func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, assetConfig *configapi.AssetConfig) http.Handler {
+	if assetConfig == nil {
+		return handler
+	}
+	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
+		return handler
+	}
+
+	publicURL, err := url.Parse(assetConfig.PublicURL)
+	if err != nil {
+		// fails validation before here
+		glog.Fatal(err)
+	}
+	// path always ends in a slash or the
+	prefix := publicURL.Path
+	lastIndex := len(publicURL.Path) - 1
+	if publicURL.Path[lastIndex] == '/' {
+		prefix = publicURL.Path[0:lastIndex]
+	}
+	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
@@ -348,10 +385,10 @@ func env(key string, defaultValue string) string {
 	return val
 }
 
-func WithPatternsHandler(handler http.Handler, patternHandler http.Handler, patterns ...string) http.Handler {
+func WithPatternPrefixHandler(handler http.Handler, patternHandler http.Handler, prefixes ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		for _, p := range patterns {
-			if req.URL.Path == p {
+		for _, p := range prefixes {
+			if strings.HasPrefix(req.URL.Path, p) {
 				patternHandler.ServeHTTP(w, req)
 				return
 			}
