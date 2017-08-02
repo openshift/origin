@@ -55,9 +55,7 @@ type sccReviewOptions struct {
 	namespace                string
 	enforceNamespace         bool
 	out                      io.Writer
-	mapper                   meta.RESTMapper
-	typer                    runtime.ObjectTyper
-	categoryExpander         resource.CategoryExpander
+	builder                  *resource.Builder
 	RESTClientFactory        func(mapping *meta.RESTMapping) (resource.RESTClient, error)
 	printer                  sccReviewPrinter
 	FilenameOptions          resource.FilenameOptions
@@ -108,8 +106,7 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 	if err != nil {
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}
-	o.mapper, o.typer = f.Object()
-	o.categoryExpander = f.CategoryExpander()
+	o.builder = f.NewBuilder(true)
 	o.RESTClientFactory = f.ClientForMapping
 
 	if len(kcmdutil.GetFlagString(cmd, "output")) != 0 {
@@ -126,7 +123,7 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 }
 
 func (o *sccReviewOptions) Run(args []string) error {
-	r := resource.NewBuilder(o.mapper, o.categoryExpander, o.typer, resource.ClientMapperFunc(o.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
+	r := o.builder.
 		NamespaceParam(o.namespace).
 		FilenameParam(o.enforceNamespace, &o.FilenameOptions).
 		ResourceTypeOrNameArgs(true, args...).

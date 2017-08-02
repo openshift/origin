@@ -40,6 +40,8 @@ type NodeOptions struct {
 	CmdPrinter       kprinters.ResourcePrinter
 	CmdPrinterOutput bool
 
+	Builder *resource.Builder
+
 	NodeNames []string
 
 	// Common optional params
@@ -73,6 +75,7 @@ func (n *NodeOptions) Complete(f *clientcmd.Factory, c *cobra.Command, args []st
 	}
 	mapper, typer := f.Object()
 
+	n.Builder = f.NewBuilder(true)
 	n.DefaultNamespace = defaultNamespace
 	n.ExternalKubeClient = externalkc
 	n.KubeClient = kc
@@ -128,7 +131,7 @@ func (n *NodeOptions) GetNodes() ([]*kapi.Node, error) {
 		nameArgs = append(nameArgs, n.NodeNames...)
 	}
 
-	r := resource.NewBuilder(n.Mapper, n.CategoryExpander, n.Typer, resource.ClientMapperFunc(n.RESTClientFactory), kapi.Codecs.UniversalDecoder()).
+	r := n.Builder.
 		ContinueOnError().
 		NamespaceParam(n.DefaultNamespace).
 		SelectorParam(n.Selector).
