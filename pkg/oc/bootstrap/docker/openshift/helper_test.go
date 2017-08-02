@@ -29,6 +29,10 @@ func TestParseOpenshiftVersion(t *testing.T) {
 			input:    "3.6.0-alpha.2+2a00043-774",
 			expected: "3.6.0-alpha.2+2a00043-774",
 		},
+		{
+			input:    "3.6.172.0.4",
+			expected: "3.6.172",
+		},
 	}
 
 	for _, test := range tests {
