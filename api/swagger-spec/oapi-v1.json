@@ -8292,59 +8292,6 @@
     ]
    },
    {
-    "path": "/oapi/v1/namespaces/{namespace}/generatedeploymentconfigs/{name}",
-    "description": "OpenShift REST API, version v1",
-    "operations": [
-     {
-      "type": "v1.DeploymentConfig",
-      "method": "GET",
-      "summary": "read the specified DeploymentConfig",
-      "nickname": "readNamespacedDeploymentConfig",
-      "parameters": [
-       {
-        "type": "string",
-        "paramType": "query",
-        "name": "pretty",
-        "description": "If 'true', then the output is pretty printed.",
-        "required": false,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "namespace",
-        "description": "object name and auth scope, such as for teams and projects",
-        "required": true,
-        "allowMultiple": false
-       },
-       {
-        "type": "string",
-        "paramType": "path",
-        "name": "name",
-        "description": "name of the DeploymentConfig",
-        "required": true,
-        "allowMultiple": false
-       }
-      ],
-      "responseMessages": [
-       {
-        "code": 200,
-        "message": "OK",
-        "responseModel": "v1.DeploymentConfig"
-       }
-      ],
-      "produces": [
-       "application/json",
-       "application/yaml",
-       "application/vnd.kubernetes.protobuf"
-      ],
-      "consumes": [
-       "*/*"
-      ]
-     }
-    ]
-   },
-   {
     "path": "/oapi/v1/groups",
     "description": "OpenShift REST API, version v1",
     "operations": [

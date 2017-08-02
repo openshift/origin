@@ -35,7 +35,6 @@ import (
 	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
-	deployconfiggenerator "github.com/openshift/origin/pkg/deploy/registry/generator"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -295,14 +294,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		Secrets:         c.KubeClientInternal.Core(),
 	}
 
-	// TODO: with sharding, this needs to be changed
-	deployConfigGenerator := &deployconfiggenerator.DeploymentConfigGenerator{
-		Client: deployconfiggenerator.Client{
-			DCFn:   deployConfigRegistry.GetDeploymentConfig,
-			ISFn:   imageStreamRegistry.GetImageStream,
-			LISFn2: imageStreamRegistry.ListImageStreams,
-		},
-	}
 	deployRollbackClient := deployrollback.Client{
 		DCFn: deployConfigRegistry.GetDeploymentConfig,
 		RCFn: clientDeploymentInterface{c.KubeClientInternal}.GetDeployment,
@@ -383,7 +374,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	storage := map[schema.GroupVersion]map[string]rest.Storage{
 		v1.SchemeGroupVersion: {
 			// TODO: Deprecate these
-			"generateDeploymentConfigs": deployconfiggenerator.NewREST(deployConfigGenerator, externalVersionCodec),
 			"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, externalVersionCodec),
 		},
 	}

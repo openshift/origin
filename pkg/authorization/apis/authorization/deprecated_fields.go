@@ -51,7 +51,7 @@ var (
 	groupsToResources = map[string][]string{
 		buildGroupName:       {"builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/log", "builds/clone", "buildconfigs/webhooks"},
 		imageGroupName:       {"imagestreams", "imagestreammappings", "imagestreamtags", "imagestreamimages", "imagestreamimports"},
-		deploymentGroupName:  {"deploymentconfigs", "generatedeploymentconfigs", "deploymentconfigrollbacks", "deploymentconfigs/log", "deploymentconfigs/scale"},
+		deploymentGroupName:  {"deploymentconfigs", "deploymentconfigrollbacks", "deploymentconfigs/log", "deploymentconfigs/scale"},
 		sdnGroupName:         {"clusternetworks", "hostsubnets", "netnamespaces"},
 		templateGroupName:    {"templates", "templateconfigs", "processedtemplates"},
 		userGroupName:        {"identities", "users", "useridentitymappings", "groups"},
