@@ -1,0 +1,9 @@
+[
+   {
+      "baseImportPath" : "pkg/image",
+      "allowedImports" : [
+         "pkg/client",
+         "vendor"
+      ]
+   }
+]
