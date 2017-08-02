@@ -24,6 +24,7 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/spec"
@@ -42,6 +43,7 @@ type OpenAPIService struct {
 	lastModified time.Time
 	updateHooks  []func(*http.Request)
 
+	closeOnce   sync.Once
 	initialized chan struct{}
 }
 
@@ -122,7 +124,10 @@ func (o *OpenAPIService) GetSpec() *spec.Swagger {
 // using the channel.
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
 	go func() {
-		defer close(o.initialized)
+		defer o.closeOnce.Do(func() {
+			close(o.initialized)
+		})
+
 		o.orgSpec = openapiSpec
 		o.specBytes, err = json.MarshalIndent(openapiSpec, " ", " ")
 		if err != nil {
