@@ -328,6 +328,7 @@ func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 	// Adjust defaults
 	cmserver.ClusterSigningCertFile = ""
 	cmserver.ClusterSigningKeyFile = ""
+	cmserver.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
 	cmserver.ClusterSigningDuration = metav1.Duration{Duration: 0}
 	cmserver.Address = "" // no healthz endpoint
 	cmserver.Port = 0     // no healthz endpoint

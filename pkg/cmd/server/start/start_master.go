@@ -460,6 +460,7 @@ func (m *Master) Start() error {
 			*m.config,
 			kubeControllerManagerConfig.KubeControllerManagerConfiguration.LeaderElection,
 			kubeExternal,
+			clientGoKubeExternal.Core().Events(""),
 		)
 		if err != nil {
 			return err

@@ -21,7 +21,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
-	cs "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	corev1 "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 )
 
 const (
@@ -76,7 +76,7 @@ type Interface interface {
 }
 
 // Manufacture will create a lock of a given type according to the input parameters
-func New(lockType string, ns string, name string, client *cs.Clientset, rlc ResourceLockConfig) (Interface, error) {
+func New(lockType string, ns string, name string, client corev1.CoreV1Interface, rlc ResourceLockConfig) (Interface, error) {
 	switch lockType {
 	case EndpointsResourceLock:
 		return &EndpointsLock{
