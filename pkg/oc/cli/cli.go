@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/pflag"
 
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
@@ -35,14 +36,14 @@ import (
 const productName = `OpenShift`
 
 var (
-	cliLong = templates.LongDesc(`
+	cliLong = ktemplates.LongDesc(`
     ` + productName + ` Client
 
     This client helps you develop, build, deploy, and run your applications on any
     OpenShift or Kubernetes compatible platform. It also includes the administrative
     commands for managing a cluster under the 'adm' subcommand.`)
 
-	cliExplain = templates.LongDesc(`
+	cliExplain = ktemplates.LongDesc(`
     To create a new application, login to your server and then run new-app:
 
         %[1]s login https://mycluster.mycompany.com
@@ -87,7 +88,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	loginCmd := login.NewCmdLogin(fullName, f, in, out)
 	secretcmds := secrets.NewCmdSecrets(secrets.SecretsRecommendedName, fullName+" "+secrets.SecretsRecommendedName, f, in, out, errout, fullName+" edit")
 
-	groups := templates.CommandGroups{
+	groups := ktemplates.CommandGroups{
 		{
 			Message: "Basic Commands:",
 			Commands: []*cobra.Command{

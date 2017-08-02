@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/set"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/templates"
@@ -13,7 +14,7 @@ import (
 )
 
 var (
-	setLong = templates.LongDesc(`
+	setLong = ktemplates.LongDesc(`
 		Configure application resources
 
 		These commands help you make changes to existing application resources.`)
@@ -30,7 +31,7 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 
 	name := fmt.Sprintf("%s set", fullName)
 
-	groups := templates.CommandGroups{
+	groups := ktemplates.CommandGroups{
 		{
 			Message: "Replication controllers, deployments, and daemon sets:",
 			Commands: []*cobra.Command{
@@ -69,10 +70,10 @@ func NewCmdSet(fullName string, f *clientcmd.Factory, in io.Reader, out, errout 
 }
 
 var (
-	setImageLong = templates.LongDesc(`
+	setImageLong = ktemplates.LongDesc(`
 Update existing container image(s) of resources.`)
 
-	setImageExample = templates.Examples(`
+	setImageExample = ktemplates.Examples(`
 		# Set a deployment configs's nginx container image to 'nginx:1.9.1', and its busybox container image to 'busybox'.
 	  %[1]s image dc/nginx busybox=busybox nginx=nginx:1.9.1
 
@@ -99,7 +100,7 @@ func NewCmdImage(fullName string, f *clientcmd.Factory, out, err io.Writer) *cob
 }
 
 var (
-	setResourcesLong = templates.LongDesc(`
+	setResourcesLong = ktemplates.LongDesc(`
 Specify compute resource requirements (cpu, memory) for any resource that defines a pod template. If a pod is successfully schedualed it is guaranteed the amount of resource requested, but may burst up to its specified limits.
 
 For each compute resource, if a limit is specified and a request is omitted, the request will default to the limit.
@@ -107,7 +108,7 @@ For each compute resource, if a limit is specified and a request is omitted, the
 Possible resources include (case insensitive):
 "ReplicationController", "Deployment", "DaemonSet", "Job", "ReplicaSet", "DeploymentConfigs"`)
 
-	setResourcesExample = templates.Examples(`
+	setResourcesExample = ktemplates.Examples(`
 # Set a deployments nginx container cpu limits to "200m and memory to 512Mi"
 
 %[1]s resources deployment nginx -c=nginx --limits=cpu=200m,memory=512Mi

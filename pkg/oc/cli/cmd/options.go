@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/cmd/templates"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 )
 
 // NewCmdOptions implements the OpenShift cli options command

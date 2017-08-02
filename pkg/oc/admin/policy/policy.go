@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/uuid"
+	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/spf13/cobra"
@@ -20,7 +21,7 @@ import (
 
 const PolicyRecommendedName = "policy"
 
-var policyLong = templates.LongDesc(`
+var policyLong = ktemplates.LongDesc(`
 	Manage policy on the cluster
 
 	These commands allow you to assign and manage the roles and policies that apply to users. The reconcile
@@ -40,7 +41,7 @@ func NewCmdPolicy(name, fullName string, f *clientcmd.Factory, out, errout io.Wr
 		Run:   cmdutil.DefaultSubCommandRun(out),
 	}
 
-	groups := templates.CommandGroups{
+	groups := ktemplates.CommandGroups{
 		{
 			Message: "Discover:",
 			Commands: []*cobra.Command{

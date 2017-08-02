@@ -10,9 +10,9 @@ import (
 
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	poddiag "github.com/openshift/origin/pkg/diagnostics/pod"
 	"github.com/openshift/origin/pkg/diagnostics/types"
