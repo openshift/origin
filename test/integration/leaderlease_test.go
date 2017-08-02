@@ -14,8 +14,7 @@ import (
 )
 
 func TestLeaderLeaseAcquire(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd2(t).DumpEtcdOnFailure(t)
 	c, err := testutil.MakeNewEtcdClient()
 	if err != nil {
 		t.Fatal(err)
@@ -56,8 +55,7 @@ func TestLeaderLeaseAcquire(t *testing.T) {
 }
 
 func TestLeaderLeaseWait(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd2(t).DumpEtcdOnFailure(t)
 	c, err := testutil.MakeNewEtcdClient()
 	if err != nil {
 		t.Fatal(err)
@@ -102,8 +100,7 @@ func TestLeaderLeaseWait(t *testing.T) {
 }
 
 func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd2(t).DumpEtcdOnFailure(t)
 	c, err := testutil.MakeNewEtcdClient()
 	if err != nil {
 		t.Fatal(err)
@@ -138,8 +135,7 @@ func TestLeaderLeaseSwapWhileWaiting(t *testing.T) {
 }
 
 func TestLeaderLeaseReacquire(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	defer testutil.RequireEtcd2(t).DumpEtcdOnFailure(t)
 	c, err := testutil.MakeNewEtcdClient()
 	if err != nil {
 		t.Fatal(err)

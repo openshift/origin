@@ -32,12 +32,11 @@ import (
 )
 
 func TestImageStreamImport(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -233,9 +232,6 @@ func testImageStreamImportWithPath(t *testing.T, reponame string) {
 		imageSize += size
 	}
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	// start regular HTTP servers
 	requireAuth := false
 	count := 0
@@ -289,10 +285,11 @@ func testImageStreamImportWithPath(t *testing.T, reponame string) {
 	url, _ := url.Parse(server.URL)
 
 	// start a master
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -356,8 +353,6 @@ func TestImageStreamImportOfMultiSegmentDockerReference(t *testing.T) {
 }
 
 func TestImageStreamImportAuthenticated(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, true, &count))
@@ -380,10 +375,11 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 	url3, _ := url.Parse(server3.URL)
 
 	// start a master
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	kc, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -523,8 +519,6 @@ func TestImageStreamImportAuthenticated(t *testing.T) {
 // Verifies that individual errors for particular tags are handled properly when pulling all tags from a
 // repository.
 func TestImageStreamImportTagsFromRepository(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	// start regular HTTP servers
 	count := 0
 	server := httptest.NewServer(mockRegistryHandler(t, false, &count))
@@ -532,10 +526,11 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 	url, _ := url.Parse(server.URL)
 
 	// start a master
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	/*
 		_, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 		if err != nil {
@@ -624,8 +619,6 @@ func TestImageStreamImportTagsFromRepository(t *testing.T) {
 // test controller interval), updates the image stream only when there are changes, and if an
 // error occurs writes the error only once (instead of every interval)
 func TestImageStreamImportScheduled(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	written := make(chan struct{}, 1)
 	count := 0
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -661,10 +654,11 @@ func TestImageStreamImportScheduled(t *testing.T) {
 			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
 		}
 	}))
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	c, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {

@@ -20,8 +20,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclientset.Interface, client.Interface, *restclient.Config) {
-	testutil.RequireEtcd(t)
+func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclientset.Interface, client.Interface, *restclient.Config, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -47,7 +46,9 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 	if err != nil {
 		t.Fatalf("error getting client config: %v", err)
 	}
-	return kubeClient, openshiftClient, clientConfig
+	return kubeClient, openshiftClient, clientConfig, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }
 
 func setupProjectRequestLimitUsers(t *testing.T, client client.Interface, users map[string]labels.Set) {
@@ -125,8 +126,8 @@ func projectRequestLimitUsers() map[string]labels.Set {
 }
 
 func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	kclient, oclient, clientConfig := setupProjectRequestLimitTest(t, projectRequestLimitMultiLevelConfig())
+	kclient, oclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitMultiLevelConfig())
+	defer fn()
 	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 0,
@@ -141,8 +142,8 @@ func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
 }
 
 func TestProjectRequestLimitEmptyConfig(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	kclient, oclient, clientConfig := setupProjectRequestLimitTest(t, projectRequestLimitEmptyConfig())
+	kclient, oclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitEmptyConfig())
+	defer fn()
 	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 5,
@@ -157,8 +158,8 @@ func TestProjectRequestLimitEmptyConfig(t *testing.T) {
 }
 
 func TestProjectRequestLimitSingleConfig(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	kclient, oclient, clientConfig := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+	kclient, oclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+	defer fn()
 	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 0,
@@ -175,8 +176,8 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 // we had a bug where this failed on ` uenxpected error: metadata.name: Invalid value: "system:admin": may not contain ":"`
 // make sure we never have that bug again and that project limits for them work
 func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	_, oclient, _ := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+	_, oclient, _, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+	defer fn()
 
 	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},

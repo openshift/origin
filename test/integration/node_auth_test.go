@@ -29,13 +29,12 @@ type testRequest struct {
 }
 
 func TestNodeAuth(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	// Server config
 	masterConfig, nodeConfig, adminKubeConfigFile, err := testserver.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	// Cluster admin clients and client configs
 	adminClient, err := testutil.GetClusterAdminKubeClient(adminKubeConfigFile)

@@ -22,12 +22,11 @@ func TestOAuthHTPasswd(t *testing.T) {
 	}
 	defer os.Remove(htpasswdFile.Name())
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	masterOptions.OAuthConfig.IdentityProviders[0] = configapi.IdentityProvider{
 		Name:            "htpasswd",

@@ -17,13 +17,11 @@ import (
 )
 
 func TestAggregator(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	// Set up the aggregator ca and proxy cert
 	caDir, err := ioutil.TempDir("", "aggregator-ca")

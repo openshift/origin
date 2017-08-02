@@ -20,9 +20,6 @@ import (
 )
 
 func TestProjectRequestError(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	const (
 		ns                = "testns"
 		templateNamespace = "default"
@@ -32,6 +29,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	masterConfig.ProjectConfig.ProjectRequestTemplate = templateNamespace + "/" + templateName
 

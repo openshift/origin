@@ -16,12 +16,11 @@ import (
 )
 
 func TestDiagNodeConditions(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, nodeConfig, clientFile, err := testserver.StartTestAllInOne()
+	masterConfig, nodeConfig, clientFile, err := testserver.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	client, err := testutil.GetClusterAdminKubeClient(clientFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

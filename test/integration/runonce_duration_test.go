@@ -44,12 +44,12 @@ func testPodDuration(t *testing.T, name string, kclientset kclientset.Interface,
 }
 
 func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: &secs,
 	}
-	kclientset := setupRunOnceDurationTest(t, config, nil)
+	kclientset, fn := setupRunOnceDurationTest(t, config, nil)
+	defer fn()
 
 	testPodDuration(t, "global, no duration", kclientset, testRunOnceDurationPod(0), 3600)
 	testPodDuration(t, "global, larger duration", kclientset, testRunOnceDurationPod(7200), 3600)
@@ -57,7 +57,6 @@ func TestRunOnceDurationAdmissionPlugin(t *testing.T) {
 }
 
 func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	var secs int64 = 3600
 	config := &pluginapi.RunOnceDurationConfig{
 		ActiveDeadlineSecondsLimit: &secs,
@@ -65,14 +64,14 @@ func TestRunOnceDurationAdmissionPluginProjectLimit(t *testing.T) {
 	nsAnnotations := map[string]string{
 		pluginapi.ActiveDeadlineSecondsLimitAnnotation: "100",
 	}
-	kclientset := setupRunOnceDurationTest(t, config, nsAnnotations)
+	kclientset, fn := setupRunOnceDurationTest(t, config, nsAnnotations)
+	defer fn()
 	testPodDuration(t, "project, no duration", kclientset, testRunOnceDurationPod(0), 100)
 	testPodDuration(t, "project, larger duration", kclientset, testRunOnceDurationPod(7200), 100)
 	testPodDuration(t, "project, smaller duration", kclientset, testRunOnceDurationPod(50), 50)
 }
 
-func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) kclientset.Interface {
-	testutil.RequireEtcd(t)
+func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurationConfig, nsAnnotations map[string]string) (kclientset.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -100,5 +99,7 @@ func setupRunOnceDurationTest(t *testing.T, pluginConfig *pluginapi.RunOnceDurat
 	if err := testserver.WaitForPodCreationServiceAccounts(kubeClientset, testutil.Namespace()); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	return kubeClientset
+	return kubeClientset, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }

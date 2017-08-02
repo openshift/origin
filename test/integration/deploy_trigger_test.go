@@ -24,12 +24,11 @@ const maxUpdateRetries = 10
 func TestTriggers_manual(t *testing.T) {
 	const namespace = "test-triggers-manual"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -105,12 +104,11 @@ func TestTriggers_manual(t *testing.T) {
 // TestTriggers_imageChange ensures that a deployment config with an ImageChange trigger
 // will start a new deployment when an image change happens.
 func TestTriggers_imageChange(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client: %v", err)
@@ -211,12 +209,11 @@ waitForNewConfig:
 // TestTriggers_imageChange_nonAutomatic ensures that a deployment config with a non-automatic
 // trigger will have its image updated when a deployment is started manually.
 func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client: %v", err)
@@ -391,12 +388,11 @@ loop:
 // TestTriggers_MultipleICTs ensures that a deployment config with more than one ImageChange trigger
 // will start a new deployment iff all images are resolved.
 func TestTriggers_MultipleICTs(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("error starting master: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client: %v", err)
@@ -556,12 +552,11 @@ out:
 func TestTriggers_configChange(t *testing.T) {
 	const namespace = "test-triggers-configchange"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
