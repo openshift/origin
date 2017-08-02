@@ -25,7 +25,7 @@ func TestSchemeHost(t *testing.T) {
 				},
 			},
 			expectedScheme: "https",
-			expectedHost:   "example.com:443",
+			expectedHost:   "example.com",
 		},
 		"X-Forwarded-Port overwrites X-Forwarded-Host port": {
 			req: &http.Request{
@@ -51,7 +51,32 @@ func TestSchemeHost(t *testing.T) {
 				},
 			},
 			expectedScheme: "https",
-			expectedHost:   "example.com:443",
+			expectedHost:   "example.com",
+		},
+		"stripped X-Forwarded-Host and X-Forwarded-Port with non-standard port": {
+			req: &http.Request{
+				URL:  &url.URL{Path: "/"},
+				Host: "127.0.0.1",
+				Header: http.Header{
+					"X-Forwarded-Host":  []string{"example.com"},
+					"X-Forwarded-Port":  []string{"80"},
+					"X-Forwarded-Proto": []string{"https"},
+				},
+			},
+			expectedScheme: "https",
+			expectedHost:   "example.com:80",
+		},
+		"detect scheme from X-Forwarded-Port": {
+			req: &http.Request{
+				URL:  &url.URL{Path: "/"},
+				Host: "127.0.0.1",
+				Header: http.Header{
+					"X-Forwarded-Host": []string{"example.com"},
+					"X-Forwarded-Port": []string{"443"},
+				},
+			},
+			expectedScheme: "https",
+			expectedHost:   "example.com",
 		},
 
 		"req host": {
@@ -156,7 +181,7 @@ func TestSchemeHost(t *testing.T) {
 				},
 			},
 			expectedScheme: "http",
-			expectedHost:   "route-namespace.router.default.svc.cluster.local:80",
+			expectedHost:   "route-namespace.router.default.svc.cluster.local",
 		},
 		"haproxy edge terminated route -> svc -> non-tls pod": {
 			req: &http.Request{
@@ -167,6 +192,21 @@ func TestSchemeHost(t *testing.T) {
 					"X-Forwarded-Port":  []string{"443"},
 					"X-Forwarded-Proto": []string{"https"},
 					"Forwarded":         []string{"for=172.18.2.57;host=route-namespace.router.default.svc.cluster.local;proto=https"},
+					"X-Forwarded-For":   []string{"172.18.2.57"},
+				},
+			},
+			expectedScheme: "https",
+			expectedHost:   "route-namespace.router.default.svc.cluster.local",
+		},
+		"haproxy edge terminated route -> svc -> non-tls pod with the explicit port": {
+			req: &http.Request{
+				URL:  &url.URL{Path: "/"},
+				Host: "route-namespace.router.default.svc.cluster.local:443",
+				Header: http.Header{
+					"X-Forwarded-Host":  []string{"route-namespace.router.default.svc.cluster.local:443"},
+					"X-Forwarded-Port":  []string{"443"},
+					"X-Forwarded-Proto": []string{"https"},
+					"Forwarded":         []string{"for=172.18.2.57;host=route-namespace.router.default.svc.cluster.local:443;proto=https"},
 					"X-Forwarded-For":   []string{"172.18.2.57"},
 				},
 			},

@@ -66,25 +66,35 @@ func SchemeHost(req *http.Request) (string /*scheme*/, string /*host*/) {
 		return strings.TrimSpace(value)
 	}
 
-	forwardedProto := forwarded("Proto")
-	forwardedHost := forwarded("Host")
-	// If both X-Forwarded-Host and X-Forwarded-Port are sent, use the explicit port info
-	if forwardedPort := forwarded("Port"); len(forwardedHost) > 0 && len(forwardedPort) > 0 {
-		if h, _, err := net.SplitHostPort(forwardedHost); err == nil {
-			forwardedHost = net.JoinHostPort(h, forwardedPort)
-		} else {
-			forwardedHost = net.JoinHostPort(forwardedHost, forwardedPort)
-		}
+	hasExplicitHost := func(h string) bool {
+		_, _, err := net.SplitHostPort(h)
+		return err == nil
 	}
 
+	forwardedHost := forwarded("Host")
 	host := ""
+	hostHadExplicitPort := false
 	switch {
 	case len(forwardedHost) > 0:
 		host = forwardedHost
+		hostHadExplicitPort = hasExplicitHost(host)
+
+		// If both X-Forwarded-Host and X-Forwarded-Port are sent, use the explicit port info
+		if forwardedPort := forwarded("Port"); len(forwardedPort) > 0 {
+			if h, _, err := net.SplitHostPort(forwardedHost); err == nil {
+				host = net.JoinHostPort(h, forwardedPort)
+			} else {
+				host = net.JoinHostPort(forwardedHost, forwardedPort)
+			}
+		}
+
 	case len(req.Host) > 0:
 		host = req.Host
+		hostHadExplicitPort = hasExplicitHost(host)
+
 	case len(req.URL.Host) > 0:
 		host = req.URL.Host
+		hostHadExplicitPort = hasExplicitHost(host)
 	}
 
 	port := ""
@@ -92,6 +102,7 @@ func SchemeHost(req *http.Request) (string /*scheme*/, string /*host*/) {
 		port = p
 	}
 
+	forwardedProto := forwarded("Proto")
 	scheme := ""
 	switch {
 	case len(forwardedProto) > 0:
@@ -104,6 +115,14 @@ func SchemeHost(req *http.Request) (string /*scheme*/, string /*host*/) {
 		scheme = "https"
 	default:
 		scheme = "http"
+	}
+
+	if !hostHadExplicitPort {
+		if (scheme == "https" && port == "443") || (scheme == "http" && port == "80") {
+			if hostWithoutPort, _, err := net.SplitHostPort(host); err == nil {
+				host = hostWithoutPort
+			}
+		}
 	}
 
 	return scheme, host
