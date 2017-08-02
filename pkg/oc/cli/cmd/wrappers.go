@@ -731,7 +731,7 @@ var (
 	cpExample = templates.Examples(`
 	    # !!!Important Note!!!
 	    # Requires that the 'tar' binary is present in your container
-	    # image.  If 'tar' is not present, 'kubectl cp' will fail.
+	    # image.  If 'tar' is not present, 'oc cp' will fail.
 
 	    # Copy /tmp/foo_dir local directory to /tmp/bar_dir in a remote pod in the default namespace
 		%[1]s cp /tmp/foo_dir <some-pod>:/tmp/bar_dir
