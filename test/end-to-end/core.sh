@@ -566,7 +566,7 @@ os::log::info "Validating image pruning"
 # builder service account should have the power to create new image streams: prune in this case
 os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
 os::cmd::expect_success 'docker pull busybox'
-GCR_PAUSE_IMAGE="gcr.io/google_containers/pause:3.0"
+GCR_PAUSE_IMAGE="openshift/origin-pod:\${version}"
 os::cmd::expect_success "docker pull ${GCR_PAUSE_IMAGE}"
 os::cmd::expect_success 'docker pull openshift/hello-openshift'
 
