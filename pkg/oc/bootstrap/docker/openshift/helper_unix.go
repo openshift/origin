@@ -62,7 +62,7 @@ func (h *Helper) startSocatTunnel(bindIP string) error {
 	// 'oc cluster down', call again here in case it wasn't
 	err := KillExistingSocat()
 	if err != nil {
-		glog.V(1).Infof("error: cannot kill socat: %v", err)
+		glog.V(2).Infof("error: cannot kill socat: %v", err)
 	}
 	// The -s flag tells socat not to quit even when it gets errors on the other end.
 	// This may happen because the server is initially slow in responding.

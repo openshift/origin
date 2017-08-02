@@ -677,7 +677,7 @@ func (c *CommonStartConfig) CheckNsenterMounter(out io.Writer) error {
 func (c *CommonStartConfig) CheckDockerVersion(out io.Writer) error {
 	ver, isRHDocker, err := c.DockerHelper().APIVersion()
 	if err != nil {
-		glog.V(1).Infof("Failed to check Docker API version: %v", err)
+		glog.V(2).Infof("Failed to check Docker API version: %v", err)
 		fmt.Fprintf(out, "WARNING: Cannot verify Docker version\n")
 		return nil
 	}

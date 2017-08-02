@@ -243,7 +243,7 @@ func (h *Runner) runWithOutput() (string, string, int, error) {
 		defer func() {
 			glog.V(5).Infof("Deleting container %q", id)
 			if err = h.client.ContainerRemove(id, types.ContainerRemoveOptions{}); err != nil {
-				glog.V(1).Infof("Error deleting container %q: %v", id, err)
+				glog.V(2).Infof("Error deleting container %q: %v", id, err)
 			}
 		}()
 	}
