@@ -58,10 +58,33 @@ var map_Template = map[string]string{
 	"objects":    "objects is an array of resources to include in this template. If a namespace value is hardcoded in the object, it will be removed during template instantiation, however if the namespace value is, or contains, a ${PARAMETER_REFERENCE}, the resolved value after parameter substitution will be respected and the object will be created in that namespace.",
 	"parameters": "parameters is an optional array of Parameters used during the Template to Config transformation.",
 	"labels":     "labels is a optional set of labels that are applied to every object during the Template to Config transformation.",
+	"completion": "completion contains the requirements used to detect successful or failed instantiations of the Template.",
 }
 
 func (Template) SwaggerDoc() map[string]string {
 	return map_Template
+}
+
+var map_TemplateCompletion = map[string]string{
+	"":                "TemplateCompletion contains the requirements used to detect successful or failed instantiations of a Template.",
+	"deadlineSeconds": "deadlineSeconds is the number of seconds after which a template instantiation will be considered to be failed, if it has not already succeeded.",
+	"objects":         "objects reference the objects created by the TemplateInstance.",
+}
+
+func (TemplateCompletion) SwaggerDoc() map[string]string {
+	return map_TemplateCompletion
+}
+
+var map_TemplateCompletionRequirement = map[string]string{
+	"":          "TemplateCompletionRequirement holds a single requirement that is matched to partially determine success or failure of a Template instantiation.",
+	"type":      "type is the kind of TemplateCompletionRequirement.",
+	"jsonPath":  "jsonPath specifies a JSONPath expression which is run against an object.",
+	"condition": "condition specifies the name of a condition to be looked up on an object.",
+	"equals":    "equals is the value which should be matched for the requirement to be fulfilled.",
+}
+
+func (TemplateCompletionRequirement) SwaggerDoc() map[string]string {
+	return map_TemplateCompletionRequirement
 }
 
 var map_TemplateInstance = map[string]string{
@@ -98,6 +121,18 @@ func (TemplateInstanceList) SwaggerDoc() map[string]string {
 	return map_TemplateInstanceList
 }
 
+var map_TemplateInstanceObject = map[string]string{
+	"":    "TemplateInstanceObject references an object created by a TemplateInstance.",
+	"ref": "ref is a reference to the created object.  When used under .spec, only name and namespace are used; these can contain references to parameters which will be substituted following the usual rules.",
+	"successRequirements": "successRequirements hold all the requirements that must be met to consider the Template instantiation a success.  These requirements are ANDed together.",
+	"failureRequirements": "failureRequirements hold the requirements that if any is met will cause the Template instantiation to be considered a failure.  These requirements are ORed together.",
+	"conditions":          "conditions represent the latest available observations of the object's current state.",
+}
+
+func (TemplateInstanceObject) SwaggerDoc() map[string]string {
+	return map_TemplateInstanceObject
+}
+
 var map_TemplateInstanceRequester = map[string]string{
 	"":         "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
 	"username": "username is the username of the agent requesting a template instantiation.",
@@ -121,6 +156,7 @@ func (TemplateInstanceSpec) SwaggerDoc() map[string]string {
 var map_TemplateInstanceStatus = map[string]string{
 	"":           "TemplateInstanceStatus describes the current state of a TemplateInstance.",
 	"conditions": "conditions represent the latest available observations of a TemplateInstance's current state.",
+	"objects":    "Objects reference the objects created by the TemplateInstance.",
 }
 
 func (TemplateInstanceStatus) SwaggerDoc() map[string]string {

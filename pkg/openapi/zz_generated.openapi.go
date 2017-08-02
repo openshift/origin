@@ -9703,12 +9703,89 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"completion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "completion contains the requirements used to detect successful or failed instantiations of the Template.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletion"),
+							},
+						},
 					},
 					Required: []string{"objects"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.Parameter", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+				"github.com/openshift/origin/pkg/template/apis/template/v1.Parameter", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletion", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+		},
+		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletion": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateCompletion contains the requirements used to detect successful or failed instantiations of a Template.",
+					Properties: map[string]spec.Schema{
+						"deadlineSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "deadlineSeconds is the number of seconds after which a template instantiation will be considered to be failed, if it has not already succeeded.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"objects": {
+							SchemaProps: spec.SchemaProps{
+								Description: "objects reference the objects created by the TemplateInstance.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"deadlineSeconds"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"},
+		},
+		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletionRequirement": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateCompletionRequirement holds a single requirement that is matched to partially determine success or failure of a Template instantiation.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "type is the kind of TemplateCompletionRequirement.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"jsonPath": {
+							SchemaProps: spec.SchemaProps{
+								Description: "jsonPath specifies a JSONPath expression which is run against an object.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"condition": {
+							SchemaProps: spec.SchemaProps{
+								Description: "condition specifies the name of a condition to be looked up on an object.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"equals": {
+							SchemaProps: spec.SchemaProps{
+								Description: "equals is the value which should be matched for the requirement to be fulfilled.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"type", "equals"},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance": {
 			Schema: spec.Schema{
@@ -9845,6 +9922,62 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
+		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceObject references an object created by a TemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"ref": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ref is a reference to the created object.  When used under .spec, only name and namespace are used; these can contain references to parameters which will be substituted following the usual rules.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+						"successRequirements": {
+							SchemaProps: spec.SchemaProps{
+								Description: "successRequirements hold all the requirements that must be met to consider the Template instantiation a success.  These requirements are ANDed together.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletionRequirement"),
+										},
+									},
+								},
+							},
+						},
+						"failureRequirements": {
+							SchemaProps: spec.SchemaProps{
+								Description: "failureRequirements hold the requirements that if any is met will cause the Template instantiation to be considered a failure.  These requirements are ORed together.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletionRequirement"),
+										},
+									},
+								},
+							},
+						},
+						"conditions": {
+							SchemaProps: spec.SchemaProps{
+								Description: "conditions represent the latest available observations of the object's current state.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateCompletionRequirement", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceRequester": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -9911,12 +10044,24 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"objects": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Objects reference the objects created by the TemplateInstance.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"),
+										},
+									},
+								},
+							},
+						},
 					},
-					Required: []string{"conditions"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition"},
+				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"},
 		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateList": {
 			Schema: spec.Schema{

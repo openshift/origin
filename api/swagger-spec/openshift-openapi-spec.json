@@ -99472,6 +99472,10 @@
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
       "type": "string"
      },
+     "completion": {
+      "description": "completion contains the requirements used to detect successful or failed instantiations of the Template.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateCompletion"
+     },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
       "type": "string"
@@ -99528,6 +99532,51 @@
       "kind": "Template"
      }
     ]
+   },
+   "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateCompletion": {
+    "description": "TemplateCompletion contains the requirements used to detect successful or failed instantiations of a Template.",
+    "required": [
+     "deadlineSeconds"
+    ],
+    "properties": {
+     "deadlineSeconds": {
+      "description": "deadlineSeconds is the number of seconds after which a template instantiation will be considered to be failed, if it has not already succeeded.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "objects": {
+      "description": "objects reference the objects created by the TemplateInstance.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceObject"
+      }
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateCompletionRequirement": {
+    "description": "TemplateCompletionRequirement holds a single requirement that is matched to partially determine success or failure of a Template instantiation.",
+    "required": [
+     "type",
+     "equals"
+    ],
+    "properties": {
+     "condition": {
+      "description": "condition specifies the name of a condition to be looked up on an object.",
+      "type": "string"
+     },
+     "equals": {
+      "description": "equals is the value which should be matched for the requirement to be fulfilled.",
+      "type": "string"
+     },
+     "jsonPath": {
+      "description": "jsonPath specifies a JSONPath expression which is run against an object.",
+      "type": "string"
+     },
+     "type": {
+      "description": "type is the kind of TemplateCompletionRequirement.",
+      "type": "string"
+     }
+    }
    },
    "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstance": {
     "description": "TemplateInstance requests and records the instantiation of a Template. TemplateInstance is part of an experimental API.",
@@ -99631,6 +99680,36 @@
      }
     ]
    },
+   "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceObject": {
+    "description": "TemplateInstanceObject references an object created by a TemplateInstance.",
+    "properties": {
+     "conditions": {
+      "description": "conditions represent the latest available observations of the object's current state.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceCondition"
+      }
+     },
+     "failureRequirements": {
+      "description": "failureRequirements hold the requirements that if any is met will cause the Template instantiation to be considered a failure.  These requirements are ORed together.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateCompletionRequirement"
+      }
+     },
+     "ref": {
+      "description": "ref is a reference to the created object.  When used under .spec, only name and namespace are used; these can contain references to parameters which will be substituted following the usual rules.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
+     },
+     "successRequirements": {
+      "description": "successRequirements hold all the requirements that must be met to consider the Template instantiation a success.  These requirements are ANDed together.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateCompletionRequirement"
+      }
+     }
+    }
+   },
    "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceRequester": {
     "description": "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
     "required": [
@@ -99666,15 +99745,19 @@
    },
    "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceStatus": {
     "description": "TemplateInstanceStatus describes the current state of a TemplateInstance.",
-    "required": [
-     "conditions"
-    ],
     "properties": {
      "conditions": {
       "description": "conditions represent the latest available observations of a TemplateInstance's current state.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceCondition"
+      }
+     },
+     "objects": {
+      "description": "Objects reference the objects created by the TemplateInstance.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceObject"
       }
      }
     }
