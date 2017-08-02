@@ -17,13 +17,13 @@ limitations under the License.
 package fake
 
 import (
-	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
-	v1 "k8s.io/kubernetes/pkg/api/v1"
+	api_v1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 // FakeEndpoints implements EndpointsInterface
@@ -36,53 +36,21 @@ var endpointsResource = schema.GroupVersionResource{Group: "", Version: "v1", Re
 
 var endpointsKind = schema.GroupVersionKind{Group: "", Version: "v1", Kind: "Endpoints"}
 
-func (c *FakeEndpoints) Create(endpoints *v1.Endpoints) (result *v1.Endpoints, err error) {
+// Get takes name of the endpoints, and returns the corresponding endpoints object, and an error if there is any.
+func (c *FakeEndpoints) Get(name string, options v1.GetOptions) (result *api_v1.Endpoints, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(endpointsResource, c.ns, endpoints), &v1.Endpoints{})
+		Invokes(testing.NewGetAction(endpointsResource, c.ns, name), &api_v1.Endpoints{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.Endpoints), err
+	return obj.(*api_v1.Endpoints), err
 }
 
-func (c *FakeEndpoints) Update(endpoints *v1.Endpoints) (result *v1.Endpoints, err error) {
+// List takes label and field selectors, and returns the list of Endpoints that match those selectors.
+func (c *FakeEndpoints) List(opts v1.ListOptions) (result *api_v1.EndpointsList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(endpointsResource, c.ns, endpoints), &v1.Endpoints{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Endpoints), err
-}
-
-func (c *FakeEndpoints) Delete(name string, options *meta_v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(endpointsResource, c.ns, name), &v1.Endpoints{})
-
-	return err
-}
-
-func (c *FakeEndpoints) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(endpointsResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &v1.EndpointsList{})
-	return err
-}
-
-func (c *FakeEndpoints) Get(name string, options meta_v1.GetOptions) (result *v1.Endpoints, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(endpointsResource, c.ns, name), &v1.Endpoints{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1.Endpoints), err
-}
-
-func (c *FakeEndpoints) List(opts meta_v1.ListOptions) (result *v1.EndpointsList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewListAction(endpointsResource, endpointsKind, c.ns, opts), &v1.EndpointsList{})
+		Invokes(testing.NewListAction(endpointsResource, endpointsKind, c.ns, opts), &api_v1.EndpointsList{})
 
 	if obj == nil {
 		return nil, err
@@ -92,8 +60,8 @@ func (c *FakeEndpoints) List(opts meta_v1.ListOptions) (result *v1.EndpointsList
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1.EndpointsList{}
-	for _, item := range obj.(*v1.EndpointsList).Items {
+	list := &api_v1.EndpointsList{}
+	for _, item := range obj.(*api_v1.EndpointsList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -102,19 +70,57 @@ func (c *FakeEndpoints) List(opts meta_v1.ListOptions) (result *v1.EndpointsList
 }
 
 // Watch returns a watch.Interface that watches the requested endpoints.
-func (c *FakeEndpoints) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+func (c *FakeEndpoints) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(endpointsResource, c.ns, opts))
 
 }
 
-// Patch applies the patch and returns the patched endpoints.
-func (c *FakeEndpoints) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Endpoints, err error) {
+// Create takes the representation of a endpoints and creates it.  Returns the server's representation of the endpoints, and an error, if there is any.
+func (c *FakeEndpoints) Create(endpoints *api_v1.Endpoints) (result *api_v1.Endpoints, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(endpointsResource, c.ns, name, data, subresources...), &v1.Endpoints{})
+		Invokes(testing.NewCreateAction(endpointsResource, c.ns, endpoints), &api_v1.Endpoints{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.Endpoints), err
+	return obj.(*api_v1.Endpoints), err
+}
+
+// Update takes the representation of a endpoints and updates it. Returns the server's representation of the endpoints, and an error, if there is any.
+func (c *FakeEndpoints) Update(endpoints *api_v1.Endpoints) (result *api_v1.Endpoints, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(endpointsResource, c.ns, endpoints), &api_v1.Endpoints{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api_v1.Endpoints), err
+}
+
+// Delete takes name of the endpoints and deletes it. Returns an error if one occurs.
+func (c *FakeEndpoints) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(endpointsResource, c.ns, name), &api_v1.Endpoints{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeEndpoints) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(endpointsResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &api_v1.EndpointsList{})
+	return err
+}
+
+// Patch applies the patch and returns the patched endpoints.
+func (c *FakeEndpoints) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *api_v1.Endpoints, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewPatchSubresourceAction(endpointsResource, c.ns, name, data, subresources...), &api_v1.Endpoints{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*api_v1.Endpoints), err
 }
