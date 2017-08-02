@@ -304,7 +304,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 			return nil, err
 		}
 		c.cache.Add(ref.ID, imageCacheEntry{expires: now.Add(c.expiration), image: image})
-		return &rules.ImagePolicyAttributes{Name: ref, Image: image}, nil
+		return &rules.ImagePolicyAttributes{Name: ref, Image: image, IntegratedRegistry: c.integrated.Matches(ref.Registry)}, nil
 	}
 
 	fullReference := c.integrated.Matches(ref.Registry)
