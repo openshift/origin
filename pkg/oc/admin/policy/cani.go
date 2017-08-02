@@ -7,19 +7,19 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/printers"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/oc/cli/describe"
 )
 
 const CanIRecommendedName = "can-i"
@@ -36,6 +36,8 @@ type canIOptions struct {
 	SelfRulesReviewClient client.SelfSubjectRulesReviewsNamespacer
 	RulesReviewClient     client.SubjectRulesReviewsNamespacer
 	SARClient             client.SubjectAccessReviews
+
+	Printer printers.ResourcePrinter
 
 	Verb         string
 	Resource     schema.GroupVersionResource
@@ -59,7 +61,7 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 				return
 			}
 
-			if err := o.Complete(f, args); err != nil {
+			if err := o.Complete(cmd, f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -79,6 +81,7 @@ func NewCmdCanI(name, fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	cmd.Flags().StringVar(&o.User, "user", o.User, "Check the specified action using this user instead of your user.")
 	cmd.Flags().StringSliceVar(&o.Groups, "groups", o.Groups, "Check the specified action using these groups instead of your groups.")
 
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -90,7 +93,7 @@ const (
 	tabwriterFlags    = 0
 )
 
-func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
+func (o *canIOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 	if o.ListAll && o.AllNamespaces {
 		return errors.New("--list and --all-namespaces are mutually exclusive")
 	}
@@ -124,6 +127,13 @@ func (o *canIOptions) Complete(f *clientcmd.Factory, args []string) error {
 	o.SelfRulesReviewClient = oclient
 	o.RulesReviewClient = oclient
 	o.SARClient = oclient
+
+	printer, err := f.PrinterForCommand(cmd, false, nil, printers.PrintOptions{})
+	if err != nil {
+		return err
+	}
+
+	o.Printer = printer
 
 	o.Namespace = metav1.NamespaceAll
 	if !o.AllNamespaces {
@@ -182,7 +192,7 @@ func (o *canIOptions) Run() (bool, error) {
 }
 
 func (o *canIOptions) listAllPermissions() error {
-	var rulesReviewStatus authorizationapi.SubjectRulesReviewStatus
+	var rulesReviewResult runtime.Object
 
 	if len(o.User) == 0 && len(o.Groups) == 0 {
 		rulesReview := &authorizationapi.SelfSubjectRulesReview{}
@@ -194,8 +204,8 @@ func (o *canIOptions) listAllPermissions() error {
 		if err != nil {
 			return err
 		}
-		rulesReviewStatus = whatCanIDo.Status
 
+		rulesReviewResult = whatCanIDo
 	} else {
 		rulesReview := &authorizationapi.SubjectRulesReview{
 			Spec: authorizationapi.SubjectRulesReviewSpec{
@@ -209,17 +219,9 @@ func (o *canIOptions) listAllPermissions() error {
 		if err != nil {
 			return err
 		}
-		rulesReviewStatus = whatCanYouDo.Status
 
+		rulesReviewResult = whatCanYouDo
 	}
 
-	writer := tabwriter.NewWriter(o.Out, tabwriterMinWidth, tabwriterWidth, tabwriterPadding, tabwriterPadChar, tabwriterFlags)
-	fmt.Fprint(writer, describe.PolicyRuleHeadings+"\n")
-	for _, rule := range rulesReviewStatus.Rules {
-		describe.DescribePolicyRule(writer, rule, "")
-
-	}
-	writer.Flush()
-
-	return nil
+	return o.Printer.PrintObj(rulesReviewResult, o.Out)
 }
