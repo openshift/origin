@@ -23,6 +23,9 @@ RUN INSTALL_PKGS="origin-sdn-ovs libmnl libnetfilter_conntrack conntrack-tools o
     yum clean all && \
     mkdir -p /usr/lib/systemd/system/origin-node.service.d /usr/lib/systemd/system/docker.service.d
 
+# Copy the cni plugins to the host file system when they are present, so that they can be shared with cri-o
+RUN if test -e /opt/cni/bin; then mkdir -p /exports/hostfs/opt/cni/bin/ && cp -r /opt/cni/bin/* /exports/hostfs/opt/cni/bin/; fi
+
 LABEL io.k8s.display-name="OpenShift Origin Node" \
       io.k8s.description="This is a component of OpenShift Origin and contains the software for individual nodes when using SDN." \
       io.openshift.tags="openshift,node"
