@@ -66,7 +66,7 @@ func ValidateRoute(route *routeapi.Route) field.ErrorList {
 
 	backendPath := specPath.Child("alternateBackends")
 	if len(route.Spec.AlternateBackends) > 3 {
-		result = append(result, field.Required(backendPath, "cannot specify more than 3 additional backends"))
+		result = append(result, field.Required(backendPath, "cannot specify more than 3 alternate backends"))
 	}
 	for i, svc := range route.Spec.AlternateBackends {
 		if len(svc.Name) == 0 {

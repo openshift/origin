@@ -178,7 +178,7 @@ func (r *TestRouter) AddRoute(route *routeapi.Route) {
 	config := ServiceAliasConfig{
 		Host:             route.Spec.Host,
 		Path:             route.Spec.Path,
-		ServiceUnitNames: getServiceUnits(route),
+		ServiceUnitNames: getServiceUnits(r.numberOfEndpoints, route),
 	}
 
 	for key := range config.ServiceUnitNames {
@@ -186,6 +186,11 @@ func (r *TestRouter) AddRoute(route *routeapi.Route) {
 	}
 
 	r.State[routeKey] = config
+}
+
+func (r *TestRouter) numberOfEndpoints(key string) int32 {
+	su, _ := r.FindServiceUnit(key)
+	return int32(len(su.EndpointTable))
 }
 
 // RemoveRoute removes the service alias config for Route
