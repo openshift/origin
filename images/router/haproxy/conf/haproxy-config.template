@@ -466,6 +466,7 @@ backend be_secure:{{$cfgIdx}}
 
 # Secure backend, pass through
 backend be_tcp:{{$cfgIdx}}
+  option forwardfor
 {{- if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
   option tcplog
 {{- end }}
