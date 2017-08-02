@@ -7,8 +7,9 @@ import (
 	"os"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/kubernetes/pkg/client/retry"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	"github.com/docker/distribution/reference"
 	"github.com/fsouza/go-dockerclient"
@@ -182,15 +183,28 @@ func updateBuildRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *bui
 	}
 }
 
-func retryBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) error {
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+// handleBuildStatusUpdate handles updating the build status
+// retries occur on update conflict and unreachable api server
+func handleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
+	var latestBuild *buildapi.Build
+	var err error
+
+	updateBackoff := wait.Backoff{
+		Steps:    10,
+		Duration: 25 * time.Millisecond,
+		Factor:   2.0,
+		Jitter:   0.1,
+	}
+
+	wait.ExponentialBackoff(updateBackoff, func() (bool, error) {
 		// before updating, make sure we are using the latest version of the build
-		latestBuild, err := client.Get(build.Name, metav1.GetOptions{})
-		if err != nil {
-			// usually this means we failed to get resources due to the missing
-			// privilleges
-			return err
+		if latestBuild == nil {
+			latestBuild, err = client.Get(build.Name, metav1.GetOptions{})
+			if err != nil {
+				return false, nil
+			}
 		}
+
 		if sourceRev != nil {
 			latestBuild.Spec.Revision = sourceRev
 			latestBuild.ResourceVersion = ""
@@ -201,15 +215,22 @@ func retryBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface,
 		latestBuild.Status.Output.To = build.Status.Output.To
 		latestBuild.Status.Stages = build.Status.Stages
 
-		if _, err := client.UpdateDetails(latestBuild); err != nil {
-			return err
-		}
-		return nil
-	})
-}
+		_, err = client.UpdateDetails(latestBuild)
 
-func handleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
-	if updateErr := retryBuildStatusUpdate(build, client, sourceRev); updateErr != nil {
-		glog.Infof("error: Unable to update build status: %v", updateErr)
+		switch {
+		case err == nil:
+			return true, nil
+		case errors.IsConflict(err):
+			latestBuild = nil
+		}
+
+		glog.V(4).Infof("Retryable error occurred, retrying.  error: %v", err)
+
+		return false, nil
+
+	})
+
+	if err != nil {
+		glog.Infof("error: Unable to update build status: %v", err)
 	}
 }
