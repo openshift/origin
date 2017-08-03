@@ -4,7 +4,6 @@ reviewers:
   - liggitt
   - bparees
   - stevekuznetsov
-  - ncdc
   - soltysh
 approvers:
   - smarterclayton
@@ -12,5 +11,5 @@ approvers:
   - liggitt
   - bparees
   - mfojtik
-  - eparis 
+  - eparis
   - derekwaynecarr
