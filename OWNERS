@@ -12,5 +12,6 @@ approvers:
   - liggitt
   - bparees
   - mfojtik
-  - eparis 
+  - eparis
   - derekwaynecarr
+  - stevekuznetsov # for build and tooling changes
