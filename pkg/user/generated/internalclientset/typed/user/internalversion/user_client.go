@@ -20,8 +20,8 @@ func (c *UserClient) Groups(namespace string) GroupInterface {
 	return newGroups(c, namespace)
 }
 
-func (c *UserClient) Users(namespace string) UserResourceInterface {
-	return newUsers(c, namespace)
+func (c *UserClient) Users() UserResourceInterface {
+	return newUsers(c)
 }
 
 // NewForConfig creates a new UserClient for the given config.

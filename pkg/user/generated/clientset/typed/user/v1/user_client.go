@@ -17,8 +17,8 @@ type UserV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *UserV1Client) Users(namespace string) UserResourceInterface {
-	return newUsers(c, namespace)
+func (c *UserV1Client) Users() UserResourceInterface {
+	return newUsers(c)
 }
 
 // NewForConfig creates a new UserV1Client for the given config.

@@ -9,6 +9,7 @@ import (
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
 // +genclient
+// +genclient:nonNamespaced
 
 type User struct {
 	metav1.TypeMeta

@@ -10,7 +10,11 @@ import (
 type ImageV1Interface interface {
 	RESTClient() rest.Interface
 	ImagesGetter
+	ImageSignaturesGetter
 	ImageStreamsGetter
+	ImageStreamImagesGetter
+	ImageStreamMappingsGetter
+	ImageStreamTagsGetter
 }
 
 // ImageV1Client is used to interact with features provided by the image.openshift.io group.
@@ -22,8 +26,24 @@ func (c *ImageV1Client) Images() ImageResourceInterface {
 	return newImages(c)
 }
 
+func (c *ImageV1Client) ImageSignatures() ImageSignatureInterface {
+	return newImageSignatures(c)
+}
+
 func (c *ImageV1Client) ImageStreams(namespace string) ImageStreamInterface {
 	return newImageStreams(c, namespace)
+}
+
+func (c *ImageV1Client) ImageStreamImages(namespace string) ImageStreamImageInterface {
+	return newImageStreamImages(c, namespace)
+}
+
+func (c *ImageV1Client) ImageStreamMappings(namespace string) ImageStreamMappingInterface {
+	return newImageStreamMappings(c, namespace)
+}
+
+func (c *ImageV1Client) ImageStreamTags(namespace string) ImageStreamTagInterface {
+	return newImageStreamTags(c, namespace)
 }
 
 // NewForConfig creates a new ImageV1Client for the given config.

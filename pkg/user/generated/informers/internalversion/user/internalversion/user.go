@@ -29,10 +29,10 @@ func newUserInformer(client internalclientset.Interface, resyncPeriod time.Durat
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.User().Users(v1.NamespaceAll).List(options)
+				return client.User().Users().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.User().Users(v1.NamespaceAll).Watch(options)
+				return client.User().Users().Watch(options)
 			},
 		},
 		&user.User{},

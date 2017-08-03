@@ -14,8 +14,8 @@ func (c *FakeUser) Groups(namespace string) internalversion.GroupInterface {
 	return &FakeGroups{c, namespace}
 }
 
-func (c *FakeUser) Users(namespace string) internalversion.UserResourceInterface {
-	return &FakeUsers{c, namespace}
+func (c *FakeUser) Users() internalversion.UserResourceInterface {
+	return &FakeUsers{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
