@@ -40,7 +40,9 @@ verify="${VERIFY:-}"
 if [[ -z "${verify}" ]]; then
   for pkg in "${packages[@]}"; do
     grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${pkg}/../..)
-    go list -f '{{.Dir}}' "${grouppkg}/generated/clientset/..." "${grouppkg}/generated/internalclientset/..." | xargs rm -rf
+    # delete all generated go files excluding files named *_expansion.go
+    go list -f '{{.Dir}}' "${grouppkg}/generated/clientset" "${grouppkg}/generated/internalclientset" \
+		| xargs -n1 -I{} find {} -type f -not -name "*_expansion.go" -delete
   done
 fi
 
