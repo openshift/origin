@@ -21,12 +21,19 @@ RUN dnf -y update && dnf -y install\
  bridge-utils\
  ethtool\
  iptables-services\
- openvswitch
+ openvswitch\
+ python-netaddr\
+ python2-pyroute2\
+ python2-requests\
+ PyYAML
 
-# Upgrade to a newer OVS. (This can go away when the base image is upgraded to F26.)
+# Upgrade to a newer OVS and install OVN packages that are only available
+# with the newer release. (This can go away when the base image is upgraded to
+# OVS 2.8 prerelease or release versions and include OVN sub-packages)
 RUN dnf -y install dnf-plugins-core &&\
- dnf -y copr enable danw/origin-dind-ovs &&\
- dnf -y update openvswitch
+ dnf -y copr enable leifmadsen/ovs-master &&\
+ dnf -y update openvswitch &&\
+ dnf -y install openvswitch-ovn-*
 
 # A default deny firewall (either iptables or firewalld) is
 # installed by default on non-cloud fedora and rhel, so all
@@ -75,3 +82,11 @@ RUN ln -sf /data/openshift /usr/local/bin/ && \
     ln -sf /data/loopback      /opt/cni/bin/
 
 ENV KUBECONFIG /data/openshift.local.config/master/admin.kubeconfig
+
+COPY ovn-kubernetes-node-setup.service /etc/systemd/system/
+COPY ovn-kubernetes-node-setup.sh /usr/local/bin/
+RUN systemctl enable ovn-kubernetes-node-setup.service
+
+COPY ovn-kubernetes-node.service /etc/systemd/system/
+COPY ovn-kubernetes-node.sh /usr/local/bin/
+RUN systemctl enable ovn-kubernetes-node.service

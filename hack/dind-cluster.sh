@@ -62,13 +62,14 @@ source "${OS_ROOT}/images/dind/node/openshift-dind-lib.sh"
 
 function start() {
   local origin_root=$1
-  local config_root=$2
-  local deployed_config_root=$3
-  local cluster_id=$4
-  local network_plugin=$5
-  local wait_for_cluster=$6
-  local node_count=$7
-  local additional_args=$8
+  local ovn_root=$2
+  local config_root=$3
+  local deployed_config_root=$4
+  local cluster_id=$5
+  local network_plugin=$6
+  local wait_for_cluster=$7
+  local node_count=$8
+  local additional_args=$9
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -93,6 +94,13 @@ function start() {
   echo "OPENSHIFT_NETWORK_PLUGIN=${network_plugin}" > "${config_root}/network-plugin"
   echo "OPENSHIFT_ADDITIONAL_ARGS='${additional_args}'" > "${config_root}/additional-args"
   copy-runtime "${origin_root}" "${config_root}/"
+
+  ovn_kubernetes=
+  if [[ -d "${ovn_root}" ]]; then
+    copy-ovn-runtime "${ovn_root}" "${config_root}/"
+    ovn_kubernetes=1
+  fi
+  echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" > "${config_root}/ovn-kubernetes"
 
   # Create containers
   start-container "${config_root}" "${deployed_config_root}" "${MASTER_IMAGE}" "${MASTER_NAME}"
@@ -424,11 +432,13 @@ function get-network-plugin() {
   local subnet_plugin="redhat/openshift-ovs-subnet"
   local multitenant_plugin="redhat/openshift-ovs-multitenant"
   local networkpolicy_plugin="redhat/openshift-ovs-networkpolicy"
+  local ovn_plugin="ovn"
   local default_plugin="${multitenant_plugin}"
 
   if [[ "${plugin}" != "${subnet_plugin}" &&
           "${plugin}" != "${multitenant_plugin}" &&
           "${plugin}" != "${networkpolicy_plugin}" &&
+          "${plugin}" != "${ovn_plugin}" &&
           "${plugin}" != "cni" ]]; then
     if [[ -n "${plugin}" ]]; then
       >&2 echo "Invalid network plugin: ${plugin}"
@@ -458,6 +468,25 @@ function copy-runtime() {
   cp "$(os::util::find::built_binary host-local)" "${target}"
   cp "$(os::util::find::built_binary loopback)" "${target}"
   cp "$(os::util::find::built_binary sdn-cni-plugin)" "${target}/openshift-sdn"
+}
+
+function copy-ovn-runtime() {
+  local ovn_root=$1
+  local target=$2
+
+  local ovn_go_controller_built_binaries_path="${ovn_root}/go-controller/_output/go/bin"
+  cp "${ovn_go_controller_built_binaries_path}/ovnkube" "${target}"
+  cp "${ovn_go_controller_built_binaries_path}/ovn-kube-util" "${target}"
+
+  local ovn_k8s_binaries_path="${ovn_root}/bin"
+  cp "${ovn_k8s_binaries_path}/ovn-k8s-cni-overlay" "${target}"
+  cp "${ovn_k8s_binaries_path}/ovn-k8s-gateway-helper" "${target}"
+  cp "${ovn_k8s_binaries_path}/ovn-k8s-overlay" "${target}"
+  cp "${ovn_k8s_binaries_path}/ovn-k8s-util" "${target}"
+  cp "${ovn_k8s_binaries_path}/ovn-k8s-watcher" "${target}"
+
+  local ovn_k8s_python_module_path="${ovn_root}/ovn_k8s"
+  cp -R "${ovn_k8s_python_module_path}" "${target}/"
 }
 
 function wait-for-cluster() {
@@ -568,6 +597,8 @@ NODE_IMAGE="openshift/dind-node"
 MASTER_IMAGE="openshift/dind-master"
 ADDITIONAL_ARGS=""
 
+OVN_ROOT="${OVN_ROOT:-}"
+
 case "${1:-""}" in
   start)
     BUILD=
@@ -631,7 +662,19 @@ case "${1:-""}" in
     fi
 
     NETWORK_PLUGIN="$(get-network-plugin "${NETWORK_PLUGIN}")"
-    start "${OS_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
+
+    # OVN requires CNI network plugin and OVN_ROOT to be set
+    if [[ "${NETWORK_PLUGIN}" = "ovn" ]]; then
+      NETWORK_PLUGIN="cni"
+      if [[ -z "${OVN_ROOT}" ]]; then
+        echo "OVN network plugin requires OVN_ROOT set to ovn-kubernetes checkout"
+        exit 1
+      fi
+    elif [[ -n "${OVN_ROOT}" ]]; then
+      OVN_ROOT=
+    fi
+
+    start "${OS_ROOT}" "${OVN_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
           "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${WAIT_FOR_CLUSTER}" \
           "${NODE_COUNT}" "${ADDITIONAL_ARGS}"
     ;;

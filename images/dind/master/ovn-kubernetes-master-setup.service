@@ -1,0 +1,11 @@
+[Unit]
+Description=Setup for ovn-kubernetes master network plugin
+Requires=openshift-master.service
+After=openshift-master.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ovn-kubernetes-master-setup.sh
+
+[Install]
+WantedBy=openshift-master.service
