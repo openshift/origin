@@ -25,7 +25,7 @@ fi
 
 echo "Diffing current completions against freshly generated completions..."
 ret=0
-diff -Naupr "${COMPLETION_ROOT}" "${TMP_COMPLETION_ROOT}" || ret=$?
+diff -Naupr -x "OWNERS" "${COMPLETION_ROOT}" "${TMP_COMPLETION_ROOT}" || ret=$?
 rm -rf "${TMP_COMPLETION_ROOT}"
 if [[ $ret -eq 0 ]]
 then
