@@ -3,14 +3,19 @@ package origin
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
+	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
@@ -19,6 +24,7 @@ import (
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	"k8s.io/kubernetes/pkg/client/retry"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/api"
@@ -28,14 +34,18 @@ import (
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	"github.com/openshift/origin/pkg/security/legacyclient"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	"github.com/openshift/origin/pkg/version"
 
@@ -247,6 +257,14 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	// this remains here and separate so that you can check both kube and openshift levels
 	initOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
+	// register our poststarthooks
+	s.GenericAPIServer.AddPostStartHook("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	s.GenericAPIServer.AddPostStartHook("project.openshift.io-projectcache", c.startProjectCache)
+	s.GenericAPIServer.AddPostStartHook("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
+	s.GenericAPIServer.AddPostStartHook("security.openshift.io-bootstrapscc", c.bootstrapSCC)
+	s.GenericAPIServer.AddPostStartHook("authorization.openshift.io-ensureSARolesDefault", c.ensureDefaultNamespaceServiceAccountRoles)
+	s.GenericAPIServer.AddPostStartHook("authorization.openshift.io-ensureopenshift-infra", c.ensureOpenShiftInfraNamespace)
+
 	return s, nil
 }
 
@@ -350,4 +368,156 @@ func isPreferredGroupVersion(gv schema.GroupVersion) bool {
 		}
 	}
 	return false
+}
+
+func (c *OpenshiftAPIConfig) startClusterQuotaMapping(context genericapiserver.PostStartHookContext) error {
+	clusterQuotaMapping := origincontrollers.ClusterQuotaMappingControllerConfig{
+		ClusterQuotaMappingController: c.ClusterQuotaMappingController,
+	}
+	if _, err := clusterQuotaMapping.RunController(origincontrollers.ControllerContext{Stop: context.StopCh}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *OpenshiftAPIConfig) startProjectCache(context genericapiserver.PostStartHookContext) error {
+	// RunProjectCache populates project cache, used by scheduler and project admission controller.
+	glog.Infof("Using default project node label selector: %s", c.ProjectCache.DefaultNodeSelector)
+	go c.ProjectCache.Run(context.StopCh)
+	return nil
+}
+
+func (c *OpenshiftAPIConfig) startProjectAuthorizationCache(context genericapiserver.PostStartHookContext) error {
+	period := 1 * time.Second
+	c.ProjectAuthorizationCache.Run(period)
+	return nil
+}
+
+func (c *OpenshiftAPIConfig) bootstrapSCC(context genericapiserver.PostStartHookContext) error {
+	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
+	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
+
+	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
+		_, err := legacyclient.NewFromClient(c.KubeClientInternal.Core().RESTClient()).Create(&scc)
+		if kapierror.IsAlreadyExists(err) {
+			continue
+		}
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("unable to create default security context constraint %s.  Got error: %v", scc.Name, err))
+			continue
+		}
+		glog.Infof("Created default security context constraint %s", scc.Name)
+	}
+	return nil
+}
+
+// ensureOpenShiftInfraNamespace is called as part of global policy initialization to ensure infra namespace exists
+func (c *OpenshiftAPIConfig) ensureOpenShiftInfraNamespace(context genericapiserver.PostStartHookContext) error {
+	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
+
+	// Ensure namespace exists
+	namespace, err := c.KubeClientInternal.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+	if kapierror.IsAlreadyExists(err) {
+		// Get the persisted namespace
+		namespace, err = c.KubeClientInternal.Core().Namespaces().Get(ns, metav1.GetOptions{})
+		if err != nil {
+			glog.Errorf("Error getting namespace %s: %v", ns, err)
+			return nil
+		}
+	} else if err != nil {
+		glog.Errorf("Error creating namespace %s: %v", ns, err)
+		return nil
+	}
+
+	for _, role := range bootstrappolicy.ControllerRoles() {
+		reconcileRole := &policy.ReconcileClusterRolesOptions{
+			RolesToReconcile: []string{role.Name},
+			Confirmed:        true,
+			Union:            true,
+			Out:              ioutil.Discard,
+			RoleClient:       c.DeprecatedOpenshiftClient.ClusterRoles(),
+		}
+		if err := reconcileRole.RunReconcileClusterRoles(nil, nil); err != nil {
+			glog.Errorf("Could not reconcile %v: %v\n", role.Name, err)
+		}
+	}
+	for _, roleBinding := range bootstrappolicy.ControllerRoleBindings() {
+		reconcileRoleBinding := &policy.ReconcileClusterRoleBindingsOptions{
+			RolesToReconcile:  []string{roleBinding.RoleRef.Name},
+			Confirmed:         true,
+			Union:             true,
+			Out:               ioutil.Discard,
+			RoleBindingClient: c.DeprecatedOpenshiftClient.ClusterRoleBindings(),
+		}
+		if err := reconcileRoleBinding.RunReconcileClusterRoleBindings(nil, nil); err != nil {
+			glog.Errorf("Could not reconcile %v: %v\n", roleBinding.Name, err)
+		}
+	}
+
+	EnsureNamespaceServiceAccountRoleBindings(c.KubeClientInternal, c.DeprecatedOpenshiftClient, namespace)
+	return nil
+}
+
+// ensureDefaultNamespaceServiceAccountRoles initializes roles for service accounts in the default namespace
+func (c *OpenshiftAPIConfig) ensureDefaultNamespaceServiceAccountRoles(context genericapiserver.PostStartHookContext) error {
+	// Wait for the default namespace
+	var namespace *kapi.Namespace
+	for i := 0; i < 30; i++ {
+		ns, err := c.KubeClientInternal.Core().Namespaces().Get(metav1.NamespaceDefault, metav1.GetOptions{})
+		if err == nil {
+			namespace = ns
+			break
+		}
+		if kapierror.IsNotFound(err) {
+			time.Sleep(time.Second)
+			continue
+		}
+		glog.Errorf("Error adding service account roles to %q namespace: %v", metav1.NamespaceDefault, err)
+		return nil
+	}
+	if namespace == nil {
+		glog.Errorf("Namespace %q not found, could not initialize the %q namespace", metav1.NamespaceDefault, metav1.NamespaceDefault)
+		return nil
+	}
+
+	EnsureNamespaceServiceAccountRoleBindings(c.KubeClientInternal, c.DeprecatedOpenshiftClient, namespace)
+	return nil
+}
+
+// EnsureNamespaceServiceAccountRoleBindings initializes roles for service accounts in the namespace
+func EnsureNamespaceServiceAccountRoleBindings(kubeClientInternal kclientsetinternal.Interface, deprecatedOpenshiftClient *osclient.Client, namespace *kapi.Namespace) {
+	const ServiceAccountRolesInitializedAnnotation = "openshift.io/sa.initialized-roles"
+
+	// Short-circuit if we're already initialized
+	if namespace.Annotations[ServiceAccountRolesInitializedAnnotation] == "true" {
+		return
+	}
+
+	hasErrors := false
+	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name) {
+		addRole := &policy.RoleModificationOptions{
+			RoleName:            binding.RoleRef.Name,
+			RoleNamespace:       binding.RoleRef.Namespace,
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace.Name, deprecatedOpenshiftClient),
+			Subjects:            binding.Subjects,
+		}
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error { return addRole.AddRole() }); err != nil {
+			glog.Errorf("Could not add service accounts to the %v role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
+			hasErrors = true
+		}
+	}
+
+	// If we had errors, don't register initialization so we can try again
+	if hasErrors {
+		return
+	}
+
+	if namespace.Annotations == nil {
+		namespace.Annotations = map[string]string{}
+	}
+	namespace.Annotations[ServiceAccountRolesInitializedAnnotation] = "true"
+	// Log any error other than a conflict (the update will be retried and recorded again on next startup in that case)
+	if _, err := kubeClientInternal.Core().Namespaces().Update(namespace); err != nil && !kapierror.IsConflict(err) {
+		glog.Errorf("Error recording adding service account roles to %q namespace: %v", namespace.Name, err)
+	}
 }

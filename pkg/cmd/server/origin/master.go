@@ -225,6 +225,15 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, assetConfi
 		return err
 	}
 
+	// add post-start hooks
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("user.openshift.io-groupcache",
+		func(context apiserver.PostStartHookContext) error {
+			c.GroupCache.RunUntil(context.StopCh)
+			return nil
+		})
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("authorization.openshift.io-bootstrapclusterroles", c.ensureComponentAuthorizationRules)
+
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
@@ -307,21 +316,6 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 
 		return handler
 	}, nil
-}
-
-// InitializeObjects ensures objects in Kubernetes and etcd are properly populated.
-// Requires a Kube client to be established and that etcd be started.
-func (c *MasterConfig) InitializeObjects() {
-	// Create required policy rules if needed
-	c.ensureComponentAuthorizationRules()
-	// Ensure the default SCCs are created
-	c.ensureDefaultSecurityContextConstraints()
-	// Bind default roles for service accounts in the default namespace if needed
-	c.ensureDefaultNamespaceServiceAccountRoles()
-	// Create the infra namespace
-	c.ensureOpenShiftInfraNamespace()
-	// Create the shared resource namespace
-	c.ensureOpenShiftSharedResourcesNamespace()
 }
 
 // getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
