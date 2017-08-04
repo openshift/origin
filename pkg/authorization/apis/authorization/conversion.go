@@ -12,6 +12,10 @@ import (
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
+// reconcileProtectAnnotation is the name of an annotation which prevents reconciliation if set to "true"
+// can't use this const in pkg/oc/admin/policy because of import cycle
+const reconcileProtectAnnotation = "openshift.io/reconcile-protect"
+
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddConversionFuncs(
 		Convert_authorization_ClusterRole_To_rbac_ClusterRole,
@@ -30,6 +34,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 
 func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *ClusterRole, out *rbac.ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	return nil
 }
@@ -154,6 +159,7 @@ func getRBACRoleRefKind(namespace string) string {
 
 func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole, out *ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
 	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
@@ -240,4 +246,42 @@ func Convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule)
 		rules = append(rules, r)
 	}
 	return rules
+}
+
+func copyMapExcept(in map[string]string, except string) map[string]string {
+	out := map[string]string{}
+	for k, v := range in {
+		if k != except {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+var stringBool = sets.NewString("true", "false")
+
+func convert_authorization_Annotations_To_rbac_Annotations(in map[string]string) map[string]string {
+	if value, ok := in[reconcileProtectAnnotation]; ok && stringBool.Has(value) {
+		out := copyMapExcept(in, reconcileProtectAnnotation)
+		if value == "true" {
+			out[rbac.AutoUpdateAnnotationKey] = "false"
+		} else {
+			out[rbac.AutoUpdateAnnotationKey] = "true"
+		}
+		return out
+	}
+	return in
+}
+
+func convert_rbac_Annotations_To_authorization_Annotations(in map[string]string) map[string]string {
+	if value, ok := in[rbac.AutoUpdateAnnotationKey]; ok && stringBool.Has(value) {
+		out := copyMapExcept(in, rbac.AutoUpdateAnnotationKey)
+		if value == "true" {
+			out[reconcileProtectAnnotation] = "false"
+		} else {
+			out[reconcileProtectAnnotation] = "true"
+		}
+		return out
+	}
+	return in
 }

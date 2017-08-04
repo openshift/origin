@@ -4092,7 +4092,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4146,7 +4146,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4205,7 +4205,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4280,7 +4280,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4343,7 +4343,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4416,7 +4416,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4464,7 +4464,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4496,7 +4496,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4585,7 +4585,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4634,7 +4634,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4673,7 +4673,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4727,7 +4727,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4835,7 +4835,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4862,7 +4862,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4911,7 +4911,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4960,7 +4960,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4995,7 +4995,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5030,7 +5030,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5057,7 +5057,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5101,7 +5101,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5178,7 +5178,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5208,7 +5208,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5252,7 +5252,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5270,7 +5270,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5293,7 +5293,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5327,7 +5327,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5348,7 +5348,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5373,7 +5373,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5394,7 +5394,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5464,7 +5464,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5566,7 +5566,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults

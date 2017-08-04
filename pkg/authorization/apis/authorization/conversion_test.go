@@ -295,6 +295,58 @@ func TestResourceAndNonResourceRuleSplit(t *testing.T) {
 	}
 }
 
+func TestAnnotationsConversion(t *testing.T) {
+	for _, boolval := range []string{"true", "false"} {
+		ocr := &authorizationapi.ClusterRole{
+			Rules: []authorizationapi.PolicyRule{},
+		}
+		ocr.Annotations = map[string]string{"openshift.io/reconcile-protect": boolval}
+		ocr2 := &authorizationapi.ClusterRole{}
+		crcr := &rbac.ClusterRole{}
+		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, crcr, nil); err != nil {
+			t.Fatal(err)
+		}
+		value, ok := crcr.Annotations[rbac.AutoUpdateAnnotationKey]
+		if ok {
+			if (boolval == "true" && value != "false") || (boolval == "false" && value != "true") {
+				t.Fatal(fmt.Errorf("Wrong conversion value, 'true' instead of 'false'"))
+			}
+		} else {
+			t.Fatal(fmt.Errorf("Missing converted Annotation"))
+		}
+		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(crcr, ocr2, nil); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(ocr, ocr2) {
+			t.Errorf("origin cluster data not preserved; the diff is %s", diff.ObjectDiff(ocr, ocr2))
+		}
+
+		rcr := &rbac.ClusterRole{
+			Rules: []rbac.PolicyRule{},
+		}
+		rcr.Annotations = map[string]string{rbac.AutoUpdateAnnotationKey: boolval}
+		rcr2 := &rbac.ClusterRole{}
+		cocr := &authorizationapi.ClusterRole{}
+		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, cocr, nil); err != nil {
+			t.Fatal(err)
+		}
+		value, ok = cocr.Annotations["openshift.io/reconcile-protect"]
+		if ok {
+			if (boolval == "true" && value != "false") || (boolval == "false" && value != "true") {
+				t.Fatal(fmt.Errorf("Wrong conversion value, 'true' instead of 'false'"))
+			}
+		} else {
+			t.Fatal(fmt.Errorf("Missing converted Annotation"))
+		}
+		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(cocr, rcr2, nil); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(rcr, rcr2) {
+			t.Errorf("rbac cluster data not preserved; the diff is %s", diff.ObjectDiff(rcr, rcr2))
+		}
+	}
+}
+
 var fuzzer = fuzz.New().NilChance(0).Funcs(
 	func(*metav1.TypeMeta, fuzz.Continue) {}, // Ignore TypeMeta
 	func(*runtime.Object, fuzz.Continue) {},  // Ignore AttributeRestrictions since they are deprecated
