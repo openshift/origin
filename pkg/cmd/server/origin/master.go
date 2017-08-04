@@ -297,9 +297,6 @@ func (c *MasterConfig) buildHandlerChain(assetConfig *AssetConfig) (func(http.Ha
 			glog.Fatalf("Failed to setup serving of assets: %v", err)
 		}
 
-		// skip authz/n for the index handler
-		handler = WithPatternsHandler(handler, apiHandler, "/", "")
-
 		if c.WebConsoleEnabled() {
 			handler = WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
 		}
