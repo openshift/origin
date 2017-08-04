@@ -7086,6 +7086,7 @@ objects:
       select: first
   spec:
     host: first.example.com
+    path: /Letter
     to:
       name: endpoints
     ports:
@@ -7099,6 +7100,7 @@ objects:
       select: second
   spec:
     host: second.example.com
+    path: /Letter
     to:
       name: endpoints
     ports:
