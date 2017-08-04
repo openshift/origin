@@ -109,6 +109,10 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 		// The final value of OAuthConfig.MasterCA should never be nil
 		obj.OAuthConfig.MasterCA = &s
 	}
+
+	if len(obj.TemplateServiceBrokerConfig.TemplateNamespaces) == 0 {
+		obj.TemplateServiceBrokerConfig.TemplateNamespaces = []string{"openshift"}
+	}
 }
 
 func SetDefaults_KubernetesMasterConfig(obj *KubernetesMasterConfig) {

@@ -287,7 +287,7 @@ type MasterConfig struct {
 	// TemplateServiceBrokerConfig holds information related to the template
 	// service broker.  The broker is enabled if TemplateServiceBrokerConfig is
 	// non-nil.
-	TemplateServiceBrokerConfig *TemplateServiceBrokerConfig `json:"templateServiceBrokerConfig"`
+	TemplateServiceBrokerConfig TemplateServiceBrokerConfig `json:"templateServiceBrokerConfig"`
 
 	// DisableOpenAPI avoids starting the openapi endpoint because it is very expensive.
 	// This option will be removed at a later time.  It is never serialized.

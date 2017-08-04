@@ -799,9 +799,6 @@ func getExcludedControllers(options configapi.MasterConfig) sets.String {
 		excludedControllers.Insert("openshift.io/build")
 		excludedControllers.Insert("openshift.io/build-config-change")
 	}
-	if options.TemplateServiceBrokerConfig == nil {
-		excludedControllers.Insert("openshift.io/templateinstance")
-	}
 
 	return excludedControllers
 }

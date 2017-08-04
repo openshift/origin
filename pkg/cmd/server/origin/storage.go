@@ -473,20 +473,18 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"routes/status": routeStatusStorage,
 	}
 
-	if c.EnableTemplateServiceBroker {
-		templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.KubeClientInternal)
-		if err != nil {
-			return nil, fmt.Errorf("error building REST storage: %v", err)
-		}
-		brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-		if err != nil {
-			return nil, fmt.Errorf("error building REST storage: %v", err)
-		}
-
-		storage[templateapiv1.SchemeGroupVersion]["templateinstances"] = templateInstanceStorage
-		storage[templateapiv1.SchemeGroupVersion]["templateinstances/status"] = templateInstanceStatusStorage
-		storage[templateapiv1.SchemeGroupVersion]["brokertemplateinstances"] = brokerTemplateInstanceStorage
+	templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.KubeClientInternal)
+	if err != nil {
+		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
+	brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
+	if err != nil {
+		return nil, fmt.Errorf("error building REST storage: %v", err)
+	}
+
+	storage[templateapiv1.SchemeGroupVersion]["templateinstances"] = templateInstanceStorage
+	storage[templateapiv1.SchemeGroupVersion]["templateinstances/status"] = templateInstanceStatusStorage
+	storage[templateapiv1.SchemeGroupVersion]["brokertemplateinstances"] = brokerTemplateInstanceStorage
 
 	if c.EnableBuilds {
 		storage[buildapiv1.SchemeGroupVersion] = map[string]rest.Storage{

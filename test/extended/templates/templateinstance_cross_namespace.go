@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[templates] templateinstance cross-namespace test", func() {
+var _ = g.Describe("[Conformance][templates] templateinstance cross-namespace test", func() {
 	defer g.GinkgoRecover()
 
 	var (

@@ -12,6 +12,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -70,6 +71,10 @@ func TestRootAPIPaths(t *testing.T) {
 
 	// Send a GET to every advertised address and check that we get the correct response
 	for _, route := range broadcastRootPaths.Paths {
+		if strings.HasPrefix(route, templateapi.ServiceBrokerRoot) {
+			continue
+		}
+
 		req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+route, nil)
 		req.Header.Set("Accept", "*/*")
 		resp, err := transport.RoundTrip(req)

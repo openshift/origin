@@ -90,14 +90,6 @@ endpoints:
   asynchronous operation.  In the template service broker, *Provision*
   is the only asynchronous operation.
 
-The template service broker is enabled by adding the following
-(example) configuration to the OpenShift master config and restarting
-the master:
-
-    templateServiceBrokerConfig:
-      templateNamespaces:
-      - openshift
-
 When enabled, the template service broker is currently provided by the
 OpenShift master at
 https://\<master\>:8443/brokers/template.openshift.io/v2/.

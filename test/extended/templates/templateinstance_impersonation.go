@@ -22,7 +22,7 @@ import (
 // or can impersonate, the requester.
 // 2. Check that templateinstancespecs, particularly including
 // requester.username, are immutable.
-var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
+var _ = g.Describe("[Conformance][templates] templateinstance impersonation tests", func() {
 	defer g.GinkgoRecover()
 
 	var (

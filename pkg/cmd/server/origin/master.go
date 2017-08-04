@@ -69,7 +69,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
 		ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
 		EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
-		EnableTemplateServiceBroker:        c.Options.TemplateServiceBrokerConfig != nil,
 		ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
 		SCCStorage:                         sccStorage,
 	}
@@ -105,9 +104,6 @@ func (c *MasterConfig) newTemplateServiceBrokerConfig(kubeAPIServerConfig apiser
 }
 
 func (c *MasterConfig) withTemplateServiceBroker(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
-	if c.Options.TemplateServiceBrokerConfig == nil {
-		return delegateAPIServer, nil
-	}
 	tsbConfig := c.newTemplateServiceBrokerConfig(kubeAPIServerConfig)
 	tsbServer, err := tsbConfig.Complete().New(delegateAPIServer)
 	if err != nil {
