@@ -647,13 +647,16 @@ func (c *CommonStartConfig) CheckOpenShiftImage(out io.Writer) error {
 	return c.DockerHelper().CheckAndPull(c.openshiftImage(), out)
 }
 
-// CheckDockerInsecureRegistry checks whether the Docker daemon is using the right --insecure-registry argument
+// CheckDockerInsecureRegistry checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
 func (c *CommonStartConfig) CheckDockerInsecureRegistry(out io.Writer) error {
-	hasArg, err := c.DockerHelper().HasInsecureRegistryArg()
+	configured, hasEntries, err := c.DockerHelper().InsecureRegistryIsConfigured()
 	if err != nil {
 		return err
 	}
-	if !hasArg {
+	if !configured {
+		if hasEntries {
+			return errors.ErrInvalidInsecureRegistryArgument()
+		}
 		return errors.ErrNoInsecureRegistryArgument()
 	}
 	return nil

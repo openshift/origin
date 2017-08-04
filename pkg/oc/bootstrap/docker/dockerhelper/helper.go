@@ -12,10 +12,10 @@ import (
 
 	"github.com/docker/engine-api/client"
 	"github.com/docker/engine-api/types"
-	"github.com/docker/engine-api/types/registry"
 	"github.com/golang/glog"
 
 	"github.com/openshift/imagebuilder/imageprogress"
+	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	starterrors "github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
@@ -32,23 +32,6 @@ func NewHelper(client Interface) *Helper {
 	return &Helper{
 		client: client,
 	}
-}
-
-type RegistryConfig struct {
-	InsecureRegistryCIDRs []string
-}
-
-func hasCIDR(cidr string, listOfCIDRs []*registry.NetIPNet) bool {
-	glog.V(5).Infof("Looking for %q in %#v", cidr, listOfCIDRs)
-	for _, candidate := range listOfCIDRs {
-		candidateStr := (*net.IPNet)(candidate).String()
-		if candidateStr == cidr {
-			glog.V(5).Infof("Found %q", cidr)
-			return true
-		}
-	}
-	glog.V(5).Infof("Did not find %q", cidr)
-	return false
 }
 
 func (h *Helper) Client() Interface {
@@ -81,18 +64,22 @@ func (h *Helper) CgroupDriver() (string, error) {
 	return info.CgroupDriver, nil
 }
 
-// HasInsecureRegistryArg checks whether the docker daemon is configured with
-// the appropriate insecure registry argument
-func (h *Helper) HasInsecureRegistryArg() (bool, error) {
+// InsecureRegistryIsConfigured checks to see if the Docker daemon has an appropriate insecure registry argument set so that our services can access the registry
+//hasEntries specifies if Docker daemon has entries at all
+func (h *Helper) InsecureRegistryIsConfigured() (configured bool, hasEntries bool, error error) {
 	info, err := h.dockerInfo()
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
-	registryConfig := info.RegistryConfig
+	registryConfig := dockerhelper.NewRegistryConfig(info)
+	if !registryConfig.HasCustomInsecureRegistryCIDRs() {
+		return false, false, nil
+	}
+	containsRegistryCIDR, err := registryConfig.ContainsInsecureRegistryCIDR(openShiftInsecureCIDR)
 	if err != nil {
-		return false, err
+		return false, true, err
 	}
-	return hasCIDR(openShiftInsecureCIDR, registryConfig.InsecureRegistryCIDRs), nil
+	return containsRegistryCIDR, true, nil
 }
 
 var (
