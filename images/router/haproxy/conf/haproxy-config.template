@@ -27,7 +27,7 @@ global
 
   daemon
 {{- with (env "ROUTER_SYSLOG_ADDRESS" "") }}
-  log {{.}} {{env "ROUTER_LOG_FACILITY" "local1"}} {{env "ROUTER_LOG_LEVEL" "warning"}}
+  log {{.}} len {{env "ROUTER_MAX_MSG_LEN" "2048"}} {{env "ROUTER_LOG_FACILITY" "local1"}} {{env "ROUTER_LOG_LEVEL" "warning"}}
 {{- end}}
   ca-base /etc/ssl
   crt-base /etc/ssl
