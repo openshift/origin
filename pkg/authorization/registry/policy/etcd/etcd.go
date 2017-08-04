@@ -21,7 +21,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:            kapi.Scheme,
 		NewFunc:           func() runtime.Object { return &authorizationapi.Policy{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.PolicyList{} },
-		PredicateFunc:     policy.Matcher,
 		QualifiedResource: authorizationapi.Resource("policies"),
 
 		CreateStrategy: policy.Strategy,
@@ -29,7 +28,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: policy.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: policy.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

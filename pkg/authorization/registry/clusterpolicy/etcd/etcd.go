@@ -22,14 +22,13 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
 		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
 		QualifiedResource: authorizationapi.Resource("clusterpolicies"),
-		PredicateFunc:     clusterpolicy.Matcher,
 
 		CreateStrategy: clusterpolicy.Strategy,
 		UpdateStrategy: clusterpolicy.Strategy,
 		DeleteStrategy: clusterpolicy.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterpolicy.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
