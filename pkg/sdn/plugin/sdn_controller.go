@@ -174,14 +174,13 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 
 	sysctl := sysctl.New()
 
-	// Enable IP forwarding for ipv4 packets
-	err = sysctl.SetSysctl("net/ipv4/ip_forward", 1)
+	// Make sure IPv4 forwarding state is 1
+	val, err := sysctl.GetSysctl("net/ipv4/ip_forward")
 	if err != nil {
-		return false, fmt.Errorf("could not enable IPv4 forwarding: %s", err)
+		return false, fmt.Errorf("could not get IPv4 forwarding state: %s", err)
 	}
-	err = sysctl.SetSysctl(fmt.Sprintf("net/ipv4/conf/%s/forwarding", TUN), 1)
-	if err != nil {
-		return false, fmt.Errorf("could not enable IPv4 forwarding on %s: %s", TUN, err)
+	if val != 1 {
+		return false, fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
 	}
 
 	return true, nil
