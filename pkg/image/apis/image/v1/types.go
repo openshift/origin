@@ -245,6 +245,10 @@ type ImageStreamStatus struct {
 	// DockerImageRepository represents the effective location this stream may be accessed at.
 	// May be empty until the server determines where the repository is located
 	DockerImageRepository string `json:"dockerImageRepository" protobuf:"bytes,1,opt,name=dockerImageRepository"`
+	// PublicDockerImageRepository represents the public location from where the image can
+	// be pulled outside the cluster. This field may be empty if the administrator
+	// has not exposed the integrated registry externally.
+	PublicDockerImageRepository string `json:"publicDockerImageRepository,omitempty" protobuf:"bytes,3,opt,name=publicDockerImageRepository"`
 	// Tags are a historical record of images associated with each tag. The first entry in the
 	// TagEvent array is the currently tagged image.
 	Tags []NamedTagEventList `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
