@@ -21,6 +21,7 @@ func TestCreateImageImport(t *testing.T) {
 		stream             *imageapi.ImageStream
 		all                bool
 		confirm            bool
+		scheduled          bool
 		insecure           *bool
 		referencePolicy    string
 		err                string
@@ -401,6 +402,116 @@ func TestCreateImageImport(t *testing.T) {
 				ReferencePolicy: imageapi.TagReferencePolicy{Type: imageapi.LocalTagReferencePolicy},
 			},
 		},
+		"import tag setting scheduled": {
+			name:      "testis:mytag",
+			scheduled: true,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+						},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+				To:           &kapi.LocalObjectReference{Name: "mytag"},
+				ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+			}},
+		},
+		"import already scheduled tag without setting scheduled": {
+			name:      "testis:mytag",
+			scheduled: false,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From:         &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+							ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+						},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{{
+				From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+				To:           &kapi.LocalObjectReference{Name: "mytag"},
+				ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+			}},
+		},
+		"import all from .spec.tags setting scheduled": {
+			name:      "testis",
+			all:       true,
+			scheduled: true,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"}},
+						"other": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+					To:           &kapi.LocalObjectReference{Name: "mytag"},
+					ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+				},
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"},
+					To:           &kapi.LocalObjectReference{Name: "other"},
+					ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+				},
+			},
+		},
+		"import all from .spec.tags, some already scheduled, without setting scheduled": {
+			name:      "testis",
+			all:       true,
+			scheduled: false,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					Tags: map[string]imageapi.TagReference{
+						"mytag": {
+							From:         &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+							ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+						},
+						"other": {From: &kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"}},
+					},
+				},
+			},
+			expectedImages: []imageapi.ImageImportSpec{
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:mytag"},
+					To:           &kapi.LocalObjectReference{Name: "mytag"},
+					ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+				},
+				{
+					From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage:other"},
+					To:           &kapi.LocalObjectReference{Name: "other"},
+					ImportPolicy: imageapi.TagImportPolicy{Scheduled: false},
+				},
+			},
+		},
+		"import all from .spec.dockerImageRepository setting scheduled": {
+			name:      "testis",
+			all:       true,
+			scheduled: true,
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{Name: "testis", Namespace: "other"},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "repo.com/somens/someimage",
+					Tags: make(map[string]imageapi.TagReference),
+				},
+			},
+			expectedRepository: &imageapi.RepositoryImportSpec{
+				From:         kapi.ObjectReference{Kind: "DockerImage", Name: "repo.com/somens/someimage"},
+				ImportPolicy: imageapi.TagImportPolicy{Scheduled: true},
+			},
+		},
 	}
 
 	for name, test := range testCases {
@@ -414,6 +525,7 @@ func TestCreateImageImport(t *testing.T) {
 			Target:          test.name,
 			From:            test.from,
 			All:             test.all,
+			Scheduled:       test.scheduled,
 			Insecure:        test.insecure,
 			ReferencePolicy: test.referencePolicy,
 			Confirm:         test.confirm,

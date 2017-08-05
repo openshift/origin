@@ -63,6 +63,7 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out, errout io.Wri
 	cmd.Flags().BoolVar(&opts.All, "all", false, "If true, import all tags from the provided source on creation or if --from is specified")
 	cmd.Flags().StringVar(&opts.ReferencePolicy, "reference-policy", sourceReferencePolicy, "Allow to request pullthrough for external image when set to 'local'. Defaults to 'source'.")
 	cmd.Flags().BoolVar(&opts.DryRun, "dry-run", false, "Fetch information about images without creating or updating an image stream.")
+	cmd.Flags().BoolVar(&opts.Scheduled, "scheduled", false, "Set each imported Docker image to be periodically imported from a remote repository. Defaults to false.")
 	opts.Insecure = cmd.Flags().Bool("insecure", false, "If true, allow importing from registries that have invalid HTTPS certificates or are hosted via HTTP. This flag will take precedence over the insecure annotation.")
 
 	return cmd
@@ -71,10 +72,11 @@ func NewCmdImportImage(fullName string, f *clientcmd.Factory, out, errout io.Wri
 // ImageImportOptions contains all the necessary information to perform an import.
 type ImportImageOptions struct {
 	// user set values
-	From     string
-	Confirm  bool
-	All      bool
-	Insecure *bool
+	From      string
+	Confirm   bool
+	All       bool
+	Scheduled bool
+	Insecure  *bool
 
 	DryRun bool
 
@@ -550,7 +552,10 @@ func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStrea
 			Kind: "DockerImage",
 			Name: from,
 		},
-		ImportPolicy:    imageapi.TagImportPolicy{Insecure: insecure},
+		ImportPolicy: imageapi.TagImportPolicy{
+			Insecure:  insecure,
+			Scheduled: o.Scheduled,
+		},
 		ReferencePolicy: o.getReferencePolicy(),
 	}
 
@@ -560,13 +565,21 @@ func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStrea
 func (o *ImportImageOptions) newImageStreamImportTags(stream *imageapi.ImageStream, tags map[string]string) *imageapi.ImageStreamImport {
 	isi, insecure := o.newImageStreamImport(stream)
 	for tag, from := range tags {
+		scheduled := o.Scheduled
+		oldTag, ok := stream.Spec.Tags[tag]
+		if ok {
+			scheduled = scheduled || oldTag.ImportPolicy.Scheduled
+		}
 		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
 			From: kapi.ObjectReference{
 				Kind: "DockerImage",
 				Name: from,
 			},
-			To:              &kapi.LocalObjectReference{Name: tag},
-			ImportPolicy:    imageapi.TagImportPolicy{Insecure: insecure},
+			To: &kapi.LocalObjectReference{Name: tag},
+			ImportPolicy: imageapi.TagImportPolicy{
+				Insecure:  insecure,
+				Scheduled: scheduled,
+			},
 			ReferencePolicy: o.getReferencePolicy(),
 		})
 	}
