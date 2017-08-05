@@ -13,3 +13,4 @@ approvers:
   - mfojtik
   - eparis
   - derekwaynecarr
+  - stevekuznetsov # for build and tooling changes
