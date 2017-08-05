@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -20,27 +21,46 @@ import (
 )
 
 const deploymentRunTimeout = 5 * time.Minute
+const testResultFile = "/tmp/TestResult"
 
-var _ = g.Describe("monkey", func() {
+var rootDir string
+
+var _ = g.Describe("[Feature:Performance][Serial][Slow] Load cluster", func() {
 	defer g.GinkgoRecover()
 	var (
-		oc = exutil.NewCLI("cl", exutil.KubeConfigPath())
-		_  = exutil.FixturePath("testdata", "cluster", "master-vert.yaml")
+		oc                = exutil.NewCLI("cl", exutil.KubeConfigPath())
+		masterVertFixture = exutil.FixturePath("testdata", "cluster", "master-vert.yaml")
+		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "cakephp-mysql.json")
+		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "dancer-mysql.json")
+		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "django-postgresql.json")
+		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "nodejs-mongodb.json")
+		_                 = exutil.FixturePath("..", "..", "examples", "quickstarts", "rails-postgresql.json")
 	)
 
 	var c kclientset.Interface
 	g.BeforeEach(func() {
+		var err error
 		c = oc.AdminKubeClient()
-		ParseConfig(e2e.TestContext.Viper)
+		viperConfig := e2e.TestContext.Viper
+		if viperConfig == "e2e" {
+			e2e.Logf("Undefined config file, using built-in config %v\n", masterVertFixture)
+			path := strings.Split(masterVertFixture, "/")
+			rootDir = strings.Join(path[:len(path)-5], "/")
+			err = ParseConfig(masterVertFixture, true)
+		} else {
+			e2e.Logf("Using config %v\n", viperConfig)
+			err = ParseConfig(viperConfig, false)
+		}
+		if err != nil {
+			e2e.Failf("Error parsing config: %v\n", err)
+		}
 	})
 
 	g.It("should load the cluster", func() {
-
 		project := ConfigContext.ClusterLoader.Projects
 		tuningSets := ConfigContext.ClusterLoader.TuningSets
 		if project == nil {
-			e2e.Logf("CONFIG FILE: %+v", ConfigContext.ClusterLoader.Projects)
-			e2e.Failf("invalid config file.\nFile: %v", project)
+			e2e.Failf("Invalid config file.\nFile: %v", project)
 		}
 
 		var namespaces []string
@@ -64,8 +84,9 @@ var _ = g.Describe("monkey", func() {
 				// Create templates as defined
 				for _, template := range p.Templates {
 					var allArgs []string
-					e2e.Logf("We're loading file %v: ", template.File)
-					templateObj, err := testutil.GetTemplateFixture(template.File)
+					templateFile := mkPath(template.File)
+					e2e.Logf("We're loading file %v: ", templateFile)
+					templateObj, err := testutil.GetTemplateFixture(templateFile)
 					if err != nil {
 						e2e.Failf("Cant read template config file. Error: %v", err)
 					}
@@ -134,7 +155,7 @@ var _ = g.Describe("monkey", func() {
 		// Calculate and log test duration
 		testDuration := time.Since(testStartTime)
 		e2e.Logf("Cluster loading duration: %s", testDuration)
-		err := writeJSONToDisk(TestResult{testDuration}, "/tmp/TestResult")
+		err := writeJSONToDisk(TestResult{testDuration}, testResultFile)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// Wait for pods to be running
@@ -156,9 +177,7 @@ var _ = g.Describe("monkey", func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		}
-
 	})
-
 })
 
 func newProject(nsName string) *projectapi.Project {
@@ -179,7 +198,10 @@ func mkPath(file string) string {
 	if file == "" {
 		e2e.Failf("No template file defined!")
 	}
-	return filepath.Join("test/", file)
+	if rootDir == "" {
+		rootDir = "content"
+	}
+	return filepath.Join(rootDir+"/", file)
 }
 
 // appendIntToString appends an integer i to string s

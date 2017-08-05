@@ -1,6 +1,8 @@
 package cluster
 
 import (
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -85,10 +87,21 @@ type TestResult struct {
 }
 
 // ParseConfig will complete flag parsing as well as viper tasks
-func ParseConfig(config string) {
+func ParseConfig(config string, isFixture bool) error {
 	// This must be done after common flags are registered, since Viper is a flag option.
-	viper.SetConfigName(config)
-	viper.AddConfigPath(".")
-	viper.ReadInConfig()
+	if isFixture {
+		dir, file := filepath.Split(config)
+		s := strings.Split(file, ".")
+		viper.SetConfigName(s[0])
+		viper.AddConfigPath(dir)
+	} else {
+		viper.SetConfigName(config)
+		viper.AddConfigPath(".")
+	}
+	err := viper.ReadInConfig()
+	if err != nil {
+		return err
+	}
 	viper.Unmarshal(&ConfigContext)
+	return nil
 }

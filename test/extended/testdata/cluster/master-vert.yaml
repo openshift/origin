@@ -3,53 +3,39 @@ ClusterLoader:
   cleanup: true
   projects:
     - num: 1
-      basename: cakephp-mysql
+      basename: clusterloader-cakephp-mysql
       tuning: default
       templates:
         - num: 1
-          file: ./testdata/quickstarts/cakephp/cakephp-mysql.json
+          file: ./examples/quickstarts/cakephp-mysql.json
   
     - num: 1
-      basename: dancer-mysql
+      basename: clusterloader-dancer-mysql
       tuning: default
       templates:
         - num: 1
-          file: ./testdata/quickstarts/dancer/dancer-mysql.json
+          file: ./examples/quickstarts/dancer-mysql.json
   
     - num: 1
-      basename: django-postgresql
+      basename: clusterloader-django-postgresql
       tuning: default
       templates:
         - num: 1
-          file: ./testdata/quickstarts/django/django-postgresql.json
+          file: ./examples/quickstarts/django-postgresql.json
   
     - num: 1
-      basename: nodejs-mongodb
+      basename: clusterloader-nodejs-mongodb
       tuning: default
       templates:
         - num: 1
-          file: ./testdata/quickstarts/nodejs/nodejs-mongodb.json
+          file: ./examples/quickstarts/nodejs-mongodb.json
   
     - num: 1
-      basename: rails-postgresql
+      basename: clusterloader-rails-postgresql
       tuning: default
       templates:
         - num: 1
-          file: ./testdata/quickstarts/rails/rails-postgresql.json
-  
-    - num: 1
-      basename: eap64-mysql
-      tuning: default
-      templates:
-        - num: 1
-          file: ./testdata/quickstarts/eap/eap64-mysql.json
-  
-    - num: 1
-      basename: tomcat8-mongodb
-      tuning: default
-      templates:
-        - num: 1
-          file: ./testdata/quickstarts/tomcat/tomcat8-mongodb.json
+          file: ./examples/quickstarts/rails-postgresql.json
   
   tuningsets:
     - name: default
