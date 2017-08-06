@@ -15,5 +15,5 @@ echo
 
 REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY="${REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY:-/tmp/registry}" \
   DOCKER_REGISTRY_URL="${url}" \
-	KUBECONFIG=openshift.local.config/master/openshift-registry.kubeconfig \
+	KUBECONFIG=openshift.local.config/master/admin.kubeconfig \
 	dockerregistry images/dockerregistry/config.yml
