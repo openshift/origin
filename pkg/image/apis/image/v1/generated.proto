@@ -98,6 +98,16 @@ message ImageImportStatus {
   optional string tag = 3;
 }
 
+// ImageInstantiateMetadata is metadata applied to a new copy of an image.
+message ImageInstantiateMetadata {
+  // DockerImageMetadata contains metadata about this image.
+  // +patchStrategy=replace
+  optional k8s.io.apimachinery.pkg.runtime.RawExtension dockerImageMetadata = 1;
+
+  // DockerImageMetadataVersion conveys the version of the object, which if empty defaults to "1.0".
+  optional string dockerImageMetadataVersion = 2;
+}
+
 // ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.
 message ImageLayer {
   // Name of the layer as defined by the underlying store.
@@ -313,6 +323,28 @@ message ImageStreamTag {
 
   // image associated with the ImageStream and tag.
   optional Image image = 5;
+}
+
+// ImageStreamTagInstantiate allows a client to create a copy of an existing image that changes
+// metadata or adds a new layer. It also allows the client to create a new image (i.e.
+// FROM scratch). The resulting image is stored as a tag on the stream.
+message ImageStreamTagInstantiate {
+  // Standard object's metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  // from is an optional reference to an existing image stream tag or image to copy.
+  // If from is not set, this is assumed to create a new scratch image.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference from = 2;
+
+  // image is metadata that will replace the existing metadata of from, or if from
+  // is empty, will be used to create a new scratch image.
+  optional ImageInstantiateMetadata image = 3;
+}
+
+// ImageStreamTagInstantiateOptions are flags that apply when uploading a layer to an image copy.
+message ImageStreamTagInstantiateOptions {
+  // preconditionUID, if specified, must match the ImageStreamTagInstantiate.
+  optional string preconditionUID = 1;
 }
 
 // ImageStreamTagList is a list of ImageStreamTag objects.

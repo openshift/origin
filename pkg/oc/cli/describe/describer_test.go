@@ -74,6 +74,8 @@ var DescriberCoverageExceptions = []reflect.Type{
 	reflect.TypeOf(&securityapi.PodSecurityPolicySelfSubjectReview{}),
 	reflect.TypeOf(&securityapi.PodSecurityPolicyReview{}),
 	reflect.TypeOf(&oauthapi.OAuthRedirectReference{}),
+	reflect.TypeOf(&imageapi.ImageStreamTagInstantiate{}),
+	reflect.TypeOf(&imageapi.ImageStreamTagInstantiateOptions{}),
 }
 
 // MissingDescriberCoverageExceptions is the list of types that were missing describer methods when I started

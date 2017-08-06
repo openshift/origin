@@ -61,6 +61,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImageStreamTagList{},
 		&ImageStreamImage{},
 		&ImageStreamImport{},
+		&ImageStreamTagInstantiate{},
+		&ImageStreamTagInstantiateOptions{},
 		&kapiv1.SecretList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)

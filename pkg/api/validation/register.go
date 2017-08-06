@@ -74,6 +74,8 @@ func registerAll() {
 	Validator.MustRegister(&imageapi.ImageStreamImport{}, imagevalidation.ValidateImageStreamImport, nil)
 	Validator.MustRegister(&imageapi.ImageStreamMapping{}, imagevalidation.ValidateImageStreamMapping, nil)
 	Validator.MustRegister(&imageapi.ImageStreamTag{}, imagevalidation.ValidateImageStreamTag, imagevalidation.ValidateImageStreamTagUpdate)
+	Validator.MustRegister(&imageapi.ImageStreamTagInstantiate{}, imagevalidation.ValidateImageStreamTagInstantiate, nil)
+	Validator.MustRegister(&imageapi.ImageStreamTagInstantiateOptions{}, imagevalidation.ValidateImageStreamTagInstantiateOptions, nil)
 
 	Validator.MustRegister(&oauthapi.OAuthAccessToken{}, oauthvalidation.ValidateAccessToken, oauthvalidation.ValidateAccessTokenUpdate)
 	Validator.MustRegister(&oauthapi.OAuthAuthorizeToken{}, oauthvalidation.ValidateAuthorizeToken, oauthvalidation.ValidateAuthorizeTokenUpdate)

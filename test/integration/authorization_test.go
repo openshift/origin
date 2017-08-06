@@ -187,6 +187,8 @@ func TestClusterReaderCoverage(t *testing.T) {
 		imageapi.LegacyResource("imagestreamimports"),
 		imageapi.Resource("imagestreammappings"),
 		imageapi.LegacyResource("imagestreammappings"),
+		imageapi.Resource("imagestreamtags/instantiate"),
+		imageapi.Resource("imagestreamtags/instantiatelayer"),
 		extensionsapi.Resource("deployments/rollback"),
 		appsapi.Resource("deployments/rollback"),
 		kapi.Resource("pods/attach"),

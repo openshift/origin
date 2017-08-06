@@ -2,6 +2,7 @@ package image
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
@@ -462,6 +463,37 @@ type ImageStreamImage struct {
 
 	// The Image associated with the ImageStream and image name.
 	Image Image
+}
+
+// ImageStreamTagInstantiate allows a client to create a copy of an existing image that changes
+// metadata or adds a new layer. It also allows the client to create a new image (i.e.
+// FROM scratch). The resulting image is stored as a tag on the stream.
+type ImageStreamTagInstantiate struct {
+	metav1.TypeMeta
+	// Standard object's metadata.
+	metav1.ObjectMeta
+
+	// from is an optional reference to an existing image stream tag or image to copy.
+	// If from is not set, this is assumed to create a new scratch image.
+	From *kapi.ObjectReference
+	// image is metadata that will replace the existing metadata of from, or if from
+	// is empty, will be used to create a new scratch image.
+	Image *ImageInstantiateMetadata
+}
+
+// ImageInstantiateMetadata is metadata applied to a new copy of an image.
+type ImageInstantiateMetadata struct {
+	// Metadata about this image
+	DockerImageMetadata DockerImage
+	// This attribute conveys the version of docker metadata the JSON should be stored in, which if empty defaults to "1.0"
+	DockerImageMetadataVersion string
+}
+
+// ImageStreamTagInstantiateOptions are flags that apply when uploading a layer to an image copy.
+type ImageStreamTagInstantiateOptions struct {
+	metav1.TypeMeta
+	// preconditionUID, if specified, must match the ImageStreamTagInstantiate.
+	PreconditionUID types.UID
 }
 
 // DockerImageReference points to a Docker image.

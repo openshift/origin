@@ -60,6 +60,16 @@ func (ImageImportStatus) SwaggerDoc() map[string]string {
 	return map_ImageImportStatus
 }
 
+var map_ImageInstantiateMetadata = map[string]string{
+	"": "ImageInstantiateMetadata is metadata applied to a new copy of an image.",
+	"dockerImageMetadata":        "DockerImageMetadata contains metadata about this image.",
+	"dockerImageMetadataVersion": "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\".",
+}
+
+func (ImageInstantiateMetadata) SwaggerDoc() map[string]string {
+	return map_ImageInstantiateMetadata
+}
+
 var map_ImageLayer = map[string]string{
 	"":          "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
 	"name":      "Name of the layer as defined by the underlying store.",
@@ -216,6 +226,26 @@ var map_ImageStreamTag = map[string]string{
 
 func (ImageStreamTag) SwaggerDoc() map[string]string {
 	return map_ImageStreamTag
+}
+
+var map_ImageStreamTagInstantiate = map[string]string{
+	"":         "ImageStreamTagInstantiate allows a client to create a copy of an existing image that changes metadata or adds a new layer. It also allows the client to create a new image (i.e. FROM scratch). The resulting image is stored as a tag on the stream.",
+	"metadata": "Standard object's metadata.",
+	"from":     "from is an optional reference to an existing image stream tag or image to copy. If from is not set, this is assumed to create a new scratch image.",
+	"image":    "image is metadata that will replace the existing metadata of from, or if from is empty, will be used to create a new scratch image.",
+}
+
+func (ImageStreamTagInstantiate) SwaggerDoc() map[string]string {
+	return map_ImageStreamTagInstantiate
+}
+
+var map_ImageStreamTagInstantiateOptions = map[string]string{
+	"":                "ImageStreamTagInstantiateOptions are flags that apply when uploading a layer to an image copy.",
+	"preconditionUID": "preconditionUID, if specified, must match the ImageStreamTagInstantiate.",
+}
+
+func (ImageStreamTagInstantiateOptions) SwaggerDoc() map[string]string {
+	return map_ImageStreamTagInstantiateOptions
 }
 
 var map_ImageStreamTagList = map[string]string{

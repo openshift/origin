@@ -287,6 +287,10 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			// successfully, the ImageStreamTag's ObjectMeta must match the Image's.
 			j.ObjectMeta = j.Image.ObjectMeta
 		},
+		func(j *image.ImageInstantiateMetadata, c fuzz.Continue) {
+			j.DockerImageMetadataVersion = []string{"pre012", "1.0"}[c.Rand.Intn(2)]
+			c.Fuzz(&j.DockerImageMetadata)
+		},
 		func(j *image.TagReference, c fuzz.Continue) {
 			c.FuzzNoCustom(j)
 			if j.From != nil {

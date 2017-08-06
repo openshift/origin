@@ -5627,6 +5627,35 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "k8s.io/apimachinery/pkg/apis/meta/v1.Status"},
 		},
+		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageInstantiateMetadata": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ImageInstantiateMetadata is metadata applied to a new copy of an image.",
+					Properties: map[string]spec.Schema{
+						"dockerImageMetadata": {
+							VendorExtensible: spec.VendorExtensible{
+								Extensions: spec.Extensions{
+									"x-kubernetes-patch-strategy": "replace",
+								},
+							},
+							SchemaProps: spec.SchemaProps{
+								Description: "DockerImageMetadata contains metadata about this image.",
+								Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+							},
+						},
+						"dockerImageMetadataVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\".",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+		},
 		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageLayer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -6261,6 +6290,81 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/image/apis/image/v1.Image", "github.com/openshift/origin/pkg/image/apis/image/v1.ImageLookupPolicy", "github.com/openshift/origin/pkg/image/apis/image/v1.TagEventCondition", "github.com/openshift/origin/pkg/image/apis/image/v1.TagReference", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTagInstantiate": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ImageStreamTagInstantiate allows a client to create a copy of an existing image that changes metadata or adds a new layer. It also allows the client to create a new image (i.e. FROM scratch). The resulting image is stored as a tag on the stream.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"from": {
+							SchemaProps: spec.SchemaProps{
+								Description: "from is an optional reference to an existing image stream tag or image to copy. If from is not set, this is assumed to create a new scratch image.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+						"image": {
+							SchemaProps: spec.SchemaProps{
+								Description: "image is metadata that will replace the existing metadata of from, or if from is empty, will be used to create a new scratch image.",
+								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.ImageInstantiateMetadata"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/image/apis/image/v1.ImageInstantiateMetadata", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
+		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTagInstantiateOptions": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ImageStreamTagInstantiateOptions are flags that apply when uploading a layer to an image copy.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"preconditionUID": {
+							SchemaProps: spec.SchemaProps{
+								Description: "preconditionUID, if specified, must match the ImageStreamTagInstantiate.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"preconditionUID"},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"github.com/openshift/origin/pkg/image/apis/image/v1.ImageStreamTagList": {
 			Schema: spec.Schema{

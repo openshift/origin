@@ -44103,6 +44103,138 @@
      }
     ]
    },
+   "/apis/image.openshift.io/v1/namespaces/{namespace}/imagestreamtags/{name}/instantiate": {
+    "post": {
+     "description": "create instantiate of an ImageStreamTagInstantiate",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "imageOpenshiftIo_v1"
+     ],
+     "operationId": "createImageOpenshiftIoV1NamespacedImageStreamTagInstantiateInstantiate",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.image.apis.image.v1.ImageStreamTagInstantiate"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.image.apis.image.v1.ImageStreamTagInstantiate"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "image.openshift.io",
+      "version": "v1",
+      "kind": "ImageStreamTagInstantiate"
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "name of the ImageStreamTagInstantiate",
+      "name": "name",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/apis/image.openshift.io/v1/namespaces/{namespace}/imagestreamtags/{name}/instantiatelayer": {
+    "post": {
+     "description": "connect POST requests to instantiatelayer of ImageStreamTagInstantiateOptions",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "*/*"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "imageOpenshiftIo_v1"
+     ],
+     "operationId": "connectImageOpenshiftIoV1PostNamespacedImageStreamTagInstantiateOptionsInstantiatelayer",
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "type": "string"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "connect",
+     "x-kubernetes-group-version-kind": {
+      "group": "image.openshift.io",
+      "version": "v1",
+      "kind": "ImageStreamTagInstantiateOptions"
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "name of the ImageStreamTagInstantiateOptions",
+      "name": "name",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "preconditionUID, if specified, must match the ImageStreamTagInstantiate.",
+      "name": "preconditionUID",
+      "in": "query"
+     }
+    ]
+   },
    "/apis/image.openshift.io/v1/watch/images": {
     "get": {
      "description": "watch individual changes to a list of Image",
@@ -89922,6 +90054,20 @@
      }
     }
    },
+   "com.github.openshift.origin.pkg.image.apis.image.v1.ImageInstantiateMetadata": {
+    "description": "ImageInstantiateMetadata is metadata applied to a new copy of an image.",
+    "properties": {
+     "dockerImageMetadata": {
+      "description": "DockerImageMetadata contains metadata about this image.",
+      "x-kubernetes-patch-strategy": "replace",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.runtime.RawExtension"
+     },
+     "dockerImageMetadataVersion": {
+      "description": "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\".",
+      "type": "string"
+     }
+    }
+   },
    "com.github.openshift.origin.pkg.image.apis.image.v1.ImageLayer": {
     "description": "ImageLayer represents a single layer of the image. Some images may have multiple layers. Some may have none.",
     "required": [
@@ -90409,6 +90555,38 @@
       "group": "image.openshift.io",
       "version": "v1",
       "kind": "ImageStreamTag"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.image.apis.image.v1.ImageStreamTagInstantiate": {
+    "description": "ImageStreamTagInstantiate allows a client to create a copy of an existing image that changes metadata or adds a new layer. It also allows the client to create a new image (i.e. FROM scratch). The resulting image is stored as a tag on the stream.",
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "from": {
+      "description": "from is an optional reference to an existing image stream tag or image to copy. If from is not set, this is assumed to create a new scratch image.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
+     },
+     "image": {
+      "description": "image is metadata that will replace the existing metadata of from, or if from is empty, will be used to create a new scratch image.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.image.apis.image.v1.ImageInstantiateMetadata"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "image.openshift.io",
+      "version": "v1",
+      "kind": "ImageStreamTagInstantiate"
      }
     ]
    },
