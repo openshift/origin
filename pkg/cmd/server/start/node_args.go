@@ -179,7 +179,7 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		NodeName: args.NodeName,
 
 		ServingInfo: configapi.ServingInfo{
-			BindAddress: net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort)),
+			BindAddress: args.ListenArg.ListenAddr.HostPort(ports.KubeletPort),
 		},
 
 		ImageConfig: configapi.ImageConfig{
