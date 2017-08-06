@@ -2,16 +2,21 @@ package imagestreamtag
 
 import (
 	"fmt"
+	"net/url"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	"github.com/golang/glog"
 	oapi "github.com/openshift/origin/pkg/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	"github.com/openshift/origin/pkg/image/util"
@@ -24,9 +29,22 @@ type REST struct {
 	imageStreamRegistry imagestream.Registry
 }
 
+type RegistryAuthExpired interface {
+	Forget(*url.URL)
+}
+
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry) *REST {
-	return &REST{imageRegistry: imageRegistry, imageStreamRegistry: imageStreamRegistry}
+func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, sarClient authorizationclient.SubjectAccessReviewInterface, defaultRegistry imageapi.RegistryHostnameRetriever, adminRegistryRetriever importer.RepositoryRetriever, expired RegistryAuthExpired) (*REST, *InstantiateREST, *InstantiateLayerREST) {
+	instantiateREST := &InstantiateREST{
+		imageRegistry:       imageRegistry,
+		imageStreamRegistry: imageStreamRegistry,
+		sarClient:           sarClient,
+		defaultRegistry:     defaultRegistry,
+		gr:                  schema.GroupResource{Resource: "imagestreamtags", Group: "image.openshift.io"},
+		repository:          adminRegistryRetriever,
+		expired:             expired,
+	}
+	return &REST{imageRegistry: imageRegistry, imageStreamRegistry: imageStreamRegistry}, instantiateREST, &InstantiateLayerREST{instantiateREST}
 }
 
 var _ rest.Getter = &REST{}
@@ -335,6 +353,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	event := imageapi.LatestTaggedImage(imageStream, tag)
 	if event == nil || len(event.Image) == 0 {
 		if !allowEmptyEvent {
+			glog.V(4).Infof("did not find tag %s in image stream status tags: %#v", tag, imageStream.Status.Tags)
 			return nil, kapierrors.NewNotFound(imageapi.Resource("imagestreamtags"), istagName)
 		}
 		event = &imageapi.TagEvent{

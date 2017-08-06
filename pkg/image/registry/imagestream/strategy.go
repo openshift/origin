@@ -56,6 +56,15 @@ func (s Strategy) NamespaceScoped() bool {
 	return true
 }
 
+// collapseEmptyStatusTags removes status tags that are completely empty.
+func collapseEmptyStatusTags(stream *imageapi.ImageStream) {
+	for tag, ref := range stream.Status.Tags {
+		if len(ref.Items) == 0 && len(ref.Conditions) == 0 {
+			delete(stream.Status.Tags, tag)
+		}
+	}
+}
+
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*imageapi.ImageStream)
@@ -68,6 +77,7 @@ func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 		ref.Generation = &stream.Generation
 		stream.Spec.Tags[tag] = ref
 	}
+	collapseEmptyStatusTags(stream)
 }
 
 // Validate validates a new image stream and verifies the current user is
@@ -497,6 +507,7 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	oldStream := old.(*imageapi.ImageStream)
 	stream := obj.(*imageapi.ImageStream)
 
+	collapseEmptyStatusTags(stream)
 	stream.Generation = oldStream.Generation
 	if resetStatus {
 		stream.Status = oldStream.Status

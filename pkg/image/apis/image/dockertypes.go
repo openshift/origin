@@ -139,6 +139,7 @@ type DockerImageConfig struct {
 	Size            int64                 `json:"size,omitempty"`
 	RootFS          *DockerConfigRootFS   `json:"rootfs,omitempty"`
 	History         []DockerConfigHistory `json:"history,omitempty"`
+	OS              string                `json:"os,omitempty"`
 	OSVersion       string                `json:"os.version,omitempty"`
 	OSFeatures      []string              `json:"os.features,omitempty"`
 }

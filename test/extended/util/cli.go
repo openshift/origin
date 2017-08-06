@@ -16,6 +16,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/client-go/rest"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	authorizationapiv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
@@ -193,18 +194,34 @@ func (c *CLI) Verbose() *CLI {
 	return c
 }
 
-func (c *CLI) AppsClient() appsclientset.Interface {
+// ClientConfig provides the client config for the current user. If the user is not
+// set, then it provides client config for the cluster admin user
+func (c *CLI) ClientConfig() *rest.Config {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := appsclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return clientConfig
+}
+
+// ClientConfig provides the admin client config.
+func (c *CLI) AdminClientConfig() *rest.Config {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	if err != nil {
+		FatalErr(err)
+	}
+	return clientConfig
+}
+
+func (c *CLI) AppsClient() appsclientset.Interface {
+	client, err := appsclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
 	return client
 }
-
 func (c *CLI) AuthorizationClient() authorizationclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := authorizationclientset.NewForConfig(clientConfig)
+	client, err := authorizationclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -212,8 +229,7 @@ func (c *CLI) AuthorizationClient() authorizationclientset.Interface {
 }
 
 func (c *CLI) BuildClient() buildclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := buildclientset.NewForConfig(clientConfig)
+	client, err := buildclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -221,17 +237,7 @@ func (c *CLI) BuildClient() buildclientset.Interface {
 }
 
 func (c *CLI) ImageClient() imageclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := imageclientset.NewForConfig(clientConfig)
-	if err != nil {
-		FatalErr(err)
-	}
-	return client
-}
-
-func (c *CLI) ProjectClient() projectclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := projectclientset.NewForConfig(clientConfig)
+	client, err := imageclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -239,8 +245,15 @@ func (c *CLI) ProjectClient() projectclientset.Interface {
 }
 
 func (c *CLI) RouteClient() routeclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := routeclientset.NewForConfig(clientConfig)
+	client, err := routeclientset.NewForConfig(c.ClientConfig())
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) ProjectClient() projectclientset.Interface {
+	client, err := projectclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -250,8 +263,7 @@ func (c *CLI) RouteClient() routeclientset.Interface {
 // Client provides an OpenShift client for the current user. If the user is not
 // set, then it provides client for the cluster admin user
 func (c *CLI) TemplateClient() templateclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := templateclientset.NewForConfig(clientConfig)
+	client, err := templateclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -259,8 +271,7 @@ func (c *CLI) TemplateClient() templateclientset.Interface {
 }
 
 func (c *CLI) UserClient() userclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := userclientset.NewForConfig(clientConfig)
+	client, err := userclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -268,8 +279,7 @@ func (c *CLI) UserClient() userclientset.Interface {
 }
 
 func (c *CLI) AdminAppsClient() appsclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := appsclientset.NewForConfig(clientConfig)
+	client, err := appsclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -277,8 +287,7 @@ func (c *CLI) AdminAppsClient() appsclientset.Interface {
 }
 
 func (c *CLI) AdminAuthorizationClient() authorizationclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := authorizationclientset.NewForConfig(clientConfig)
+	client, err := authorizationclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -286,8 +295,7 @@ func (c *CLI) AdminAuthorizationClient() authorizationclientset.Interface {
 }
 
 func (c *CLI) AdminBuildClient() buildclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := buildclientset.NewForConfig(clientConfig)
+	client, err := buildclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -295,8 +303,7 @@ func (c *CLI) AdminBuildClient() buildclientset.Interface {
 }
 
 func (c *CLI) AdminImageClient() imageclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := imageclientset.NewForConfig(clientConfig)
+	client, err := imageclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -304,8 +311,7 @@ func (c *CLI) AdminImageClient() imageclientset.Interface {
 }
 
 func (c *CLI) AdminProjectClient() projectclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := projectclientset.NewForConfig(clientConfig)
+	client, err := projectclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -313,8 +319,7 @@ func (c *CLI) AdminProjectClient() projectclientset.Interface {
 }
 
 func (c *CLI) AdminRouteClient() routeclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := routeclientset.NewForConfig(clientConfig)
+	client, err := routeclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -323,8 +328,7 @@ func (c *CLI) AdminRouteClient() routeclientset.Interface {
 
 // AdminClient provides an OpenShift client for the cluster admin user.
 func (c *CLI) AdminTemplateClient() templateclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := templateclientset.NewForConfig(clientConfig)
+	client, err := templateclientset.NewForConfig(c.AdminClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}
@@ -332,8 +336,7 @@ func (c *CLI) AdminTemplateClient() templateclientset.Interface {
 }
 
 func (c *CLI) AdminUserClient() userclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	client, err := userclientset.NewForConfig(clientConfig)
+	client, err := userclientset.NewForConfig(c.ClientConfig())
 	if err != nil {
 		FatalErr(err)
 	}

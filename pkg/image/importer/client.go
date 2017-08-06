@@ -209,6 +209,38 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	return nil, nil
 }
 
+// SerializeImageAsSchema2Manifest takes a docker image configJSON and a set of layers and stores them
+// in the provided blob store, returning the result as an image or an error.
+func SerializeImageAsSchema2Manifest(ctx gocontext.Context, blobs distribution.BlobService, configJSON []byte, layers []imageapi.ImageLayer) (*imageapi.Image, error) {
+	b := schema2.NewManifestBuilder(blobs, configJSON)
+	for _, layer := range layers {
+		if err := b.AppendReference(distribution.Descriptor{
+			MediaType: layer.MediaType,
+			Digest:    digest.Digest(layer.Name),
+			Size:      layer.LayerSize,
+		}); err != nil {
+			return nil, err
+		}
+	}
+	m, err := b.Build(ctx)
+	if err != nil {
+		return nil, err
+	}
+	manifest, ok := m.(*schema2.DeserializedManifest)
+	if !ok {
+		return nil, fmt.Errorf("unable to turn %T into a DeserializedManifest, unable to store image", m)
+	}
+	_, body, err := manifest.Payload()
+	if err != nil {
+		return nil, fmt.Errorf("unable to serialize manifest: %v", err)
+	}
+
+	if _, err := blobs.Put(ctx, schema2.MediaTypeManifest, body); err != nil {
+		return nil, err
+	}
+	return schema2ToImage(manifest, configJSON, "")
+}
+
 func schema1ToImage(manifest *schema1.SignedManifest, d digest.Digest) (*imageapi.Image, error) {
 	if len(manifest.History) == 0 {
 		return nil, fmt.Errorf("image has no v1Compatibility history and cannot be used")

@@ -14,6 +14,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/image_ecosystem"
 	_ "github.com/openshift/origin/test/extended/imageapis"
 	_ "github.com/openshift/origin/test/extended/images"
+	_ "github.com/openshift/origin/test/extended/images/instantiate"
 	_ "github.com/openshift/origin/test/extended/jobs"
 	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/networking"
