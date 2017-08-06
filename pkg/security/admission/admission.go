@@ -1,6 +1,7 @@
 package admission
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sort"
@@ -86,6 +87,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
+	// 1. find sccs the user is allowed to use
 	sccMatcher := oscc.NewDefaultSCCMatcher(c.sccLister)
 	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo())
 	if err != nil {
@@ -105,9 +107,42 @@ func (c *constraint) Admit(a admission.Attributes) error {
 
 	// remove duplicate constraints and sort
 	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
 
-	providers, errs := oscc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
+	if a.GetOperation() == kadmission.Update {
+		for _, constraint := range  matchedConstraints {
+			if NewSccChecker(constraint).allowsPod(pod) {
+				// FIXME: do we need to assign annotation?
+				if pod.ObjectMeta.Annotations == nil {
+					pod.ObjectMeta.Annotations = map[string]string{}
+				}
+				pod.ObjectMeta.Annotations[allocator.ValidatedSCCAnnotation] = constraint.Name
+
+				// if any allow the pod as-is, succeed
+				return nil
+			}
+		}
+
+		// otherwise, reject
+		return kadmission.NewForbidden(a, errors.New("TODO: request rejected because all SCCs forbid this pod"))
+	}
+
+	// 2. filter to ones that do not forbid the pod - TODO
+	var filteredConstraints []*kapi.SecurityContextConstraints
+	for _, constraint := range  matchedConstraints {
+		if NewSccChecker(constraint).allowsPod(pod) {
+			filteredConstraints = append(filteredConstraints, constraint)
+		}
+	}
+
+	if len(filteredConstraints) == 0 {
+		return kadmission.NewForbidden(a, errors.New("no SCC available to validate pod request"))
+	}
+
+	// 3. select the prioritized scc
+	sort.Sort(oscc.ByPriority(filteredConstraints))
+	filteredConstraints = filteredConstraints[0:1] // take the first SCC
+
+	providers, errs := oscc.CreateProvidersFromConstraints(a.GetNamespace(), filteredConstraints, c.client)
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
@@ -117,6 +152,8 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// all containers in a single pod must validate under a single provider or we will reject the request
 	validationErrs := field.ErrorList{}
 	for _, provider := range providers {
+		// 4. use the prioritized scc to default the pod
+		// 5. verify the prioritized scc allows the defaulted pod
 		if errs := oscc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
 			validationErrs = append(validationErrs, errs...)
 			continue
