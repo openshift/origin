@@ -9,6 +9,7 @@ import (
 	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/dockerlayer"
 )
 
 func TestImagesTop(t *testing.T) {
@@ -298,7 +299,7 @@ func TestImagesTop(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1"},
-							{Name: digestSHA256EmptyTar},
+							{Name: dockerlayer.DigestSha256EmptyTar},
 							{Name: "layer2"},
 						},
 						DockerImageManifest: "non empty metadata",
@@ -336,7 +337,7 @@ func TestImagesTop(t *testing.T) {
 						ObjectMeta: metav1.ObjectMeta{Name: "image2"},
 						DockerImageLayers: []imageapi.ImageLayer{
 							{Name: "layer1"},
-							{Name: digestSHA256GzippedEmptyTar},
+							{Name: dockerlayer.GzippedEmptyLayerDigest},
 							{Name: "layer2"},
 						},
 						DockerImageManifest: "non empty metadata",

@@ -7,6 +7,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/dockerlayer"
 	"github.com/openshift/origin/pkg/oc/graph/genericgraph"
 	imagegraph "github.com/openshift/origin/pkg/oc/graph/imagegraph/nodes"
 	kubegraph "github.com/openshift/origin/pkg/oc/graph/kubegraph/nodes"
@@ -19,11 +20,6 @@ const (
 	HistoricImageStreamImageEdgeKind = "HistoricImageStreamImage"
 	PodImageEdgeKind                 = "PodImage"
 	ParentImageEdgeKind              = "ParentImage"
-
-	// digestSha256EmptyTar is the canonical sha256 digest of empty data
-	digestSHA256EmptyTar = "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-	// digest.DigestSha256EmptyTar is empty layer digest, whereas this is gzipped digest of empty layer
-	digestSHA256GzippedEmptyTar = "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4"
 )
 
 func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
@@ -53,7 +49,7 @@ func addImagesToGraph(g genericgraph.Graph, images *imageapi.ImageList) {
 			layer := image.DockerImageLayers[i]
 			layerNode := imagegraph.EnsureImageComponentLayerNode(g, layer.Name)
 			edgeKind := ImageLayerEdgeKind
-			if !topLayerAdded && layer.Name != digestSHA256EmptyTar && layer.Name != digestSHA256GzippedEmptyTar {
+			if !topLayerAdded && layer.Name != dockerlayer.DigestSha256EmptyTar && layer.Name != dockerlayer.GzippedEmptyLayerDigest {
 				edgeKind = ImageTopLayerEdgeKind
 				topLayerAdded = true
 			}
