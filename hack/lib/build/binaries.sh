@@ -241,6 +241,7 @@ os::build::internal::build_binaries() {
 
       if [[ "$platform" == "windows/amd64" ]]; then
         rm ${OS_ROOT}/cmd/oc/oc.syso
+        os::build::generate_windows_msi_installer
       fi
 
       for test in "${tests[@]:+${tests[@]}}"; do
@@ -314,6 +315,41 @@ EOF
 }
 readonly -f os::build::generate_windows_versioninfo
 
+# Generates the .msi installer use for install oc.exe binary on windows
+function os::build::generate_windows_msi_installer() {
+  os::build::version::get_vars
+  local major="${OS_GIT_MAJOR}"
+  local minor="${OS_GIT_MINOR%+}"
+  local windows_wxs_file=`mktemp --suffix=".oc.wxs"`
+  cat <<EOF >"${windows_wxs_file}"
+<?xml version="1.0"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+   <Product Id="*" UpgradeCode="ac010f7a-2538-474f-ad08-4ee1bac9d636"
+            Name="OpenShift Client" Version="${major}.${minor}" Manufacturer="Red Hat, Inc." Language="1033">
+      <Package InstallerVersion="200" Compressed="yes" Comments="Windows Installer Package"/>
+      <Media Id="1" Cabinet="product.cab" EmbedCab="yes"/>
+
+      <Directory Id="TARGETDIR" Name="SourceDir">
+         <Directory Id="ProgramFilesFolder">
+            <Directory Id="INSTALLDIR" Name="OpenShift">
+               <Component Id="ApplicationFiles" Guid="46bc0518-b725-4c0b-b860-d8b30f1f9613">
+                  <File Id="OpenShift Client" Source="oc.exe"/>
+               </Component>
+            </Directory>
+         </Directory>
+      </Directory>
+
+      <Feature Id="DefaultFeature" Level="1">
+         <ComponentRef Id="ApplicationFiles"/>
+      </Feature>
+   </Product>
+</Wix>
+EOF
+  cp "${OS_OUTPUT_BINPATH}/${platform}/oc.exe" "/tmp"
+  wixl -v ${windows_wxs_file} -o "${OS_OUTPUT_BINPATH}/${platform}/oc.msi"
+}
+readonly -f os::build::generate_windows_msi_installer
+
  # Generates the set of target packages, binaries, and platforms to build for.
 # Accepts binaries via $@, and platforms via OS_BUILD_PLATFORMS, or defaults to
 # the current platform.
@@ -369,7 +405,7 @@ function os::build::place_bins() {
         continue
       fi
 
-      # Create an array of binaries to release. Append .exe variants if the platform is windows.
+      # Create an array of binaries to release. Append .exe .msi variants if the platform is windows.
       local -a binaries=()
       for binary in "${targets[@]}"; do
         binary=$(basename $binary)
@@ -379,6 +415,9 @@ function os::build::place_bins() {
           binaries+=("${binary}")
         fi
       done
+      if [[ $platform == "windows/amd64" ]]; then
+        binaries+=("oc.msi")
+      fi
 
       # If no release archive was requested, we're done.
       if [[ "${OS_RELEASE_ARCHIVE-}" == "" ]]; then
