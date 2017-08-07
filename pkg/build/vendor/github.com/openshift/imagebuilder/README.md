@@ -29,7 +29,6 @@ Future goals include:
 * Output OCI compatible images
 * Support other container execution engines, like runc or rkt
 * Better conformance testing
-* Port to the newer docker-engine client library
 * Windows support
 
 ## Install and Run
@@ -56,9 +55,9 @@ $ imagebuilder --mount ~/secrets/private.key:/etc/keys/private.key path/to/my/co
 Any processes in the Dockerfile will have access to `/etc/keys/private.key`, but that file will not be part of the committed image.
 
 Running `--mount` requires Docker 1.10 or newer, as it uses a Docker volume to hold the mounted files and the volume API was not
-available in earlier versions. In addition, there is currently a bug that blocks Docker 1.12 from using `--mount`.
+available in earlier versions.
 
-You can also customize which Dockerfile is run, or run multiple Dockerfiles in sequenc (the FROM is ignored on
+You can also customize which Dockerfile is run, or run multiple Dockerfiles in sequence (the FROM is ignored on
 later files):
 
 ```

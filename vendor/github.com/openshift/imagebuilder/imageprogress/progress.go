@@ -3,7 +3,6 @@ package imageprogress
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -126,10 +125,10 @@ func (r report) String() string {
 // on pull/push progress of a Docker image. It only reports when the state of the
 // different layers has changed and uses time thresholds to limit the
 // rate of the reports.
-func newWriter(reportFn func(report), layersChangedFn func(report, report) bool) io.Writer {
+func newWriter(reportFn func(report), layersChangedFn func(report, report) bool) io.WriteCloser {
 	writer := &imageProgressWriter{
 		mutex:                  &sync.Mutex{},
-		layerStatus:            map[string]progressLine{},
+		layerStatus:            map[string]*progressLine{},
 		reportFn:               reportFn,
 		layersChangedFn:        layersChangedFn,
 		progressTimeThreshhold: defaultProgressTimeThreshhold,
@@ -140,8 +139,8 @@ func newWriter(reportFn func(report), layersChangedFn func(report, report) bool)
 
 type imageProgressWriter struct {
 	mutex                  *sync.Mutex
-	internalWriter         io.Writer
-	layerStatus            map[string]progressLine
+	internalWriter         io.WriteCloser
+	layerStatus            map[string]*progressLine
 	lastLayerCount         int
 	stableLines            int
 	stableThreshhold       int
@@ -150,11 +149,6 @@ type imageProgressWriter struct {
 	lastReportTime         time.Time
 	reportFn               func(report)
 	layersChangedFn        func(report, report) bool
-}
-
-func (w *imageProgressWriter) ReadFrom(reader io.Reader) (int64, error) {
-	decoder := json.NewDecoder(reader)
-	return 0, w.readProgress(decoder)
 }
 
 func (w *imageProgressWriter) Write(data []byte) (int, error) {
@@ -174,6 +168,17 @@ func (w *imageProgressWriter) Write(data []byte) (int, error) {
 	return w.internalWriter.Write(data)
 }
 
+func (w *imageProgressWriter) Close() error {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+
+	if w.internalWriter == nil {
+		return nil
+	}
+
+	return w.internalWriter.Close()
+}
+
 func (w *imageProgressWriter) readProgress(decoder *json.Decoder) error {
 	for {
 		line := &progressLine{}
@@ -184,31 +189,23 @@ func (w *imageProgressWriter) readProgress(decoder *json.Decoder) error {
 		if err != nil {
 			return err
 		}
-		err = w.processLine(line)
-		if err != nil {
-			return err
-		}
+		w.processLine(line)
 	}
 	return nil
 }
 
-func (w *imageProgressWriter) processLine(line *progressLine) error {
-
-	if err := getError(line); err != nil {
-		return err
-	}
-
+func (w *imageProgressWriter) processLine(line *progressLine) {
 	// determine if it's a line we want to process
 	if !islayerStatus(line) {
-		return nil
+		return
 	}
 
-	w.layerStatus[line.ID] = *line
+	w.layerStatus[line.ID] = line
 
 	// if the number of layers has not stabilized yet, return and wait for more
 	// progress
 	if !w.isStableLayerCount() {
-		return nil
+		return
 	}
 
 	r := createReport(w.layerStatus)
@@ -218,7 +215,7 @@ func (w *imageProgressWriter) processLine(line *progressLine) error {
 		w.lastReport = r
 		w.lastReportTime = time.Now()
 		w.reportFn(r)
-		return nil
+		return
 	}
 	// If layer counts haven't changed, but enough time has passed (30 sec by default),
 	// at least report on download/push progress
@@ -227,7 +224,6 @@ func (w *imageProgressWriter) processLine(line *progressLine) error {
 		w.lastReportTime = time.Now()
 		w.reportFn(r)
 	}
-	return nil
 }
 
 func (w *imageProgressWriter) isStableLayerCount() bool {
@@ -248,7 +244,7 @@ func (w *imageProgressWriter) isStableLayerCount() bool {
 	return true
 }
 
-var layerIDRegexp = regexp.MustCompile("^[a-f,0-9]*$")
+var layerIDRegexp = regexp.MustCompile("^[a-f0-9]*$")
 
 func islayerStatus(line *progressLine) bool {
 	// ignore status lines with no layer id
@@ -266,14 +262,7 @@ func islayerStatus(line *progressLine) bool {
 	return true
 }
 
-func getError(line *progressLine) error {
-	if len(line.Error) > 0 {
-		return errors.New(line.Error)
-	}
-	return nil
-}
-
-func createReport(dockerProgress map[string]progressLine) report {
+func createReport(dockerProgress map[string]*progressLine) report {
 	r := report{}
 	for _, line := range dockerProgress {
 		layerStatus := layerStatusFromDockerString(line.Status)

@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -22,7 +23,6 @@ import (
 
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/imageprogress"
-	"io/ioutil"
 )
 
 // NewClientFromEnv is exposed to simplify getting a client when vendoring this library.
@@ -128,9 +128,9 @@ func (e *ClientExecutor) DefaultExcludes() error {
 // container if the Dockerfile contains RUN commands. It will cleanup
 // any containers it creates directly, and set the e.Image.ID field
 // to the generated image.
-func (e *ClientExecutor) Build(b *imagebuilder.Builder, node *parser.Node) error {
+func (e *ClientExecutor) Build(b *imagebuilder.Builder, node *parser.Node, from string) error {
 	defer e.Release()
-	if err := e.Prepare(b, node); err != nil {
+	if err := e.Prepare(b, node, from); err != nil {
 		return err
 	}
 	if err := e.Execute(b, node); err != nil {
@@ -139,11 +139,15 @@ func (e *ClientExecutor) Build(b *imagebuilder.Builder, node *parser.Node) error
 	return e.Commit(b)
 }
 
-func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node) error {
+func (e *ClientExecutor) Prepare(b *imagebuilder.Builder, node *parser.Node, from string) error {
+	var err error
+
 	// identify the base image
-	from, err := b.From(node)
-	if err != nil {
-		return err
+	if len(from) == 0 {
+		from, err = b.From(node)
+		if err != nil {
+			return err
+		}
 	}
 	// load the image
 	if e.Image == nil {
@@ -340,6 +344,7 @@ func (e *ClientExecutor) Commit(b *imagebuilder.Builder) error {
 				e.Deferred = append(e.Deferred, func() error { return e.Client.RemoveImageExtended(image.ID, docker.RemoveImageOptions{Force: true}) })
 				return fmt.Errorf("unable to tag %q: %v", s, err)
 			}
+			e.LogFn("Tagged as %s", s)
 		}
 	}
 
@@ -481,10 +486,13 @@ func (e *ClientExecutor) LoadImage(from string) (*docker.Image, error) {
 	}
 	for _, config := range auth {
 		// TODO: handle IDs?
+		pullWriter := imageprogress.NewPullWriter(outputProgress)
+		defer pullWriter.Close()
+
 		pullImageOptions := docker.PullImageOptions{
 			Repository:    repository,
 			Tag:           tag,
-			OutputStream:  imageprogress.NewPullWriter(outputProgress),
+			OutputStream:  pullWriter,
 			RawJSONStream: true,
 		}
 		if glog.V(5) {
