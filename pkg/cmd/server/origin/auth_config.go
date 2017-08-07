@@ -109,8 +109,8 @@ func buildSessionAuth(secure bool, config *configapi.SessionConfig) (*session.Au
 	if err != nil {
 		return nil, nil, err
 	}
-	sessionStore := session.NewStore(secure, int(config.SessionMaxAgeSeconds), secrets...)
-	return session.NewAuthenticator(sessionStore, config.SessionName), sessionStore, nil
+	sessionStore := session.NewStore(secure, secrets...)
+	return session.NewAuthenticator(sessionStore, config.SessionName, int(config.SessionMaxAgeSeconds)), sessionStore, nil
 }
 
 func getSessionSecrets(filename string) ([]string, error) {
