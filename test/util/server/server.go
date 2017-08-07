@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -39,6 +40,7 @@ import (
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
+
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	_ "k8s.io/kubernetes/pkg/api/install"
@@ -444,16 +446,17 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 		return "", err
 	}
 
-	err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
+	var healthzResponse string
+	err = wait.Poll(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 		var healthy bool
-		healthy, err = IsServerHealthy(*masterURL)
+		healthy, healthzResponse, err = IsServerHealthy(*masterURL)
 		if err != nil {
 			return false, err
 		}
 		return healthy, nil
 	})
 	if err == wait.ErrWaitTimeout {
-		return "", fmt.Errorf("server did not become healthy")
+		return "", fmt.Errorf("server did not become healthy: %v", healthzResponse)
 	}
 	if err != nil {
 		return "", err
@@ -462,7 +465,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	return adminKubeConfigFile, nil
 }
 
-func IsServerHealthy(url url.URL) (bool, error) {
+func IsServerHealthy(url url.URL) (bool, string, error) {
 	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -474,9 +477,12 @@ func IsServerHealthy(url url.URL) (bool, error) {
 	req.Header.Set("Accept", "text/html")
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
-	return resp.StatusCode == http.StatusOK, nil
+	defer resp.Body.Close()
+	content, _ := ioutil.ReadAll(resp.Body)
+
+	return resp.StatusCode == http.StatusOK, string(content), nil
 }
 
 // StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs
