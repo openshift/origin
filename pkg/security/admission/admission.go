@@ -14,7 +14,6 @@ import (
 	allocator "github.com/openshift/origin/pkg/security"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
-	oscc "github.com/openshift/origin/pkg/security/scc"
 	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -86,7 +85,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
-	sccMatcher := oscc.NewDefaultSCCMatcher(c.sccLister)
+	sccMatcher := scc.NewDefaultSCCMatcher(c.sccLister)
 	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo())
 	if err != nil {
 		return admission.NewForbidden(a, err)
@@ -104,10 +103,10 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	}
 
 	// remove duplicate constraints and sort
-	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
+	matchedConstraints = scc.DeduplicateSecurityContextConstraints(matchedConstraints)
+	sort.Sort(scc.ByPriority(matchedConstraints))
 
-	providers, errs := oscc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
+	providers, errs := scc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
@@ -117,7 +116,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// all containers in a single pod must validate under a single provider or we will reject the request
 	validationErrs := field.ErrorList{}
 	for _, provider := range providers {
-		if errs := oscc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+		if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
 			validationErrs = append(validationErrs, errs...)
 			continue
 		}

@@ -1,4 +1,4 @@
-package scc
+package securitycontextconstraints
 
 import (
 	"testing"

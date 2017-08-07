@@ -1,4 +1,4 @@
-package scc
+package securitycontextconstraints
 
 import (
 	"fmt"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -71,7 +70,7 @@ func ConstraintAppliesTo(constraint *securityapi.SecurityContextConstraints, use
 // AssignSecurityContext creates a security context for each container in the pod
 // and validates that the sc falls within the scc constraints.  All containers must validate against
 // the same scc or is not considered valid.
-func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod *kapi.Pod, fldPath *field.Path) field.ErrorList {
+func AssignSecurityContext(provider SecurityContextConstraintsProvider, pod *kapi.Pod, fldPath *field.Path) field.ErrorList {
 	generatedSCs := make([]*kapi.SecurityContext, len(pod.Spec.InitContainers)+len(pod.Spec.Containers))
 
 	errs := field.ErrorList{}
@@ -138,7 +137,7 @@ func AssignSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod
 // validation errors encountered on the resulting security context, or the security context that was
 // resolved. The SecurityContext field of the container is updated, so ensure that a copy of the original
 // container is passed here if you wish to preserve the original input.
-func resolveContainerSecurityContext(provider kscc.SecurityContextConstraintsProvider, pod *kapi.Pod, container *kapi.Container, path *field.Path) (*kapi.SecurityContext, field.ErrorList) {
+func resolveContainerSecurityContext(provider SecurityContextConstraintsProvider, pod *kapi.Pod, container *kapi.Container, path *field.Path) (*kapi.SecurityContext, field.ErrorList) {
 	// We will determine the effective security context for the container and validate against that
 	// since that is how the sc provider will eventually apply settings in the runtime.
 	// This results in an SC that is based on the Pod's PSC with the set fields from the container
@@ -187,12 +186,12 @@ func getNamespaceByName(name string, ns *kapi.Namespace, client clientset.Interf
 
 // CreateProvidersFromConstraints creates providers from the constraints supplied, including
 // looking up pre-allocated values if necessary using the pod's namespace.
-func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityContextConstraints, client clientset.Interface) ([]kscc.SecurityContextConstraintsProvider, []error) {
+func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityContextConstraints, client clientset.Interface) ([]SecurityContextConstraintsProvider, []error) {
 	var (
 		// namespace is declared here for reuse but we will not fetch it unless required by the matched constraints
 		namespace *kapi.Namespace
 		// collected providers
-		providers []kscc.SecurityContextConstraintsProvider
+		providers []SecurityContextConstraintsProvider
 		// collected errors to return
 		errs []error
 	)
@@ -200,7 +199,7 @@ func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityConte
 	// set pre-allocated values on constraints
 	for _, constraint := range sccs {
 		var (
-			provider kscc.SecurityContextConstraintsProvider
+			provider SecurityContextConstraintsProvider
 			err      error
 		)
 		provider, namespace, err = CreateProviderFromConstraint(ns, namespace, constraint, client)
@@ -214,7 +213,7 @@ func CreateProvidersFromConstraints(ns string, sccs []*securityapi.SecurityConte
 }
 
 // CreateProviderFromConstraint creates a SecurityContextConstraintProvider from a SecurityContextConstraint
-func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *securityapi.SecurityContextConstraints, client clientset.Interface) (kscc.SecurityContextConstraintsProvider, *kapi.Namespace, error) {
+func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constraint *securityapi.SecurityContextConstraints, client clientset.Interface) (SecurityContextConstraintsProvider, *kapi.Namespace, error) {
 	var err error
 	resolveUIDRange := requiresPreAllocatedUIDRange(constraint)
 	resolveSELinuxLevel := requiresPreAllocatedSELinuxLevel(constraint)
@@ -273,7 +272,7 @@ func CreateProviderFromConstraint(ns string, namespace *kapi.Namespace, constrai
 	}
 
 	// Create the provider
-	provider, err := kscc.NewSimpleProvider(constraint)
+	provider, err := NewSimpleProvider(constraint)
 	if err != nil {
 		return nil, namespace, fmt.Errorf("error creating provider for SCC %s in namespace %s: %v", constraint.Name, ns, err)
 	}

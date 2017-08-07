@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/glog"
 
-	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -20,19 +19,19 @@ import (
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	sccMatcher oscc.SCCMatcher
+	sccMatcher scc.SCCMatcher
 	client     clientset.Interface
 }
 
 var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, c clientset.Interface) *REST {
+func NewREST(m scc.SCCMatcher, c clientset.Interface) *REST {
 	return &REST{sccMatcher: m, client: c}
 }
 
@@ -72,15 +71,15 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-	oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
+	scc.DeduplicateSecurityContextConstraints(matchedConstraints)
+	sort.Sort(scc.ByPriority(matchedConstraints))
 	var namespace *kapi.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
-			provider kscc.SecurityContextConstraintsProvider
+			provider scc.SecurityContextConstraintsProvider
 			err      error
 		)
-		if provider, namespace, err = oscc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
+		if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
 			glog.Errorf("Unable to create provider for constraint: %v", err)
 			continue
 		}
@@ -97,11 +96,11 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 }
 
 // FillPodSecurityPolicySubjectReviewStatus fills PodSecurityPolicySubjectReviewStatus assigning SecurityContectConstraint to the PodSpec
-func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider kscc.SecurityContextConstraintsProvider, spec kapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
+func FillPodSecurityPolicySubjectReviewStatus(s *securityapi.PodSecurityPolicySubjectReviewStatus, provider scc.SecurityContextConstraintsProvider, spec kapi.PodSpec, constraint *securityapi.SecurityContextConstraints) (bool, error) {
 	pod := &kapi.Pod{
 		Spec: spec,
 	}
-	if errs := oscc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+	if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
 		glog.Errorf("unable to assign SecurityContextConstraints provider: %v", errs)
 		s.Reason = "CantAssignSecurityContextConstraintProvider"
 		return false, fmt.Errorf("unable to assign SecurityContextConstraints provider: %v", errs.ToAggregate())

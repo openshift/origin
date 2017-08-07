@@ -103,7 +103,7 @@ import (
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyselfsubjectreview"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 
 	// register api groups
 	_ "github.com/openshift/origin/pkg/api/install"
