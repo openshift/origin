@@ -9,6 +9,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
@@ -25,7 +26,10 @@ import (
 type TemplateServiceBrokerConfig struct {
 	GenericConfig *genericapiserver.Config
 
-	KubeClientInternal kclientsetinternal.Interface
+	// PrivilegedKubeClientConfig is *not* a loopback config, since it needs to point to the kube apiserver
+	// TODO remove this and use the SA that start us instead of trying to cyclically find an SA token
+	PrivilegedKubeClientConfig restclient.Config
+
 	TemplateInformers  templateinformer.SharedInformerFactory
 	TemplateNamespaces []string
 }
@@ -60,19 +64,19 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 		GenericAPIServer: genericServer,
 	}
 
+	broker := templateservicebroker.DeprecatedNewBrokerInsideAPIServer(
+		c.PrivilegedKubeClientConfig,
+		c.TemplateInformers.Template().InternalVersion().Templates(),
+		c.TemplateNamespaces,
+	)
+
 	Route(
 		s.GenericAPIServer.Handler.GoRestfulContainer,
 		templateapi.ServiceBrokerRoot,
-		templateservicebroker.NewBroker(
-			*c.GenericConfig.LoopbackClientConfig,
-			c.KubeClientInternal,
-			bootstrappolicy.DefaultOpenShiftInfraNamespace,
-			c.TemplateInformers.Template().InternalVersion().Templates(),
-			c.TemplateNamespaces,
-		),
+		broker,
 	)
 
-	// TODO, when/if the TSB becomes a separate entity, this should stop creating the SA and instead die if it cannot find it
+	// TODO, when the TSB becomes a separate entity, this should stop creating the SA and use its container pod SA identity instead
 	s.GenericAPIServer.AddPostStartHook("template-service-broker-ensure-service-account", func(context genericapiserver.PostStartHookContext) error {
 		kc, err := kclientsetinternal.NewForConfig(context.LoopbackClientConfig)
 		if err != nil {
