@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 // ensureComponentAuthorizationRules initializes the cluster policies
@@ -52,10 +53,16 @@ func (c *MasterConfig) ensureComponentAuthorizationRules(context genericapiserve
 				utilruntime.HandleError(fmt.Errorf("unable to convert role.%s/%s in %v: %v", rbac.GroupName, rbacRole.Name, namespace, err))
 				continue
 			}
-			if _, err := c.PrivilegedLoopbackOpenShiftClient.Roles(namespace).Create(role); err != nil {
+			if _, err := c.PrivilegedLoopbackOpenShiftClient.Roles(namespace).Create(role); err != nil && !kapierror.IsAlreadyExists(err) {
 				// don't fail on failures, try to create as many as you can
 				utilruntime.HandleError(fmt.Errorf("unable to reconcile role.%s/%s in %v: %v", rbac.GroupName, role.Name, namespace, err))
 			}
+		}
+	}
+	for _, role := range bootstrappolicy.GetBootstrapOpenshiftRoles(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace) {
+		if _, err := c.PrivilegedLoopbackOpenShiftClient.Roles(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace).Create(&role); err != nil && !kapierror.IsAlreadyExists(err) {
+			// don't fail on failures, try to create as many as you can
+			utilruntime.HandleError(fmt.Errorf("unable to reconcile role.%s/%s in %v: %v", rbac.GroupName, role.Name, c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace, err))
 		}
 	}
 
@@ -67,10 +74,16 @@ func (c *MasterConfig) ensureComponentAuthorizationRules(context genericapiserve
 				utilruntime.HandleError(fmt.Errorf("unable to convert rolebinding.%s/%s in %v: %v", rbac.GroupName, rbacRoleBinding.Name, namespace, err))
 				continue
 			}
-			if _, err := c.PrivilegedLoopbackOpenShiftClient.RoleBindings(namespace).Create(roleBinding); err != nil {
+			if _, err := c.PrivilegedLoopbackOpenShiftClient.RoleBindings(namespace).Create(roleBinding); err != nil && !kapierror.IsAlreadyExists(err) {
 				// don't fail on failures, try to create as many as you can
 				utilruntime.HandleError(fmt.Errorf("unable to reconcile rolebinding.%s/%s in %v: %v", rbac.GroupName, roleBinding.Name, namespace, err))
 			}
+		}
+	}
+	for _, roleBinding := range bootstrappolicy.GetBootstrapOpenshiftRoleBindings(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace) {
+		if _, err := c.PrivilegedLoopbackOpenShiftClient.RoleBindings(c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace).Create(&roleBinding); err != nil && !kapierror.IsAlreadyExists(err) {
+			// don't fail on failures, try to create as many as you can
+			utilruntime.HandleError(fmt.Errorf("unable to reconcile rolebinding.%s/%s in %v: %v", rbac.GroupName, roleBinding.Name, c.Options.PolicyConfig.OpenShiftSharedResourcesNamespace, err))
 		}
 	}
 
