@@ -23,6 +23,7 @@ import (
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
+	"k8s.io/apiserver/pkg/audit"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authentication/group"
 	"k8s.io/apiserver/pkg/authentication/request/anonymous"
@@ -177,6 +178,8 @@ type MasterConfig struct {
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client
+
+	AuditBackend audit.Backend
 
 	// TODO inspect uses to eliminate them
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
