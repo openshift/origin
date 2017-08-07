@@ -24,10 +24,6 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
-// RunAssetServer starts the asset server for the OpenShift UI.
-func (c *MasterConfig) RunAssetServer() {
-}
-
 // RunDNSServer starts the DNS server
 func (c *MasterConfig) RunDNSServer() {
 	config, err := dns.NewServerDefaults()

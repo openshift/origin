@@ -264,7 +264,7 @@ func TestAccessStandaloneOriginWebConsole(t *testing.T) {
 		location   string
 	}{
 		"":             {http.StatusFound, "/console/"},
-		"blarg":        {http.StatusFound, "/console/"},
+		"blarg":        {http.StatusNotFound, ""},
 		"console":      {http.StatusMovedPermanently, "/console/"},
 		"console/":     {http.StatusOK, ""},
 		"console/java": {http.StatusOK, ""},
