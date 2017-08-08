@@ -179,7 +179,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 				"name": "template-broker",
 			},
 			"spec": map[string]interface{}{
-				"url": "https://kubernetes.default.svc:443/brokers/template.openshift.io",
+				"url": "https://apiserver.openshift-template-service-broker.svc:443/brokers/template.openshift.io",
 			},
 		},
 	}

@@ -126,8 +126,8 @@ var (
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
 	}
 
-	openshiftVersion36       = semver.MustParse("3.6.0")
-	openshiftVersion36alpha2 = semver.MustParse("3.6.0-alpha.2+3c221d5")
+	openshiftVersion36 = semver.MustParse("3.6.0")
+	openshiftVersion37 = semver.MustParse("3.7.0")
 )
 
 // NewCmdUp creates a command that starts OpenShift on Docker with reasonable defaults
@@ -406,6 +406,11 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Install logging
 	c.addTask(conditionalTask("Installing logging", c.InstallLogging, func() bool {
 		return c.ShouldInstallLogging && c.ShouldInitializeData()
+	}))
+
+	// Install template service broker if our version is high enough
+	c.addTask(conditionalTask("Installing template service broker", c.InstallTemplateServiceBroker, func() bool {
+		return c.ShouldInstallTemplateServiceBroker()
 	}))
 
 	// Install service catalog
@@ -1011,17 +1016,14 @@ func (c *ClientStartConfig) InstallMetrics(out io.Writer) error {
 // CheckServiceCatalogPrereqVersion ensures the OpenShift server version is high enough to
 // run the service catalog.
 func (c *ClientStartConfig) CheckServiceCatalogPrereqVersion(out io.Writer) error {
-	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
-	// 3.6.0-alpha2 was the last release that did not allow the creation of namespace rolebindings w/o first
-	// creating a policybinding object.  This limitation prevents the service catalog template from instantiating.
-
-	// special case for someone who is building a local image using commits based on 3.6.0.alpha2.  They most likely
-	// have the necessary changes.
-	if serverVersion.EQ(openshiftVersion36alpha2) && (serverVersion.String() != openshiftVersion36alpha2.String()) {
+	if c.ImageVersion == "latest" {
 		return nil
 	}
-	if serverVersion.LTE(openshiftVersion36alpha2) {
-		return errors.NewError("Enabling the service catalog requires a newer server level than %v, this server is version %v", openshiftVersion36alpha2, serverVersion)
+
+	// service catalog requires the TSB, which requires 3.7
+	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
+	if serverVersion.LT(openshiftVersion37) {
+		return errors.NewError("Enabling the service catalog requires a server at least %v, this server is version %v", openshiftVersion37, serverVersion)
 	}
 	return nil
 }
@@ -1037,6 +1039,34 @@ func (c *ClientStartConfig) InstallServiceCatalog(out io.Writer) error {
 		publicMaster = c.ServerIP
 	}
 	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), c.imageFormat())
+}
+
+func (c *ClientStartConfig) ShouldInstallTemplateServiceBroker() bool {
+	if c.ImageVersion == "latest" {
+		return true
+	}
+
+	// the TSB, which requires 3.7
+	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
+	if serverVersion.LT(openshiftVersion37) {
+		return false
+	}
+	return true
+}
+
+// InstallTemplateServiceBroker will start the installation of template service broker
+func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	publicMaster := c.PublicHostname
+	if len(publicMaster) == 0 {
+		publicMaster = c.ServerIP
+	}
+	// TODO we want to use this eventually, but until we have our own image for TSB, we have to hardcode this origin
+	//return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.imageFormat())
+	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.Image)
 }
 
 // Login logs into the new server and sets up a default user and project
