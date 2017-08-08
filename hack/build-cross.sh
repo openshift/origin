@@ -31,6 +31,11 @@ if [[ "${host_platform}" == "linux/arm64" ]]; then
   platforms+=( "linux/arm64" )
 fi
 
+# Special case armv7hl
+if [[ "${host_platform}" == "linux/arm" ]]; then
+  platforms+=( "linux/arm" )
+fi
+
 # Special case s390x
 if [[ "${host_platform}" == "linux/s390x" ]]; then
   platforms+=( "linux/s390x" )
