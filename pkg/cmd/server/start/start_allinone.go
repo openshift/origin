@@ -27,6 +27,8 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	tsbcmd "github.com/openshift/origin/pkg/openservicebroker/cmd/server"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type AllInOneOptions struct {
@@ -125,10 +127,12 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 	startNode, _ := NewCommandStartNode(basename, out, errout)
 	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
 	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
+	startTSBServer := tsbcmd.NewCommandStartTemplateServiceBrokerServer(out, errout, wait.NeverStop)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
+	cmds.AddCommand(startTSBServer)
 
 	startKube := kubernetes.NewCommand("kubernetes", basename, out, errout)
 	cmds.AddCommand(startKube)
