@@ -56,7 +56,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 		RoleBindingClient: d.ClusterRoleBindingsClient.ClusterRoleBindings(),
 	}
 
-	changedClusterRoleBindings, err := reconcileOptions.ChangedClusterRoleBindings()
+	changedClusterRoleBindings, _, err := reconcileOptions.ChangedClusterRoleBindings()
 	if policycmd.IsClusterRoleBindingLookupError(err) {
 		// we got a partial match, so we log the error that stopped us from getting a full match
 		// but continue to interpret the partial results that we did get

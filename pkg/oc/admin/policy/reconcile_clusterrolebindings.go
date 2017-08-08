@@ -154,10 +154,17 @@ func (o *ReconcileClusterRoleBindingsOptions) Validate() error {
 }
 
 func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cmd *cobra.Command, f *clientcmd.Factory) error {
-	changedClusterRoleBindings, fetchErr := o.ChangedClusterRoleBindings()
+	changedClusterRoleBindings, skippedClusterRoleBindings, fetchErr := o.ChangedClusterRoleBindings()
 	if fetchErr != nil && !IsClusterRoleBindingLookupError(fetchErr) {
 		// we got an error that isn't due to a partial match, so we can't continue
 		return fetchErr
+	}
+
+	if len(skippedClusterRoleBindings) > 0 {
+		fmt.Fprintf(o.Err, "Skipped reconciling roles with the annotation %s=true\n", ReconcileProtectAnnotation)
+		for _, role := range skippedClusterRoleBindings {
+			fmt.Fprintf(o.Err, "skipped: clusterrolebinding/%s\n", role.Name)
+		}
 	}
 
 	if len(changedClusterRoleBindings) == 0 {
@@ -195,8 +202,9 @@ func (o *ReconcileClusterRoleBindingsOptions) RunReconcileClusterRoleBindings(cm
 // ChangedClusterRoleBindings returns the role bindings that must be created and/or updated to
 // match the recommended bootstrap policy. If roles to reconcile are provided, but not all are
 // found, all partial results are returned.
-func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*authorizationapi.ClusterRoleBinding, error) {
+func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*authorizationapi.ClusterRoleBinding, []*authorizationapi.ClusterRoleBinding, error) {
 	changedRoleBindings := []*authorizationapi.ClusterRoleBinding{}
+	skippedRoleBindings := []*authorizationapi.ClusterRoleBinding{}
 
 	rolesToReconcile := sets.NewString(o.RolesToReconcile...)
 	rolesNotFound := sets.NewString(o.RolesToReconcile...)
@@ -216,7 +224,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 			continue
 		}
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// Copy any existing labels/annotations, so the displayed update is correct
@@ -226,16 +234,20 @@ func (o *ReconcileClusterRoleBindingsOptions) ChangedClusterRoleBindings() ([]*a
 		expectedClusterRoleBinding.Annotations = actualClusterRoleBinding.Annotations
 
 		if updatedClusterRoleBinding, needsUpdating := computeUpdatedBinding(*expectedClusterRoleBinding, *actualClusterRoleBinding, o.ExcludeSubjects, o.Union); needsUpdating {
-			changedRoleBindings = append(changedRoleBindings, updatedClusterRoleBinding)
+			if actualClusterRoleBinding.Annotations[ReconcileProtectAnnotation] == "true" {
+				skippedRoleBindings = append(skippedRoleBindings, updatedClusterRoleBinding)
+			} else {
+				changedRoleBindings = append(changedRoleBindings, updatedClusterRoleBinding)
+			}
 		}
 	}
 
 	if len(rolesNotFound) != 0 {
 		// return the known changes and the error so that a caller can decide if he wants a partial update
-		return changedRoleBindings, NewClusterRoleBindingLookupError(rolesNotFound.List())
+		return changedRoleBindings, skippedRoleBindings, NewClusterRoleBindingLookupError(rolesNotFound.List())
 	}
 
-	return changedRoleBindings, nil
+	return changedRoleBindings, skippedRoleBindings, nil
 }
 
 // ReplaceChangedRoleBindings will reconcile all the changed system role bindings back to the recommended bootstrap policy

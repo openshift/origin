@@ -3,7 +3,6 @@ package origin
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
@@ -427,31 +426,6 @@ func (c *OpenshiftAPIConfig) ensureOpenShiftInfraNamespace(context genericapiser
 	} else if err != nil {
 		glog.Errorf("Error creating namespace %s: %v", ns, err)
 		return nil
-	}
-
-	for _, role := range bootstrappolicy.ControllerRoles() {
-		reconcileRole := &policy.ReconcileClusterRolesOptions{
-			RolesToReconcile: []string{role.Name},
-			Confirmed:        true,
-			Union:            true,
-			Out:              ioutil.Discard,
-			RoleClient:       c.DeprecatedOpenshiftClient.ClusterRoles(),
-		}
-		if err := reconcileRole.RunReconcileClusterRoles(nil, nil); err != nil {
-			glog.Errorf("Could not reconcile %v: %v\n", role.Name, err)
-		}
-	}
-	for _, roleBinding := range bootstrappolicy.ControllerRoleBindings() {
-		reconcileRoleBinding := &policy.ReconcileClusterRoleBindingsOptions{
-			RolesToReconcile:  []string{roleBinding.RoleRef.Name},
-			Confirmed:         true,
-			Union:             true,
-			Out:               ioutil.Discard,
-			RoleBindingClient: c.DeprecatedOpenshiftClient.ClusterRoleBindings(),
-		}
-		if err := reconcileRoleBinding.RunReconcileClusterRoleBindings(nil, nil); err != nil {
-			glog.Errorf("Could not reconcile %v: %v\n", roleBinding.Name, err)
-		}
 	}
 
 	EnsureNamespaceServiceAccountRoleBindings(c.KubeClientInternal, c.DeprecatedOpenshiftClient, namespace)
