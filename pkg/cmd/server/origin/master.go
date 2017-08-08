@@ -97,7 +97,7 @@ func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Co
 func (c *MasterConfig) newTemplateServiceBrokerConfig(kubeAPIServerConfig apiserver.Config) *openservicebrokerserver.TemplateServiceBrokerConfig {
 	ret := &openservicebrokerserver.TemplateServiceBrokerConfig{
 		GenericConfig:              &kubeAPIServerConfig,
-		PrivilegedKubeClientConfig: *kubeAPIServerConfig.LoopbackClientConfig,
+		PrivilegedKubeClientConfig: kubeAPIServerConfig.LoopbackClientConfig,
 		TemplateInformers:          c.TemplateInformers,
 		TemplateNamespaces:         c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
 	}
