@@ -4013,6 +4013,15 @@ items:
     - delete
     - get
   - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - templates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - ""
     attributeRestrictions: null
     resources:
