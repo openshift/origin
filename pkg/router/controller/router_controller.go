@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
@@ -27,32 +28,18 @@ type NamespaceLister interface {
 type RouterController struct {
 	lock sync.Mutex
 
-	Plugin        router.Plugin
-	NextRoute     func() (watch.EventType, *routeapi.Route, error)
-	NextNode      func() (watch.EventType, *kapi.Node, error)
-	NextEndpoints func() (watch.EventType, *kapi.Endpoints, error)
-	NextIngress   func() (watch.EventType, *extensions.Ingress, error)
-	NextSecret    func() (watch.EventType, *kapi.Secret, error)
+	Plugin router.Plugin
 
-	RoutesListConsumed    func() bool
-	EndpointsListConsumed func() bool
-	IngressesListConsumed func() bool
-	SecretsListConsumed   func() bool
-	routesListConsumed    bool
-	endpointsListConsumed bool
-	ingressesListConsumed bool
-	secretsListConsumed   bool
-	filteredByNamespace   bool
-	syncing               bool
+	// Functions for the Informer implementations
+	StartRouteWatch     func(cache.ResourceEventHandler)
+	StartEndpointsWatch func(cache.ResourceEventHandler)
+	StartNodeWatch      func(cache.ResourceEventHandler)
+	StartIngressWatch   func(cache.ResourceEventHandler)
+	StartSecretsWatch   func(cache.ResourceEventHandler)
+	HasSynced           func() bool
 
-	RoutesListSuccessfulAtLeastOnce    func() bool
-	EndpointsListSuccessfulAtLeastOnce func() bool
-	IngressesListSuccessfulAtLeastOnce func() bool
-	SecretsListSuccessfulAtLeastOnce   func() bool
-	RoutesListCount                    func() int
-	EndpointsListCount                 func() int
-	IngressesListCount                 func() int
-	SecretsListCount                   func() int
+	filteredByNamespace bool
+	syncing             bool
 
 	WatchNodes bool
 
@@ -72,64 +59,158 @@ func (c *RouterController) Run() {
 		c.HandleNamespaces()
 		go utilwait.Forever(c.HandleNamespaces, c.NamespaceSyncInterval)
 	}
-	go utilwait.Forever(c.HandleRoute, 0)
-	go utilwait.Forever(c.HandleEndpoints, 0)
-	if c.WatchNodes {
-		go utilwait.Forever(c.HandleNode, 0)
-	}
-	if c.EnableIngress {
-		go utilwait.Forever(c.HandleIngress, 0)
-		go utilwait.Forever(c.HandleSecret, 0)
-	}
-	go c.watchForFirstSync()
-}
 
-// handleFirstSync signals the router when it sees that the various
-// watchers have successfully listed data from the api.
-func (c *RouterController) handleFirstSync() bool {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
-	synced := c.RoutesListSuccessfulAtLeastOnce() &&
-		c.EndpointsListSuccessfulAtLeastOnce() &&
-		(c.Namespaces == nil || c.filteredByNamespace) &&
-		(!c.EnableIngress ||
-			(c.IngressesListSuccessfulAtLeastOnce() && c.SecretsListSuccessfulAtLeastOnce()))
-	if !synced {
-		return false
-	}
-
-	// If any of the event queues were empty after the initial List,
-	// the tracking listConsumed variable's default value of 'false'
-	// may prevent the router from committing.  Set the value to
-	// 'true' to ensure that state can be committed if necessary.
-	if c.RoutesListCount() == 0 {
-		c.routesListConsumed = true
-	}
-	if c.EndpointsListCount() == 0 {
-		c.endpointsListConsumed = true
-	}
-	if c.EnableIngress {
-		if c.IngressesListCount() == 0 {
-			c.ingressesListConsumed = true
-		}
-		if c.SecretsListCount() == 0 {
-			c.secretsListConsumed = true
-		}
-	}
-	c.commit()
-
-	return true
-}
-
-// watchForFirstSync loops until the first sync has been handled.
-func (c *RouterController) watchForFirstSync() {
-	for {
-		if c.handleFirstSync() {
+	c.StartRouteWatch(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			route := obj.(*routeapi.Route)
+			c.HandleRoute(watch.Added, route)
 			return
-		}
-		time.Sleep(50 * time.Millisecond)
+		},
+		UpdateFunc: func(old, obj interface{}) {
+			route := obj.(*routeapi.Route)
+			c.HandleRoute(watch.Modified, route)
+			return
+		},
+		DeleteFunc: func(obj interface{}) {
+			route, ok := obj.(*routeapi.Route)
+			if !ok {
+				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+				if !ok {
+					glog.Errorf("couldn't get object from tombstone %+v", obj)
+					return
+				}
+				route, ok = tombstone.Obj.(*routeapi.Route)
+				if !ok {
+					glog.Errorf("tombstone contained object that is not a route %#v", obj)
+					return
+				}
+			}
+			c.HandleRoute(watch.Deleted, route)
+			return
+		},
+	})
+	if c.WatchNodes {
+		c.StartNodeWatch(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				node := obj.(*kapi.Node)
+				c.HandleNode(watch.Added, node)
+				return
+			},
+			UpdateFunc: func(old, obj interface{}) {
+				node := obj.(*kapi.Node)
+				c.HandleNode(watch.Modified, node)
+				return
+			},
+			DeleteFunc: func(obj interface{}) {
+				node, ok := obj.(*kapi.Node)
+				if !ok {
+					tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						glog.Errorf("couldn't get object from tombstone %+v", obj)
+						return
+					}
+					node, ok = tombstone.Obj.(*kapi.Node)
+					if !ok {
+						glog.Errorf("tombstone contained object that is not a node %#v", obj)
+						return
+					}
+				}
+				c.HandleNode(watch.Deleted, node)
+				return
+			},
+		})
 	}
+	if c.EnableIngress {
+		c.StartIngressWatch(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				ingress := obj.(*extensions.Ingress)
+				c.HandleIngress(watch.Added, ingress)
+				return
+			},
+			UpdateFunc: func(old, obj interface{}) {
+				ingress := obj.(*extensions.Ingress)
+				c.HandleIngress(watch.Modified, ingress)
+				return
+			},
+			DeleteFunc: func(obj interface{}) {
+				ingress, ok := obj.(*extensions.Ingress)
+				if !ok {
+					tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						glog.Errorf("couldn't get object from tombstone %+v", obj)
+						return
+					}
+					ingress, ok = tombstone.Obj.(*extensions.Ingress)
+					if !ok {
+						glog.Errorf("tombstone contained object that is not a ingress %#v", obj)
+						return
+					}
+				}
+				c.HandleIngress(watch.Deleted, ingress)
+				return
+			},
+		})
+		c.StartSecretsWatch(cache.ResourceEventHandlerFuncs{
+			AddFunc: func(obj interface{}) {
+				secret := obj.(*kapi.Secret)
+				c.HandleSecret(watch.Added, secret)
+				return
+			},
+			UpdateFunc: func(old, obj interface{}) {
+				secret := obj.(*kapi.Secret)
+				c.HandleSecret(watch.Modified, secret)
+				return
+			},
+			DeleteFunc: func(obj interface{}) {
+				secret, ok := obj.(*kapi.Secret)
+				if !ok {
+					tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+					if !ok {
+						glog.Errorf("couldn't get object from tombstone %+v", obj)
+						return
+					}
+					secret, ok = tombstone.Obj.(*kapi.Secret)
+					if !ok {
+						glog.Errorf("tombstone contained object that is not a secret %#v", obj)
+						return
+					}
+				}
+				c.HandleSecret(watch.Deleted, secret)
+				return
+			},
+		})
+	}
+	c.StartEndpointsWatch(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			endpoints := obj.(*kapi.Endpoints)
+			c.HandleEndpoints(watch.Added, endpoints)
+			return
+		},
+		UpdateFunc: func(old, obj interface{}) {
+			endpoints := obj.(*kapi.Endpoints)
+			c.HandleEndpoints(watch.Modified, endpoints)
+			return
+		},
+		DeleteFunc: func(obj interface{}) {
+			endpoints, ok := obj.(*kapi.Endpoints)
+			if !ok {
+				tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+				if !ok {
+					glog.Errorf("couldn't get object from tombstone %+v", obj)
+					return
+				}
+				endpoints, ok = tombstone.Obj.(*kapi.Endpoints)
+				if !ok {
+					glog.Errorf("tombstone contained object that is not endpoints %#v", obj)
+					return
+				}
+			}
+			c.HandleEndpoints(watch.Deleted, endpoints)
+			return
+		},
+	})
+
+	c.commit()
 }
 
 func (c *RouterController) HandleNamespaces() {
@@ -167,13 +248,7 @@ func (c *RouterController) HandleNamespaces() {
 }
 
 // HandleNode handles a single Node event and synchronizes the router backend
-func (c *RouterController) HandleNode() {
-	eventType, node, err := c.NextNode()
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to read nodes: %v", err))
-		return
-	}
-
+func (c *RouterController) HandleNode(eventType watch.EventType, node *kapi.Node) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -186,53 +261,27 @@ func (c *RouterController) HandleNode() {
 }
 
 // HandleRoute handles a single Route event and synchronizes the router backend.
-func (c *RouterController) HandleRoute() {
-	eventType, route, err := c.NextRoute()
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to read routes: %v", err))
-		return
-	}
-
+func (c *RouterController) HandleRoute(eventType watch.EventType, route *routeapi.Route) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	c.processRoute(eventType, route)
-
-	// Change the local sync state within the lock to ensure that all
-	// event handlers have the same view of sync state.
-	c.routesListConsumed = c.RoutesListConsumed()
 	c.commit()
 }
 
 // HandleEndpoints handles a single Endpoints event and refreshes the router backend.
-func (c *RouterController) HandleEndpoints() {
-	eventType, endpoints, err := c.NextEndpoints()
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to read endpoints: %v", err))
-		return
-	}
-
+func (c *RouterController) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
 	if err := c.Plugin.HandleEndpoints(eventType, endpoints); err != nil {
 		utilruntime.HandleError(err)
 	}
-
-	// Change the local sync state within the lock to ensure that all
-	// event handlers have the same view of sync state.
-	c.endpointsListConsumed = c.EndpointsListConsumed()
 	c.commit()
 }
 
 // HandleIngress handles a single Ingress event and synchronizes the router backend.
-func (c *RouterController) HandleIngress() {
-	eventType, ingress, err := c.NextIngress()
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to read ingress: %v", err))
-		return
-	}
-
+func (c *RouterController) HandleIngress(eventType watch.EventType, ingress *extensions.Ingress) {
 	// The ingress translator synchronizes access to its cache with a
 	// lock, so calls to it are made outside of the controller lock to
 	// avoid unintended interaction.
@@ -242,22 +291,11 @@ func (c *RouterController) HandleIngress() {
 	defer c.lock.Unlock()
 
 	c.processIngressEvents(events)
-
-	// Change the local sync state within the lock to ensure that all
-	// event handlers have the same view of sync state.
-	c.ingressesListConsumed = c.IngressesListConsumed()
 	c.commit()
 }
 
 // HandleSecret handles a single Secret event and synchronizes the router backend.
-func (c *RouterController) HandleSecret() {
-	eventType, secret, err := c.NextSecret()
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("unable to read secret: %v", err))
-		return
-
-	}
-
+func (c *RouterController) HandleSecret(eventType watch.EventType, secret *kapi.Secret) {
 	// The ingress translator synchronizes access to its cache with a
 	// lock, so calls to it are made outside of the controller lock to
 	// avoid unintended interaction.
@@ -267,19 +305,12 @@ func (c *RouterController) HandleSecret() {
 	defer c.lock.Unlock()
 
 	c.processIngressEvents(events)
-
-	// Change the local sync state within the lock to ensure that all
-	// event handlers have the same view of sync state.
-	c.secretsListConsumed = c.SecretsListConsumed()
 	c.commit()
 }
 
 // commit notifies the plugin that it is safe to commit state.
 func (c *RouterController) commit() {
-	syncing := !(c.endpointsListConsumed && c.routesListConsumed &&
-		(c.Namespaces == nil || c.filteredByNamespace) &&
-		(!c.EnableIngress ||
-			(c.ingressesListConsumed && c.secretsListConsumed)))
+	syncing := !(c.HasSynced() && (c.Namespaces == nil || c.filteredByNamespace))
 	c.logSyncState(syncing)
 	if syncing {
 		return
