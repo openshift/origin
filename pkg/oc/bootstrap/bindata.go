@@ -35,6 +35,7 @@
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
 // pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
+// test/testdata/templateservicebroker/templateservicebroker-template.yaml
 // DO NOT EDIT!
 
 package bootstrap
@@ -13610,6 +13611,137 @@ func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml() (*asset, error) {
 	return a, nil
 }
 
+var _testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: TSB_TEMPLATE_NAMESPACE
+  value: openshift
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+objects:
+
+# to create the tsb server
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+    labels:
+      apiserver: "true"
+  spec:
+    template:
+      metadata:
+        name: apiserver
+        labels:
+          apiserver: "true"
+      spec:
+        serviceAccountName: apiserver
+        containers:
+        - name: c
+          image: ${IMAGE}
+          imagePullPolicy: Never
+          command:
+          - "/usr/bin/openshift"
+          - "start"
+          - "template-service-broker"
+          - "--secure-port=8443"
+          - "--audit-log-path=-"
+          - "--tls-cert-file=/var/serving-cert/tls.crt"
+          - "--tls-private-key-file=/var/serving-cert/tls.key"
+          - "--template-namespace=${TSB_TEMPLATE_NAMESPACE}"
+          ports:
+          - containerPort: 8443
+          volumeMounts:
+          - mountPath: /var/serving-cert
+            name: serving-cert
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 420
+            secretName: apiserver-serving-cert
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to be able to expose TSB inside the cluster
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+  spec:
+    selector:
+      apiserver: "true"
+    ports:
+    - port: 443
+      targetPort: 8443
+
+# to delegate authentication and authorization
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: auth-delegator-${NAMESPACE}
+  roleRef:
+    name: system:auth-delegator
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to have the template service broker powers
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: tsb-${NAMESPACE}
+  roleRef:
+    name: system:openshift:controller:template-service-broker
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to read the config for terminating authentication
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${KUBE_SYSTEM}
+    name: extension-apiserver-authentication-reader-${NAMESPACE}
+  roleRef:
+    namespace: kube-system
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+`)
+
+func testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
+	return _testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
+}
+
+func testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
+	bytes, err := testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/testdata/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -13697,6 +13829,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
 	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
+	"test/testdata/templateservicebroker/templateservicebroker-template.yaml": testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -13803,6 +13936,13 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 					}},
 				}},
+			}},
+		}},
+	}},
+	"test": &bintree{nil, map[string]*bintree{
+		"testdata": &bintree{nil, map[string]*bintree{
+			"templateservicebroker": &bintree{nil, map[string]*bintree{
+				"templateservicebroker-template.yaml": &bintree{testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
 			}},
 		}},
 	}},
