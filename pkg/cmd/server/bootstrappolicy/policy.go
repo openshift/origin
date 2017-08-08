@@ -216,6 +216,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 				authorizationapi.NewRule(read...).Groups(securityGroup, legacySecurityGroup).Resources("securitycontextconstraints").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
+				authorizationapi.NewRule(read...).Groups(templateGroup).Resources("brokertemplateinstances", "templateinstances/status").RuleOrDie(),
 
 				authorizationapi.NewRule(read...).Groups(userGroup, legacyUserGroup).Resources("groups", "identities", "useridentitymappings", "users").RuleOrDie(),
 
