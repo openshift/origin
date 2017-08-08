@@ -1,6 +1,8 @@
 package server
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,8 +12,10 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/openservicebroker/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // minimum supported client version
@@ -79,6 +83,56 @@ func contentType(req *restful.Request, resp *restful.Response, chain *restful.Fi
 	chain.ProcessFilter(req, resp)
 }
 
+/*
+	The following properties MUST appear within the JSON encoded `value`:
+
+	| Property | Type | Description |
+	| --- | --- | --- |
+	| username | string | The `username` property from the Kubenernetes `user.info` object. |
+	| uid | string | The `uid` property from the Kubenernetes `user.info` object. |
+	| groups | string | The `groups` property from the Kubenernetes `user.info` object. |
+
+	Platforms MAY include additional properties.
+
+	For example, a `value` of:
+	```
+	{
+	  "username": "duke",
+	  "uid": "c2dde242-5ce4-11e7-988c-000c2946f14f",
+	  "groups": { "admin", "dev" }
+	}
+	```
+	would appear in the HTTP Header as:
+	```
+	X-Broker-API-Originating-Identity: kubernetes eyANCiAgInVzZXJuYW1lIjogImR1a2UiLA0KICAidWlkIjogImMyZGRlMjQyLTVjZTQtMTFlNy05ODhjLTAwMGMyOTQ2ZjE0ZiIsDQogICJncm91cHMiOiB7ICJhZG1pbiIsICJkZXYiIH0NCn0=
+	```
+*/
+func getUser(req *restful.Request) (user.Info, error) {
+	identity := req.Request.Header.Get(api.XBrokerAPIOriginatingIdentity)
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses
+	// we will error if the originating identity header is not set, so remove the identity == "" check
+	if identity == "" {
+		return &user.DefaultInfo{}, nil
+	}
+	parts := strings.SplitN(identity, " ", 2)
+	if !strings.EqualFold(parts[0], api.OriginatingIdentitySchemeKubernetes) || len(parts) != 2 {
+		return nil, fmt.Errorf("couldn't parse %s header", api.XBrokerAPIOriginatingIdentity)
+	}
+
+	templatereq := templateapi.TemplateInstanceRequester{}
+	decodestrbytes, err := base64.StdEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse %s header: %v", api.XBrokerAPIOriginatingIdentity, err)
+	}
+	err = json.Unmarshal(decodestrbytes, &templatereq)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't parse %s header with value %s: %v", api.XBrokerAPIOriginatingIdentity, string(decodestrbytes), err)
+	}
+	u := api.ConvertTemplateInstanceRequesterToUser(&templatereq)
+
+	return u, nil
+}
+
 func waitForReady(b api.Broker) func(*restful.Request, *restful.Response, *restful.FilterChain) {
 	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
 		if err := b.WaitForReady(); err != nil {
@@ -113,7 +167,20 @@ func provision(b api.Broker, req *restful.Request) *api.Response {
 		return api.NewResponse(http.StatusUnprocessableEntity, &api.AsyncRequired, nil)
 	}
 
-	return b.Provision(instanceID, &preq)
+	u, err := getUser(req)
+	if err != nil {
+		return api.BadRequest(err)
+	}
+
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this
+	// check of originating-identity and username param should be removed, as only originating-identity will be
+	// supported at that point
+	reqName := preq.Parameters[templateapi.RequesterUsernameParameterKey]
+	if u.GetName() != "" && reqName != "" {
+		return api.BadRequest(fmt.Errorf("do not support user identity via both originating-identity header and request parameter: %s and %s", u.GetName(), reqName))
+	}
+
+	return b.Provision(u, instanceID, &preq)
 }
 
 func deprovision(b api.Broker, req *restful.Request) *api.Response {
@@ -126,7 +193,12 @@ func deprovision(b api.Broker, req *restful.Request) *api.Response {
 		return api.NewResponse(http.StatusUnprocessableEntity, &api.AsyncRequired, nil)
 	}
 
-	return b.Deprovision(instanceID)
+	u, err := getUser(req)
+	if err != nil {
+		return api.BadRequest(err)
+	}
+
+	return b.Deprovision(u, instanceID)
 }
 
 func lastOperation(b api.Broker, req *restful.Request) *api.Response {
@@ -142,7 +214,12 @@ func lastOperation(b api.Broker, req *restful.Request) *api.Response {
 		return api.BadRequest(fmt.Errorf("invalid operation"))
 	}
 
-	return b.LastOperation(instanceID, operation)
+	u, err := getUser(req)
+	if err != nil {
+		return api.BadRequest(err)
+	}
+
+	return b.LastOperation(u, instanceID, operation)
 }
 
 func bind(b api.Broker, req *restful.Request) *api.Response {
@@ -165,7 +242,20 @@ func bind(b api.Broker, req *restful.Request) *api.Response {
 		return api.BadRequest(errors.ToAggregate())
 	}
 
-	return b.Bind(instanceID, bindingID, &breq)
+	u, err := getUser(req)
+	if err != nil {
+		return api.BadRequest(err)
+	}
+
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this
+	// check of originating-identity and username param should be removed, as only originating-identity will be
+	// supported at that point
+	reqName := breq.Parameters[templateapi.RequesterUsernameParameterKey]
+	if u.GetName() != "" && reqName != "" {
+		return api.BadRequest(fmt.Errorf("do not support user identity via both originating-identity header and request parameter: %s and %s", u.GetName(), reqName))
+	}
+
+	return b.Bind(u, instanceID, bindingID, &breq)
 }
 
 func unbind(b api.Broker, req *restful.Request) *api.Response {
@@ -179,5 +269,10 @@ func unbind(b api.Broker, req *restful.Request) *api.Response {
 		return api.BadRequest(errors.ToAggregate())
 	}
 
-	return b.Unbind(instanceID, bindingID)
+	u, err := getUser(req)
+	if err != nil {
+		return api.BadRequest(err)
+	}
+
+	return b.Unbind(u, instanceID, bindingID)
 }

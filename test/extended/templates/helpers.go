@@ -58,6 +58,51 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	return user
 }
 
+func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
+	group, err := cli.AdminClient().Groups().Create(&userapi.Group{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if role != "" {
+		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("%s-%s-binding", name, role),
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: role,
+			},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind: authorizationapi.GroupKind,
+					Name: name,
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
+	return group
+}
+
+func addUserToGroup(cli *exutil.CLI, username, groupname string) {
+	group, err := cli.AdminClient().Groups().Get(groupname, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if group != nil {
+		group.Users = append(group.Users, username)
+		_, err = cli.AdminClient().Groups().Update(group)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+}
+
+func deleteGroup(cli *exutil.CLI, group *userapi.Group) {
+	err := cli.AdminClient().Groups().Delete(group.Name)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
 func deleteUser(cli *exutil.CLI, user *userapi.User) {
 	err := cli.AdminClient().Users().Delete(user.Name)
 	o.Expect(err).NotTo(o.HaveOccurred())

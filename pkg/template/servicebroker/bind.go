@@ -3,6 +3,7 @@ package servicebroker
 import (
 	"bytes"
 	"encoding/base64"
+
 	"errors"
 	"fmt"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/openservicebroker/api"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
@@ -171,19 +173,25 @@ func (b *Broker) updateCredentials(u user.Info, namespace, instanceID, group, re
 }
 
 // Bind returns the secrets and services from a provisioned template.
-func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.Response {
+func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindRequest) *api.Response {
 	glog.V(4).Infof("Template service broker: Bind: instanceID %s, bindingID %s", instanceID, bindingID)
 
 	if errs := ValidateBindRequest(breq); len(errs) > 0 {
 		return api.BadRequest(errs.ToAggregate())
 	}
 
-	if len(breq.Parameters) != 1 {
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this check should be != 0
+	if len(breq.Parameters) > 1 {
 		return api.BadRequest(errors.New("parameters not supported on bind"))
 	}
 
-	impersonate := breq.Parameters[templateapi.RequesterUsernameParameterKey]
-	u := &user.DefaultInfo{Name: impersonate}
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
+	if u.GetName() == "" {
+		impersonate := breq.Parameters[templateapi.RequesterUsernameParameterKey]
+		if impersonate != "" && uservalidation.ValidateUserName(impersonate, true) == nil {
+			u = &user.DefaultInfo{Name: impersonate}
+		}
+	}
 
 	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {
@@ -196,9 +204,8 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	// since we can, cross-check breq.ServiceID and
-	// templateInstance.Spec.Template.UID.
-
+	// end users are not expected to have access to BrokerTemplateInstance
+	// objects; SAR on the TemplateInstance instead.
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
 		Namespace: namespace,
 		Verb:      "get",
@@ -208,6 +215,9 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 	}); err != nil {
 		return api.Forbidden(err)
 	}
+
+	// since we can, cross-check breq.ServiceID and
+	// templateInstance.Spec.Template.UID.
 
 	templateInstance, err := b.templateclient.TemplateInstances(namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})
 	if err != nil {
@@ -259,6 +269,18 @@ func (b *Broker) Bind(instanceID, bindingID string, breq *api.BindRequest) *api.
 		}
 	}
 	if status == http.StatusCreated { // binding not found; create it
+		// end users are not expected to have access to BrokerTemplateInstance
+		// objects; SAR on the TemplateInstance instead.
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "update",
+			Group:     templateapi.GroupName,
+			Resource:  "templateinstances",
+			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+		}); err != nil {
+			return api.Forbidden(err)
+		}
+
 		brokerTemplateInstance.Spec.BindingIDs = append(brokerTemplateInstance.Spec.BindingIDs, bindingID)
 		brokerTemplateInstance, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
 		if err != nil {

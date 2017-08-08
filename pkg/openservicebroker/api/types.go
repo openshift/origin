@@ -6,11 +6,14 @@ package api
 
 import (
 	jsschema "github.com/lestrrat/go-jsschema"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 const (
-	XBrokerAPIVersion = "X-Broker-Api-Version"
-	APIVersion        = "2.11"
+	XBrokerAPIVersion                   = "X-Broker-Api-Version"
+	APIVersion                          = "2.11"
+	XBrokerAPIOriginatingIdentity       = "X-Broker-API-Originating-Identity"
+	OriginatingIdentitySchemeKubernetes = "kubernetes"
 )
 
 type Service struct {
@@ -175,11 +178,11 @@ type Response struct {
 type Broker interface {
 	WaitForReady() error
 	Catalog() *Response
-	Provision(instanceID string, preq *ProvisionRequest) *Response
-	Deprovision(instanceID string) *Response
-	Bind(instanceID string, bindingID string, breq *BindRequest) *Response
-	Unbind(instanceID string, bindingID string) *Response
-	LastOperation(instanceID string, operation Operation) *Response
+	Provision(u user.Info, instanceID string, preq *ProvisionRequest) *Response
+	Deprovision(u user.Info, instanceID string) *Response
+	Bind(u user.Info, instanceID string, bindingID string, breq *BindRequest) *Response
+	Unbind(u user.Info, instanceID string, bindingID string) *Response
+	LastOperation(u user.Info, instanceID string, operation Operation) *Response
 }
 
 const (

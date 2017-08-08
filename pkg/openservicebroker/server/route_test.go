@@ -12,6 +12,8 @@ import (
 
 	restful "github.com/emicklei/go-restful"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
+	"github.com/openshift/origin/pkg/openservicebroker/client"
+	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 const validUUID = "decd59a9-1dd2-453e-942e-2deba96bfa96"
@@ -27,27 +29,27 @@ func (b *fakeBroker) Catalog() *api.Response {
 	return &r
 }
 
-func (b *fakeBroker) Provision(instanceID string, preq *api.ProvisionRequest) *api.Response {
+func (b *fakeBroker) Provision(u user.Info, instanceID string, preq *api.ProvisionRequest) *api.Response {
 	r := api.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Deprovision(instanceID string) *api.Response {
+func (b *fakeBroker) Deprovision(u user.Info, instanceID string) *api.Response {
 	r := api.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Bind(instanceID string, bindingID string, breq *api.BindRequest) *api.Response {
+func (b *fakeBroker) Bind(u user.Info, instanceID string, bindingID string, breq *api.BindRequest) *api.Response {
 	r := api.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) Unbind(instanceID string, bindingID string) *api.Response {
+func (b *fakeBroker) Unbind(u user.Info, instanceID string, bindingID string) *api.Response {
 	r := api.Response(*b)
 	return &r
 }
 
-func (b *fakeBroker) LastOperation(instanceID string, operation api.Operation) *api.Response {
+func (b *fakeBroker) LastOperation(u user.Info, instanceID string, operation api.Operation) *api.Response {
 	r := api.Response(*b)
 	return &r
 }
@@ -81,6 +83,16 @@ func (rw *fakeResponseWriter) WriteHeader(code int) {
 }
 
 var _ http.ResponseWriter = &fakeResponseWriter{}
+
+var defaultOriginatingIdentityHeader string
+
+func init() {
+	var err error
+	defaultOriginatingIdentityHeader, err = client.OriginatingIdentityHeader(&user.DefaultInfo{})
+	if err != nil {
+		panic(err)
+	}
+}
 
 func parseUrl(t *testing.T, s string) *url.URL {
 	u, err := url.Parse(s)
@@ -252,10 +264,30 @@ func TestProvision(t *testing.T) {
 			expectCode:  http.StatusUnprocessableEntity,
 			expectError: `This service plan requires client support for asynchronous service operations.`,
 		},
+		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
+		/*{
+			name: "no identity",
+			req: http.Request{
+				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
+			},
+			body: &api.ProvisionRequest{
+				ServiceID: validUUID,
+				PlanID:    validUUID,
+				Context: api.KubernetesContext{
+					Platform:  api.ContextPlatformKubernetes,
+					Namespace: "test",
+				},
+			},
+			expectCode:  http.StatusBadRequest,
+			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
+		},*/
 		{
 			name: "good",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
+				Header: http.Header{
+					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+				},
 			},
 			body: &api.ProvisionRequest{
 				ServiceID: validUUID,
@@ -334,10 +366,22 @@ func TestDeprovision(t *testing.T) {
 			expectCode:  http.StatusUnprocessableEntity,
 			expectError: `This service plan requires client support for asynchronous service operations.`,
 		},
+		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
+		/*{
+			name: "no identity",
+			req: http.Request{
+				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
+			},
+			expectCode:  http.StatusBadRequest,
+			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
+		},*/
 		{
 			name: "good",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
+				Header: http.Header{
+					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+				},
 			},
 			expectCode: http.StatusOK,
 		},
@@ -398,10 +442,22 @@ func TestLastOperation(t *testing.T) {
 			},
 			expectError: `invalid operation`,
 		},
+		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
+		/*{
+			name: "no identity",
+			req: http.Request{
+				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/last_operation?operation=provisioning"),
+			},
+			expectCode:  http.StatusBadRequest,
+			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
+		},*/
 		{
 			name: "good",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/last_operation?operation=provisioning"),
+				Header: http.Header{
+					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+				},
 			},
 			expectCode: http.StatusOK,
 		},
@@ -487,10 +543,26 @@ func TestBind(t *testing.T) {
 			body:        &api.BindRequest{},
 			expectError: `service_id: Invalid value: "": must be a valid UUID`,
 		},
+		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
+		/*{
+			name: "no identity",
+			req: http.Request{
+				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
+			},
+			body: &api.BindRequest{
+				ServiceID: validUUID,
+				PlanID:    validUUID,
+			},
+			expectCode:  http.StatusBadRequest,
+			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
+		},*/
 		{
 			name: "good",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
+				Header: http.Header{
+					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+				},
 			},
 			body: &api.BindRequest{
 				ServiceID: validUUID,
@@ -564,10 +636,22 @@ func TestUnbind(t *testing.T) {
 			},
 			expectError: `binding_id: Invalid value: "bad": must be a valid UUID`,
 		},
+		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
+		/*{
+			name: "no identity",
+			req: http.Request{
+				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
+			},
+			expectCode:  http.StatusBadRequest,
+			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
+		},*/
 		{
 			name: "good",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
+				Header: http.Header{
+					http.CanonicalHeaderKey(api.XBrokerAPIOriginatingIdentity): []string{defaultOriginatingIdentityHeader},
+				},
 			},
 			expectCode: http.StatusOK,
 		},

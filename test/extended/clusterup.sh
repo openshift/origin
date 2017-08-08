@@ -158,6 +158,26 @@ function os::test::extended::clusterup::hostdirs () {
     BASE_DIR="${base_dir}" os::test::extended::clusterup::internal::hostdirs
 }
 
+# Tests bringing up the service catalog and provisioning a template
+function os::test::extended::clusterup::service_catalog() {
+    os::cmd::expect_success "oc cluster up --service-catalog --version=latest"
+    os::test::extended::clusterup::verify_router_and_registry
+    os::test::extended::clusterup::verify_image_streams
+    os::cmd::expect_success "oc login -u system:admin"
+    os::cmd::expect_success "oc adm policy add-cluster-role-to-group system:openshift:templateservicebroker-client system:unauthenticated system:authenticated"
+    # this is only to allow for the retrieval of the TSB service IP, not actual use of the TSB endpoints
+    os::cmd::expect_success "oc policy add-role-to-user view developer -n openshift-template-service-broker"
+    os::cmd::expect_success "oc login -u developer"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/template/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./provision.sh"
+    os::cmd::try_until_text "oc get pods" "jenkins-1-deploy" $(( 2*minute )) 1
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/template/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./bind.sh"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/template/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./unbind.sh"
+    os::cmd::expect_success "pushd ${OS_ROOT}/pkg/template/servicebroker/test-scripts; serviceUUID=`oc get template jenkins-ephemeral -n openshift -o template --template '{{.metadata.uid}}'` ./deprovision.sh"
+    os::cmd::try_until_text "oc get pods" "Terminating" $(( 2*minute )) 1
+}
+
+
+
 # Tests creating a cluster with an alternate image and tag
 function os::test::extended::clusterup::image () {
     os::test::extended::clusterup::standard_test \
@@ -219,6 +239,7 @@ function os::test::extended::clusterup::portinuse_cleanup () {
 
 
 readonly default_tests=(
+    "service_catalog"
     "noargs"
     "hostdirs"
     "image"

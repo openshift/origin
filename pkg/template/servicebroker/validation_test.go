@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/openservicebroker/api"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 const validUUID = "4f8a47f7-900f-48b4-aad1-865760feaa04"
@@ -16,18 +15,6 @@ func TestValidateProvisionRequest(t *testing.T) {
 		expectError string
 	}{
 		{
-			name: "missing RequesterUsernameParameterKey key",
-			preq: api.ProvisionRequest{
-				ServiceID: validUUID,
-				PlanID:    validUUID,
-				Context: api.KubernetesContext{
-					Platform:  api.ContextPlatformKubernetes,
-					Namespace: "test",
-				},
-			},
-			expectError: `parameters.` + templateapi.RequesterUsernameParameterKey + `: Required value`,
-		},
-		{
 			name: "bad key",
 			preq: api.ProvisionRequest{
 				ServiceID: validUUID,
@@ -38,7 +25,6 @@ func TestValidateProvisionRequest(t *testing.T) {
 				},
 				Parameters: map[string]string{
 					"b@d": "",
-					templateapi.RequesterUsernameParameterKey: "test",
 				},
 			},
 			expectError: `parameters.b@d: Invalid value: "b@d": does not match ^[a-zA-Z0-9_]+$`,
@@ -54,7 +40,6 @@ func TestValidateProvisionRequest(t *testing.T) {
 				},
 				Parameters: map[string]string{
 					"azAZ09_": "",
-					templateapi.RequesterUsernameParameterKey: "test",
 				},
 			},
 			expectError: ``,
@@ -89,21 +74,12 @@ func TestValidateBindRequest(t *testing.T) {
 		expectError string
 	}{
 		{
-			name: "missing RequesterUsernameParameterKey key",
-			breq: api.BindRequest{
-				ServiceID: validUUID,
-				PlanID:    validUUID,
-			},
-			expectError: `parameters.` + templateapi.RequesterUsernameParameterKey + `: Required value`,
-		},
-		{
 			name: "bad key",
 			breq: api.BindRequest{
 				ServiceID: validUUID,
 				PlanID:    validUUID,
 				Parameters: map[string]string{
 					"b@d": "",
-					templateapi.RequesterUsernameParameterKey: "test",
 				},
 			},
 			expectError: `parameters.b@d: Invalid value: "b@d": does not match ^[a-zA-Z0-9_]+$`,
@@ -115,7 +91,6 @@ func TestValidateBindRequest(t *testing.T) {
 				PlanID:    validUUID,
 				Parameters: map[string]string{
 					"azAZ09_": "",
-					templateapi.RequesterUsernameParameterKey: "test",
 				},
 			},
 			expectError: ``,
