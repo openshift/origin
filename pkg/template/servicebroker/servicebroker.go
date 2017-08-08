@@ -3,11 +3,11 @@ package servicebroker
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/golang/glog"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	restclient "k8s.io/client-go/rest"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -25,85 +25,112 @@ import (
 // Broker represents the template service broker.  It implements
 // openservicebroker/api.Broker.
 type Broker struct {
+	// privilegedKubeClientConfig is a privileged clientconfig used for communicating back to the
+	// API server.  This is needed because the template service broker is a fake server component that actually
+	// needs both the apiserver and controllers to be running
+	privilegedKubeClientConfig restclient.Config
+	initialize                 sync.Once
+
 	kc                 kclientset.Interface
 	templateclient     internalversiontemplate.TemplateInterface
 	extkc              kclientsetexternal.Interface
 	extrouteclient     extrouteclientset.RouteV1Interface
 	lister             templatelister.TemplateLister
+	hasSynced          func() bool
 	templateNamespaces map[string]struct{}
 	ready              chan struct{}
 }
 
 var _ api.Broker = &Broker{}
 
-// NewBroker returns a new instance of the template service broker.  While
+// DeprecatedNewBrokerInsideAPIServer returns a new instance of the template service broker.  While
 // built into origin, its initialisation is asynchronous.  This is because it is
 // part of the API server, but requires the API server to be up to get its
 // service account token.
-func NewBroker(privrestconfig restclient.Config, privkc kclientset.Interface, infraNamespace string, informer templateinformer.TemplateInformer, namespaces []string) *Broker {
+func DeprecatedNewBrokerInsideAPIServer(privilegedKubeClientConfig restclient.Config, informer templateinformer.TemplateInformer, namespaces []string) *Broker {
 	templateNamespaces := map[string]struct{}{}
 	for _, namespace := range namespaces {
 		templateNamespaces[namespace] = struct{}{}
 	}
 
 	b := &Broker{
+		privilegedKubeClientConfig: privilegedKubeClientConfig,
 		lister:             informer.Lister(),
+		hasSynced:          informer.Informer().HasSynced,
 		templateNamespaces: templateNamespaces,
 		ready:              make(chan struct{}),
 	}
 
-	go func() {
-		// the broker is initialised asynchronously because fetching the service
-		// account token requires the main API server to be running.
-
-		glog.V(2).Infof("Template service broker: waiting for authentication token")
-
-		restconfig, _, kc, extkc, err := serviceaccounts.Clients(
-			privrestconfig,
-			&serviceaccounts.ClientLookupTokenRetriever{Client: privkc},
-			infraNamespace,
-			bootstrappolicy.InfraTemplateServiceBrokerServiceAccountName,
-		)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize clients: %v", err))
-			return
-		}
-
-		extrouteclientset, err := extrouteclientset.NewForConfig(restconfig)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize route clientset: %v", err))
-			return
-		}
-
-		templateclientset, err := templateclientset.NewForConfig(restconfig)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("Template service broker: failed to initialize template clientset: %v", err))
-			return
-		}
-
-		b.kc = kc
-		b.extkc = extkc
-		b.extrouteclient = extrouteclientset
-		b.templateclient = templateclientset.Template()
-
-		glog.V(2).Infof("Template service broker: waiting for informer sync")
-
-		for !informer.Informer().HasSynced() {
-			time.Sleep(100 * time.Millisecond)
-		}
-
-		glog.V(2).Infof("Template service broker: ready; reading namespaces %v", namespaces)
-
-		close(b.ready)
-	}()
-
 	return b
+}
+
+// MakeReady actually makes the broker functional
+func (b *Broker) MakeReady() error {
+	select {
+	case <-b.ready:
+		return nil
+	default:
+	}
+
+	// the broker is initialised asynchronously because fetching the service
+	// account token requires the main API server to be running.
+
+	glog.V(2).Infof("Template service broker: waiting for authentication token")
+
+	privilegedKubeClient, err := kclientset.NewForConfig(&b.privilegedKubeClientConfig)
+	if err != nil {
+		return err
+	}
+
+	restconfig, _, kc, extkc, err := serviceaccounts.Clients(
+		b.privilegedKubeClientConfig,
+		&serviceaccounts.ClientLookupTokenRetriever{Client: privilegedKubeClient},
+		bootstrappolicy.DefaultOpenShiftInfraNamespace,
+		bootstrappolicy.InfraTemplateServiceBrokerServiceAccountName,
+	)
+	if err != nil {
+		return fmt.Errorf("Template service broker: failed to initialize clients: %v", err)
+	}
+
+	extrouteclientset, err := extrouteclientset.NewForConfig(restconfig)
+	if err != nil {
+		return fmt.Errorf("Template service broker: failed to initialize route clientset: %v", err)
+	}
+
+	templateclientset, err := templateclientset.NewForConfig(restconfig)
+	if err != nil {
+		return fmt.Errorf("Template service broker: failed to initialize template clientset: %v", err)
+	}
+
+	b.kc = kc
+	b.extkc = extkc
+	b.extrouteclient = extrouteclientset
+	b.templateclient = templateclientset.Template()
+
+	glog.V(2).Infof("Template service broker: waiting for informer sync")
+
+	for !b.hasSynced() {
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	glog.V(2).Infof("Template service broker: ready; reading namespaces %v", b.templateNamespaces)
+
+	close(b.ready)
+	return nil
 }
 
 // WaitForReady is called on each incoming API request via a server filter.  It
 // is intended to be a quick check that the broker is initialized (which should
 // itself be a fast one-off start-up event).
 func (b *Broker) WaitForReady() error {
+	b.initialize.Do(
+		func() {
+			if err := b.MakeReady(); err != nil {
+				// TODO eventually this will be forward building.  For now, just die if the TSB doesn't actually work and it should
+				glog.Fatal(err)
+			}
+		})
+
 	// delay up to 10 seconds if not ready (unlikely), before returning a
 	// "try again" response.
 	timer := time.NewTimer(10 * time.Second)
