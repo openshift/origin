@@ -383,6 +383,16 @@ items:
     - list
     - watch
   - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - brokertemplateinstances
+    - templateinstances/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
     - user.openshift.io
     - ""
     attributeRestrictions: null
