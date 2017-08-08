@@ -31,7 +31,6 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
@@ -76,7 +75,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		ProjectRequestTemplate:             c.Options.ProjectConfig.ProjectRequestTemplate,
 		ProjectRequestMessage:              c.Options.ProjectConfig.ProjectRequestMessage,
 		EnableBuilds:                       configapi.IsBuildEnabled(&c.Options),
-		EnableTemplateServiceBroker:        c.Options.TemplateServiceBrokerConfig != nil,
 		ClusterQuotaMappingController:      c.ClusterQuotaMappingController,
 		SCCStorage:                         sccStorage,
 	}
@@ -98,30 +96,6 @@ func (c *MasterConfig) newOpenshiftNonAPIConfig(kubeAPIServerConfig apiserver.Co
 	}
 
 	return ret
-}
-
-func (c *MasterConfig) newTemplateServiceBrokerConfig(kubeAPIServerConfig apiserver.Config) *openservicebrokerserver.TemplateServiceBrokerConfig {
-	ret := &openservicebrokerserver.TemplateServiceBrokerConfig{
-		GenericConfig:              &kubeAPIServerConfig,
-		PrivilegedKubeClientConfig: kubeAPIServerConfig.LoopbackClientConfig,
-		TemplateInformers:          c.TemplateInformers,
-		TemplateNamespaces:         c.Options.TemplateServiceBrokerConfig.TemplateNamespaces,
-	}
-
-	return ret
-}
-
-func (c *MasterConfig) withTemplateServiceBroker(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, error) {
-	if c.Options.TemplateServiceBrokerConfig == nil {
-		return delegateAPIServer, nil
-	}
-	tsbConfig := c.newTemplateServiceBrokerConfig(kubeAPIServerConfig)
-	tsbServer, err := tsbConfig.Complete().New(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-
-	return tsbServer.GenericAPIServer, nil
 }
 
 func (c *MasterConfig) withAPIExtensions(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config) (apiserver.DelegationTarget, apiextensionsinformers.SharedInformerFactory, error) {
@@ -227,10 +201,6 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = c.buildHandlerChain(assetHandler)
 
 	delegateAPIServer = apiserver.EmptyDelegate
-	delegateAPIServer, err = c.withTemplateServiceBroker(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
-	if err != nil {
-		return err
-	}
 	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
