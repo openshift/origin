@@ -57,6 +57,8 @@ func (e contextDirNotFoundError) Error() string {
 
 // GitClone clones the source associated with a build(if any) into the specified directory
 func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitBuildSource, revision *buildapi.SourceRevision, dir string) (*git.SourceInfo, error) {
+	os.MkdirAll(dir, 0777)
+
 	hasGitSource, err := extractGitSource(ctx, gitClient, gitSource, revision, dir, initialURLCheckTimeout)
 
 	if err != nil {
@@ -78,7 +80,7 @@ func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitB
 				glog.V(0).Infof("error: Unable to serialized git source info: %v", err)
 				return sourceInfo, nil
 			}
-			err = ioutil.WriteFile(filepath.Join(buildutil.InputContentPath, "sourceinfo.json"), sourceInfoJson, 0644)
+			err = ioutil.WriteFile(filepath.Join(buildutil.BuildWorkDirMount, "sourceinfo.json"), sourceInfoJson, 0644)
 			if err != nil {
 				glog.V(0).Infof("error: Unable to serialized git source info: %v", err)
 				return sourceInfo, nil
@@ -89,7 +91,8 @@ func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitB
 }
 
 func ManageDockerfile(dir string, build *buildapi.Build) error {
-	glog.Infof("Checking for presence of a Dockerfile")
+	os.MkdirAll(dir, 0777)
+	glog.V(5).Infof("Checking for presence of a Dockerfile")
 	// a Dockerfile has been specified, create or overwrite into the destination
 	if dockerfileSource := build.Spec.Source.Dockerfile; dockerfileSource != nil {
 		baseDir := dir
@@ -114,6 +117,7 @@ func ManageDockerfile(dir string, build *buildapi.Build) error {
 }
 
 func ExtractImageContent(ctx context.Context, dockerClient DockerClient, dir string, build *buildapi.Build) error {
+	os.MkdirAll(dir, 0777)
 	forcePull := false
 	switch {
 	case build.Spec.Strategy.SourceStrategy != nil:
@@ -206,6 +210,7 @@ func checkSourceURI(gitClient GitClient, rawurl string, timeout time.Duration) e
 // ExtractInputBinary processes the provided input stream as directed by BinaryBuildSource
 // into dir.
 func ExtractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir string) error {
+	os.MkdirAll(dir, 0777)
 	if source == nil {
 		return nil
 	}

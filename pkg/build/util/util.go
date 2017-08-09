@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,9 +27,14 @@ const (
 	// NoBuildLogsMessage reports that no build logs are available
 	NoBuildLogsMessage = "No logs are available."
 
+	// WorkDir is the working directory within the build pod, mounted as a volume.
+	BuildWorkDirMount = "/tmp/build"
+)
+
+var (
 	// InputContentPath is the path at which the build inputs will be available
-	// to all the build containers (mounted as a volume).
-	InputContentPath = "/tmp/gitSource"
+	// to all the build containers.
+	InputContentPath = filepath.Join(BuildWorkDirMount, "inputs")
 )
 
 // GetBuildName returns name of the build pod.

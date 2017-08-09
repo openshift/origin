@@ -179,7 +179,6 @@ func (c *builderConfig) clone() error {
 
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
-	//buildDir, err := ioutil.TempDir("", "inputs")
 	buildDir := buildutil.InputContentPath
 	if err != nil {
 		return err
@@ -199,16 +198,6 @@ func (c *builderConfig) clone() error {
 
 func (c *builderConfig) manageDockerfile() error {
 	buildDir := buildutil.InputContentPath
-
-	/*
-		secretTmpDir, gitEnv, err := c.setupGitEnvironment()
-		if err != nil {
-			return err
-		}
-		defer os.RemoveAll(secretTmpDir)
-	*/
-	//gitClient := git.NewRepositoryWithEnv(nil)
-
 	return bld.ManageDockerfile(buildDir, c.build)
 }
 

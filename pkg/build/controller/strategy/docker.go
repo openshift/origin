@@ -63,8 +63,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 					TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 					VolumeMounts: []v1.VolumeMount{
 						{
-							Name:      "gitsource",
-							MountPath: buildutil.InputContentPath,
+							Name:      "buildworkdir",
+							MountPath: buildutil.BuildWorkDirMount,
 						},
 					},
 					ImagePullPolicy: v1.PullIfNotPresent,
@@ -73,7 +73,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			},
 			Volumes: []v1.Volume{
 				{
-					Name: "gitsource",
+					Name: "buildworkdir",
 					VolumeSource: v1.VolumeSource{
 						EmptyDir: &v1.EmptyDirVolumeSource{},
 					},
@@ -96,8 +96,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
-					Name:      "gitsource",
-					MountPath: buildutil.InputContentPath,
+					Name:      "buildworkdir",
+					MountPath: buildutil.BuildWorkDirMount,
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,
@@ -122,8 +122,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
-					Name:      "gitsource",
-					MountPath: buildutil.InputContentPath,
+					Name:      "buildworkdir",
+					MountPath: buildutil.BuildWorkDirMount,
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,
@@ -140,8 +140,8 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
-					Name:      "gitsource",
-					MountPath: buildutil.InputContentPath,
+					Name:      "buildworkdir",
+					MountPath: buildutil.BuildWorkDirMount,
 				},
 			},
 			ImagePullPolicy: v1.PullIfNotPresent,

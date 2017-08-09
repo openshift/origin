@@ -99,7 +99,7 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	if len(container.VolumeMounts) != 5 {
 		t.Fatalf("Expected 5 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{buildutil.InputContentPath, dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}

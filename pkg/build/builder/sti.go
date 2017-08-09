@@ -143,7 +143,10 @@ func (s *S2IBuilder) Build() error {
 	if err != nil {
 		return fmt.Errorf("error reading git source info: %v", err)
 	}
-
+	var s2iSourceInfo *s2igit.SourceInfo
+	if sourceInfo != nil {
+		s2iSourceInfo = &sourceInfo.SourceInfo
+	}
 	injections := s2iapi.VolumeList{}
 	for _, s := range s.build.Spec.Source.Secrets {
 		glog.V(3).Infof("Injecting secret %q into a build into %q", s.Secret.Name, filepath.Clean(s.DestinationDir))
@@ -200,7 +203,7 @@ func (s *S2IBuilder) Build() error {
 
 		Source:     &s2igit.URL{URL: url.URL{Path: srcDir}, Type: s2igit.URLTypeLocal},
 		ContextDir: contextDir,
-		//SourceInfo: s2iSourceInfo,
+		SourceInfo: s2iSourceInfo,
 		ForceCopy:  true,
 		Injections: injections,
 
@@ -395,17 +398,6 @@ func s2iBuildLabels(build *buildapi.Build, sourceInfo *git.SourceInfo) map[strin
 	}
 	return labels
 }
-
-/*
-func buildLabels(build *api.Build) map[string]string {
-	labels := make(map[string]string)
-	addBuildLabels(labels, build)
-	for _, lbl := range build.Spec.Output.ImageLabels {
-		labels[lbl.Name] = lbl.Value
-	}
-	return labels
-}
-*/
 
 // scriptProxyConfig determines a proxy configuration for downloading
 // scripts from a URL. For now, it uses environment variables passed in
