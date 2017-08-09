@@ -3,11 +3,13 @@ package builds
 import (
 	"fmt"
 	"path/filepath"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -23,6 +25,8 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		legacyBuildConfig     = filepath.Join(buildPruningBaseDir, "default-legacy-build-config.yaml")
 		groupBuildConfig      = filepath.Join(buildPruningBaseDir, "default-group-build-config.yaml")
 		oc                    = exutil.NewCLI("build-pruning", exutil.KubeConfigPath())
+		pollingInterval       = time.Second
+		timeout               = time.Minute
 	)
 
 	g.JustBeforeEach(func() {
@@ -47,19 +51,32 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("starting three test builds")
-		br, _ := exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertSuccess()
-		br, _ = exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertSuccess()
-		br, _ = exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertSuccess()
+		for i := 0; i < 3; i++ {
+			br, _ := exutil.StartBuildAndWait(oc, "myphp")
+			br.AssertSuccess()
+		}
 
 		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		builds, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+		var builds *buildapi.BuildList
+
+		g.By("waiting up to one minute for pruning to complete")
+		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				return false, err
+			}
+			if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
+				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+				return true, nil
+			}
+			return false, nil
+		})
+
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -75,19 +92,32 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("starting three test builds")
-		br, _ := exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertFailure()
-		br, _ = exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertFailure()
-		br, _ = exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertFailure()
+		for i := 0; i < 3; i++ {
+			br, _ := exutil.StartBuildAndWait(oc, "myphp")
+			br.AssertFailure()
+		}
 
 		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		builds, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+		var builds *buildapi.BuildList
+
+		g.By("waiting up to one minute for pruning to complete")
+		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				return false, err
+			}
+			if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+				return true, nil
+			}
+			return false, nil
+		})
+
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -103,19 +133,32 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("starting and canceling three test builds")
-		_, _, _ = exutil.StartBuild(oc, "myphp")
-		err = oc.Run("cancel-build").Args("myphp-1").Execute()
-		_, _, _ = exutil.StartBuild(oc, "myphp")
-		err = oc.Run("cancel-build").Args("myphp-2").Execute()
-		_, _, _ = exutil.StartBuild(oc, "myphp")
-		err = oc.Run("cancel-build").Args("myphp-3").Execute()
+		for i := 1; i < 4; i++ {
+			_, _, _ = exutil.StartBuild(oc, "myphp")
+			err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
+		}
 
 		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		builds, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+		var builds *buildapi.BuildList
+
+		g.By("waiting up to one minute for pruning to complete")
+		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				return false, err
+			}
+			if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+				return true, nil
+			}
+			return false, nil
+		})
+
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -131,19 +174,32 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("starting three test builds")
-		br, _ := exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertFailure()
-		br, _ = exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertFailure()
-		br, _ = exutil.StartBuildAndWait(oc, "myphp")
-		br.AssertFailure()
+		for i := 0; i < 3; i++ {
+			br, _ := exutil.StartBuildAndWait(oc, "myphp")
+			br.AssertFailure()
+		}
 
 		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		builds, err := oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+		var builds *buildapi.BuildList
+
+		g.By("waiting up to one minute for pruning to complete")
+		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+				return false, err
+			}
+			if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+				return true, nil
+			}
+			return false, nil
+		})
+
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
