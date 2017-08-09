@@ -757,3 +757,7 @@ func NewCmdAuth(fullName string, f *clientcmd.Factory, out, errout io.Writer) *c
 	cmd := kcmdauth.NewCmdAuth(f, out, errout)
 	return cmd
 }
+
+func NewCmdPlugin(fullName string, f *clientcmd.Factory, in io.Reader, out, errout io.Writer) *cobra.Command {
+	return kcmd.NewCmdPlugin(f, in, out, errout)
+}

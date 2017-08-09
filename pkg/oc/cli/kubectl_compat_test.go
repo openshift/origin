@@ -32,7 +32,6 @@ var MissingCommands = sets.NewString(
 	// TODO commands to assess
 	"apiversions",
 	"clusterinfo",
-	"plugin",
 	"resize",
 	"rollingupdate",
 	"run-container",
