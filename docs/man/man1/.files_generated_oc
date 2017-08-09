@@ -187,6 +187,7 @@ oc-new-project.1
 oc-observe.1
 oc-options.1
 oc-patch.1
+oc-plugin.1
 oc-policy-add-role-to-group.1
 oc-policy-add-role-to-user.1
 oc-policy-can-i.1
