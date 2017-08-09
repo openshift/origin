@@ -299,10 +299,127 @@ func TestValidateHostSubnet(t *testing.T) {
 			},
 			expectedErrors: 1,
 		},
+		{
+			name: "Good one with EgressIPs",
+			hs: &networkapi.HostSubnet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc.def.com",
+				},
+				Host:   "abc.def.com",
+				HostIP: "10.20.30.40",
+				Subnet: "8.8.8.0/24",
+				EgressIPs: []string{
+					"192.168.1.99",
+					"192.168.2.42",
+				},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Malformed EgressIPs",
+			hs: &networkapi.HostSubnet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc.def.com",
+				},
+				Host:   "abc.def.com",
+				HostIP: "10.20.30.40",
+				Subnet: "8.8.8.0/24",
+				EgressIPs: []string{
+					"192.168.1.0/24",
+					"bob",
+				},
+			},
+			expectedErrors: 2,
+		},
 	}
 
 	for _, tc := range tests {
 		errs := ValidateHostSubnet(tc.hs)
+
+		if len(errs) != tc.expectedErrors {
+			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)
+		}
+	}
+}
+
+func TestValidateNetNamespace(t *testing.T) {
+	tests := []struct {
+		name           string
+		netns          *networkapi.NetNamespace
+		expectedErrors int
+	}{
+		{
+			name: "Good one",
+			netns: &networkapi.NetNamespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+				NetName: "abc",
+				NetID:   12345,
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Bad NetName",
+			netns: &networkapi.NetNamespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+				NetName: "wrong",
+				NetID:   12345,
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "NetID too large",
+			netns: &networkapi.NetNamespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+				NetName: "abc",
+				NetID:   16777217,
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "NetID in reserved range",
+			netns: &networkapi.NetNamespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+				NetName: "abc",
+				NetID:   5,
+			},
+			expectedErrors: 1,
+		},
+		{
+			name: "Good with EgressIPs",
+			netns: &networkapi.NetNamespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+				NetName:   "abc",
+				NetID:     12345,
+				EgressIPs: []string{"192.168.1.5", "192.168.1.7"},
+			},
+			expectedErrors: 0,
+		},
+		{
+			name: "Bad EgressIPs",
+			netns: &networkapi.NetNamespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+				NetName:   "abc",
+				NetID:     12345,
+				EgressIPs: []string{"example.com", ""},
+			},
+			expectedErrors: 2,
+		},
+	}
+
+	for _, tc := range tests {
+		errs := ValidateNetNamespace(tc.netns)
 
 		if len(errs) != tc.expectedErrors {
 			t.Errorf("Test case %s expected %d error(s), got %d. %v", tc.name, tc.expectedErrors, len(errs), errs)

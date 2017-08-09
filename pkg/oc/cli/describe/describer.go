@@ -1741,6 +1741,7 @@ func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinter
 		formatString(out, "Node", hs.Host)
 		formatString(out, "Node IP", hs.HostIP)
 		formatString(out, "Pod Subnet", hs.Subnet)
+		formatString(out, "Egress IPs", strings.Join(hs.EgressIPs, ", "))
 		return nil
 	})
 }
@@ -1759,6 +1760,7 @@ func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kprint
 		formatMeta(out, netns.ObjectMeta)
 		formatString(out, "Name", netns.NetName)
 		formatString(out, "ID", netns.NetID)
+		formatString(out, "Egress IPs", strings.Join(netns.EgressIPs, ", "))
 		return nil
 	})
 }
