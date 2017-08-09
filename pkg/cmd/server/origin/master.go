@@ -30,6 +30,7 @@ import (
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
+	"github.com/openshift/origin/pkg/user/cache"
 )
 
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
@@ -247,11 +248,6 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	}
 
 	// add post-start hooks
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("user.openshift.io-groupcache",
-		func(context apiserver.PostStartHookContext) error {
-			c.GroupCache.RunUntil(context.StopCh)
-			return nil
-		})
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("authorization.openshift.io-bootstrapclusterroles", c.ensureComponentAuthorizationRules)
 
@@ -275,7 +271,7 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 
 		handler := c.versionSkewFilter(apiHandler, contextMapper)
 		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, contextMapper)
-		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, c.GroupCache, contextMapper)
+		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), contextMapper)
 
 		// audit handler must comes before the impersonationFilter to read the original user
 		if c.Options.AuditConfig.Enabled {

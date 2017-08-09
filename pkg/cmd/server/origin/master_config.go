@@ -94,14 +94,13 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
-	groupregistry "github.com/openshift/origin/pkg/user/registry/group"
-	groupstorage "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/util/restoptions"
@@ -122,7 +121,6 @@ type MasterConfig struct {
 	// TODO(sttts): replace AuthorizationAttributeBuilder with apiserverfilters.NewRequestAttributeGetter
 	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
-	GroupCache                    *usercache.GroupCache
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
@@ -189,6 +187,7 @@ type MasterConfig struct {
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
 	TemplateInformers      templateinformer.SharedInformerFactory
+	UserInformers          userinformer.SharedInformerFactory
 }
 
 type InformerAccess interface {
@@ -202,6 +201,7 @@ type InformerAccess interface {
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
 	GetTemplateInformers() templateinformer.SharedInformerFactory
+	GetUserInformers() userinformer.SharedInformerFactory
 }
 
 // BuildMasterConfig builds and returns the OpenShift master configuration based on the
@@ -251,11 +251,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 
 	requestContextMapper := apirequest.NewRequestContextMapper()
 
-	groupStorage, err := groupstorage.NewREST(restOptsGetter)
-	if err != nil {
-		return nil, err
-	}
-	groupCache := usercache.NewGroupCache(groupregistry.NewRegistry(groupStorage))
 	projectCache := projectcache.NewProjectCache(
 		informers.GetInternalKubeInformers().Core().InternalVersion().Namespaces().Informer(),
 		privilegedLoopbackKubeClientsetInternal.Core().Namespaces(),
@@ -322,8 +317,8 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		ClusterResourceQuotaInformer: informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
 		DefaultRegistryFn:            imageapi.DefaultRegistryFunc(defaultRegistryFunc),
-		GroupCache:                   groupCache,
 		SecurityInformers:            informers.GetSecurityInformers(),
+		UserInformers:                informers.GetUserInformers(),
 	}
 	initializersChain := admission.PluginInitializers{genericInitializer, kubePluginInitializer, openshiftPluginInitializer}
 
@@ -335,7 +330,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(privilegedLoopbackKubeClientsetExternal)
-	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, apiClientCAs, groupCache)
+	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, apiClientCAs, usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()))
 	if err != nil {
 		return nil, err
 	}
@@ -351,7 +346,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		SubjectLocator:                subjectLocator,
 		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
 
-		GroupCache: groupCache,
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
 			privilegedLoopbackKubeClientsetInternal,
@@ -393,6 +387,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),
 		TemplateInformers:      informers.GetTemplateInformers(),
+		UserInformers:          informers.GetUserInformers(),
 	}
 
 	// ensure that the limit range informer will be started

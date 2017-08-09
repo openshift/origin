@@ -106,7 +106,6 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/start-apiextensions-informers",
 	"/healthz/poststarthook/start-kube-aggregator-informers",
 	"/healthz/poststarthook/template.openshift.io-sharednamespace",
-	"/healthz/poststarthook/user.openshift.io-groupcache",
 	"/healthz/ready",
 	"/metrics",
 	"/oapi",
@@ -151,6 +150,18 @@ func TestRootRedirect(t *testing.T) {
 	json.Unmarshal(body, &got)
 	sort.Strings(got.Paths)
 	if !reflect.DeepEqual(got.Paths, expectedIndex) {
+		for i := range got.Paths {
+			if i > len(expectedIndex) {
+				t.Errorf("expected missing %v", got.Paths[i:])
+				break
+			}
+			if got.Paths[i] == expectedIndex[i] {
+				continue
+			}
+			t.Errorf("expected[%d]==%v actual[%d]==%v", i, expectedIndex[i], i, got.Paths[i])
+			break
+		}
+
 		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v", got, expectedIndex)
 	}
 

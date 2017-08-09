@@ -29,6 +29,8 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 // informers is a convenient way for us to keep track of the informers, but
@@ -45,6 +47,7 @@ type informers struct {
 	quotaInformers         quotainformer.SharedInformerFactory
 	securityInformers      securityinformer.SharedInformerFactory
 	templateInformers      templateinformer.SharedInformerFactory
+	userInformers          userinformer.SharedInformerFactory
 }
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
@@ -82,6 +85,10 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 	if err != nil {
 		return nil, err
 	}
+	userClient, err := userclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	// TODO find a single place to create and start informers.  During the 1.7 rebase this will come more naturally in a config object,
 	// before then we should try to eliminate our direct to storage access.  It's making us do weird things.
@@ -115,6 +122,7 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 		quotaInformers:         quotainformer.NewSharedInformerFactory(quotaClient, defaultInformerResyncPeriod),
 		securityInformers:      securityinformer.NewSharedInformerFactory(securityClient, defaultInformerResyncPeriod),
 		templateInformers:      templateInformers,
+		userInformers:          userinformer.NewSharedInformerFactory(userClient, defaultInformerResyncPeriod),
 	}, nil
 }
 
@@ -148,6 +156,9 @@ func (i *informers) GetSecurityInformers() securityinformer.SharedInformerFactor
 func (i *informers) GetTemplateInformers() templateinformer.SharedInformerFactory {
 	return i.templateInformers
 }
+func (i *informers) GetUserInformers() userinformer.SharedInformerFactory {
+	return i.userInformers
+}
 
 // Start initializes all requested informers.
 func (i *informers) Start(stopCh <-chan struct{}) {
@@ -161,6 +172,7 @@ func (i *informers) Start(stopCh <-chan struct{}) {
 	i.quotaInformers.Start(stopCh)
 	i.securityInformers.Start(stopCh)
 	i.templateInformers.Start(stopCh)
+	i.userInformers.Start(stopCh)
 }
 
 func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, kubeclientgoclient.Interface, *osclient.Client, error) {

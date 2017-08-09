@@ -25,6 +25,7 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	clientgoclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
@@ -48,6 +49,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -507,10 +509,20 @@ func (m *Master) Start() error {
 
 	if m.api {
 		// informers are shared amongst all the various api components we build
+		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
 		informers, err := NewInformers(*m.config)
 		if err != nil {
 			return err
 		}
+		// the API server runs a reverse index on users to groups which requires an index on the group informer
+		// this activates the lister/watcher, so we want to do it only in this path
+		err = informers.userInformers.User().InternalVersion().Groups().Informer().AddIndexers(cache.Indexers{
+			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+		})
+		if err != nil {
+			return err
+		}
+
 		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
 		if err != nil {
 			return err

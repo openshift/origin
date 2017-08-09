@@ -7,12 +7,17 @@ import (
 
 type UserInterface interface {
 	RESTClient() rest.Interface
+	GroupsGetter
 	UsersGetter
 }
 
 // UserClient is used to interact with features provided by the user.openshift.io group.
 type UserClient struct {
 	restClient rest.Interface
+}
+
+func (c *UserClient) Groups(namespace string) GroupInterface {
+	return newGroups(c, namespace)
 }
 
 func (c *UserClient) Users(namespace string) UserResourceInterface {

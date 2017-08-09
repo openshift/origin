@@ -17,7 +17,9 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	usercache "github.com/openshift/origin/pkg/user/cache"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -25,6 +27,10 @@ func Register(plugins *admission.Plugins) {
 		func(config io.Reader) (admission.Interface, error) {
 			return NewRestrictUsersAdmission()
 		})
+}
+
+type GroupCache interface {
+	GroupsFor(string) ([]*userapi.Group, error)
 }
 
 // restrictUsersAdmission implements admission.Interface and enforces
@@ -35,11 +41,11 @@ type restrictUsersAdmission struct {
 
 	oclient    oclient.Interface
 	kclient    kclientset.Interface
-	groupCache *usercache.GroupCache
+	groupCache GroupCache
 }
 
 var _ = oadmission.WantsOpenshiftClient(&restrictUsersAdmission{})
-var _ = oadmission.WantsGroupCache(&restrictUsersAdmission{})
+var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
 // NewRestrictUsersAdmission configures an admission plugin that enforces
@@ -58,8 +64,8 @@ func (q *restrictUsersAdmission) SetOpenshiftClient(c oclient.Interface) {
 	q.oclient = c
 }
 
-func (q *restrictUsersAdmission) SetGroupCache(c *usercache.GroupCache) {
-	q.groupCache = c
+func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
+	q.groupCache = usercache.NewGroupCache(userInformers.User().InternalVersion().Groups())
 }
 
 // objectReferenceDelta returns the relative complement of
@@ -182,10 +188,6 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 	if len(roleBindingRestrictionList.Items) == 0 {
 		glog.V(4).Infof("No rolebinding restrictions specified; admitting")
 		return nil
-	}
-
-	if !q.groupCache.Running() {
-		return admission.NewForbidden(a, errors.New("groupCache not running"))
 	}
 
 	checkers := []SubjectChecker{}

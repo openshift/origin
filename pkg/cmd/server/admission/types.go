@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	usercache "github.com/openshift/origin/pkg/user/cache"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 )
 
 // WantsOpenshiftClient should be implemented by admission plugins that need
@@ -83,9 +83,7 @@ type WantsDefaultRegistryFunc interface {
 	admission.Validator
 }
 
-// WantsGroupCache should be implemented by admission plugins that need a
-// group cache.
-type WantsGroupCache interface {
-	SetGroupCache(*usercache.GroupCache)
+type WantsUserInformer interface {
+	SetUserInformer(userinformer.SharedInformerFactory)
 	admission.Validator
 }

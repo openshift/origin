@@ -58,6 +58,8 @@ type UserIdentityMapping struct {
 	User     kapi.ObjectReference
 }
 
+// +genclient
+
 // Group represents a referenceable set of Users
 type Group struct {
 	metav1.TypeMeta
