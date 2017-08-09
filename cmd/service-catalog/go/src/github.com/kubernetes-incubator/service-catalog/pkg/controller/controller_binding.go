@@ -21,10 +21,11 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	osb "github.com/pmorie/go-open-service-broker-client/v2"
+
 	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/versioned/v1alpha1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
-	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi"
-	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/pkg/api"
@@ -32,6 +33,9 @@ import (
 	settingsv1alpha1 "k8s.io/client-go/pkg/apis/settings/v1alpha1"
 	"k8s.io/client-go/tools/cache"
 )
+
+// bindingControllerKind contains the schema.GroupVersionKind for this controller type.
+var bindingControllerKind = v1alpha1.SchemeGroupVersion.WithKind("Binding")
 
 // Binding handlers and control-loop
 
@@ -50,7 +54,7 @@ func (c *controller) reconcileBindingKey(key string) error {
 		return err
 	}
 	binding, err := c.bindingLister.Bindings(namespace).Get(name)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		glog.Infof("Not doing work for Binding %v because it has been deleted", key)
 		return nil
 	}
@@ -66,6 +70,8 @@ func (c *controller) bindingUpdate(oldObj, newObj interface{}) {
 	c.bindingAdd(newObj)
 }
 
+// an error is returned to indicate that the binding has not been
+// fully processed and should be resubmitted at a later time.
 func (c *controller) reconcileBinding(binding *v1alpha1.Binding) error {
 	// Determine whether the checksum has been invalidated by a change to the
 	// object.  If the binding's checksum matches the calculated checksum,
@@ -152,7 +158,7 @@ func (c *controller) reconcileBinding(binding *v1alpha1.Binding) error {
 			s,
 		)
 		c.recorder.Event(binding, api.EventTypeWarning, errorNonbindableServiceClassReason, s)
-		return err
+		return nil
 	}
 
 	if binding.DeletionTimestamp == nil { // Add or update
@@ -202,18 +208,44 @@ func (c *controller) reconcileBinding(binding *v1alpha1.Binding) error {
 				s,
 			)
 			c.recorder.Eventf(binding, api.EventTypeWarning, errorInstanceNotReadyReason, s)
-			return err
+			return nil
 		}
 
-		request := &brokerapi.BindingRequest{
+		appGUID := string(ns.UID)
+		request := &osb.BindRequest{
+			BindingID:    binding.Spec.ExternalID,
+			InstanceID:   instance.Spec.ExternalID,
 			ServiceID:    serviceClass.ExternalID,
 			PlanID:       servicePlan.ExternalID,
+			AppGUID:      &appGUID,
 			Parameters:   parameters,
-			AppGUID:      string(ns.UID),
-			BindResource: map[string]interface{}{"app_guid": string(ns.UID)},
+			BindResource: &osb.BindResource{AppGUID: &appGUID},
 		}
-		response, err := brokerClient.CreateServiceBinding(instance.Spec.ExternalID, binding.Spec.ExternalID, request)
+
+		response, err := brokerClient.Bind(request)
 		if err != nil {
+			httpErr, isError := osb.IsHTTPError(err)
+			if isError {
+				s := fmt.Sprintf("Error creating Binding \"%s/%s\" for Instance \"%s/%s\" of ServiceClass %q at Broker %q, %v",
+					binding.Name,
+					binding.Namespace,
+					instance.Namespace,
+					instance.Name,
+					serviceClass.Name,
+					brokerName,
+					httpErr.Error(),
+				)
+				glog.Warning(s)
+				c.updateBindingCondition(
+					binding,
+					v1alpha1.BindingConditionReady,
+					v1alpha1.ConditionFalse,
+					errorBindCallReason,
+					"Bind call failed. "+s)
+				c.recorder.Event(binding, api.EventTypeWarning, errorBindCallReason, s)
+				return err
+			}
+
 			s := fmt.Sprintf("Error creating Binding \"%s/%s\" for Instance \"%s/%s\" of ServiceClass %q at Broker %q: %s", binding.Name, binding.Namespace, instance.Namespace, instance.Name, serviceClass.Name, brokerName, err)
 			glog.Warning(s)
 			c.updateBindingCondition(
@@ -225,7 +257,8 @@ func (c *controller) reconcileBinding(binding *v1alpha1.Binding) error {
 			c.recorder.Event(binding, api.EventTypeWarning, errorBindCallReason, s)
 			return err
 		}
-		err = c.injectBinding(binding, &response.Credentials)
+
+		err = c.injectBinding(binding, response.Credentials)
 		if err != nil {
 			s := fmt.Sprintf("Error injecting binding results for Binding \"%s/%s\": %s", binding.Namespace, binding.Name, err)
 			glog.Warning(s)
@@ -276,8 +309,36 @@ func (c *controller) reconcileBinding(binding *v1alpha1.Binding) error {
 			c.recorder.Eventf(binding, api.EventTypeWarning, errorEjectingBindReason, "%v %v", errorEjectingBindMessage, s)
 			return err
 		}
-		err = brokerClient.DeleteServiceBinding(instance.Spec.ExternalID, binding.Spec.ExternalID, serviceClass.ExternalID, servicePlan.ExternalID)
+
+		unbindRequest := &osb.UnbindRequest{
+			BindingID:  binding.Spec.ExternalID,
+			InstanceID: instance.Spec.ExternalID,
+			ServiceID:  serviceClass.ExternalID,
+			PlanID:     servicePlan.ExternalID,
+		}
+		_, err = brokerClient.Unbind(unbindRequest)
 		if err != nil {
+			httpErr, isError := osb.IsHTTPError(err)
+			if isError {
+				s := fmt.Sprintf("Error creating Unbinding \"%s/%s\" for Instance \"%s/%s\" of ServiceClass %q at Broker %q, %v",
+					binding.Name,
+					binding.Namespace,
+					instance.Namespace,
+					instance.Name,
+					serviceClass.Name,
+					brokerName,
+					httpErr.Error(),
+				)
+				glog.Warning(s)
+				c.updateBindingCondition(
+					binding,
+					v1alpha1.BindingConditionReady,
+					v1alpha1.ConditionFalse,
+					errorUnbindCallReason,
+					"Unbind call failed. "+s)
+				c.recorder.Event(binding, api.EventTypeWarning, errorUnbindCallReason, s)
+				return err
+			}
 			s := fmt.Sprintf(
 				"Error unbinding Binding \"%s/%s\" for Instance \"%s/%s\" of ServiceClass %q at Broker %q: %s",
 				binding.Name,
@@ -332,40 +393,77 @@ func isPlanBindable(serviceClass *v1alpha1.ServiceClass, plan *v1alpha1.ServiceP
 	return serviceClass.Bindable
 }
 
-func (c *controller) injectBinding(binding *v1alpha1.Binding, credentials *brokerapi.Credential) error {
-	glog.V(5).Infof("Creating Secret %v/%v", binding.Namespace, binding.Spec.SecretName)
-	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      binding.Spec.SecretName,
-			Namespace: binding.Namespace,
-		},
-		Data: make(map[string][]byte),
-	}
+func (c *controller) injectBinding(binding *v1alpha1.Binding, credentials map[string]interface{}) error {
+	glog.V(5).Infof("Creating/updating Secret %v/%v", binding.Namespace, binding.Spec.SecretName)
 
-	for k, v := range *credentials {
+	secretData := make(map[string][]byte)
+	for k, v := range credentials {
 		var err error
-		secret.Data[k], err = serialize(v)
+		secretData[k], err = serialize(v)
 		if err != nil {
+			// Terminal error
+			// TODO mark as terminal error once we have the terminal condition
 			return fmt.Errorf("Unable to serialize credential value %q: %v; %s",
 				k, v, err)
 		}
 	}
 
-	found := false
-
-	_, err := c.kubeClient.Core().Secrets(binding.Namespace).Get(binding.Spec.SecretName, metav1.GetOptions{})
+	// Creating/updating the Secret
+	secretClient := c.kubeClient.Core().Secrets(binding.Namespace)
+	existingSecret, err := secretClient.Get(binding.Spec.SecretName, metav1.GetOptions{})
 	if err == nil {
-		found = true
-	}
-
-	if found {
-		_, err = c.kubeClient.Core().Secrets(binding.Namespace).Update(secret)
+		// Update existing secret
+		if !IsControlledBy(existingSecret, binding) {
+			controllerRef := GetControllerOf(existingSecret)
+			// TODO mark as terminal error once we have the terminal condition
+			return fmt.Errorf("Secret '%s' is not owned by Binding, controllerRef: %v",
+				existingSecret.Name, controllerRef)
+		}
+		existingSecret.Data = secretData
+		_, err = secretClient.Update(existingSecret)
+		if err != nil {
+			if apierrors.IsConflict(err) {
+				// Conflicting update detected, try again later
+				return fmt.Errorf("Conflicting Secret '%s' update detected", existingSecret.Name)
+			}
+			// Terminal error
+			// TODO mark as terminal error once we have the terminal condition
+			return fmt.Errorf("Unexpected error in response: %v", err)
+		}
 	} else {
-		_, err = c.kubeClient.Core().Secrets(binding.Namespace).Create(secret)
+		if !apierrors.IsNotFound(err) {
+			// Terminal error
+			// TODO mark as terminal error once we have the terminal condition
+			return fmt.Errorf("Unexpected error in response: %v", err)
+		}
+		err = nil
+
+		// Create new secret
+		secret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      binding.Spec.SecretName,
+				Namespace: binding.Namespace,
+				OwnerReferences: []metav1.OwnerReference{
+					*NewControllerRef(binding, bindingControllerKind),
+				},
+			},
+			Data: secretData,
+		}
+		_, err = secretClient.Create(secret)
+		if err != nil {
+			if apierrors.IsAlreadyExists(err) {
+				// Concurrent controller has created secret under the same name,
+				// Update the secret at the next retry iteration
+				return fmt.Errorf("Conflicting Secret '%s' creation detected", secret.Name)
+			}
+			// Terminal error
+			// TODO mark as terminal error once we have the terminal condition
+			return fmt.Errorf("Unexpected error in response: %v", err)
+		}
 	}
 
-	if err != nil || binding.Spec.AlphaPodPresetTemplate == nil {
-		return err
+	if binding.Spec.AlphaPodPresetTemplate == nil {
+		return nil
 	}
 
 	podPreset := &settingsv1alpha1.PodPreset{
@@ -388,7 +486,6 @@ func (c *controller) injectBinding(binding *v1alpha1.Binding, credentials *broke
 	}
 
 	_, err = c.kubeClient.SettingsV1alpha1().PodPresets(binding.Namespace).Create(podPreset)
-
 	return err
 }
 
@@ -399,14 +496,14 @@ func (c *controller) ejectBinding(binding *v1alpha1.Binding) error {
 		podPresetName := binding.Spec.AlphaPodPresetTemplate.Name
 		glog.V(5).Infof("Deleting PodPreset %v/%v", binding.Namespace, podPresetName)
 		err := c.kubeClient.SettingsV1alpha1().PodPresets(binding.Namespace).Delete(podPresetName, &metav1.DeleteOptions{})
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
 
 	glog.V(5).Infof("Deleting Secret %v/%v", binding.Namespace, binding.Spec.SecretName)
 	err = c.kubeClient.Core().Secrets(binding.Namespace).Delete(binding.Spec.SecretName, &metav1.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	}
 

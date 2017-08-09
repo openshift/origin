@@ -8,7 +8,6 @@ package aetesting
 
 import (
 	"fmt"
-	"net/http"
 	"reflect"
 	"testing"
 
@@ -45,7 +44,7 @@ func FakeSingleContext(t *testing.T, service, method string, f interface{}) cont
 		method:  method,
 		f:       fv,
 	}
-	return internal.WithCallOverride(internal.ContextForTesting(&http.Request{}), s.call)
+	return internal.WithCallOverride(context.Background(), s.call)
 }
 
 var (

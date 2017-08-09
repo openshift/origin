@@ -1,6 +1,9 @@
 package lager
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 type LogLevel int
 
@@ -24,7 +27,15 @@ type LogFormat struct {
 func (log LogFormat) ToJSON() []byte {
 	content, err := json.Marshal(log)
 	if err != nil {
-		panic(err)
+		_, ok1 := err.(*json.UnsupportedTypeError)
+		_, ok2 := err.(*json.MarshalerError)
+		if ok1 || ok2 {
+			log.Data = map[string]interface{}{"lager serialisation error": err.Error(), "data_dump": fmt.Sprintf("%#v", log.Data)}
+			content, err = json.Marshal(log)
+		}
+		if err != nil {
+			panic(err)
+		}
 	}
 	return content
 }

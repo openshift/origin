@@ -83,7 +83,7 @@ function retry() {
 function wait_for_expected_output() {
   local OPTIND OPTARG ARG
   local negate=''
-  local count=0
+  local count=10
   local sleep_amount=5
   local max_sleep=60
   local expected=''

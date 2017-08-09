@@ -76,7 +76,7 @@ function cleanup() {
     helm delete --purge "${BROKER_RELEASE}" || true
     helm delete --purge "${CATALOG_RELEASE}" || true
     rm -f "${SC_KUBECONFIG}"
-    kubectl delete secret -n test-ns my-secret || true
+    kubectl delete secret -n test-ns ups-binding || true
     kubectl delete namespace test-ns || true
 
     wait_for_expected_output -x -e 'test-ns' -n 10 \
@@ -150,11 +150,11 @@ retry -n 10 \
 
 echo 'Waiting on pods to come up...'
 
-wait_for_expected_output -x -e 'Pending' -n 10 \
+wait_for_expected_output -e 'ups-broker-ups-broker' \
     kubectl get pods --namespace ups-broker \
-  || error_exit 'Timed out waiting for user-provided-service broker pod to come up.'
-
-wait_for_expected_output -x -e 'ContainerCreating' -n 10 \
+  && wait_for_expected_output -x -e 'Pending' \
+    kubectl get pods --namespace ups-broker \
+  && wait_for_expected_output -x -e 'ContainerCreating' \
     kubectl get pods --namespace ups-broker \
   || error_exit 'Timed out waiting for user-provided-service broker pod to come up.'
 
@@ -166,11 +166,13 @@ wait_for_expected_output -x -e 'ContainerCreating' -n 10 \
     error_exit 'User provided service broker pod did not come up successfully.'
   }
 
-wait_for_expected_output -x -e 'Pending' -n 10 \
+wait_for_expected_output -e 'catalog-catalog-controller-manager' \
     kubectl get pods --namespace catalog \
-  || error_exit 'Timed out waiting for service catalog pods to come up.'
-
-wait_for_expected_output -x -e 'ContainerCreating' -n 10 \
+  && wait_for_expected_output -e 'catalog-catalog-apiserver' \
+    kubectl get pods --namespace catalog \
+  && wait_for_expected_output -x -e 'Pending' \
+    kubectl get pods --namespace catalog \
+  && wait_for_expected_output -x -e 'ContainerCreating' \
     kubectl get pods --namespace catalog \
   || error_exit 'Timed out waiting for service catalog pods to come up.'
 
@@ -208,7 +210,7 @@ API_SERVER_HOST="$(kubectl get services -n catalog | grep 'apiserver' | awk '{pr
 export KUBECONFIG="${SC_KUBECONFIG}"
 
 kubectl config set-credentials service-catalog-creds --username=admin --password=admin
-kubectl config set-cluster service-catalog-cluster --server="http://${API_SERVER_HOST}:80"
+kubectl config set-cluster service-catalog-cluster --server="https://${API_SERVER_HOST}:443" --insecure-skip-tls-verify=true
 kubectl config set-context service-catalog-ctx --cluster=service-catalog-cluster --user=service-catalog-creds
 kubectl config use-context service-catalog-ctx
 
@@ -279,8 +281,8 @@ wait_for_expected_output -e 'InjectedBindResult' -n 10 \
     error_exit 'Failure status reported when attempting to inject ups-binding.'
   }
 
-[[ "$(KUBECONFIG="${K8S_KUBECONFIG}" kubectl get secrets -n test-ns)" == *my-secret* ]] \
-  || error_exit '"my-secret" not present when listing secrets.'
+[[ "$(KUBECONFIG="${K8S_KUBECONFIG}" kubectl get secrets -n test-ns)" == *ups-binding* ]] \
+  || error_exit '"ups-binding" not present when listing secrets.'
 
 
 # TODO: Cannot currently test TPR deletion; only delete if using an etcd-backed
@@ -294,9 +296,9 @@ if [[ -z "${WITH_TPR:-}" ]]; then
     || error_exit 'Error when deleting ups-binding.'
 
   export KUBECONFIG="${K8S_KUBECONFIG}"
-  wait_for_expected_output -x -e "my-secret" -n 10 \
+  wait_for_expected_output -x -e "ups-binding" -n 10 \
       kubectl get secrets -n test-ns \
-    || error_exit '"my-secret" not removed upon deleting ups-binding.'
+    || error_exit '"ups-binding" not removed upon deleting ups-binding.'
   export KUBECONFIG="${SC_KUBECONFIG}"
 
   # Deprovision the instance

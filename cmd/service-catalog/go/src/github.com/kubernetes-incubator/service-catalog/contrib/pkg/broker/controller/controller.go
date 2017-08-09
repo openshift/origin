@@ -25,10 +25,10 @@ import (
 type Controller interface {
 	Catalog() (*brokerapi.Catalog, error)
 
-	GetServiceInstance(id string) (string, error)
-	CreateServiceInstance(id string, req *brokerapi.CreateServiceInstanceRequest) (*brokerapi.CreateServiceInstanceResponse, error)
-	RemoveServiceInstance(id string) (*brokerapi.DeleteServiceInstanceResponse, error)
+	GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation string) (*brokerapi.LastOperationResponse, error)
+	CreateServiceInstance(instanceID string, req *brokerapi.CreateServiceInstanceRequest) (*brokerapi.CreateServiceInstanceResponse, error)
+	RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*brokerapi.DeleteServiceInstanceResponse, error)
 
-	Bind(instanceID string, bindingID string, req *brokerapi.BindingRequest) (*brokerapi.CreateServiceBindingResponse, error)
-	UnBind(instanceID string, bindingID string) error
+	Bind(instanceID, bindingID string, req *brokerapi.BindingRequest) (*brokerapi.CreateServiceBindingResponse, error)
+	UnBind(instanceID, bindingID, serviceID, planID string) error
 }

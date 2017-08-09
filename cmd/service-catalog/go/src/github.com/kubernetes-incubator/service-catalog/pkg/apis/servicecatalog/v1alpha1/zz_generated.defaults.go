@@ -36,6 +36,7 @@ func RegisterDefaults(scheme *runtime.Scheme) error {
 }
 
 func SetObjectDefaults_Binding(in *Binding) {
+	SetDefaults_Binding(in)
 	SetDefaults_BindingSpec(&in.Spec)
 }
 

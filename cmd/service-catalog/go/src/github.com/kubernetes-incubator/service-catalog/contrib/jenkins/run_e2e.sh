@@ -95,6 +95,7 @@ make bin/e2e.test \
   || error_exit "Error when making e2e test binary."
 
 KUBECONFIG="${KUBECONFIG}" SERVICECATALOGCONFIG="${SC_KUBECONFIG}" ${ROOT}/bin/e2e.test \
+    -broker-image="${REGISTRY}user-broker:${VERSION}" \
   || error_exit "Error while running e2e tests."
 
 echo "'e2e.test' completed successfully."

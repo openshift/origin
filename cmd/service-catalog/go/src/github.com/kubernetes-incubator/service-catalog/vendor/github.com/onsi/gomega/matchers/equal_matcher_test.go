@@ -2,8 +2,6 @@ package matchers_test
 
 import (
 	"errors"
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/matchers"
@@ -43,36 +41,4 @@ var _ = Describe("Equal", func() {
 			Ω(myCustomType{s: "foo", n: 3, f: 2.0, arr: []string{"a", "b"}}).ShouldNot(Equal(myCustomType{s: "foo", n: 3, f: 2.0, arr: []string{"a", "b", "c"}}))
 		})
 	})
-
-	Describe("failure messages", func() {
-		It("shows the two strings simply when they are short", func() {
-			subject := EqualMatcher{Expected: "eric"}
-
-			failureMessage := subject.FailureMessage("tim")
-			Ω(failureMessage).To(BeEquivalentTo(expectedShortStringFailureMessage))
-		})
-
-		It("shows the exact point where two long strings differ", func() {
-			stringWithB := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-			stringWithZ := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaazaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-
-			subject := EqualMatcher{Expected: stringWithZ}
-
-			failureMessage := subject.FailureMessage(stringWithB)
-			Ω(failureMessage).To(BeEquivalentTo(expectedLongStringFailureMessage))
-		})
-	})
 })
-
-var expectedShortStringFailureMessage = strings.TrimSpace(`
-Expected
-    <string>: tim
-to equal
-    <string>: eric
-`)
-var expectedLongStringFailureMessage = strings.TrimSpace(`
-Expected
-    <string>: "...aaaaabaaaaa..."
-to equal               |
-    <string>: "...aaaaazaaaaa..."
-`)

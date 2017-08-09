@@ -22,6 +22,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	osb "github.com/pmorie/go-open-service-broker-client/v2"
+
+	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/versioned/v1alpha1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -89,6 +92,7 @@ const (
 	errorWithOngoingAsyncOperationMessage string = "Another operation for this service instance is in progress. "
 	errorNonbindableServiceClassReason    string = "ErrorNonbindableServiceClass"
 	errorInstanceNotReadyReason           string = "ErrorInstanceNotReady"
+	errorPollingLastOperationReason       string = "ErrorPollingLastOperation"
 
 	successInjectedBindResultReason  string = "InjectedBindResult"
 	successInjectedBindResultMessage string = "Injected bind result"
@@ -112,6 +116,11 @@ const (
 // the controller's broker relist interval has not elapsed since the broker's
 // ready condition became true.
 func shouldReconcileBroker(broker *v1alpha1.Broker, now time.Time, relistInterval time.Duration) bool {
+	brokerChecksum := checksum.BrokerSpecChecksum(broker.Spec)
+	if broker.Status.Checksum != nil && brokerChecksum != *broker.Status.Checksum {
+		// If the spec has changed, we should reconcile the broker.
+		return true
+	}
 	if broker.DeletionTimestamp != nil || len(broker.Status.Conditions) == 0 {
 		// If the deletion timestamp is set or the broker has no status
 		// conditions, we should reconcile it.
@@ -156,7 +165,9 @@ func (c *controller) reconcileBrokerKey(key string) error {
 	return c.reconcileBroker(broker)
 }
 
-// reconcileBroker is the control-loop that reconciles a Broker.
+// reconcileBroker is the control-loop that reconciles a Broker. An
+// error is returned to indicate that the binding has not been fully
+// processed and should be resubmitted at a later time.
 func (c *controller) reconcileBroker(broker *v1alpha1.Broker) error {
 	glog.V(4).Infof("Processing Broker %v", broker.Name)
 
@@ -170,19 +181,33 @@ func (c *controller) reconcileBroker(broker *v1alpha1.Broker) error {
 		return nil
 	}
 
-	username, password, err := getAuthCredentialsFromBroker(c.kubeClient, broker)
-	if err != nil {
-		s := fmt.Sprintf("Error getting broker auth credentials for broker %q: %s", broker.Name, err)
-		glog.Info(s)
-		c.recorder.Event(broker, api.EventTypeWarning, errorAuthCredentialsReason, s)
-		c.updateBrokerCondition(broker, v1alpha1.BrokerConditionReady, v1alpha1.ConditionFalse, errorFetchingCatalogReason, errorFetchingCatalogMessage+s)
-		return err
-	}
-
-	glog.V(4).Infof("Creating client for Broker %v, URL: %v", broker.Name, broker.Spec.URL)
-	brokerClient := c.brokerClientCreateFunc(broker.Name, broker.Spec.URL, username, password)
-
 	if broker.DeletionTimestamp == nil { // Add or update
+		authConfig, err := getAuthCredentialsFromBroker(c.kubeClient, broker)
+		if err != nil {
+			s := fmt.Sprintf("Error getting broker auth credentials for broker %q: %s", broker.Name, err)
+			glog.Info(s)
+			c.recorder.Event(broker, api.EventTypeWarning, errorAuthCredentialsReason, s)
+			c.updateBrokerCondition(broker, v1alpha1.BrokerConditionReady, v1alpha1.ConditionFalse, errorFetchingCatalogReason, errorFetchingCatalogMessage+s)
+			return err
+		}
+
+		clientConfig := osb.DefaultClientConfiguration()
+		clientConfig.Name = broker.Name
+		clientConfig.URL = broker.Spec.URL
+		clientConfig.AuthConfig = authConfig
+		clientConfig.EnableAlphaFeatures = true
+		clientConfig.Insecure = true
+
+		glog.V(4).Infof("Creating client for Broker %v, URL: %v", broker.Name, broker.Spec.URL)
+		brokerClient, err := c.brokerClientCreateFunc(clientConfig)
+		if err != nil {
+			s := fmt.Sprintf("Error creating client for broker %q: %s", broker.Name, err)
+			glog.Info(s)
+			c.recorder.Event(broker, api.EventTypeWarning, errorAuthCredentialsReason, s)
+			c.updateBrokerCondition(broker, v1alpha1.BrokerConditionReady, v1alpha1.ConditionFalse, errorFetchingCatalogReason, errorFetchingCatalogMessage+s)
+			return err
+		}
+
 		glog.V(4).Infof("Adding/Updating Broker %v", broker.Name)
 		brokerCatalog, err := brokerClient.GetCatalog()
 		if err != nil {
@@ -415,6 +440,14 @@ func (c *controller) updateBrokerCondition(broker *v1alpha1.Broker, conditionTyp
 func (c *controller) updateBrokerFinalizers(
 	broker *v1alpha1.Broker,
 	finalizers []string) error {
+
+	// Get the latest version of the broker so that we can avoid conflicts
+	// (since we have probably just updated the status of the broker and are
+	// now removing the last finalizer).
+	broker, err := c.serviceCatalogClient.Brokers().Get(broker.Name, metav1.GetOptions{})
+	if err != nil {
+		glog.Errorf("Error getting Broker %v to finalize: %v", broker.Name, err)
+	}
 
 	clone, err := api.Scheme.DeepCopy(broker)
 	if err != nil {

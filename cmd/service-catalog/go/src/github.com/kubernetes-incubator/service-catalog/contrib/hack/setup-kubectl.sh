@@ -39,7 +39,7 @@ stop-server.sh > /dev/null 2>&1 || true
 start-server.sh
 
 # Find the port # that Docker assigned to the server
-PORT=$(docker port etcd-svc-cat 8081 | sed "s/.*://")
+PORT=$(docker port etcd-svc-cat 443 | sed "s/.*://")
 
 D_HOST=${DOCKER_HOST:-localhost}
 D_HOST=${D_HOST#*//}   # remove leading proto://
@@ -48,6 +48,6 @@ D_HOST=${D_HOST%:*}    # remove trailing port #
 # Setup our credentials
 NO_TTY=1 kubectl config set-credentials service-catalog-creds --username=admin --password=admin
 #NO_TTY=1 kubectl config set-cluster service-catalog-cluster --server=https://${D_HOST}:${PORT} --certificate-authority=/var/run/kubernetes-service-catalog/apiserver.crt
-NO_TTY=1 kubectl config set-cluster service-catalog-cluster --server=http://${D_HOST}:${PORT}
+NO_TTY=1 kubectl config set-cluster service-catalog-cluster --server=https://${D_HOST}:${PORT}
 NO_TTY=1 kubectl config set-context service-catalog-ctx --cluster=service-catalog-cluster --user=service-catalog-creds
 NO_TTY=1 kubectl config use-context service-catalog-ctx

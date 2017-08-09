@@ -213,37 +213,33 @@ func TestSetResponseError(t *testing.T) {
 }
 
 func TestNamespaceResetting(t *testing.T) {
-	namec := make(chan *string, 1)
-	c0 := aetesting.FakeSingleContext(t, "memcache", "Get", func(req *pb.MemcacheGetRequest, res *pb.MemcacheGetResponse) error {
-		namec <- req.NameSpace
+	var nsField *string
+	c := aetesting.FakeSingleContext(t, "memcache", "Get", func(req *pb.MemcacheGetRequest, res *pb.MemcacheGetResponse) error {
+		nsField = req.NameSpace
 		return errRPC
 	})
 
-	// Check that wrapping c0 in a namespace twice works correctly.
-	c1, err := appengine.Namespace(c0, "A")
+	// Check that wrapping c in a namespace twice works correctly.
+	nc, err := appengine.Namespace(c, "A")
 	if err != nil {
 		t.Fatalf("appengine.Namespace: %v", err)
 	}
-	c2, err := appengine.Namespace(c1, "") // should act as the original context
+	c0, err := appengine.Namespace(nc, "") // should act as the original context
 	if err != nil {
 		t.Fatalf("appengine.Namespace: %v", err)
 	}
 
+	Get(c, "key")
+	if nsField != nil {
+		t.Fatalf("Get with c yielded %q", *nsField)
+	}
+	Get(nc, "key")
+	if nsField == nil || *nsField != "A" {
+		t.Fatalf("Get with nc yielded %v", nsField)
+	}
 	Get(c0, "key")
-	if ns := <-namec; ns != nil {
-		t.Errorf(`Get with c0: ns = %q, want nil`, *ns)
-	}
-
-	Get(c1, "key")
-	if ns := <-namec; ns == nil {
-		t.Error(`Get with c1: ns = nil, want "A"`)
-	} else if *ns != "A" {
-		t.Errorf(`Get with c1: ns = %q, want "A"`, *ns)
-	}
-
-	Get(c2, "key")
-	if ns := <-namec; ns != nil {
-		t.Errorf(`Get with c2: ns = %q, want nil`, *ns)
+	if nsField != nil && *nsField != "" {
+		t.Fatalf("Get with c0 yielded %q", *nsField)
 	}
 }
 

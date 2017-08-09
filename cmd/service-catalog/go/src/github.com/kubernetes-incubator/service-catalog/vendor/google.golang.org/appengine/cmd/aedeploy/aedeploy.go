@@ -2,7 +2,7 @@
 // Use of this source code is governed by the Apache 2.0
 // license that can be found in the LICENSE file.
 
-// Program aedeploy assists with deploying App Engine "flexible environment" Go apps to production.
+// Program aedeploy assists with deploying Go Managed VM apps to production.
 // A temporary directory is created; the app, its subdirectories, and all its
 // dependencies from $GOPATH are copied into the directory; then the app
 // is deployed to production with the provided command.
@@ -115,13 +115,9 @@ func buildContext(tags []string) *build.Context {
 		GOROOT:    build.Default.GOROOT,
 		GOPATH:    build.Default.GOPATH,
 		Compiler:  build.Default.Compiler,
-		BuildTags: append(defaultBuildTags, tags...),
+		BuildTags: append(build.Default.BuildTags, tags...),
 	}
 }
-
-// All build tags except go1.7, since Go 1.6 is the runtime version.
-var defaultBuildTags = []string{
-	"go1.1", "go1.2", "go1.3", "go1.4", "go1.5", "go1.6"}
 
 // bundle bundles the app into a temporary directory.
 func (s *app) bundle() (tmpdir string, err error) {
@@ -257,7 +253,7 @@ func appFiles(ctxt *build.Context) ([]string, error) {
 		return nil, err
 	}
 	if !pkg.IsCommand() {
-		return nil, fmt.Errorf(`the root of your app needs to be package "main" (currently %q). Please see https://cloud.google.com/appengine/docs/flexible/go/ for more details on structuring your app.`, pkg.Name)
+		return nil, fmt.Errorf(`the root of your app needs to be package "main" (currently %q). Please see https://cloud.google.com/appengine/docs/go/managed-vms for more details on structuring your app.`, pkg.Name)
 	}
 	var appFiles []string
 	for _, f := range pkg.GoFiles {

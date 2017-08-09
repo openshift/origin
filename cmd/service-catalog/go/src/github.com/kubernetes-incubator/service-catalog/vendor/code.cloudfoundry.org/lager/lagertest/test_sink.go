@@ -2,6 +2,7 @@ package lagertest
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/onsi/gomega/gbytes"
 
 	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagerctx"
 )
 
 type TestLogger struct {
@@ -29,6 +31,10 @@ func NewTestLogger(component string) *TestLogger {
 	logger.RegisterSink(lager.NewWriterSink(ginkgo.GinkgoWriter, lager.DEBUG))
 
 	return &TestLogger{logger, testSink}
+}
+
+func NewContext(parent context.Context, name string) context.Context {
+	return lagerctx.NewContext(parent, NewTestLogger(name))
 }
 
 func NewTestSink() *TestSink {

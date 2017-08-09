@@ -12,15 +12,6 @@ spec:
   selector:
     app: {{ template "fullname" . }}-apiserver
   ports:
-  {{- if .Values.apiserver.insecure }}
-  - name: insecure
-    protocol: TCP
-    port: 80
-    targetPort: 8080
-    {{- if eq .Values.apiserver.service.type "NodePort" }}
-    nodePort: {{ .Values.apiserver.service.nodePort.insecurePort }}
-    {{- end }}
-  {{- end }}
   - name: secure
     protocol: TCP
     port: 443

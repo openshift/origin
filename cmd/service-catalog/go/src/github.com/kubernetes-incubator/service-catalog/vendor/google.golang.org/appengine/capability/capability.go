@@ -6,7 +6,7 @@
 Package capability exposes information about outages and scheduled downtime
 for specific API capabilities.
 
-This package does not work in App Engine "flexible environment".
+This package does not work on Managed VMs.
 
 Example:
 	if !capability.Enabled(c, "datastore_v3", "write") {

@@ -137,7 +137,7 @@ type invocation struct {
 //   err := f.Call(c, ...)
 // is equivalent to
 //   t, _ := f.Task(...)
-//   _, err := taskqueue.Add(c, t, "")
+//   err := taskqueue.Add(c, t, "")
 func (f *Function) Call(c context.Context, args ...interface{}) error {
 	t, err := f.Task(args...)
 	if err != nil {

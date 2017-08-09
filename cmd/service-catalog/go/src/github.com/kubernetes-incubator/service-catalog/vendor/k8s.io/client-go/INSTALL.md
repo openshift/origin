@@ -2,10 +2,33 @@
 
 ## For the casual user
 
-Currently, there is no super easy way to use client-go.  Hopefully this will
-change soon. Simply running `go get k8s.io/client-go/...` will leave you with a
-library that can't practically be used.  It is important to synchronize your
-dependencies with the ones that are required by the library.
+If you want to write a simple script, don't care about a reproducible client
+library install, don't mind getting head (which may be less stable than a
+particular release), then simply:
+
+```sh
+$ go get k8s.io/client-go/...
+```
+
+This will install `k8s.io/client-go` in your `$GOPATH`. `k8s.io/client-go`
+includes most of its own dependencies in its `k8s.io/client-go/vendor` path,
+except for `k8s.io/apimachinery` and `glog`. `go get` will recursively download
+these excluded repos to your `$GOPATH`, if they don't already exist. If
+`k8s.io/apimachinery` preexisted in `$GOPATH`, you also need to:
+
+```sh
+$ go get -u k8s.io/apimachinery/...
+```
+
+because the head of client-go is only guaranteed to work with the head of
+apimachinery.
+
+We excluded `k8s.io/apimachinery` and `glog` from `k8s.io/client-go/vendor` to
+prevent `go get` users from hitting issues like
+[#19](https://github.com/kubernetes/client-go/issues/19) and
+[#83](https://github.com/kubernetes/client-go/issues/83). If your project share
+other dependencies with client-go, and you hit issues similar to #19 or #83,
+then you'll need to look down at the next section.
 
 Note: the official go policy is that libraries should not vendor their
 dependencies. This is unworkable for us, since our dependencies change and HEAD
@@ -25,42 +48,6 @@ Reasons why you might need to use a dependency management system:
 
 There are three tools you could in theory use for this. Instructions
 for each follows.
-
-### Dep
-
-[dep](https://github.com/golang/dep) is an up-and-coming dependency management tool,
-which has the goal of being accepted as part of the standard go toolchain. Its
-status is currently alpha. However, it comes the closest to working easily out
-of the box.
-
-```sh
-$ go get github.com/golang/dep
-$ go install github.com/golang/dep/cmd/dep
-
-# Make sure you have a go file in your directory which imports k8s.io/client-go
-# first--I suggest copying one of the examples.
-$ dep init
-$ dep ensure k8s.io/client-go@^2.0.0
-```
-
-Then you can try one of the
-[examples](https://github.com/kubernetes/client-go/tree/v2.0.0/examples/) from
-the 2.0.0 release.
-
-This will set up a `vendor` directory in your current directory, add `k8s.io/client-go`
-to it, and flatten all of `k8s.io/client-go`'s dependencies into that vendor directory,
-so that your code and `client-go` will both get the same copy of each
-dependency.
-
-After installing like this, you could either use dep for your other
-dependencies, or copy everything in the `vendor` directory into your
-`$GOPATH/src` directory and proceed as if you had done a fancy `go get` that
-flattened dependencies sanely.
-
-One thing to note about dep is that it will omit dependencies that aren't
-actually used, and some dependencies of `client-go` are used only if you import
-one of the plugins (for example, the auth plugins). So you may need to run `dep
-ensure` again if you start importing a plugin that you weren't using before.
 
 ### Godep
 
@@ -155,3 +142,39 @@ After modifying, run `glide up -v` again to re-populate your /vendor directory.
 
 Optionally, Glide users can also use [`glide-vc`](https://github.com/sgotti/glide-vc)
 after running `glide up -v` to remove unused files from /vendor.
+
+### Dep
+
+[dep](https://github.com/golang/dep) is an up-and-coming dependency management tool,
+which has the goal of being accepted as part of the standard go toolchain. Its
+status is currently alpha. However, it comes the closest to working easily out
+of the box.
+
+```sh
+$ go get github.com/golang/dep
+$ go install github.com/golang/dep/cmd/dep
+
+# Make sure you have a go file in your directory which imports a package of
+# k8s.io/client-go first--I suggest copying one of the examples.
+$ dep init
+$ dep ensure k8s.io/client-go@^2.0.0
+```
+
+Then you can try one of the
+[examples](https://github.com/kubernetes/client-go/tree/v2.0.0/examples/) from
+the 2.0.0 release.
+
+This will set up a `vendor` directory in your current directory, add `k8s.io/client-go`
+to it, and flatten all of `k8s.io/client-go`'s dependencies into that vendor directory,
+so that your code and `client-go` will both get the same copy of each
+dependency.
+
+After installing like this, you could either use dep for your other
+dependencies, or copy everything in the `vendor` directory into your
+`$GOPATH/src` directory and proceed as if you had done a fancy `go get` that
+flattened dependencies sanely.
+
+One thing to note about dep is that it will omit dependencies that aren't
+actually used, and some dependencies of `client-go` are used only if you import
+one of the plugins (for example, the auth plugins). So you may need to run `dep
+ensure` again if you start importing a plugin that you weren't using before.

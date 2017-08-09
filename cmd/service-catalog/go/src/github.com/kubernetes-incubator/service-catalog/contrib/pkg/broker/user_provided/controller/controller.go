@@ -54,6 +54,7 @@ func CreateController() controller.Controller {
 }
 
 func (c *userProvidedController) Catalog() (*brokerapi.Catalog, error) {
+	glog.Info("Catalog()")
 	return &brokerapi.Catalog{
 		Services: []*brokerapi.Service{
 			{
@@ -77,6 +78,7 @@ func (c *userProvidedController) CreateServiceInstance(
 	id string,
 	req *brokerapi.CreateServiceInstanceRequest,
 ) (*brokerapi.CreateServiceInstanceResponse, error) {
+	glog.Info("CreateServiceInstance()")
 	credString, ok := req.Parameters["credentials"]
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
@@ -107,16 +109,28 @@ func (c *userProvidedController) CreateServiceInstance(
 	return &brokerapi.CreateServiceInstanceResponse{}, nil
 }
 
-func (c *userProvidedController) GetServiceInstance(id string) (string, error) {
-	return "", errors.New("Unimplemented")
+func (c *userProvidedController) GetServiceInstanceLastOperation(
+	instanceID,
+	serviceID,
+	planID,
+	operation string,
+) (*brokerapi.LastOperationResponse, error) {
+	glog.Info("GetServiceInstanceLastOperation()")
+	return nil, errors.New("Unimplemented")
 }
 
-func (c *userProvidedController) RemoveServiceInstance(id string) (*brokerapi.DeleteServiceInstanceResponse, error) {
+func (c *userProvidedController) RemoveServiceInstance(
+	instanceID,
+	serviceID,
+	planID string,
+	acceptsIncomplete bool,
+) (*brokerapi.DeleteServiceInstanceResponse, error) {
+	glog.Info("RemoveServiceInstance()")
 	c.rwMutex.Lock()
 	defer c.rwMutex.Unlock()
-	_, ok := c.instanceMap[id]
+	_, ok := c.instanceMap[instanceID]
 	if ok {
-		delete(c.instanceMap, id)
+		delete(c.instanceMap, instanceID)
 		return &brokerapi.DeleteServiceInstanceResponse{}, nil
 	}
 
@@ -128,6 +142,7 @@ func (c *userProvidedController) Bind(
 	bindingID string,
 	req *brokerapi.BindingRequest,
 ) (*brokerapi.CreateServiceBindingResponse, error) {
+	glog.Info("Bind()")
 	c.rwMutex.RLock()
 	defer c.rwMutex.RUnlock()
 	instance, ok := c.instanceMap[instanceID]
@@ -138,7 +153,8 @@ func (c *userProvidedController) Bind(
 	return &brokerapi.CreateServiceBindingResponse{Credentials: *cred}, nil
 }
 
-func (c *userProvidedController) UnBind(instanceID string, bindingID string) error {
+func (c *userProvidedController) UnBind(instanceID, bindingID, serviceID, planID string) error {
+	glog.Info("UnBind()")
 	// Since we don't persist the binding, there's nothing to do here.
 	return nil
 }

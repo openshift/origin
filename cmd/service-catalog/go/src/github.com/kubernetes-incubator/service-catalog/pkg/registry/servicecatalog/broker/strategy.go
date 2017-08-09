@@ -28,6 +28,7 @@ import (
 
 	"github.com/golang/glog"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
+	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/unversioned"
 	scv "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/validation"
 )
 
@@ -148,6 +149,21 @@ func (brokerStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, 
 	}
 	// status changes are not allowed to update spec
 	newBroker.Spec = oldBroker.Spec
+
+	for _, condition := range newBroker.Status.Conditions {
+		if condition.Type == sc.BrokerConditionReady && condition.Status == sc.ConditionTrue {
+			glog.Infof("Found true ready condition for Broker %v/%v; updating checksum", newBroker.Namespace, newBroker.Name)
+			newBroker.Status.Checksum = func() *string {
+				s := checksum.BrokerSpecChecksum(newBroker.Spec)
+				return &s
+			}()
+			return
+		}
+	}
+
+	// if the ready condition is not true, the value of the checksum should
+	// not change.
+	newBroker.Status.Checksum = oldBroker.Status.Checksum
 }
 
 func (brokerStatusRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {

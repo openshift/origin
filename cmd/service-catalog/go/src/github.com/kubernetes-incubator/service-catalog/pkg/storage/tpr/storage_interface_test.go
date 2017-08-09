@@ -30,6 +30,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/rest/core/fake"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -1191,11 +1192,12 @@ func deepCompare(
 	obj2Name string,
 	obj2 runtime.Object,
 ) error {
-	if !reflect.DeepEqual(obj1, obj2) {
+	if !equality.Semantic.DeepEqual(obj1, obj2) {
 		return fmt.Errorf(
 			"%s and %s are different: %s",
 			obj1Name,
 			obj2Name,
+			// TODO: It's probably not an equivalent to semantic DeepEqual, is there semantic diff implementation?
 			diff.ObjectReflectDiff(obj1, obj2),
 		)
 	}

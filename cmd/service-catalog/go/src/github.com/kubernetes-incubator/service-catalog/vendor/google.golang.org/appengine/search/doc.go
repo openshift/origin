@@ -122,17 +122,15 @@ By default, for struct pointers, all of the struct fields are used as document
 fields, and the field name used is the same as on the struct (and hence must
 start with an upper case letter). Struct fields may have a
 `search:"name,options"` tag. The name must start with a letter and be
-composed only of word characters. A "-" tag name means that the field will be
-ignored.  If options is "facet" then the struct field will be used as a
-document facet. If options is "" then the comma may be omitted. There are no
-other recognized options.
+composed only of word characters. If options is "facet" then the struct
+field will be used as a document facet. If options is "" then the comma
+may be omitted. There are no other recognized options.
 
 Example code:
 
 	// A and B are renamed to a and b.
 	// A, C and I are facets.
 	// D's tag is equivalent to having no tag at all (E).
-	// F and G are ignored entirely by the search package.
 	// I has tag information for both the search and json packages.
 	type TaggedStruct struct {
 		A float64 `search:"a,facet"`
@@ -140,8 +138,6 @@ Example code:
 		C float64 `search:",facet"`
 		D float64 `search:""`
 		E float64
-		F float64 `search:"-"`
-		G float64 `search:"-,facet"`
 		I float64 `search:",facet" json:"i"`
 	}
 

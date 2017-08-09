@@ -25,6 +25,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 )
 
+const (
+	apiServerName = "service-catalog-apiserver"
+)
+
 func restStorageProviders(
 	defaultNamespace string,
 	storageType server.StorageType,
@@ -56,7 +60,7 @@ func createSkeletonServer(genericCfg *genericapiserver.Config) (*ServiceCatalogA
 	// only way to get here from there is by Complete()'ing. Thus
 	// we skip the complete on the underlying config and go
 	// straight to running it's New() method.
-	genericServer, err := genericCfg.SkipComplete().New()
+	genericServer, err := genericCfg.SkipComplete().New(apiServerName, genericapiserver.EmptyDelegate)
 	if err != nil {
 		return nil, err
 	}

@@ -1,14 +1,30 @@
 # Default values for Service Catalog
 apiserver:
   # apiserver image to use
-  image: quay.io/kubernetes-service-catalog/apiserver:v0.0.9
+  image: quay.io/kubernetes-service-catalog/apiserver:v0.0.13
   # imagePullPolicy for the apiserver; valid values are "IfNotPresent",
   # "Never", and "Always"
   imagePullPolicy: Always
-  # Whether to expose an insecure endpoint; keep this enabled because there
-  # are some outstanding problems with the TLS-secured endpoint
-  insecure: true
+  aggregator:
+    # priority is the priority of the APIService. Please see
+    # https://github.com/kubernetes/kubernetes/blob/v1.7.0/staging/src/k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1/types.go#L56-L61
+    # for more information on proper values of this field.
+    #
+    # This field is only applicable on clusters that expose APIService as a v1alpha1 field,
+    # which is generally 1.6.x clusters
+    priority: 100
+    # groupPriorityMinimum is the minimum priority the group should have. Please see
+    # https://github.com/kubernetes/kubernetes/blob/v1.7.0/staging/src/k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1/types.go#L56-L61
+    # for more information on proper values of this field.
+    groupPriorityMinimum: 10000
+    # versionPriority is the ordering of this API inside of the group. Please see
+    # https://github.com/kubernetes/kubernetes/blob/v1.7.0/staging/src/k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1/types.go#L56-L61
+    # for more information on proper values of this field
+    versionPriority: 20
   tls:
+    # Base64-encoded certificate authority for the APIService object to register
+    # the Service Catalog API with the apiregistration
+    ca: ""
     # Base64-encoded x509 certificate
     cert: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURUVENDQWpXZ0F3SUJBZ0lCQVRBTkJna3Foa2lHOXcwQkFRc0ZBREFpTVNBd0hnWURWUVFEREJjeE1DNHgKTVRJdU1TNHhPRFJBTVRRNE56RTVPRE14TWpBZUZ3MHhOekF5TVRVeU1qTTRNekphRncweE9EQXlNVFV5TWpNNApNekphTUNJeElEQWVCZ05WQkFNTUZ6RXdMakV4TWk0eExqRTRORUF4TkRnM01UazRNekV5TUlJQklqQU5CZ2txCmhraUc5dzBCQVFFRkFBT0NBUThBTUlJQkNnS0NBUUVBc1J6WlcxTllJQ2FaV3NScytrUGZxRU1uUnI0eE91N2gKb0l5ODI2MHltU3lCRkFZaUh0ankrVVc5NldNbXdCQkFRcVlGR3BQczN2UnI1SGF1RkJuV1dicHRMUjlnbVdZWApRa0tzYm9yK1MybTJwYWUyQ2EyVVRnMXJkMkV5VHpkbWkzaFdKMWRQMllRV0tOSXJOSGpmcTM5L25HTU5YWHRjCmJqbWYxb0ZHUER5ODVMNlIyclpVMHlaM0NMNVByczNhV0tQQmtLVXU3NDZhbldONzNTcGRoSTFxMnhNWHJseXMKcFlnUzdjV2FhZERidjVvNjFUYUFyTm0yTCtUWlNESExUMUVzOXdlVCs3TkhQQVlkUVpYTW1lRXU1V1U5ZzZ0UApnOEtmQk5PVG9iUzZPOTZLTzl4Y0VqT0JLcWdaZTQyYVpoZmFja09rcCs5aUFRN1BPQXhTVVFJREFRQUJvNEdOCk1JR0tNQTRHQTFVZER3RUIvd1FFQXdJQ3BEQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBVEFQQmdOVkhSTUIKQWY4RUJUQURBUUgvTUZJR0ExVWRFUVJMTUVtQ0ZtdDFZbVZ5Ym1WMFpYTXVaR1ZtWVhWc2RDNXpkbU9DRW10MQpZbVZ5Ym1WMFpYTXVaR1ZtWVhWc2RJSUthM1ZpWlhKdVpYUmxjNElKYkc5allXeG9iM04waHdRS2NBRzRNQTBHCkNTcUdTSWIzRFFFQkN3VUFBNElCQVFCYWlPckpOS3FhMmFWdG13YVdoaDAyVFJrMjlXLzA0WlRCYnJseFlpbHQKVi9CYklHbmF3UzlxcGRyVHJNc0RBVmtBbUpRaGtabHJOeFpYbE01WnR2c2wyc3ZHMVlFVnA1UTJuaU9PT3B1Sgo1UDFINUo2SDJNWUpQS2c3OTAyVnZnZ0xPVG5QU01aVjgyWFRlV2JrRW51UjFlY3pwK1NmWjVjZFArSnE3WVRuCm52dHc3aHUzOW1mSVZIU3g3Rk0vN2lBWUJLN0tNQlNUUHZYdWk0SGRTamUzTkhkNlllL0c1bTgvOXNxVXVIL0gKcWJMT0lpenFRRVFNTFRzaFNHdUtxYlVFZ2tBU0ExaTVPbENZcWpEUGRQNTBvVEJkQ24vRnhrMVIvc0R5UlhtQwpYMUR4cUZjNzdkT0pMaHJKM0tDT1RsTy9RY2tkcytkR0tTU09jV0Y4L0p5egotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
     # Base64-encoded private key
@@ -24,9 +40,6 @@ apiserver:
       # Available port in allowable range (e.g. 30000 - 32767 on minikube)
       # The TLS-enabled endpoint will be exposed here
       securePort: 30443
-      # Available port in allowable range (e.g. 30000 - 32767 on minikube)
-      # The insecure endpoint, if enabled, will be exposed here
-      insecurePort: 30080
   storage:
     # The storage backend to use; valid values are "etcd" and "tpr"
     type: etcd
@@ -54,9 +67,10 @@ apiserver:
     activated: false
     # If specified, audit log goes to specified path.
     logPath: "/tmp/service-catalog-apiserver-audit.log"
+  serviceAccount: service-catalog-apiserver
 controllerManager:
   # controller-manager image to use
-  image: quay.io/kubernetes-service-catalog/controller-manager:v0.0.9
+  image: quay.io/kubernetes-service-catalog/controller-manager:v0.0.13
   # imagePullPolicy for the controller-manager; valid values are
   # "IfNotPresent", "Never", and "Always"
   imagePullPolicy: Always
@@ -75,7 +89,8 @@ controllerManager:
     disabled: false
     # Enables lock contention profiling, if profiling is enabled.
     contentionProfiling: false
-  leaderElectionNamespace:
+  leaderElection:
     # Whether the controller has option to set leader election namespace.
     activated: false
+  serviceAccount: service-catalog-controller-manager
 useAggregator: false

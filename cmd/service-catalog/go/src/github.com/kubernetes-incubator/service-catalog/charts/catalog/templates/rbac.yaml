@@ -1,0 +1,141 @@
+{{- if .Capabilities.APIVersions.Has "rbac.authorization.k8s.io/v1beta1" }}
+apiVersion: v1
+kind: List
+items:
+
+### API Server ###
+  
+# TODO: if this is just for namespace lifecycle admission, move to a generic role
+# the role for the apiserver 
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: "servicecatalog.k8s.io:apiserver"
+  # this rule defined on the role for specifically the
+  # namespace-lifecycle admission-controller
+  rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs:     ["get", "list", "watch"]
+# API-server service-account gets its own role
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "servicecatalog.k8s.io:apiserver"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: "servicecatalog.k8s.io:apiserver"
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: "{{ .Values.apiserver.serviceAccount }}"
+    namespace: "{{ .Release.Namespace }}"
+# apiserver gets the auth-delegator role to delegate auth decisions to
+# the core apiserver
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "servicecatalog.k8s.io:apiserver-auth-delegator"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:auth-delegator
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: "{{ .Values.apiserver.serviceAccount }}"
+    namespace: "{{ .Release.Namespace }}"
+# apiserver gets the ability to read authentication. This allows it to
+# read the specific configmap that has the requestheader-* entries to
+# enable api aggregation
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: "servicecatalog.k8s.io:apiserver-authentication-reader"
+    namespace: kube-system
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: "{{ .Values.apiserver.serviceAccount }}"
+    namespace: "{{ .Release.Namespace }}"
+
+### Controller-Manager ###
+
+# controller-manager role defines what access the service-catalog
+# controller-manager needs to manage the resources of the
+# service-catalog
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    name: "servicecatalog.k8s.io:controller-manager"
+  rules:
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs:     ["create","patch","update"]
+  # TODO: do not grant global access, limit to particular secrets referenced from bindings
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs:     ["get","create","delete"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs:     ["get","list","watch"]
+  # access to our service-catalog types
+  - apiGroups: ["servicecatalog.k8s.io"]
+    resources: ["serviceclasses"]
+    verbs:     ["get","list","watch","create","patch","update","delete"]
+  - apiGroups: ["servicecatalog.k8s.io"]
+    resources: ["bindings","brokers","instances"]
+    verbs:     ["get","list","watch"]
+  - apiGroups: ["servicecatalog.k8s.io"]
+    resources: ["bindings/status","brokers/status","instances/status"]
+    verbs:     ["update"]
+# give the controller-manager service account access to whats defined in its role.
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: "servicecatalog.k8s.io:controller-manager"
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: "servicecatalog.k8s.io:controller-manager"
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: "{{ .Values.controllerManager.serviceAccount }}"
+    namespace: "{{ .Release.Namespace }}"
+
+# This gives create/update access to an endpoint in kube-system for leader election
+# TODO: use an object other than endpoints, and in the same namespace as the service catalog, not in kube-system
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: Role
+  metadata:
+    name: "servicecatalog.k8s.io::leader-locking-controller-manager"
+    namespace: kube-system
+  rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs:     ["create"]
+  - apiGroups:     [""]
+    resources:     ["endpoints"]
+    resourceNames: ["service-catalog-controller-manager"]
+    verbs:         ["get","update"]
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: RoleBinding
+  metadata:
+    name: service-catalog-controller-manager
+    namespace: kube-system
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: service-catalog-controller-manager
+  subjects:
+  - apiGroup: ""
+    kind: ServiceAccount
+    name: "{{ .Values.controllerManager.serviceAccount }}"
+    namespace: "{{ .Release.Namespace }}"
+{{ end }}
