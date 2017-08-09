@@ -180,6 +180,7 @@ func copyContent(store BlobGetterService, ctx context.Context, dgst digest.Diges
 func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStore distribution.BlobStore, dgst digest.Digest) {
 	// leave only the essential entries in the context (logger)
 	newCtx := context.WithLogger(context.Background(), context.GetLogger(ctx))
+	writeLimiter := WriteLimiterFrom(ctx)
 
 	// the blob getter service is not thread-safe, we need to setup a new one
 	// TODO: make it thread-safe instead of instantiating a new one
@@ -192,6 +193,14 @@ func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStor
 		repo.cachedLayers)
 
 	go func(dgst digest.Digest) {
+		if writeLimiter != nil {
+			if !writeLimiter.Start(newCtx) {
+				context.GetLogger(newCtx).Infof("Skipped background mirroring of %q because write limits are reached", dgst)
+				return
+			}
+			defer writeLimiter.Done()
+		}
+
 		context.GetLogger(newCtx).Infof("Start background mirroring of %q", dgst)
 		if err := storeLocal(newCtx, localBlobStore, remoteGetter, dgst); err != nil {
 			context.GetLogger(newCtx).Errorf("Error committing to storage: %s", err.Error())

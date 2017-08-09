@@ -8,6 +8,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v2"
 
@@ -26,13 +27,25 @@ type openshiftConfig struct {
 }
 
 type Configuration struct {
-	Version configuration.Version `yaml:"version"`
-	Metrics Metrics               `yaml:"metrics"`
+	Version  configuration.Version `yaml:"version"`
+	Metrics  Metrics               `yaml:"metrics"`
+	Requests Requests              `yaml:"requests"`
 }
 
 type Metrics struct {
 	Enabled bool   `yaml:"enabled"`
 	Secret  string `yaml:"secret"`
+}
+
+type Requests struct {
+	Read  RequestsLimits
+	Write RequestsLimits
+}
+
+type RequestsLimits struct {
+	MaxRunning     int
+	MaxInQueue     int
+	MaxWaitInQueue time.Duration
 }
 
 type versionInfo struct {
