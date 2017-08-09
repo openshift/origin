@@ -20,7 +20,6 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	//"github.com/openshift/origin/pkg/project/cache"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 func TestAdmission(t *testing.T) {
@@ -581,10 +580,7 @@ func TestAdmission(t *testing.T) {
 
 		plugin.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kclientset)
 		plugin.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(oclient)
-
-		groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
-		plugin.(oadmission.WantsGroupCache).SetGroupCache(groupCache)
-		groupCache.RunUntil(stopCh)
+		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
 
 		err = admission.Validate(plugin)
 		if err != nil {

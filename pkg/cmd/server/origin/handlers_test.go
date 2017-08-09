@@ -26,7 +26,6 @@ import (
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 type impersonateAuthorizer struct{}
@@ -253,7 +252,6 @@ func TestImpersonationFilter(t *testing.T) {
 	config := MasterConfig{}
 	config.RequestContextMapper = apirequest.NewRequestContextMapper()
 	config.Authorizer = impersonateAuthorizer{}
-	config.GroupCache = usercache.NewGroupCache(&groupCache{})
 	var ctx apirequest.Context
 	var actualUser user.Info
 	var lock sync.Mutex
@@ -290,7 +288,7 @@ func TestImpersonationFilter(t *testing.T) {
 
 			delegate.ServeHTTP(w, req)
 		})
-	}(serverhandlers.ImpersonationFilter(doNothingHandler, config.Authorizer, config.GroupCache, config.RequestContextMapper))
+	}(serverhandlers.ImpersonationFilter(doNothingHandler, config.Authorizer, fakeGroupCache{}, config.RequestContextMapper))
 	handler = apirequest.WithRequestContext(handler, config.RequestContextMapper)
 
 	server := httptest.NewServer(handler)
@@ -327,6 +325,12 @@ func TestImpersonationFilter(t *testing.T) {
 			continue
 		}
 	}
+}
+
+type fakeGroupCache struct{}
+
+func (fakeGroupCache) GroupsFor(_ string) ([]*userapi.Group, error) {
+	return []*userapi.Group{}, nil
 }
 
 var (

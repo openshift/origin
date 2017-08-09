@@ -13,7 +13,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oclient "github.com/openshift/origin/pkg/client"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 // SubjectChecker determines whether rolebindings on a subject (user, group, or
@@ -53,7 +52,7 @@ type RoleBindingRestrictionContext struct {
 	kclient kclientset.Interface
 
 	// groupCache maps user name to groups.
-	groupCache *usercache.GroupCache
+	groupCache GroupCache
 
 	// userToLabels maps user name to labels.Set.
 	userToLabelSet map[string]labels.Set
@@ -68,7 +67,7 @@ type RoleBindingRestrictionContext struct {
 
 // NewRoleBindingRestrictionContext returns a new RoleBindingRestrictionContext
 // object.
-func NewRoleBindingRestrictionContext(ns string, kc kclientset.Interface, oc oclient.Interface, groupCache *usercache.GroupCache) (*RoleBindingRestrictionContext, error) {
+func NewRoleBindingRestrictionContext(ns string, kc kclientset.Interface, oc oclient.Interface, groupCache GroupCache) (*RoleBindingRestrictionContext, error) {
 	return &RoleBindingRestrictionContext{
 		namespace:       ns,
 		kclient:         kc,

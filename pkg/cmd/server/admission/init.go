@@ -15,7 +15,7 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	usercache "github.com/openshift/origin/pkg/user/cache"
+	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 )
 
 type PluginInitializer struct {
@@ -29,8 +29,8 @@ type PluginInitializer struct {
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
 	DefaultRegistryFn            imageapi.DefaultRegistryFunc
-	GroupCache                   *usercache.GroupCache
 	SecurityInformers            securityinformer.SharedInformerFactory
+	UserInformers                userinformer.SharedInformerFactory
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -72,8 +72,8 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsDefaultRegistryFunc, ok := plugin.(WantsDefaultRegistryFunc); ok {
 		wantsDefaultRegistryFunc.SetDefaultRegistryFunc(i.DefaultRegistryFn)
 	}
-	if wantsGroupCache, ok := plugin.(WantsGroupCache); ok {
-		wantsGroupCache.SetGroupCache(i.GroupCache)
+	if wantsUserInformer, ok := plugin.(WantsUserInformer); ok {
+		wantsUserInformer.SetUserInformer(i.UserInformers)
 	}
 }
 
