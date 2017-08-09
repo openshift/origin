@@ -1,9 +1,171 @@
 [
-   {
-      "baseImportPath" : "pkg/image",
-      "allowedImports" : [
-         "pkg/client",
-         "vendor"
-      ]
-   }
+  {
+    "baseImportPath": "pkg/authorization/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "pkg/user/apis/user/validation",
+      "vendor/k8s.io/apiserver/pkg/authentication/serviceaccount",
+      "vendor/k8s.io/apiserver/pkg/authentication/user",
+      "pkg/authorization/rulevalidation",
+      "vendor/github.com/golang/glog",
+      "test/util/api"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/build/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "pkg/util/namer",
+      "vendor/github.com/golang/glog",
+      "vendor/github.com/openshift/source-to-image/pkg/scm/git",
+      "pkg/build/util",
+      "pkg/image/apis/image",
+      "test/util/api",
+      "pkg/util/labelselector"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/deploy/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "pkg/image/apis/image",
+      "test/util/api",
+      "vendor/github.com/golang/glog"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/image/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "vendor/github.com/golang/glog",
+      "vendor/github.com/fsouza/go-dockerclient",
+      "vendor/github.com/golang/glog",
+      "vendor/github.com/docker/distribution/digest",
+      "vendor/github.com/docker/distribution/manifest/schema1",
+      "vendor/github.com/docker/distribution/manifest/schema2",
+      "vendor/github.com/docker/distribution/reference",
+      "vendor/github.com/blang/semver",
+      "pkg/image/reference",
+      "test/util/api",
+      "pkg/cmd/server/api",
+      "pkg/util/strings"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/oauth/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "test/util/api",
+      "vendor/k8s.io/apiserver/pkg/authentication/serviceaccount",
+      "pkg/user/apis/user/validation",
+      "pkg/authorization/authorizer/scope",
+      "vendor/github.com/golang/glog"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/project/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "test/util/api",
+      "vendor/k8s.io/kubernetes/pkg/registry/core/namespace",
+      "vendor/github.com/golang/glog",
+      "pkg/util/labelselector"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/quota/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "vendor/github.com/golang/glog"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/route/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "vendor/github.com/golang/glog",
+      "test/util/api",
+      "pkg/cmd/util"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/sdn/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "vendor/github.com/golang/glog",
+      "pkg/util/netutils",
+      "test/util/api"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/template/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "test/util/api",
+      "vendor/github.com/golang/glog",
+      "pkg/user/apis/user/validation"
+    ]
+  },
+  {
+    "baseImportPath": "pkg/user/apis",
+    "allowedImports": [
+      "vendor/github.com/google/gofuzz",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gogo/protobuf",
+      "pkg/api",
+      "vendor/github.com/golang/glog",
+      "test/util/api"
+    ]
+  }
 ]
