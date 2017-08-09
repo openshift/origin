@@ -17,6 +17,7 @@ import (
 	"github.com/docker/distribution/reference"
 	distclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
+	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/libtrust"
 
@@ -225,7 +226,7 @@ func CreateAndUploadTestManifest(
 
 	var rt http.RoundTripper
 	if creds != nil {
-		challengeManager := auth.NewSimpleChallengeManager()
+		challengeManager := challenge.NewSimpleManager()
 		_, err := ping(challengeManager, serverURL.String()+"/v2/", "")
 		if err != nil {
 			return "", "", "", nil, err

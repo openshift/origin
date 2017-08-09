@@ -17,6 +17,7 @@ import (
 	"github.com/docker/distribution/reference"
 	distclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
+	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -40,7 +41,7 @@ func UploadBlob(
 
 	var rt http.RoundTripper
 	if creds != nil {
-		challengeManager := auth.NewSimpleChallengeManager()
+		challengeManager := challenge.NewSimpleManager()
 		_, err := ping(challengeManager, serverURL.String()+"/v2/", "")
 		if err != nil {
 			return distribution.Descriptor{}, err
@@ -233,7 +234,7 @@ func (tcs *testCredentialStore) SetRefreshToken(u *url.URL, service string, toke
 
 // ping pings the provided endpoint to determine its required authorization challenges.
 // If a version header is provided, the versions will be returned.
-func ping(manager auth.ChallengeManager, endpoint, versionHeader string) ([]auth.APIVersion, error) {
+func ping(manager challenge.Manager, endpoint, versionHeader string) ([]auth.APIVersion, error) {
 	resp, err := http.Get(endpoint)
 	if err != nil {
 		return nil, err

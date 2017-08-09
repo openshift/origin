@@ -21,6 +21,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	registryclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
+	"github.com/docker/distribution/registry/client/auth/challenge"
 	"github.com/docker/distribution/registry/client/transport"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,14 +46,14 @@ func NewContext(transport, insecureTransport http.RoundTripper) Context {
 	return Context{
 		Transport:         transport,
 		InsecureTransport: insecureTransport,
-		Challenges:        auth.NewSimpleChallengeManager(),
+		Challenges:        challenge.NewSimpleManager(),
 	}
 }
 
 type Context struct {
 	Transport         http.RoundTripper
 	InsecureTransport http.RoundTripper
-	Challenges        auth.ChallengeManager
+	Challenges        challenge.Manager
 }
 
 func (c Context) WithCredentials(credentials auth.CredentialStore) RepositoryRetriever {
