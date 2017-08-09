@@ -15,12 +15,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
+	templateinternalclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 )
 
@@ -51,7 +54,7 @@ type TemplateServiceBrokerConfig struct {
 
 	// PrivilegedKubeClientConfig is *not* a loopback config, since it needs to point to the kube apiserver
 	// TODO remove this and use the SA that start us instead of trying to cyclically find an SA token
-	PrivilegedKubeClientConfig restclient.Config
+	PrivilegedKubeClientConfig *restclient.Config
 
 	TemplateInformers  templateinformer.SharedInformerFactory
 	TemplateNamespaces []string
@@ -87,11 +90,55 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 		GenericAPIServer: genericServer,
 	}
 
-	broker := templateservicebroker.DeprecatedNewBrokerInsideAPIServer(
-		c.PrivilegedKubeClientConfig,
-		c.TemplateInformers.Template().InternalVersion().Templates(),
-		c.TemplateNamespaces,
-	)
+	inCluster := false
+	var broker *templateservicebroker.Broker
+	// TODO, this block drops out after the server is moved.
+	if c.PrivilegedKubeClientConfig != nil {
+		broker = templateservicebroker.DeprecatedNewBrokerInsideAPIServer(
+			*c.PrivilegedKubeClientConfig,
+			c.TemplateInformers.Template().InternalVersion().Templates(),
+			c.TemplateNamespaces,
+		)
+		// make sure no one else uses it
+		c.TemplateInformers = nil
+
+	} else {
+		// we're running in cluster
+		// in this case we actually want to construct our own template informer
+		// eventually the config value drops out as it isn't supported server side
+		inCluster = true
+		clientConfig, err := restclient.InClusterConfig()
+		if err != nil {
+			return nil, err
+		}
+		templateClient, err := templateinternalclientset.NewForConfig(clientConfig)
+		if err != nil {
+			return nil, err
+		}
+		templateInformers := templateinformer.NewSharedInformerFactory(templateClient, 5*time.Minute)
+		templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
+			templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
+				return []string{string(obj.(*templateapi.Template).UID)}, nil
+			},
+		})
+
+		broker, err = templateservicebroker.NewBroker(
+			clientConfig,
+			templateInformers.Template().InternalVersion().Templates(),
+			c.TemplateNamespaces,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		s.GenericAPIServer.AddPostStartHook("template-service-broker-synctemplates", func(context genericapiserver.PostStartHookContext) error {
+			templateInformers.Start(context.StopCh)
+			if !controller.WaitForCacheSync("tsb", context.StopCh, templateInformers.Template().InternalVersion().Templates().Informer().HasSynced) {
+				return fmt.Errorf("unable to sync caches")
+			}
+			return nil
+		})
+	}
 
 	Route(
 		s.GenericAPIServer.Handler.GoRestfulContainer,
@@ -100,32 +147,34 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 	)
 
 	// TODO, when the TSB becomes a separate entity, this should stop creating the SA and use its container pod SA identity instead
-	s.GenericAPIServer.AddPostStartHook("template-service-broker-ensure-service-account", func(context genericapiserver.PostStartHookContext) error {
-		kc, err := kclientsetinternal.NewForConfig(context.LoopbackClientConfig)
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("template service broker: failed to get client: %v", err))
-			return err
-		}
-
-		err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
-			kc.Namespaces().Create(&api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.DefaultOpenShiftInfraNamespace}})
-
-			_, err = kc.ServiceAccounts(bootstrappolicy.DefaultOpenShiftInfraNamespace).Create(&api.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraTemplateServiceBrokerServiceAccountName}})
-			switch {
-			case err == nil || kapierrors.IsAlreadyExists(err):
-				done, err = true, nil
-			case kapierrors.IsNotFound(err):
-				err = nil
+	if !inCluster {
+		s.GenericAPIServer.AddPostStartHook("template-service-broker-ensure-service-account", func(context genericapiserver.PostStartHookContext) error {
+			kc, err := kclientsetinternal.NewForConfig(context.LoopbackClientConfig)
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("template service broker: failed to get client: %v", err))
+				return err
 			}
 
-			return
-		})
+			err = wait.PollImmediate(time.Second, 30*time.Second, func() (done bool, err error) {
+				kc.Namespaces().Create(&api.Namespace{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.DefaultOpenShiftInfraNamespace}})
 
-		if err != nil {
-			utilruntime.HandleError(fmt.Errorf("creation of template-service-broker SA failed: %v", err))
-		}
-		return err
-	})
+				_, err = kc.ServiceAccounts(bootstrappolicy.DefaultOpenShiftInfraNamespace).Create(&api.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraTemplateServiceBrokerServiceAccountName}})
+				switch {
+				case err == nil || kapierrors.IsAlreadyExists(err):
+					done, err = true, nil
+				case kapierrors.IsNotFound(err):
+					err = nil
+				}
+
+				return
+			})
+
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("creation of template-service-broker SA failed: %v", err))
+			}
+			return err
+		})
+	}
 
 	return s, nil
 }

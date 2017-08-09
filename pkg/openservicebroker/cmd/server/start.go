@@ -13,10 +13,13 @@ import (
 	"github.com/openshift/origin/pkg/openservicebroker/server"
 )
 
-const defaultEtcdPathPrefix = "/registry/templateservicebroker.openshift.io"
-
 type TemplateServiceBrokerServerOptions struct {
-	RecommendedOptions *genericoptions.RecommendedOptions
+	// we don't have any storage, so we shouldn't use the recommended options
+	SecureServing  *genericoptions.SecureServingOptions
+	Authentication *genericoptions.DelegatingAuthenticationOptions
+	Authorization  *genericoptions.DelegatingAuthorizationOptions
+	Audit          *genericoptions.AuditOptions
+	Features       *genericoptions.FeatureOptions
 
 	StdOut io.Writer
 	StdErr io.Writer
@@ -26,7 +29,11 @@ type TemplateServiceBrokerServerOptions struct {
 
 func NewTemplateServiceBrokerServerOptions(out, errOut io.Writer) *TemplateServiceBrokerServerOptions {
 	o := &TemplateServiceBrokerServerOptions{
-		RecommendedOptions: genericoptions.NewRecommendedOptions(defaultEtcdPathPrefix, server.Scheme, server.Codecs.LegacyCodec()),
+		SecureServing:  genericoptions.NewSecureServingOptions(),
+		Authentication: genericoptions.NewDelegatingAuthenticationOptions(),
+		Authorization:  genericoptions.NewDelegatingAuthorizationOptions(),
+		Audit:          genericoptions.NewAuditOptions(),
+		Features:       genericoptions.NewFeatureOptions(),
 
 		StdOut: out,
 		StdErr: errOut,
@@ -57,7 +64,11 @@ func NewCommandStartTemplateServiceBrokerServer(out, errOut io.Writer, stopCh <-
 	}
 
 	flags := cmd.Flags()
-	o.RecommendedOptions.AddFlags(flags)
+	o.SecureServing.AddFlags(flags)
+	o.Authentication.AddFlags(flags)
+	o.Authorization.AddFlags(flags)
+	o.Audit.AddFlags(flags)
+	o.Features.AddFlags(flags)
 	flags.StringSliceVar(&o.TemplateNamespaces, "template-namespace", o.TemplateNamespaces, "TemplateNamespaces indicates the namespace(s) in which the template service broker looks for templates to serve to the catalog.")
 
 	return cmd
@@ -73,12 +84,24 @@ func (o *TemplateServiceBrokerServerOptions) Complete() error {
 
 func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBrokerConfig, error) {
 	// TODO have a "real" external address
-	if err := o.RecommendedOptions.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", nil, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
+	if err := o.SecureServing.MaybeDefaultWithSelfSignedCerts("localhost", nil, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
 		return nil, fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
 	serverConfig := genericapiserver.NewConfig(server.Codecs)
-	if err := o.RecommendedOptions.ApplyTo(serverConfig); err != nil {
+	if err := o.SecureServing.ApplyTo(serverConfig); err != nil {
+		return nil, err
+	}
+	if err := o.Authentication.ApplyTo(serverConfig); err != nil {
+		return nil, err
+	}
+	if err := o.Authorization.ApplyTo(serverConfig); err != nil {
+		return nil, err
+	}
+	if err := o.Audit.ApplyTo(serverConfig); err != nil {
+		return nil, err
+	}
+	if err := o.Features.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
 

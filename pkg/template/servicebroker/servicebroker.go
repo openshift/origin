@@ -64,6 +64,47 @@ func DeprecatedNewBrokerInsideAPIServer(privilegedKubeClientConfig restclient.Co
 	return b
 }
 
+func NewBroker(saKubeClientConfig *restclient.Config, informer templateinformer.TemplateInformer, namespaces []string) (*Broker, error) {
+	templateNamespaces := map[string]struct{}{}
+	for _, namespace := range namespaces {
+		templateNamespaces[namespace] = struct{}{}
+	}
+
+	internalKubeClient, err := kclientset.NewForConfig(saKubeClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	externalKubeClient, err := kclientsetexternal.NewForConfig(saKubeClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	extrouteclientset, err := extrouteclientset.NewForConfig(saKubeClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	templateClient, err := templateclientset.NewForConfig(saKubeClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	b := &Broker{
+		kc:                 internalKubeClient,
+		extkc:              externalKubeClient,
+		extrouteclient:     extrouteclientset,
+		templateclient:     templateClient.Template(),
+		lister:             informer.Lister(),
+		hasSynced:          informer.Informer().HasSynced,
+		templateNamespaces: templateNamespaces,
+		ready:              make(chan struct{}),
+	}
+
+	// TODO this is an intermediate state. Once we're out of tree, there won't be a ready
+	// for now, this skips the hassynced on the lister since we'll be managing that as a poststarthook
+	close(b.ready)
+
+	return b, nil
+}
+
 // MakeReady actually makes the broker functional
 func (b *Broker) MakeReady() error {
 	select {
