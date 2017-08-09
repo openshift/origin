@@ -34,8 +34,8 @@
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
+// examples/templateservicebroker/templateservicebroker-template.yaml
 // pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
-// test/testdata/templateservicebroker/templateservicebroker-template.yaml
 // DO NOT EDIT!
 
 package bootstrap
@@ -13630,44 +13630,7 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
-var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
-apiVersion: v1
-# To require that all images running on the platform be imported first, you may uncomment the
-# following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
-# unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that
-# digest has been imported via the import-image flow.
-#resolveImages: Required
-executionRules:
-- name: execution-denied
-  # Reject all images that have the annotation images.openshift.io/deny-execution set to true.
-  # This annotation may be set by infrastructure that wishes to flag particular images as dangerous
-  onResources:
-  - resource: pods
-  - resource: builds
-  reject: true
-  matchImageAnnotations:
-  - key: images.openshift.io/deny-execution
-    value: "true"
-  skipOnResolutionFailure: true
-
-`)
-
-func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {
-	return _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, nil
-}
-
-func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml() (*asset, error) {
-	bytes, err := pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "pkg/image/admission/imagepolicy/api/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+var _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
   name: template-service-broker
@@ -13701,7 +13664,6 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
-          imagePullPolicy: Never
           command:
           - "/usr/bin/openshift"
           - "start"
@@ -13783,17 +13745,54 @@ objects:
     name: apiserver
 `)
 
-func testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
-	return _testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
+func examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
+	return _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
 }
 
-func testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
-	bytes, err := testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
+func examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
+	bytes, err := examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/testdata/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "examples/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml = []byte(`kind: ImagePolicyConfig
+apiVersion: v1
+# To require that all images running on the platform be imported first, you may uncomment the
+# following rule. Any image that refers to a registry outside of OpenShift will be rejected unless it
+# unless it points directly to an image digest (myregistry.com/myrepo/image@sha256:ea83bcf...) and that
+# digest has been imported via the import-image flow.
+#resolveImages: Required
+executionRules:
+- name: execution-denied
+  # Reject all images that have the annotation images.openshift.io/deny-execution set to true.
+  # This annotation may be set by infrastructure that wishes to flag particular images as dangerous
+  onResources:
+  - resource: pods
+  - resource: builds
+  reject: true
+  matchImageAnnotations:
+  - key: images.openshift.io/deny-execution
+    value: "true"
+  skipOnResolutionFailure: true
+
+`)
+
+func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {
+	return _pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml, nil
+}
+
+func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml() (*asset, error) {
+	bytes, err := pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "pkg/image/admission/imagepolicy/api/v1/default-policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -13884,8 +13883,8 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"examples/templateservicebroker/templateservicebroker-template.yaml": examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml,
 	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
-	"test/testdata/templateservicebroker/templateservicebroker-template.yaml": testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -13981,6 +13980,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"service-catalog": &bintree{nil, map[string]*bintree{
 			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
 		}},
+		"templateservicebroker": &bintree{nil, map[string]*bintree{
+			"templateservicebroker-template.yaml": &bintree{examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
+		}},
 	}},
 	"pkg": &bintree{nil, map[string]*bintree{
 		"image": &bintree{nil, map[string]*bintree{
@@ -13992,13 +13994,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 					}},
 				}},
-			}},
-		}},
-	}},
-	"test": &bintree{nil, map[string]*bintree{
-		"testdata": &bintree{nil, map[string]*bintree{
-			"templateservicebroker": &bintree{nil, map[string]*bintree{
-				"templateservicebroker-template.yaml": &bintree{testTestdataTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
 			}},
 		}},
 	}},

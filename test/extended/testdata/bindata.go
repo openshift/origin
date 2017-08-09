@@ -229,6 +229,7 @@
 // examples/jenkins/pipeline/maven-pipeline.yaml
 // examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
+// examples/templateservicebroker/templateservicebroker-template.yaml
 // DO NOT EDIT!
 
 package testdata
@@ -20895,6 +20896,136 @@ func examplesJenkinsPipelineSamplepipelineYaml() (*asset, error) {
 	return a, nil
 }
 
+var _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker
+parameters:
+- name: IMAGE
+  value: openshift/origin:latest
+- name: TSB_TEMPLATE_NAMESPACE
+  value: openshift
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+objects:
+
+# to create the tsb server
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+    labels:
+      apiserver: "true"
+  spec:
+    template:
+      metadata:
+        name: apiserver
+        labels:
+          apiserver: "true"
+      spec:
+        serviceAccountName: apiserver
+        containers:
+        - name: c
+          image: ${IMAGE}
+          command:
+          - "/usr/bin/openshift"
+          - "start"
+          - "template-service-broker"
+          - "--secure-port=8443"
+          - "--audit-log-path=-"
+          - "--tls-cert-file=/var/serving-cert/tls.crt"
+          - "--tls-private-key-file=/var/serving-cert/tls.key"
+          - "--template-namespace=${TSB_TEMPLATE_NAMESPACE}"
+          ports:
+          - containerPort: 8443
+          volumeMounts:
+          - mountPath: /var/serving-cert
+            name: serving-cert
+        volumes:
+        - name: serving-cert
+          secret:
+            defaultMode: 420
+            secretName: apiserver-serving-cert
+
+# to be able to assign powers to the process
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to be able to expose TSB inside the cluster
+- apiVersion: v1
+  kind: Service
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver
+    annotations:
+      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+  spec:
+    selector:
+      apiserver: "true"
+    ports:
+    - port: 443
+      targetPort: 8443
+
+# to delegate authentication and authorization
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: auth-delegator-${NAMESPACE}
+  roleRef:
+    name: system:auth-delegator
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to have the template service broker powers
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: tsb-${NAMESPACE}
+  roleRef:
+    name: system:openshift:controller:template-service-broker
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to read the config for terminating authentication
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${KUBE_SYSTEM}
+    name: extension-apiserver-authentication-reader-${NAMESPACE}
+  roleRef:
+    namespace: kube-system
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+`)
+
+func examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
+	return _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
+}
+
+func examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
+	bytes, err := examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 // Asset loads and returns the asset for the given name.
 // It returns an error if the asset could not be found or
 // could not be loaded.
@@ -21176,6 +21307,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/maven-pipeline.yaml": examplesJenkinsPipelineMavenPipelineYaml,
 	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
+	"examples/templateservicebroker/templateservicebroker-template.yaml": examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -21263,6 +21395,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"cleanup.sh": &bintree{examplesSampleAppCleanupSh, map[string]*bintree{}},
 			"github-webhook-example.json": &bintree{examplesSampleAppGithubWebhookExampleJson, map[string]*bintree{}},
 			"pullimages.sh": &bintree{examplesSampleAppPullimagesSh, map[string]*bintree{}},
+		}},
+		"templateservicebroker": &bintree{nil, map[string]*bintree{
+			"templateservicebroker-template.yaml": &bintree{examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
 		}},
 	}},
 	"test": &bintree{nil, map[string]*bintree{

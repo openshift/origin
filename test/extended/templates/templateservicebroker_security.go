@@ -1,8 +1,8 @@
 package templates
 
 import (
-	"crypto/tls"
 	"net/http"
+	"os/exec"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -20,13 +20,15 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
-var _ = g.Describe("[templates] templateservicebroker security test", func() {
+var _ = g.Describe("[Conformance][templates] templateservicebroker security test", func() {
 	defer g.GinkgoRecover()
 
 	var (
+		tsbOC          = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
+		portForwardCmd *exec.Cmd
+
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
@@ -41,6 +43,8 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 	)
 
 	g.BeforeEach(func() {
+		brokercli, portForwardCmd = EnsureTSB(tsbOC)
+
 		var err error
 
 		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
@@ -62,11 +66,6 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		adminClientConfig, err := testutil.GetClusterAdminClientConfig(exutil.KubeConfigPath())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		brokercli = client.NewClient(&http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}, adminClientConfig.Host+templateapi.ServiceBrokerRoot)
-
 		viewuser = createUser(cli, "viewuser", bootstrappolicy.ViewRoleName)
 		edituser = createUser(cli, "edituser", bootstrappolicy.EditRoleName)
 		nopermsuser = createUser(cli, "nopermsuser", "")
@@ -81,6 +80,9 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
+
+		err = portForwardCmd.Process.Kill()
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	catalog := func() {
@@ -189,4 +191,5 @@ var _ = g.Describe("[templates] templateservicebroker security test", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(brokerTemplateInstance.Spec.BindingIDs).To(o.Equal([]string{bindingID}))
 	})
+
 })

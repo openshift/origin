@@ -19,7 +19,7 @@ import (
 const (
 	tsbNamespace        = "openshift-template-service-broker"
 	tsbTemplateName     = "template-service-broker"
-	tsbTemplateLocation = "test/testdata/templateservicebroker/templateservicebroker-template.yaml"
+	tsbTemplateLocation = "examples/templateservicebroker/templateservicebroker-template.yaml"
 )
 
 // InstallServiceCatalog checks whether the template service broker is installed and installs it if not already installed

@@ -32,8 +32,8 @@ pushd "${OS_ROOT}" > /dev/null
     examples/heapster/... \
     examples/prometheus/... \
     examples/service-catalog/... \
-    pkg/image/admission/imagepolicy/api/v1/... \
-    test/testdata/templateservicebroker/...
+    examples/templateservicebroker/... \
+    pkg/image/admission/imagepolicy/api/v1/...
 
 "$(os::util::find::gopath_binary go-bindata)" \
     -nocompress \
@@ -51,7 +51,8 @@ pushd "${OS_ROOT}" > /dev/null
     examples/sample-app \
     examples/prometheus/... \
     examples/hello-openshift \
-    examples/jenkins/...
+    examples/jenkins/... \
+    examples/templateservicebroker/...
 
 popd > /dev/null
 
