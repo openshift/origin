@@ -73,6 +73,15 @@ func TestValidateServiceClass(t *testing.T) {
 			valid: true,
 		},
 		{
+			name: "valid serviceClass - period in GUID",
+			serviceClass: func() *servicecatalog.ServiceClass {
+				s := validServiceClass()
+				s.ExternalID = "4315f5e1-0139-4ecf-9706-9df0aff33e5a.plan-name"
+				return s
+			}(),
+			valid: true,
+		},
+		{
 			name: "invalid serviceClass - has namespace",
 			serviceClass: func() *servicecatalog.ServiceClass {
 				s := validServiceClass()

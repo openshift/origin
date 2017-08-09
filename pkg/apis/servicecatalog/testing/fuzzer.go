@@ -205,6 +205,13 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 		func(bs *servicecatalog.BindingSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
 			bs.ExternalID = uuid.NewV4().String()
+			// Don't allow the SecretName to be an empty string because
+			// the defaulter for this object (on the server) will set it to
+			// a non-empty string, which means the round-trip checking will
+			// fail since the checker will look for an empty string.
+			for bs.SecretName == "" {
+				bs.SecretName = c.RandString()
+			}
 			parameters, err := createParameter(c)
 			if err != nil {
 				t.Errorf("Failed to create parameter object: %v", err)

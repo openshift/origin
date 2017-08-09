@@ -31,7 +31,10 @@ function cleanup {
 
 start-server.sh
 
-PORT=$(docker port etcd-svc-cat 8081 | sed "s/.*://")
+# Kubectl needs to be configured with the current cluster
+# setup. Kubectl was initially configured in a different script and
+# the port mapping may have changed by the time we get here.
+PORT=$(docker port etcd-svc-cat 443 | sed "s/.*://")
 D_HOST=${DOCKER_HOST:-localhost}
 D_HOST=${D_HOST#*//}   # remove leading proto://
 D_HOST=${D_HOST%:*}    # remove trailing port #

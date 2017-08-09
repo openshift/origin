@@ -34,7 +34,7 @@ func NewUPSBrokerPod(name string) *v1.Pod {
 			Containers: []v1.Container{
 				{
 					Name:  name,
-					Image: "quay.io/kubernetes-service-catalog/user-broker:latest",
+					Image: brokerImageFlag,
 					Args: []string{
 						"--port",
 						"8080",

@@ -30,6 +30,7 @@ import (
 
 	testapi "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
 	apitesting "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testing"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -156,7 +157,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		return
 	}
 
-	if !api.Semantic.DeepEqual(original, item) {
+	if !equality.Semantic.DeepEqual(original, item) {
 		t.Errorf("0: %v: encode altered the object, diff: %v", name, diff.ObjectReflectDiff(original, item))
 		return
 	}
@@ -167,7 +168,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		t.Errorf("0: %v: %v\nCodec: %#v\nData: %s\nSource: %#v", name, err, codec, dataAsString(data), printer.Sprintf("%#v", item))
 		panic("failed")
 	}
-	if !api.Semantic.DeepEqual(original, obj2) {
+	if !equality.Semantic.DeepEqual(original, obj2) {
 		t.Errorf("\n1: %v: diff: %v\nCodec: %#v\nSource:\n\n%#v\n\nEncoded:\n\n%s\n\nFinal:\n\n%#v", name, diff.ObjectReflectDiff(item, obj2), codec, printer.Sprintf("%#v", item), dataAsString(data), printer.Sprintf("%#v", obj2))
 		return
 	}
@@ -177,7 +178,7 @@ func roundTrip(t *testing.T, codec runtime.Codec, item runtime.Object) {
 		t.Errorf("2: %v: %v", name, err)
 		return
 	}
-	if !api.Semantic.DeepEqual(item, obj3) {
+	if !equality.Semantic.DeepEqual(item, obj3) {
 		t.Errorf("3: %v: diff: %v\nCodec: %#v", name, diff.ObjectReflectDiff(item, obj3), codec)
 		return
 	}
@@ -288,7 +289,7 @@ func testEncodePtr(t *testing.T) {
 	if _, ok := obj2.(*api.Pod); !ok {
 		t.Fatalf("Got wrong type")
 	}
-	if !api.Semantic.DeepEqual(obj2, broker) {
+	if !equality.Semantic.DeepEqual(obj2, broker) {
 		t.Errorf("\nExpected:\n\n %#v,\n\nGot:\n\n %#vDiff: %v\n\n", broker, obj2, diff.ObjectDiff(obj2, broker))
 
 	}

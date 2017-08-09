@@ -1,9 +1,9 @@
-assignees:
-- arschles
-- bmelville
-- duglin
-- jpeeler
-- krancour
-- mhbauer
-- pmorie
-- vaikas-google
+reviewers:
+  - jpeeler
+  - deads2k
+  - smarterclayton
+  - aveshagarwal
+approvers:
+  - deads2k
+  - pmorie
+  - smarterclayton

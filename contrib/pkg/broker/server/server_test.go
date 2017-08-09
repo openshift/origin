@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package server_test
+package server
 
 import (
 	"encoding/json"
@@ -23,7 +23,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	. "github.com/kubernetes-incubator/service-catalog/contrib/pkg/broker/server"
+	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/broker/controller"
 	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi"
 )
 
@@ -31,9 +31,12 @@ import (
 // Test of server /v2/catalog endpoint.
 //
 
+// Make sure that Controller stub implements controller.Controller interface
+var _ controller.Controller = &Controller{}
+
 // /v2/catalog returns HTTP error on error.
 func TestCatalogReturnsHTTPErrorOnError(t *testing.T) {
-	handler := CreateHandler(&Controller{
+	handler := createHandler(&Controller{
 		t: t,
 		catalog: func() (*brokerapi.Catalog, error) {
 			return nil, errors.New("Catalog retrieval error")
@@ -51,15 +54,14 @@ func TestCatalogReturnsHTTPErrorOnError(t *testing.T) {
 		t.Errorf("Expected response content-type 'application/json', got '%s'", contentType)
 	}
 
-	// TODO: This is a bug. We should be returning an error string.
-	if body := rr.Body.String(); body != "{}" {
-		t.Errorf("Expected (albeit incorrectly) an empty JSON object as a response; got '%s'", body)
+	if body := rr.Body.String(); body != `{"Error":"Catalog retrieval error"}` {
+		t.Errorf("Expected structured error response; got '%s'", body)
 	}
 }
 
 // /v2/catalog returns compliant JSON
 func TestCatalogReturnsCompliantJSON(t *testing.T) {
-	handler := CreateHandler(&Controller{
+	handler := createHandler(&Controller{
 		t: t,
 		catalog: func() (*brokerapi.Catalog, error) {
 			return &brokerapi.Catalog{Services: []*brokerapi.Service{
@@ -117,12 +119,12 @@ func readJSON(rr *httptest.ResponseRecorder) (map[string]interface{}, error) {
 type Controller struct {
 	t *testing.T
 
-	catalog               func() (*brokerapi.Catalog, error)
-	getServiceInstance    func(id string) (string, error)
-	createServiceInstance func(id string, req *brokerapi.CreateServiceInstanceRequest) (*brokerapi.CreateServiceInstanceResponse, error)
-	removeServiceInstance func(id string) (*brokerapi.DeleteServiceInstanceResponse, error)
-	bind                  func(instanceID string, bindingID string, req *brokerapi.BindingRequest) (*brokerapi.CreateServiceBindingResponse, error)
-	unBind                func(instanceID string, bindingID string) error
+	catalog                         func() (*brokerapi.Catalog, error)
+	getServiceInstanceLastOperation func(id string) (*brokerapi.LastOperationResponse, error)
+	createServiceInstance           func(id string, req *brokerapi.CreateServiceInstanceRequest) (*brokerapi.CreateServiceInstanceResponse, error)
+	removeServiceInstance           func(id string) (*brokerapi.DeleteServiceInstanceResponse, error)
+	bind                            func(instanceID string, bindingID string, req *brokerapi.BindingRequest) (*brokerapi.CreateServiceBindingResponse, error)
+	unBind                          func(instanceID string, bindingID string) error
 }
 
 func (controller *Controller) Catalog() (*brokerapi.Catalog, error) {
@@ -133,12 +135,12 @@ func (controller *Controller) Catalog() (*brokerapi.Catalog, error) {
 	return controller.catalog()
 }
 
-func (controller *Controller) GetServiceInstance(id string) (string, error) {
-	if controller.getServiceInstance == nil {
-		controller.t.Error("Test failed to provide 'getServiceInstance' handler")
+func (controller *Controller) GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation string) (*brokerapi.LastOperationResponse, error) {
+	if controller.getServiceInstanceLastOperation == nil {
+		controller.t.Error("Test failed to provide 'getServiceInstanceLastOperation' handler")
 	}
 
-	return controller.getServiceInstance(id)
+	return controller.getServiceInstanceLastOperation(instanceID)
 }
 
 func (controller *Controller) CreateServiceInstance(id string, req *brokerapi.CreateServiceInstanceRequest) (*brokerapi.CreateServiceInstanceResponse, error) {
@@ -149,12 +151,12 @@ func (controller *Controller) CreateServiceInstance(id string, req *brokerapi.Cr
 	return controller.createServiceInstance(id, req)
 }
 
-func (controller *Controller) RemoveServiceInstance(id string) (*brokerapi.DeleteServiceInstanceResponse, error) {
+func (controller *Controller) RemoveServiceInstance(instanceID, serviceID, planID string, acceptsIncomplete bool) (*brokerapi.DeleteServiceInstanceResponse, error) {
 	if controller.removeServiceInstance == nil {
 		controller.t.Error("Test failed to provide 'removeServiceInstance' handler")
 	}
 
-	return controller.removeServiceInstance(id)
+	return controller.removeServiceInstance(instanceID)
 }
 
 func (controller *Controller) Bind(instanceID string, bindingID string, req *brokerapi.BindingRequest) (*brokerapi.CreateServiceBindingResponse, error) {
@@ -165,7 +167,7 @@ func (controller *Controller) Bind(instanceID string, bindingID string, req *bro
 	return controller.bind(instanceID, bindingID, req)
 }
 
-func (controller *Controller) UnBind(instanceID string, bindingID string) error {
+func (controller *Controller) UnBind(instanceID, bindingID, serviceID, planID string) error {
 	if controller.unBind == nil {
 		controller.t.Error("Test failed to provide 'unBind' handler")
 	}

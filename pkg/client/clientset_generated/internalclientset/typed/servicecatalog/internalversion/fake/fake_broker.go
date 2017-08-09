@@ -33,6 +33,8 @@ type FakeBrokers struct {
 
 var brokersResource = schema.GroupVersionResource{Group: "servicecatalog.k8s.io", Version: "", Resource: "brokers"}
 
+var brokersKind = schema.GroupVersionKind{Group: "servicecatalog.k8s.io", Version: "", Kind: "Broker"}
+
 func (c *FakeBrokers) Create(broker *servicecatalog.Broker) (result *servicecatalog.Broker, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootCreateAction(brokersResource, broker), &servicecatalog.Broker{})
@@ -84,7 +86,7 @@ func (c *FakeBrokers) Get(name string, options v1.GetOptions) (result *serviceca
 
 func (c *FakeBrokers) List(opts v1.ListOptions) (result *servicecatalog.BrokerList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(brokersResource, opts), &servicecatalog.BrokerList{})
+		Invokes(testing.NewRootListAction(brokersResource, brokersKind, opts), &servicecatalog.BrokerList{})
 	if obj == nil {
 		return nil, err
 	}

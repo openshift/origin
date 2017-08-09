@@ -130,13 +130,10 @@ func (x *Index) Put(c context.Context, id string, src interface{}) (string, erro
 		}
 		d.Id = proto.String(id)
 	}
-	// spec is modified by Call when applying the current Namespace, so copy it to
-	// avoid retaining the namespace beyond the scope of the Call.
-	spec := x.spec
 	req := &pb.IndexDocumentRequest{
 		Params: &pb.IndexDocumentParams{
 			Document:  []*pb.Document{d},
-			IndexSpec: &spec,
+			IndexSpec: &x.spec,
 		},
 	}
 	res := &pb.IndexDocumentResponse{}
@@ -304,7 +301,6 @@ func (x *Index) Search(c context.Context, query string, opts *SearchOptions) *It
 		t.refinements = opts.Refinements
 		t.facetOpts = opts.Facets
 		t.searchOffset = opts.Offset
-		t.countAccuracy = opts.CountAccuracy
 	}
 	return t
 }
@@ -331,9 +327,6 @@ func moreSearch(t *Iterator) error {
 	if t.searchOffset > 0 {
 		req.Params.Offset = proto.Int32(int32(t.searchOffset))
 		t.searchOffset = 0
-	}
-	if t.countAccuracy > 0 {
-		req.Params.MatchedCountAccuracy = proto.Int32(int32(t.countAccuracy))
 	}
 	if t.idsOnly {
 		req.Params.KeysOnly = &t.idsOnly
@@ -420,10 +413,6 @@ type SearchOptions struct {
 	// Offset specifies the number of documents to skip over before returning results.
 	// When specified, Cursor must be nil.
 	Offset int
-
-	// CountAccuracy specifies the maximum result count that can be expected to
-	// be accurate. If zero, the count accuracy defaults to 20.
-	CountAccuracy int
 }
 
 // Cursor represents an iterator's position.
@@ -736,10 +725,9 @@ type Iterator struct {
 
 	more func(*Iterator) error
 
-	count         int
-	countAccuracy int
-	limit         int // items left to return; 0 for unlimited.
-	idsOnly       bool
+	count   int
+	limit   int // items left to return; 0 for unlimited.
+	idsOnly bool
 }
 
 // errIter returns an iterator that only returns the given error.
@@ -852,7 +840,7 @@ func saveDoc(src interface{}) (*pb.Document, error) {
 	case FieldLoadSaver:
 		fields, meta, err = x.Save()
 	default:
-		fields, meta, err = saveStructWithMeta(src)
+		fields, err = SaveStruct(src)
 	}
 	if err != nil {
 		return nil, err

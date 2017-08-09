@@ -2,9 +2,8 @@ package matchers
 
 import (
 	"fmt"
-	"math"
-
 	"github.com/onsi/gomega/format"
+	"math"
 )
 
 type BeNumericallyMatcher struct {

@@ -19,7 +19,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	servicecatalog "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	v1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +61,7 @@ func (s *serviceClassLister) Get(name string) (*v1alpha1.ServiceClass, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(servicecatalog.Resource("serviceclass"), name)
+		return nil, errors.NewNotFound(v1alpha1.Resource("serviceclass"), name)
 	}
 	return obj.(*v1alpha1.ServiceClass), nil
 }

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian
+FROM BASEIMAGE
 
-ADD tmp/user-broker /opt/services/user-broker
+ADD user-broker /opt/services/user-broker
 
 ENTRYPOINT ["/opt/services/user-broker"]

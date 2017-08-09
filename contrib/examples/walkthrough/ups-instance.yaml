@@ -6,3 +6,7 @@ metadata:
 spec:
   serviceClassName: user-provided-service
   planName: default
+  parameters:
+    credentials:
+      name: root
+      password: letmein

@@ -34,7 +34,6 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   #cmd/oc
   cmd/apiserver
   cmd/controller-manager
-  contrib/cmd/user-broker
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 

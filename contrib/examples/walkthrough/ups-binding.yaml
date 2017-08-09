@@ -6,4 +6,3 @@ metadata:
 spec:
   instanceRef:
     name: ups-instance
-  secretName: my-secret

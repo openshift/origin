@@ -64,3 +64,25 @@ func TestBindingSpecChecksum(t *testing.T) {
 		t.Fatalf("versioned and unversioned checksums should match; expected %v, got %v", e, a)
 	}
 }
+
+// TestBrokerSpecChecksum tests than an internal and v1alpha1 checksum of the same object are equivalent
+func TestBrokerSpecChecksum(t *testing.T) {
+	spec := servicecatalog.BrokerSpec{
+		URL: "https://kubernetes.default.svc:443/brokers/template.k8s.io",
+		AuthInfo: &servicecatalog.BrokerAuthInfo{
+			BasicAuthSecret: &v1.ObjectReference{
+				Namespace: "test-ns",
+				Name:      "test-secret",
+			},
+		},
+	}
+
+	unversionedChecksum := unversioned.BrokerSpecChecksum(spec)
+	versionedSpec := v1alpha1.BrokerSpec{}
+	v1alpha1.Convert_servicecatalog_BrokerSpec_To_v1alpha1_BrokerSpec(&spec, &versionedSpec, nil /* conversionScope */)
+	versionedChecksum := checksumv1alpha1.BrokerSpecChecksum(versionedSpec)
+
+	if e, a := unversionedChecksum, versionedChecksum; e != a {
+		t.Fatalf("versioned and unversioned checksums should match; expected %v, got %v", e, a)
+	}
+}

@@ -24,8 +24,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/pkg"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
+	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/namespace/lifecycle"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/admission"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
 	clientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -66,17 +68,19 @@ func NewCommandServer(
 	stopCh := make(chan struct{})
 	opts := &ServiceCatalogServerOptions{
 		GenericServerRunOptions: genericserveroptions.NewServerRunOptions(),
+		AdmissionOptions:        genericserveroptions.NewAdmissionOptions(),
 		SecureServingOptions:    genericserveroptions.NewSecureServingOptions(),
 		AuthenticationOptions:   genericserveroptions.NewDelegatingAuthenticationOptions(),
 		AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
-		InsecureServingOptions:  genericserveroptions.NewInsecureServingOptions(),
-		AuditOptions:            genericserveroptions.NewAuditLogOptions(),
+		AuditOptions:            genericserveroptions.NewAuditOptions(),
 		EtcdOptions:             NewEtcdOptions(),
 		TPROptions:              NewTPROptions(),
 		StopCh:                  stopCh,
 		StandaloneMode:          standaloneMode(),
 	}
 	opts.addFlags(flags)
+	// register all admission plugins
+	registerAllAdmissionPlugins(opts.AdmissionOptions.Plugins)
 	// Set generated SSL cert path correctly
 	opts.SecureServingOptions.ServerCert.CertDirectory = certDirectory
 
@@ -126,4 +130,9 @@ func NewCommandServer(
 	}
 
 	return cmd, nil
+}
+
+// registerAllAdmissionPlugins registers all admission plugins
+func registerAllAdmissionPlugins(plugins *admission.Plugins) {
+	lifecycle.Register(plugins)
 }

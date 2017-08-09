@@ -18,10 +18,12 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 
 	genericapiserverstorage "k8s.io/apiserver/pkg/server/storage"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
+	"k8s.io/kubernetes/cmd/kube-apiserver/app/preflight"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver"
@@ -151,9 +153,43 @@ func runEtcdServer(opts *ServiceCatalogServerOptions) error {
 	}
 	addPostStartHooks(server.GenericAPIServer, scConfig, opts.StopCh)
 
+	// Install healthz checks before calling PrepareRun.
+	etcdChecker := checkEtcdConnectable{
+		ServerList: etcdOpts.StorageConfig.ServerList,
+	}
+	// PingHealtz is installed by the default config, so it will
+	// run in addition the checkers being installed here.
+	server.GenericAPIServer.AddHealthzChecks(etcdChecker)
+
 	// do we need to do any post api installation setup? We should have set up the api already?
 	glog.Infoln("Running the API server")
 	server.PrepareRun().Run(opts.StopCh)
 
+	return nil
+}
+
+// checkEtcdConnectable is a HealthzChecker that makes sure the
+// etcd storage backend is up and contactable.
+type checkEtcdConnectable struct {
+	ServerList []string
+}
+
+func (c checkEtcdConnectable) Name() string {
+	return "etcd"
+}
+
+func (c checkEtcdConnectable) Check(_ *http.Request) error {
+	glog.Info("etcd checker called")
+	serverReachable, err := preflight.EtcdConnection{ServerList: c.ServerList}.CheckEtcdServers()
+
+	if err != nil {
+		glog.Errorf("etcd checker failed with err: %v", err)
+		return err
+	}
+	if !serverReachable {
+		msg := "etcd failed to reach any server"
+		glog.Error(msg)
+		return fmt.Errorf(msg)
+	}
 	return nil
 }
