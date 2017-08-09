@@ -174,9 +174,9 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 		}
 
 		status := statusErr.ErrStatus
-		if status.Code != http.StatusNotFound ||
-			(strings.ToLower(status.Details.Kind) != "imagestream" /*pre-1.2*/ && strings.ToLower(status.Details.Kind) != "imagestreams") ||
-			status.Details.Name != m.repo.name {
+		kind := strings.ToLower(status.Details.Kind)
+		isValidKind := kind == "imagestream" /*pre-1.2*/ || kind == "imagestreams" /*1.2 to 1.6*/ || kind == "imagestreammappings" /*1.7+*/
+		if !isValidKind || status.Code != http.StatusNotFound || status.Details.Name != m.repo.name {
 			context.GetLogger(ctx).Errorf("error creating ImageStreamMapping: %s", err)
 			return "", err
 		}

@@ -22,11 +22,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against identites
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &userapi.Identity{} },
-		NewListFunc:       func() runtime.Object { return &userapi.IdentityList{} },
-		PredicateFunc:     identity.Matcher,
-		QualifiedResource: userapi.Resource("identities"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &userapi.Identity{} },
+		NewListFunc:              func() runtime.Object { return &userapi.IdentityList{} },
+		PredicateFunc:            identity.Matcher,
+		DefaultQualifiedResource: userapi.Resource("identities"),
 
 		CreateStrategy: identity.Strategy,
 		UpdateStrategy: identity.Strategy,

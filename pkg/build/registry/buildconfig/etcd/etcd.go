@@ -21,11 +21,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against BuildConfig.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &buildapi.BuildConfig{} },
-		NewListFunc:       func() runtime.Object { return &buildapi.BuildConfigList{} },
-		QualifiedResource: buildapi.Resource("buildconfigs"),
-		PredicateFunc:     buildconfig.Matcher,
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &buildapi.BuildConfig{} },
+		NewListFunc:              func() runtime.Object { return &buildapi.BuildConfigList{} },
+		DefaultQualifiedResource: buildapi.Resource("buildconfigs"),
+		PredicateFunc:            buildconfig.Matcher,
 
 		CreateStrategy: buildconfig.GroupStrategy,
 		UpdateStrategy: buildconfig.GroupStrategy,

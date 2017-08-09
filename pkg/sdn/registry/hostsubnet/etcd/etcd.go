@@ -22,11 +22,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against subnets
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &sdnapi.HostSubnet{} },
-		NewListFunc:       func() runtime.Object { return &sdnapi.HostSubnetList{} },
-		PredicateFunc:     hostsubnet.Matcher,
-		QualifiedResource: sdnapi.Resource("hostsubnets"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &sdnapi.HostSubnet{} },
+		NewListFunc:              func() runtime.Object { return &sdnapi.HostSubnetList{} },
+		PredicateFunc:            hostsubnet.Matcher,
+		DefaultQualifiedResource: sdnapi.Resource("hostsubnets"),
 
 		CreateStrategy: hostsubnet.Strategy,
 		UpdateStrategy: hostsubnet.Strategy,

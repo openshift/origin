@@ -27,11 +27,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, defaultRegistry imageapi.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &imageapi.ImageStream{} },
-		NewListFunc:       func() runtime.Object { return &imageapi.ImageStreamList{} },
-		PredicateFunc:     imagestream.Matcher,
-		QualifiedResource: imageapi.Resource("imagestreams"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
+		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
+		PredicateFunc:            imagestream.Matcher,
+		DefaultQualifiedResource: imageapi.Resource("imagestreams"),
 	}
 
 	rest := &REST{

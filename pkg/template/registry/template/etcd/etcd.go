@@ -22,11 +22,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against templates.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &templateapi.Template{} },
-		NewListFunc:       func() runtime.Object { return &templateapi.TemplateList{} },
-		PredicateFunc:     template.Matcher,
-		QualifiedResource: templateapi.Resource("templates"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &templateapi.Template{} },
+		NewListFunc:              func() runtime.Object { return &templateapi.TemplateList{} },
+		PredicateFunc:            template.Matcher,
+		DefaultQualifiedResource: templateapi.Resource("templates"),
 
 		CreateStrategy: template.Strategy,
 		UpdateStrategy: template.Strategy,

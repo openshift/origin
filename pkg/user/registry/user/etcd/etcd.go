@@ -32,11 +32,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against users
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &userapi.User{} },
-		NewListFunc:       func() runtime.Object { return &userapi.UserList{} },
-		PredicateFunc:     user.Matcher,
-		QualifiedResource: userapi.Resource("users"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &userapi.User{} },
+		NewListFunc:              func() runtime.Object { return &userapi.UserList{} },
+		PredicateFunc:            user.Matcher,
+		DefaultQualifiedResource: userapi.Resource("users"),
 
 		CreateStrategy: user.Strategy,
 		UpdateStrategy: user.Strategy,

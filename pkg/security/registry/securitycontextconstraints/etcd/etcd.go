@@ -28,9 +28,9 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*securityapi.SecurityContextConstraints).Name, nil
 		},
-		PredicateFunc:     securitycontextconstraints.Matcher,
-		QualifiedResource: securityapi.Resource("securitycontextconstraints"),
-		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("securitycontextconstraints"),
+		PredicateFunc:            securitycontextconstraints.Matcher,
+		DefaultQualifiedResource: securityapi.Resource("securitycontextconstraints"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("securitycontextconstraints"),
 
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,

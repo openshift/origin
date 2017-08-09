@@ -31,11 +31,11 @@ var _ rest.StandardStorage = &REST{}
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &deployapi.DeploymentConfig{} },
-		NewListFunc:       func() runtime.Object { return &deployapi.DeploymentConfigList{} },
-		PredicateFunc:     deployconfig.Matcher,
-		QualifiedResource: deployapi.Resource("deploymentconfigs"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &deployapi.DeploymentConfig{} },
+		NewListFunc:              func() runtime.Object { return &deployapi.DeploymentConfigList{} },
+		PredicateFunc:            deployconfig.Matcher,
+		DefaultQualifiedResource: deployapi.Resource("deploymentconfigs"),
 
 		CreateStrategy: deployconfig.Strategy,
 		UpdateStrategy: deployconfig.Strategy,

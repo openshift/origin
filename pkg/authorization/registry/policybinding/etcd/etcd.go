@@ -22,10 +22,10 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against PolicyBinding objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &authorizationapi.PolicyBinding{} },
-		NewListFunc:       func() runtime.Object { return &authorizationapi.PolicyBindingList{} },
-		QualifiedResource: authorizationapi.Resource("policybindings"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &authorizationapi.PolicyBinding{} },
+		NewListFunc:              func() runtime.Object { return &authorizationapi.PolicyBindingList{} },
+		DefaultQualifiedResource: authorizationapi.Resource("policybindings"),
 
 		CreateStrategy: policybinding.Strategy,
 		UpdateStrategy: policybinding.Strategy,

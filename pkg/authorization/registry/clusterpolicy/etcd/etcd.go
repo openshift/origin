@@ -18,10 +18,10 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against ClusterPolicy.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
-		NewListFunc:       func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
-		QualifiedResource: authorizationapi.Resource("clusterpolicies"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &authorizationapi.ClusterPolicy{} },
+		NewListFunc:              func() runtime.Object { return &authorizationapi.ClusterPolicyList{} },
+		DefaultQualifiedResource: authorizationapi.Resource("clusterpolicies"),
 
 		CreateStrategy: clusterpolicy.Strategy,
 		UpdateStrategy: clusterpolicy.Strategy,

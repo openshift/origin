@@ -27,11 +27,11 @@ func NewREST(optsGetter restoptions.Getter, kc kclientset.Interface) (*REST, *St
 	strategy := templateinstance.NewStrategy(kc)
 
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &templateapi.TemplateInstance{} },
-		NewListFunc:       func() runtime.Object { return &templateapi.TemplateInstanceList{} },
-		PredicateFunc:     templateinstance.Matcher,
-		QualifiedResource: templateapi.Resource("templateinstances"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
+		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
+		PredicateFunc:            templateinstance.Matcher,
+		DefaultQualifiedResource: templateapi.Resource("templateinstances"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
