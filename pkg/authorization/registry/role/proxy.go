@@ -5,7 +5,6 @@ import (
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
@@ -14,11 +13,11 @@ import (
 	authclient "github.com/openshift/origin/pkg/auth/client"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
+	utilregistry "github.com/openshift/origin/pkg/util/registry"
 )
 
 type REST struct {
 	privilegedClient restclient.Interface
-	resource         schema.GroupResource
 }
 
 var _ rest.Lister = &REST{}
@@ -26,8 +25,8 @@ var _ rest.Getter = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.GracefulDeleter = &REST{}
 
-func NewREST(client restclient.Interface) *REST {
-	return &REST{privilegedClient: client, resource: authorizationapi.Resource("role")}
+func NewREST(client restclient.Interface) utilregistry.NoWatchStorage {
+	return utilregistry.WrapNoWatchStorageError(&REST{privilegedClient: client})
 }
 
 func (s *REST) New() runtime.Object {
@@ -73,9 +72,6 @@ func (s *REST) Get(ctx apirequest.Context, name string, options *metav1.GetOptio
 
 	ret, err := client.Get(name, *options)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, apierrors.NewNotFound(s.resource, name)
-		}
 		return nil, err
 	}
 
@@ -130,9 +126,6 @@ func (s *REST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedO
 
 	old, err := client.Get(name, metav1.GetOptions{})
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, false, apierrors.NewNotFound(s.resource, name)
-		}
 		return nil, false, err
 	}
 
