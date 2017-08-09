@@ -68,6 +68,9 @@ type HostSubnet struct {
 	HostIP string `json:"hostIP" protobuf:"bytes,3,opt,name=hostIP"`
 	// Subnet is the CIDR range of the overlay network assigned to the node for its pods
 	Subnet string `json:"subnet" protobuf:"bytes,4,opt,name=subnet"`
+
+	// EgressIPs is the list of automatic egress IP addresses currently hosted by this node
+	EgressIPs []string `json:"egressIPs" protobuf:"bytes,5,rep,name=egressIPs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -97,6 +100,10 @@ type NetNamespace struct {
 	NetName string `json:"netname" protobuf:"bytes,2,opt,name=netname"`
 	// NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oc adm pod-network" commands.
 	NetID uint32 `json:"netid" protobuf:"varint,3,opt,name=netid"`
+
+	// EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)
+	// +optional
+	EgressIPs []string `json:"egressIPs" protobuf:"bytes,4,rep,name=egressIPs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
