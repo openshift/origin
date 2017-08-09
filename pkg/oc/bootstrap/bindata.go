@@ -12992,8 +12992,8 @@ objects:
           - -email-domain=*
           - -upstream=http://localhost:9090
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
-          - '-openshift-sar={"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}'
-          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "name": "${NAMESPACE}"}}'
+          - '-openshift-sar={"resource": "namespaces", "verb": "get", "resourceName": "${NAMESPACE}", "namespace": "${NAMESPACE}"}'
+          - '-openshift-delegate-urls={"/": {"resource": "namespaces", "verb": "get", "resourceName": "${NAMESPACE}", "namespace": "${NAMESPACE}"}}'
           - -tls-cert=/etc/tls/private/tls.crt
           - -tls-key=/etc/tls/private/tls.key
           - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
