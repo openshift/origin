@@ -1,6 +1,8 @@
 package storage
 
 import (
+	"regexp"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/reference"
@@ -20,6 +22,13 @@ type registry struct {
 	resumableDigestEnabled       bool
 	schema1SigningKey            libtrust.PrivateKey
 	blobDescriptorServiceFactory distribution.BlobDescriptorServiceFactory
+	manifestURLs                 manifestURLs
+}
+
+// manifestURLs holds regular expressions for controlling manifest URL whitelisting
+type manifestURLs struct {
+	allow *regexp.Regexp
+	deny  *regexp.Regexp
 }
 
 // RegistryOption is the type used for functional options for NewRegistry.
@@ -44,6 +53,22 @@ func EnableDelete(registry *registry) error {
 func DisableDigestResumption(registry *registry) error {
 	registry.resumableDigestEnabled = false
 	return nil
+}
+
+// ManifestURLsAllowRegexp is a functional option for NewRegistry.
+func ManifestURLsAllowRegexp(r *regexp.Regexp) RegistryOption {
+	return func(registry *registry) error {
+		registry.manifestURLs.allow = r
+		return nil
+	}
+}
+
+// ManifestURLsDenyRegexp is a functional option for NewRegistry.
+func ManifestURLsDenyRegexp(r *regexp.Regexp) RegistryOption {
+	return func(registry *registry) error {
+		registry.manifestURLs.deny = r
+		return nil
+	}
 }
 
 // Schema1SigningKey returns a functional option for NewRegistry. It sets the
@@ -217,14 +242,16 @@ func (repo *repository) Manifests(ctx context.Context, options ...distribution.M
 		repository: repo,
 		blobStore:  blobStore,
 		schema1Handler: &signedManifestHandler{
-			ctx:        ctx,
-			repository: repo,
-			blobStore:  blobStore,
+			ctx:               ctx,
+			schema1SigningKey: repo.schema1SigningKey,
+			repository:        repo,
+			blobStore:         blobStore,
 		},
 		schema2Handler: &schema2ManifestHandler{
-			ctx:        ctx,
-			repository: repo,
-			blobStore:  blobStore,
+			ctx:          ctx,
+			repository:   repo,
+			blobStore:    blobStore,
+			manifestURLs: repo.registry.manifestURLs,
 		},
 		manifestListHandler: &manifestListHandler{
 			ctx:        ctx,

@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -211,6 +213,39 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 		options = append(options, storage.EnableRedirect)
 	}
 
+	// configure validation
+	if config.Validation.Enabled {
+		if len(config.Validation.Manifests.URLs.Allow) == 0 && len(config.Validation.Manifests.URLs.Deny) == 0 {
+			// If Allow and Deny are empty, allow nothing.
+			options = append(options, storage.ManifestURLsAllowRegexp(regexp.MustCompile("^$")))
+		} else {
+			if len(config.Validation.Manifests.URLs.Allow) > 0 {
+				for i, s := range config.Validation.Manifests.URLs.Allow {
+					// Validate via compilation.
+					if _, err := regexp.Compile(s); err != nil {
+						panic(fmt.Sprintf("validation.manifests.urls.allow: %s", err))
+					}
+					// Wrap with non-capturing group.
+					config.Validation.Manifests.URLs.Allow[i] = fmt.Sprintf("(?:%s)", s)
+				}
+				re := regexp.MustCompile(strings.Join(config.Validation.Manifests.URLs.Allow, "|"))
+				options = append(options, storage.ManifestURLsAllowRegexp(re))
+			}
+			if len(config.Validation.Manifests.URLs.Deny) > 0 {
+				for i, s := range config.Validation.Manifests.URLs.Deny {
+					// Validate via compilation.
+					if _, err := regexp.Compile(s); err != nil {
+						panic(fmt.Sprintf("validation.manifests.urls.deny: %s", err))
+					}
+					// Wrap with non-capturing group.
+					config.Validation.Manifests.URLs.Deny[i] = fmt.Sprintf("(?:%s)", s)
+				}
+				re := regexp.MustCompile(strings.Join(config.Validation.Manifests.URLs.Deny, "|"))
+				options = append(options, storage.ManifestURLsDenyRegexp(re))
+			}
+		}
+	}
+
 	// configure storage caches
 	if cc, ok := config.Storage["cache"]; ok {
 		v, ok := cc["blobdescriptor"]
@@ -306,7 +341,7 @@ func (app *App) RegisterHealthChecks(healthRegistries ...*health.Registry) {
 		}
 
 		storageDriverCheck := func() error {
-			_, err := app.driver.List(app, "/") // "/" should always exist
+			_, err := app.driver.Stat(app, "/") // "/" should always exist
 			return err                          // any error will be treated as failure
 		}
 
@@ -366,38 +401,18 @@ func (app *App) RegisterHealthChecks(healthRegistries ...*health.Registry) {
 	}
 }
 
-type customAccessRecordsFunc func(*http.Request) []auth.Access
-
-func NoCustomAccessRecords(*http.Request) []auth.Access {
-	return []auth.Access{}
-}
-
-func NameNotRequired(*http.Request) bool {
-	return false
-}
-
-func NameRequired(*http.Request) bool {
-	return true
-}
-
 // register a handler with the application, by route name. The handler will be
 // passed through the application filters and context will be constructed at
 // request time.
 func (app *App) register(routeName string, dispatch dispatchFunc) {
-	app.RegisterRoute(app.router.GetRoute(routeName), dispatch, app.nameRequired, NoCustomAccessRecords)
-}
 
-func (app *App) RegisterRoute(route *mux.Route, dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) {
 	// TODO(stevvooe): This odd dispatcher/route registration is by-product of
 	// some limitations in the gorilla/mux router. We are using it to keep
 	// routing consistent between the client and server, but we may want to
 	// replace it with manual routing and structure-based dispatch for better
 	// control over the request execution.
-	route.Handler(app.dispatcher(dispatch, nameRequired, accessRecords))
-}
 
-func (app *App) NewRoute() *mux.Route {
-	return app.router.NewRoute()
+	app.router.GetRoute(routeName).Handler(app.dispatcher(dispatch))
 }
 
 // configureEvents prepares the event sink for action.
@@ -412,10 +427,11 @@ func (app *App) configureEvents(configuration *configuration.Configuration) {
 
 		ctxu.GetLogger(app).Infof("configuring endpoint %v (%v), timeout=%s, headers=%v", endpoint.Name, endpoint.URL, endpoint.Timeout, endpoint.Headers)
 		endpoint := notifications.NewEndpoint(endpoint.Name, endpoint.URL, notifications.EndpointConfig{
-			Timeout:   endpoint.Timeout,
-			Threshold: endpoint.Threshold,
-			Backoff:   endpoint.Backoff,
-			Headers:   endpoint.Headers,
+			Timeout:           endpoint.Timeout,
+			Threshold:         endpoint.Threshold,
+			Backoff:           endpoint.Backoff,
+			Headers:           endpoint.Headers,
+			IgnoredMediaTypes: endpoint.IgnoredMediaTypes,
 		})
 
 		sinks = append(sinks, endpoint)
@@ -445,6 +461,8 @@ func (app *App) configureEvents(configuration *configuration.Configuration) {
 	}
 }
 
+type redisStartAtKey struct{}
+
 func (app *App) configureRedis(configuration *configuration.Configuration) {
 	if configuration.Redis.Addr == "" {
 		ctxu.GetLogger(app).Infof("redis not configured")
@@ -454,11 +472,11 @@ func (app *App) configureRedis(configuration *configuration.Configuration) {
 	pool := &redis.Pool{
 		Dial: func() (redis.Conn, error) {
 			// TODO(stevvooe): Yet another use case for contextual timing.
-			ctx := context.WithValue(app, "redis.connect.startedat", time.Now())
+			ctx := context.WithValue(app, redisStartAtKey{}, time.Now())
 
 			done := func(err error) {
 				logger := ctxu.GetLoggerWithField(ctx, "redis.connect.duration",
-					ctxu.Since(ctx, "redis.connect.startedat"))
+					ctxu.Since(ctx, redisStartAtKey{}))
 				if err != nil {
 					logger.Errorf("redis: error connecting: %v", err)
 				} else {
@@ -609,7 +627,7 @@ type dispatchFunc func(ctx *Context, r *http.Request) http.Handler
 
 // dispatcher returns a handler that constructs a request specific context and
 // handler, using the dispatch factory function.
-func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc, accessRecords customAccessRecordsFunc) http.Handler {
+func (app *App) dispatcher(dispatch dispatchFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for headerName, headerValues := range app.Config.HTTP.Headers {
 			for _, value := range headerValues {
@@ -619,15 +637,15 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 
 		context := app.context(w, r)
 
-		if err := app.authorized(w, r, context, nameRequired, accessRecords(r)); err != nil {
-			ctxu.GetLogger(context).Errorf("error authorizing context: %v", err)
+		if err := app.authorized(w, r, context); err != nil {
+			ctxu.GetLogger(context).Warnf("error authorizing context: %v", err)
 			return
 		}
 
 		// Add username to request logging
 		context.Context = ctxu.WithLogger(context.Context, ctxu.GetLogger(context.Context, auth.UserNameKey))
 
-		if nameRequired(r) {
+		if app.nameRequired(r) {
 			nameRef, err := reference.ParseNamed(getName(context))
 			if err != nil {
 				ctxu.GetLogger(context).Errorf("error parsing reference from context: %v", err)
@@ -691,6 +709,18 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 	})
 }
 
+type errCodeKey struct{}
+
+func (errCodeKey) String() string { return "err.code" }
+
+type errMessageKey struct{}
+
+func (errMessageKey) String() string { return "err.message" }
+
+type errDetailKey struct{}
+
+func (errDetailKey) String() string { return "err.detail" }
+
 func (app *App) logError(context context.Context, errors errcode.Errors) {
 	for _, e1 := range errors {
 		var c ctxu.Context
@@ -698,23 +728,23 @@ func (app *App) logError(context context.Context, errors errcode.Errors) {
 		switch e1.(type) {
 		case errcode.Error:
 			e, _ := e1.(errcode.Error)
-			c = ctxu.WithValue(context, "err.code", e.Code)
-			c = ctxu.WithValue(c, "err.message", e.Code.Message())
-			c = ctxu.WithValue(c, "err.detail", e.Detail)
+			c = ctxu.WithValue(context, errCodeKey{}, e.Code)
+			c = ctxu.WithValue(c, errMessageKey{}, e.Code.Message())
+			c = ctxu.WithValue(c, errDetailKey{}, e.Detail)
 		case errcode.ErrorCode:
 			e, _ := e1.(errcode.ErrorCode)
-			c = ctxu.WithValue(context, "err.code", e)
-			c = ctxu.WithValue(c, "err.message", e.Message())
+			c = ctxu.WithValue(context, errCodeKey{}, e)
+			c = ctxu.WithValue(c, errMessageKey{}, e.Message())
 		default:
 			// just normal go 'error'
-			c = ctxu.WithValue(context, "err.code", errcode.ErrorCodeUnknown)
-			c = ctxu.WithValue(c, "err.message", e1.Error())
+			c = ctxu.WithValue(context, errCodeKey{}, errcode.ErrorCodeUnknown)
+			c = ctxu.WithValue(c, errMessageKey{}, e1.Error())
 		}
 
 		c = ctxu.WithLogger(c, ctxu.GetLogger(c,
-			"err.code",
-			"err.message",
-			"err.detail"))
+			errCodeKey{},
+			errMessageKey{},
+			errDetailKey{}))
 		ctxu.GetResponseLogger(c).Errorf("response completed with error")
 	}
 }
@@ -750,7 +780,7 @@ func (app *App) context(w http.ResponseWriter, r *http.Request) *Context {
 // authorized checks if the request can proceed with access to the requested
 // repository. If it succeeds, the context may access the requested
 // repository. An error will be returned if access is not available.
-func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context, nameRequired nameRequiredFunc, customAccessRecords []auth.Access) error {
+func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Context) error {
 	ctxu.GetLogger(context).Debug("authorizing request")
 	repo := getName(context)
 
@@ -759,7 +789,6 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 	}
 
 	var accessRecords []auth.Access
-	accessRecords = append(accessRecords, customAccessRecords...)
 
 	if repo != "" {
 		accessRecords = appendAccessRecords(accessRecords, r.Method, repo)
@@ -768,10 +797,9 @@ func (app *App) authorized(w http.ResponseWriter, r *http.Request, context *Cont
 			// access to the source repository.
 			accessRecords = appendAccessRecords(accessRecords, "GET", fromRepo)
 		}
-	}
-	if len(accessRecords) == 0 {
+	} else {
 		// Only allow the name not to be set on the base route.
-		if nameRequired(r) {
+		if app.nameRequired(r) {
 			// For this to be properly secured, repo must always be set for a
 			// resource that may make a modification. The only condition under
 			// which name is not set and we still allow access is when the
@@ -825,8 +853,6 @@ func (app *App) eventBridge(ctx *Context, r *http.Request) notifications.Listene
 
 	return notifications.NewBridge(ctx.urlBuilder, app.events.source, actor, request, app.events.sink)
 }
-
-type nameRequiredFunc func(*http.Request) bool
 
 // nameRequired returns true if the route requires a name.
 func (app *App) nameRequired(r *http.Request) bool {

@@ -3,13 +3,17 @@ package storage
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"testing"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
+	"github.com/docker/distribution/testutil"
 )
 
 type setupEnv struct {
@@ -21,36 +25,38 @@ type setupEnv struct {
 
 func setupFS(t *testing.T) *setupEnv {
 	d := inmemory.New()
-	c := []byte("")
 	ctx := context.Background()
 	registry, err := NewRegistry(ctx, d, BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider()), EnableRedirect)
 	if err != nil {
 		t.Fatalf("error creating registry: %v", err)
 	}
-	rootpath, _ := pathFor(repositoriesRootPathSpec{})
 
 	repos := []string{
-		"/foo/a/_layers/1",
-		"/foo/b/_layers/2",
-		"/bar/c/_layers/3",
-		"/bar/d/_layers/4",
-		"/foo/d/in/_layers/5",
-		"/an/invalid/repo",
-		"/bar/d/_layers/ignored/dir/6",
+		"foo/a",
+		"foo/b",
+		"foo-bar/a",
+		"bar/c",
+		"bar/d",
+		"bar/e",
+		"foo/d/in",
+		"foo-bar/b",
+		"test",
 	}
 
 	for _, repo := range repos {
-		if err := d.PutContent(ctx, rootpath+repo, c); err != nil {
-			t.Fatalf("Unable to put to inmemory fs")
-		}
+		makeRepo(ctx, t, repo, registry)
 	}
 
 	expected := []string{
 		"bar/c",
 		"bar/d",
+		"bar/e",
 		"foo/a",
 		"foo/b",
 		"foo/d/in",
+		"foo-bar/a",
+		"foo-bar/b",
+		"test",
 	}
 
 	return &setupEnv{
@@ -61,14 +67,55 @@ func setupFS(t *testing.T) *setupEnv {
 	}
 }
 
+func makeRepo(ctx context.Context, t *testing.T, name string, reg distribution.Namespace) {
+	named, err := reference.ParseNamed(name)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo, _ := reg.Repository(ctx, named)
+	manifests, _ := repo.Manifests(ctx)
+
+	layers, err := testutil.CreateRandomLayers(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = testutil.UploadBlobs(repo, layers)
+	if err != nil {
+		t.Fatalf("failed to upload layers: %v", err)
+	}
+
+	getKeys := func(digests map[digest.Digest]io.ReadSeeker) (ds []digest.Digest) {
+		for d := range digests {
+			ds = append(ds, d)
+		}
+		return
+	}
+
+	manifest, err := testutil.MakeSchema1Manifest(getKeys(layers))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = manifests.Put(ctx, manifest)
+	if err != nil {
+		t.Fatalf("manifest upload failed: %v", err)
+	}
+
+}
+
 func TestCatalog(t *testing.T) {
 	env := setupFS(t)
 
 	p := make([]string, 50)
 
 	numFilled, err := env.registry.Repositories(env.ctx, p, "")
+	if numFilled != len(env.expected) {
+		t.Errorf("missing items in catalog")
+	}
 
-	if !testEq(p, env.expected, numFilled) {
+	if !testEq(p, env.expected, len(env.expected)) {
 		t.Errorf("Expected catalog repos err")
 	}
 
@@ -80,7 +127,7 @@ func TestCatalog(t *testing.T) {
 func TestCatalogInParts(t *testing.T) {
 	env := setupFS(t)
 
-	chunkLen := 2
+	chunkLen := 3
 	p := make([]string, chunkLen)
 
 	numFilled, err := env.registry.Repositories(env.ctx, p, "")
@@ -106,12 +153,23 @@ func TestCatalogInParts(t *testing.T) {
 	lastRepo = p[len(p)-1]
 	numFilled, err = env.registry.Repositories(env.ctx, p, lastRepo)
 
+	if err != io.EOF || numFilled != len(p) {
+		t.Errorf("Expected end of catalog")
+	}
+
+	if !testEq(p, env.expected[chunkLen*2:chunkLen*3], numFilled) {
+		t.Errorf("Expected catalog third chunk err")
+	}
+
+	lastRepo = p[len(p)-1]
+	numFilled, err = env.registry.Repositories(env.ctx, p, lastRepo)
+
 	if err != io.EOF {
 		t.Errorf("Catalog has more values which we aren't expecting")
 	}
 
-	if !testEq(p, env.expected[chunkLen*2:chunkLen*3-1], numFilled) {
-		t.Errorf("Expected catalog third chunk err")
+	if numFilled != 0 {
+		t.Errorf("Expected catalog fourth chunk err")
 	}
 }
 
@@ -183,4 +241,84 @@ func TestCatalogWalkError(t *testing.T) {
 	if err == io.EOF {
 		t.Errorf("Expected catalog driver list error")
 	}
+}
+
+func BenchmarkPathCompareEqual(B *testing.B) {
+	B.StopTimer()
+	pp := randomPath(100)
+	// make a real copy
+	ppb := append([]byte{}, []byte(pp)...)
+	a, b := pp, string(ppb)
+
+	B.StartTimer()
+	for i := 0; i < B.N; i++ {
+		lessPath(a, b)
+	}
+}
+
+func BenchmarkPathCompareNotEqual(B *testing.B) {
+	B.StopTimer()
+	a, b := randomPath(100), randomPath(100)
+	B.StartTimer()
+
+	for i := 0; i < B.N; i++ {
+		lessPath(a, b)
+	}
+}
+
+func BenchmarkPathCompareNative(B *testing.B) {
+	B.StopTimer()
+	a, b := randomPath(100), randomPath(100)
+	B.StartTimer()
+
+	for i := 0; i < B.N; i++ {
+		c := a < b
+		c = c && false
+	}
+}
+
+func BenchmarkPathCompareNativeEqual(B *testing.B) {
+	B.StopTimer()
+	pp := randomPath(100)
+	a, b := pp, pp
+	B.StartTimer()
+
+	for i := 0; i < B.N; i++ {
+		c := a < b
+		c = c && false
+	}
+}
+
+var filenameChars = []byte("abcdefghijklmnopqrstuvwxyz0123456789")
+var separatorChars = []byte("._-")
+
+func randomPath(length int64) string {
+	path := "/"
+	for int64(len(path)) < length {
+		chunkLength := rand.Int63n(length-int64(len(path))) + 1
+		chunk := randomFilename(chunkLength)
+		path += chunk
+		remaining := length - int64(len(path))
+		if remaining == 1 {
+			path += randomFilename(1)
+		} else if remaining > 1 {
+			path += "/"
+		}
+	}
+	return path
+}
+
+func randomFilename(length int64) string {
+	b := make([]byte, length)
+	wasSeparator := true
+	for i := range b {
+		if !wasSeparator && i < len(b)-1 && rand.Intn(4) == 0 {
+			b[i] = separatorChars[rand.Intn(len(separatorChars))]
+			wasSeparator = true
+		} else {
+			b[i] = filenameChars[rand.Intn(len(filenameChars))]
+			wasSeparator = false
+		}
+	}
+	return string(b)
 }
