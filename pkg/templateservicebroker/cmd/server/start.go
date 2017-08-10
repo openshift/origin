@@ -11,11 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
-	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
-	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"io/ioutil"
@@ -128,32 +125,9 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	if err := o.SecureServing.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
-
-	// TODO restore this after https://github.com/openshift/openshift-ansible/issues/5056 is fixed
-	//if err := o.Authentication.ApplyTo(serverConfig); err != nil {
-	//	return nil, err
-	//}
-	// the TSB server *can* limp along without terminating client certs or front proxy authn. Do that for now
-	// this wiring is a bit tricky.
-	clientConfig, err := rest.InClusterConfig()
-	if err != nil {
+	if err := o.Authentication.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
-	client, err := authenticationclient.NewForConfig(clientConfig)
-	if err != nil {
-		return nil, err
-	}
-	authenticationConfig := authenticatorfactory.DelegatingAuthenticatorConfig{
-		Anonymous:               true,
-		TokenAccessReviewClient: client.TokenReviews(),
-		CacheTTL:                o.Authentication.CacheTTL,
-	}
-	authenticator, _, err := authenticationConfig.New()
-	if err != nil {
-		return nil, err
-	}
-	serverConfig.Authenticator = authenticator
-
 	if err := o.Authorization.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
