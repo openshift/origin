@@ -48,3 +48,27 @@ CPU consumed per namespace on the cluster.
 
 CPU per instance of Prometheus container.
 
+> sum(rate(container_cpu_usage_seconds_total{id="/"}[3m])) / sum(machine_cpu_cores)
+
+Percentage of total cluster CPU in use
+
+> sum(container_memory_rss) / sum(machine_memory_bytes)
+
+Percentage of total cluster memory in use
+
+### Changes in your cluster
+
+> sum(changes(container_start_time_seconds[10m]))
+
+The number of containers that start or restart over the last ten minutes.
+
+
+### API related queries
+
+> sort_desc(drop_common_labels(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"POST|PUT|DELETE|PATCH"}[5m]))))
+
+Number of mutating API requests being made to the control plane.
+
+> sort_desc(drop_common_labels(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"GET|LIST|WATCH"}[5m]))))
+
+Number of non-mutating API requests being made to the control plane.
