@@ -8,7 +8,7 @@
 #
 # The standard name for this image is openshift/origin
 #
-FROM openshift/origin-base
+FROM openshift/origin-base:v1.5
 
 RUN INSTALL_PKGS="origin" && \
     yum install -y $INSTALL_PKGS && \
