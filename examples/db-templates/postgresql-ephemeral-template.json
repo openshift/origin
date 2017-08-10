@@ -27,12 +27,14 @@
         "name": "${DATABASE_SERVICE_NAME}",
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
-          "template.openshift.io/expose-password": "{.data['database-password']}"
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
-        "database-password" : "${POSTGRESQL_PASSWORD}"
+        "database-password" : "${POSTGRESQL_PASSWORD}",
+        "database-name" : "${POSTGRESQL_DATABASE}"
       }
     },
     {
@@ -153,7 +155,12 @@
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
-                    "value": "${POSTGRESQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
