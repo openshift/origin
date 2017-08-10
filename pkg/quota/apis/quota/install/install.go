@@ -16,8 +16,6 @@ import (
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/quota/apis/quota"
-
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
@@ -74,7 +72,7 @@ func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 	rootScoped := sets.NewString("ClusterResourceQuota")
 	ignoredKinds := sets.NewString()
 
-	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped, kapi.Scheme)
+	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, ignoredKinds, rootScoped, kapi.Scheme)
 }
 
 // interfacesFor returns the default Codec and ResourceVersioner for a given version

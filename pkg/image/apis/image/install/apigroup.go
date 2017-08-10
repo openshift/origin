@@ -23,7 +23,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:              imageapi.GroupName,
 			VersionPreferenceOrder: []string{imageapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:           importPrefix,
 			AddInternalObjectsToScheme: func(scheme *runtime.Scheme) error {
 				if err := docker10.AddToScheme(scheme); err != nil {
 					return err

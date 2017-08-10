@@ -20,7 +20,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  deployapi.GroupName,
 			VersionPreferenceOrder:     []string{deployapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: deployapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{

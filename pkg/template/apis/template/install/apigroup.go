@@ -21,7 +21,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  templateapi.GroupName,
 			VersionPreferenceOrder:     []string{templateapiv1.LegacySchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: templateapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("BrokerTemplateInstance"),
 		},

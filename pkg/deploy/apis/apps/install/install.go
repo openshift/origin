@@ -16,8 +16,6 @@ import (
 	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/deploy/apis/apps"
-
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
@@ -91,7 +89,7 @@ func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
 func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
 	rootScoped := sets.NewString()
 	ignoredKinds := sets.NewString()
-	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped, kapi.Scheme)
+	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, ignoredKinds, rootScoped, kapi.Scheme)
 }
 
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
