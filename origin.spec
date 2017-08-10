@@ -17,7 +17,7 @@
 # this is the version we obsolete up to. The packaging changed for Origin
 # 1.0.6 and OSE 3.1 such that 'openshift' package names were no longer used.
 %global package_refector_version 3.0.2.900
-%global golang_version 1.6.2
+%global golang_version 1.8.3
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
@@ -151,6 +151,7 @@ Requires:       bash-completion
 %package clients-redistributable
 Summary:        %{product_name} Client binaries for Linux, Mac OSX, and Windows
 Obsoletes:      openshift-clients-redistributable < %{package_refector_version}
+BuildRequires:  goversioninfo
 
 %description clients-redistributable
 %{summary}
