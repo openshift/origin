@@ -13390,10 +13390,6 @@ objects:
           - etcd
           - --secure-port
           - "6443"
-          - --insecure-bind-address
-          - 0.0.0.0
-          - --insecure-port
-          - "8081"
           - --etcd-servers
           - http://localhost:2379
           - -v
@@ -13452,10 +13448,6 @@ objects:
     type: ClusterIP
     clusterIP: ${SERVICE_CATALOG_SERVICE_IP}
     ports:
-    - name: insecure
-      port: 80
-      protocol: TCP
-      targetPort: 8081
     - name: secure
       port: 443
       protocol: TCP
@@ -13557,7 +13549,7 @@ parameters:
   name: KUBE_SYSTEM_NAMESPACE
   required: true
   value: kube-system
-  `)
+`)
 
 func examplesServiceCatalogServiceCatalogYamlBytes() ([]byte, error) {
 	return _examplesServiceCatalogServiceCatalogYaml, nil
