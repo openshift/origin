@@ -835,9 +835,8 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
 		}
 
-		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
-			TemplateNamespaces: []string{OpenshiftNamespace},
-		}
+		cfg.TemplateServiceBrokerConfig.TemplateNamespaces = []string{OpenshiftNamespace}
+
 		if cfg.AssetConfig == nil {
 			cfg.AssetConfig = &configapi.AssetConfig{}
 		}

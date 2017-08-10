@@ -100,15 +100,13 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 	// Ideally, the generator produces an expansion method that allows us to provide a list of index functions
 	// to add to an informer if it is started.  This call actually causes the informer to be started, so we have to
 	// gate it
-	if options.TemplateServiceBrokerConfig != nil {
-		err := templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
-			templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
-				return []string{string(obj.(*templateapi.Template).UID)}, nil
-			},
-		})
-		if err != nil {
-			return nil, err
-		}
+	err = templateInformers.Template().InternalVersion().Templates().Informer().AddIndexers(cache.Indexers{
+		templateapi.TemplateUIDIndex: func(obj interface{}) ([]string, error) {
+			return []string{string(obj.(*templateapi.Template).UID)}, nil
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &informers{

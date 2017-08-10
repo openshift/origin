@@ -98,8 +98,6 @@ type OpenshiftAPIConfig struct {
 
 	ServiceAccountMethod configapi.GrantHandlerType
 
-	EnableTemplateServiceBroker bool
-
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 
 	// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,

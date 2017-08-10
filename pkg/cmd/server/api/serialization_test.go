@@ -64,6 +64,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 			if len(obj.RoutingConfig.Subdomain) == 0 {
 				obj.RoutingConfig.Subdomain = "router.default.svc.cluster.local"
 			}
+			if len(obj.TemplateServiceBrokerConfig.TemplateNamespaces) == 0 {
+				obj.TemplateServiceBrokerConfig.TemplateNamespaces = []string{"openshift"}
+			}
 
 			if obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides == nil {
 				obj.MasterClients.OpenShiftLoopbackClientConnectionOverrides = &configapi.ClientConnectionOverrides{
