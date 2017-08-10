@@ -10,7 +10,7 @@
 #
 # The standard name for this image is openshift/origin-docker-builder
 #
-FROM openshift/origin
+FROM openshift/origin:v1.5
 
 LABEL io.k8s.display-name="OpenShift Origin Docker Builder" \
       io.k8s.description="This is a component of OpenShift Origin and is responsible for executing Docker image builds."
