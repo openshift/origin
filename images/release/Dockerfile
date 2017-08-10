@@ -4,7 +4,7 @@
 #
 # The standard name for this image is openshift/origin-release
 #
-FROM openshift/origin-base
+FROM openshift/origin-base:v1.5
 
 ENV VERSION=1.6 \
     GOARM=5 \
