@@ -196,11 +196,6 @@ func (c *builderConfig) clone() error {
 	return err
 }
 
-func (c *builderConfig) manageDockerfile() error {
-	buildDir := buildutil.InputContentPath
-	return bld.ManageDockerfile(buildDir, c.build)
-}
-
 func (c *builderConfig) extractImageContent() error {
 	ctx := timing.NewContext(context.Background())
 	defer func() {
@@ -305,16 +300,23 @@ func RunGitClone(out io.Writer) error {
 	return cfg.clone()
 }
 
-// RunManageDockerfile manipulates the dockerfile for docker builds
+// RunManageDockerfile manipulates the dockerfile for docker builds.
+// It will write the inline dockerfile to the working directory (possibly
+// overwriting an existing dockerfile) and then update the dockerfile
+// in the working directory (accounting for contextdir+dockerfilepath)
+// with new FROM image information based on the imagestream/imagetrigger
+// and also adds some env and label values to the dockerfile based on
+// the build information.
 func RunManageDockerfile(out io.Writer) error {
 	cfg, err := newBuilderConfigFromEnvironment(out, false)
 	if err != nil {
 		return err
 	}
-	return cfg.manageDockerfile()
+	return bld.ManageDockerfile(buildutil.InputContentPath, cfg.build)
 }
 
 // RunExtractImageContent extracts files from existing images
+// into the build working directory.
 func RunExtractImageContent(out io.Writer) error {
 	cfg, err := newBuilderConfigFromEnvironment(out, true)
 	if err != nil {

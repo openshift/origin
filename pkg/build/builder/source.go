@@ -90,6 +90,13 @@ func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitB
 	return sourceInfo, nil
 }
 
+// ManageDockerfile manipulates the dockerfile for docker builds.
+// It will write the inline dockerfile to the working directory (possibly
+// overwriting an existing dockerfile) and then update the dockerfile
+// in the working directory (accounting for contextdir+dockerfilepath)
+// with new FROM image information based on the imagestream/imagetrigger
+// and also adds some env and label values to the dockerfile based on
+// the build information.
 func ManageDockerfile(dir string, build *buildapi.Build) error {
 	os.MkdirAll(dir, 0777)
 	glog.V(5).Infof("Checking for presence of a Dockerfile")
