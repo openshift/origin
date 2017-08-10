@@ -92,9 +92,23 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	if err := o.SecureServing.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
-	if err := o.Authentication.ApplyTo(serverConfig); err != nil {
+
+	// TODO restore this after https://github.com/openshift/openshift-ansible/issues/5056 is fixed
+	//if err := o.Authentication.ApplyTo(serverConfig); err != nil {
+	//	return nil, err
+	//}
+	// the TSB server *can* limp along without terminating client certs or front proxy authn. Do that for now
+	// this wiring is a bit tricky.
+	cfg, err := o.Authentication.ToAuthenticationConfig()
+	if err != nil {
 		return nil, err
 	}
+	authenticator, _, err := cfg.New()
+	if err != nil {
+		return nil, err
+	}
+	serverConfig.Authenticator = authenticator
+
 	if err := o.Authorization.ApplyTo(serverConfig); err != nil {
 		return nil, err
 	}
