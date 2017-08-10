@@ -8,6 +8,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -27,6 +29,7 @@ var _ = g.Describe("[builds][Conformance] remove all builds when build configura
 
 	g.Describe("oc delete buildconfig", func() {
 		g.It("should start builds and delete the buildconfig", func() {
+			framework.SkipIfProviderIs("gce")
 			var (
 				err    error
 				builds [4]string

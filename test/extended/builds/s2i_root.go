@@ -6,6 +6,8 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	exutil "github.com/openshift/origin/test/extended/util"
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
@@ -26,6 +28,7 @@ var _ = g.Describe("[builds][Conformance] s2i build with a root user image", fun
 
 	g.Describe("Building using an image with a root default user", func() {
 		g.It("should fail the build immediately", func() {
+			framework.SkipIfProviderIs("gce")
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
