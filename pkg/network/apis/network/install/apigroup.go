@@ -21,7 +21,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  networkapi.GroupName,
 			VersionPreferenceOrder:     []string{networkapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: networkapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("ClusterNetwork", "HostSubnet", "NetNamespace"),
 		},

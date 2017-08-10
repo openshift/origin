@@ -21,7 +21,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  quotaapi.GroupName,
 			VersionPreferenceOrder:     []string{quotaapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: quotaapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("ClusterResourceQuota"),
 		},

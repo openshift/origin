@@ -21,7 +21,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  projectapi.GroupName,
 			VersionPreferenceOrder:     []string{projectapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: projectapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("Project", "ProjectRequest"),
 		},

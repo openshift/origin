@@ -21,7 +21,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  userapi.GroupName,
 			VersionPreferenceOrder:     []string{userapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: userapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("User", "Identity", "UserIdentityMapping", "Group"),
 		},

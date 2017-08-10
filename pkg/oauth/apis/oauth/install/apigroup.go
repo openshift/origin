@@ -21,7 +21,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  oauthapi.GroupName,
 			VersionPreferenceOrder:     []string{oauthapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: oauthapi.AddToScheme,
 			RootScopedKinds:            sets.NewString("OAuthAccessToken", "OAuthAuthorizeToken", "OAuthClient", "OAuthClientAuthorization"),
 		},

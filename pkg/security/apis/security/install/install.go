@@ -18,8 +18,6 @@ import (
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/security/apis/security"
-
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
@@ -96,7 +94,7 @@ func addVersionsToScheme(registry *registered.APIRegistrationManager, scheme *ru
 func newRESTMapper(registry *registered.APIRegistrationManager, scheme *runtime.Scheme, externalVersions []schema.GroupVersion) meta.RESTMapper {
 	rootScoped := sets.NewString("SecurityContextConstraints")
 	ignoredKinds := sets.NewString()
-	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor(registry, scheme), importPrefix, ignoredKinds, rootScoped, scheme)
+	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor(registry, scheme), ignoredKinds, rootScoped, scheme)
 }
 
 func interfacesFor(registry *registered.APIRegistrationManager, scheme *runtime.Scheme) func(version schema.GroupVersion) (*meta.VersionInterfaces, error) {

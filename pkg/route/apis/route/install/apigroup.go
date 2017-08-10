@@ -20,7 +20,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  routeapi.GroupName,
 			VersionPreferenceOrder:     []string{routeapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: routeapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{

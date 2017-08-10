@@ -22,7 +22,6 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 			GroupName:                  securityapi.GroupName,
 			VersionPreferenceOrder:     []string{securityapiv1.SchemeGroupVersion.Version},
 			RootScopedKinds:            sets.NewString("SecurityContextConstraints"),
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: securityapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
