@@ -4,7 +4,7 @@
 #
 # The standard name for this image is openshift/origin-docker-registry
 #
-FROM openshift/origin-base
+FROM openshift/origin-base:v1.5
 
 RUN INSTALL_PKGS="origin-dockerregistry" && \
     yum install -y $INSTALL_PKGS && \
