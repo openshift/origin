@@ -224,7 +224,6 @@ func HandleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface
 		latestBuild.Status.Message = build.Status.Message
 		latestBuild.Status.Output.To = build.Status.Output.To
 		latestBuild.Status.Stages = buildapi.AppendStageAndStepInfo(latestBuild.Status.Stages, build.Status.Stages)
-		//latestBuild.Status.Stages = append(latestBuild.Status.Stages, build.Status.Stages...)
 
 		_, err = client.UpdateDetails(latestBuild)
 
@@ -294,7 +293,10 @@ func readSourceInfo() (*git.SourceInfo, error) {
 		return nil, err
 	}
 	sourceInfo := &git.SourceInfo{}
-	json.Unmarshal(data, &sourceInfo)
+	err = json.Unmarshal(data, &sourceInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	glog.V(4).Infof("Found git source info: %#v", *sourceInfo)
 	return sourceInfo, nil

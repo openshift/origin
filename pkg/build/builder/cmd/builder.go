@@ -180,10 +180,6 @@ func (c *builderConfig) clone() error {
 	gitClient := git.NewRepositoryWithEnv(gitEnv)
 
 	buildDir := buildutil.InputContentPath
-	if err != nil {
-		return err
-	}
-
 	sourceInfo, err := bld.GitClone(ctx, gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
 	if err != nil {
 		return err
