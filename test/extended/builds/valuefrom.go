@@ -8,8 +8,6 @@ import (
 	o "github.com/onsi/gomega"
 
 	exutil "github.com/openshift/origin/test/extended/util"
-
-	"k8s.io/kubernetes/test/e2e/framework"
 )
 
 var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build strategy environment variables", func() {
@@ -72,7 +70,6 @@ var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build 
 
 	g.It("should successfully resolve valueFrom in docker build environment variables", func() {
 
-		framework.SkipIfProviderIs("gce")
 		g.By("creating test successful build config")
 		err := oc.Run("create").Args("-f", successfulDockerBuildValueFrom).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
