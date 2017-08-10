@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/openshift/origin/pkg/client"
-	ctrl "github.com/openshift/origin/pkg/controller"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 )
 
@@ -92,7 +91,7 @@ func NewScheduledImageStreamController(namespacer client.ImageStreamsNamespacer,
 		listerSynced: informer.Informer().HasSynced,
 	}
 
-	controller.scheduler = ctrl.NewScheduler(opts.Buckets(), bucketLimiter, controller.syncTimed)
+	controller.scheduler = NewScheduler(opts.Buckets(), bucketLimiter, controller.syncTimed)
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    controller.addImageStream,

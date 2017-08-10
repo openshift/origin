@@ -12,7 +12,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/controller"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -37,7 +36,7 @@ type ScheduledImageStreamController struct {
 	rateLimiter flowcontrol.RateLimiter
 
 	// scheduler for timely image re-imports
-	scheduler *controller.Scheduler
+	scheduler *Scheduler
 }
 
 // Importing is invoked when the controller decides to import a stream in order to push back
