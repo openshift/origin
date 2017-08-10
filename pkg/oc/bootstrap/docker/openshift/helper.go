@@ -696,6 +696,10 @@ func useAggregator(version semver.Version) bool {
 	return version.GTE(version37)
 }
 
+func useTemplateServiceBroker(version semver.Version) bool {
+	return version.GTE(version37)
+}
+
 func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 	cfg, configPath, err := h.GetConfigFromLocalDir(configDir)
 	if err != nil {
@@ -835,9 +839,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 			Configuration: &configapi.DefaultAdmissionConfig{Disable: false},
 		}
 
-		cfg.TemplateServiceBrokerConfig = &configapi.TemplateServiceBrokerConfig{
-			TemplateNamespaces: []string{OpenshiftNamespace},
-		}
 		if cfg.AssetConfig == nil {
 			cfg.AssetConfig = &configapi.AssetConfig{}
 		}
