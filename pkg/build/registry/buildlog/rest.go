@@ -204,13 +204,21 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 			// Walk all the initcontainers in order and dump/stream their logs.  The initcontainers
 			// are defined in order of execution, so that's the order we'll dump their logs in.
 			for _, status := range buildPod.Status.InitContainerStatuses {
-				glog.V(4).Infof("processing build pod: %s/%s container: %s in state %#v", build.Namespace, buildPodName, status.Name, status)
+				glog.V(4).Infof("processing build pod: %s/%s container: %s in state %#v", build.Namespace, buildPodName, status.Name, status.State)
+
 				if status.State.Terminated != nil && status.State.Terminated.ExitCode != 0 {
 					initFailed = true
 					// if we see a failed init container, don't continue waiting for additional init containers
 					// as they will never run, but we do need to dump/stream the logs for this container so
 					// we won't break out of the loop here, we just won't re-enter the loop.
 					waitForInitContainers = false
+
+					// if we've already dealt with the logs for this container we are done.
+					// We might have streamed the logs for it last time around, but we wouldn't see that it
+					// terminated with a failure until now.
+					if doneWithContainer[status.Name] {
+						break
+					}
 				}
 
 				// if we've already dumped the logs for this init container, ignore it.
