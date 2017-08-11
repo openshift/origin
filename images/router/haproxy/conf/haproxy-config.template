@@ -212,7 +212,7 @@ backend be_sni
 
 frontend fe_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl
     {{- if isTrue (env "ROUTER_STRICT_SNI") }} strict-sni {{ end }}
     {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
@@ -256,7 +256,7 @@ backend be_no_sni
 
 frontend fe_no_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
   mode http
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
