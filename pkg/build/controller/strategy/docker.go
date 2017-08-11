@@ -89,7 +89,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	// (also if it's a docker type build, we should always have a dockerfile to manage)
 	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
 		gitCloneContainer := v1.Container{
-			Name:    "git-clone",
+			Name:    GitCloneContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-git-clone"},
 			Env:     containerEnv,
@@ -112,7 +112,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 	if len(build.Spec.Source.Images) > 0 {
 		extractImageContentContainer := v1.Container{
-			Name:    "extract-image-content",
+			Name:    ExtractImageContentContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-extract-image-content"},
 			Env:     containerEnv,

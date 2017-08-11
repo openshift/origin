@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/build/generator"
 	"github.com/openshift/origin/pkg/build/registry"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -232,7 +233,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		// fixed
 		Stdout:    true,
 		Stderr:    true,
-		Container: "git-clone",
+		Container: buildstrategy.GitCloneContainer,
 	}
 	location, transport, err := pod.AttachLocation(h.r.PodGetter, h.r.ConnectionInfo, h.ctx, buildPodName, opts)
 	if err != nil {

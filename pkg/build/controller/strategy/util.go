@@ -28,6 +28,14 @@ const (
 	DockerPullSecretMountPath      = "/var/run/secrets/openshift.io/pull"
 	SecretBuildSourceBaseMountPath = "/var/run/secrets/openshift.io/build"
 	SourceImagePullSecretMountPath = "/var/run/secrets/openshift.io/source-image"
+
+	// ExtractImageContentContainer is the name of the container that will
+	// pull down input images and extract their content for input to the build.
+	ExtractImageContentContainer = "extract-image-content"
+
+	// GitCloneContainer is the name of the container that will clone the
+	// build source repository and also handle binary input content.
+	GitCloneContainer = "git-clone"
 )
 
 var (
@@ -75,7 +83,7 @@ func setupDockerSocket(pod *v1.Pod) {
 		append(pod.Spec.Containers[0].VolumeMounts,
 			dockerSocketVolumeMount)
 	for i, initContainer := range pod.Spec.InitContainers {
-		if initContainer.Name == "extract-image-content" {
+		if initContainer.Name == ExtractImageContentContainer {
 			pod.Spec.InitContainers[i].VolumeMounts = append(pod.Spec.InitContainers[i].VolumeMounts, dockerSocketVolumeMount)
 			break
 		}

@@ -824,7 +824,7 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 	// the pod is running as soon as the first init container has run.
 	if build.Status.Phase == buildapi.BuildPhasePending || build.Status.Phase == buildapi.BuildPhaseNew {
 		for _, initContainer := range pod.Status.InitContainerStatuses {
-			if initContainer.Name == "git-clone" && initContainer.State.Running != nil {
+			if initContainer.Name == strategy.GitCloneContainer && initContainer.State.Running != nil {
 				podPhase = v1.PodRunning
 			}
 		}
