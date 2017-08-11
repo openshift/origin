@@ -41,7 +41,6 @@ const (
 
 type gitAuthError string
 type gitNotFoundError string
-type contextDirNotFoundError string
 
 func (e gitAuthError) Error() string {
 	return fmt.Sprintf("failed to fetch requested repository %q with provided credentials", string(e))
@@ -49,10 +48,6 @@ func (e gitAuthError) Error() string {
 
 func (e gitNotFoundError) Error() string {
 	return fmt.Sprintf("requested repository %q not found", string(e))
-}
-
-func (e contextDirNotFoundError) Error() string {
-	return fmt.Sprintf("provided context directory does not exist: %s", string(e))
 }
 
 // GitClone clones the source associated with a build(if any) into the specified directory
@@ -148,18 +143,6 @@ func ExtractImageContent(ctx context.Context, dockerClient DockerClient, dir str
 	return nil
 }
 
-// fetchSource retrieves the inputs defined by the build source into the
-// provided directory, or returns an error if retrieval is not possible.
-func fetchSource(dir string, build *buildapi.Build) error {
-	if len(build.Spec.Source.ContextDir) > 0 {
-		if _, err := os.Stat(filepath.Join(dir, build.Spec.Source.ContextDir)); os.IsNotExist(err) {
-			// TODO - where to call this from?
-			return contextDirNotFoundError(build.Spec.Source.ContextDir)
-		}
-	}
-	return nil
-}
-
 // checkRemoteGit validates the specified Git URL. It returns GitNotFoundError
 // when the remote repository not found and GitAuthenticationError when the
 // remote repository failed to authenticate.
@@ -249,6 +232,7 @@ func ExtractInputBinary(in io.Reader, source *buildapi.BinaryBuildSource, dir st
 		glog.V(0).Infof("Extracting...\n%s", string(out))
 		return fmt.Errorf("unable to extract binary build input, must be a zip, tar, or gzipped tar, or specified as a file: %v", err)
 	}
+
 	return nil
 }
 

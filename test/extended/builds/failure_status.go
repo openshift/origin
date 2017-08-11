@@ -28,6 +28,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 		postCommitHookFixture        = exutil.FixturePath("testdata", "statusfail-postcommithook.yaml")
 		fetchDockerSrc               = exutil.FixturePath("testdata", "statusfail-fetchsourcedocker.yaml")
 		fetchS2ISrc                  = exutil.FixturePath("testdata", "statusfail-fetchsources2i.yaml")
+		badContextDirS2ISrc          = exutil.FixturePath("testdata", "statusfail-badcontextdirs2i.yaml")
 		builderImageFixture          = exutil.FixturePath("testdata", "statusfail-fetchbuilderimage.yaml")
 		pushToRegistryFixture        = exutil.FixturePath("testdata", "statusfail-pushtoregistry.yaml")
 		fetchRuntimeArtifactsFixture = exutil.FixturePath("testdata", "statusfail-runtimeartifacts.yaml")
@@ -97,7 +98,7 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 		})
 	})
 
-	g.Describe("Build status fetch S2I source failure", func() {
+	g.Describe("Build status S2I fetch source failure", func() {
 		g.It("should contain the S2I fetch source failure reason and message", func() {
 			err := oc.Run("create").Args("-f", fetchS2ISrc).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -111,6 +112,25 @@ var _ = g.Describe("[builds][Slow] update failure status", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonFetchSourceFailed))
 			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageFetchSourceFailed))
+
+			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
+		})
+	})
+
+	g.Describe("Build status S2I bad context dir failure", func() {
+		g.It("should contain the S2I bad context dir failure reason and message", func() {
+			err := oc.Run("create").Args("-f", badContextDirS2ISrc).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			br, err := exutil.StartBuildAndWait(oc, "statusfail-badcontextdirsourcetoimage", "--build-loglevel=5")
+			o.Expect(err).NotTo(o.HaveOccurred())
+			br.AssertFailure()
+			br.DumpLogs()
+
+			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(build.Status.Reason).To(o.Equal(buildapi.StatusReasonInvalidContextDirectory))
+			o.Expect(build.Status.Message).To(o.Equal(buildapi.StatusMessageInvalidContextDirectory))
 
 			exutil.CheckForBuildEvent(oc.KubeClient().Core(), br.Build, buildapi.BuildFailedEventReason, buildapi.BuildFailedEventMessage)
 		})

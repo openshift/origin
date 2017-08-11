@@ -182,14 +182,35 @@ func (c *builderConfig) clone() error {
 	buildDir := buildutil.InputContentPath
 	sourceInfo, err := bld.GitClone(ctx, gitClient, c.build.Spec.Source.Git, c.build.Spec.Revision, buildDir)
 	if err != nil {
+		c.build.Status.Phase = buildapi.BuildPhaseFailed
+		c.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
+		c.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
 		return err
 	}
+
 	if sourceInfo != nil {
 		sourceRev = bld.GetSourceRevision(c.build, sourceInfo)
 	}
 
 	err = bld.ExtractInputBinary(os.Stdin, c.build.Spec.Source.Binary, buildDir)
-	return err
+	if err != nil {
+		c.build.Status.Phase = buildapi.BuildPhaseFailed
+		c.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
+		c.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
+		return err
+	}
+
+	if len(c.build.Spec.Source.ContextDir) > 0 {
+		if _, err := os.Stat(filepath.Join(buildDir, c.build.Spec.Source.ContextDir)); os.IsNotExist(err) {
+			err = fmt.Errorf("provided context directory does not exist: %s", c.build.Spec.Source.ContextDir)
+			c.build.Status.Phase = buildapi.BuildPhaseFailed
+			c.build.Status.Reason = buildapi.StatusReasonInvalidContextDirectory
+			c.build.Status.Message = buildapi.StatusMessageInvalidContextDirectory
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (c *builderConfig) extractImageContent() error {

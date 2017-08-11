@@ -75,23 +75,6 @@ func (d *DockerBuilder) Build() error {
 	// this is where the git-fetch container put the code during the clone operation
 	buildDir := d.inputDir
 
-	err = fetchSource(buildDir, d.build)
-	if err != nil {
-		switch err.(type) {
-		case contextDirNotFoundError:
-			d.build.Status.Phase = buildapi.BuildPhaseFailed
-			d.build.Status.Reason = buildapi.StatusReasonInvalidContextDirectory
-			d.build.Status.Message = buildapi.StatusMessageInvalidContextDirectory
-		default:
-			d.build.Status.Phase = buildapi.BuildPhaseFailed
-			d.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
-			d.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
-		}
-
-		HandleBuildStatusUpdate(d.build, d.client, nil)
-		return err
-	}
-
 	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
 	// if there is no output target, set one up so the docker build logic
 	// (which requires a tag) will still work, but we won't push it at the end.
