@@ -11,17 +11,17 @@ import (
 
 	oclient "github.com/openshift/origin/pkg/client"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	securityapiinstall "github.com/openshift/origin/pkg/security/apis/security/install"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 )
 
 // if this is being used, we need to be sure that the core API client has our types in the scheme
 func init() {
-	securityapiinstall.InstallIntoDeprecatedV1(internalclientscheme.GroupFactoryRegistry, internalclientscheme.Registry, internalclientscheme.Scheme)
+	securityapi.AddToSchemeInCoreGroup(internalclientscheme.Scheme)
 	securityapi.AddToSchemeInCoreGroup(externalclientscheme.Scheme)
 	securityapi.AddToSchemeInCoreGroup(clientgoscheme.Scheme)
 	securityapiv1.AddToSchemeInCoreGroup(externalclientscheme.Scheme)
 	securityapiv1.AddToSchemeInCoreGroup(clientgoscheme.Scheme)
+	securityapiv1.AddToSchemeInCoreGroup(internalclientscheme.Scheme)
 }
 
 // New creates a legacy client for SCC access.  This only exists for `oc` compatibility with old servers
