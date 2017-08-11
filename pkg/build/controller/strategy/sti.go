@@ -129,6 +129,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			gitCloneContainer.Stdin = true
 			gitCloneContainer.StdinOnce = true
 		}
+		setupSourceSecrets(pod, &gitCloneContainer, build.Spec.Source.SourceSecret)
 		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
 	}
 	if len(build.Spec.Source.Images) > 0 {
@@ -177,9 +178,8 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 
 	setOwnerReference(pod, build)
 	setupDockerSocket(pod)
-	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
-	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
-	setupSecrets(pod, build.Spec.Source.Secrets)
+	setupDockerSecrets(pod, &pod.Spec.Containers[0], build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
+	setupSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	return pod, nil
 }
 
