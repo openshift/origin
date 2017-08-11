@@ -278,12 +278,10 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 }
 
 func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(apiHandler http.Handler, kc *apiserver.Config) http.Handler {
-	return func(apiHandler http.Handler, kc *apiserver.Config) http.Handler {
-		contextMapper := c.getRequestContextMapper()
-
-		handler := c.versionSkewFilter(apiHandler, contextMapper)
-		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, contextMapper)
-		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), contextMapper)
+	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
+		handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
+		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
+		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
 
 		// audit handler must comes before the impersonationFilter to read the original user
 		if c.Options.AuditConfig.Enabled {
@@ -305,10 +303,10 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 				// raw overview of the requests comming in.
 				Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
 			})
-			handler = apifilters.WithAudit(handler, contextMapper, c.AuditBackend, auditPolicyChecker, kc.LongRunningFunc)
+			handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
 		}
-		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
-		handler = namespacingFilter(handler, contextMapper)
+		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper)
+		handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
 		handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 		if c.Options.OAuthConfig != nil {
@@ -327,13 +325,13 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 		}
 
 		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, contextMapper, kc.LongRunningFunc)
+		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
 		// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 		// NOTE: read vs. write is implemented in Kube 1.6+
-		handler = apiserverfilters.WithMaxInFlightLimit(handler, kc.MaxRequestsInFlight, kc.MaxMutatingRequestsInFlight, contextMapper, kc.LongRunningFunc)
-		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(kc), contextMapper)
-		handler = apirequest.WithRequestContext(handler, contextMapper)
+		handler = apiserverfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
+		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
+		handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
 		handler = apiserverfilters.WithPanicRecovery(handler)
 
 		// these handlers are actually separate API servers which have their own handler chains.
@@ -364,14 +362,6 @@ func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.H
 		prefix = publicURL.Path[0:lastIndex]
 	}
 	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
-}
-
-// getRequestContextMapper returns a mapper from requests to contexts, initializing it if needed
-func (c *MasterConfig) getRequestContextMapper() apirequest.RequestContextMapper {
-	if c.RequestContextMapper == nil {
-		c.RequestContextMapper = apirequest.NewRequestContextMapper()
-	}
-	return c.RequestContextMapper
 }
 
 // RouteAllocator returns a route allocation controller.
