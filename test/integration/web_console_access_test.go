@@ -194,7 +194,7 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	linkRegexps := make([]string, 0)
 
 	// Verify that the plain /login URI is unavailable when multiple IDPs are in use.
-	urlMap["/login"] = urlResults{http.StatusForbidden, ""}
+	urlMap["/login"] = urlResults{http.StatusNotFound, ""}
 
 	// Create the common base URLs
 	escapedPublicURL := url.QueryEscape(masterOptions.OAuthConfig.AssetPublicURL)
