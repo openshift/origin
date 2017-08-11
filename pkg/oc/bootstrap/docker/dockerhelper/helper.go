@@ -141,7 +141,9 @@ func (h *Helper) CheckAndPull(image string, out io.Writer) error {
 	logProgress := func(s string) {
 		fmt.Fprintf(out, "%s\n", s)
 	}
-	outputStream := imageprogress.NewPullWriter(logProgress)
+	pw := imageprogress.NewPullWriter(logProgress)
+	defer pw.Close()
+	outputStream := pw.(io.Writer)
 	if glog.V(5) {
 		outputStream = out
 	}
