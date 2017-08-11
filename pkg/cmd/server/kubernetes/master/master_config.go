@@ -672,10 +672,6 @@ func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 			},
 		}
 	}
-	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
-		// No support in Swagger's OpenAPI sepc v.2 ¯\_(ツ)_/¯
-		// TODO: Add x509 specification once available
-	}
 	defNamer := apiserverendpointsopenapi.NewDefinitionNamer(kapi.Scheme)
 	return &openapicommon.Config{
 		ProtocolList:      []string{"https"},

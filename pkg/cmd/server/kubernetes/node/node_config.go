@@ -282,29 +282,25 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	}
 
 	// TODO: could be cleaner
-	if configapi.UseTLS(options.ServingInfo) {
-		extraCerts, err := configapi.GetNamedCertificateMap(options.ServingInfo.NamedCertificates)
-		if err != nil {
-			return nil, err
-		}
-		deps.TLSOptions = &kubeletserver.TLSOptions{
-			Config: crypto.SecureTLSConfig(&tls.Config{
-				// RequestClientCert lets us request certs, but allow requests without client certs
-				// Verification is done by the authn layer
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  clientCAs,
-				// Set SNI certificate func
-				// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
-				// which we do not control when running with http.Server#ListenAndServeTLS
-				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-				MinVersion:     crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion),
-				CipherSuites:   crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites),
-			}),
-			CertFile: options.ServingInfo.ServerCert.CertFile,
-			KeyFile:  options.ServingInfo.ServerCert.KeyFile,
-		}
-	} else {
-		deps.TLSOptions = nil
+	extraCerts, err := configapi.GetNamedCertificateMap(options.ServingInfo.NamedCertificates)
+	if err != nil {
+		return nil, err
+	}
+	deps.TLSOptions = &kubeletserver.TLSOptions{
+		Config: crypto.SecureTLSConfig(&tls.Config{
+			// RequestClientCert lets us request certs, but allow requests without client certs
+			// Verification is done by the authn layer
+			ClientAuth: tls.RequestClientCert,
+			ClientCAs:  clientCAs,
+			// Set SNI certificate func
+			// Do not use NameToCertificate, since that requires certificates be included in the server's tlsConfig.Certificates list,
+			// which we do not control when running with http.Server#ListenAndServeTLS
+			GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+			MinVersion:     crypto.TLSVersionOrDie(options.ServingInfo.MinTLSVersion),
+			CipherSuites:   crypto.CipherSuitesOrDie(options.ServingInfo.CipherSuites),
+		}),
+		CertFile: options.ServingInfo.ServerCert.CertFile,
+		KeyFile:  options.ServingInfo.ServerCert.KeyFile,
 	}
 
 	sdnProxy, err := sdnplugin.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)

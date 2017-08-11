@@ -429,10 +429,6 @@ func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	return transport
 }
 
-func UseTLS(servingInfo ServingInfo) bool {
-	return len(servingInfo.ServerCert.CertFile) > 0
-}
-
 // GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
 func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
@@ -484,10 +480,6 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 }
 
 func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return nil, nil
-	}
-
 	allCerts := []*x509.Certificate{}
 
 	if options.OAuthConfig != nil {
@@ -512,9 +504,6 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func GetRequestHeaderClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return nil, nil
-	}
 	if options.AuthConfig.RequestHeader == nil {
 		return nil, nil
 	}
@@ -527,10 +516,6 @@ func GetRequestHeaderClientCertCAs(options MasterConfig) ([]*x509.Certificate, e
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return nil, nil
-	}
-
 	return cmdutil.CertificatesFromFile(options.ServingInfo.ClientCA)
 }
 

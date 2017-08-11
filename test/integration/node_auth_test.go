@@ -118,12 +118,11 @@ func TestNodeAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
 	kubeletClientConfig := func(config *restclient.Config) *kubeletclient.KubeletClientConfig {
 		return &kubeletclient.KubeletClientConfig{
 			Port:            uint(nodePortInt),
-			EnableHttps:     nodeTLS,
+			EnableHttps:     true,
 			TLSClientConfig: config.TLSClientConfig,
 			BearerToken:     config.BearerToken,
 		}

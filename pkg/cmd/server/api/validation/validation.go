@@ -109,7 +109,7 @@ func ValidateServingInfo(info api.ServingInfo, fldPath *field.Path) ValidationRe
 	validationResults := ValidationResults{}
 
 	validationResults.AddErrors(ValidateHostPort(info.BindAddress, fldPath.Child("bindAddress"))...)
-	validationResults.AddErrors(ValidateCertInfo(info.ServerCert, false, fldPath)...)
+	validationResults.AddErrors(ValidateCertInfo(info.ServerCert, true, fldPath)...)
 
 	if len(info.NamedCertificates) > 0 && len(info.ServerCert.CertFile) == 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("namedCertificates"), "", "a default certificate and key is required in certFile/keyFile in order to use namedCertificates"))

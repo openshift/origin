@@ -292,29 +292,27 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 	}
 
-	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
-		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
+	config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
+	config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
 
-		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
+	config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
 
-		if oauthConfig != nil {
-			s := admin.DefaultCABundleFile(args.ConfigDir.Value())
-			oauthConfig.MasterCA = &s
-		}
+	if oauthConfig != nil {
+		s := admin.DefaultCABundleFile(args.ConfigDir.Value())
+		oauthConfig.MasterCA = &s
+	}
 
-		// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
-		if builtInKubernetes {
-			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
-			config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
-			config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
-		}
+	// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
+	if builtInKubernetes {
+		config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+		config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
+		config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
+	}
 
-		// Only set up ca/cert info for etcd connections if we're self-hosting etcd
-		if builtInEtcd {
-			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
-			config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
-		}
+	// Only set up ca/cert info for etcd connections if we're self-hosting etcd
+	if builtInEtcd {
+		config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+		config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
 	}
 
 	if builtInKubernetes {

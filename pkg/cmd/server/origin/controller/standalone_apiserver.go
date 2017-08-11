@@ -107,35 +107,27 @@ func serveControllers(servingInfo configapi.HTTPServingInfo, handler http.Handle
 	go utilwait.Forever(func() {
 		glog.Infof("Started health checks at %s", servingInfo.BindAddress)
 
-		if configapi.UseTLS(servingInfo.ServingInfo) {
-			extraCerts, err := configapi.GetNamedCertificateMap(servingInfo.NamedCertificates)
-			if err != nil {
-				glog.Fatal(err)
-			}
-			server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
-				// Populate PeerCertificates in requests, but don't reject connections without certificates
-				// This allows certificates to be validated by authenticators, while still allowing other auth types
-				ClientAuth: tls.RequestClientCert,
-				ClientCAs:  clientCAs,
-				// Set SNI certificate func
-				GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
-				MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
-				CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
-			})
-			glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.ServerCert.CertFile, servingInfo.ServerCert.KeyFile))
-		} else {
-			glog.Fatal(server.ListenAndServe())
+		extraCerts, err := configapi.GetNamedCertificateMap(servingInfo.NamedCertificates)
+		if err != nil {
+			glog.Fatal(err)
 		}
+		server.TLSConfig = crypto.SecureTLSConfig(&tls.Config{
+			// Populate PeerCertificates in requests, but don't reject connections without certificates
+			// This allows certificates to be validated by authenticators, while still allowing other auth types
+			ClientAuth: tls.RequestClientCert,
+			ClientCAs:  clientCAs,
+			// Set SNI certificate func
+			GetCertificate: cmdutil.GetCertificateFunc(extraCerts),
+			MinVersion:     crypto.TLSVersionOrDie(servingInfo.MinTLSVersion),
+			CipherSuites:   crypto.CipherSuitesOrDie(servingInfo.CipherSuites),
+		})
+		glog.Fatal(cmdutil.ListenAndServeTLS(server, servingInfo.BindNetwork, servingInfo.ServerCert.CertFile, servingInfo.ServerCert.KeyFile))
 	}, 0)
 
 	return nil
 }
 
 func getClientCertCAPool(servingInfo configapi.HTTPServingInfo) (*x509.CertPool, error) {
-	if !configapi.UseTLS(servingInfo.ServingInfo) {
-		return nil, nil
-	}
-
 	roots := x509.NewCertPool()
 	// Add CAs for API
 	certs, err := cmdutil.CertificatesFromFile(servingInfo.ClientCA)

@@ -399,14 +399,13 @@ func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags
 	if err != nil {
 		return err
 	}
-	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
 	if err := start.StartNode(*nodeConfig, components); err != nil {
 		return err
 	}
 
 	// wait for the server to come up for 30 seconds (average time on desktop is 2 seconds, but Jenkins timed out at 10 seconds)
-	if err := cmdutil.WaitForSuccessfulDial(nodeTLS, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
+	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
 		return err
 	}
 
