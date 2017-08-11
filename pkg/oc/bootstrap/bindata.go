@@ -1829,13 +1829,15 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
         "database-password" : "${MYSQL_PASSWORD}",
-        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}",
+        "database-name" : "${MYSQL_DATABASE}"
       }
     },
     {
@@ -1953,7 +1955,12 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
                   },
                   {
                     "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -2083,13 +2090,15 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
         "database-password" : "${MYSQL_PASSWORD}",
-        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}",
+        "database-name" : "${MYSQL_DATABASE}"
       }
     },
     {
@@ -2224,7 +2233,12 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
                   },
                   {
                     "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -2362,13 +2376,15 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}"
+          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MONGODB_USER}",
         "database-password" : "${MONGODB_PASSWORD}",
-        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}"
+        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}",
+        "database-name" : "${MONGODB_DATABASE}"
       }
     },
     {
@@ -2498,7 +2514,12 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
                   },
                   {
                     "name": "MONGODB_DATABASE",
-                    "value": "${MONGODB_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -2645,13 +2666,15 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}"
+          "template.openshift.io/expose-admin_password": "{.data['database-admin-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MONGODB_USER}",
         "database-password" : "${MONGODB_PASSWORD}",
-        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}"
+        "database-admin-password" : "${MONGODB_ADMIN_PASSWORD}",
+        "database-name" : "${MONGODB_DATABASE}"
       }
     },
     {
@@ -2798,7 +2821,12 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
                   },
                   {
                     "name": "MONGODB_DATABASE",
-                    "value": "${MONGODB_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -2943,7 +2971,7 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
     "template": "mysql-ephemeral-template"
   },
   "objects": [
-   {
+    {
       "kind": "Secret",
       "apiVersion": "v1",
       "metadata": {
@@ -2951,13 +2979,15 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
         "database-password" : "${MYSQL_PASSWORD}",
-        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}",
+        "database-name" : "${MYSQL_DATABASE}"
       }
     },
     {
@@ -3088,7 +3118,12 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
                   },
                   {
                     "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -3234,13 +3269,15 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
         "database-password" : "${MYSQL_PASSWORD}",
-        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}",
+        "database-name" : "${MYSQL_DATABASE}"
       }
     },
     {
@@ -3375,7 +3412,12 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
                   },
                   {
                     "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -3519,12 +3561,14 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}",
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
-          "template.openshift.io/expose-password": "{.data['database-password']}"
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
-        "database-password" : "${POSTGRESQL_PASSWORD}"
+        "database-password" : "${POSTGRESQL_PASSWORD}",
+        "database-name" : "${POSTGRESQL_DATABASE}"
       }
     },
     {
@@ -3645,7 +3689,12 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
-                    "value": "${POSTGRESQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
@@ -3783,12 +3832,14 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
         "name": "${DATABASE_SERVICE_NAME}",
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
-          "template.openshift.io/expose-password": "{.data['database-password']}"
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
-        "database-password" : "${POSTGRESQL_PASSWORD}"
+        "database-password" : "${POSTGRESQL_PASSWORD}",
+        "database-name" : "${POSTGRESQL_DATABASE}"
       }
     },
     {
@@ -3926,7 +3977,12 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
-                    "value": "${POSTGRESQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {
