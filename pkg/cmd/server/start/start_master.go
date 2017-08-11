@@ -34,6 +34,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
+	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -600,7 +601,7 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		if err != nil {
 			return err
 		}
-		if err := origin.RunAssetServer(assetServer, utilwait.NeverStop); err != nil {
+		if err := assetapiserver.RunAssetServer(assetServer, utilwait.NeverStop); err != nil {
 			return err
 		}
 	}
