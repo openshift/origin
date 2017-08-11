@@ -100,6 +100,9 @@ func NewSimulatedRegistry(clusterRegistry Registry) policy.Registry {
 
 func (s *simulatedStorage) ListPolicies(ctx apirequest.Context, options *metainternal.ListOptions) (*authorizationapi.PolicyList, error) {
 	ret, err := s.clusterRegistry.ListClusterPolicies(ctx, options)
+	if err != nil {
+		return nil, err
+	}
 	return authorizationapi.ToPolicyList(ret), err
 }
 
@@ -113,6 +116,9 @@ func (s *simulatedStorage) UpdatePolicy(ctx apirequest.Context, policy *authoriz
 
 func (s *simulatedStorage) GetPolicy(ctx apirequest.Context, name string, options *metav1.GetOptions) (*authorizationapi.Policy, error) {
 	ret, err := s.clusterRegistry.GetClusterPolicy(ctx, name, options)
+	if err != nil {
+		return nil, err
+	}
 	return authorizationapi.ToPolicy(ret), err
 }
 
