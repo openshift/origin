@@ -9,7 +9,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate/git"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
@@ -181,10 +180,10 @@ func TestBuildEnvVars(t *testing.T) {
 			Value: "http://test/insecure:8080",
 		},
 	}
-	expectedLabelList := []dockerfile.KeyValue{
-		{Key: "io.openshift.build.commit.id", Value: "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee"},
-		{Key: "io.openshift.build.name", Value: "openshift-test-1-build"},
-		{Key: "io.openshift.build.namespace", Value: "openshift-demo"},
+	expectedLabelMap := map[string]string{
+		"io.openshift.build.commit.id": "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee",
+		"io.openshift.build.name":      "openshift-test-1-build",
+		"io.openshift.build.namespace": "openshift-demo",
 	}
 
 	mockBuild := makeBuild()
@@ -195,12 +194,16 @@ func TestBuildEnvVars(t *testing.T) {
 	sourceInfo.CommitID = "1575a90c569a7cc0eea84fbd3304d9df37c9f5ee"
 	resultedEnvList := buildEnvVars(mockBuild, sourceInfo)
 	if !reflect.DeepEqual(expectedEnvList, resultedEnvList) {
-		t.Errorf("Expected EnvironmentList to match: %#v, got %#v", expectedEnvList, resultedEnvList)
+		t.Errorf("Expected EnvironmentList to match:\n%#v\ngot:\n%#v", expectedEnvList, resultedEnvList)
 	}
 
 	resultedLabelList := buildLabels(mockBuild, sourceInfo)
-	if !reflect.DeepEqual(expectedLabelList, resultedLabelList) {
-		t.Errorf("Expected LabelList to match: %#v, got %#v", expectedLabelList, resultedLabelList)
+	resultedLabelMap := map[string]string{}
+	for _, label := range resultedLabelList {
+		resultedLabelMap[label.Key] = label.Value
+	}
+	if !reflect.DeepEqual(expectedLabelMap, resultedLabelMap) {
+		t.Errorf("Expected LabelList to match:\n%#v\ngot:\n%#v", expectedLabelMap, resultedLabelMap)
 	}
 
 }

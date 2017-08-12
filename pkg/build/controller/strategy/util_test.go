@@ -90,7 +90,7 @@ func TestSetupDockerSecrets(t *testing.T) {
 		{PullSecret: &kapi.LocalObjectReference{Name: "imageSourceSecret1"}},
 	}
 
-	setupDockerSecrets(&pod, pushSecret, pullSecret, imageSources)
+	setupDockerSecrets(&pod, &pod.Spec.Containers[0], pushSecret, pullSecret, imageSources)
 
 	if len(pod.Spec.Volumes) != 4 {
 		t.Fatalf("Expected 4 volumes, got: %#v", pod.Spec.Volumes)
