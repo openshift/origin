@@ -1,6 +1,7 @@
 package origin
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -12,10 +13,13 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	auditinternal "k8s.io/apiserver/pkg/apis/audit"
+	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
 	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserver "k8s.io/apiserver/pkg/server"
 	apiserverfilters "k8s.io/apiserver/pkg/server/filters"
+	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
@@ -247,6 +251,14 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 		return err
 	}
 
+	// Start the audit backend before any request comes in. This means we cannot turn it into a
+	// post start hook because without calling Backend.Run the Backend.ProcessEvents call might block.
+	if c.AuditBackend != nil {
+		if err := c.AuditBackend.Run(stopCh); err != nil {
+			return fmt.Errorf("failed to run the audit backend: %v", err)
+		}
+	}
+
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("authorization.openshift.io-bootstrapclusterroles", c.ensureComponentAuthorizationRules)
@@ -287,7 +299,13 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 				// backwards compatible writer to regular log
 				writer = cmdutil.NewGLogWriterV(0)
 			}
-			handler = apifilters.WithLegacyAudit(handler, contextMapper, writer)
+			c.AuditBackend = auditlog.NewBackend(writer)
+			auditPolicyChecker := auditpolicy.NewChecker(&auditinternal.Policy{
+				// This is for backwards compatibility maintaining the old visibility, ie. just
+				// raw overview of the requests comming in.
+				Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
+			})
+			handler = apifilters.WithAudit(handler, contextMapper, c.AuditBackend, auditPolicyChecker, kc.LongRunningFunc)
 		}
 		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, contextMapper)
 		handler = namespacingFilter(handler, contextMapper)
