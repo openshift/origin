@@ -31,16 +31,17 @@ function os::build::image() {
 		tag="${tag}:latest"
 	fi
 
-	local result='1'
+	local result=1
 	local image_build_log
 	image_build_log="$( mktemp "${BASETMPDIR}/imagelogs.XXXXX" )"
 	for (( i = 0; i < "${OS_BUILD_IMAGE_NUM_RETRIES:-2}"; i++ )); do
 		if [[ "${i}" -gt 0 ]]; then
+			os::log::internal::prefix_lines "[${tag%:*}]" "$( cat "${image_build_log}" )"
 			os::log::warning "Retrying image build for ${tag}, attempt ${i}..."
 		fi
 
-		if os::build::image::internal::generic "${tag}" "${directory}" "${extra_tag:-}" >>"${image_build_log}" 2>&1; then
-			result='0'
+		if os::build::image::internal::generic "${tag}" "${directory}" "${extra_tag:-}" >"${image_build_log}" 2>&1; then
+			result=0
 			break
 		fi
 	done
@@ -64,15 +65,21 @@ readonly -f os::build::image
 function os::build::image::internal::generic() {
 	local directory=$2
 
+	local result=1
 	if os::util::find::system_binary 'imagebuilder' >/dev/null; then
-		os::build::image::internal::imagebuilder "$@"
+		if os::build::image::internal::imagebuilder "$@"; then
+			result=0
+		fi
 	else
 		os::log::warning "Unable to locate 'imagebuilder' on PATH, falling back to Docker build"
-		os::build::image::internal::docker "$@"
+		if os::build::image::internal::docker "$@"; then
+			result=0
+		fi
 	fi
 
 	# ensure the temporary contents are cleaned up
 	git clean -fdx "${directory}"
+	return "${result}"
 }
 readonly -f os::build::image::internal::generic
 
@@ -120,7 +127,9 @@ function os::build::image::internal::docker() {
 	local extra_tag="${3-}"
 	local options=()
 
-	docker build ${OS_BUILD_IMAGE_ARGS:-} -t "${tag}" "${directory}"
+	if ! docker build ${OS_BUILD_IMAGE_ARGS:-} -t "${tag}" "${directory}"; then
+		return "$?"
+	fi
 
 	if [[ -n "${extra_tag}" ]]; then
 		docker tag "${tag}" "${extra_tag}"
