@@ -1,0 +1,135 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: pushgateway
+  annotations:
+    "openshift.io/display-name": Pushgateway
+    description: |
+      Prometheus Pushgateway - receives pushed Prometheus metrics and makes them available for Prometheus to scrape.
+    iconClass: icon-cogs
+    tags: "monitoring,prometheus,time-series,pushgateway,push"
+parameters:
+- description: The namespace to instantiate Pushgateway under. Defaults to 'kube-system'.
+  name: NAMESPACE
+  value: kube-system
+- description: The location of the proxy image
+  name: IMAGE_PROXY
+  value: registry.svc.ci.openshift.org/ci/oauth-proxy:latest
+- description: The location of the Pushgateway image
+  name: IMAGE_PUSHGATEWAY
+  value: quay.io/prometheus/pushgateway:latest
+- description: The session secret for the proxy
+  name: SESSION_SECRET
+  generate: expression
+  from: "[a-zA-Z0-9]{43}"
+objects:
+# Create a pushgateway service account to attach oauth redirection annotations to.
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: pushgateway
+    namespace: "${NAMESPACE}"
+    annotations:
+      serviceaccounts.openshift.io/oauth-redirectreference.primary: '{"kind":"OAuthRedirectReference","apiVersion":"v1","reference":{"kind":"Route","name":"pushgateway"}}'
+# Create a fully end-to-end TLS connection to the proxy
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    name: pushgateway
+    namespace: "${NAMESPACE}"
+  spec:
+    to:
+      name: pushgateway
+    tls:
+      termination: Reencrypt
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/scheme: https
+      service.alpha.openshift.io/serving-cert-secret-name: pushgateway-tls
+    labels:
+      name: pushgateway
+    name: pushgateway
+    namespace: "${NAMESPACE}"
+  spec:
+    ports:
+    - name: pushgateway
+      port: 443
+      protocol: TCP
+      targetPort: 8443
+    selector:
+      app: pushgateway
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: pushgateway-proxy
+    namespace: "${NAMESPACE}"
+  stringData:
+    session_secret: "${SESSION_SECRET}="
+# Deploy pushgateway behind an oauth proxy
+- apiVersion: extensions/v1beta1
+  kind: Deployment
+  metadata:
+    labels:
+      app: pushgateway
+    name: pushgateway
+    namespace: "${NAMESPACE}"
+  spec:
+    replicas: 1
+    selector:
+      matchLabels:
+        app: pushgateway
+    template:
+      metadata:
+        labels:
+          app: pushgateway
+        name: pushgateway
+      spec:
+        serviceAccountName: pushgateway
+        containers:
+        - name: oauth-proxy
+          image: ${IMAGE_PROXY}
+          imagePullPolicy: IfNotPresent
+          ports:
+          - containerPort: 8443
+            name: web
+          args:
+          - -https-address=:8443
+          - -email-domain=*
+          - -client-id=system:serviceaccount:${NAMESPACE}:pushgateway
+          - -upstream=http://localhost:9091
+          - -provider=openshift
+          - -redirect-url=https:///oauth2/callback
+          - '-openshift-sar={"namespace": "${NAMESPACE}", "verb": "list", "resource": "services"}'
+          - -tls-cert=/etc/tls/private/tls.crt
+          - -tls-key=/etc/tls/private/tls.key
+          - -client-secret-file=/var/run/secrets/kubernetes.io/serviceaccount/token
+          - -cookie-secret-file=/etc/proxy/secrets/session_secret
+          - -skip-auth-regex=^/metrics
+          volumeMounts:
+          - mountPath: /etc/tls/private
+            name: pushgateway-tls
+          - mountPath: /etc/proxy/secrets
+            name: secrets
+
+        - name: pushgateway
+          args:
+          - -web.listen-address=localhost:9091
+          image: ${IMAGE_PUSHGATEWAY}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - mountPath: /pushgateway
+            name: data-volume
+
+        restartPolicy: Always
+        volumes:
+        - name: secrets
+          secret:
+            secretName: pushgateway-proxy
+        - name: pushgateway-tls
+          secret:
+            secretName: pushgateway-tls
+        - emptyDir: {}
+          name: data-volume
