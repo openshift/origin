@@ -22,11 +22,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &imageapi.Image{} },
-		NewListFunc:       func() runtime.Object { return &imageapi.ImageList{} },
-		PredicateFunc:     image.Matcher,
-		QualifiedResource: imageapi.Resource("images"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &imageapi.Image{} },
+		NewListFunc:              func() runtime.Object { return &imageapi.ImageList{} },
+		PredicateFunc:            image.Matcher,
+		DefaultQualifiedResource: imageapi.Resource("images"),
 
 		CreateStrategy: image.Strategy,
 		UpdateStrategy: image.Strategy,

@@ -22,11 +22,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against egress network policy
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &sdnapi.EgressNetworkPolicy{} },
-		NewListFunc:       func() runtime.Object { return &sdnapi.EgressNetworkPolicyList{} },
-		PredicateFunc:     egressnetworkpolicy.Matcher,
-		QualifiedResource: sdnapi.Resource("egressnetworkpolicies"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &sdnapi.EgressNetworkPolicy{} },
+		NewListFunc:              func() runtime.Object { return &sdnapi.EgressNetworkPolicyList{} },
+		PredicateFunc:            egressnetworkpolicy.Matcher,
+		DefaultQualifiedResource: sdnapi.Resource("egressnetworkpolicies"),
 
 		CreateStrategy: egressnetworkpolicy.Strategy,
 		UpdateStrategy: egressnetworkpolicy.Strategy,

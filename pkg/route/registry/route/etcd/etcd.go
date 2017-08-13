@@ -27,11 +27,11 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 	strategy := routeregistry.NewStrategy(allocator, sarClient)
 
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &routeapi.Route{} },
-		NewListFunc:       func() runtime.Object { return &routeapi.RouteList{} },
-		PredicateFunc:     routeregistry.Matcher,
-		QualifiedResource: routeapi.Resource("routes"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &routeapi.Route{} },
+		NewListFunc:              func() runtime.Object { return &routeapi.RouteList{} },
+		PredicateFunc:            routeregistry.Matcher,
+		DefaultQualifiedResource: routeapi.Resource("routes"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,

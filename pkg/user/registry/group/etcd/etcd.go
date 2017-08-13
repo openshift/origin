@@ -19,11 +19,11 @@ type REST struct {
 // NewREST returns a RESTStorage object that will work against groups
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &userapi.Group{} },
-		NewListFunc:       func() runtime.Object { return &userapi.GroupList{} },
-		PredicateFunc:     group.Matcher,
-		QualifiedResource: userapi.Resource("groups"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &userapi.Group{} },
+		NewListFunc:              func() runtime.Object { return &userapi.GroupList{} },
+		PredicateFunc:            group.Matcher,
+		DefaultQualifiedResource: userapi.Resource("groups"),
 
 		CreateStrategy: group.Strategy,
 		UpdateStrategy: group.Strategy,

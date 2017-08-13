@@ -24,11 +24,11 @@ var _ rest.StandardStorage = &REST{}
 func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter) (*REST, error) {
 	strategy := oauthauthorizetoken.NewStrategy(clientGetter)
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &oauthapi.OAuthAuthorizeToken{} },
-		NewListFunc:       func() runtime.Object { return &oauthapi.OAuthAuthorizeTokenList{} },
-		PredicateFunc:     oauthauthorizetoken.Matcher,
-		QualifiedResource: oauthapi.Resource("oauthauthorizetokens"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthAuthorizeToken{} },
+		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthAuthorizeTokenList{} },
+		PredicateFunc:            oauthauthorizetoken.Matcher,
+		DefaultQualifiedResource: oauthapi.Resource("oauthauthorizetokens"),
 
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
 			token := obj.(*oauthapi.OAuthAuthorizeToken)

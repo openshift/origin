@@ -23,11 +23,11 @@ var _ rest.StandardStorage = &REST{}
 // NewREST returns a RESTStorage object that will work against ClusterResourceQuota objects.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
-		NewListFunc:       func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
-		PredicateFunc:     clusterresourcequota.Matcher,
-		QualifiedResource: quotaapi.Resource("clusterresourcequotas"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
+		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
+		PredicateFunc:            clusterresourcequota.Matcher,
+		DefaultQualifiedResource: quotaapi.Resource("clusterresourcequotas"),
 
 		CreateStrategy: clusterresourcequota.Strategy,
 		UpdateStrategy: clusterresourcequota.Strategy,
