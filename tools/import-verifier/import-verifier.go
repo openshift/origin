@@ -25,16 +25,22 @@ type Package struct {
 }
 
 type ImportRestriction struct {
-	// BaseImportPath is the root of the package tree
-	// that is restricted by this configuration
-	BaseImportPath string `json:"baseImportPath"`
+	// CheckedPackageRoots are the roots of the package tree
+	// that are restricted by this configuration
+	CheckedPackageRoots []string `json:"checkedPackageRoots"`
+	// CheckedPackages are the specific packages
+	// that are restricted by this configuration
+	CheckedPackages []string `json:"checkedPackages"`
 	// IgnoredSubTrees are roots of sub-trees of the
 	// BaseImportPath for which we do not want to enforce
 	// any import restrictions whatsoever
 	IgnoredSubTrees []string `json:"ignoredSubTrees,omitempty"`
-	// AllowedImports are roots of package trees that
-	// are allowed to be imported from the BaseImportPath
-	AllowedImports []string `json:"allowedImports"`
+	// AllowedImportPackages are roots of package trees that
+	// are allowed to be imported for this restriction
+	AllowedImportPackages []string `json:"allowedImportPackages"`
+	// AllowedImportPackageRoots are roots of package trees that
+	// are allowed to be imported for this restriction
+	AllowedImportPackageRoots []string `json:"allowedImportPackageRoots"`
 }
 
 // ForbiddenImportsFor determines all of the forbidden
@@ -43,7 +49,6 @@ func (i *ImportRestriction) ForbiddenImportsFor(pkg Package) []string {
 	if !i.isRestrictedPath(pkg.ImportPath) {
 		return []string{}
 	}
-
 	return i.forbiddenImportsFor(pkg)
 }
 
@@ -52,13 +57,17 @@ func (i *ImportRestriction) ForbiddenImportsFor(pkg Package) []string {
 // A path will be restricted if:
 //   - it falls under the base import path
 //   - it does not fall under any of the ignored sub-trees
-func (i *ImportRestriction) isRestrictedPath(imp string) bool {
-	if !strings.HasPrefix(imp, absolutePackage(i.BaseImportPath)) {
+func (i *ImportRestriction) isRestrictedPath(packageToCheck string) bool {
+	// if its not under our root, then its a built-in.  Everything else is under
+	// github.com/openshift/origin or github.com/openshift/origin/vendor
+	if !strings.HasPrefix(packageToCheck, rootPackage) {
 		return false
 	}
 
+	// some subtrees are specifically excluded.  Not sure if we still need this given
+	// explicit inclusion
 	for _, ignored := range i.IgnoredSubTrees {
-		if strings.HasPrefix(imp, absolutePackage(ignored)) {
+		if strings.HasPrefix(packageToCheck, ignored) {
 			return false
 		}
 	}
@@ -71,9 +80,9 @@ func (i *ImportRestriction) isRestrictedPath(imp string) bool {
 // and returns a deduplicated list of them
 func (i *ImportRestriction) forbiddenImportsFor(pkg Package) []string {
 	forbiddenImportSet := map[string]struct{}{}
-	for _, imp := range append(pkg.Imports, append(pkg.TestImports, pkg.XTestImports...)...) {
-		if i.isForbidden(imp) {
-			forbiddenImportSet[relativePackage(imp)] = struct{}{}
+	for _, packageToCheck := range append(pkg.Imports, append(pkg.TestImports, pkg.XTestImports...)...) {
+		if !i.isAllowed(packageToCheck) {
+			forbiddenImportSet[relativePackage(packageToCheck)] = struct{}{}
 		}
 	}
 
@@ -89,23 +98,58 @@ func (i *ImportRestriction) forbiddenImportsFor(pkg Package) []string {
 //   - of a package under the rootPackage
 //   - is not of the base import path or a sub-package of it
 //   - is not of an allowed path or a sub-package of one
-func (i *ImportRestriction) isForbidden(imp string) bool {
-	importsBelowRoot := strings.HasPrefix(imp, rootPackage)
-	importsBelowBase := strings.HasPrefix(imp, absolutePackage(i.BaseImportPath))
-	importsAllowed := false
-	for _, allowed := range i.AllowedImports {
-		importsAllowed = importsAllowed || strings.HasPrefix(imp, absolutePackage(allowed))
+func (i *ImportRestriction) isAllowed(packageToCheck string) bool {
+	// if its not under our root, then its a built-in.  Everything else is under
+	// github.com/openshift/origin or github.com/openshift/origin/vendor
+	if !strings.HasPrefix(packageToCheck, rootPackage) {
+		return true
+	}
+	if i.isIncludedInRestrictedPackages(packageToCheck) {
+		return true
 	}
 
-	return importsBelowRoot && !importsBelowBase && !importsAllowed
+	for _, allowedPackage := range i.AllowedImportPackages {
+		if strings.HasPrefix(allowedPackage, "vendor") {
+			allowedPackage = rootPackage + "/" + allowedPackage
+		}
+		if packageToCheck == allowedPackage {
+			return true
+		}
+	}
+	for _, allowedPackageRoot := range i.AllowedImportPackageRoots {
+		if strings.HasPrefix(allowedPackageRoot, "vendor") {
+			allowedPackageRoot = rootPackage + "/" + allowedPackageRoot
+		}
+		if strings.HasPrefix(packageToCheck, allowedPackageRoot) {
+			return true
+		}
+	}
+
+	return false
 }
 
-func absolutePackage(relativePackage string) string {
-	return fmt.Sprintf("%s/%s", rootPackage, relativePackage)
+// isIncludedInRestrictedPackages checks to see if a package is included in the list of packages we're
+// restricting.  Any package being restricted is assumed to be allowed to import another package being
+// restricted since they are grouped
+func (i *ImportRestriction) isIncludedInRestrictedPackages(packageToCheck string) bool {
+	for _, currBase := range i.CheckedPackageRoots {
+		if strings.HasPrefix(packageToCheck, currBase) {
+			return true
+		}
+	}
+	for _, currPackageName := range i.CheckedPackages {
+		if currPackageName == packageToCheck {
+			return true
+		}
+	}
+	return false
 }
 
 func relativePackage(absolutePackage string) string {
-	return absolutePackage[len(rootPackage)+1:]
+	if strings.HasPrefix(absolutePackage, rootPackage+"/vendor") {
+		return absolutePackage[len(rootPackage)+1:]
+	}
+	return absolutePackage
 }
 
 func main() {
@@ -119,26 +163,123 @@ func main() {
 		log.Fatalf("Failed to load import restrictions: %v", err)
 	}
 
-	foundForbiddenImports := false
+	failedRestrictionCheck := false
 	for _, restriction := range importRestrictions {
-		log.Printf("Inspecting imports under %s...\n", restriction.BaseImportPath)
-		packages, err := resolvePackageTree(absolutePackage(restriction.BaseImportPath))
-		if err != nil {
-			log.Fatalf("Failed to resolve package tree: %v", err)
+		packages := []Package{}
+		for _, currBase := range restriction.CheckedPackageRoots {
+			log.Printf("Inspecting imports under %s...\n", currBase)
+			currPackages, err := resolvePackage(currBase + "/...")
+			if err != nil {
+				log.Fatalf("Failed to resolve package tree %v: %v", currBase, err)
+			}
+			packages = mergePackages(packages, currPackages)
+		}
+		for _, currPackageName := range restriction.CheckedPackages {
+			log.Printf("Inspecting imports at %s...\n", currPackageName)
+			currPackages, err := resolvePackage(currPackageName)
+			if err != nil {
+				log.Fatalf("Failed to resolve package %v: %v", currPackageName, err)
+			}
+			packages = mergePackages(packages, currPackages)
 		}
 
+		if len(packages) == 0 {
+			log.Fatalf("No packages found")
+		}
 		log.Printf("-- validating imports for %d packages in the tree", len(packages))
 		for _, pkg := range packages {
 			if forbidden := restriction.ForbiddenImportsFor(pkg); len(forbidden) != 0 {
 				logForbiddenPackages(relativePackage(pkg.ImportPath), forbidden)
-				foundForbiddenImports = true
+				failedRestrictionCheck = true
 			}
+		}
+
+		// make sure that all the allowed imports are used
+		if unused := unusedPackageImports(restriction.AllowedImportPackages, packages); len(unused) > 0 {
+			log.Printf("-- found unused package imports\n")
+			for _, unusedPackage := range unused {
+				log.Printf("\t%s\n", unusedPackage)
+			}
+			failedRestrictionCheck = true
+		}
+		if unused := unusedPackageImportRoots(restriction.AllowedImportPackageRoots, packages); len(unused) > 0 {
+			log.Printf("-- found unused package import roots\n")
+			for _, unusedPackage := range unused {
+				log.Printf("\t%s\n", unusedPackage)
+			}
+			failedRestrictionCheck = true
+		}
+
+		log.Printf("\n")
+	}
+
+	if failedRestrictionCheck {
+		os.Exit(1)
+	}
+}
+
+func unusedPackageImports(allowedPackageImports []string, packages []Package) []string {
+	ret := []string{}
+	for _, allowedImport := range allowedPackageImports {
+		if strings.HasPrefix(allowedImport, "vendor") {
+			allowedImport = rootPackage + "/" + allowedImport
+		}
+		found := false
+		for _, pkg := range packages {
+			for _, packageToCheck := range append(pkg.Imports, append(pkg.TestImports, pkg.XTestImports...)...) {
+				if packageToCheck == allowedImport {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			ret = append(ret, relativePackage(allowedImport))
 		}
 	}
 
-	if foundForbiddenImports {
-		os.Exit(1)
+	return ret
+}
+
+func unusedPackageImportRoots(allowedPackageImportRoots []string, packages []Package) []string {
+	ret := []string{}
+	for _, allowedImportRoot := range allowedPackageImportRoots {
+		if strings.HasPrefix(allowedImportRoot, "vendor") {
+			allowedImportRoot = rootPackage + "/" + allowedImportRoot
+		}
+		found := false
+		for _, pkg := range packages {
+			for _, packageToCheck := range append(pkg.Imports, append(pkg.TestImports, pkg.XTestImports...)...) {
+				if strings.HasPrefix(packageToCheck, allowedImportRoot) {
+					found = true
+					break
+				}
+			}
+		}
+		if !found {
+			ret = append(ret, relativePackage(allowedImportRoot))
+		}
 	}
+
+	return ret
+}
+
+func mergePackages(existingPackages, currPackages []Package) []Package {
+	for _, currPackage := range currPackages {
+		found := false
+		for _, existingPackage := range existingPackages {
+			if existingPackage.ImportPath == currPackage.ImportPath {
+				log.Printf("-- Skipping: %v", currPackage.ImportPath)
+				found = true
+			}
+		}
+		if !found {
+			log.Printf("-- Adding: %v", currPackage.ImportPath)
+			existingPackages = append(existingPackages, currPackage)
+		}
+	}
+
+	return existingPackages
 }
 
 func loadImportRestrictions(configFile string) ([]ImportRestriction, error) {
@@ -155,9 +296,9 @@ func loadImportRestrictions(configFile string) ([]ImportRestriction, error) {
 	return importRestrictions, nil
 }
 
-func resolvePackageTree(treeBase string) ([]Package, error) {
+func resolvePackage(targetPackage string) ([]Package, error) {
 	cmd := "go"
-	args := []string{"list", "-json", fmt.Sprintf("%s...", treeBase)}
+	args := []string{"list", "-json", targetPackage}
 	stdout, err := exec.Command(cmd, args...).Output()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to run `%s %s`: %v\n", cmd, strings.Join(args, " "), err)
