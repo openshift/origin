@@ -1049,10 +1049,10 @@ func TestResolutionConfig(t *testing.T) {
 			config: &api.ImagePolicyConfig{
 				ResolveImages: api.DoNotAttempt,
 				ResolutionRules: []api.ImageResolutionPolicyRule{
-					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "jobs"}},
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "extensions", Resource: "jobs"},
+			resource: schema.GroupResource{Group: "batch", Resource: "jobs"},
 			update:   true,
 			resolve:  true,
 			rewrite:  false,
@@ -1063,10 +1063,10 @@ func TestResolutionConfig(t *testing.T) {
 			config: &api.ImagePolicyConfig{
 				ResolveImages: api.DoNotAttempt,
 				ResolutionRules: []api.ImageResolutionPolicyRule{
-					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "jobs"}},
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "batch", Resource: "jobs"}},
 				},
 			},
-			resource: schema.GroupResource{Group: "extensions", Resource: "jobs"},
+			resource: schema.GroupResource{Group: "batch", Resource: "jobs"},
 			update:   false,
 			resolve:  true,
 			rewrite:  true,

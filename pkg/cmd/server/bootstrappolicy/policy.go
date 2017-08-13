@@ -333,7 +333,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "scheduledjobs", "cronjobs").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale",
+				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("horizontalpodautoscalers", "replicationcontrollers/scale",
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback", "networkpolicies").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
@@ -401,7 +401,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(readWrite...).Groups(batchGroup).Resources("jobs", "scheduledjobs", "cronjobs").RuleOrDie(),
 
-				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicationcontrollers/scale",
+				authorizationapi.NewRule(readWrite...).Groups(extensionsGroup).Resources("horizontalpodautoscalers", "replicationcontrollers/scale",
 					"replicasets", "replicasets/scale", "deployments", "deployments/scale", "deployments/rollback").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
@@ -458,7 +458,7 @@ func GetOpenshiftBootstrapClusterRoles() []authorizationapi.ClusterRole {
 
 				authorizationapi.NewRule(read...).Groups(batchGroup).Resources("jobs", "scheduledjobs", "cronjobs").RuleOrDie(),
 
-				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("jobs", "horizontalpodautoscalers", "replicasets", "replicasets/scale",
+				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("horizontalpodautoscalers", "replicasets", "replicasets/scale",
 					"deployments", "deployments/scale").RuleOrDie(),
 				authorizationapi.NewRule(read...).Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
 
