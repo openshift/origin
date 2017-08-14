@@ -2,25 +2,27 @@ package test
 
 import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	"github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion/fake"
 )
 
 type UserRegistry struct {
-	GetErr map[string]error
-	Get    map[string]*userapi.User
+	// included to fill out the interface for testing
+	*fake.FakeUsers
 
-	CreateErr error
-	Create    *userapi.User
+	GetErr   map[string]error
+	GetUsers map[string]*userapi.User
 
-	UpdateErr map[string]error
-	Update    *userapi.User
+	CreateErr  error
+	CreateUser *userapi.User
 
-	ListErr error
-	List    *userapi.UserList
+	UpdateErr  map[string]error
+	UpdateUser *userapi.User
+
+	ListErr   error
+	ListUsers *userapi.UserList
 
 	Actions *[]Action
 }
@@ -28,15 +30,15 @@ type UserRegistry struct {
 func NewUserRegistry() *UserRegistry {
 	return &UserRegistry{
 		GetErr:    map[string]error{},
-		Get:       map[string]*userapi.User{},
+		GetUsers:  map[string]*userapi.User{},
 		UpdateErr: map[string]error{},
 		Actions:   &[]Action{},
 	}
 }
 
-func (r *UserRegistry) GetUser(ctx apirequest.Context, name string, options *metav1.GetOptions) (*userapi.User, error) {
+func (r *UserRegistry) Get(name string, options metav1.GetOptions) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"GetUser", name})
-	if user, ok := r.Get[name]; ok {
+	if user, ok := r.GetUsers[name]; ok {
 		return user, nil
 	}
 	if err, ok := r.GetErr[name]; ok {
@@ -45,27 +47,27 @@ func (r *UserRegistry) GetUser(ctx apirequest.Context, name string, options *met
 	return nil, kerrs.NewNotFound(userapi.Resource("user"), name)
 }
 
-func (r *UserRegistry) CreateUser(ctx apirequest.Context, u *userapi.User) (*userapi.User, error) {
+func (r *UserRegistry) Create(u *userapi.User) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"CreateUser", u})
-	if r.Create == nil && r.CreateErr == nil {
+	if r.CreateUser == nil && r.CreateErr == nil {
 		return u, nil
 	}
-	return r.Create, r.CreateErr
+	return r.CreateUser, r.CreateErr
 }
 
-func (r *UserRegistry) UpdateUser(ctx apirequest.Context, u *userapi.User) (*userapi.User, error) {
+func (r *UserRegistry) Update(u *userapi.User) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"UpdateUser", u})
 	err, _ := r.UpdateErr[u.Name]
-	if r.Update == nil && err == nil {
+	if r.UpdateUser == nil && err == nil {
 		return u, nil
 	}
-	return r.Update, err
+	return r.UpdateUser, err
 }
 
-func (r *UserRegistry) ListUsers(ctx apirequest.Context, options *metainternal.ListOptions) (*userapi.UserList, error) {
+func (r *UserRegistry) List(options metav1.ListOptions) (*userapi.UserList, error) {
 	*r.Actions = append(*r.Actions, Action{"ListUsers", options})
-	if r.List == nil && r.ListErr == nil {
+	if r.ListUsers == nil && r.ListErr == nil {
 		return &userapi.UserList{}, nil
 	}
-	return r.List, r.ListErr
+	return r.ListUsers, r.ListErr
 }

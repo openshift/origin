@@ -11,8 +11,8 @@ import (
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	"github.com/openshift/origin/pkg/user/registry/test"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 )
 
 type testInitializer struct {
@@ -25,7 +25,7 @@ func (t *testInitializer) InitializeUser(identity *userapi.Identity, user *usera
 }
 
 type strategyTestCase struct {
-	MakeStrategy func(user userregistry.Registry, initializer user.Initializer) UserForNewIdentityGetter
+	MakeStrategy func(user userclient.UserResourceInterface, initializer user.Initializer) UserForNewIdentityGetter
 
 	// Inputs
 	PreferredUsername string
@@ -71,11 +71,11 @@ func makeIdentity(uid string, providerName string, providerUserName string, user
 func (tc strategyTestCase) run(k string, t *testing.T) {
 	actions := []test.Action{}
 	userRegistry := &test.UserRegistry{
-		Get:     map[string]*userapi.User{},
-		Actions: &actions,
+		GetUsers: map[string]*userapi.User{},
+		Actions:  &actions,
 	}
 	for _, u := range tc.ExistingUsers {
-		userRegistry.Get[u.Name] = u
+		userRegistry.GetUsers[u.Name] = u
 	}
 
 	testInit := &testInitializer{}

@@ -11,8 +11,7 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // UserForNewIdentityGetter is responsible for creating or locating the persisted User for the given Identity.
@@ -29,8 +28,8 @@ var _ = authapi.UserIdentityMapper(&provisioningIdentityMapper{})
 // If an identity does not exist, it creates an Identity referencing the user returned from provisioningStrategy.UserForNewIdentity
 // Otherwise an error is returned
 type provisioningIdentityMapper struct {
-	identity             identityregistry.Registry
-	user                 userregistry.Registry
+	identity             userclient.IdentityInterface
+	user                 userclient.UserResourceInterface
 	provisioningStrategy UserForNewIdentityGetter
 }
 
@@ -49,7 +48,7 @@ func (p *provisioningIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kus
 func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentityInfo, allowedRetries int) (kuser.Info, error) {
 	ctx := apirequest.NewContext()
 
-	identity, err := p.identity.GetIdentity(ctx, info.GetIdentityName(), &metav1.GetOptions{})
+	identity, err := p.identity.Get(info.GetIdentityName(), metav1.GetOptions{})
 
 	if kerrs.IsNotFound(err) {
 		user, err := p.createIdentityAndMapping(ctx, info)
@@ -85,18 +84,18 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx apirequest.Con
 		Extra:            info.GetExtra(),
 	}
 
-	// Get or create a persisted user pointing to the identity
+	// GetIdentities or create a persisted user pointing to the identity
 	persistedUser, err := p.provisioningStrategy.UserForNewIdentity(ctx, getPreferredUserName(identity), identity)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create the identity pointing to the persistedUser
+	// CreateIdentity the identity pointing to the persistedUser
 	identity.User = kapi.ObjectReference{
 		Name: persistedUser.Name,
 		UID:  persistedUser.UID,
 	}
-	if _, err := p.identity.CreateIdentity(ctx, identity); err != nil {
+	if _, err := p.identity.Create(identity); err != nil {
 		return nil, err
 	}
 
@@ -111,7 +110,7 @@ func (p *provisioningIdentityMapper) getMapping(ctx apirequest.Context, identity
 	if len(identity.User.Name) == 0 {
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
-	u, err := p.user.GetUser(ctx, identity.User.Name, &metav1.GetOptions{})
+	u, err := p.user.Get(identity.User.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

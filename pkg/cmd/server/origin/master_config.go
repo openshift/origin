@@ -96,14 +96,13 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -333,7 +332,11 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(privilegedLoopbackKubeClientsetExternal)
-	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, apiClientCAs, usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()))
+	userClient, err := userclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, userClient.Users(), apiClientCAs, usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()))
 	if err != nil {
 		return nil, err
 	}
@@ -909,7 +912,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	return admission.NewChainHandler(plugins...), nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
+func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Request{}
 
@@ -934,7 +937,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		oauthTokenAuthenticator, err := getEtcdTokenAuthenticator(restOptionsGetter, groupMapper)
+		oauthTokenAuthenticator, err := getEtcdTokenAuthenticator(restOptionsGetter, userGetter, groupMapper)
 		if err != nil {
 			return nil, fmt.Errorf("Error building OAuth token authenticator: %v", err)
 		}
@@ -1029,7 +1032,7 @@ func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestCon
 	return authorizationAttributeBuilder
 }
 
-func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, groupMapper identitymapper.UserToGroupMapper) (authenticator.Token, error) {
+func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, userGetter userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper) (authenticator.Token, error) {
 	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client
 	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, nil)
 	if err != nil {
@@ -1037,13 +1040,7 @@ func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, groupMapper identi
 	}
 	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
 
-	userStorage, err := useretcd.NewREST(optsGetter)
-	if err != nil {
-		return nil, err
-	}
-	userRegistry := userregistry.NewRegistry(userStorage)
-
-	return authnregistry.NewTokenAuthenticator(accessTokenRegistry, userRegistry, groupMapper), nil
+	return authnregistry.NewTokenAuthenticator(accessTokenRegistry, userGetter, groupMapper), nil
 }
 
 // KubeClientsetInternal returns the kubernetes client object

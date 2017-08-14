@@ -14,10 +14,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -41,8 +38,9 @@ type AuthConfig struct {
 	// EtcdHelper should normally be used for storage functions.
 	EtcdBackends []storage.Interface
 
-	UserRegistry     userregistry.Registry
-	IdentityRegistry identityregistry.Registry
+	UserClient                userclient.UserResourceInterface
+	IdentityClient            userclient.IdentityInterface
+	UserIdentityMappingClient userclient.UserIdentityMappingInterface
 
 	SessionAuth *session.Authenticator
 
@@ -71,17 +69,10 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL}
 	}
 
-	userStorage, err := useretcd.NewREST(masterConfig.RESTOptionsGetter)
+	userClient, err := userclient.NewForConfig(&masterConfig.PrivilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
-	userRegistry := userregistry.NewRegistry(userStorage)
-
-	identityStorage, err := identityetcd.NewREST(masterConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, err
-	}
-	identityRegistry := identityregistry.NewRegistry(identityStorage)
 
 	ret := &AuthConfig{
 		Options: *options.OAuthConfig,
@@ -93,8 +84,9 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 		AssetPublicAddresses: assetPublicURLs,
 		RESTOptionsGetter:    masterConfig.RESTOptionsGetter,
 
-		IdentityRegistry: identityRegistry,
-		UserRegistry:     userRegistry,
+		IdentityClient:            userClient.Identities(),
+		UserClient:                userClient.Users(),
+		UserIdentityMappingClient: userClient.UserIdentityMappings(),
 
 		SessionAuth: sessionAuth,
 
