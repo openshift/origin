@@ -46,6 +46,7 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
+	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	"github.com/openshift/origin/pkg/version"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
@@ -185,8 +186,26 @@ func (c *OpenshiftAPIConfig) SkipComplete() completedConfig {
 	return completedConfig{c}
 }
 
+func (c completedConfig) newTemplateConfig() *templateapiserver.TemplateConfig {
+	return &templateapiserver.TemplateConfig{
+		GenericConfig:       c.GenericConfig,
+		AuthorizationClient: c.KubeClientInternal.Authorization(),
+		Codecs:              kapi.Codecs,
+		Registry:            kapi.Registry,
+		Scheme:              kapi.Scheme,
+	}
+}
+
 func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftAPIServer, error) {
-	genericServer, err := c.OpenshiftAPIConfig.GenericConfig.SkipComplete().New("openshift-apiserver", delegationTarget) // completion is done in Complete, no need for a second time
+	templateConfig := c.newTemplateConfig()
+	templateServer, err := templateConfig.Complete().New(delegationTarget)
+	if err != nil {
+		return nil, err
+	}
+	// this trigggers openapi construction
+	templateServer.GenericAPIServer.PrepareRun()
+
+	genericServer, err := c.OpenshiftAPIConfig.GenericConfig.SkipComplete().New("openshift-apiserver", templateServer.GenericAPIServer) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
 	}
@@ -237,6 +256,14 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		}
 		glog.Infof("Starting Origin API at %s/%s/%s", api.GroupPrefix, apiGroupInfo.GroupMeta.GroupVersion.Group, apiGroupInfo.GroupMeta.GroupVersion.Version)
 	}
+
+	// after the old-style groupified storage is created, modify the storage map to include the already migrated storage
+	// to be included in the legacy group
+	templatev1Storage, err := templateConfig.V1RESTStorage()
+	if err != nil {
+		return nil, err
+	}
+	storage[templateapiv1.SchemeGroupVersion] = templatev1Storage
 
 	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(storage))); err != nil {
 		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
@@ -352,7 +379,6 @@ var apiGroupsVersions = []apiGroupInfo{
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{imageapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{deployapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{templateapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{oauthapiv1.SchemeGroupVersion}},
 }
 
