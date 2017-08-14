@@ -20,9 +20,9 @@ import (
 
 	"io/ioutil"
 
-	"github.com/openshift/origin/pkg/openservicebroker/server"
 	"github.com/openshift/origin/pkg/template/servicebroker/apis/config"
 	configinstall "github.com/openshift/origin/pkg/template/servicebroker/apis/config/install"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/server"
 )
 
 type TemplateServiceBrokerServerOptions struct {

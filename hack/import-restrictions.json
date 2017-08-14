@@ -219,7 +219,7 @@
 
   {
     "checkedPackageRoots": [
-      "github.com/openshift/origin/pkg/openservicebroker"
+      "github.com/openshift/origin/pkg/templateservicebroker"
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
@@ -228,16 +228,28 @@
       "vendor/github.com/spf13/cobra",
       "vendor/golang.org",
       "github.com/openshift/origin/pkg/template/generated",
-      "github.com/openshift/origin/pkg/template/servicebroker"
+      "github.com/openshift/origin/pkg/template/servicebroker",
+      "github.com/openshift/origin/pkg/route/generated"
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/apis/authorization",
+      "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/clientset",
+      "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset",
       "vendor/github.com/emicklei/go-restful",
       "vendor/github.com/lestrrat/go-jsschema",
       "vendor/k8s.io/kubernetes/pkg/controller",
       "vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util",
       "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/template/apis/template"
+      "github.com/openshift/origin/pkg/template/apis/template",
+      "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
+      "github.com/openshift/origin/pkg/template/apis/template",
+      "github.com/openshift/origin/pkg/authorization/util",
+      "github.com/openshift/origin/pkg/template/apis/template/validation",
+      "github.com/openshift/origin/pkg/user/apis/user/validation",
+      "github.com/openshift/origin/pkg/route/apis/route",
+      "github.com/openshift/origin/pkg/serviceaccounts"
     ]
   }
 ]

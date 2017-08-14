@@ -3,7 +3,7 @@ package servicebroker
 import (
 	"testing"
 
-	"github.com/openshift/origin/pkg/openservicebroker/api"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
 const validUUID = "4f8a47f7-900f-48b4-aad1-865760feaa04"
