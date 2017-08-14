@@ -41,6 +41,9 @@ type UserList struct {
 	Items []User `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
+
 // Identity records a successful authentication of a user with an identity provider. The
 // information about the source of authentication is stored on the identity, and the identity
 // is then associated with a single user object. Multiple identities can reference a single
@@ -73,6 +76,10 @@ type IdentityList struct {
 	// Items is the list of identities
 	Items []Identity `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=get,create,update,delete
 
 // UserIdentityMapping maps a user to an identity
 type UserIdentityMapping struct {
