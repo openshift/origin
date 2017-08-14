@@ -298,9 +298,6 @@ var (
 		`validates resource limits of pods that are allowed to run`, // SchedulerPredicates
 		`should idle the service and DeploymentConfig properly`,     // idling with a single service and DeploymentConfig [Conformance]
 
-		// fails without a cloud provider
-		"should be able to create a functioning NodePort service",
-
 		// TODO undisable:
 		"should be schedule to node that don't match the PodAntiAffinity terms",
 		"should perfer to scheduled to nodes pod can tolerate",
