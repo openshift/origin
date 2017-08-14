@@ -473,7 +473,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"routes/status": routeStatusStorage,
 	}
 
-	templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.KubeClientInternal)
+	templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.KubeClientInternal.Authorization())
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}

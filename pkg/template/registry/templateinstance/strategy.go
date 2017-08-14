@@ -14,7 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	"github.com/openshift/origin/pkg/authorization/util"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
@@ -26,11 +26,11 @@ import (
 type templateInstanceStrategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	kc kclientset.Interface
+	authorizationClient authorizationinternalversion.AuthorizationInterface
 }
 
-func NewStrategy(kc kclientset.Interface) *templateInstanceStrategy {
-	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, kc}
+func NewStrategy(authorizationClient authorizationinternalversion.AuthorizationInterface) *templateInstanceStrategy {
+	return &templateInstanceStrategy{kapi.Scheme, names.SimpleNameGenerator, authorizationClient}
 }
 
 // NamespaceScoped is true for templateinstances.
@@ -139,7 +139,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 	}
 
 	if templateInstance.Spec.Requester.Username != userinfo.GetName() {
-		if err := util.Authorize(s.kc.Authorization().SubjectAccessReviews(), userinfo, &authorization.ResourceAttributes{
+		if err := util.Authorize(s.authorizationClient.SubjectAccessReviews(), userinfo, &authorization.ResourceAttributes{
 			Namespace: templateInstance.Namespace,
 			Verb:      "assign",
 			Group:     templateapi.GroupName,
