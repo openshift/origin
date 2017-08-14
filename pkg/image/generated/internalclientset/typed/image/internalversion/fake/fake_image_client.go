@@ -14,8 +14,24 @@ func (c *FakeImage) Images() internalversion.ImageResourceInterface {
 	return &FakeImages{c}
 }
 
+func (c *FakeImage) ImageSignatures() internalversion.ImageSignatureInterface {
+	return &FakeImageSignatures{c}
+}
+
 func (c *FakeImage) ImageStreams(namespace string) internalversion.ImageStreamInterface {
 	return &FakeImageStreams{c, namespace}
+}
+
+func (c *FakeImage) ImageStreamImages(namespace string) internalversion.ImageStreamImageInterface {
+	return &FakeImageStreamImages{c, namespace}
+}
+
+func (c *FakeImage) ImageStreamMappings(namespace string) internalversion.ImageStreamMappingInterface {
+	return &FakeImageStreamMappings{c, namespace}
+}
+
+func (c *FakeImage) ImageStreamTags(namespace string) internalversion.ImageStreamTagInterface {
+	return &FakeImageStreamTags{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

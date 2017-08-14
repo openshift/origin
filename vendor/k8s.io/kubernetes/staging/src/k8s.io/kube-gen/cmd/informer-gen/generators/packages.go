@@ -162,7 +162,7 @@ func Packages(context *generator.Context, arguments *args.GeneratorArgs) generat
 		var typesToGenerate []*types.Type
 		for _, t := range p.Types {
 			tags := util.MustParseClientGenTags(t.SecondClosestCommentLines)
-			if !tags.GenerateClient || tags.NoVerbs {
+			if !tags.GenerateClient || tags.NoVerbs || !tags.HasVerb("list") || !tags.HasVerb("watch") {
 				continue
 			}
 
@@ -290,7 +290,8 @@ func groupPackage(basePackage string, groupVersions clientgentypes.GroupVersions
 			return generators
 		},
 		FilterFunc: func(c *generator.Context, t *types.Type) bool {
-			return util.MustParseClientGenTags(t.SecondClosestCommentLines).GenerateClient
+			tags := util.MustParseClientGenTags(t.SecondClosestCommentLines)
+			return tags.GenerateClient && tags.HasVerb("list") && tags.HasVerb("watch")
 		},
 	}
 }
@@ -330,7 +331,8 @@ func versionPackage(basePackage string, gv clientgentypes.GroupVersion, boilerpl
 			return generators
 		},
 		FilterFunc: func(c *generator.Context, t *types.Type) bool {
-			return util.MustParseClientGenTags(t.SecondClosestCommentLines).GenerateClient
+			tags := util.MustParseClientGenTags(t.SecondClosestCommentLines)
+			return tags.GenerateClient && tags.HasVerb("list") && tags.HasVerb("watch")
 		},
 	}
 }

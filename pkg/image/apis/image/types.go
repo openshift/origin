@@ -94,6 +94,10 @@ const (
 	ImageSignatureTypeAtomicImageV1 string = "AtomicImageV1"
 )
 
+// +genclient
+// +genclient:onlyVerbs=create,delete
+// +genclient:nonNamespaced
+
 // ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims
 // as long as the signature is trusted. Based on this information it is possible to restrict runnable images
 // to those matching cluster-wide policy.
@@ -351,6 +355,9 @@ type TagEventCondition struct {
 	Generation int64
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as
 // well as the reference to the Docker image repository the image came from.
 type ImageStreamMapping struct {
@@ -366,6 +373,9 @@ type ImageStreamMapping struct {
 	// A string value this image can be located with inside the repository.
 	Tag string
 }
+
+// +genclient
+// +genclient:onlyVerbs=get,create,update,delete
 
 // ImageStreamTag has a .Name in the format <stream name>:<tag>.
 type ImageStreamTag struct {
@@ -400,6 +410,9 @@ type ImageStreamTagList struct {
 
 	Items []ImageStreamTag
 }
+
+// +genclient
+// +genclient:onlyVerbs=get
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {

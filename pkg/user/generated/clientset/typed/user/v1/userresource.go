@@ -12,7 +12,7 @@ import (
 // UsersGetter has a method to return a UserResourceInterface.
 // A group's client should implement this interface.
 type UsersGetter interface {
-	Users(namespace string) UserResourceInterface
+	Users() UserResourceInterface
 }
 
 // UserResourceInterface has methods to work with UserResource resources.
@@ -31,14 +31,12 @@ type UserResourceInterface interface {
 // users implements UserResourceInterface
 type users struct {
 	client rest.Interface
-	ns     string
 }
 
 // newUsers returns a Users
-func newUsers(c *UserV1Client, namespace string) *users {
+func newUsers(c *UserV1Client) *users {
 	return &users{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -46,7 +44,6 @@ func newUsers(c *UserV1Client, namespace string) *users {
 func (c *users) Get(name string, options meta_v1.GetOptions) (result *v1.User, err error) {
 	result = &v1.User{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("users").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -59,7 +56,6 @@ func (c *users) Get(name string, options meta_v1.GetOptions) (result *v1.User, e
 func (c *users) List(opts meta_v1.ListOptions) (result *v1.UserList, err error) {
 	result = &v1.UserList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("users").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -71,7 +67,6 @@ func (c *users) List(opts meta_v1.ListOptions) (result *v1.UserList, err error) 
 func (c *users) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("users").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -81,7 +76,6 @@ func (c *users) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 func (c *users) Create(userResource *v1.User) (result *v1.User, err error) {
 	result = &v1.User{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("users").
 		Body(userResource).
 		Do().
@@ -93,7 +87,6 @@ func (c *users) Create(userResource *v1.User) (result *v1.User, err error) {
 func (c *users) Update(userResource *v1.User) (result *v1.User, err error) {
 	result = &v1.User{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("users").
 		Name(userResource.Name).
 		Body(userResource).
@@ -105,7 +98,6 @@ func (c *users) Update(userResource *v1.User) (result *v1.User, err error) {
 // Delete takes name of the userResource and deletes it. Returns an error if one occurs.
 func (c *users) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("users").
 		Name(name).
 		Body(options).
@@ -116,7 +108,6 @@ func (c *users) Delete(name string, options *meta_v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *users) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("users").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -128,7 +119,6 @@ func (c *users) DeleteCollection(options *meta_v1.DeleteOptions, listOptions met
 func (c *users) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.User, err error) {
 	result = &v1.User{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("users").
 		SubResource(subresources...).
 		Name(name).
