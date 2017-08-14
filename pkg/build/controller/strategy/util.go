@@ -101,12 +101,14 @@ func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPa
 			break
 		}
 	}
+	mode := int32(0600)
 	if !volumeExists {
 		volume := v1.Volume{
 			Name: volumeName,
 			VolumeSource: v1.VolumeSource{
 				Secret: &v1.SecretVolumeSource{
-					SecretName: secretName,
+					SecretName:  secretName,
+					DefaultMode: &mode,
 				},
 			},
 		}
@@ -169,8 +171,7 @@ func setupSourceSecrets(pod *v1.Pod, container *v1.Container, sourceSecret *kapi
 }
 
 // setupSecrets mounts the secrets referenced by the SecretBuildSource
-// into a builder container. It also sets an environment variable that contains
-// a name of the secret and the destination directory.
+// into a builder container.
 func setupSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretBuildSource) {
 	for _, s := range secrets {
 		mountSecretVolume(pod, container, s.Secret.Name, filepath.Join(SecretBuildSourceBaseMountPath, s.Secret.Name), "build")

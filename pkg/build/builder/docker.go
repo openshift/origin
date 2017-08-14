@@ -34,7 +34,6 @@ const defaultDockerfilePath = "Dockerfile"
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
-	gitClient    GitClient
 	tar          tar.Tar
 	build        *buildapi.Build
 	client       client.BuildInterface
@@ -43,11 +42,10 @@ type DockerBuilder struct {
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *buildapi.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,
-		gitClient:    gitClient,
 		tar:          tar.New(s2ifs.NewFileSystem()),
 		client:       buildsClient,
 		cgLimits:     cgLimits,

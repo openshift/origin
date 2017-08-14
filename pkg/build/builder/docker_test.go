@@ -260,7 +260,6 @@ func TestDockerfilePath(t *testing.T) {
 		dockerBuilder := &DockerBuilder{
 			dockerClient: dockerClient,
 			build:        build,
-			gitClient:    git.NewRepository(),
 			tar:          tar.New(s2ifs.NewFileSystem()),
 		}
 
@@ -389,7 +388,6 @@ USER 1001`
 		client:       client.Builds(""),
 		build:        build,
 		dockerClient: dockerClient,
-		gitClient:    git.NewRepository(),
 		tar:          tar.New(s2ifs.NewFileSystem()),
 		inputDir:     buildDir,
 	}

@@ -4,9 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	docker "github.com/fsouza/go-dockerclient"
@@ -33,7 +31,7 @@ import (
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error
 }
 
 type builderConfig struct {
@@ -113,8 +111,6 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 }
 
 func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
-	var sourceSecretDir string
-	var errSecret error
 
 	// For now, we only handle git. If not specified, we're done
 	gitSource := c.build.Spec.Source.Git
@@ -127,7 +123,7 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 	// If a source secret is present, set it up and add its environment variables
 	if sourceSecret != nil {
 		// TODO: this should be refactored to let each source type manage which secrets
-		//   it accepts
+		// it accepts
 		sourceURL, err := s2igit.Parse(gitSource.URI)
 		if err != nil {
 			return "", nil, fmt.Errorf("cannot parse build URL: %s", gitSource.URI)
@@ -135,13 +131,9 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 		scmAuths := scmauth.GitAuths(sourceURL)
 
 		// TODO: remove when not necessary to fix up the secret dir permission
-		sourceSecretDir, errSecret = fixSecretPermissions(c.sourceSecretDir)
-		if errSecret != nil {
-			return sourceSecretDir, nil, fmt.Errorf("cannot fix source secret permissions: %v", errSecret)
-		}
-		secretsEnv, overrideURL, err := scmAuths.Setup(sourceSecretDir)
+		secretsEnv, overrideURL, err := scmAuths.Setup(c.sourceSecretDir)
 		if err != nil {
-			return sourceSecretDir, nil, fmt.Errorf("cannot setup source secret: %v", err)
+			return c.sourceSecretDir, nil, fmt.Errorf("cannot setup source secret: %v", err)
 		}
 		if overrideURL != nil {
 			gitSource.URI = overrideURL.String()
@@ -160,7 +152,7 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 		gitEnv = append(gitEnv, fmt.Sprintf("NO_PROXY=%s", *gitSource.NoProxy))
 		gitEnv = append(gitEnv, fmt.Sprintf("no_proxy=%s", *gitSource.NoProxy))
 	}
-	return sourceSecretDir, bld.MergeEnv(os.Environ(), gitEnv), nil
+	return c.sourceSecretDir, bld.MergeEnv(os.Environ(), gitEnv), nil
 }
 
 // clone is responsible for cloning the source referenced in the buildconfig
@@ -226,20 +218,13 @@ func (c *builderConfig) extractImageContent() error {
 
 // execute is responsible for running a build
 func (c *builderConfig) execute(b builder) error {
-	secretTmpDir, gitEnv, err := c.setupGitEnvironment()
-	if err != nil {
-		return err
-	}
-
-	gitClient := git.NewRepositoryWithEnv(gitEnv)
-
 	cgLimits, err := bld.GetCGroupLimits()
 	if err != nil {
 		return fmt.Errorf("failed to retrieve cgroup limits: %v", err)
 	}
 	glog.V(4).Infof("Running build with cgroup limits: %#v", *cgLimits)
 
-	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, gitClient, cgLimits); err != nil {
+	if err := b.Build(c.dockerClient, c.dockerEndpoint, c.buildsClient, c.build, cgLimits); err != nil {
 		return fmt.Errorf("build error: %v", err)
 	}
 
@@ -247,47 +232,21 @@ func (c *builderConfig) execute(b builder) error {
 		fmt.Fprintf(c.out, "Build complete, no image push requested\n")
 	}
 
-	os.RemoveAll(secretTmpDir)
 	return nil
-}
-
-// fixSecretPermissions loweres access permissions to very low acceptable level
-// TODO: this method should be removed as soon as secrets permissions are fixed upstream
-// Kubernetes issue: https://github.com/kubernetes/kubernetes/issues/4789
-func fixSecretPermissions(secretsDir string) (string, error) {
-	secretTmpDir, err := ioutil.TempDir("", "tmpsecret")
-	if err != nil {
-		return "", err
-	}
-	cmd := exec.Command("cp", "-R", ".", secretTmpDir)
-	cmd.Dir = secretsDir
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-	secretFiles, err := ioutil.ReadDir(secretTmpDir)
-	if err != nil {
-		return "", err
-	}
-	for _, file := range secretFiles {
-		if err := os.Chmod(filepath.Join(secretTmpDir, file.Name()), 0600); err != nil {
-			return "", err
-		}
-	}
-	return secretTmpDir, nil
 }
 
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
-	return bld.NewDockerBuilder(dockerClient, buildsClient, build, gitClient, cgLimits).Build()
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewDockerBuilder(dockerClient, buildsClient, build, cgLimits).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, gitClient bld.GitClient, cgLimits *s2iapi.CGroupLimits) error {
-	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, gitClient, cgLimits).Build()
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
+	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, cgLimits).Build()
 }
 
 func runBuild(out io.Writer, builder builder) error {

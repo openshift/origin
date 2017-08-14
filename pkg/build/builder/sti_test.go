@@ -59,7 +59,6 @@ func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
 		"unix:///var/run/docker.sock",
 		testclient.NewSimpleFake().Builds(""),
 		makeBuild(),
-		git.NewRepository(),
 		testStiBuilderFactory{
 			getStrategyErr: config.getStrategyErr,
 			buildError:     config.buildError,

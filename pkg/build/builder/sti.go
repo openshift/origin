@@ -68,7 +68,6 @@ func (_ runtimeConfigValidator) ValidateConfig(config *s2iapi.Config) []validati
 type S2IBuilder struct {
 	builder      builderFactory
 	validator    validator
-	gitClient    GitClient
 	dockerClient DockerClient
 	dockerSocket string
 	build        *buildapi.Build
@@ -78,19 +77,18 @@ type S2IBuilder struct {
 
 // NewS2IBuilder creates a new STIBuilder instance
 func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *buildapi.Build,
-	gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
+	cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
-	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, gitClient, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
+	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
 func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *buildapi.Build,
-	gitClient GitClient, builder builderFactory, validator validator, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
+	builder builderFactory, validator validator, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// just create instance
 	return &S2IBuilder{
 		builder:      builder,
 		validator:    validator,
-		gitClient:    gitClient,
 		dockerClient: dockerClient,
 		dockerSocket: dockerSocket,
 		build:        build,
