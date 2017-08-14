@@ -7,8 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
+	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
+	"k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/openservicebroker/server"
 )
@@ -99,11 +102,20 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	//}
 	// the TSB server *can* limp along without terminating client certs or front proxy authn. Do that for now
 	// this wiring is a bit tricky.
-	cfg, err := o.Authentication.ToAuthenticationConfig()
+	clientConfig, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, err
 	}
-	authenticator, _, err := cfg.New()
+	client, err := authenticationclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, err
+	}
+	authenticationConfig := authenticatorfactory.DelegatingAuthenticatorConfig{
+		Anonymous:               true,
+		TokenAccessReviewClient: client.TokenReviews(),
+		CacheTTL:                o.Authentication.CacheTTL,
+	}
+	authenticator, _, err := authenticationConfig.New()
 	if err != nil {
 		return nil, err
 	}
