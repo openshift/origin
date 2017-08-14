@@ -11578,7 +11578,10 @@ var _examplesDbTemplatesMariadbEphemeralTemplateJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -11856,7 +11859,10 @@ var _examplesDbTemplatesMariadbPersistentTemplateJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -12064,7 +12070,6 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "mongodb-ephemeral",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "MongoDB (Ephemeral)",
       "description": "MongoDB database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
@@ -12105,7 +12110,6 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "mongodb://{.spec.clusterIP}:{.spec.ports[?(.name==\"mongo\")].port}"
         }
@@ -12135,7 +12139,9 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -12167,7 +12173,6 @@ var _examplesDbTemplatesMongodbEphemeralTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -12354,7 +12359,6 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "mongodb-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "MongoDB (Persistent)",
       "description": "MongoDB database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/mongodb-container/blob/master/3.2/README.md.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
@@ -12395,7 +12399,6 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "mongodb://{.spec.clusterIP}:{.spec.ports[?(.name==\"mongo\")].port}"
         }
@@ -12442,7 +12445,9 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -12474,7 +12479,6 @@ var _examplesDbTemplatesMongodbPersistentTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -12708,7 +12712,6 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "mysql://{.spec.clusterIP}:{.spec.ports[?(.name==\"mysql\")].port}"
         }
@@ -12738,7 +12741,9 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -12770,7 +12775,6 @@ var _examplesDbTemplatesMysqlEphemeralTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -13035,7 +13039,10 @@ var _examplesDbTemplatesMysqlPersistentTemplateJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -13250,7 +13257,6 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "postgresql-ephemeral",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "PostgreSQL (Ephemeral)",
       "description": "PostgreSQL database service, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
@@ -13289,7 +13295,6 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
         }
@@ -13319,7 +13324,9 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -13351,7 +13358,6 @@ var _examplesDbTemplatesPostgresqlEphemeralTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -13521,7 +13527,6 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "postgresql-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "PostgreSQL (Persistent)",
       "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
@@ -13560,7 +13565,6 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
         }
@@ -13607,7 +13611,9 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -13639,7 +13645,6 @@ var _examplesDbTemplatesPostgresqlPersistentTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -13816,7 +13821,6 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "redis-ephemeral",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "Redis (Ephemeral)",
       "description": "Redis in-memory data structure store, without persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing",
@@ -13851,7 +13855,6 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
         }
@@ -13881,7 +13884,9 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -13913,7 +13918,6 @@ var _examplesDbTemplatesRedisEphemeralTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -14050,7 +14054,6 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "redis-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "Redis (Persistent)",
       "description": "Redis in-memory data structure store, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/redis-container/blob/master/3.2.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
@@ -14085,7 +14088,6 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "redis://{.spec.clusterIP}:{.spec.ports[?(.name==\"redis\")].port}"
         }
@@ -14132,7 +14134,9 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -14164,7 +14168,6 @@ var _examplesDbTemplatesRedisPersistentTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -16029,7 +16032,6 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
-    "creationTimestamp": null,
     "annotations": {
       "description": "This example shows how to create a simple ruby application in openshift origin v3",
       "iconClass": "icon-ruby",
@@ -16052,8 +16054,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
+        "name": "frontend"
       },
       "spec": {
         "ports": [
@@ -16080,7 +16081,6 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -16101,8 +16101,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
+        "name": "origin-ruby-sample"
       },
       "spec": {},
       "status": {
@@ -16113,8 +16112,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-custom-docker-builder",
-        "creationTimestamp": null
+        "name": "origin-custom-docker-builder"
       },
       "spec": {
         "dockerImageRepository": "openshift/origin-custom-docker-builder"
@@ -16128,9 +16126,11 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
-        "creationTimestamp": null,
         "labels": {
           "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
         }
       },
       "spec": {
@@ -16198,7 +16198,9 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -16264,7 +16266,6 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "frontend"
             }
@@ -16324,8 +16325,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "ports": [
@@ -16351,8 +16351,7 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "strategy": {
@@ -16420,7 +16419,6 @@ var _examplesSampleAppApplicationTemplateCustombuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "database"
             }
@@ -16539,7 +16537,6 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
-    "creationTimestamp": null,
     "annotations": {
       "description": "This example shows how to create a simple ruby application in openshift origin v3",
       "iconClass": "icon-ruby",
@@ -16562,8 +16559,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
+        "name": "frontend"
       },
       "spec": {
         "ports": [
@@ -16590,7 +16586,6 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -16611,8 +16606,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
+        "name": "origin-ruby-sample"
       },
       "spec": {},
       "status": {
@@ -16623,8 +16617,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7",
-        "creationTimestamp": null
+        "name": "ruby-22-centos7"
       },
       "spec": {
         "dockerImageRepository": "centos/ruby-22-centos7"
@@ -16638,9 +16631,11 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
-        "creationTimestamp": null,
         "labels": {
           "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
         }
       },
       "spec": {
@@ -16707,7 +16702,9 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -16773,7 +16770,6 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "frontend"
             }
@@ -16833,8 +16829,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "ports": [
@@ -16860,8 +16855,7 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "strategy": {
@@ -16879,7 +16873,6 @@ var _examplesSampleAppApplicationTemplateDockerbuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "database"
             }
@@ -16998,7 +16991,6 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
-    "creationTimestamp": null,
     "annotations": {
       "description": "This example shows how to create a simple ruby application in openshift origin v3",
       "iconClass": "icon-ruby",
@@ -17021,8 +17013,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
+        "name": "frontend"
       },
       "spec": {
         "ports": [
@@ -17049,7 +17040,6 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -17070,8 +17060,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
+        "name": "origin-ruby-sample"
       },
       "spec": {},
       "status": {
@@ -17082,8 +17071,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7",
-        "creationTimestamp": null
+        "name": "ruby-22-centos7"
       },
       "spec": {
         "dockerImageRepository": "centos/ruby-22-centos7"
@@ -17097,9 +17085,11 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
-        "creationTimestamp": null,
         "labels": {
           "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
         }
       },
       "spec": {
@@ -17156,7 +17146,9 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -17222,7 +17214,6 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "frontend"
             }
@@ -17282,8 +17273,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "ports": [
@@ -17309,8 +17299,7 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "strategy": {
@@ -17378,7 +17367,6 @@ var _examplesSampleAppApplicationTemplatePullspecbuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "database"
             }
@@ -17497,7 +17485,6 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
-    "creationTimestamp": null,
     "annotations": {
       "description": "This example shows how to create a simple ruby application in openshift origin v3",
       "iconClass": "icon-ruby",
@@ -17520,8 +17507,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
+        "name": "frontend"
       },
       "spec": {
         "ports": [
@@ -17548,7 +17534,6 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -17569,8 +17554,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
+        "name": "origin-ruby-sample"
       },
       "spec": {},
       "status": {
@@ -17581,8 +17565,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "ruby-22-centos7",
-        "creationTimestamp": null
+        "name": "ruby-22-centos7"
       },
       "spec": {
         "dockerImageRepository": "centos/ruby-22-centos7"
@@ -17596,9 +17579,11 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
-        "creationTimestamp": null,
         "labels": {
           "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
         }
       },
       "spec": {
@@ -17665,7 +17650,9 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -17731,7 +17718,6 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "frontend"
             }
@@ -17791,8 +17777,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "ports": [
@@ -17818,8 +17803,7 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "strategy": {
@@ -17887,7 +17871,6 @@ var _examplesSampleAppApplicationTemplateStibuildJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "database"
             }
@@ -18985,7 +18968,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "jenkins-ephemeral",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "Jenkins (Ephemeral)",
       "description": "Jenkins service, without persistent storage.\n\nWARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.",
@@ -19004,7 +18986,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -19025,7 +19006,9 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -19057,7 +19040,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${JENKINS_SERVICE_NAME}"
             }
@@ -19203,8 +19185,7 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
          "annotations": {
            "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
            "service.openshift.io/infrastructure": "true"
-         },
-         "creationTimestamp": null
+         }
        },
        "spec": {
          "ports": [
@@ -19294,7 +19275,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
   "apiVersion": "v1",
   "metadata": {
     "name": "jenkins-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "Jenkins (Persistent)",
       "description": "Jenkins service, with persistent storage.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
@@ -19313,7 +19293,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -19351,7 +19330,9 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -19383,7 +19364,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${JENKINS_SERVICE_NAME}"
             }
@@ -19529,8 +19509,7 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
          "annotations": {
            "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
            "service.openshift.io/infrastructure": "true"
-         },
-         "creationTimestamp": null
+         }
        },
        "spec": {
          "ports": [
