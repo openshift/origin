@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -42,6 +43,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	)
 
 	g.BeforeEach(func() {
+		framework.SkipIfProviderIs("gce")
 		brokercli, portForwardCmd = EnsureTSB(tsbOC)
 
 		var err error
@@ -77,6 +79,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	})
 
 	g.AfterEach(func() {
+		framework.SkipIfProviderIs("gce")
 		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -341,6 +344,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	}
 
 	g.It("should pass an end-to-end test", func() {
+		framework.SkipIfProviderIs("gce")
 		catalog()
 		provision()
 		bind()
