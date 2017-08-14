@@ -57,6 +57,20 @@ func (templateInstance *TemplateInstance) HasCondition(typ TemplateInstanceCondi
 	return false
 }
 
+func (templateInstance *TemplateInstance) GetCondition(typ TemplateInstanceConditionType) TemplateInstanceCondition {
+
+	for i, c := range templateInstance.Status.Conditions {
+		if c.Type == typ {
+			return templateInstance.Status.Conditions[i]
+		}
+	}
+
+	return TemplateInstanceCondition{
+		Type:   typ,
+		Status: "Unknown",
+	}
+}
+
 func (templateInstance *TemplateInstance) SetCondition(condition TemplateInstanceCondition) {
 	condition.LastTransitionTime = metav1.Now()
 
