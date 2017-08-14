@@ -223,15 +223,11 @@ type WebConsoleConfig struct {
 	MasterAddr string
 	// MasterPrefix is the OpenShift API context root
 	MasterPrefix string
-	// MasterResources holds resource names for the OpenShift API
-	MasterResources []string
 	// KubernetesAddr is the host:port the UI should call the kubernetes API on. Scheme is derived from the scheme the UI is served on, so they must be the same.
 	// TODO this is probably unneeded since everything goes through the openshift master's proxy
 	KubernetesAddr string
 	// KubernetesPrefix is the Kubernetes API context root
 	KubernetesPrefix string
-	// KubernetesResources holds resource names for the Kubernetes API
-	KubernetesResources []string
 	// OAuthAuthorizeURI is the OAuth2 endpoint to use to request an API token. It must support request_type=token.
 	OAuthAuthorizeURI string
 	// OAuthTokenURI is the OAuth2 endpoint to use to request an API token. If set, the OAuthClientID must support a client_secret of "".

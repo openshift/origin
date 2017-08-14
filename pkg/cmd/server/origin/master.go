@@ -24,6 +24,7 @@ import (
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
 
+	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -320,10 +321,6 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 			}
 		}
 
-		if c.WebConsoleEnabled() {
-			handler = WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
-		}
-
 		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
 		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
@@ -334,6 +331,9 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 		handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
 		handler = apiserverfilters.WithPanicRecovery(handler)
 
+		if c.WebConsoleEnabled() {
+			handler = assetapiserver.WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
+		}
 		// these handlers are actually separate API servers which have their own handler chains.
 		// our server embeds these
 		handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)

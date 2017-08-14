@@ -1,46 +1,42 @@
-package origin
+package apiserver
 
 import (
-	"fmt"
-	"github.com/golang/glog"
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"path"
 	"strconv"
-	"strings"
 	"time"
+
+	"github.com/golang/glog"
 
 	"github.com/elazarl/go-bindata-assetfs"
 
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/sets"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/server"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
-	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/assets"
 	"github.com/openshift/origin/pkg/assets/java"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	oapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
 	clusterresourceoverrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	"github.com/openshift/origin/pkg/util/httprequest"
 	oversion "github.com/openshift/origin/pkg/version"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+)
+
+const (
+	OpenShiftWebConsoleClientID = "openshift-web-console"
 )
 
 type AssetServerConfig struct {
@@ -63,10 +59,7 @@ type completedAssetServerConfig struct {
 	*AssetServerConfig
 }
 
-// TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
-// we can run this in a pod.  This is an indication of leaky abstraction because it spent too much time in openshift start
-func NewAssetServerConfigFromMasterConfig(masterConfigOptions configapi.MasterConfig) (*AssetServerConfig, error) {
-	assetConfig := masterConfigOptions.AssetConfig
+func NewAssetServerConfig(assetConfig oapi.AssetConfig) (*AssetServerConfig, error) {
 	publicURL, err := url.Parse(assetConfig.PublicURL)
 	if err != nil {
 		glog.Fatal(err)
@@ -79,7 +72,7 @@ func NewAssetServerConfigFromMasterConfig(masterConfigOptions configapi.MasterCo
 	if err != nil {
 		return nil, err
 	}
-	secureServingOptions := apiserveroptions.SecureServingOptions{}
+	secureServingOptions := genericapiserveroptions.SecureServingOptions{}
 	secureServingOptions.BindPort = port
 	secureServingOptions.ServerCert.CertKey.CertFile = assetConfig.ServingInfo.ServerCert.CertFile
 	secureServingOptions.ServerCert.CertKey.KeyFile = assetConfig.ServingInfo.ServerCert.KeyFile
@@ -93,7 +86,6 @@ func NewAssetServerConfigFromMasterConfig(masterConfigOptions configapi.MasterCo
 	}
 
 	genericConfig := genericapiserver.NewConfig(kapi.Codecs)
-	genericConfig.CorsAllowedOriginList = masterConfigOptions.CORSAllowedOrigins
 	genericConfig.EnableDiscovery = false
 	genericConfig.BuildHandlerChainFunc = buildHandlerChainForAssets(publicURL.Path)
 	if err := secureServingOptions.ApplyTo(genericConfig); err != nil {
@@ -104,58 +96,11 @@ func NewAssetServerConfigFromMasterConfig(masterConfigOptions configapi.MasterCo
 	genericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(assetConfig.ServingInfo.MinTLSVersion)
 	genericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(assetConfig.ServingInfo.CipherSuites)
 
-	overrideConfig, err := getResourceOverrideConfig(masterConfigOptions)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := &AssetServerConfig{
-		GenericConfig:         genericConfig,
-		Options:               *masterConfigOptions.AssetConfig,
-		LimitRequestOverrides: overrideConfig,
-		PublicURL:             *publicURL,
-	}
-
-	return ret, nil
-}
-
-// getResourceOverrideConfig looks in two potential places where ClusterResourceOverrideConfig can be specified
-func getResourceOverrideConfig(masterConfigOptions configapi.MasterConfig) (*clusterresourceoverrideapi.ClusterResourceOverrideConfig, error) {
-	overrideConfig, err := checkForOverrideConfig(masterConfigOptions.AdmissionConfig)
-	if err != nil {
-		return nil, err
-	}
-	if overrideConfig != nil {
-		return overrideConfig, nil
-	}
-	if masterConfigOptions.KubernetesMasterConfig == nil { // external kube gets you a nil pointer here
-		return nil, nil
-	}
-	overrideConfig, err = checkForOverrideConfig(masterConfigOptions.KubernetesMasterConfig.AdmissionConfig)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
-}
-
-// checkForOverrideConfig looks for ClusterResourceOverrideConfig plugin cfg in the admission PluginConfig
-func checkForOverrideConfig(ac configapi.AdmissionConfig) (*clusterresourceoverrideapi.ClusterResourceOverrideConfig, error) {
-	overridePluginConfigFile, err := pluginconfig.GetPluginConfigFile(ac.PluginConfig, clusterresourceoverrideapi.PluginName, "")
-	if err != nil {
-		return nil, err
-	}
-	if overridePluginConfigFile == "" {
-		return nil, nil
-	}
-	configFile, err := os.Open(overridePluginConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	overrideConfig, err := clusterresourceoverride.ReadConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
+	return &AssetServerConfig{
+		GenericConfig: genericConfig,
+		Options:       assetConfig,
+		PublicURL:     *publicURL,
+	}, nil
 }
 
 // Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
@@ -265,52 +210,14 @@ func (c *completedAssetServerConfig) addWebConsoleConfig(serverMux *genericmux.P
 		return err
 	}
 
-	originResources := sets.NewString()
-	k8sResources := sets.NewString()
-
-	versions := []schema.GroupVersion{}
-	versions = append(versions, kapi.Registry.GroupOrDie(api.GroupName).GroupVersions...)
-	versions = append(versions, kapi.Registry.GroupOrDie(kapi.GroupName).GroupVersions...)
-	deadOriginVersions := sets.NewString(configapi.DeadOpenShiftAPILevels...)
-	deadKubernetesVersions := sets.NewString(configapi.DeadKubernetesAPILevels...)
-	for _, version := range versions {
-		for kind := range kapi.Scheme.KnownTypes(version) {
-			if strings.HasSuffix(kind, "List") {
-				continue
-			}
-			resource, _ := meta.UnsafeGuessKindToResource(version.WithKind(kind))
-			if latest.OriginKind(version.WithKind(kind)) {
-				if !deadOriginVersions.Has(version.String()) {
-					originResources.Insert(resource.Resource)
-				}
-			} else {
-				if !deadKubernetesVersions.Has(version.String()) {
-					k8sResources.Insert(resource.Resource)
-				}
-			}
-		}
-	}
-
-	commonResources := sets.NewString()
-	for _, r := range originResources.List() {
-		if k8sResources.Has(r) {
-			commonResources.Insert(r)
-		}
-	}
-	if commonResources.Len() > 0 {
-		return fmt.Errorf("Resources for kubernetes and origin types intersect: %v", commonResources.List())
-	}
-
 	// Generated web console config and server version
 	config := assets.WebConsoleConfig{
 		APIGroupAddr:          masterURL.Host,
 		APIGroupPrefix:        server.APIGroupPrefix,
 		MasterAddr:            masterURL.Host,
 		MasterPrefix:          api.Prefix,
-		MasterResources:       originResources.List(),
 		KubernetesAddr:        masterURL.Host,
 		KubernetesPrefix:      server.DefaultLegacyAPIPrefix,
-		KubernetesResources:   k8sResources.List(),
 		OAuthAuthorizeURI:     oauthutil.OpenShiftOAuthAuthorizeURL(masterURL.String()),
 		OAuthTokenURI:         oauthutil.OpenShiftOAuthTokenURL(masterURL.String()),
 		OAuthRedirectBase:     c.Options.PublicURL,
@@ -396,4 +303,18 @@ func RunAssetServer(assetServer *AssetServer, stopCh <-chan struct{}) error {
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, assetServer.GenericAPIServer.SecureServingInfo.BindNetwork, assetServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
+}
+
+// If we know the location of the asset server, redirect to it when / is requested
+// and the Accept header supports text/html
+func WithAssetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/" {
+			if httprequest.PrefersHTML(req) {
+				http.Redirect(w, req, assetPublicURL, http.StatusFound)
+			}
+		}
+		// Dispatch to the next handler
+		handler.ServeHTTP(w, req)
+	})
 }
