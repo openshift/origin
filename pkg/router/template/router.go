@@ -672,10 +672,10 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	name := controller.GetSafeRouteName(route.Name)
 
 	// Namespace can contain dashes, so ${namespace}-${name} is not
-	// unique, use an underscore instead - ${namespace}_${name} akin
+	// unique, use an underscore instead - ${namespace}:${name} akin
 	// to the way domain keys/service records use it ala
 	// _$service.$proto.$name.
-	// Note here that underscore (_) is not a valid DNS character and
+	// Note here that colon (:) is not a valid DNS character and
 	// is just used for the key name and not for the record/route name.
 	// This also helps the use case for the key used as a router config
 	// file name.
