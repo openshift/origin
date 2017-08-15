@@ -28,6 +28,19 @@ function os::build::environment::create() {
         os::log::debug "Creating volume ${OS_BUILD_ENV_VOLUME}"
         docker volume create --name "${OS_BUILD_ENV_VOLUME}" > /dev/null
       fi
+
+      if [[ -n "${OS_BUILD_ENV_TMP_VOLUME:-}" ]]; then
+        if docker volume inspect "${OS_BUILD_ENV_TMP_VOLUME}" >/dev/null 2>&1; then
+          os::log::debug "Re-using volume ${OS_BUILD_ENV_TMP_VOLUME}"
+        else
+          # if OS_BUILD_ENV_VOLUME is set and no volume already exists, create a docker volume to
+          # store the working output so successive iterations can reuse shared code.
+          os::log::debug "Creating volume ${OS_BUILD_ENV_TMP_VOLUME}"
+          docker volume create --name "${OS_BUILD_ENV_TMP_VOLUME}" >/dev/null
+        fi
+        additional_context+=" -v ${OS_BUILD_ENV_TMP_VOLUME}:/tmp"
+      fi
+
       local workingdir
       workingdir=$( os::build::environment::release::workingdir )
       additional_context+=" -v ${OS_BUILD_ENV_VOLUME}:${workingdir}"
@@ -187,22 +200,45 @@ function os::build::environment::withsource() {
 }
 readonly -f os::build::environment::withsource
 
+function os::build::environment::volume_name() {
+  local prefix=$1
+  local commit=$2
+  local volume=$3
+
+  if [[ -z "${volume}" ]]; then
+    volume="${prefix}-$( git rev-parse "${commit}" )"
+  fi
+
+  echo "${volume}" | tr '[:upper:]' '[:lower:]'
+}
+readonly -f os::build::environment::volume_name
+
+function os::build::environment::remove_volume() {
+  local volume=$1
+
+  if docker volume inspect "${volume}" >/dev/null 2>&1; then
+    os::log::debug "Removing volume ${volume}"
+    docker volume rm "${volume}" >/dev/null
+  fi
+}
+readonly -f os::build::environment::remove_volume
+
 # os::build::environment::run launches the container with the provided arguments and
 # the current commit (defaults to HEAD). The container is automatically cleaned up.
 function os::build::environment::run() {
   local commit="${OS_GIT_COMMIT:-HEAD}"
-  local volume="${OS_BUILD_ENV_REUSE_VOLUME:-}"
-  if [[ -z "${volume}" ]]; then
-    volume="origin-build-$( git rev-parse "${commit}" )"
-  fi
-  volume="$( echo "${volume}" | tr '[:upper:]' '[:lower:]' )"
+  local volume
+  local tmp_volume
+
+  volume="$( os::build::environment::volume_name "origin-build" "${commit}" "${OS_BUILD_ENV_REUSE_VOLUME:-}" )"
+  tmp_volume="$( os::build::environment::volume_name "origin-build-tmp" "${commit}" "${OS_BUILD_ENV_REUSE_TMP_VOLUME:-}" )"
+
   export OS_BUILD_ENV_VOLUME="${volume}"
+  export OS_BUILD_ENV_TMP_VOLUME="${tmp_volume}"
 
   if [[ -n "${OS_BUILD_ENV_VOLUME_FORCE_NEW:-}" ]]; then
-    if docker volume inspect "${volume}" >/dev/null 2>&1; then
-      os::log::debug "Removing volume ${volume}"
-      docker volume rm "${volume}"
-    fi
+    os::build::environment::remove_volume "${volume}"
+    os::build::environment::remove_volume "${tmp_volume}"
   fi
 
   if [[ -n "${OS_BUILD_ENV_PULL_IMAGE:-}" ]]; then
@@ -212,6 +248,7 @@ function os::build::environment::run() {
 
   os::log::debug "Using commit ${commit}"
   os::log::debug "Using volume ${volume}"
+  os::log::debug "Using tmp volume ${tmp_volume}"
 
   local container
   container="$( os::build::environment::create "$@" )"
