@@ -193,7 +193,7 @@ func GetSourceRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *build
 	}
 }
 
-// handleBuildStatusUpdate handles updating the build status
+// HandleBuildStatusUpdate handles updating the build status
 // retries occur on update conflict and unreachable api server
 func HandleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
 	var latestBuild *buildapi.Build
