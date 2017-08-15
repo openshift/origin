@@ -164,7 +164,7 @@ func NewNodePlugin(c *OsdnNodeConfig) (*OsdnNode, error) {
 		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
 	}
 
-	ovsif, err := ovs.New(kexec.New(), BR, minOvsVersion)
+	ovsif, err := ovs.New(kexec.New(), Br0, minOvsVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -294,7 +294,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
 
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{Tun0})
 	if err != nil {
 		return fmt.Errorf("failed to get host network information: %v", err)
 	}

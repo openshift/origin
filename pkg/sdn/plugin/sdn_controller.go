@@ -56,7 +56,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 	var found bool
 
 	exec := kexec.New()
-	itx := ipcmd.NewTransaction(exec, TUN)
+	itx := ipcmd.NewTransaction(exec, Tun0)
 	addrs, err := itx.GetAddresses()
 	itx.EndTransaction()
 	if err != nil {
@@ -73,7 +73,7 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 		return false
 	}
 
-	itx = ipcmd.NewTransaction(exec, TUN)
+	itx = ipcmd.NewTransaction(exec, Tun0)
 	routes, err := itx.GetRoutes()
 	itx.EndTransaction()
 	if err != nil {
@@ -160,9 +160,9 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		return false, err
 	}
 
-	itx := ipcmd.NewTransaction(exec, TUN)
+	itx := ipcmd.NewTransaction(exec, Tun0)
 	itx.AddAddress(gwCIDR)
-	defer deleteLocalSubnetRoute(TUN, localSubnetCIDR)
+	defer deleteLocalSubnetRoute(Tun0, localSubnetCIDR)
 	itx.SetLink("mtu", fmt.Sprint(plugin.mtu))
 	itx.SetLink("up")
 	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")

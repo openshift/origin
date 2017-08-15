@@ -136,7 +136,7 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{Tun0})
 	if err != nil {
 		return err
 	}
