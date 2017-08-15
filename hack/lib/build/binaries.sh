@@ -82,9 +82,9 @@ function os::build::setup_env() {
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.7" ]]; then
+    if [[ "${go_version[2]}" < "go1.8" ]]; then
       os::log::fatal "Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.7 or greater."
+Origin builds require Go version 1.8 or greater."
     fi
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),
