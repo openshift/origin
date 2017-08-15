@@ -19,9 +19,11 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/util/namer"
 )
@@ -69,54 +71,54 @@ type GeneratorClient interface {
 
 // Client is an implementation of the GeneratorClient interface
 type Client struct {
-	GetBuildConfigFunc      func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error)
-	UpdateBuildConfigFunc   func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuildFunc            func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error)
-	CreateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
-	UpdateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
-	GetImageStreamFunc      func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
-	GetImageStreamImageFunc func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTagFunc   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error)
+	BuildConfigs      buildclient.BuildConfigsGetter
+	Builds            buildclient.BuildsGetter
+	ImageStreams      imageclient.ImageStreamsGetter
+	ImageStreamImages imageclient.ImageStreamImagesGetter
+	ImageStreamTags   imageclient.ImageStreamTagsGetter
 }
 
 // GetBuildConfig retrieves a named build config
 func (c Client) GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-	return c.GetBuildConfigFunc(ctx, name, options)
+	return c.BuildConfigs.BuildConfigs(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // UpdateBuildConfig updates a named build config
 func (c Client) UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
-	return c.UpdateBuildConfigFunc(ctx, buildConfig)
+	_, err := c.BuildConfigs.BuildConfigs(apirequest.NamespaceValue(ctx)).Update(buildConfig)
+	return err
 }
 
 // GetBuild retrieves a build
 func (c Client) GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
-	return c.GetBuildFunc(ctx, name, options)
+	return c.Builds.Builds(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // CreateBuild creates a new build
 func (c Client) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
-	return c.CreateBuildFunc(ctx, build)
+	_, err := c.Builds.Builds(apirequest.NamespaceValue(ctx)).Create(build)
+	return err
 }
 
 // UpdateBuild updates a build
 func (c Client) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
-	return c.UpdateBuildFunc(ctx, build)
+	_, err := c.Builds.Builds(apirequest.NamespaceValue(ctx)).Update(build)
+	return err
 }
 
 // GetImageStream retrieves a named image stream
 func (c Client) GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
-	return c.GetImageStreamFunc(ctx, name, options)
+	return c.ImageStreams.ImageStreams(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // GetImageStreamImage retrieves an image stream image
 func (c Client) GetImageStreamImage(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
-	return c.GetImageStreamImageFunc(ctx, name, options)
+	return c.ImageStreamImages.ImageStreamImages(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // GetImageStreamTag retrieves and image stream tag
 func (c Client) GetImageStreamTag(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
-	return c.GetImageStreamTagFunc(ctx, name, options)
+	return c.ImageStreamTags.ImageStreamTags(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 type streamRef struct {

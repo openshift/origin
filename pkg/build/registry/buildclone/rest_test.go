@@ -12,7 +12,7 @@ import (
 )
 
 func TestCreateClone(t *testing.T) {
-	rest := CloneREST{&generator.BuildGenerator{Client: generator.Client{
+	rest := CloneREST{&generator.BuildGenerator{Client: generator.TestingClient{
 		CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
 			return nil
 		},
