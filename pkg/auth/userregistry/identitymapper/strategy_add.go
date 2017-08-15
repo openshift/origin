@@ -8,7 +8,7 @@ import (
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 var _ = UserForNewIdentityGetter(&StrategyAdd{})
@@ -16,26 +16,26 @@ var _ = UserForNewIdentityGetter(&StrategyAdd{})
 // StrategyAdd associates a new identity with a user with the identity's preferred username,
 // adding to any existing identities associated with the user
 type StrategyAdd struct {
-	user        userregistry.Registry
+	user        userclient.UserResourceInterface
 	initializer user.Initializer
 }
 
-func NewStrategyAdd(user userregistry.Registry, initializer user.Initializer) UserForNewIdentityGetter {
+func NewStrategyAdd(user userclient.UserResourceInterface, initializer user.Initializer) UserForNewIdentityGetter {
 	return &StrategyAdd{user, initializer}
 }
 
 func (s *StrategyAdd) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
-	persistedUser, err := s.user.GetUser(ctx, preferredUserName, &metav1.GetOptions{})
+	persistedUser, err := s.user.Get(preferredUserName, metav1.GetOptions{})
 
 	switch {
 	case kerrs.IsNotFound(err):
-		// Create a new user
+		// CreateUser a new user
 		desiredUser := &userapi.User{}
 		desiredUser.Name = preferredUserName
 		desiredUser.Identities = []string{identity.Name}
 		s.initializer.InitializeUser(identity, desiredUser)
-		return s.user.CreateUser(ctx, desiredUser)
+		return s.user.Create(desiredUser)
 
 	case err == nil:
 		// If the existing user already references our identity, we're done
@@ -49,7 +49,7 @@ func (s *StrategyAdd) UserForNewIdentity(ctx apirequest.Context, preferredUserNa
 		if len(persistedUser.Identities) == 1 {
 			s.initializer.InitializeUser(identity, persistedUser)
 		}
-		return s.user.UpdateUser(ctx, persistedUser)
+		return s.user.Update(persistedUser)
 
 	default:
 		// Fail on errors other than "not found"

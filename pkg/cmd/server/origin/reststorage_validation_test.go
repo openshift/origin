@@ -8,6 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	apiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
+	restclient "k8s.io/client-go/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	fakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
@@ -115,7 +116,8 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &apiserver.Config{
-			RESTOptionsGetter: restOptionsGetter,
+			LoopbackClientConfig: &restclient.Config{},
+			RESTOptionsGetter:    restOptionsGetter,
 		},
 
 		KubeClientExternal:            &kclientsetexternal.Clientset{},

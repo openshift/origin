@@ -5,9 +5,7 @@ import (
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/user"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	mappingregistry "github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 type MappingMethodType string
@@ -33,16 +31,14 @@ const (
 // 1. Returns an existing user if the identity exists and is associated with an existing user
 // 2. Returns an error if the identity exists and is not associated with a user (or is associated with a missing user)
 // 3. Handles new identities according to the requested method
-func NewIdentityUserMapper(identities identityregistry.Registry, users userregistry.Registry, method MappingMethodType) (authapi.UserIdentityMapper, error) {
+func NewIdentityUserMapper(identities userclient.IdentityInterface, users userclient.UserResourceInterface, userIdentityMapping userclient.UserIdentityMappingInterface, method MappingMethodType) (authapi.UserIdentityMapper, error) {
 	// initUser initializes fields in a User API object from its associated Identity
 	// called when adding the first Identity to a User (during create or update of a User)
 	initUser := user.NewDefaultUserInitStrategy()
 
 	switch method {
 	case MappingMethodLookup:
-		mappingStorage := mappingregistry.NewREST(users, identities)
-		mappingRegistry := mappingregistry.NewRegistry(mappingStorage)
-		return &lookupIdentityMapper{mappingRegistry, users}, nil
+		return &lookupIdentityMapper{userIdentityMapping, users}, nil
 
 	case MappingMethodClaim:
 		return &provisioningIdentityMapper{identities, users, NewStrategyClaim(users, initUser)}, nil

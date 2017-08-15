@@ -70,10 +70,9 @@ import (
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
 	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
 	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
 	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
@@ -175,17 +174,19 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
+	userClient, err := userclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	userStorage, err := useretcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
-	userRegistry := userregistry.NewRegistry(userStorage)
 	identityStorage, err := identityetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
-	identityRegistry := identityregistry.NewRegistry(identityStorage)
-	userIdentityMappingStorage := useridentitymapping.NewREST(userRegistry, identityRegistry)
+	userIdentityMappingStorage := useridentitymapping.NewREST(userClient.Users(), userClient.Identities())
 	groupStorage, err := groupetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)

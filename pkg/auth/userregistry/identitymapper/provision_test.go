@@ -237,18 +237,18 @@ func TestProvision(t *testing.T) {
 	for k, tc := range testcases {
 		actions := []test.Action{}
 		identityRegistry := &test.IdentityRegistry{
-			Get:     map[string]*userapi.Identity{},
-			Actions: &actions,
+			GetIdentities: map[string]*userapi.Identity{},
+			Actions:       &actions,
 		}
 		userRegistry := &test.UserRegistry{
-			Get:     map[string]*userapi.User{},
-			Actions: &actions,
+			GetUsers: map[string]*userapi.User{},
+			Actions:  &actions,
 		}
 		if tc.ExistingIdentity != nil {
-			identityRegistry.Get[tc.ExistingIdentity.Name] = tc.ExistingIdentity
+			identityRegistry.GetIdentities[tc.ExistingIdentity.Name] = tc.ExistingIdentity
 		}
 		if tc.ExistingUser != nil {
-			userRegistry.Get[tc.ExistingUser.Name] = tc.ExistingUser
+			userRegistry.GetUsers[tc.ExistingUser.Name] = tc.ExistingUser
 		}
 
 		newIdentityUserGetter := &testNewIdentityGetter{responses: tc.NewIdentityGetterResponses}

@@ -369,7 +369,7 @@ func TestAuthenticateTokenValidated(t *testing.T) {
 		},
 	}
 	userRegistry := usertest.NewUserRegistry()
-	userRegistry.Get["foo"] = &userapi.User{ObjectMeta: metav1.ObjectMeta{UID: "bar"}}
+	userRegistry.GetUsers["foo"] = &userapi.User{ObjectMeta: metav1.ObjectMeta{UID: "bar"}}
 
 	tokenAuthenticator := NewTokenAuthenticator(tokenRegistry, userRegistry, identitymapper.NoopGroupMapper{})
 

@@ -28,6 +28,9 @@ type UserList struct {
 	Items []User
 }
 
+// +genclient
+// +genclient:nonNamespaced
+
 type Identity struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
@@ -50,6 +53,10 @@ type IdentityList struct {
 	metav1.ListMeta
 	Items []Identity
 }
+
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=get,create,update,delete
 
 type UserIdentityMapping struct {
 	metav1.TypeMeta
