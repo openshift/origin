@@ -117,6 +117,9 @@ type TemplateInstanceStatus struct {
 	// Conditions represent the latest available observations of a
 	// TemplateInstance's current state.
 	Conditions []TemplateInstanceCondition
+
+	// Objects references the objects created by the TemplateInstance.
+	Objects []TemplateInstanceObject
 }
 
 // TemplateInstanceCondition contains condition information for a
@@ -149,6 +152,12 @@ const (
 	// instantiation
 	TemplateInstanceInstantiateFailure TemplateInstanceConditionType = "InstantiateFailure"
 )
+
+// TemplateInstanceObject references an object created by a TemplateInstance.
+type TemplateInstanceObject struct {
+	// ref is a reference to the created object.
+	Ref kapi.ObjectReference
+}
 
 // TemplateInstanceList is a list of TemplateInstance objects.
 type TemplateInstanceList struct {
