@@ -13203,6 +13203,7 @@ objects:
     - list
     - watch
     - get
+
 - kind: ClusterRoleBinding
   apiVersion: v1
   metadata:
@@ -13225,6 +13226,27 @@ objects:
 - kind: ClusterRole
   apiVersion: v1
   metadata:
+    name: sar-creator
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - subjectaccessreviews.authorization.k8s.io
+    verbs:
+    - create
+
+- kind: ClusterRoleBinding
+  apiVersion: v1
+  metadata:
+    name: service-catalog-sar-creator-binding
+  roleRef:
+    name: sar-creator
+  userNames:
+    - system:serviceaccount:kube-service-catalog:service-catalog-apiserver
+
+- kind: ClusterRole
+  apiVersion: v1
+  metadata:
     name: namespace-viewer
   rules:
   - apiGroups:
@@ -13235,6 +13257,7 @@ objects:
     - list
     - watch
     - get
+
 - kind: ClusterRoleBinding
   apiVersion: v1
   metadata:
@@ -13243,6 +13266,7 @@ objects:
     name: namespace-viewer
   userNames:
     - system:serviceaccount:service-catalog:service-catalog-apiserver
+
 - kind: ClusterRoleBinding
   apiVersion: v1
   metadata:
@@ -13261,12 +13285,47 @@ objects:
     - ""
     resources:
     - secrets
-    - events
     verbs:
     - create
     - update
     - patch
     - delete
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - brokers/status
+    - instances/status
+    - bindings/status
+    verbs:
+    - update
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - brokers
+    - instances
+    - bindings
+    verbs:
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    resources:
+    - events
+    verbs:
+    - patch
+    - create
+  - apiGroups:
+    - servicecatalog.k8s.io
+    resources:
+    - serviceclasses
+    verbs:
+    - create
+    - delete
+    - update
+    - patch
     - get
     - list
     - watch
@@ -13281,14 +13340,7 @@ objects:
     - get
     - list
     - watch
-  - apiGroups:
-    - servicecatalog.k8s.io
-    resources:
-    - brokers/status
-    - instances/status
-    - bindings/status
-    verbs:
-    - update
+
 - kind: ClusterRoleBinding
   apiVersion: v1
   metadata:
@@ -13313,6 +13365,7 @@ objects:
     - get
     - create
     - update
+
 - kind: RoleBinding
   apiVersion: v1
   metadata:
@@ -13337,6 +13390,7 @@ objects:
     - configmaps
     verbs:
     - get
+
 - kind: RoleBinding
   apiVersion: v1
   metadata:
@@ -13401,8 +13455,6 @@ objects:
           name: apiserver
           ports:
           - containerPort: 6443
-            protocol: TCP
-          - containerPort: 8081
             protocol: TCP
           resources: {}
           terminationMessagePath: /dev/termination-log
@@ -13484,8 +13536,6 @@ objects:
           args:
           - -v
           - "5"
-          - --service-catalog-api-server-url
-          - http://$(APISERVER_SERVICE_HOST):$(APISERVER_SERVICE_PORT)
           - --leader-election-namespace
           - service-catalog
           - --broker-relist-interval
