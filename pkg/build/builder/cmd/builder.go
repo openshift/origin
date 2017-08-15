@@ -130,7 +130,6 @@ func (c *builderConfig) setupGitEnvironment() (string, []string, error) {
 		}
 		scmAuths := scmauth.GitAuths(sourceURL)
 
-		// TODO: remove when not necessary to fix up the secret dir permission
 		secretsEnv, overrideURL, err := scmAuths.Setup(c.sourceSecretDir)
 		if err != nil {
 			return c.sourceSecretDir, nil, fmt.Errorf("cannot setup source secret: %v", err)
