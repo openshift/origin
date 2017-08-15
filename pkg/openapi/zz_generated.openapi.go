@@ -9852,6 +9852,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
+		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceObject references an object created by a TemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"ref": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ref is a reference to the created object.  When used under .spec, only name and namespace are used; these can contain references to parameters which will be substituted following the usual rules.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceRequester": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -9918,12 +9935,24 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"objects": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Objects references the objects created by the TemplateInstance.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"),
+										},
+									},
+								},
+							},
+						},
 					},
-					Required: []string{"conditions"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition"},
+				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"},
 		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateList": {
 			Schema: spec.Schema{

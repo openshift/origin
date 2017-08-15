@@ -3,7 +3,6 @@
   "apiVersion": "v1",
   "metadata": {
     "name": "ruby-helloworld-sample",
-    "creationTimestamp": null,
     "annotations": {
       "description": "This example shows how to create a simple ruby application in openshift origin v3",
       "iconClass": "icon-ruby",
@@ -26,8 +25,7 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "frontend",
-        "creationTimestamp": null
+        "name": "frontend"
       },
       "spec": {
         "ports": [
@@ -54,7 +52,6 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "route-edge",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -75,8 +72,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-ruby-sample",
-        "creationTimestamp": null
+        "name": "origin-ruby-sample"
       },
       "spec": {},
       "status": {
@@ -87,8 +83,7 @@
       "kind": "ImageStream",
       "apiVersion": "v1",
       "metadata": {
-        "name": "origin-custom-docker-builder",
-        "creationTimestamp": null
+        "name": "origin-custom-docker-builder"
       },
       "spec": {
         "dockerImageRepository": "openshift/origin-custom-docker-builder"
@@ -102,9 +97,11 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "ruby-sample-build",
-        "creationTimestamp": null,
         "labels": {
           "name": "ruby-sample-build"
+        },
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
         }
       },
       "spec": {
@@ -172,7 +169,9 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "frontend",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -238,7 +237,6 @@
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "frontend"
             }
@@ -298,8 +296,7 @@
       "kind": "Service",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "ports": [
@@ -325,8 +322,7 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "database",
-        "creationTimestamp": null
+        "name": "database"
       },
       "spec": {
         "strategy": {
@@ -394,7 +390,6 @@
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "database"
             }
