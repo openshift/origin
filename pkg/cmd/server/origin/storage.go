@@ -69,11 +69,6 @@ import (
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
-	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance/etcd"
-	templateregistry "github.com/openshift/origin/pkg/template/registry/template"
-	templateetcd "github.com/openshift/origin/pkg/template/registry/template/etcd"
-	templateinstanceetcd "github.com/openshift/origin/pkg/template/registry/templateinstance/etcd"
 	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
 	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
 	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
@@ -357,11 +352,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
-	templateStorage, err := templateetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
 	clusterResourceQuotaStorage, clusterResourceQuotaStatusStorage, err := clusterresourcequotaetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -451,11 +441,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"deploymentConfigs/instantiate": dcInstantiateStorage,
 	}
 
-	storage[templateapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"processedTemplates": templateregistry.NewREST(),
-		"templates":          templateStorage,
-	}
-
 	storage[imageapiv1.SchemeGroupVersion] = map[string]rest.Storage{
 		"images":               imageStorage,
 		"imagesignatures":      imageSignatureStorage,
@@ -472,19 +457,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"routes":        routeStorage,
 		"routes/status": routeStatusStorage,
 	}
-
-	templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.KubeClientInternal.Authorization())
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	brokerTemplateInstanceStorage, err := brokertemplateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
-	storage[templateapiv1.SchemeGroupVersion]["templateinstances"] = templateInstanceStorage
-	storage[templateapiv1.SchemeGroupVersion]["templateinstances/status"] = templateInstanceStatusStorage
-	storage[templateapiv1.SchemeGroupVersion]["brokertemplateinstances"] = brokerTemplateInstanceStorage
 
 	if c.EnableBuilds {
 		storage[buildapiv1.SchemeGroupVersion] = map[string]rest.Storage{
