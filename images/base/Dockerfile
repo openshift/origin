@@ -1,12 +1,12 @@
 #
 # This is the base image from which all OpenShift Origin images inherit. Only packages
-# common to all downstream images should be here. Depends on Centos 7.2+.
+# common to all downstream images should be here. Depends on Centos 7.2+
 #
 # The standard name for this image is openshift/origin-base
 #
-FROM centos:centos7
+FROM registry.centos.org/centos/centos:7
 
-RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release \
+RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar centos-release-openshift-origin15 \
       socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs xfsprogs lsof device-mapper-persistent-data ceph-common" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
