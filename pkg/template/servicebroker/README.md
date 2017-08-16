@@ -71,12 +71,11 @@ endpoints:
   provision status can (must) be recovered via the *Last Operation*
   endpoint (see below).
 
-- *Bind*: the Open Service Broker *Bind* semantics do not match well
-  to the template service broker.  Currently the *Bind* call returns
-  all service endpoints and basic auth credentials created by a
-  template.  This functionality may not be regarded as being stable.
-  The *Bind* call records the fact that it took place in the
-  appropriate **BrokerTemplateInstance** object.
+- *Bind*: for a given template, return "credentials" exposed in any
+  created ConfigMap, Secret, Service or Route object (see
+  ExposeAnnotationPrefix and Base64ExposeAnnotationPrefix
+  documentation).  The *Bind* call records the fact that it took
+  place in the appropriate **BrokerTemplateInstance** object.
 
 - *Unbind*: this simply removes the metadata previously placed in the
   **BrokerTemplateInstance** object by a *Bind* call.

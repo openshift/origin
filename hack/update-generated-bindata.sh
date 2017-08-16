@@ -52,6 +52,7 @@ pushd "${OS_ROOT}" > /dev/null
     examples/prometheus/... \
     examples/hello-openshift \
     examples/jenkins/... \
+    examples/quickstarts/cakephp-mysql.json \
     examples/templateservicebroker/...
 
 popd > /dev/null
