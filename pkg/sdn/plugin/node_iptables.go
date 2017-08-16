@@ -134,7 +134,7 @@ func (n *NodeIPTables) syncIPTableRules() error {
 	return nil
 }
 
-const VXLAN_PORT = "4789"
+const vxlanPort = "4789"
 
 func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 	var masqRule []string
@@ -160,8 +160,8 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			srcChain: "INPUT",
 			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
 			rules: [][]string{
-				{"-p", "udp", "--dport", VXLAN_PORT, "-m", "comment", "--comment", "VXLAN incoming", "-j", "ACCEPT"},
-				{"-i", TUN, "-m", "comment", "--comment", "from SDN to localhost", "-j", "ACCEPT"},
+				{"-p", "udp", "--dport", vxlanPort, "-m", "comment", "--comment", "VXLAN incoming", "-j", "ACCEPT"},
+				{"-i", Tun0, "-m", "comment", "--comment", "from SDN to localhost", "-j", "ACCEPT"},
 				{"-i", "docker0", "-m", "comment", "--comment", "from docker to localhost", "-j", "ACCEPT"},
 			},
 		},
@@ -180,7 +180,7 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 			table:    "filter",
 			name:     "OPENSHIFT-ADMIN-OUTPUT-RULES",
 			srcChain: "FORWARD",
-			srcRule:  []string{"-i", TUN, "!", "-o", TUN, "-m", "comment", "--comment", "administrator overrides"},
+			srcRule:  []string{"-i", Tun0, "!", "-o", Tun0, "-m", "comment", "--comment", "administrator overrides"},
 			rules:    nil,
 		},
 	}

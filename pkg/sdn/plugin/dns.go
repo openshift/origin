@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	DIG = "dig"
+	dig = "dig"
 
 	defaultTTL = 30 * time.Minute
 )
@@ -40,8 +40,8 @@ type DNS struct {
 }
 
 func CheckDNSResolver() error {
-	if _, err := exec.LookPath(DIG); err != nil {
-		return fmt.Errorf("%s is not installed", DIG)
+	if _, err := exec.LookPath(dig); err != nil {
+		return fmt.Errorf("%s is not installed", dig)
 	}
 	return nil
 }
@@ -109,7 +109,7 @@ func (d *DNS) updateOne(dns string) (error, bool) {
 	// Due to lack of any go bindings for dns resolver that actually provides TTL value, we are relying on 'dig' shell command.
 	// Output Format:
 	// <domain-name>.		<<ttl from authoritative ns>	IN	A	<IP addr>
-	out, err := d.execer.Command(DIG, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
+	out, err := d.execer.Command(dig, "+nocmd", "+noall", "+answer", "+ttlid", "a", dns).CombinedOutput()
 	if err != nil || len(out) == 0 {
 		return fmt.Errorf("Failed to fetch IP addr and TTL value for domain: %q, err: %v", dns, err), false
 	}

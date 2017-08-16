@@ -24,14 +24,14 @@ type ovsController struct {
 }
 
 const (
-	BR    = "br0"
-	TUN   = "tun0"
-	VXLAN = "vxlan0"
+	Br0    = "br0"
+	Tun0   = "tun0"
+	Vxlan0 = "vxlan0"
 
 	// rule versioning; increment each time flow rules change
-	VERSION = 4
+	ruleVersion = 4
 
-	VERSION_TABLE = 253
+	ruleVersionTable = 253
 )
 
 func NewOVSController(ovsif ovs.Interface, pluginId int, useConnTrack bool) *ovsController {
@@ -39,10 +39,10 @@ func NewOVSController(ovsif ovs.Interface, pluginId int, useConnTrack bool) *ovs
 }
 
 func (oc *ovsController) getVersionNote() string {
-	if VERSION > 254 {
+	if ruleVersion > 254 {
 		panic("Version too large!")
 	}
-	return fmt.Sprintf("%02X.%02X", oc.pluginId, VERSION)
+	return fmt.Sprintf("%02X.%02X", oc.pluginId, ruleVersion)
 }
 
 func (oc *ovsController) AlreadySetUp() bool {
@@ -53,7 +53,7 @@ func (oc *ovsController) AlreadySetUp() bool {
 	expectedVersionNote := oc.getVersionNote()
 	for _, flow := range flows {
 		parsed, err := ovs.ParseFlow(ovs.ParseForDump, flow)
-		if err == nil && parsed.Table == VERSION_TABLE && parsed.NoteHasPrefix(expectedVersionNote) {
+		if err == nil && parsed.Table == ruleVersionTable && parsed.NoteHasPrefix(expectedVersionNote) {
 			return true
 		}
 	}
@@ -69,13 +69,13 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	if err != nil {
 		return err
 	}
-	_ = oc.ovs.DeletePort(VXLAN)
-	_, err = oc.ovs.AddPort(VXLAN, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
+	_ = oc.ovs.DeletePort(Vxlan0)
+	_, err = oc.ovs.AddPort(Vxlan0, 1, "type=vxlan", `options:remote_ip="flow"`, `options:key="flow"`)
 	if err != nil {
 		return err
 	}
-	_ = oc.ovs.DeletePort(TUN)
-	_, err = oc.ovs.AddPort(TUN, 2, "type=internal")
+	_ = oc.ovs.DeletePort(Tun0)
+	_, err = oc.ovs.AddPort(Tun0, 2, "type=internal")
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	otx.AddFlow("table=120, priority=0, actions=drop")
 
 	// Table 253: rule version note
-	otx.AddFlow("table=%d, actions=note:%s", VERSION_TABLE, oc.getVersionNote())
+	otx.AddFlow("table=%d, actions=note:%s", ruleVersionTable, oc.getVersionNote())
 
 	err = otx.EndTransaction()
 	if err != nil {
