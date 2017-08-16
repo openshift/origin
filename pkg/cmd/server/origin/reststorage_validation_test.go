@@ -11,10 +11,8 @@ import (
 	restclient "k8s.io/client-go/rest"
 	extapi "k8s.io/kubernetes/pkg/apis/extensions"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	fakeexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	fakeinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
@@ -86,26 +84,6 @@ func TestValidationRegistration(t *testing.T) {
 	}
 }
 
-// fakeMasterConfig creates a new fake master config with an empty kubelet config and dummy storage.
-func fakeMasterConfig() *MasterConfig {
-	internalKubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
-	externalKubeInformerFactory := kinformers.NewSharedInformerFactory(fakeexternal.NewSimpleClientset(), 1*time.Second)
-	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
-	quotaInformerFactory := quotainformer.NewSharedInformerFactory(quotaclientfake.NewSimpleClientset(), 0)
-
-	return &MasterConfig{
-		KubeletClientConfig:                           &kubeletclient.KubeletClientConfig{},
-		RESTOptionsGetter:                             restoptions.NewSimpleGetter(&storagebackend.Config{ServerList: []string{"localhost"}}),
-		ExternalKubeInformers:                         externalKubeInformerFactory,
-		InternalKubeInformers:                         internalKubeInformerFactory,
-		AuthorizationInformers:                        authorizationInformerFactory,
-		QuotaInformers:                                quotaInformerFactory,
-		ClusterQuotaMappingController:                 clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalKubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
-		PrivilegedLoopbackKubernetesClientsetInternal: &kclientsetinternal.Clientset{},
-		PrivilegedLoopbackKubernetesClientsetExternal: &kclientsetexternal.Clientset{},
-	}
-}
-
 func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 	internalkubeInformerFactory := kinternalinformers.NewSharedInformerFactory(fakeinternal.NewSimpleClientset(), 1*time.Second)
 	authorizationInformerFactory := authorizationinformer.NewSharedInformerFactory(authorizationclientfake.NewSimpleClientset(), 0)
@@ -129,7 +107,6 @@ func fakeOpenshiftAPIServerConfig() *OpenshiftAPIConfig {
 		SecurityInformers:             securityInformerFactory,
 		SCCStorage:                    sccStorage,
 		EnableBuilds:                  true,
-		EnableTemplateServiceBroker:   false,
 		ClusterQuotaMappingController: clusterquotamapping.NewClusterQuotaMappingControllerInternal(internalkubeInformerFactory.Core().InternalVersion().Namespaces(), quotaInformerFactory.Quota().InternalVersion().ClusterResourceQuotas()),
 	}
 	return ret
