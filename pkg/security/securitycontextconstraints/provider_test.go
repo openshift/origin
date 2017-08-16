@@ -532,7 +532,7 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 	unsafeSysctlFooPod := defaultPod()
 	unsafeSysctlFooPod.Annotations[api.UnsafeSysctlsPodAnnotationKey] = "foo=1"
 
-	errorCases := map[string]struct {
+	successCases := map[string]struct {
 		pod *api.Pod
 		scc *securityapi.SecurityContextConstraints
 	}{
@@ -594,7 +594,7 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 		},
 	}
 
-	for k, v := range errorCases {
+	for k, v := range successCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
 			t.Fatalf("unable to create provider %v", err)
@@ -608,27 +608,6 @@ func TestValidatePodSecurityContextSuccess(t *testing.T) {
 }
 
 func TestValidateContainerSecurityContextSuccess(t *testing.T) {
-	var notPriv bool = false
-	defaultPod := func() *api.Pod {
-		return &api.Pod{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{},
-			},
-			Spec: api.PodSpec{
-				SecurityContext: &api.PodSecurityContext{},
-				Containers: []api.Container{
-					{
-						SecurityContext: &api.SecurityContext{
-							// expected to be set by defaulting mechanisms
-							Privileged: &notPriv,
-							// fill in the rest for test cases
-						},
-					},
-				},
-			},
-		}
-	}
-
 	// fail user strat
 	userSCC := defaultSCC()
 	var uid int64 = 999
@@ -714,7 +693,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 	seccompFooPod := defaultPod()
 	seccompFooPod.Annotations[api.SeccompContainerAnnotationKeyPrefix+seccompFooPod.Spec.Containers[0].Name] = "foo"
 
-	errorCases := map[string]struct {
+	successCases := map[string]struct {
 		pod *api.Pod
 		scc *securityapi.SecurityContextConstraints
 	}{
@@ -776,7 +755,7 @@ func TestValidateContainerSecurityContextSuccess(t *testing.T) {
 		},
 	}
 
-	for k, v := range errorCases {
+	for k, v := range successCases {
 		provider, err := NewSimpleProvider(v.scc)
 		if err != nil {
 			t.Fatalf("unable to create provider %v", err)
