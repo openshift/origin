@@ -56,6 +56,10 @@ Percentage of total cluster CPU in use
 
 Percentage of total cluster memory in use
 
+> sum by (kubernetes_io_hostname) (rate(container_cpu_usage_seconds_total{type="master",id=~"/system.slice/(docker\|etcd).service"}[10m]))
+
+Aggregate CPU usage of several systemd units
+
 ### Changes in your cluster
 
 > sum(changes(container_start_time_seconds[10m]))
@@ -72,3 +76,10 @@ Number of mutating API requests being made to the control plane.
 > sort_desc(drop_common_labels(sum without (instance,type,code) (rate(apiserver_request_count{verb=~"GET|LIST|WATCH"}[5m]))))
 
 Number of non-mutating API requests being made to the control plane.
+
+### Network Usage
+
+> topk(10, (sum by (pod_name) (rate(container_network_receive_bytes_total[5m]))))
+
+Top 10 pods doing the most receive network traffic
+
