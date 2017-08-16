@@ -34,7 +34,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
@@ -394,12 +393,7 @@ func isPreferredGroupVersion(gv schema.GroupVersion) bool {
 }
 
 func (c *OpenshiftAPIConfig) startClusterQuotaMapping(context genericapiserver.PostStartHookContext) error {
-	clusterQuotaMapping := origincontrollers.ClusterQuotaMappingControllerConfig{
-		ClusterQuotaMappingController: c.ClusterQuotaMappingController,
-	}
-	if _, err := clusterQuotaMapping.RunController(origincontrollers.ControllerContext{Stop: context.StopCh}); err != nil {
-		return err
-	}
+	go c.ClusterQuotaMappingController.Run(5, context.StopCh)
 	return nil
 }
 
