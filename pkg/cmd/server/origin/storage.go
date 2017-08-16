@@ -19,7 +19,6 @@ import (
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
@@ -140,7 +139,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
-	buildConfigRegistry := buildconfigregistry.NewRegistry(buildConfigStorage)
 
 	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 
@@ -315,8 +313,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	projectRequestStorage := projectrequeststorage.NewREST(c.ProjectRequestMessage, namespace, templateName, c.DeprecatedOpenshiftClient, c.GenericConfig.LoopbackClientConfig, policyBindings)
 
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
-		buildConfigRegistry,
-		buildclient.NewOSClientBuildConfigInstantiatorClient(c.DeprecatedOpenshiftClient),
+		buildClient.Build(),
 		// We use the buildapiv1 schemegroup to encode the Build that gets
 		// returned. As such, we need to make sure that the GroupVersion we use
 		// is the same API version that the storage is going to be used for.
