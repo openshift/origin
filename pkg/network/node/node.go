@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 	"github.com/openshift/origin/pkg/util/ovs"
 
@@ -40,6 +39,8 @@ import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
+
+	"github.com/vishvananda/netlink"
 )
 
 const (
@@ -204,13 +205,12 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 // Detect whether we are upgrading from a pre-CNI openshift and clean up
 // interfaces and iptables rules that are no longer required
 func (node *OsdnNode) dockerPreCNICleanup() error {
-	exec := kexec.New()
-	itx := ipcmd.NewTransaction(exec, "lbr0")
-	itx.SetLink("down")
-	if err := itx.EndTransaction(); err != nil {
+	l, err := netlink.LinkByName("lbr0")
+	if err != nil {
 		// no cleanup required
 		return nil
 	}
+	_ = netlink.LinkSetDown(l)
 
 	node.clearLbr0IptablesRule = true
 
@@ -227,10 +227,10 @@ func (node *OsdnNode) dockerPreCNICleanup() error {
 
 	// Delete pre-CNI interfaces
 	for _, intf := range []string{"lbr0", "vovsbr", "vlinuxbr"} {
-		itx := ipcmd.NewTransaction(exec, intf)
-		itx.DeleteLink()
-		itx.IgnoreError()
-		itx.EndTransaction()
+		l, err = netlink.LinkByName(intf)
+		if err != nil {
+			_ = netlink.LinkDel(l)
+		}
 	}
 
 	// Wait until docker has restarted since kubelet will exit if docker isn't running
