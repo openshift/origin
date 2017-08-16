@@ -1,0 +1,95 @@
+= {{$.Title}}
+{product-author}
+{product-version}
+:data-uri:
+:icons:
+:toc: macro
+:toc-title:
+:toclevels: 2
+
+toc::[]
+
+== Description
+[%hardbreaks]
+{{$.Description}}
+
+== Object Schema
+Expand or mouse-over a field for more information about it.
+
+++++
+<pre>
+{{template "objectschema.adoc" .Schema}}
+</pre>
+++++
+
+== Operations
+
+{{range $op := $.Operations -}}
+[[{{$op.Anchor}}]]
+=== {{$op.Title}}
+{{$op.Description}}
+
+==== HTTP request
+----
+{{$op.HTTPReq}}
+----
+
+==== Curl request
+----
+{{$op.Curl}}
+----
+
+{{if $op.Parameters "body" -}}
+==== HTTP body
+[cols="1,5", options="header"]
+|===
+|Parameter|Schema
+{{range $param := $op.Parameters "body" -}}
+|{{$param.Name}}|{{if $param.Schema}}{{FriendlyTypeName $param.Schema}}{{end}}
+{{end -}}
+|===
+
+{{end -}}
+{{if $op.Parameters "path" -}}
+==== Path parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+{{range $param := $op.Parameters "path" -}}
+|{{$param.Name}}|{{$param.Description}}
+{{end -}}
+|===
+
+{{end -}}
+{{if $op.Parameters "query" -}}
+==== Query parameters
+[cols="1,5", options="header"]
+|===
+|Parameter|Description
+{{range $param := $op.Parameters "query" -}}
+|{{$param.Name}}|{{$param.Description}}
+{{end -}}
+|===
+
+{{end -}}
+==== Responses
+[cols="1,5", options="header"]
+|===
+|HTTP Code|Schema
+{{range $code, $resp := $op.Operation.Responses.StatusCodeResponses -}}
+|{{$code}} {{$resp.Description}}|{{if $resp.Schema}}{{FriendlyTypeName $resp.Schema}}{{end}}
+{{end -}}
+|===
+
+==== Consumes
+
+{{range $mt := EscapeMediaTypes $op.Operation.Consumes -}}
+* {{$mt}}
+{{end}}
+==== Produces
+
+{{range $mt := EscapeMediaTypes $op.Operation.Produces -}}
+* {{$mt}}
+{{end}}
+
+{{end}}
