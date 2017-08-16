@@ -16,7 +16,7 @@ type fakeRegistryClient struct {
 
 func NewFakeRegistryClient(c client.Interface, imageclient imageclientv1.ImageV1Interface) RegistryClient {
 	return &fakeRegistryClient{
-		RegistryClient: NewRegistryClient(nil),
+		RegistryClient: &registryClient{},
 		client:         c,
 		images:         imageclient,
 	}

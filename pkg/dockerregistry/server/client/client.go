@@ -2,14 +2,11 @@ package client
 
 import (
 	restclient "k8s.io/client-go/rest"
+	authclientv1 "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	authclientv1 "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1"
-
+	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-
-	"github.com/openshift/origin/pkg/client"
-
 	imageclientv1 "github.com/openshift/origin/pkg/image/generated/clientset/typed/image/v1"
 	userclientv1 "github.com/openshift/origin/pkg/user/generated/clientset/typed/user/v1"
 )
@@ -34,12 +31,12 @@ type Interface interface {
 	ImageStreamTagsNamespacer
 	LimitRangesGetter
 	LocalSubjectAccessReviewsNamespacer
-	SubjectAccessReviews
+	SelfSubjectAccessReviewsNamespacer
 	UsersInterfacer
 }
 
 type apiClient struct {
-	oc    client.Interface
+	oc    osclient.Interface
 	kube  kcoreclient.CoreInterface
 	auth  authclientv1.AuthorizationV1Interface
 	image imageclientv1.ImageV1Interface
@@ -47,7 +44,7 @@ type apiClient struct {
 }
 
 func newAPIClient(
-	c client.Interface,
+	c osclient.Interface,
 	kc kcoreclient.CoreInterface,
 	authClient authclientv1.AuthorizationV1Interface,
 	imageClient imageclientv1.ImageV1Interface,
@@ -91,6 +88,8 @@ func (c *apiClient) ImageStreamTags(namespace string) ImageStreamTagInterface {
 }
 
 func (c *apiClient) ImageStreamSecrets(namespace string) ImageStreamSecretInterface {
+	// FIXME: When we generate expansions for images clientset, replace this with
+	// the clientset and get rid of the legacy client alltogether.
 	return c.oc.ImageStreamSecrets(namespace)
 }
 
@@ -102,61 +101,45 @@ func (c *apiClient) LocalSubjectAccessReviews(namespace string) LocalSubjectAcce
 	return c.auth.LocalSubjectAccessReviews(namespace)
 }
 
-func (c *apiClient) SubjectAccessReviews() SubjectAccessReviewInterface {
+func (c *apiClient) SelfSubjectAccessReviews() SelfSubjectAccessReviewInterface {
 	return c.auth.SelfSubjectAccessReviews()
 }
 
 type registryClient struct {
-	config *clientcmd.Config
+	kubeConfig      *restclient.Config
+	openshiftConfig *restclient.Config
 }
 
+// NewRegistryClient provides a new registry client.
 func NewRegistryClient(config *clientcmd.Config) RegistryClient {
-	return &registryClient{config: config}
+	return &registryClient{
+		kubeConfig:      config.KubeConfig(),
+		openshiftConfig: config.OpenShiftConfig(),
+	}
 }
 
 // Client returns the authenticated client to use with the server.
 func (c *registryClient) Client() (Interface, error) {
-	oc, kc, err := c.config.Clients()
-	if err != nil {
-		return nil, err
-	}
-
 	return newAPIClient(
-		oc,
-		kc.Core(),
-		authclientv1.NewForConfigOrDie(c.config.KubeConfig()),
-		imageclientv1.NewForConfigOrDie(c.config.KubeConfig()),
-		userclientv1.NewForConfigOrDie(c.config.KubeConfig()),
+		osclient.NewOrDie(c.openshiftConfig),
+		kcoreclient.NewForConfigOrDie(c.kubeConfig),
+		authclientv1.NewForConfigOrDie(c.kubeConfig),
+		imageclientv1.NewForConfigOrDie(c.kubeConfig),
+		userclientv1.NewForConfigOrDie(c.kubeConfig),
 	), nil
 }
 
+// ClientFromToken returns the client based on the bearer token.
 func (c *registryClient) ClientFromToken(token string) (Interface, error) {
-	_, kc, err := c.config.Clients()
-	if err != nil {
-		return nil, err
-	}
+	newClient := *c
+	newOpenshiftConfig := clientcmd.AnonymousClientConfig(newClient.openshiftConfig)
+	newOpenshiftConfig.BearerToken = token
 
-	cfg := c.safeClientConfig()
-	cfg.BearerToken = token
+	newKubeconfig := *newClient.kubeConfig
+	newKubeconfig.BearerToken = token
 
-	oc, err := client.New(&cfg)
-	if err != nil {
-		return nil, err
-	}
+	newClient.kubeConfig = &newKubeconfig
+	newClient.openshiftConfig = &newOpenshiftConfig
 
-	kubeConfig := c.config.KubeConfig()
-	kubeConfig.BearerToken = token
-
-	return newAPIClient(
-		oc,
-		kc.Core(),
-		authclientv1.NewForConfigOrDie(kubeConfig),
-		imageclientv1.NewForConfigOrDie(kubeConfig),
-		userclientv1.NewForConfigOrDie(kubeConfig),
-	), nil
-}
-
-// safeClientConfig returns a client config without authentication info.
-func (с *registryClient) safeClientConfig() restclient.Config {
-	return clientcmd.AnonymousClientConfig(с.config.OpenShiftConfig())
+	return newClient.Client()
 }

@@ -15,6 +15,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 const (
@@ -26,7 +27,7 @@ const (
 )
 
 // ByGeneration allows for sorting tag events from latest to oldest.
-type ByGeneration []*imageapi.TagEvent
+type ByGeneration []*imageapiv1.TagEvent
 
 func (b ByGeneration) Less(i, j int) bool { return b[i].Generation > b[j].Generation }
 func (b ByGeneration) Len() int           { return len(b) }
@@ -142,9 +143,10 @@ func imageStreamHasBlob(r *repository, dgst digest.Digest) bool {
 		return logFound(false)
 	}
 
-	tagEvents := []*imageapi.TagEvent{}
-	event2Name := make(map[*imageapi.TagEvent]string)
-	for name, eventList := range is.Status.Tags {
+	tagEvents := []*imageapiv1.TagEvent{}
+	event2Name := make(map[*imageapiv1.TagEvent]string)
+	for _, eventList := range is.Status.Tags {
+		name := eventList.Tag
 		for i := range eventList.Items {
 			event := &eventList.Items[i]
 			tagEvents = append(tagEvents, event)
@@ -208,17 +210,10 @@ func imageHasBlob(
 		return true
 	}
 
-	if len(image.DockerImageLayers) == 0 {
-		if len(image.DockerImageManifestMediaType) > 0 {
-			// If the media type is set, we can safely assume that the best effort to fill the image layers
-			// has already been done. There are none.
-			return false
-		}
-		err = imageapi.ImageWithMetadata(image)
-		if err != nil {
-			context.GetLogger(r.ctx).Errorf("failed to get metadata for image %s: %v", imageName, err)
-			return false
-		}
+	if len(image.DockerImageLayers) == 0 && len(image.DockerImageManifestMediaType) > 0 {
+		// If the media type is set, we can safely assume that the best effort to
+		// fill the image layers has already been done. There are none.
+		return false
 	}
 
 	for _, layer := range image.DockerImageLayers {
@@ -229,9 +224,14 @@ func imageHasBlob(
 		}
 	}
 
+	meta, ok := image.DockerImageMetadata.Object.(*imageapi.DockerImage)
+	if !ok {
+		context.GetLogger(r.ctx).Errorf("image does not have metadata %s", imageName)
+		return false
+	}
+
 	// only manifest V2 schema2 has docker image config filled where dockerImage.Metadata.id is its digest
-	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest &&
-		image.DockerImageMetadata.ID == blobDigest {
+	if image.DockerImageManifestMediaType == schema2.MediaTypeManifest && meta.ID == blobDigest {
 		// remember manifest config reference of schema 2 as well
 		r.rememberLayersOfImage(image, cacheName)
 		return true

@@ -450,7 +450,7 @@ func verifyOpenShiftUser(ctx context.Context, c client.UsersInterfacer) (string,
 	return userInfo.GetName(), string(userInfo.GetUID()), nil
 }
 
-func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, c client.SubjectAccessReviews) error {
+func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, c client.SelfSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.SelfSubjectAccessReview{
 		Spec: authorizationapi.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationapi.ResourceAttributes{
@@ -462,7 +462,7 @@ func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, 
 			},
 		},
 	}
-	response, err := c.SubjectAccessReviews().Create(&sar)
+	response, err := c.SelfSubjectAccessReviews().Create(&sar)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -479,15 +479,15 @@ func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, 
 	return nil
 }
 
-func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, c client.SubjectAccessReviews) error {
+func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, c client.SelfSubjectAccessReviewsNamespacer) error {
 	return verifyWithSAR(ctx, "imagestreams/layers", namespace, imageRepo, verb, c)
 }
 
-func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, c client.SubjectAccessReviews) error {
+func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, c client.SelfSubjectAccessReviewsNamespacer) error {
 	return verifyWithSAR(ctx, "imagesignatures", namespace, imageRepo, "create", c)
 }
 
-func verifyPruneAccess(ctx context.Context, c client.SubjectAccessReviews) error {
+func verifyPruneAccess(ctx context.Context, c client.SelfSubjectAccessReviewsNamespacer) error {
 	sar := authorizationapi.SelfSubjectAccessReview{
 		Spec: authorizationapi.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authorizationapi.ResourceAttributes{
@@ -497,7 +497,7 @@ func verifyPruneAccess(ctx context.Context, c client.SubjectAccessReviews) error
 			},
 		},
 	}
-	response, err := c.SubjectAccessReviews().Create(&sar)
+	response, err := c.SelfSubjectAccessReviews().Create(&sar)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {

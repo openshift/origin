@@ -22,12 +22,9 @@ import (
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
+	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
 	srvconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
-	restclient "k8s.io/client-go/rest"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-
-	osclient "github.com/openshift/origin/pkg/client"
 )
 
 const testPassthroughToUpstream = "openshift.test.passthrough-to-upstream"
@@ -51,12 +48,12 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	// to make other unit tests working
 	defer m.changeUnsetRepository(false)
 
-	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, "user", "app", "latest")
 
 	ctx := context.Background()
 	ctx = WithConfiguration(ctx, &srvconfig.Configuration{})
-	ctx = WithRegistryClient(ctx, makeFakeRegistryClient(client, nil))
+	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(client, imageClient))
 	app := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
@@ -488,25 +485,6 @@ func (f *fakeAccessController) Authorized(ctx context.Context, access ...registr
 
 	ctx = withAuthPerformed(ctx)
 	return ctx, nil
-}
-
-func makeFakeRegistryClient(client osclient.Interface, kCoreClient kcoreclient.CoreInterface) RegistryClient {
-	return &fakeRegistryClient{
-		client:      client,
-		kCoreClient: kCoreClient,
-	}
-}
-
-type fakeRegistryClient struct {
-	client      osclient.Interface
-	kCoreClient kcoreclient.CoreInterface
-}
-
-func (f *fakeRegistryClient) Clients() (osclient.Interface, kcoreclient.CoreInterface, error) {
-	return f.client, f.kCoreClient, nil
-}
-func (f *fakeRegistryClient) SafeClientConfig() restclient.Config {
-	return (&registryClient{}).SafeClientConfig()
 }
 
 // passthroughBlobDescriptorService passes all Stat and Clear requests to

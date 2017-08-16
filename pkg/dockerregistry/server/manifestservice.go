@@ -17,6 +17,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
@@ -127,12 +128,12 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	dgst := digest.FromBytes(canonical)
 
 	// Upload to openshift
-	ism := imageapi.ImageStreamMapping{
+	ism := imageapiv1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: m.repo.namespace,
 			Name:      m.repo.name,
 		},
-		Image: imageapi.Image{
+		Image: imageapiv1.Image{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: dgst.String(),
 				Annotations: map[string]string{
@@ -160,7 +161,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	ism.Image.DockerImageManifest = ""
 	ism.Image.DockerImageConfig = ""
 
-	if err = m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
+	if _, err = m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
 		statusErr, ok := err.(*kerrors.StatusError)
 		if !ok {
@@ -190,7 +191,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 		}
 
 		// try to create the ISM again
-		if err := m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
+		if _, err := m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
 			if quotautil.IsErrorQuotaExceeded(err) {
 				context.GetLogger(ctx).Errorf("denied a creation of ImageStreamMapping: %v", err)
 				return "", distribution.ErrAccessDenied
@@ -217,7 +218,7 @@ var manifestInflight = make(map[digest.Digest]struct{})
 // manifestInflightSync protects manifestInflight
 var manifestInflightSync sync.Mutex
 
-func (m *manifestService) migrateManifest(ctx context.Context, image *imageapi.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
+func (m *manifestService) migrateManifest(ctx context.Context, image *imageapiv1.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
 	// Everything in its place and nothing to do.
 	if isLocalStored && len(image.DockerImageManifest) == 0 {
 		return
@@ -233,7 +234,7 @@ func (m *manifestService) migrateManifest(ctx context.Context, image *imageapi.I
 	go m.storeManifestLocally(ctx, image, dgst, manifest, isLocalStored)
 }
 
-func (m *manifestService) storeManifestLocally(ctx context.Context, image *imageapi.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
+func (m *manifestService) storeManifestLocally(ctx context.Context, image *imageapiv1.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
 	defer func() {
 		manifestInflightSync.Lock()
 		delete(manifestInflight, dgst)

@@ -9,7 +9,7 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 // A ManifestHandler defines a common set of operations on all versions of manifest schema.
@@ -18,7 +18,7 @@ type ManifestHandler interface {
 	// with blob sizes. Newer Docker client versions don't set layer sizes in the manifest schema 1 at all.
 	// Origin master needs correct layer sizes for proper image quota support. That's why we need to fill the
 	// metadata in the registry.
-	FillImageMetadata(ctx context.Context, image *imageapi.Image) error
+	FillImageMetadata(ctx context.Context, image *imageapiv1.Image) error
 
 	// Manifest returns a deserialized manifest object.
 	Manifest() distribution.Manifest
@@ -47,7 +47,7 @@ func NewManifestHandler(repo *repository, manifest distribution.Manifest) (Manif
 }
 
 // NewManifestHandlerFromImage creates a new manifest handler for a manifest stored in the given image.
-func NewManifestHandlerFromImage(repo *repository, image *imageapi.Image) (ManifestHandler, error) {
+func NewManifestHandlerFromImage(repo *repository, image *imageapiv1.Image) (ManifestHandler, error) {
 	var (
 		manifest distribution.Manifest
 		err      error

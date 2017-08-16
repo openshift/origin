@@ -11,8 +11,9 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	disterrors "github.com/docker/distribution/registry/api/v2"
 
-	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"github.com/openshift/origin/pkg/image/importer"
 )
 
@@ -23,7 +24,7 @@ type BlobGetterService interface {
 	distribution.BlobServer
 }
 
-type ImageStreamGetter func() (*imageapi.ImageStream, error)
+type ImageStreamGetter func() (*imageapiv1.ImageStream, error)
 
 // remoteBlobGetterService implements BlobGetterService and allows to serve blobs from remote
 // repositories.
@@ -32,7 +33,7 @@ type remoteBlobGetterService struct {
 	name                string
 	cacheTTL            time.Duration
 	getImageStream      ImageStreamGetter
-	isSecretsNamespacer osclient.ImageStreamSecretsNamespacer
+	isSecretsNamespacer client.ImageStreamSecretsNamespacer
 	cachedLayers        digestToRepositoryCache
 	digestToStore       map[string]distribution.BlobStore
 }
@@ -45,7 +46,7 @@ func NewBlobGetterService(
 	namespace, name string,
 	cacheTTL time.Duration,
 	imageStreamGetter ImageStreamGetter,
-	isSecretsNamespacer osclient.ImageStreamSecretsNamespacer,
+	isSecretsNamespacer client.ImageStreamSecretsNamespacer,
 	cachedLayers digestToRepositoryCache,
 ) BlobGetterService {
 	return &remoteBlobGetterService{
@@ -285,7 +286,7 @@ func (by *byInsecureFlag) Less(i, j int) bool {
 // the worst and a map of remote repositories referenced by this image stream. The best candidate is a secure
 // one. The worst allows for insecure transport.
 func identifyCandidateRepositories(
-	is *imageapi.ImageStream,
+	is *imageapiv1.ImageStream,
 	localRegistry string,
 	primary bool,
 ) ([]string, map[string]imagePullthroughSpec) {
@@ -299,8 +300,9 @@ func identifyCandidateRepositories(
 
 	// identify the canonical location of referenced registries to search
 	search := make(map[string]*imageapi.DockerImageReference)
-	for tag, tagEvent := range is.Status.Tags {
-		var candidates []imageapi.TagEvent
+	for _, tagEvent := range is.Status.Tags {
+		tag := tagEvent.Tag
+		var candidates []imageapiv1.TagEvent
 		if primary {
 			if len(tagEvent.Items) == 0 {
 				continue
@@ -324,8 +326,11 @@ func identifyCandidateRepositories(
 			}
 			ref = ref.DockerClientDefaults()
 			insecure := insecureByDefault
-			if tagRef, ok := is.Spec.Tags[tag]; ok {
-				insecure = insecureByDefault || tagRef.ImportPolicy.Insecure
+			for _, t := range is.Spec.Tags {
+				if t.Name == tag {
+					insecure = insecureByDefault || t.ImportPolicy.Insecure
+					break
+				}
 			}
 			if is := insecureRegistries[ref.Registry]; !is && insecure {
 				insecureRegistries[ref.Registry] = insecure
@@ -372,6 +377,10 @@ func pullInsecureByDefault(isGetter ImageStreamGetter, tag string) bool {
 		return insecureByDefault
 	}
 
-	tagReference, ok := is.Spec.Tags[tag]
-	return ok && tagReference.ImportPolicy.Insecure
+	for _, t := range is.Spec.Tags {
+		if t.Name == tag {
+			return t.ImportPolicy.Insecure
+		}
+	}
+	return false
 }

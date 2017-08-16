@@ -18,8 +18,7 @@ import (
 	distclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
 	"github.com/docker/distribution/registry/client/transport"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 // UploadBlob uploads a blob with payload to the registry server located at
@@ -137,7 +136,7 @@ func CreateRandomTarFile() ([]byte, error) {
 }
 
 // CreateRandomImage creates an image with a random content.
-func CreateRandomImage(namespace, name string) (*imageapi.Image, error) {
+func CreateRandomImage(namespace, name string) (*imageapiv1.Image, error) {
 	_, manifest, _, err := CreateRandomManifest(ManifestSchema1, 3)
 	if err != nil {
 		return nil, err

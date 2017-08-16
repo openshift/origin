@@ -32,9 +32,7 @@ import (
 
 func sarResponse(ns string, allowed bool, reason string) *authorizationapi.SelfSubjectAccessReview {
 	resp := &authorizationapi.SelfSubjectAccessReview{}
-	if len(ns) > 0 {
-		resp.Namespace = ns
-	}
+	resp.Namespace = ns
 	resp.Status = authorizationapi.SubjectAccessReviewStatus{Allowed: allowed, Reason: reason}
 	return resp
 }
