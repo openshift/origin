@@ -82,9 +82,9 @@ type OpenshiftAPIConfig struct {
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator authorizer.SubjectLocator
 	LimitVerifier  imageadmission.LimitVerifier
-	// RegistryNameFn retrieves the name of the integrated registry, or false if no such registry
-	// is available.
-	RegistryNameFn                     imageapi.DefaultRegistryFunc
+	// RegistryHostnameRetriever retrieves the internal and external hostname of
+	// the integrated registry, or false if no such registry is available.
+	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
 	AllowedRegistriesForImport         *configapi.AllowedRegistries
 	MaxImagesBulkImportedPerRepository int
 
@@ -143,8 +143,8 @@ func (c *OpenshiftAPIConfig) Validate() error {
 	if c.LimitVerifier == nil {
 		ret = append(ret, fmt.Errorf("LimitVerifier is required"))
 	}
-	if c.RegistryNameFn == nil {
-		ret = append(ret, fmt.Errorf("RegistryNameFn is required"))
+	if c.RegistryHostnameRetriever == nil {
+		ret = append(ret, fmt.Errorf("RegistryHostnameRetriever is required"))
 	}
 	if c.RouteAllocator == nil {
 		ret = append(ret, fmt.Errorf("RouteAllocator is required"))

@@ -61,7 +61,7 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
 	allowedImportRegistries *serverapi.AllowedRegistries,
-	registryFn imageapi.DefaultRegistryFunc,
+	registryFn imageapi.RegistryHostnameRetriever,
 	sarClient client.SubjectAccessReviewInterface,
 ) *REST {
 	return &REST{

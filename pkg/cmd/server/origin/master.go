@@ -73,7 +73,7 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		RuleResolver:                       c.RuleResolver,
 		SubjectLocator:                     c.SubjectLocator,
 		LimitVerifier:                      c.LimitVerifier,
-		RegistryNameFn:                     c.RegistryNameFn,
+		RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
 		AllowedRegistriesForImport:         c.Options.ImagePolicyConfig.AllowedRegistriesForImport,
 		MaxImagesBulkImportedPerRepository: c.Options.ImagePolicyConfig.MaxImagesBulkImportedPerRepository,
 		RouteAllocator:                     c.RouteAllocator(),

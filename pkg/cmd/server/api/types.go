@@ -514,6 +514,16 @@ type ImagePolicyConfig struct {
 	// this policy - typically only administrators or system integrations will have those
 	// permissions.
 	AllowedRegistriesForImport *AllowedRegistries
+	// InternalRegistryHostname sets the hostname for the default internal image
+	// registry. The value must be in "hostname[:port]" format.
+	// For backward compatibility, users can still use OPENSHIFT_DEFAULT_REGISTRY
+	// environment variable but this setting overrides the environment variable.
+	InternalRegistryHostname string
+	// ExternalRegistryHostname sets the hostname for the default external image
+	// registry. The external hostname should be set only when the image registry
+	// is exposed externally. The value is used in 'publicDockerImageRepository'
+	// field in ImageStreams. The value must be in "hostname[:port]" format.
+	ExternalRegistryHostname string
 }
 
 // AllowedRegistries represents a list of registries allowed for the image import.

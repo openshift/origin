@@ -73,6 +73,47 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apireque
 	return &authorizationapi.SubjectAccessReviewResponse{Allowed: f.allow}, f.err
 }
 
+func TestPublicDockerImageRepository(t *testing.T) {
+	tests := map[string]struct {
+		stream         *imageapi.ImageStream
+		expected       string
+		publicRegistry string
+	}{
+		"public registry is not set": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "somerepo",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "a/b",
+				},
+			},
+			publicRegistry: "",
+			expected:       "",
+		},
+		"public registry is set": {
+			stream: &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "somerepo",
+				},
+				Spec: imageapi.ImageStreamSpec{
+					DockerImageRepository: "a/b",
+				},
+			},
+			publicRegistry: "registry-default.external.url",
+			expected:       "registry-default.external.url/somerepo",
+		},
+	}
+
+	for testName, test := range tests {
+		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, test.publicRegistry, ""), &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
+		value := strategy.publicDockerImageRepository(test.stream)
+		if e, a := test.expected, value; e != a {
+			t.Errorf("%s: expected %q, got %q", testName, e, a)
+		}
+	}
+}
+
 func TestDockerImageRepository(t *testing.T) {
 	tests := map[string]struct {
 		stream          *imageapi.ImageStream
@@ -135,7 +176,8 @@ func TestDockerImageRepository(t *testing.T) {
 	}
 
 	for testName, test := range tests {
-		strategy := NewStrategy(&fakeDefaultRegistry{test.defaultRegistry}, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
+		fakeRegistry := &fakeDefaultRegistry{test.defaultRegistry}
+		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
 		value := strategy.dockerImageRepository(test.stream)
 		if e, a := test.expected, value; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
@@ -518,13 +560,13 @@ func TestLimitVerifier(t *testing.T) {
 			allow: true,
 		}
 		tagVerifier := &TagVerifier{sar}
-
+		fakeRegistry := &fakeDefaultRegistry{}
 		s := &Strategy{
 			tagVerifier: tagVerifier,
 			limitVerifier: &testutil.FakeImageStreamLimitVerifier{
 				ImageStreamEvaluator: tc.isEvaluator,
 			},
-			defaultRegistry: &fakeDefaultRegistry{},
+			registryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
 		}
 
 		ctx := apirequest.WithUser(apirequest.NewDefaultContext(), &fakeUser{})
@@ -1080,9 +1122,10 @@ func TestTagsChanged(t *testing.T) {
 			previousStream = nil
 		}
 
+		fakeRegistry := &fakeDefaultRegistry{}
 		s := &Strategy{
-			defaultRegistry:   &fakeDefaultRegistry{},
-			imageStreamGetter: &fakeImageStreamGetter{test.otherStream},
+			registryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""),
+			imageStreamGetter:         &fakeImageStreamGetter{test.otherStream},
 		}
 		err := s.tagsChanged(previousStream, stream)
 		if len(err) > 0 {

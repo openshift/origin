@@ -108,7 +108,7 @@ func newImagePolicyPlugin(parsed *api.ImagePolicyConfig) (*imagePolicyPlugin, er
 	}, nil
 }
 
-func (a *imagePolicyPlugin) SetDefaultRegistryFunc(fn imageapi.DefaultRegistryFunc) {
+func (a *imagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
 	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(fn)
 }
 
