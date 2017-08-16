@@ -1,6 +1,7 @@
 package prune
 
 import (
+	"context"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -304,7 +305,8 @@ func (o PruneImagesOptions) Run() error {
 		fmt.Fprintln(os.Stderr, "Dry run enabled - no modifications will be made. Add --confirm to remove images")
 	}
 
-	return pruner.Prune(imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
+	// TODO: Provide real context.Context with deadlines/etc. here.
+	return pruner.Prune(context.TODO(), imageDeleter, imageStreamDeleter, layerLinkDeleter, blobDeleter, manifestDeleter)
 }
 
 // describingImageStreamDeleter prints information about each image stream update.
@@ -379,7 +381,7 @@ type describingLayerLinkDeleter struct {
 
 var _ prune.LayerLinkDeleter = &describingLayerLinkDeleter{}
 
-func (p *describingLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client, registryURL, repo, name string) error {
+func (p *describingLayerLinkDeleter) DeleteLayerLink(ctx context.Context, registryClient *http.Client, registryURL, repo, name string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry repository layer links ...")
@@ -392,7 +394,7 @@ func (p *describingLayerLinkDeleter) DeleteLayerLink(registryClient *http.Client
 		return nil
 	}
 
-	err := p.delegate.DeleteLayerLink(registryClient, registryURL, repo, name)
+	err := p.delegate.DeleteLayerLink(ctx, registryClient, registryURL, repo, name)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error deleting repository %s layer link %s from the registry: %v\n", repo, name, err)
 	}
@@ -410,7 +412,7 @@ type describingBlobDeleter struct {
 
 var _ prune.BlobDeleter = &describingBlobDeleter{}
 
-func (p *describingBlobDeleter) DeleteBlob(registryClient *http.Client, registryURL, layer string) error {
+func (p *describingBlobDeleter) DeleteBlob(ctx context.Context, registryClient *http.Client, registryURL, layer string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry layer blobs ...")
@@ -423,7 +425,8 @@ func (p *describingBlobDeleter) DeleteBlob(registryClient *http.Client, registry
 		return nil
 	}
 
-	err := p.delegate.DeleteBlob(registryClient, registryURL, layer)
+	// TODO: Provide real context.Context here
+	err := p.delegate.DeleteBlob(ctx, registryClient, registryURL, layer)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error deleting blob %s from the registry: %v\n", layer, err)
 	}
@@ -442,7 +445,7 @@ type describingManifestDeleter struct {
 
 var _ prune.ManifestDeleter = &describingManifestDeleter{}
 
-func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, registryURL, repo, manifest string) error {
+func (p *describingManifestDeleter) DeleteManifest(ctx context.Context, registryClient *http.Client, registryURL, repo, manifest string) error {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "\nDeleting registry repository manifest data ...")
@@ -455,7 +458,8 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 		return nil
 	}
 
-	err := p.delegate.DeleteManifest(registryClient, registryURL, repo, manifest)
+	// TODO: Provide real context.Context here
+	err := p.delegate.DeleteManifest(ctx, registryClient, registryURL, repo, manifest)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error deleting data for repository %s image manifest %s from the registry: %v\n", repo, manifest, err)
 	}

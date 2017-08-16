@@ -93,7 +93,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 			src = *redirect
 		}
 	} else {
-		redirect, err := r.ping(src, insecure, t)
+		redirect, err := r.ping(ctx, src, insecure, t)
 		r.pings[src] = err
 		if err != nil {
 			return nil, err
@@ -115,14 +115,14 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 		),
 	)
 
-	repo, err := registryclient.NewRepository(context.Context(ctx), named, src.String(), rt)
+	repo, err := registryclient.NewRepository(ctx, named, src.String(), rt)
 	if err != nil {
 		return nil, err
 	}
 	return NewRetryRepository(repo, 2, 3/2*time.Second), nil
 }
 
-func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {
+func (r *repositoryRetriever) ping(ctx context.Context, registry url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {
 	pingClient := &http.Client{
 		Transport: transport,
 		Timeout:   15 * time.Second,
@@ -133,12 +133,13 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(ctx)
 	resp, err := pingClient.Do(req)
 	if err != nil {
 		if insecure && registry.Scheme == "https" {
 			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry, err)
 			registry.Scheme = "http"
-			_, nErr := r.ping(registry, true, transport)
+			_, nErr := r.ping(ctx, registry, true, transport)
 			if nErr != nil {
 				return nil, nErr
 			}
