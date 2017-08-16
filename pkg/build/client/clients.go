@@ -6,6 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 )
@@ -224,4 +225,14 @@ func NewOSClientBuildConfigInstantiatorClient(client osclient.Interface) *OSClie
 // Instantiate generates new build for given buildConfig
 func (c OSClientBuildConfigInstantiatorClient) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
 	return c.Client.BuildConfigs(namespace).Instantiate(request)
+}
+
+type BuildConfigInstantiatorClient struct {
+	BuildClient buildclient.BuildInterface
+}
+
+func (c BuildConfigInstantiatorClient) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	newBuild := &buildapi.Build{}
+	err := c.BuildClient.RESTClient().Post().Namespace(namespace).Resource("buildconfigs").Name(request.Name).SubResource("instantiate").Body(request).Do().Into(newBuild)
+	return newBuild, err
 }
