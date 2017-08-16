@@ -68,12 +68,6 @@ import (
 	hostsubnetetcd "github.com/openshift/origin/pkg/sdn/registry/hostsubnet/etcd"
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
-	groupetcd "github.com/openshift/origin/pkg/user/registry/group/etcd"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
-	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
 
 	"github.com/openshift/origin/pkg/build/registry/buildclone"
 	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
@@ -175,27 +169,8 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
-	userClient, err := userclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	userStorage, err := useretcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	identityStorage, err := identityetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	userIdentityMappingStorage := useridentitymapping.NewREST(userClient.Users(), userClient.Identities())
-	groupStorage, err := groupetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
 	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
-
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorizer)
 	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
 	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
@@ -380,13 +355,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"netNamespaces":         netNamespaceStorage,
 		"clusterNetworks":       clusterNetworkStorage,
 		"egressNetworkPolicies": egressNetworkPolicyStorage,
-	}
-
-	storage[userapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"users":                userStorage,
-		"groups":               groupStorage,
-		"identities":           identityStorage,
-		"userIdentityMappings": userIdentityMappingStorage,
 	}
 
 	storage[oauthapiv1.SchemeGroupVersion] = map[string]rest.Storage{

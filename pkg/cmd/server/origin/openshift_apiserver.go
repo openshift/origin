@@ -47,6 +47,7 @@ import (
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
+	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
 	"github.com/openshift/origin/pkg/version"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
@@ -184,26 +185,90 @@ func (c *OpenshiftAPIConfig) SkipComplete() completedConfig {
 	return completedConfig{c}
 }
 
-func (c completedConfig) newTemplateConfig() *templateapiserver.TemplateConfig {
-	return &templateapiserver.TemplateConfig{
+// legacyStorageMutator mutates the arg to modify the RESTStorage map for legacy resources
+type legacyStorageMutator interface {
+	mutate(map[schema.GroupVersion]map[string]rest.Storage)
+}
+
+type legacyStorageMutators []legacyStorageMutator
+
+func (l legacyStorageMutators) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
+	for _, curr := range l {
+		curr.mutate(legacyStorage)
+	}
+}
+
+// this allows the storage for a given apiserver to add itself to the old /oapi endpoint's storage
+type legacyStorageVersionMutator struct {
+	version schema.GroupVersion
+	storage map[string]rest.Storage
+}
+
+func (l *legacyStorageVersionMutator) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
+	legacyStorage[l.version] = l.storage
+}
+
+func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &templateapiserver.TemplateConfig{
 		GenericConfig:       c.GenericConfig,
 		AuthorizationClient: c.KubeClientInternal.Authorization(),
 		Codecs:              kapi.Codecs,
 		Registry:            kapi.Registry,
 		Scheme:              kapi.Scheme,
 	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: templateapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &userapiserver.UserConfig{
+		GenericConfig: c.GenericConfig,
+		Codecs:        kapi.Codecs,
+		Registry:      kapi.Registry,
+		Scheme:        kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: userapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
 func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftAPIServer, error) {
-	templateConfig := c.newTemplateConfig()
-	templateServer, err := templateConfig.Complete().New(delegationTarget)
+	legacyStorageModifier := legacyStorageMutators{}
+
+	delegateAPIServer := delegationTarget
+	var currLegacyStorageMutator legacyStorageMutator
+	var err error
+
+	delegateAPIServer, currLegacyStorageMutator, err = c.withTemplateAPIServer(delegateAPIServer)
 	if err != nil {
 		return nil, err
 	}
-	// this trigggers openapi construction
-	templateServer.GenericAPIServer.PrepareRun()
+	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
 
-	genericServer, err := c.OpenshiftAPIConfig.GenericConfig.SkipComplete().New("openshift-apiserver", templateServer.GenericAPIServer) // completion is done in Complete, no need for a second time
+	delegateAPIServer, currLegacyStorageMutator, err = c.withUserAPIServer(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
+
+	genericServer, err := c.OpenshiftAPIConfig.GenericConfig.SkipComplete().New("openshift-apiserver", delegateAPIServer) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
 	}
@@ -257,11 +322,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 
 	// after the old-style groupified storage is created, modify the storage map to include the already migrated storage
 	// to be included in the legacy group
-	templatev1Storage, err := templateConfig.V1RESTStorage()
-	if err != nil {
-		return nil, err
-	}
-	storage[templateapiv1.SchemeGroupVersion] = templatev1Storage
+	legacyStorageModifier.mutate(storage)
 
 	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(storage))); err != nil {
 		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
@@ -373,7 +434,6 @@ var apiGroupsVersions = []apiGroupInfo{
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{quotaapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{networkapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{userapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{imageapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{deployapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
