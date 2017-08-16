@@ -3,7 +3,6 @@ package builder
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,17 +17,15 @@ import (
 
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	"github.com/openshift/source-to-image/pkg/tar"
-	"github.com/openshift/source-to-image/pkg/util"
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/generate/git"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -37,22 +34,22 @@ const defaultDockerfilePath = "Dockerfile"
 // DockerBuilder builds Docker images given a git repository URL
 type DockerBuilder struct {
 	dockerClient DockerClient
-	gitClient    GitClient
 	tar          tar.Tar
 	build        *buildapi.Build
 	client       client.BuildInterface
 	cgLimits     *s2iapi.CGroupLimits
+	inputDir     string
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *buildapi.Build, gitClient GitClient, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,
-		gitClient:    gitClient,
 		tar:          tar.New(s2ifs.NewFileSystem()),
 		client:       buildsClient,
 		cgLimits:     cgLimits,
+		inputDir:     buildutil.InputContentPath,
 	}
 }
 
@@ -63,7 +60,7 @@ func (d *DockerBuilder) Build() error {
 	ctx := timing.NewContext(context.Background())
 	defer func() {
 		d.build.Status.Stages = buildapi.AppendStageAndStepInfo(d.build.Status.Stages, timing.GetStages(ctx))
-		handleBuildStatusUpdate(d.build, d.client, nil)
+		HandleBuildStatusUpdate(d.build, d.client, nil)
 	}()
 
 	if d.build.Spec.Source.Git == nil && d.build.Spec.Source.Binary == nil &&
@@ -73,36 +70,8 @@ func (d *DockerBuilder) Build() error {
 	var push bool
 	pushTag := d.build.Status.OutputDockerImageReference
 
-	buildDir, err := ioutil.TempDir("", "docker-build")
-	if err != nil {
-		return err
-	}
-
-	sourceInfo, err := fetchSource(ctx, d.dockerClient, buildDir, d.build, initialURLCheckTimeout, os.Stdin, d.gitClient)
-	if err != nil {
-		switch err.(type) {
-		case contextDirNotFoundError:
-			d.build.Status.Phase = buildapi.BuildPhaseFailed
-			d.build.Status.Reason = buildapi.StatusReasonInvalidContextDirectory
-			d.build.Status.Message = buildapi.StatusMessageInvalidContextDirectory
-		default:
-			d.build.Status.Phase = buildapi.BuildPhaseFailed
-			d.build.Status.Reason = buildapi.StatusReasonFetchSourceFailed
-			d.build.Status.Message = buildapi.StatusMessageFetchSourceFailed
-		}
-
-		handleBuildStatusUpdate(d.build, d.client, nil)
-		return err
-	}
-
-	if sourceInfo != nil {
-		glog.V(4).Infof("Setting build revision with details %#v", sourceInfo)
-		revision := updateBuildRevision(d.build, sourceInfo)
-		handleBuildStatusUpdate(d.build, d.client, revision)
-	}
-	if err = d.addBuildParameters(buildDir, sourceInfo); err != nil {
-		return err
-	}
+	// this is where the git-fetch container put the code during the clone operation
+	buildDir := d.inputDir
 
 	glog.V(4).Infof("Starting Docker build from build config %s ...", d.build.Name)
 	// if there is no output target, set one up so the docker build logic
@@ -114,7 +83,7 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	buildTag := randomBuildTag(d.build.Namespace, d.build.Name)
-	dockerfilePath := d.getDockerfilePath(buildDir)
+	dockerfilePath := getDockerfilePath(buildDir, d.build)
 	imageNames := getDockerfileFrom(dockerfilePath)
 	if len(imageNames) == 0 {
 		return fmt.Errorf("no FROM image in Dockerfile")
@@ -132,7 +101,7 @@ func (d *DockerBuilder) Build() error {
 			}
 			imageExists = false
 		}
-		// if forcePull or the image not exists on the node we should pull the image first
+		// if forcePull or the image does not exist on the node we should pull the image first
 		if d.build.Spec.Strategy.DockerStrategy.ForcePull || !imageExists {
 			pullAuthConfig, _ := dockercfg.NewHelper().GetDockerAuth(
 				imageName,
@@ -148,7 +117,7 @@ func (d *DockerBuilder) Build() error {
 				d.build.Status.Phase = buildapi.BuildPhaseFailed
 				d.build.Status.Reason = buildapi.StatusReasonPullBuilderImageFailed
 				d.build.Status.Message = buildapi.StatusMessagePullBuilderImageFailed
-				handleBuildStatusUpdate(d.build, d.client, nil)
+				HandleBuildStatusUpdate(d.build, d.client, nil)
 				return fmt.Errorf("failed to pull image: %v", err)
 			}
 
@@ -164,7 +133,7 @@ func (d *DockerBuilder) Build() error {
 		d.build.Status.Phase = buildapi.BuildPhaseFailed
 		d.build.Status.Reason = buildapi.StatusReasonDockerBuildFailed
 		d.build.Status.Message = buildapi.StatusMessageDockerBuildFailed
-		handleBuildStatusUpdate(d.build, d.client, nil)
+		HandleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
 
@@ -178,7 +147,7 @@ func (d *DockerBuilder) Build() error {
 		d.build.Status.Phase = buildapi.BuildPhaseFailed
 		d.build.Status.Reason = buildapi.StatusReasonPostCommitHookFailed
 		d.build.Status.Message = buildapi.StatusMessagePostCommitHookFailed
-		handleBuildStatusUpdate(d.build, d.client, nil)
+		HandleBuildStatusUpdate(d.build, d.client, nil)
 		return err
 	}
 
@@ -211,7 +180,7 @@ func (d *DockerBuilder) Build() error {
 			d.build.Status.Phase = buildapi.BuildPhaseFailed
 			d.build.Status.Reason = buildapi.StatusReasonPushImageToRegistryFailed
 			d.build.Status.Message = buildapi.StatusMessagePushImageToRegistryFailed
-			handleBuildStatusUpdate(d.build, d.client, nil)
+			HandleBuildStatusUpdate(d.build, d.client, nil)
 			return reportPushFailure(err, authPresent, pushAuthConfig)
 		}
 
@@ -219,7 +188,7 @@ func (d *DockerBuilder) Build() error {
 			d.build.Status.Output.To = &buildapi.BuildStatusOutputTo{
 				ImageDigest: digest,
 			}
-			handleBuildStatusUpdate(d.build, d.client, nil)
+			HandleBuildStatusUpdate(d.build, d.client, nil)
 		}
 		glog.V(0).Infof("Push successful")
 	}
@@ -281,92 +250,6 @@ func (d *DockerBuilder) copySecrets(secrets []buildapi.SecretBuildSource, buildD
 		}
 	}
 	return nil
-}
-
-// addBuildParameters checks if a Image is set to replace the default base image.
-// If that's the case then change the Dockerfile to make the build with the given image.
-// Also append the environment variables and labels in the Dockerfile.
-func (d *DockerBuilder) addBuildParameters(dir string, sourceInfo *git.SourceInfo) error {
-	dockerfilePath := d.getDockerfilePath(dir)
-	node, err := parseDockerfile(dockerfilePath)
-	if err != nil {
-		return err
-	}
-
-	// Update base image if build strategy specifies the From field.
-	if d.build.Spec.Strategy.DockerStrategy.From != nil && d.build.Spec.Strategy.DockerStrategy.From.Kind == "DockerImage" {
-		// Reduce the name to a minimal canonical form for the daemon
-		name := d.build.Spec.Strategy.DockerStrategy.From.Name
-		if ref, err := imageapi.ParseDockerImageReference(name); err == nil {
-			name = ref.DaemonMinimal().Exact()
-		}
-		err := replaceLastFrom(node, name)
-		if err != nil {
-			return err
-		}
-	}
-
-	// Append build info as environment variables.
-	err = appendEnv(node, d.buildEnv(sourceInfo))
-	if err != nil {
-		return err
-	}
-
-	// Append build labels.
-	err = appendLabel(node, d.buildLabels(sourceInfo))
-	if err != nil {
-		return err
-	}
-
-	// Insert environment variables defined in the build strategy.
-	err = insertEnvAfterFrom(node, d.build.Spec.Strategy.DockerStrategy.Env)
-	if err != nil {
-		return err
-	}
-
-	instructions := dockerfile.ParseTreeToDockerfile(node)
-
-	// Overwrite the Dockerfile.
-	fi, err := os.Stat(dockerfilePath)
-	if err != nil {
-		return err
-	}
-	return ioutil.WriteFile(dockerfilePath, instructions, fi.Mode())
-}
-
-// buildEnv converts the buildInfo output to a format that appendEnv can
-// consume.
-func (d *DockerBuilder) buildEnv(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
-	bi := buildInfo(d.build, sourceInfo)
-	kv := make([]dockerfile.KeyValue, len(bi))
-	for i, item := range bi {
-		kv[i] = dockerfile.KeyValue{Key: item.Key, Value: item.Value}
-	}
-	return kv
-}
-
-// buildLabels returns a slice of KeyValue pairs in a format that appendEnv can
-// consume.
-func (d *DockerBuilder) buildLabels(sourceInfo *git.SourceInfo) []dockerfile.KeyValue {
-	labels := map[string]string{}
-	if sourceInfo == nil {
-		sourceInfo = &git.SourceInfo{}
-	}
-	if len(d.build.Spec.Source.ContextDir) > 0 {
-		sourceInfo.ContextDir = d.build.Spec.Source.ContextDir
-	}
-	labels = util.GenerateLabelsFromSourceInfo(labels, &sourceInfo.SourceInfo, buildapi.DefaultDockerLabelNamespace)
-	addBuildLabels(labels, d.build)
-
-	kv := make([]dockerfile.KeyValue, 0, len(labels)+len(d.build.Spec.Output.ImageLabels))
-	for k, v := range labels {
-		kv = append(kv, dockerfile.KeyValue{Key: k, Value: v})
-	}
-	// override autogenerated labels with user provided labels
-	for _, lbl := range d.build.Spec.Output.ImageLabels {
-		kv = append(kv, dockerfile.KeyValue{Key: lbl.Name, Value: lbl.Value})
-	}
-	return kv
 }
 
 // setupPullSecret provides a Docker authentication configuration when the
@@ -454,17 +337,17 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapi.S
 	return buildImage(d.dockerClient, dir, d.tar, &opts)
 }
 
-func (d *DockerBuilder) getDockerfilePath(dir string) string {
+func getDockerfilePath(dir string, build *buildapi.Build) string {
 	var contextDirPath string
-	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Source.ContextDir) > 0 {
-		contextDirPath = filepath.Join(dir, d.build.Spec.Source.ContextDir)
+	if build.Spec.Strategy.DockerStrategy != nil && len(build.Spec.Source.ContextDir) > 0 {
+		contextDirPath = filepath.Join(dir, build.Spec.Source.ContextDir)
 	} else {
 		contextDirPath = dir
 	}
 
 	var dockerfilePath string
-	if d.build.Spec.Strategy.DockerStrategy != nil && len(d.build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
-		dockerfilePath = filepath.Join(contextDirPath, d.build.Spec.Strategy.DockerStrategy.DockerfilePath)
+	if build.Spec.Strategy.DockerStrategy != nil && len(build.Spec.Strategy.DockerStrategy.DockerfilePath) > 0 {
+		dockerfilePath = filepath.Join(contextDirPath, build.Spec.Strategy.DockerStrategy.DockerfilePath)
 	} else {
 		dockerfilePath = filepath.Join(contextDirPath, defaultDockerfilePath)
 	}

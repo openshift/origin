@@ -11,6 +11,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
+	"k8s.io/kubernetes/test/e2e/framework"
+
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -45,6 +47,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 	})
 
 	g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test successful build config")
 		err := oc.Run("create").Args("-f", successfulBuildConfig).Execute()
@@ -86,6 +89,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 	})
 
 	g.It("should prune failed builds based on the failedBuildsHistoryLimit setting", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test failed build config")
 		err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
@@ -127,6 +131,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 	})
 
 	g.It("should prune canceled builds based on the failedBuildsHistoryLimit setting", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test successful build config")
 		err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
@@ -168,6 +173,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 	})
 
 	g.It("should prune errored builds based on the failedBuildsHistoryLimit setting", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test failed build config")
 		err := oc.Run("create").Args("-f", erroredBuildConfig).Execute()
@@ -209,6 +215,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 	})
 
 	g.It("[Conformance] buildconfigs should have a default history limit set when created via the group api", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating a build config with the group api")
 		err := oc.Run("create").Args("-f", groupBuildConfig).Execute()
@@ -225,6 +232,7 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 	})
 
 	g.It("[Conformance] buildconfigs should not have a default history limit set when created via the legacy api", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating a build config with the legacy api")
 		err := oc.Run("create").Args("-f", legacyBuildConfig).Execute()

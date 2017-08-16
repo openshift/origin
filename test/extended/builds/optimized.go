@@ -34,6 +34,7 @@ USER 1001
 	})
 
 	g.It("should succeed [Conformance]", func() {
+		e2e.SkipIfProviderIs("gce")
 		g.By("creating a build directly")
 		build, err := oc.AdminClient().Builds(oc.Namespace()).Create(&buildapi.Build{
 			ObjectMeta: metav1.ObjectMeta{

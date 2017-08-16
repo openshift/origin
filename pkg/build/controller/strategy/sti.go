@@ -13,7 +13,8 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/util"
+
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 // SourceBuildStrategy creates STI(source to image) builds
@@ -52,7 +53,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 
 	strategy := build.Spec.Strategy.SourceStrategy
 	if len(strategy.Env) > 0 {
-		util.MergeTrustedEnvWithoutDuplicates(util.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
+		buildutil.MergeTrustedEnvWithoutDuplicates(buildutil.CopyApiEnvVarToV1EnvVar(strategy.Env), &containerEnv, true)
 	}
 
 	// check if can run container as root
@@ -76,37 +77,109 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			ServiceAccountName: build.Spec.ServiceAccount,
 			Containers: []v1.Container{
 				{
-					Name:  "sti-build",
-					Image: bs.Image,
-					Env:   containerEnv,
+					Name:    "sti-build",
+					Image:   bs.Image,
+					Command: []string{"openshift-sti-build"},
+					Env:     containerEnv,
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &privileged,
 					},
-					Args: []string{},
 					TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+					VolumeMounts: []v1.VolumeMount{
+						{
+							Name:      "buildworkdir",
+							MountPath: buildutil.BuildWorkDirMount,
+						},
+					},
+					ImagePullPolicy: v1.PullIfNotPresent,
+					Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+				},
+			},
+			Volumes: []v1.Volume{
+				{
+					Name: "buildworkdir",
+					VolumeSource: v1.VolumeSource{
+						EmptyDir: &v1.EmptyDirVolumeSource{},
+					},
 				},
 			},
 			RestartPolicy: v1.RestartPolicyNever,
 			NodeSelector:  build.Spec.NodeSelector,
 		},
 	}
-	pod.Spec.Containers[0].ImagePullPolicy = v1.PullIfNotPresent
-	pod.Spec.Containers[0].Resources = util.CopyApiResourcesToV1Resources(&build.Spec.Resources)
+
+	if build.Spec.Source.Git != nil || build.Spec.Source.Binary != nil {
+		gitCloneContainer := v1.Container{
+			Name:    GitCloneContainer,
+			Image:   bs.Image,
+			Command: []string{"openshift-git-clone"},
+			Env:     containerEnv,
+			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "buildworkdir",
+					MountPath: buildutil.BuildWorkDirMount,
+				},
+			},
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+		}
+		if build.Spec.Source.Binary != nil {
+			gitCloneContainer.Stdin = true
+			gitCloneContainer.StdinOnce = true
+		}
+		setupSourceSecrets(pod, &gitCloneContainer, build.Spec.Source.SourceSecret)
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, gitCloneContainer)
+	}
+	if len(build.Spec.Source.Images) > 0 {
+		extractImageContentContainer := v1.Container{
+			Name:    ExtractImageContentContainer,
+			Image:   bs.Image,
+			Command: []string{"openshift-extract-image-content"},
+			Env:     containerEnv,
+			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
+			SecurityContext: &v1.SecurityContext{
+				Privileged: &privileged,
+			},
+			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "buildworkdir",
+					MountPath: buildutil.BuildWorkDirMount,
+				},
+			},
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+		}
+		pod.Spec.InitContainers = append(pod.Spec.InitContainers, extractImageContentContainer)
+	}
+	pod.Spec.InitContainers = append(pod.Spec.InitContainers,
+		v1.Container{
+			Name:    "manage-dockerfile",
+			Image:   bs.Image,
+			Command: []string{"openshift-manage-dockerfile"},
+			Env:     containerEnv,
+			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
+			VolumeMounts: []v1.VolumeMount{
+				{
+					Name:      "buildworkdir",
+					MountPath: buildutil.BuildWorkDirMount,
+				},
+			},
+			ImagePullPolicy: v1.PullIfNotPresent,
+			Resources:       buildutil.CopyApiResourcesToV1Resources(&build.Spec.Resources),
+		},
+	)
 
 	if build.Spec.CompletionDeadlineSeconds != nil {
 		pod.Spec.ActiveDeadlineSeconds = build.Spec.CompletionDeadlineSeconds
 	}
-	if build.Spec.Source.Binary != nil {
-		pod.Spec.Containers[0].Stdin = true
-		pod.Spec.Containers[0].StdinOnce = true
-	}
 
 	setOwnerReference(pod, build)
 	setupDockerSocket(pod)
-	setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
-	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
-	setupSecrets(pod, build.Spec.Source.Secrets)
+	setupDockerSecrets(pod, &pod.Spec.Containers[0], build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
+	setupSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	return pod, nil
 }
 

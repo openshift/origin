@@ -114,11 +114,11 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 
 	if strategy.ExposeDockerSocket {
 		setupDockerSocket(pod)
-		setupDockerSecrets(pod, build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
+		setupDockerSecrets(pod, &pod.Spec.Containers[0], build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
 	}
 	setOwnerReference(pod, build)
-	setupSourceSecrets(pod, build.Spec.Source.SourceSecret)
-	setupSecrets(pod, build.Spec.Source.Secrets)
-	setupAdditionalSecrets(pod, build.Spec.Strategy.CustomStrategy.Secrets)
+	setupSourceSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.SourceSecret)
+	setupSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
+	setupAdditionalSecrets(pod, &pod.Spec.Containers[0], build.Spec.Strategy.CustomStrategy.Secrets)
 	return pod, nil
 }

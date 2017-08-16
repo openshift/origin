@@ -15,7 +15,7 @@ import (
 
 type BuildControllerConfig struct {
 	DockerImage           string
-	STIImage              string
+	S2IImage              string
 	AdmissionPluginConfig map[string]configapi.AdmissionPluginConfig
 
 	Codec runtime.Codec
@@ -67,7 +67,7 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 			Codec: c.Codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: c.STIImage,
+			Image: c.S2IImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec:            c.Codec,
 			AdmissionControl: sccAdmission,

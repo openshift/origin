@@ -479,7 +479,7 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig, informers In
 
 	ret.BuildControllerConfig = origincontrollers.BuildControllerConfig{
 		DockerImage:           imageTemplate.ExpandOrDie("docker-builder"),
-		STIImage:              imageTemplate.ExpandOrDie("sti-builder"),
+		S2IImage:              imageTemplate.ExpandOrDie("sti-builder"),
 		AdmissionPluginConfig: options.AdmissionConfig.PluginConfig,
 		Codec: annotationCodec,
 	}

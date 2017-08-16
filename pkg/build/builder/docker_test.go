@@ -260,13 +260,12 @@ func TestDockerfilePath(t *testing.T) {
 		dockerBuilder := &DockerBuilder{
 			dockerClient: dockerClient,
 			build:        build,
-			gitClient:    git.NewRepository(),
 			tar:          tar.New(s2ifs.NewFileSystem()),
 		}
 
 		// this will validate that the Dockerfile is readable
 		// and append some labels to the Dockerfile
-		if err = dockerBuilder.addBuildParameters(buildDir, sourceInfo); err != nil {
+		if err = addBuildParameters(buildDir, build, sourceInfo); err != nil {
 			t.Errorf("failed to add build parameters: %v", err)
 			continue
 		}
@@ -380,14 +379,21 @@ USER 1001`
 
 	client := testclient.Fake{}
 
+	buildDir, err := ioutil.TempDir("", "dockerfile-path")
+	if err != nil {
+		t.Errorf("failed to create tmpdir: %v", err)
+	}
+
 	dockerBuilder := &DockerBuilder{
 		client:       client.Builds(""),
 		build:        build,
 		dockerClient: dockerClient,
-		gitClient:    git.NewRepository(),
 		tar:          tar.New(s2ifs.NewFileSystem()),
+		inputDir:     buildDir,
 	}
-
+	if err := ManageDockerfile(buildDir, build); err != nil {
+		t.Errorf("failed to manage the dockerfile: %v", err)
+	}
 	if err := dockerBuilder.Build(); err != nil {
 		if strings.Contains(err.Error(), "cannot pull scratch") {
 			t.Errorf("Docker build should not have attempted to pull from scratch")

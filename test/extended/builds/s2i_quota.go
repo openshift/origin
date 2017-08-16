@@ -7,6 +7,7 @@ import (
 	o "github.com/onsi/gomega"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -32,6 +33,7 @@ var _ = g.Describe("[builds][Conformance] s2i build with a quota", func() {
 
 	g.Describe("Building from a template", func() {
 		g.It("should create an s2i build with a quota and run it", func() {
+			framework.SkipIfProviderIs("gce")
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
 			g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))

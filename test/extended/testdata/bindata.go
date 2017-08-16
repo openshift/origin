@@ -136,6 +136,7 @@
 // test/extended/testdata/service-serving-cert/nginx-serving-cert.conf
 // test/extended/testdata/signer-buildconfig.yaml
 // test/extended/testdata/statusfail-assemble/.s2i/bin/assemble
+// test/extended/testdata/statusfail-badcontextdirs2i.yaml
 // test/extended/testdata/statusfail-failedassemble.yaml
 // test/extended/testdata/statusfail-fetchbuilderimage.yaml
 // test/extended/testdata/statusfail-fetchsourcedocker.yaml
@@ -7299,6 +7300,38 @@ func testExtendedTestdataStatusfailAssembleS2iBinAssemble() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/statusfail-assemble/.s2i/bin/assemble", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataStatusfailBadcontextdirs2iYaml = []byte(`kind: BuildConfig
+apiVersion: v1
+metadata:
+  name: statusfail-badcontextdirsourcetoimage
+spec:
+  source:
+    git:
+      uri: "https://github.com/openshift/ruby-hello-world"
+    contextDir: "foobar"
+  strategy:
+    type: Source
+    sourceStrategy:
+      from:
+        kind: DockerImage
+        name: centos/ruby-23-centos7:latest
+`)
+
+func testExtendedTestdataStatusfailBadcontextdirs2iYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataStatusfailBadcontextdirs2iYaml, nil
+}
+
+func testExtendedTestdataStatusfailBadcontextdirs2iYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataStatusfailBadcontextdirs2iYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/statusfail-badcontextdirs2i.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -21936,6 +21969,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/service-serving-cert/nginx-serving-cert.conf": testExtendedTestdataServiceServingCertNginxServingCertConf,
 	"test/extended/testdata/signer-buildconfig.yaml": testExtendedTestdataSignerBuildconfigYaml,
 	"test/extended/testdata/statusfail-assemble/.s2i/bin/assemble": testExtendedTestdataStatusfailAssembleS2iBinAssemble,
+	"test/extended/testdata/statusfail-badcontextdirs2i.yaml": testExtendedTestdataStatusfailBadcontextdirs2iYaml,
 	"test/extended/testdata/statusfail-failedassemble.yaml": testExtendedTestdataStatusfailFailedassembleYaml,
 	"test/extended/testdata/statusfail-fetchbuilderimage.yaml": testExtendedTestdataStatusfailFetchbuilderimageYaml,
 	"test/extended/testdata/statusfail-fetchsourcedocker.yaml": testExtendedTestdataStatusfailFetchsourcedockerYaml,
@@ -22353,6 +22387,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						}},
 					}},
 				}},
+				"statusfail-badcontextdirs2i.yaml": &bintree{testExtendedTestdataStatusfailBadcontextdirs2iYaml, map[string]*bintree{}},
 				"statusfail-failedassemble.yaml": &bintree{testExtendedTestdataStatusfailFailedassembleYaml, map[string]*bintree{}},
 				"statusfail-fetchbuilderimage.yaml": &bintree{testExtendedTestdataStatusfailFetchbuilderimageYaml, map[string]*bintree{}},
 				"statusfail-fetchsourcedocker.yaml": &bintree{testExtendedTestdataStatusfailFetchsourcedockerYaml, map[string]*bintree{}},
