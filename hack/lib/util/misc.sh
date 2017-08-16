@@ -190,67 +190,12 @@ function os::util::curl_etcd() {
 	fi
 }
 
-# os::util::host_platform determines what the host OS and architecture
-# are, as Golang sees it. The go tool chain does some slightly different
-# things when the target platform matches the host platform.
-#
-# Globals:
-#  None
-# Arguments:
-#  None
-# Returns:
-#  None
-function os::util::host_platform() {
-	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::util::host_platform
-
-# os::util::go_arch determines what the host architecture is, as Golang
-# sees it.
-function os::util::go_arch() {
-	arch=${1:-}
-
-	if [[ -z "${arch}" ]]; then
-		# No arch requested, query go
-		echo "$(go env GOHOSTARCH)"
-	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
-		# Requested arch is a known go arch
-		echo "${arch}"
-	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
-		# Requested arch is a known system arch
-		echo "${OS_BUILD_SYSARCH_TO_GOARCH_MAP[${arch}]}"
-	else
-		os::log::error "Unkown arch: ${arch}"
-		exit 1
-	fi
-}
-readonly -f os::util::go_arch
-
-function os::util::sys_arch() {
-	arch=${1:-}
-
-	if [[ -z "${arch}" ]]; then
-		# No arch requested, query system
-		echo "$(uname -m)"
-	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
-		# Requested arch is a known system arch
-		echo "${arch}"
-	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
-		# Requested arch is a known go arch
-		echo "${OS_BUILD_GOARCH_TO_SYSARCH_MAP[${arch}]}"
-	else
-		os::log::error "Unkown arch: ${arch}"
-		exit 1
-	fi
-}
-readonly -f os::util::sys_arch
-
 # os::util::centos_image returns the image prefix for
 # the centos image based on host architecture
 function os::util::centos_image() {
   local host_arch=${1:-}
   if [[ -z "${host_arch}" ]]; then
-    host_arch=$(os::util::go_arch)
+    host_arch=$(os::build::go_arch)
   fi
 
   if [[ $host_arch == "arm64" ]]; then
@@ -271,7 +216,7 @@ readonly -f os::util::centos_image
 function os::util::official_docker_image_prefix() {
   local host_arch=${1:-}
   if [[ -z "${host_arch}" ]]; then
-    host_arch=$(os::util::go_arch)
+    host_arch=$(os::build::go_arch)
   fi
 
   if [[ $host_arch == "arm64" ]]; then
@@ -290,44 +235,6 @@ function os::util::busybox_base_img() {
   echo "$(os::util::official_docker_image_prefix)busybox"
 }
 readonly -f os::util::busybox_base_img
-
-# Create a user friendly version of host_platform for end users
-function os::util::host_platform_friendly() {
-  local platform=${1:-}
-  if [[ -z "${platform}" ]]; then
-    platform=$(os::util::host_platform)
-  fi
-  if [[ $platform == "windows/amd64" ]]; then
-    echo "windows"
-  elif [[ $platform == "darwin/amd64" ]]; then
-    echo "mac"
-  elif [[ $platform == "linux/386" ]]; then
-    echo "linux-32bit"
-  elif [[ $platform == "linux/amd64" ]]; then
-    echo "linux-64bit"
-  elif [[ $platform == "linux/ppc64le" ]]; then
-    echo "linux-powerpc64"
-  elif [[ $platform == "linux/arm64" ]]; then
-    echo "linux-arm64"
-  elif [[ $platform == "linux/s390x" ]]; then
-    echo "linux-s390"
-  else
-    echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
-  fi
-}
-readonly -f os::util::host_platform_friendly
-
-# This converts from platform/arch to PLATFORM_ARCH, host platform will be
-# considered if no parameter passed
-function os::util::platform_arch() {
-  local platform=${1:-}
-  if [[ -z "${platform}" ]]; then
-    platform=$(os::util::host_platform)
-  fi
-
-  echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
-}
-readonly -f os::util::platform_arch
 
 # os::util::list_go_src_files lists files we consider part of our project
 # source code, useful for tools that iterate over source to provide vet-

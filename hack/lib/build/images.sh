@@ -19,7 +19,7 @@ function os::build::cross_images() {
 	local directory=$2
 	shift 2
 
-	local host_arch="$(os::util::go_arch)"
+	local host_arch="$(os::build::go_arch)"
 
 	# process arches params
 	local -a arches
@@ -63,7 +63,7 @@ function os::build::cross_images() {
 
 
 	for arch in ${arches[@]}; do
-		local sys_arch=$(os::util::sys_arch $arch)
+		local sys_arch=$(os::build::sys_arch $arch)
 		OS_BUILD_IMAGE_ARGS=""
 		if [[ "${arch}" != "${host_arch}" ]]; then
 			# remove all previously registered binfmt_misc entries and
@@ -162,7 +162,7 @@ function os::build::image::internal::get_arch_specific_from() {
 			;;
 		openshift/origin-*)
 			# append arch to origin images
-			echo "${from_image}-$(os::util::sys_arch $arch)"
+			echo "${from_image}-$(os::build::sys_arch $arch)"
 			;;
 		*)
 			# the image as is

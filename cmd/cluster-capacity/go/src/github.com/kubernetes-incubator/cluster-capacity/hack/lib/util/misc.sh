@@ -189,7 +189,7 @@ function os::util::curl_etcd() {
 	fi
 }
 
-# os::util::host_platform determines what the host OS and architecture
+# os::build::host_platform determines what the host OS and architecture
 # are, as Golang sees it. The go tool chain does some slightly different
 # things when the target platform matches the host platform.
 #
@@ -199,7 +199,7 @@ function os::util::curl_etcd() {
 #  None
 # Returns:
 #  None
-function os::util::host_platform() {
+function os::build::host_platform() {
 	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
-readonly -f os::util::host_platform
+readonly -f os::build::host_platform

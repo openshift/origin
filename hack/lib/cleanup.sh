@@ -292,7 +292,7 @@ readonly -f os::cleanup::find_cache_alterations
 function os::cleanup::dump_pprof_output() {
 	if go tool -n pprof >/dev/null 2>&1 && [[ -s cpu.pprof ]]; then
 		os::log::info "[CLEANUP] \`pprof\` output logged to $( os::util::repository_relative_path "${LOG_DIR}/pprof.out" )"
-		go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
+		go tool pprof -text "./_output/local/bin/$(os::build::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
 	fi
 }
 readonly -f os::cleanup::dump_pprof_output

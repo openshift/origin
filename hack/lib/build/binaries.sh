@@ -15,16 +15,56 @@ readonly -f os::build::binaries_from_targets
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
 # slightly different things when the target platform matches the host platform.
-function os::util::host_platform() {
+function os::build::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
-readonly -f os::util::host_platform
+readonly -f os::build::host_platform
+
+# os::build::go_arch determines what the host architecture is, as Golang
+# sees it.
+function os::build::go_arch() {
+	arch=${1:-}
+
+	if [[ -z "${arch}" ]]; then
+		# No arch requested, query go
+		echo "$(go env GOHOSTARCH)"
+	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known go arch
+		echo "${arch}"
+	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known system arch
+		echo "${OS_BUILD_SYSARCH_TO_GOARCH_MAP[${arch}]}"
+	else
+		os::log::error "Unkown arch: ${arch}"
+		exit 1
+	fi
+}
+readonly -f os::build::go_arch
+
+function os::build::sys_arch() {
+	arch=${1:-}
+
+	if [[ -z "${arch}" ]]; then
+		# No arch requested, query system
+		echo "$(uname -m)"
+	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known system arch
+		echo "${arch}"
+	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known go arch
+		echo "${OS_BUILD_GOARCH_TO_SYSARCH_MAP[${arch}]}"
+	else
+		os::log::error "Unkown arch: ${arch}"
+		exit 1
+	fi
+}
+readonly -f os::build::sys_arch
 
 # Create a user friendly version of host_platform for end users
-function os::util::host_platform_friendly() {
+function os::build::host_platform_friendly() {
   local platform=${1:-}
   if [[ -z "${platform}" ]]; then
-    platform=$(os::util::host_platform)
+    platform=$(os::build::host_platform)
   fi
   if [[ $platform == "windows/amd64" ]]; then
     echo "windows"
@@ -44,14 +84,14 @@ function os::util::host_platform_friendly() {
     echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
   fi
 }
-readonly -f os::util::host_platform_friendly
+readonly -f os::build::host_platform_friendly
 
 # This converts from platform/arch to PLATFORM_ARCH, host platform will be
 # considered if no parameter passed
 function os::build::platform_arch() {
   local platform=${1:-}
   if [[ -z "${platform}" ]]; then
-    platform=$(os::util::host_platform)
+    platform=$(os::build::host_platform)
   fi
 
   echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
@@ -197,7 +237,7 @@ os::build::internal::build_binaries() {
       fi
     done
 
-    local host_platform=$(os::util::host_platform)
+    local host_platform=$(os::build::host_platform)
     local platform
     for platform in "${platforms[@]+"${platforms[@]}"}"; do
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
@@ -351,7 +391,7 @@ readonly -f os::build::export_targets
 function os::build::place_bins() {
   (
     local host_platform
-    host_platform=$(os::util::host_platform)
+    host_platform=$(os::build::host_platform)
 
     if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::version::get_vars
@@ -410,7 +450,7 @@ function os::build::place_bins() {
       done
 
       # Create the release archive.
-      platform="$( os::util::host_platform_friendly "${platform}" )"
+      platform="$( os::build::host_platform_friendly "${platform}" )"
       if [[ ${OS_RELEASE_ARCHIVE} == "openshift-origin" ]]; then
         for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
           cp "${file}" "${release_binpath}/"
@@ -461,7 +501,7 @@ readonly -f os::build::release_sha
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/bin/${platform}
 function os::build::make_openshift_binary_symlinks() {
-  platform=$(os::util::host_platform)
+  platform=$(os::build::host_platform)
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
       ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"

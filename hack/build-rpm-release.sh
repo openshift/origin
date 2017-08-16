@@ -14,7 +14,7 @@ if [[ -n "${OS_BUILD_REDISTRIBUTABLE:-}" ]]; then
 else
 	make_redistributable=0
 	if [[ -z "${OS_ONLY_BUILD_PLATFORMS:-}" ]]; then
-		OS_ONLY_BUILD_PLATFORMS="linux/$(os::util::go_arch)"
+		OS_ONLY_BUILD_PLATFORMS="linux/$(os::build::go_arch)"
 	fi
 fi
 

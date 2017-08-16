@@ -26,7 +26,7 @@ function cleanup()
 
     if go tool -n pprof >/dev/null 2>&1; then
         os::log::debug "\`pprof\` output logged to ${LOG_DIR}/pprof.out"
-        go tool pprof -text "./_output/local/bin/$(os::util::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
+        go tool pprof -text "./_output/local/bin/$(os::build::host_platform)/openshift" cpu.pprof >"${LOG_DIR}/pprof.out" 2>&1
     fi
 
     os::test::junit::generate_oscmd_report

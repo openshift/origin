@@ -44,7 +44,7 @@ function os::build::gen-completions() {
 }
 readonly -f os::build::gen-completions
 
-platform="$(os::util::host_platform)"
+platform="$(os::build::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then
   os::log::warning "Generating completions on ${platform} may not be identical to running on linux/amd64 due to conditional compilation."
 fi

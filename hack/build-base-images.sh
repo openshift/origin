@@ -11,7 +11,7 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 result=0
 
 # If OS_BUILD_ARCHES is not specified, default to the host architecture
-build_arches="${OS_BUILD_ARCHES:-$(os::util::go_arch)}"
+build_arches="${OS_BUILD_ARCHES:-$(os::build::go_arch)}"
 
 for image_name in "source" "base"; do
   if ! os::build::cross_images "${tag_prefix}-${image_name}" "${OS_ROOT}/images/${image_name}" "${build_arches}"; then

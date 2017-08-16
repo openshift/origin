@@ -3,9 +3,9 @@
 # This script holds library functions for setting up the Docker container build environment
 
 function os::build::environment::image() {
-  local arch=${2:-$(os::util::sys_arch)}
+  local arch=${2:-$(os::build::sys_arch)}
   local go_ver=${1:-$(os::build::environment::internal::min_go_ver $arch)}
-  local image_name="openshift/origin-release-$(os::util::sys_arch ${arch})"
+  local image_name="openshift/origin-release-$(os::build::sys_arch ${arch})"
   local tag_name="golang-${go_ver}"
 
   echo "${image_name}:${tag_name}"
@@ -13,7 +13,7 @@ function os::build::environment::image() {
 readonly -f os::build::environment::image
 
 function os::build::environment::internal::min_go_ver() {
-  local go_arch=$(os::util::go_arch ${1})
+  local go_arch=$(os::build::go_arch ${1})
 
   for ver in "${!OS_BUILD_GOLANG_VERSION_ARCH_MAP[@]}"; do
     if [[ "${OS_BUILD_GOLANG_VERSION_ARCH_MAP[${ver}]}" =~ ${go_arch} ]]; then
@@ -35,7 +35,7 @@ function os::build::environment::create() {
   local release_image="${OS_BUILD_ENV_IMAGE:-$(os::build::environment::image "${env_golang}" "${env_arch}")}"
 
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
-  if [[ -n "${env_arch}" && "$(os::util::sys_arch ${env_arch})" != "$(os::util::sys_arch)" ]]; then
+  if [[ -n "${env_arch}" && "$(os::build::sys_arch ${env_arch})" != "$(os::build::sys_arch)" ]]; then
     if [[ "$(os::util::env::sys_arch ${env_arch})" != "x86_64" ]]; then
       os::log::error "user mode emulation of arch environments only supported for x86_64"
       exit 1
@@ -43,7 +43,7 @@ function os::build::environment::create() {
 
     docker run --rm --privileged multiarch/qemu-user-static:register --reset
 
-    local qemu_binary=qemu-$(os::util::sys_arch ${env_arch})-static
+    local qemu_binary=qemu-$(os::build::sys_arch ${env_arch})-static
     local qemu_binary_path=$(os::util::find::system_binary $qemu_binary)
     additional_context+=" -v ${qemu_binary_path}:${qemu_binary_path}"
   fi
@@ -208,7 +208,7 @@ function os::build::environment::withsource() {
 
   local rsync_container_additional=''
   if [[ -n "${env_arch}" ]]; then
-    local qemu_binary=qemu-$(os::util::sys_arch ${env_arch})-static
+    local qemu_binary=qemu-$(os::build::sys_arch ${env_arch})-static
     local qemu_binary_path=$(os::util::find::system_binary $qemu_binary)
     rsync_container_additional+=" -v ${qemu_binary_path}:${qemu_binary_path}"
   fi

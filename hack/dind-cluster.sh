@@ -533,7 +533,7 @@ function os::build::get-bin-output-path() {
   if [[ -n "${os_root}" ]]; then
     os_root="${os_root}/"
   fi
-  echo ${os_root}_output/local/bin/$(os::util::host_platform)
+  echo ${os_root}_output/local/bin/$(os::build::host_platform)
 }
 
 ## Start of the main program

@@ -11,7 +11,7 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 ret=0
 
 # IF OS_BUILD_ARCHES is not specified, default to the host architecture
-build_arches="${OS_BUILD_ARCHES:-$(os::util::go_arch)}"
+build_arches="${OS_BUILD_ARCHES:-$(os::build::go_arch)}"
 
 declare -A go_ver_arches
 for ver in "${OS_BUILD_ENV_GOLANG_VERSIONS[@]}"; do

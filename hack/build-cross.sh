@@ -4,12 +4,12 @@
 STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-host_arch=$(os::util::go_arch)
-host_platform="$(os::util::host_platform)"
+host_arch=$(os::build::go_arch)
+host_platform="$(os::build::host_platform)"
 
 # Set build tags for these binaries
 readonly OS_GOFLAGS_TAGS="include_gcs include_oss containers_image_openpgp"
-readonly OS_GOFLAGS_TAGS_$(os::util::platform_arch)="gssapi"
+readonly OS_GOFLAGS_TAGS_$(os::build::platform_arch)="gssapi"
 
 # by default, build for these platforms
 platforms=("${OS_BUILD_ENV_PLATFORMS_REDISTRIBUTABLE[@]}")

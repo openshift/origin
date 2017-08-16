@@ -31,7 +31,7 @@ readonly -f os::util::find::system_binary
 function os::util::find::built_binary() {
 	local binary_name="$1"
 
-	local binary_path; binary_path="${OS_OUTPUT_BINPATH}/$( os::util::host_platform )/${binary_name}"
+	local binary_path; binary_path="${OS_OUTPUT_BINPATH}/$( os::build::host_platform )/${binary_name}"
 	# we need to check that the path leads to a file
 	# as directories also have the executable bit set
 	if [[ -f "${binary_path}" && -x "${binary_path}" ]]; then
