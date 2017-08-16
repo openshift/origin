@@ -161,17 +161,17 @@ type MasterConfig struct {
 	PrivilegedLoopbackClientConfig restclient.Config
 
 	// PrivilegedLoopbackKubernetesClientsetInternal is the client used to call Kubernetes APIs from system components,
-	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply
+	// built from KubeClientConfig. It should only be accessed via the *TestingClient() helper methods. To apply
 	// different access control to a system component, create a separate client/config specifically for
 	// that component.
 	PrivilegedLoopbackKubernetesClientsetInternal kclientsetinternal.Interface
 	// PrivilegedLoopbackKubernetesClientsetExternal is the client used to call Kubernetes APIs from system components,
-	// built from KubeClientConfig. It should only be accessed via the *Client() helper methods. To apply
+	// built from KubeClientConfig. It should only be accessed via the *TestingClient() helper methods. To apply
 	// different access control to a system component, create a separate client/config specifically for
 	// that component.
 	PrivilegedLoopbackKubernetesClientsetExternal kclientsetexternal.Interface
 	// PrivilegedLoopbackOpenShiftClient is the client used to call OpenShift APIs from system components,
-	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *Client() helper methods.
+	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *TestingClient() helper methods.
 	// To apply different access control to a system component, create a separate client/config specifically
 	// for that component.
 	PrivilegedLoopbackOpenShiftClient *osclient.Client

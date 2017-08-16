@@ -20,8 +20,8 @@ import (
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	buildregistry "github.com/openshift/origin/pkg/build/registry/build"
 	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
 	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
@@ -39,6 +39,7 @@ import (
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -134,7 +135,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
-	buildRegistry := buildregistry.NewRegistry(buildStorage)
 
 	buildConfigStorage, err := buildconfigetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
@@ -244,7 +244,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
 	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, c.RegistryNameFn)
 	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamTagRegistry := imagestreamtag.NewRegistry(imageStreamTagStorage)
 	importerCache, err := imageimporter.NewImageStreamLayerCache(imageimporter.DefaultImageStreamLayerCacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -268,23 +267,27 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.RegistryNameFn,
 		c.DeprecatedOpenshiftClient.SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
-	imageStreamImageRegistry := imagestreamimage.NewRegistry(imageStreamImageStorage)
 
 	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RouteAllocator, subjectAccessReviewRegistry)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
+	buildClient, err := buildclientset.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	imageClient, err := imageclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	buildGenerator := &buildgenerator.BuildGenerator{
 		Client: buildgenerator.Client{
-			GetBuildConfigFunc:      buildConfigRegistry.GetBuildConfig,
-			UpdateBuildConfigFunc:   buildConfigRegistry.UpdateBuildConfig,
-			GetBuildFunc:            buildRegistry.GetBuild,
-			CreateBuildFunc:         buildRegistry.CreateBuild,
-			UpdateBuildFunc:         buildRegistry.UpdateBuild,
-			GetImageStreamFunc:      imageStreamRegistry.GetImageStream,
-			GetImageStreamImageFunc: imageStreamImageRegistry.GetImageStreamImage,
-			GetImageStreamTagFunc:   imageStreamTagRegistry.GetImageStreamTag,
+			Builds:            buildClient.Build(),
+			BuildConfigs:      buildClient.Build(),
+			ImageStreams:      imageClient.Image(),
+			ImageStreamImages: imageClient.Image(),
+			ImageStreamTags:   imageClient.Image(),
 		},
 		ServiceAccounts: c.KubeClientInternal.Core(),
 		Secrets:         c.KubeClientInternal.Core(),
