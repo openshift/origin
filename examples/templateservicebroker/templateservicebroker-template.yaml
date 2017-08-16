@@ -32,7 +32,6 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
-          imagePullPolicy: Never
           command:
           - "/usr/bin/openshift"
           - "start"

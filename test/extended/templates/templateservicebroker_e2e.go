@@ -1,8 +1,7 @@
 package templates
 
 import (
-	"crypto/tls"
-	"net/http"
+	"os/exec"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -13,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -22,13 +22,15 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	exutil "github.com/openshift/origin/test/extended/util"
-	testutil "github.com/openshift/origin/test/util"
 )
 
-var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
+var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
 	defer g.GinkgoRecover()
 
 	var (
+		tsbOC          = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
+		portForwardCmd *exec.Cmd
+
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
@@ -41,6 +43,9 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	)
 
 	g.BeforeEach(func() {
+		framework.SkipIfProviderIs("gce")
+		brokercli, portForwardCmd = EnsureTSB(tsbOC)
+
 		var err error
 
 		// should have been created before the extended test runs
@@ -71,14 +76,10 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
-
-		adminClientConfig, err := testutil.GetClusterAdminClientConfig(exutil.KubeConfigPath())
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		brokercli = client.NewClient(&http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}, adminClientConfig.Host+templateapi.ServiceBrokerRoot)
 	})
 
 	g.AfterEach(func() {
+		framework.SkipIfProviderIs("gce")
 		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -86,6 +87,9 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		// BrokerTemplateInstance object.  The object is not namespaced so the
 		// namespace cleanup doesn't catch this.
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
+
+		err = portForwardCmd.Process.Kill()
+		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
 	catalog := func() {
@@ -340,6 +344,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	}
 
 	g.It("should pass an end-to-end test", func() {
+		framework.SkipIfProviderIs("gce")
 		catalog()
 		provision()
 		bind()
