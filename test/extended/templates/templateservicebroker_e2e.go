@@ -10,6 +10,8 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
@@ -35,6 +37,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		instanceID         = uuid.NewRandom().String()
 		bindingID          = uuid.NewRandom().String()
 		template           *templateapi.Template
+		processedtemplate  *templateapi.Template
 		privatetemplate    *templateapi.Template
 		clusterrolebinding *authorizationapi.ClusterRoleBinding
 		brokercli          client.Client
@@ -51,6 +54,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		// should have been created before the extended test runs
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
+		processedtemplate, err = cli.AdminClient().TemplateConfigs("openshift").Create(template)
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		errs := runtime.DecodeList(processedtemplate.Objects, unstructured.UnstructuredJSONScheme)
+		o.Expect(errs).To(o.BeEmpty())
 
 		// privatetemplate is an additional template in our namespace
 		privatetemplate, err = cli.Client().Templates(cli.Namespace()).Create(&templateapi.Template{
@@ -173,8 +182,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		}))
 
 		o.Expect(templateInstance.Status.Conditions).To(o.HaveLen(1))
-		o.Expect(templateInstance.Status.Conditions[0].Type).To(o.Equal(templateapi.TemplateInstanceReady))
-		o.Expect(templateInstance.Status.Conditions[0].Status).To(o.Equal(kapi.ConditionTrue))
+		o.Expect(templateInstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue)).To(o.Equal(true))
+
+		o.Expect(templateInstance.Status.Objects).To(o.HaveLen(len(template.Objects)))
+		for i, obj := range templateInstance.Status.Objects {
+			u := processedtemplate.Objects[i].(*unstructured.Unstructured)
+			o.Expect(obj.Ref.Kind).To(o.Equal(u.GetKind()))
+			o.Expect(obj.Ref.Namespace).To(o.Equal(cli.Namespace()))
+			o.Expect(obj.Ref.Name).To(o.Equal(u.GetName()))
+			o.Expect(obj.Ref.UID).ToNot(o.BeEmpty())
+		}
 
 		o.Expect(secret.Type).To(o.Equal(v1.SecretTypeOpaque))
 		o.Expect(secret.Data).To(o.Equal(map[string][]byte{

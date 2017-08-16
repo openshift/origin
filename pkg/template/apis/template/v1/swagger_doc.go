@@ -98,6 +98,15 @@ func (TemplateInstanceList) SwaggerDoc() map[string]string {
 	return map_TemplateInstanceList
 }
 
+var map_TemplateInstanceObject = map[string]string{
+	"":    "TemplateInstanceObject references an object created by a TemplateInstance.",
+	"ref": "ref is a reference to the created object.  When used under .spec, only name and namespace are used; these can contain references to parameters which will be substituted following the usual rules.",
+}
+
+func (TemplateInstanceObject) SwaggerDoc() map[string]string {
+	return map_TemplateInstanceObject
+}
+
 var map_TemplateInstanceRequester = map[string]string{
 	"":         "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
 	"username": "username is the username of the agent requesting a template instantiation.",
@@ -121,6 +130,7 @@ func (TemplateInstanceSpec) SwaggerDoc() map[string]string {
 var map_TemplateInstanceStatus = map[string]string{
 	"":           "TemplateInstanceStatus describes the current state of a TemplateInstance.",
 	"conditions": "conditions represent the latest available observations of a TemplateInstance's current state.",
+	"objects":    "Objects references the objects created by the TemplateInstance.",
 }
 
 func (TemplateInstanceStatus) SwaggerDoc() map[string]string {
