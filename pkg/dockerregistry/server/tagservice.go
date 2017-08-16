@@ -34,7 +34,7 @@ func (t tagService) Get(ctx context.Context, tag string) (distribution.Descripto
 		return distribution.Descriptor{}, err
 	}
 
-	if !t.repo.pullthrough {
+	if !t.repo.config.pullthrough {
 		image, err := t.repo.getImage(dgst)
 		if err != nil {
 			return distribution.Descriptor{}, err
@@ -65,7 +65,7 @@ func (t tagService) All(ctx context.Context) ([]string, error) {
 		}
 		tag := history.Tag
 
-		if t.repo.pullthrough {
+		if t.repo.config.pullthrough {
 			tags = append(tags, tag)
 			continue
 		}
@@ -123,7 +123,7 @@ func (t tagService) Lookup(ctx context.Context, desc distribution.Descriptor) ([
 			continue
 		}
 
-		if t.repo.pullthrough {
+		if t.repo.config.pullthrough {
 			tags = append(tags, tag)
 			continue
 		}
@@ -163,7 +163,7 @@ func (t tagService) Tag(ctx context.Context, tag string, dgst distribution.Descr
 	}
 	image.SetResourceVersion("")
 
-	if !t.repo.pullthrough && !isImageManaged(image) {
+	if !t.repo.config.pullthrough && !isImageManaged(image) {
 		return distribution.ErrRepositoryUnknown{Name: t.repo.Named().Name()}
 	}
 
@@ -197,7 +197,7 @@ func (t tagService) Untag(ctx context.Context, tag string) error {
 		return distribution.ErrTagUnknown{Tag: tag}
 	}
 
-	if !t.repo.pullthrough {
+	if !t.repo.config.pullthrough {
 		dgst, err := digest.ParseDigest(te.Image)
 		if err != nil {
 			return err

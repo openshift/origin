@@ -66,7 +66,7 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 	desc, err := bs.BlobDescriptorService.Stat(ctx, dgst)
 	if err == nil {
 		// and remember the association
-		repo.cachedLayers.RememberDigest(dgst, repo.blobrepositorycachettl, imageapi.DockerImageReference{
+		repo.cachedLayers.RememberDigest(dgst, repo.config.blobRepositoryCacheTTL, imageapi.DockerImageReference{
 			Namespace: repo.namespace,
 			Name:      repo.name,
 		}.Exact())
@@ -76,7 +76,7 @@ func (bs *blobDescriptorService) Stat(ctx context.Context, dgst digest.Digest) (
 	context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: could not stat layer link %s in repository %s: %v", dgst.String(), repo.Named().Name(), err)
 
 	// First attempt: looking for the blob locally
-	desc, err = dockerRegistry.BlobStatter().Stat(ctx, dgst)
+	desc, err = repo.app.registry.BlobStatter().Stat(ctx, dgst)
 	if err == nil {
 		context.GetLogger(ctx).Debugf("(*blobDescriptorService).Stat: blob %s exists in the global blob store", dgst.String())
 		// only non-empty layers is wise to check for existence in the image stream.
@@ -162,7 +162,7 @@ func imageStreamHasBlob(r *repository, dgst digest.Digest) bool {
 		if _, processed := processedImages[tagEvent.Image]; processed {
 			continue
 		}
-		if imageHasBlob(r, repoCacheName, tagEvent.Image, dgst.String(), !r.pullthrough) {
+		if imageHasBlob(r, repoCacheName, tagEvent.Image, dgst.String(), !r.config.pullthrough) {
 			tagName := event2Name[tagEvent]
 			context.GetLogger(r.ctx).Debugf("blob found under istag %s/%s:%s in image %s", r.namespace, r.name, tagName, tagEvent.Image)
 			return logFound(true)

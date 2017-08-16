@@ -417,17 +417,17 @@ func TestAccessController(t *testing.T) {
 			Host:            server.URL,
 			TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
 		}
-		options[AccessControllerOptionParams] = AccessControllerParams{
-			Logger:         context.GetLogger(context.Background()),
-			RegistryClient: client.NewRegistryClient(cfg),
+		app := &App{
+			ctx:            context.Background(),
+			registryClient: client.NewRegistryClient(cfg),
+			extraConfig:    &configuration.Configuration{},
 		}
-		accessController, err := newAccessController(options)
+		accessController, err := app.newAccessController(options)
 		if err != nil {
 			t.Fatal(err)
 		}
 		ctx := context.Background()
 		ctx = context.WithRequest(ctx, req)
-		ctx = WithConfiguration(ctx, &configuration.Configuration{})
 		authCtx, err := accessController.Authorized(ctx, test.access...)
 		server.Close()
 

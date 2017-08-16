@@ -30,7 +30,7 @@ func TestManifestServiceExists(t *testing.T) {
 		ctx:           context.Background(),
 		repo:          r,
 		manifests:     nil,
-		acceptschema2: r.acceptschema2,
+		acceptschema2: r.config.acceptSchema2,
 	}
 
 	ok, err := ms.Exists(context.Background(), digest.Digest(testImage.Name))
@@ -86,7 +86,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 		manifests: newTestManifestService(repo, map[digest.Digest]distribution.Manifest{
 			digest.Digest(testImage.Name): &schema2.DeserializedManifest{},
 		}),
-		acceptschema2: r.acceptschema2,
+		acceptschema2: r.config.acceptSchema2,
 	}
 
 	_, err = ms.Get(context.Background(), digest.Digest(testImage.Name))
@@ -130,12 +130,7 @@ func TestManifestServicePut(t *testing.T) {
 		ctx:           context.Background(),
 		repo:          r,
 		manifests:     tms,
-		acceptschema2: r.acceptschema2,
-	}
-
-	// TODO(dmage): eliminate global variables
-	quotaEnforcing = &quotaEnforcingConfig{
-		enforcementEnabled: false,
+		acceptschema2: r.config.acceptSchema2,
 	}
 
 	manifest := &schema2.DeserializedManifest{
@@ -169,7 +164,7 @@ func TestManifestServicePut(t *testing.T) {
 		ctx:           context.Background(),
 		repo:          r,
 		manifests:     tms,
-		acceptschema2: r.acceptschema2,
+		acceptschema2: r.config.acceptSchema2,
 	}
 
 	ctx = context.Background()

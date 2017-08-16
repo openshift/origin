@@ -18,7 +18,6 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
 	registryauth "github.com/docker/distribution/registry/auth"
-	"github.com/docker/distribution/registry/handlers"
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
@@ -52,9 +51,8 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	testImage := registrytest.AddRandomImage(t, fos, "user", "app", "latest")
 
 	ctx := context.Background()
-	ctx = WithConfiguration(ctx, &srvconfig.Configuration{})
-	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(imageClient))
-	app := handlers.NewApp(ctx, &configuration.Configuration{
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", "localhost:5000")
+	app := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -78,7 +76,7 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 			"repository": {{Name: "openshift"}},
 			"storage":    {{Name: "openshift"}},
 		},
-	})
+	}, &srvconfig.Configuration{}, nil)
 	server := httptest.NewServer(app)
 	router := v2.Router()
 
@@ -86,7 +84,6 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 
 	desc, _, err := registrytest.UploadRandomTestBlob(serverURL, nil, "user/app")
 	if err != nil {

@@ -124,7 +124,7 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 	// to us as it will assume that the registry has them.
 	repo := h.repo
 
-	if len(path.Join(h.repo.registryAddr, h.manifest.Name)) > reference.NameTotalLengthMax {
+	if len(path.Join(h.repo.config.registryAddr, h.manifest.Name)) > reference.NameTotalLengthMax {
 		errs = append(errs,
 			distribution.ErrManifestNameInvalid{
 				Name:   h.manifest.Name,

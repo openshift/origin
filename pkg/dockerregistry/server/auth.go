@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
+	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 )
 
 type deferredErrors map[string]error
@@ -35,22 +36,12 @@ func (d deferredErrors) Empty() bool {
 }
 
 const (
-	OpenShiftAuth = "openshift"
-
 	defaultTokenPath = "/openshift/token"
 	defaultUserName  = "anonymous"
 
 	RealmKey      = "realm"
 	TokenRealmKey = "tokenrealm"
-
-	// AccessControllerOptionParams is an option name for passing
-	// AccessControllerParams to AccessController.
-	AccessControllerOptionParams = "_params"
 )
-
-func init() {
-	registryauth.Register(OpenShiftAuth, registryauth.InitFunc(newAccessController))
-}
 
 // WithUserInfoLogger creates a new context with provided user infomation.
 func WithUserInfoLogger(ctx context.Context, username, userid string) context.Context {
@@ -69,6 +60,7 @@ type AccessController struct {
 	tokenRealm     *url.URL
 	registryClient client.RegistryClient
 	auditLog       bool
+	metricsConfig  configuration.Metrics
 }
 
 var _ registryauth.AccessController = &AccessController{}
@@ -131,20 +123,7 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 	return tokenRealm, nil
 }
 
-// AccessControllerParams is the parameters for newAccessController
-type AccessControllerParams struct {
-	Logger         context.Logger
-	RegistryClient client.RegistryClient
-}
-
-func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
-	params, ok := options[AccessControllerOptionParams].(AccessControllerParams)
-	if !ok {
-		return nil, fmt.Errorf("no parameters provided to Origin Auth handler")
-	}
-
-	params.Logger.Info("Using Origin Auth handler")
-
+func (app *App) newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
 	realm, err := getStringOption("", RealmKey, "origin", options)
 	if err != nil {
 		return nil, err
@@ -158,7 +137,8 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 	ac := &AccessController{
 		realm:          realm,
 		tokenRealm:     tokenRealm,
-		registryClient: params.RegistryClient,
+		registryClient: app.registryClient,
+		metricsConfig:  app.extraConfig.Metrics,
 	}
 
 	if audit, ok := options["audit"]; ok {
@@ -263,7 +243,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, ac.wrapErr(ctx, err)
 	}
 
-	bearerToken, err := getOpenShiftAPIToken(ctx, req)
+	bearerToken, err := getOpenShiftAPIToken(req)
 	if err != nil {
 		return nil, ac.wrapErr(ctx, err)
 	}
@@ -274,7 +254,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	}
 
 	// In case of docker login, hits endpoint /v2
-	if len(bearerToken) > 0 && !isMetricsBearerToken(ctx, bearerToken) {
+	if len(bearerToken) > 0 && !isMetricsBearerToken(ac.metricsConfig, bearerToken) {
 		user, userid, err := verifyOpenShiftUser(ctx, osClient)
 		if err != nil {
 			return nil, ac.wrapErr(ctx, err)
@@ -358,7 +338,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		case "metrics":
 			switch access.Action {
 			case "get":
-				if !isMetricsBearerToken(ctx, bearerToken) {
+				if !isMetricsBearerToken(ac.metricsConfig, bearerToken) {
 					return nil, ac.wrapErr(ctx, ErrOpenShiftAccessDenied)
 				}
 			default:
@@ -406,7 +386,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 	return withUserClient(ctx, osClient), nil
 }
 
-func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error) {
+func getOpenShiftAPIToken(req *http.Request) (string, error) {
 	token := ""
 
 	authParts := strings.SplitN(req.Header.Get("Authorization"), " ", 2)
@@ -512,10 +492,9 @@ func verifyPruneAccess(ctx context.Context, c client.SelfSubjectAccessReviewsNam
 	return nil
 }
 
-func isMetricsBearerToken(ctx context.Context, token string) bool {
-	config := ConfigurationFrom(ctx)
-	if config.Metrics.Enabled {
-		return config.Metrics.Secret == token
+func isMetricsBearerToken(metrics configuration.Metrics, token string) bool {
+	if metrics.Enabled {
+		return metrics.Secret == token
 	}
 	return false
 }
