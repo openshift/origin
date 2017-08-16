@@ -19,7 +19,7 @@ os::util::ensure::gopath_binary_exists imagebuilder
 # image builds require RPMs to have been built
 os::build::release::check_for_rpms
 # OS_RELEASE_COMMIT is required by image-build
-os::build::archive::detect_local_release_tars $(os::build::host_platform_friendly)
+os::build::archive::detect_local_release_tars $(os::util::host_platform_friendly)
 
 # we need to mount RPMs into the container builds for installation
 OS_BUILD_IMAGE_ARGS="${OS_BUILD_IMAGE_ARGS:-} -mount ${OS_OUTPUT_RPMPATH}/:/srv/origin-local-release/"
@@ -36,8 +36,8 @@ function ln_or_cp {
 }
 
 # Link or copy image binaries to the appropriate locations.
-ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
-ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
+ln_or_cp "${OS_OUTPUT_BINPATH}/$(os::util::host_platform)/hello-openshift" examples/hello-openshift/bin
+ln_or_cp "${OS_OUTPUT_BINPATH}/$(os::util::host_platform)/gitserver"       examples/gitserver/bin
 
 # determine the correct tag prefix
 tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"

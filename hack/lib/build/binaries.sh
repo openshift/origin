@@ -15,16 +15,16 @@ readonly -f os::build::binaries_from_targets
 
 # Asks golang what it thinks the host platform is.  The go tool chain does some
 # slightly different things when the target platform matches the host platform.
-function os::build::host_platform() {
+function os::util::host_platform() {
   echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 }
-readonly -f os::build::host_platform
+readonly -f os::util::host_platform
 
 # Create a user friendly version of host_platform for end users
-function os::build::host_platform_friendly() {
+function os::util::host_platform_friendly() {
   local platform=${1:-}
   if [[ -z "${platform}" ]]; then
-    platform=$(os::build::host_platform)
+    platform=$(os::util::host_platform)
   fi
   if [[ $platform == "windows/amd64" ]]; then
     echo "windows"
@@ -44,14 +44,14 @@ function os::build::host_platform_friendly() {
     echo "$(go env GOHOSTOS)-$(go env GOHOSTARCH)"
   fi
 }
-readonly -f os::build::host_platform_friendly
+readonly -f os::util::host_platform_friendly
 
 # This converts from platform/arch to PLATFORM_ARCH, host platform will be
 # considered if no parameter passed
 function os::build::platform_arch() {
   local platform=${1:-}
   if [[ -z "${platform}" ]]; then
-    platform=$(os::build::host_platform)
+    platform=$(os::util::host_platform)
   fi
 
   echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
@@ -197,7 +197,7 @@ os::build::internal::build_binaries() {
       fi
     done
 
-    local host_platform=$(os::build::host_platform)
+    local host_platform=$(os::util::host_platform)
     local platform
     for platform in "${platforms[@]+"${platforms[@]}"}"; do
       echo "++ Building go targets for ${platform}:" "${targets[@]}"
@@ -351,7 +351,7 @@ readonly -f os::build::export_targets
 function os::build::place_bins() {
   (
     local host_platform
-    host_platform=$(os::build::host_platform)
+    host_platform=$(os::util::host_platform)
 
     if [[ "${OS_RELEASE_ARCHIVE-}" != "" ]]; then
       os::build::version::get_vars
@@ -410,7 +410,7 @@ function os::build::place_bins() {
       done
 
       # Create the release archive.
-      platform="$( os::build::host_platform_friendly "${platform}" )"
+      platform="$( os::util::host_platform_friendly "${platform}" )"
       if [[ ${OS_RELEASE_ARCHIVE} == "openshift-origin" ]]; then
         for file in "${OS_BINARY_RELEASE_CLIENT_EXTRA[@]}"; do
           cp "${file}" "${release_binpath}/"
@@ -461,7 +461,7 @@ readonly -f os::build::release_sha
 # os::build::make_openshift_binary_symlinks makes symlinks for the openshift
 # binary in _output/local/bin/${platform}
 function os::build::make_openshift_binary_symlinks() {
-  platform=$(os::build::host_platform)
+  platform=$(os::util::host_platform)
   if [[ -f "${OS_OUTPUT_BINPATH}/${platform}/openshift" ]]; then
     for linkname in "${OPENSHIFT_BINARY_SYMLINKS[@]}"; do
       ln -sf openshift "${OS_OUTPUT_BINPATH}/${platform}/${linkname}"

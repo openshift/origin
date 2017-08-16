@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 echo "===== Verifying Generated Completions ====="
 
-platform="$(os::build::host_platform)"
+platform="$(os::util::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then
   os::log::warning "Completions cannot be verified on non-Linux systems (${platform})"
   exit 0
