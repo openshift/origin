@@ -1,13 +1,20 @@
-package origin
+package apiserver
 
 import (
 	"crypto/md5"
 	"fmt"
+	"net/http"
 	"net/url"
 
 	"github.com/pborman/uuid"
 
+	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	"k8s.io/apiserver/pkg/storage"
+	"k8s.io/client-go/rest"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
@@ -18,7 +25,9 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
-type AuthConfig struct {
+type OAuthServerConfig struct {
+	GenericConfig *genericapiserver.Config
+
 	Options configapi.OAuthConfig
 
 	// AssetPublicAddresses contains valid redirectURI prefixes to direct browsers to the web console
@@ -47,15 +56,14 @@ type AuthConfig struct {
 	HandlerWrapper handlerWrapper
 }
 
-func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
-	options := masterConfig.Options
-	osClient, kubeClient := masterConfig.OAuthServerClients()
+func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *rest.Config) (*OAuthServerConfig, error) {
+	genericConfig := genericapiserver.NewConfig(kapi.Codecs)
 
 	var sessionAuth *session.Authenticator
 	var sessionHandlerWrapper handlerWrapper
-	if options.OAuthConfig.SessionConfig != nil {
-		secure := isHTTPS(options.OAuthConfig.MasterPublicURL)
-		auth, wrapper, err := buildSessionAuth(secure, options.OAuthConfig.SessionConfig)
+	if oauthConfig.SessionConfig != nil {
+		secure := isHTTPS(oauthConfig.MasterPublicURL)
+		auth, wrapper, err := buildSessionAuth(secure, oauthConfig.SessionConfig)
 		if err != nil {
 			return nil, err
 		}
@@ -63,35 +71,21 @@ func BuildAuthConfig(masterConfig *MasterConfig) (*AuthConfig, error) {
 		sessionHandlerWrapper = wrapper
 	}
 
-	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to
-	assetPublicURLs := []string{}
-	if !options.DisabledFeatures.Has(configapi.FeatureWebConsole) {
-		assetPublicURLs = []string{options.OAuthConfig.AssetPublicURL}
-	}
-
-	userClient, err := userclient.NewForConfig(&masterConfig.PrivilegedLoopbackClientConfig)
+	userClient, err := userclient.NewForConfig(userClientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	ret := &AuthConfig{
-		Options: *options.OAuthConfig,
-
-		KubeClient: kubeClient,
-
-		OpenShiftClient: osClient,
-
-		AssetPublicAddresses: assetPublicURLs,
-		RESTOptionsGetter:    masterConfig.RESTOptionsGetter,
-
+	ret := &OAuthServerConfig{
+		GenericConfig:             genericConfig,
+		Options:                   oauthConfig,
+		SessionAuth:               sessionAuth,
 		IdentityClient:            userClient.Identities(),
 		UserClient:                userClient.Users(),
 		UserIdentityMappingClient: userClient.UserIdentityMappings(),
-
-		SessionAuth: sessionAuth,
-
-		HandlerWrapper: sessionHandlerWrapper,
+		HandlerWrapper:            sessionHandlerWrapper,
 	}
+	genericConfig.BuildHandlerChainFunc = ret.buildHandlerChainForOAuth
 
 	return ret, nil
 }
@@ -136,4 +130,58 @@ func getSessionSecrets(filename string) ([]string, error) {
 func isHTTPS(u string) bool {
 	parsedURL, err := url.Parse(u)
 	return err == nil && parsedURL.Scheme == "https"
+}
+
+// OAuthServer serves non-API endpoints for openshift.
+type OAuthServer struct {
+	GenericAPIServer *genericapiserver.GenericAPIServer
+
+	PublicURL url.URL
+}
+
+type completedOAuthServerConfig struct {
+	*OAuthServerConfig
+}
+
+// Complete fills in any fields not set that are required to have valid data. It's mutating the receiver.
+func (c *OAuthServerConfig) Complete() completedOAuthServerConfig {
+	c.GenericConfig.Complete()
+
+	return completedOAuthServerConfig{c}
+}
+
+// SkipComplete provides a way to construct a server instance without config completion.
+func (c *OAuthServerConfig) SkipComplete() completedOAuthServerConfig {
+	return completedOAuthServerConfig{c}
+}
+
+// this server is odd.  It doesn't delegate.  We mostly leave it alone, so I don't plan to make it look "normal".  We'll
+// model it as a separate API server to reason about its handling chain, but otherwise, just let it be
+func (c completedOAuthServerConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OAuthServer, error) {
+	genericServer, err := c.OAuthServerConfig.GenericConfig.SkipComplete().New("openshift-oauth", delegationTarget) // completion is done in Complete, no need for a second time
+	if err != nil {
+		return nil, err
+	}
+
+	s := &OAuthServer{
+		GenericAPIServer: genericServer,
+	}
+
+	return s, nil
+}
+
+func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
+	handler, err := c.WithOAuth(startingHandler)
+	if err != nil {
+		// the existing errors all cause the server to die anyway
+		panic(err)
+	}
+
+	handler = genericfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
+	handler = genericfilters.WithCORS(handler, genericConfig.CorsAllowedOriginList, nil, nil, nil, "true")
+	handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
+	handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
+	handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
+	handler = genericfilters.WithPanicRecovery(handler)
+	return handler
 }

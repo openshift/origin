@@ -1053,12 +1053,6 @@ func (c *MasterConfig) KubeClientsetExternal() kclientsetexternal.Interface {
 	return c.PrivilegedLoopbackKubernetesClientsetExternal
 }
 
-// OAuthServerClients returns the openshift and kubernetes OAuth server client objects
-// The returned clients are privileged
-func (c *MasterConfig) OAuthServerClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
 // ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
 // It must have the following capabilities:
 //  get, list, update, create policyBindings and clusterPolicyBindings in all namespaces

@@ -37,6 +37,12 @@ import (
 	"github.com/openshift/origin/pkg/user/cache"
 )
 
+const (
+	openShiftOAuthAPIPrefix      = "/oauth"
+	openShiftLoginPrefix         = "/login"
+	openShiftOAuthCallbackPrefix = "/oauth2callback"
+)
+
 func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Config) (*OpenshiftAPIConfig, error) {
 	// sccStorage must use the upstream RESTOptionsGetter to be in the correct location
 	// this probably creates a duplicate cache, but there are not very many SCCs, so live with it to avoid further linkage
@@ -173,6 +179,22 @@ func (c *MasterConfig) newAssetServerHandler() (http.Handler, error) {
 	return assetServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
 }
 
+func (c *MasterConfig) newOAuthServerHandler() (http.Handler, error) {
+	if c.Options.OAuthConfig == nil {
+		return http.NotFoundHandler(), nil
+	}
+
+	config, err := NewOAuthServerConfigFromMasterConfig(c)
+	if err != nil {
+		return nil, err
+	}
+	oauthServer, err := config.Complete().New(apiserver.EmptyDelegate)
+	if err != nil {
+		return nil, err
+	}
+	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
+}
+
 func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
 	aggregatorConfig, err := c.createAggregatorConfig(kubeAPIServerConfig)
 	if err != nil {
@@ -194,11 +216,10 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
 	var delegateAPIServer apiserver.DelegationTarget
 
-	assetHandler, err := c.newAssetServerHandler()
+	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, err = c.buildHandlerChain()
 	if err != nil {
 		return err
 	}
-	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc = c.buildHandlerChain(assetHandler)
 
 	delegateAPIServer = apiserver.EmptyDelegate
 	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
@@ -236,24 +257,29 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
-	// TODO find a better home for this output
-	if c.Options.OAuthConfig != nil {
-		glog.Infof("Starting OAuth2 API at %s", oauthutil.OpenShiftOAuthAPIPrefix)
-	}
-	if c.WebConsoleEnabled() && !c.WebConsoleStandalone() {
-		glog.Infof("Starting Web Console %s", c.Options.AssetConfig.PublicURL)
-	}
-
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindNetwork, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(apiHandler http.Handler, kc *apiserver.Config) http.Handler {
+func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, error) {
+	assetServerHandler, err := c.newAssetServerHandler()
+	if err != nil {
+		return nil, err
+	}
+	oauthServerHandler, err := c.newOAuthServerHandler()
+	if err != nil {
+		return nil, err
+	}
+
 	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
+		// these are after the kube handler
 		handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
+		handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
+
+		// these are all equivalent to the kube handler chain
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
 		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
-
 		// audit handler must comes before the impersonationFilter to read the original user
 		if c.Options.AuditConfig.Enabled {
 			var writer io.Writer
@@ -277,20 +303,6 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 			handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
 		}
 		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper)
-		handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
-		handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
-
-		if c.Options.OAuthConfig != nil {
-			authConfig, err := BuildAuthConfig(c)
-			if err != nil {
-				glog.Fatalf("Failed to setup OAuth2: %v", err)
-			}
-			handler, err = authConfig.WithOAuth(handler)
-			if err != nil {
-				glog.Fatalf("Failed to setup OAuth2: %v", err)
-			}
-		}
-
 		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
 		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
 		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
@@ -300,6 +312,10 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
 		handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
 		handler = apiserverfilters.WithPanicRecovery(handler)
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+		// these handlers are all before the normal kube chain
+		handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 		if c.WebConsoleEnabled() {
 			handler = assetapiserver.WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
@@ -307,9 +323,10 @@ func (c *MasterConfig) buildHandlerChain(assetServerHandler http.Handler) func(a
 		// these handlers are actually separate API servers which have their own handler chains.
 		// our server embeds these
 		handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)
+		handler = c.withOAuthRedirection(handler, oauthServerHandler)
 
 		return handler
-	}
+	}, nil
 }
 
 func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, assetConfig *configapi.AssetConfig) http.Handler {
@@ -331,7 +348,18 @@ func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.H
 	if publicURL.Path[lastIndex] == '/' {
 		prefix = publicURL.Path[0:lastIndex]
 	}
+
+	glog.Infof("Starting Web Console %s", assetConfig.PublicURL)
 	return WithPatternPrefixHandler(handler, assetServerHandler, prefix)
+}
+
+func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Handler) http.Handler {
+	if c.Options.OAuthConfig == nil {
+		return handler
+	}
+
+	glog.Infof("Starting OAuth2 API at %s", oauthutil.OpenShiftOAuthAPIPrefix)
+	return WithPatternPrefixHandler(handler, oauthServerHandler, openShiftOAuthAPIPrefix, openShiftLoginPrefix, openShiftOAuthCallbackPrefix)
 }
 
 // RouteAllocator returns a route allocation controller.

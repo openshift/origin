@@ -1,4 +1,4 @@
-package origin
+package apiserver
 
 import (
 	"crypto/tls"
@@ -80,7 +80,7 @@ const (
 
 // WithOAuth decorates the given handler by serving the OAuth2 endpoints while
 // passing through all other requests to the given handler.
-func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
+func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	baseMux := http.NewServeMux()
 	mux := c.possiblyWrapMux(baseMux)
 
@@ -191,7 +191,7 @@ func (c *AuthConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
 	return baseMux, nil
 }
 
-func (c *AuthConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
+func (c *OAuthServerConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
 	// Register directly into the given mux
 	if c.HandlerWrapper == nil {
 		return mux
@@ -205,7 +205,7 @@ func (c *AuthConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {
 	}
 }
 
-func (c *AuthConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
+func (c *OAuthServerConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
 	errorTemplate := ""
 	if c.Options.Templates != nil {
 		errorTemplate = c.Options.Templates.Error
@@ -218,7 +218,7 @@ func (c *AuthConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
 }
 
 // NewOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
-func (c *AuthConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.OAuthClient) *osincli.ClientConfig {
+func (c *OAuthServerConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.OAuthClient) *osincli.ClientConfig {
 	config := &osincli.ClientConfig{
 		ClientId:                 client.Name,
 		ClientSecret:             client.Secret,
@@ -321,12 +321,12 @@ func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddre
 }
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
-func (c *AuthConfig) getCSRF() csrf.CSRF {
+func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
 	secure := isHTTPS(c.Options.MasterPublicURL)
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
@@ -341,7 +341,7 @@ func (c *AuthConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHa
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry clientauthregistry.Registry) handlers.GrantHandler {
+func (c *OAuthServerConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry clientauthregistry.Registry) handlers.GrantHandler {
 	// check that the global default strategy is something we honor
 	if !configapi.ValidGrantHandlerTypes.Has(string(c.Options.GrantConfig.Method)) {
 		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.Options.GrantConfig.Method)
@@ -360,7 +360,7 @@ func (c *AuthConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request
 }
 
 // getAuthenticationFinalizer returns an authentication finalizer which is called just prior to writing a response to an authorization request
-func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
+func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 	if c.SessionAuth != nil {
 		// The session needs to know the authorize flow is done so it can invalidate the session
 		return osinserver.AuthorizeHandlerFunc(func(ar *osin.AuthorizeRequest, resp *osin.Response, w http.ResponseWriter) (bool, error) {
@@ -375,7 +375,7 @@ func (c *AuthConfig) getAuthenticationFinalizer() osinserver.AuthorizeHandler {
 	})
 }
 
-func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
+func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
 	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
 
@@ -520,7 +520,7 @@ func (c *AuthConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler hand
 	return authHandler, nil
 }
 
-func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
+func (c *OAuthServerConfig) getOAuthProvider(identityProvider configapi.IdentityProvider) (external.Provider, error) {
 	switch provider := identityProvider.Provider.(type) {
 	case (*configapi.GitHubIdentityProvider):
 		clientSecret, err := configapi.ResolveStringValue(provider.ClientSecret)
@@ -588,7 +588,7 @@ func (c *AuthConfig) getOAuthProvider(identityProvider configapi.IdentityProvide
 
 }
 
-func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
+func (c *OAuthServerConfig) getPasswordAuthenticator(identityProvider configapi.IdentityProvider) (authenticator.Password, error) {
 	identityMapper, err := identitymapper.NewIdentityUserMapper(c.IdentityClient, c.UserClient, c.UserIdentityMappingClient, identitymapper.MappingMethodType(identityProvider.MappingMethod))
 	if err != nil {
 		return nil, err
@@ -667,7 +667,7 @@ func (c *AuthConfig) getPasswordAuthenticator(identityProvider configapi.Identit
 
 }
 
-func (c *AuthConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
+func (c *OAuthServerConfig) getAuthenticationRequestHandler() (authenticator.Request, error) {
 	var authRequestHandlers []authenticator.Request
 
 	if c.SessionAuth != nil {
