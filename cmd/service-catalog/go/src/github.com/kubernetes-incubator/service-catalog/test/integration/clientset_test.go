@@ -17,10 +17,14 @@ limitations under the License.
 package integration
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
@@ -97,6 +101,59 @@ func TestGroupVersion(t *testing.T) {
 			t.Errorf("%s test failed", sType)
 		}
 	}
+}
+
+func TestEtcdHealthCheckerSuccess(t *testing.T) {
+	serverConfig := NewTestServerConfig()
+	serverConfig.storageType = server.StorageTypeEtcd
+	_, clientconfig, shutdownServer := withConfigGetFreshApiserverAndClient(t, serverConfig)
+	t.Log(clientconfig.Host)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c := &http.Client{Transport: tr}
+	resp, err := c.Get(clientconfig.Host + "/healthz")
+	if nil != err || http.StatusOK != resp.StatusCode {
+		t.Fatal("health check endpoint should not have failed")
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal("couldn't read response body", err)
+	}
+	if strings.Contains(string(body), "healthz check failed") {
+		t.Fatal("health check endpoint should not have failed")
+	}
+
+	defer shutdownServer()
+}
+
+func TestEtcdHealthCheckerFail(t *testing.T) {
+	serverConfig := NewTestServerConfig()
+	// this server won't exist
+	serverConfig.etcdServerList = []string{""}
+	serverConfig.storageType = server.StorageTypeEtcd
+	_, clientconfig, shutdownServer := withConfigGetFreshApiserverAndClient(t, serverConfig)
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c := &http.Client{Transport: tr}
+	resp, err := c.Get(clientconfig.Host + "/healthz")
+	if nil != err || http.StatusInternalServerError != resp.StatusCode {
+		t.Fatal("health check endpoint should have failed and did not")
+	}
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal("couldn't read response body", err)
+	}
+	if !strings.Contains(string(body), "healthz check failed") {
+		t.Fatal("health check endpoint should contain a failure message")
+	}
+
+	defer shutdownServer()
 }
 
 func testGroupVersion(client servicecatalogclient.Interface) error {
@@ -627,7 +684,6 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 				Name: "bar",
 			},
 			Parameters: &runtime.RawExtension{Raw: []byte(bindingParameter)},
-			SecretName: "secret-name",
 			ExternalID: "UUID-string",
 		},
 	}
@@ -652,6 +708,13 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 			"didn't get the same binding back from the server \n%+v\n%+v",
 			binding,
 			bindingServer,
+		)
+	}
+	if bindingServer.Spec.SecretName != "test-binding" {
+		return fmt.Errorf(
+			"didn't get the right secret name back from the server \n%+v\n%+v",
+			"test-binding",
+			bindingServer.Spec.SecretName,
 		)
 	}
 

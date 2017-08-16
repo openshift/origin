@@ -31,16 +31,16 @@ type ServiceCatalogServerOptions struct {
 	StorageTypeString string
 	// the runtime configuration of our server
 	GenericServerRunOptions *genericserveroptions.ServerRunOptions
+	// the admission options
+	AdmissionOptions *genericserveroptions.AdmissionOptions
 	// the https configuration. certs, etc
 	SecureServingOptions *genericserveroptions.SecureServingOptions
 	// authn for the API
 	AuthenticationOptions *genericserveroptions.DelegatingAuthenticationOptions
 	// authz for the API
 	AuthorizationOptions *genericserveroptions.DelegatingAuthorizationOptions
-	// InsecureOptions are options for serving insecurely.
-	InsecureServingOptions *genericserveroptions.ServingOptions
 	// audit options for api server
-	AuditOptions *genericserveroptions.AuditLogOptions
+	AuditOptions *genericserveroptions.AuditOptions
 	// EtcdOptions are options for serving with etcd as the backing store
 	EtcdOptions *EtcdOptions
 	// TPROptions are options for serving with TPR as the backing store
@@ -68,10 +68,10 @@ func (s *ServiceCatalogServerOptions) addFlags(flags *pflag.FlagSet) {
 	)
 
 	s.GenericServerRunOptions.AddUniversalFlags(flags)
+	s.AdmissionOptions.AddFlags(flags)
 	s.SecureServingOptions.AddFlags(flags)
 	s.AuthenticationOptions.AddFlags(flags)
 	s.AuthorizationOptions.AddFlags(flags)
-	s.InsecureServingOptions.AddFlags(flags)
 	s.EtcdOptions.addFlags(flags)
 	s.TPROptions.addFlags(flags)
 	s.AuditOptions.AddFlags(flags)

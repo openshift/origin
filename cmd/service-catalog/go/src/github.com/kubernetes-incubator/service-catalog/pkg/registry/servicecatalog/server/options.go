@@ -155,7 +155,7 @@ func (o Options) GetStorage(
 		return etcdRESTOpts.Decorator(
 			api.Scheme,
 			etcdRESTOpts.StorageConfig,
-			capacity,
+			&capacity,
 			objectType,
 			resourcePrefix,
 			nil, /* keyFunc for decorator -- looks to be unused everywhere */

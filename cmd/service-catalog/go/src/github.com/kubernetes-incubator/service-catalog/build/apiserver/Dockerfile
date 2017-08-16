@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian
+FROM BASEIMAGE
 
-ADD tmp/apiserver /opt/services/
+ADD apiserver /opt/services/
 
-ENTRYPOINT ["/opt/services/apiserver" ]
-CMD [ "--etcd-servers" , "localhost" ]
+ENTRYPOINT ["/opt/services/apiserver"]
+CMD ["--etcd-servers" , "localhost"]

@@ -78,65 +78,6 @@ var _ = Describe("Slice", func() {
 		})
 		Ω(allElements).ShouldNot(m, "should run nested matchers")
 	})
-
-	Context("with elements that share a key", func() {
-		nonUniqueID := func(element interface{}) string {
-			return element.(string)[0:1]
-		}
-
-		allElements := []string{"a123", "a213", "b321"}
-		includingBadElements := []string{"a123", "b123", "b5555"}
-		extraElements := []string{"a123", "b1234", "c345"}
-		missingElements := []string{"b123", "b1234", "b1345"}
-
-		It("should strictly allow multiple matches", func() {
-			m := MatchElements(nonUniqueID, AllowDuplicates, Elements{
-				"a": ContainSubstring("1"),
-				"b": ContainSubstring("1"),
-			})
-			Ω(allElements).Should(m, "should match all elements")
-			Ω(includingBadElements).ShouldNot(m, "should reject if a member fails the matcher")
-			Ω(extraElements).ShouldNot(m, "should reject with extra keys")
-			Ω(missingElements).ShouldNot(m, "should reject with missing keys")
-			Ω(nils).ShouldNot(m, "should fail with an uninitialized slice")
-		})
-
-		It("should ignore missing", func() {
-			m := MatchElements(nonUniqueID, AllowDuplicates|IgnoreMissing, Elements{
-				"a": ContainSubstring("1"),
-				"b": ContainSubstring("1"),
-			})
-			Ω(allElements).Should(m, "should match all elements")
-			Ω(includingBadElements).ShouldNot(m, "should reject if a member fails the matcher")
-			Ω(extraElements).ShouldNot(m, "should reject with extra keys")
-			Ω(missingElements).Should(m, "should allow missing keys")
-			Ω(nils).Should(m, "should allow an uninitialized slice")
-		})
-
-		It("should ignore extras", func() {
-			m := MatchElements(nonUniqueID, AllowDuplicates|IgnoreExtras, Elements{
-				"a": ContainSubstring("1"),
-				"b": ContainSubstring("1"),
-			})
-			Ω(allElements).Should(m, "should match all elements")
-			Ω(includingBadElements).ShouldNot(m, "should reject if a member fails the matcher")
-			Ω(extraElements).Should(m, "should allow extra keys")
-			Ω(missingElements).ShouldNot(m, "should reject missing keys")
-			Ω(nils).ShouldNot(m, "should reject an uninitialized slice")
-		})
-
-		It("should ignore missing and extras", func() {
-			m := MatchElements(nonUniqueID, AllowDuplicates|IgnoreExtras|IgnoreMissing, Elements{
-				"a": ContainSubstring("1"),
-				"b": ContainSubstring("1"),
-			})
-			Ω(allElements).Should(m, "should match all elements")
-			Ω(includingBadElements).ShouldNot(m, "should reject if a member fails the matcher")
-			Ω(extraElements).Should(m, "should allow extra keys")
-			Ω(missingElements).Should(m, "should allow missing keys")
-			Ω(nils).Should(m, "should allow an uninitialized slice")
-		})
-	})
 })
 
 func id(element interface{}) string {

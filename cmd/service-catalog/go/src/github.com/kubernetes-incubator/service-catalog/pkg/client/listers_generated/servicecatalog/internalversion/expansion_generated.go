@@ -23,7 +23,7 @@ package internalversion
 type BindingListerExpansion interface{}
 
 // BindingNamespaceListerExpansion allows custom methods to be added to
-// BindingNamespaeLister.
+// BindingNamespaceLister.
 type BindingNamespaceListerExpansion interface{}
 
 // BrokerListerExpansion allows custom methods to be added to
@@ -35,7 +35,7 @@ type BrokerListerExpansion interface{}
 type InstanceListerExpansion interface{}
 
 // InstanceNamespaceListerExpansion allows custom methods to be added to
-// InstanceNamespaeLister.
+// InstanceNamespaceLister.
 type InstanceNamespaceListerExpansion interface{}
 
 // ServiceClassListerExpansion allows custom methods to be added to

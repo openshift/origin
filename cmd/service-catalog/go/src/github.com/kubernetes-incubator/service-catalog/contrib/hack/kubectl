@@ -32,14 +32,6 @@ mkdir -p ${ROOT}/.var/run/kubernetes-service-catalog ${ROOT}/.kube ${ROOT}/.run
 # based on the current working dir. Yes, this assumes that you're running
 # this script from within our git repo source tree
 
-# Override the server port info based on current apiserver container's info.
-# If etcd-svc-cat isn't running then assume the caller already set up the
-# kubectl config info and we don't want to override it.
-PORT=$(docker port etcd-svc-cat 8081 | sed "s/.*://")
-if [ -n "${PORT}" ]; then
-	SERVER_INFO="--server localhost:${PORT}"
-fi
-
 docker run ${TTY_ARGS} --rm --net host \
 	-w /root/service-catalog${PWD#${ROOT}} \
 	-v ${ROOT}/.var/run/kubernetes-service-catalog:/var/run/kubernetes-service-catalog \

@@ -50,7 +50,11 @@ func findNestedMessagesAndEnumerations(message *descriptor.Message, reg *descrip
 }
 
 func renderMessagesAsDefinition(messages messageMap, d swaggerDefinitionsObject, reg *descriptor.Registry) {
-	for _, msg := range messages {
+	for name, msg := range messages {
+		switch name {
+		case ".google.protobuf.Timestamp":
+			continue
+		}
 		if opt := msg.GetOptions(); opt != nil && opt.MapEntry != nil && *opt.MapEntry {
 			continue
 		}
@@ -105,8 +109,15 @@ func schemaOfField(f *descriptor.Field, reg *descriptor.Registry) swaggerSchemaO
 
 	switch ft := fd.GetType(); ft {
 	case pbdescriptor.FieldDescriptorProto_TYPE_ENUM, pbdescriptor.FieldDescriptorProto_TYPE_MESSAGE, pbdescriptor.FieldDescriptorProto_TYPE_GROUP:
-		core = schemaCore{
-			Ref: "#/definitions/" + fullyQualifiedNameToSwaggerName(fd.GetTypeName(), reg),
+		if fd.GetTypeName() == ".google.protobuf.Timestamp" && pbdescriptor.FieldDescriptorProto_TYPE_MESSAGE == ft {
+			core = schemaCore{
+				Type:   "string",
+				Format: "date-time",
+			}
+		} else {
+			core = schemaCore{
+				Ref: "#/definitions/" + fullyQualifiedNameToSwaggerName(fd.GetTypeName(), reg),
+			}
 		}
 	default:
 		ftype, format, ok := primitiveSchema(ft)
@@ -366,6 +377,19 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 				}
 				// Now check if there is a body parameter
 				if b.Body != nil {
+					var schema swaggerSchemaObject
+
+					if len(b.Body.FieldPath) == 0 {
+						schema = swaggerSchemaObject{
+							schemaCore: schemaCore{
+								Ref: fmt.Sprintf("#/definitions/%s", fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg)),
+							},
+						}
+					} else {
+						lastField := b.Body.FieldPath[len(b.Body.FieldPath) - 1]
+						schema = schemaOfField(lastField.Target, reg)
+					}
+
 					desc := ""
 					if meth.GetClientStreaming() {
 						desc = "(streaming inputs)"
@@ -375,11 +399,7 @@ func renderServices(services []*descriptor.Service, paths swaggerPathsObject, re
 						Description: desc,
 						In:          "body",
 						Required:    true,
-						Schema: &swaggerSchemaObject{
-							schemaCore: schemaCore{
-								Ref: fmt.Sprintf("#/definitions/%s", fullyQualifiedNameToSwaggerName(meth.RequestType.FQMN(), reg)),
-							},
-						},
+						Schema: &schema,
 					})
 				}
 

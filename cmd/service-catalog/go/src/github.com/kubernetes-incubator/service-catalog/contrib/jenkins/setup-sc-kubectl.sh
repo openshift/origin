@@ -38,7 +38,7 @@ echo "Using API Server IP: ${API_SERVER_HOST}"
 export KUBECONFIG="${SC_KUBECONFIG:-"${KUBECONFIG}"}"
 echo "Using config file at: ${SC_KUBECONFIG}"
 kubectl config set-credentials service-catalog-creds --username=admin --password=admin
-kubectl config set-cluster service-catalog-cluster --server="http://${API_SERVER_HOST}:80"
+kubectl config set-cluster service-catalog-cluster --server="https://${API_SERVER_HOST}:443" --insecure-skip-tls-verify=true
 kubectl config set-context service-catalog-ctx --cluster=service-catalog-cluster --user=service-catalog-creds
 kubectl config use-context service-catalog-ctx
 

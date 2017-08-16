@@ -45,8 +45,9 @@ const (
 	missingNamespaceWait = 50 * time.Millisecond
 )
 
-func init() {
-	admission.RegisterPlugin(PluginName, func(io.Reader) (admission.Interface, error) {
+// Register registers a plugin
+func Register(plugins *admission.Plugins) {
+	plugins.Register(PluginName, func(io.Reader) (admission.Interface, error) {
 		return NewLifecycle()
 	})
 }

@@ -34,6 +34,8 @@ type FakeBindings struct {
 
 var bindingsResource = schema.GroupVersionResource{Group: "servicecatalog.k8s.io", Version: "", Resource: "bindings"}
 
+var bindingsKind = schema.GroupVersionKind{Group: "servicecatalog.k8s.io", Version: "", Kind: "Binding"}
+
 func (c *FakeBindings) Create(binding *servicecatalog.Binding) (result *servicecatalog.Binding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(bindingsResource, c.ns, binding), &servicecatalog.Binding{})
@@ -90,7 +92,7 @@ func (c *FakeBindings) Get(name string, options v1.GetOptions) (result *servicec
 
 func (c *FakeBindings) List(opts v1.ListOptions) (result *servicecatalog.BindingList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(bindingsResource, c.ns, opts), &servicecatalog.BindingList{})
+		Invokes(testing.NewListAction(bindingsResource, bindingsKind, c.ns, opts), &servicecatalog.BindingList{})
 
 	if obj == nil {
 		return nil, err

@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM debian
+FROM BASEIMAGE
 
-ADD tmp/controller-manager /opt/services/
+ADD controller-manager /opt/services/
 
 ENTRYPOINT ["/opt/services/controller-manager" ]

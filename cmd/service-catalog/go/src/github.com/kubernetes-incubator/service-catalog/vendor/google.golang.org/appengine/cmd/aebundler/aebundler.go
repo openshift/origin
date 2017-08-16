@@ -31,7 +31,7 @@ import (
 var (
 	output  = flag.String("o", "", "name of output tar file or '-' for stdout")
 	rootDir = flag.String("root", ".", "directory name of application root")
-	vm      = flag.Bool("vm", true, `bundle an app for App Engine "flexible environment"`)
+	vm      = flag.Bool("vm", true, "bundle a Managed VM app")
 
 	skipFiles = map[string]bool{
 		".git":        true,

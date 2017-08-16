@@ -18,11 +18,16 @@ package e2e
 
 import (
 	"testing"
+	"flag"
 
 	"github.com/kubernetes-incubator/service-catalog/test/e2e/framework"
 )
 
+var brokerImageFlag string
+
 func init() {
+	flag.StringVar(&brokerImageFlag, "broker-image", "quay.io/kubernetes-service-catalog/user-broker:latest",
+		"The container image for the broker to test against")
 	framework.RegisterParseFlags()
 }
 

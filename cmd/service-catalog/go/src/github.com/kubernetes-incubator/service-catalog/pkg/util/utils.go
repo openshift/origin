@@ -36,9 +36,21 @@ func WriteResponse(w http.ResponseWriter, code int, object interface{}) {
 		return
 	}
 
-	w.WriteHeader(code)
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, string(data))
+	w.WriteHeader(code)
+	w.Write(data)
+}
+
+// WriteErrorResponse will serialize 'object' to the HTTP ResponseWriter
+// with JSON formatted error response
+// using the 'code' as the HTTP status code
+func WriteErrorResponse(w http.ResponseWriter, code int, err error) {
+	type e struct {
+		Error string
+	}
+	WriteResponse(w, code, &e{
+		Error: err.Error(),
+	})
 }
 
 // BodyToObject will convert the incoming HTTP request into the

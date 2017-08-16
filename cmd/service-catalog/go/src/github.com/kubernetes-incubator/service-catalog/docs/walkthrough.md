@@ -189,7 +189,7 @@ When you determine the IP address of this service, set its value into the `SVC_C
 environment variable and then run the following commands:
 
 ```console
-kubectl config set-cluster service-catalog --server=http://$SVC_CAT_API_SERVER_IP:30080
+kubectl config set-cluster service-catalog --server=https://$SVC_CAT_API_SERVER_IP:30034 --insecure-skip-tls-verify=true
 kubectl config set-context service-catalog --cluster=service-catalog
 ```
 
@@ -404,7 +404,7 @@ spec:
   instanceRef:
     name: ups-instance
   externalID: b041db94-a5a0-41a2-87ae-1025ba760918
-  secretName: my-secret
+  secretName: ups-binding
 status:
   conditions:
   - message: Injected bind result
@@ -421,10 +421,10 @@ see a new one:
 kubectl get secrets -n test-ns
 NAME                  TYPE                                  DATA      AGE
 default-token-3k61z   kubernetes.io/service-account-token   3         29m
-my-secret             Opaque                                2         1m
+ups-binding           Opaque                                2         1m
 ```
 
-Notice that a new `Secret` named `my-secret` has been created.
+Notice that a new `Secret` named `ups-binding` has been created.
 
 ## Step 10 - Unbinding from the Instance
 
@@ -436,7 +436,7 @@ kubectl --context=service-catalog delete -n test-ns bindings ups-binding
 ```
 
 Checking the `Secret`s in the `test-ns` namespace, we should see that
-`my-secret` has also been deleted:
+`ups-binding` has also been deleted:
 
 ```console
 kubectl get secrets -n test-ns

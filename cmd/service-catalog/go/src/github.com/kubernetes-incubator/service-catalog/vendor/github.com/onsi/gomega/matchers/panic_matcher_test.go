@@ -33,13 +33,4 @@ var _ = Describe("Panic", func() {
 			Ω(func() {}).ShouldNot(Panic())
 		})
 	})
-
-	Context("when assertion fails", func() {
-		It("should print the object passed to Panic", func() {
-			failuresMessages := InterceptGomegaFailures(func() {
-				Ω(func() { panic("ack!") }).ShouldNot(Panic())
-			})
-			Ω(failuresMessages).Should(ConsistOf(MatchRegexp("not to panic, but panicked with\\s*<string>: ack!")))
-		})
-	})
 })
