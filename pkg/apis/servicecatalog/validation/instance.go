@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
+	"github.com/kubernetes-incubator/service-catalog/pkg/controller"
 )
 
 // validateInstanceName is the validation function for Instance names.
@@ -58,6 +59,29 @@ func validateInstanceSpec(spec *sc.InstanceSpec, fldPath *field.Path, create boo
 
 	for _, msg := range validateServicePlanName(spec.PlanName) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("planName"), spec.PlanName, msg))
+	}
+
+	if spec.ParametersFrom != nil {
+		for _, paramsFrom := range spec.ParametersFrom {
+			if paramsFrom.SecretKeyRef != nil {
+				if paramsFrom.SecretKeyRef.Name == "" {
+					allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom.secretKeyRef.name"), "name is required"))
+				}
+				if paramsFrom.SecretKeyRef.Key == "" {
+					allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom.secretKeyRef.key"), "key is required"))
+				}
+			} else {
+				allErrs = append(allErrs, field.Required(fldPath.Child("parametersFrom"), "source must not be empty if present"))
+			}
+		}
+	}
+	if spec.Parameters != nil {
+		if len(spec.Parameters.Raw) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("parameters"), "inline parameters must not be empty if present"))
+		}
+		if _, err := controller.UnmarshalRawParameters(spec.Parameters.Raw); err != nil {
+			allErrs = append(allErrs, field.Required(fldPath.Child("parameters"), "invalid inline parameters"))
+		}
 	}
 
 	return allErrs

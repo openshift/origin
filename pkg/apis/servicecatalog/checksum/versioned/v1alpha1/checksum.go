@@ -30,6 +30,7 @@ import (
 // - ServiceClassName
 // - PlanName
 // - Parameters
+// - ParametersFrom
 // - ExternalID
 func InstanceSpecChecksum(spec v1alpha1.InstanceSpec) string {
 	specString := ""
@@ -38,6 +39,12 @@ func InstanceSpecChecksum(spec v1alpha1.InstanceSpec) string {
 
 	if spec.Parameters != nil {
 		specString += fmt.Sprintf("parameters:\n\n%v\n\n", string(spec.Parameters.Raw))
+	}
+	if spec.ParametersFrom != nil {
+		specString += "parametersFrom: \n"
+		for _, p := range spec.ParametersFrom {
+			specString += fmt.Sprintf("%v\n", parametersFromChecksum(p))
+		}
 	}
 
 	specString += fmt.Sprintf("externalID: %v\n", spec.ExternalID)
@@ -59,6 +66,12 @@ func BindingSpecChecksum(spec v1alpha1.BindingSpec) string {
 	if spec.Parameters != nil {
 		specString += fmt.Sprintf("parameters:\n\n%v\n\n", string(spec.Parameters.Raw))
 	}
+	if spec.ParametersFrom != nil {
+		specString += "parametersFrom: \n"
+		for _, p := range spec.ParametersFrom {
+			specString += fmt.Sprintf("%v\n", parametersFromChecksum(p))
+		}
+	}
 
 	specString += fmt.Sprintf("externalID: %v\n", spec.ExternalID)
 
@@ -74,6 +87,17 @@ func BrokerSpecChecksum(spec v1alpha1.BrokerSpec) string {
 	specString := fmt.Sprintf("URL: %v\n", spec.URL)
 	specString += fmt.Sprintf("AuthInfo: %v\n", spec.AuthInfo)
 	glog.V(5).Infof("specString: %v", specString)
+	sum := sha256.Sum256([]byte(specString))
+	return fmt.Sprintf("%x", sum)
+}
+
+func parametersFromChecksum(parameters v1alpha1.ParametersFromSource) string {
+	specString := ""
+
+	if parameters.SecretKeyRef != nil {
+		specString += fmt.Sprintf("secretKeyRef: %v[%v]\n", parameters.SecretKeyRef.Name, parameters.SecretKeyRef.Key)
+	}
+
 	sum := sha256.Sum256([]byte(specString))
 	return fmt.Sprintf("%x", sum)
 }

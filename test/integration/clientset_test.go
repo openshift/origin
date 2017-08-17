@@ -287,12 +287,16 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 		Name:      "test-name",
 	}
 
-	brokerServer.Spec.AuthInfo = &v1alpha1.BrokerAuthInfo{BasicAuthSecret: authSecret}
+	brokerServer.Spec.AuthInfo = &v1alpha1.BrokerAuthInfo{
+		Basic: &v1alpha1.BasicAuthConfig{
+			SecretRef: authSecret,
+		},
+	}
 
 	brokerUpdated, err := brokerClient.Update(brokerServer)
 	if nil != err ||
-		"test-namespace" != brokerUpdated.Spec.AuthInfo.BasicAuthSecret.Namespace ||
-		"test-name" != brokerUpdated.Spec.AuthInfo.BasicAuthSecret.Name {
+		"test-namespace" != brokerUpdated.Spec.AuthInfo.Basic.SecretRef.Namespace ||
+		"test-name" != brokerUpdated.Spec.AuthInfo.Basic.SecretRef.Name {
 		return fmt.Errorf("broker wasn't updated, %v, %v", brokerServer, brokerUpdated)
 	}
 
@@ -335,8 +339,8 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 
 	brokerServer, err = brokerClient.Get(name, metav1.GetOptions{})
 	if nil != err ||
-		"test-namespace" != brokerServer.Spec.AuthInfo.BasicAuthSecret.Namespace ||
-		"test-name" != brokerServer.Spec.AuthInfo.BasicAuthSecret.Name {
+		"test-namespace" != brokerServer.Spec.AuthInfo.Basic.SecretRef.Namespace ||
+		"test-name" != brokerServer.Spec.AuthInfo.Basic.SecretRef.Name {
 		return fmt.Errorf("broker wasn't updated (%v)", brokerServer)
 	}
 	if e, a := readyConditionFalse, brokerServer.Status.Conditions[0]; !reflect.DeepEqual(e, a) {

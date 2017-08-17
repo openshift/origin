@@ -16,9 +16,9 @@ DNS enabled already.
 * If you are using hack/local-up-cluster.sh, ensure the
 `KUBE_ENABLE_CLUSTER_DNS` environment variable is set as follows:
 
-  ```console
-  KUBE_ENABLE_CLUSTER_DNS=true hack/local-up-cluster.sh -O
-  ```
+```console
+hack/local-up-cluster.sh -O
+```
 
 ### Getting Helm and installing Tiller
 
@@ -32,6 +32,23 @@ be done with Helm setup.
 If you don't already have Helm v2, see the
 [installation instructions](https://github.com/kubernetes/helm/blob/master/docs/install.md).
 
+If your kubernetes cluster has
+[RBAC](https://kubernetes.io/docs/admin/authorization/rbac/) enabled, you must
+ensure that the tiller pod has `cluster-admin` access. By default, `helm init`
+installs the tiller pod into `kube-system` namespace, with tiller configured to
+use the `default` service account.
+
+```console
+kubectl create clusterrolebinding tiller-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
+```
+
+`cluster-admin` access is required in order for helm to work correctly in
+clusters with RBAC enabled.  If you used the `--tiller-namespace` or
+`--service-account` flags when running `helm init`, the `--serviceaccount` flag
+in the previous command needs to be adjusted to reference the appropriate
+namespace and ServiceAccount name.
+
+
 ## Step 1 - Installing the Service Catalog
 
 The service catalog is packaged as a Helm chart located in the
@@ -39,11 +56,12 @@ The service catalog is packaged as a Helm chart located in the
 wide variety of customizations which are detailed in that directory's
 [README.md](https://github.com/kubernetes-incubator/service-catalog/blob/master/charts/catalog/README.md).
 
-### The Service Catalog Database
+### The Service Catalog Data Store
 
-We'll be interacting with a variety of resources in the following steps. The service catalog API
-server needs to store all of these resources in a database. The database implementation in the API
-server is pluggable, and we currently support the following implementations:
+We'll be interacting with a variety of resources in the following steps. The
+service catalog API server needs to store all of these resources in a data
+store. The data store implementation in the API server is pluggable, and we
+currently support the following implementations:
 
 1. Etcd 3
 2. Third Party Resources (also, known as TPRs) - this is an _alpha_ feature right now. It has known issues
@@ -56,19 +74,19 @@ possible to access data via the TPRs directly, but we don't recommend it.
 
 ### Install
 
-To install the service catalog system with Etcd 3 as the backing database:
+To install the service catalog system with Etcd 3 as the backing data store:
 
 ```console
 helm install charts/catalog --name catalog --namespace catalog
 ```
 
-To install the service catalog system with TPRs as the backing database:
+To install the service catalog system with TPRs as the backing data store:
 
 ```console
 helm install charts/catalog --name catalog --namespace catalog --set apiserver.storage.type=tpr,apiserver.storage.tpr.globalNamespace=catalog
 ```
 
-Regardless of which database implementation you choose, the remainder of the steps in this
+Regardless of which data store implementation you choose, the remainder of the steps in this
 walkthrough will stay the same.
 
 ### API Server Authentication and Authorization
@@ -192,6 +210,9 @@ environment variable and then run the following commands:
 kubectl config set-cluster service-catalog --server=https://$SVC_CAT_API_SERVER_IP:30034 --insecure-skip-tls-verify=true
 kubectl config set-context service-catalog --cluster=service-catalog
 ```
+
+Note: Your cloud provider may require firewall rules to allow your traffic get in.
+Please refer to the [Troubleshooting](#troubleshooting) section for details.
 
 ## Step 6 - Creating a Broker Resource
 
@@ -370,6 +391,7 @@ resource.
 kubectl --context=service-catalog create -f contrib/examples/walkthrough/ups-binding.yaml
 ```
 
+
 That command should output:
 
 ```console
@@ -384,6 +406,12 @@ the status of this process like so:
 
 ```console
 kubectl --context=service-catalog get bindings -n test-ns ups-binding -o yaml
+```
+
+_NOTE: if using the API aggregator, you will need to use the fully qualified name of the binding resource due to [issue 1008](https://github.com/kubernetes-incubator/service-catalog/issues/1008):_
+
+```console
+kubectl get bindings.v1alpha1.servicecatalog.k8s.io -n test-ns ups-binding -o yaml
 ```
 
 We should see something like:
@@ -482,4 +510,15 @@ Then, delete all the namespaces we created:
 
 ```console
 kubectl delete ns test-ns catalog ups-broker
+```
+
+## Troubleshooting
+
+### Firewall rules
+
+If you are using Google Cloud Platform, you may need to run the following
+commands to setup proper firewall rules to allow your traffic get in.
+
+```console
+gcloud compute firewall-rules create allow-service-catalog-secure --allow tcp:30443 --description "Allow incoming traffic on 30443 port."
 ```

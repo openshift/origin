@@ -90,6 +90,10 @@ func (c *userProvidedController) CreateServiceInstance(
 		}
 		var cred brokerapi.Credential
 		err = json.Unmarshal(jsonCred, &cred)
+		if err != nil {
+			glog.Errorf("Failed to unmarshal credentials: %v", err)
+			return nil, err
+		}
 
 		c.instanceMap[id] = &userProvidedServiceInstance{
 			Name:       id,

@@ -4,7 +4,7 @@ Table of Contents
 - [Overview](#overview)
 - [Working on Issues](#working-on-issues)
 - [Prerequisites](#prerequisites)
-- [Cloning the Repo](#cloning-the-repo)
+- [Workflow](#workflow)
 - [Building](#building)
 - [Testing](#testing)
 - [Advanced Build Steps](#advanced-build-steps)
@@ -88,14 +88,51 @@ also need:
 a Kubernetes cluster. As such, our build process only supports compilation of
 linux/amd64 binaries suitable for execution within a Docker container.
 
-## Cloning the Repo
+## Workflow
+We can set up the repo by following a process similar to the [dev guide for k8s]( https://github.com/kubernetes/community/blob/master/contributors/devel/development.md#1-fork-in-the-cloud)
 
-The Service Catalog github repository can be found
-[here](https://github.com/kubernetes-incubator/service-catalog.git).
+### 1 Fork in the Cloud
+1. Visit https://github.com/kubernetes-incubator/service-catalog
+2. Click Fork button (top right) to establish a cloud-based fork.
 
-To clone the repository:
+### 2 Clone fork to local storage
 
-    $ git clone https://github.com/kubernetes-incubator/service-catalog.git
+Per Go's workspace instructions, place Service Catalog's code on your GOPATH
+using the following cloning procedure.
+
+Define a local working directory:
+
+> If your GOPATH has multiple paths, pick
+> just one and use it instead of $GOPATH.
+
+> You must follow exactly this pattern,
+> neither `$GOPATH/src/github.com/${your github profile name}/`
+> nor any other pattern will work.
+
+From your shell:
+```bash
+#Set your working directory
+working_dir=$GOPATH/src/github.com/kubernetes-incubator
+
+#Set user to match your github profile name
+user={your github profile name}
+
+#Create your clone:
+mkdir -p $working_dir
+cd $working_dir
+git clone https://github.com/$user/service-catalog.git
+# or: git clone git@github.com:$user/service-catalog.git
+
+cd service-catalog
+git remote add upstream https://github.com/kubernetes-incubator/service-catalog.git
+# or: git remote add upstream git@github.com:kubernetes-incubator/service-catalog.git
+
+# Never push to upstream master
+git remote set-url --push upstream no_push
+
+# Confirm that your remotes make sense:
+git remote -v
+```
 
 ## Building
 
@@ -217,7 +254,7 @@ cluster you regularly use and are familiar with.  One of the choices you can
 make when deploying the catalog is whether to make the API server store its
 resources in an external etcd server, or in third party resources.
 
-If you choose etcd storage, the helm chart will launch an etcd server for you 
+If you choose etcd storage, the helm chart will launch an etcd server for you
 in the same pod as the service-catalog API server. You will be responsible for
 the data in the etcd server container.
 

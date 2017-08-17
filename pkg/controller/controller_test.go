@@ -53,7 +53,7 @@ import (
 // - tests for the methods on controller.go
 // - test fixtures used in other controller_*_test.go files
 //
-// Other controller_*_test.go files contain tests related to the reconcilation
+// Other controller_*_test.go files contain tests related to the reconciliation
 // loops for the different catalog API resources.
 
 const (
@@ -307,6 +307,12 @@ func getTestBrokerWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.Broker {
 	return broker
 }
 
+func getTestBrokerWithAuth(authInfo *v1alpha1.BrokerAuthInfo) *v1alpha1.Broker {
+	broker := getTestBroker()
+	broker.Spec.AuthInfo = authInfo
+	return broker
+}
+
 // a bindable service class wired to the result of getTestBroker()
 func getTestServiceClass() *v1alpha1.ServiceClass {
 	return &v1alpha1.ServiceClass{
@@ -436,6 +442,18 @@ func getTestInstanceWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.Instan
 	return instance
 }
 
+func getTestInstanceWithFailedStatus() *v1alpha1.Instance {
+	instance := getTestInstance()
+	instance.Status = v1alpha1.InstanceStatus{
+		Conditions: []v1alpha1.InstanceCondition{{
+			Type:   v1alpha1.InstanceConditionFailed,
+			Status: v1alpha1.ConditionTrue,
+		}},
+	}
+
+	return instance
+}
+
 // getTestInstanceAsync returns an instance in async mode
 func getTestInstanceAsyncProvisioning(operation string) *v1alpha1.Instance {
 	instance := getTestInstance()
@@ -491,6 +509,18 @@ func getTestBinding() *v1alpha1.Binding {
 			ExternalID:  bindingGUID,
 		},
 	}
+}
+
+func getTestBindingWithFailedStatus() *v1alpha1.Binding {
+	binding := getTestBinding()
+	binding.Status = v1alpha1.BindingStatus{
+		Conditions: []v1alpha1.BindingCondition{{
+			Type:   v1alpha1.BindingConditionFailed,
+			Status: v1alpha1.ConditionTrue,
+		}},
+	}
+
+	return binding
 }
 
 type instanceParameters struct {
@@ -976,7 +1006,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 		serviceCatalogSharedInformers.Bindings(),
 		brokerClFunc,
 		24*time.Hour,
-		osb.Version2_12().HeaderValue(),
+		osb.LatestAPIVersion().HeaderValue(),
 		fakeRecorder,
 	)
 	if err != nil {
@@ -1027,7 +1057,7 @@ func newTestControllerWithBrokerServer(
 		serviceCatalogSharedInformers.Bindings(),
 		osb.NewClient,
 		24*time.Hour,
-		osb.Version2_12().HeaderValue(),
+		osb.LatestAPIVersion().HeaderValue(),
 		fakeRecorder,
 	)
 	if err != nil {
@@ -1307,46 +1337,46 @@ func assertInstanceReadyCondition(t *testing.T, obj runtime.Object, status v1alp
 func assertAsyncOpInProgressTrue(t *testing.T, obj runtime.Object) {
 	instance, ok := obj.(*v1alpha1.Instance)
 	if !ok {
-		t.Fatalf("Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
 	}
 	if !instance.Status.AsyncOpInProgress {
-		t.Fatalf("expected AsyncOpInProgress to be true but was %v", instance.Status.AsyncOpInProgress)
+		fatalf(t, "expected AsyncOpInProgress to be true but was %v", instance.Status.AsyncOpInProgress)
 	}
 }
 
 func assertAsyncOpInProgressFalse(t *testing.T, obj runtime.Object) {
 	instance, ok := obj.(*v1alpha1.Instance)
 	if !ok {
-		t.Fatalf("Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
 	}
 	if instance.Status.AsyncOpInProgress {
-		t.Fatalf("expected AsyncOpInProgress to be false but was %v", instance.Status.AsyncOpInProgress)
+		fatalf(t, "expected AsyncOpInProgress to be false but was %v", instance.Status.AsyncOpInProgress)
 	}
 }
 
 func assertInstanceLastOperation(t *testing.T, obj runtime.Object, operation string) {
 	instance, ok := obj.(*v1alpha1.Instance)
 	if !ok {
-		t.Fatalf("Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
 	}
 	if instance.Status.LastOperation == nil {
 		if operation != "" {
-			t.Fatalf("Last Operation <nil> is not what was expected: %q", operation)
+			fatalf(t, "Last Operation <nil> is not what was expected: %q", operation)
 		}
 	} else if *instance.Status.LastOperation != operation {
-		t.Fatalf("Last Operation %q is not what was expected: %q", *instance.Status.LastOperation, operation)
+		fatalf(t, "Last Operation %q is not what was expected: %q", *instance.Status.LastOperation, operation)
 	}
 }
 
 func assertInstanceDashboardURL(t *testing.T, obj runtime.Object, dashboardURL string) {
 	instance, ok := obj.(*v1alpha1.Instance)
 	if !ok {
-		t.Fatalf("Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
 	}
 	if instance.Status.DashboardURL == nil {
-		t.Fatal("DashboardURL was nil")
+		fatalf(t, "DashboardURL was nil")
 	} else if *instance.Status.DashboardURL != dashboardURL {
-		t.Fatalf("Unexpected DashboardURL: expected %q, got %q", dashboardURL, *instance.Status.DashboardURL)
+		fatalf(t, "Unexpected DashboardURL: expected %q, got %q", dashboardURL, *instance.Status.DashboardURL)
 	}
 }
 
@@ -1402,7 +1432,7 @@ func testNumberOfBrokerActions(t *testing.T, name string, f failfFunc, actions [
 
 	if e, a := number, len(actions); e != a {
 		t.Logf("%+v\n", actions)
-		f(t, "%vUnexpected number of actions: expected %v, got %v", logContext, e, a)
+		f(t, "%vUnexpected number of actions: expected %v, got %v\nactions: %+v", logContext, e, a, actions)
 		return false
 	}
 

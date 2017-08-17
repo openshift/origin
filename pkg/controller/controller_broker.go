@@ -59,7 +59,7 @@ func (c *controller) brokerDelete(obj interface{}) {
 		return
 	}
 
-	glog.V(4).Infof("Received delete event for Broker %v", broker.Name)
+	glog.V(4).Infof("Received delete event for Broker %v; no further processing will occur", broker.Name)
 }
 
 // the Message strings have a terminating period and space so they can
@@ -81,7 +81,8 @@ const (
 	errorNonexistentInstanceReason        string = "ReferencesNonexistentInstance"
 	errorAuthCredentialsReason            string = "ErrorGettingAuthCredentials"
 	errorFindingNamespaceInstanceReason   string = "ErrorFindingNamespaceForInstance"
-	errorProvisionCalledReason            string = "ProvisionCallFailed"
+	errorProvisionCallFailedReason        string = "ProvisionCallFailed"
+	errorErrorCallingProvisionReason      string = "ErrorCallingProvision"
 	errorDeprovisionCalledReason          string = "DeprovisionCallFailed"
 	errorBindCallReason                   string = "BindCallFailed"
 	errorInjectingBindResultReason        string = "ErrorInjectingBindResult"
@@ -107,7 +108,7 @@ const (
 	successUnboundReason             string = "UnboundSuccessfully"
 	asyncProvisioningReason          string = "Provisioning"
 	asyncProvisioningMessage         string = "The instance is being provisioned asynchronously"
-	asyncDeprovisioningReason        string = "Derovisioning"
+	asyncDeprovisioningReason        string = "Deprovisioning"
 	asyncDeprovisioningMessage       string = "The instance is being deprovisioned asynchronously"
 )
 
@@ -266,10 +267,6 @@ func (c *controller) reconcileBroker(broker *v1alpha1.Broker) error {
 	// All updates not having a DeletingTimestamp will have been handled above
 	// and returned early. If we reach this point, we're dealing with an update
 	// that's actually a soft delete-- i.e. we have some finalization to do.
-	// Since the potential exists for a broker to have multiple finalizers and
-	// since those most be cleared in order, we proceed with the soft delete
-	// only if it's "our turn--" i.e. only if the finalizer we care about is at
-	// the head of the finalizers list.
 	if finalizers := sets.NewString(broker.Finalizers...); finalizers.Has(v1alpha1.FinalizerServiceCatalog) {
 		glog.V(4).Infof("Finalizing Broker %v", broker.Name)
 
@@ -388,7 +385,7 @@ func (c *controller) reconcileServiceClassFromBrokerCatalog(broker *v1alpha1.Bro
 	return nil
 }
 
-// updateBrokerReadyCondition updates the ready condition for the given Broker
+// updateBrokerCondition updates the ready condition for the given Broker
 // with the given status, reason, and message.
 func (c *controller) updateBrokerCondition(broker *v1alpha1.Broker, conditionType v1alpha1.BrokerConditionType, status v1alpha1.ConditionStatus, reason, message string) error {
 	clone, err := api.Scheme.DeepCopy(broker)

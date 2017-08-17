@@ -82,8 +82,6 @@ echo "Running 'e2e.test'..."
 ARGUMENTS="--registry ${REGISTRY}"
 ARGUMENTS+=" --version ${VERSION}"
 ARGUMENTS+=" --fix-auth"
-ARGUMENTS+=" --service-catalog-config ${SC_KUBECONFIG}"
-ARGUMENTS+=" --release-name ${CATALOG_RELEASE}"
 if [[ -n "${WITH_TPR:-}" ]]; then
   ARGUMENTS+=" --with-tpr"
 fi
@@ -94,7 +92,9 @@ ${ROOT}/contrib/jenkins/install_catalog.sh ${ARGUMENTS} \
 make bin/e2e.test \
   || error_exit "Error when making e2e test binary."
 
-KUBECONFIG="${KUBECONFIG}" SERVICECATALOGCONFIG="${SC_KUBECONFIG}" ${ROOT}/bin/e2e.test \
+KUBECONFIG="${KUBECONFIG}" ${ROOT}/bin/e2e.test \
+    -service-catalog-config="${KUBECONFIG}" \
+    -service-catalog-context="service-catalog" \
     -broker-image="${REGISTRY}user-broker:${VERSION}" \
   || error_exit "Error while running e2e tests."
 

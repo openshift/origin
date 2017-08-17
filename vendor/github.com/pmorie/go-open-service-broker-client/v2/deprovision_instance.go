@@ -5,13 +5,6 @@ import (
 	"net/http"
 )
 
-// internal message body types
-
-type deprovisionInstanceRequestBody struct {
-	serviceID *string `json:"service_id"`
-	planID    *string `json:"plan_id,omitempty"`
-}
-
 func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionResponse, error) {
 	if err := validateDeprovisionRequest(r); err != nil {
 		return nil, err
@@ -19,20 +12,15 @@ func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionRespons
 
 	fullURL := fmt.Sprintf(serviceInstanceURLFmt, c.URL, r.InstanceID)
 
-	params := map[string]string{}
+	params := map[string]string{
+		serviceIDKey: string(r.ServiceID),
+		planIDKey:    string(r.PlanID),
+	}
 	if r.AcceptsIncomplete {
 		params[asyncQueryParamKey] = "true"
 	}
 
-	requestServiceID := string(r.ServiceID)
-	requestPlanID := string(r.PlanID)
-
-	requestBody := &deprovisionInstanceRequestBody{
-		serviceID: &requestServiceID,
-		planID:    &requestPlanID,
-	}
-
-	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, requestBody)
+	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, nil)
 	if err != nil {
 		return nil, err
 	}

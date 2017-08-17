@@ -50,7 +50,7 @@ const (
 	defaultLeaderElectionNamespace      = "kube-system"
 )
 
-var defaultOSBAPIPreferredVersion = osb.Version2_12().HeaderValue()
+var defaultOSBAPIPreferredVersion = osb.LatestAPIVersion().HeaderValue()
 
 // NewControllerManagerServer creates a new ControllerManagerServer with a
 // default config.
