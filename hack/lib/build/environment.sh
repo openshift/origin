@@ -2,14 +2,52 @@
 
 # This script holds library functions for setting up the Docker container build environment
 
+function os::build::environment::image() {
+  local arch=${2:-$(os::build::sys_arch)}
+  local go_ver=${1:-$(os::build::environment::internal::min_go_ver $arch)}
+  local image_name="openshift/origin-release-$(os::build::sys_arch ${arch})"
+  local tag_name="golang-${go_ver}"
+
+  echo "${image_name}:${tag_name}"
+}
+readonly -f os::build::environment::image
+
+function os::build::environment::internal::min_go_ver() {
+  local go_arch=$(os::build::go_arch ${1})
+
+  for ver in "${!OS_BUILD_GOLANG_VERSION_ARCH_MAP[@]}"; do
+    if [[ "${OS_BUILD_GOLANG_VERSION_ARCH_MAP[${ver}]}" =~ ${go_arch} ]]; then
+      echo ${ver}
+      return
+    fi
+  done
+}
+readonly -f os::build::environment::internal::min_go_ver
+
 # os::build::environment::create creates a docker container with the default variables.
-# arguments are passed directly to the container, OS_BUILD_ENV_GOLANG, OS_BUILD_ENV_IMAGE,
-# and OS_RELEASE_DOCKER_ARGS can be used to customize the container. The docker socket
-# is mounted by default and the output of the command is the container id.
+# arguments are passed directly to the container, OS_BUILD_ENV_ARCH, OS_BUILD_ENV_GOLANG,
+# OS_BUILD_ENV_IMAGE, and OS_RELEASE_DOCKER_ARGS can be used to customize the container.
+# The docker socket is mounted by default and the output of the command is the container id.
 function os::build::environment::create() {
   set -o errexit
-  local release_image="${OS_BUILD_ENV_IMAGE}"
+  local env_golang="${OS_BUILD_ENV_GOLANG:-}"
+  local env_arch="${OS_BUILD_ENV_ARCH:-}"
+  local release_image="${OS_BUILD_ENV_IMAGE:-$(os::build::environment::image "${env_golang}" "${env_arch}")}"
+
   local additional_context="${OS_BUILD_ENV_DOCKER_ARGS:-}"
+  if [[ -n "${env_arch}" && "$(os::build::sys_arch ${env_arch})" != "$(os::build::sys_arch)" ]]; then
+    if [[ "$(os::util::env::sys_arch ${env_arch})" != "x86_64" ]]; then
+      os::log::error "user mode emulation of arch environments only supported for x86_64"
+      exit 1
+    fi
+
+    docker run --rm --privileged multiarch/qemu-user-static:register --reset
+
+    local qemu_binary=qemu-$(os::build::sys_arch ${env_arch})-static
+    local qemu_binary_path=$(os::util::find::system_binary $qemu_binary)
+    additional_context+=" -v ${qemu_binary_path}:${qemu_binary_path}"
+  fi
+
   if [[ "${OS_BUILD_ENV_USE_DOCKER:-y}" == "y" ]]; then
     additional_context+=" --privileged -v /var/run/docker.sock:/var/run/docker.sock"
 
@@ -158,9 +196,21 @@ function os::build::environment::withsource() {
   local container=$1
   local commit=${2:-HEAD}
 
+  local env_golang="${OS_BUILD_ENV_GOLANG:-}"
+  local env_arch="${OS_BUILD_ENV_ARCH:-}"
+  local release_image="${OS_BUILD_ENV_IMAGE:-$(os::build::environment::image "${env_golang}" "${env_arch}")}"
+
+
   if [[ -n "${OS_BUILD_ENV_LOCAL_DOCKER-}" ]]; then
     os::build::environment::start "${container}"
     return
+  fi
+
+  local rsync_container_additional=''
+  if [[ -n "${env_arch}" ]]; then
+    local qemu_binary=qemu-$(os::build::sys_arch ${env_arch})-static
+    local qemu_binary_path=$(os::util::find::system_binary $qemu_binary)
+    rsync_container_additional+=" -v ${qemu_binary_path}:${qemu_binary_path}"
   fi
 
   local workingdir
@@ -187,7 +237,7 @@ function os::build::environment::withsource() {
   IFS="${oldIFS}"
   if which rsync &>/dev/null && [[ -n "${OS_BUILD_ENV_VOLUME-}" ]]; then
     os::log::debug "Syncing source using \`rsync\`"
-    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${OS_BUILD_ENV_VOLUME}:${workingdir}\" --entrypoint=/bin/bash \"${OS_BUILD_ENV_IMAGE}\" -c '\$@'" . remote:"${workingdir}"; then
+    if ! rsync -a --blocking-io "${excluded[@]}" --delete --omit-dir-times --numeric-ids -e "docker run --rm -i -v \"${OS_BUILD_ENV_VOLUME}:${workingdir}\" ${rsync_container_additional} --entrypoint=/bin/bash \"${release_image}\" -c '\$@'" . remote:"${workingdir}"; then
       os::log::debug "Falling back to \`tar\` and \`docker cp\` as \`rsync\` is not in container"
       tar -cf - "${excluded[@]}" . | docker cp - "${container}:${workingdir}"
     fi
@@ -226,6 +276,9 @@ readonly -f os::build::environment::remove_volume
 # os::build::environment::run launches the container with the provided arguments and
 # the current commit (defaults to HEAD). The container is automatically cleaned up.
 function os::build::environment::run() {
+  local env_golang="${OS_BUILD_ENV_GOLANG:-}"
+  local env_arch="${OS_BUILD_ENV_ARCH:-}"
+  local release_image="${OS_BUILD_ENV_IMAGE:-$(os::build::environment::image "${env_golang}" "${env_arch}")}"
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume
   local tmp_volume
@@ -242,8 +295,8 @@ function os::build::environment::run() {
   fi
 
   if [[ -n "${OS_BUILD_ENV_PULL_IMAGE:-}" ]]; then
-    os::log::info "Pulling the ${OS_BUILD_ENV_IMAGE} image to update it..."
-    docker pull "${OS_BUILD_ENV_IMAGE}"
+    os::log::info "Pulling the ${release_image} image to update it..."
+    docker pull "${release_image}"
   fi
 
   os::log::debug "Using commit ${commit}"

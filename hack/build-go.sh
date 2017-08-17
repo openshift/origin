@@ -25,7 +25,7 @@ if [[ -z "$@" ]]; then
     ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
   fi
 
-  build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}")
+  build_targets=("${OS_REDISTRIBUTABLE_TARGETS[@]}")
   # Also build SDN components on Linux by default
   if [[ "${platform}" == linux/* ]]; then
     build_targets=("${build_targets[@]}" "${OS_SDN_COMPILE_TARGETS_LINUX[@]}")
