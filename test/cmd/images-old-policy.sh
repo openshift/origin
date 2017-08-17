@@ -17,6 +17,7 @@ os::test::junit::declare_suite_start "cmd/images-old-policy"
 
 os::cmd::expect_success "oadm policy add-role-to-user admin image-user -n '${project}'"
 os::cmd::expect_success "oc delete clusterrole/admin --cascade=false"
+os::cmd::expect_failure "oc get clusterrole/admin"
 os::cmd::expect_success "oc create -f '${OS_ROOT}/test/testdata/admin-role-minus-create-istag.yaml'"
 
 os::cmd::try_until_text "oc policy who-can get pods -n ${project}" "image-user"

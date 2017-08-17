@@ -14,7 +14,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/controller/authorizationsync"
+	"github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
 
@@ -84,10 +84,15 @@ func (o *MigrateAuthorizationOptions) Complete(name string, f *clientcmd.Factory
 		return err
 	}
 
-	_, kclient, err := f.Clients()
+	client, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
+
+	if err := clientcmd.Gate(client, "", "3.7.0"); err != nil {
+		return err
+	}
+
 	o.rbac = kclient.Rbac()
 
 	return nil
@@ -126,7 +131,7 @@ func (o *MigrateAuthorizationOptions) checkClusterRole(originClusterRole *author
 	var errlist []error
 
 	// convert the origin role to a rbac role
-	convertedClusterRole, err := authorizationsync.ConvertToRBACClusterRole(originClusterRole)
+	convertedClusterRole, err := util.ConvertToRBACClusterRole(originClusterRole)
 	if err != nil {
 		errlist = append(errlist, err)
 	}
@@ -140,7 +145,7 @@ func (o *MigrateAuthorizationOptions) checkClusterRole(originClusterRole *author
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if authorizationsync.PrepareForUpdateClusterRole(convertedClusterRole, rbacClusterRole) {
+		if util.PrepareForUpdateClusterRole(convertedClusterRole, rbacClusterRole) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
@@ -152,7 +157,7 @@ func (o *MigrateAuthorizationOptions) checkRole(originRole *authorizationapi.Rol
 	var errlist []error
 
 	// convert the origin role to a rbac role
-	convertedRole, err := authorizationsync.ConvertToRBACRole(originRole)
+	convertedRole, err := util.ConvertToRBACRole(originRole)
 	if err != nil {
 		errlist = append(errlist, err)
 	}
@@ -166,7 +171,7 @@ func (o *MigrateAuthorizationOptions) checkRole(originRole *authorizationapi.Rol
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if authorizationsync.PrepareForUpdateRole(convertedRole, rbacRole) {
+		if util.PrepareForUpdateRole(convertedRole, rbacRole) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
@@ -178,7 +183,7 @@ func (o *MigrateAuthorizationOptions) checkClusterRoleBinding(originRoleBinding 
 	var errlist []error
 
 	// convert the origin role binding to a rbac role binding
-	convertedRoleBinding, err := authorizationsync.ConvertToRBACClusterRoleBinding(originRoleBinding)
+	convertedRoleBinding, err := util.ConvertToRBACClusterRoleBinding(originRoleBinding)
 	if err != nil {
 		errlist = append(errlist, err)
 	}
@@ -192,7 +197,7 @@ func (o *MigrateAuthorizationOptions) checkClusterRoleBinding(originRoleBinding 
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if authorizationsync.PrepareForUpdateClusterRoleBinding(convertedRoleBinding, rbacRoleBinding) {
+		if util.PrepareForUpdateClusterRoleBinding(convertedRoleBinding, rbacRoleBinding) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}
@@ -204,7 +209,7 @@ func (o *MigrateAuthorizationOptions) checkRoleBinding(originRoleBinding *author
 	var errlist []error
 
 	// convert the origin role binding to a rbac role binding
-	convertedRoleBinding, err := authorizationsync.ConvertToRBACRoleBinding(originRoleBinding)
+	convertedRoleBinding, err := util.ConvertToRBACRoleBinding(originRoleBinding)
 	if err != nil {
 		errlist = append(errlist, err)
 	}
@@ -218,7 +223,7 @@ func (o *MigrateAuthorizationOptions) checkRoleBinding(originRoleBinding *author
 	// compare the results if there have been no errors so far
 	if len(errlist) == 0 {
 		// if they are not equal, something has gone wrong and the two objects are not in sync
-		if authorizationsync.PrepareForUpdateRoleBinding(convertedRoleBinding, rbacRoleBinding) {
+		if util.PrepareForUpdateRoleBinding(convertedRoleBinding, rbacRoleBinding) {
 			errlist = append(errlist, errOutOfSync)
 		}
 	}

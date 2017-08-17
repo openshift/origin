@@ -100,12 +100,14 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		apiExtensionInformers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
 		autoRegistrationController)
 
-	aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
+	if err := aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
 		go autoRegistrationController.Run(5, context.StopCh)
 		go tprRegistrationController.Run(5, context.StopCh)
 		return nil
-	})
-	aggregatorServer.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("autoregister-completion", func(r *http.Request) error {
+	}); err != nil {
+		return nil, err
+	}
+	if err := aggregatorServer.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("autoregister-completion", func(r *http.Request) error {
 		items, err := aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices().Lister().List(labels.Everything())
 		if err != nil {
 			return err
@@ -133,7 +135,9 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 			return fmt.Errorf("missing APIService: %v", missing)
 		}
 		return nil
-	}))
+	})); err != nil {
+		return nil, err
+	}
 
 	return aggregatorServer, nil
 }

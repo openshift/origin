@@ -292,8 +292,7 @@ os::cmd::expect_success 'oadm policy add-role-to-user admin adduser -n ui-test-p
 # Make sure project can be listed by oc (after auth cache syncs)
 os::cmd::try_until_text 'oc get projects' 'ui\-test\-project'
 # Make sure users got added
-os::cmd::expect_success_and_text "oc describe policybinding ':default' -n ui-test-project" 'createuser'
-os::cmd::expect_success_and_text "oc describe policybinding ':default' -n ui-test-project" 'adduser'
+os::cmd::expect_success_and_text "oc get rolebinding admin -n ui-test-project -o jsonpath='{.subjects[*].name}'" '^createuser adduser$'
 echo "ui-project-commands: ok"
 os::test::junit::declare_suite_end
 
@@ -303,7 +302,7 @@ os::cmd::expect_success 'oadm new-project recreated-project --admin="createuser1
 os::cmd::expect_success 'oc delete project recreated-project'
 os::cmd::try_until_failure 'oc get project recreated-project'
 os::cmd::expect_success 'oadm new-project recreated-project --admin="createuser2"'
-os::cmd::expect_success_and_text "oc describe policybinding ':default' -n recreated-project" 'createuser2'
+os::cmd::expect_success_and_text "oc get rolebinding admin -n recreated-project -o jsonpath='{.subjects[*].name}'" '^createuser2$'
 echo "new-project: ok"
 os::test::junit::declare_suite_end
 
@@ -408,31 +407,28 @@ os::cmd::expect_success_and_not_text 'oc get scc/restricted -o yaml' 'topic: my-
 echo "reconcile-scc: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/policybinding-not-required"
+os::test::junit::declare_suite_start "cmd/admin/rolebinding-allowed"
 # Admin can bind local roles without cluster-admin permissions
 os::cmd::expect_success "oc create -f test/extended/testdata/roles/empty-role.yaml -n '${project}'"
-os::cmd::expect_success "oc delete 'policybinding/${project}:default' -n '${project}'"
 os::cmd::expect_success 'oadm policy add-role-to-user admin local-admin  -n '${project}''
-os::cmd::try_until_text "oc policy who-can get policybindings -n '${project}'" "local-admin"
 os::cmd::expect_success 'oc login -u local-admin -p pw'
 os::cmd::expect_success 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${project}''
 os::cmd::expect_success 'oc login -u system:admin'
 os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
-echo "policybinding-not-required: ok"
+echo "cmd/admin/rolebinding-allowed: ok"
 os::test::junit::declare_suite_end
 
-os::test::junit::declare_suite_start "cmd/admin/policybinding-local-only"
+os::test::junit::declare_suite_start "cmd/admin/rolebinding-local-only"
 # Admin cannot bind local roles from different namespace
 otherproject='someotherproject'
 os::cmd::expect_success "oc new-project '${otherproject}'"
 os::cmd::expect_success "oc create -f test/extended/testdata/roles/empty-role.yaml -n '${project}'"
 os::cmd::expect_success 'oadm policy add-role-to-user admin local-admin  -n '${otherproject}''
-os::cmd::try_until_text "oc policy who-can get policybindings -n '${otherproject}'" "local-admin"
 os::cmd::expect_success 'oc login -u local-admin -p pw'
-os::cmd::expect_failure_and_text 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${otherproject}'' "\"${project}:default\" not found"
+os::cmd::expect_failure_and_text 'oc policy add-role-to-user empty-role other --role-namespace='${project}' -n '${otherproject}'' "invalid origin role binding empty-role: attempts to reference role in namespace \"${project}\" instead of current namespace \"${otherproject}\""
 os::cmd::expect_success 'oc login -u system:admin'
 os::cmd::expect_success "oc delete role/empty-role -n '${project}'"
-echo "policybinding-local-only: ok"
+echo "rolebinding-local-only: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/user-group-cascade"

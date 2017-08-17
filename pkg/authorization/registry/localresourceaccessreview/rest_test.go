@@ -12,8 +12,8 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
+	"github.com/openshift/origin/pkg/authorization/registry/util"
 )
 
 type resourceAccessTest struct {
@@ -128,7 +128,7 @@ func (r *resourceAccessTest) runTest(t *testing.T) {
 		Groups:    r.authorizer.groups,
 	}
 
-	expectedAttributes := authorizer.ToDefaultAuthorizationAttributes(nil, r.reviewRequest.Action.Namespace, r.reviewRequest.Action)
+	expectedAttributes := util.ToDefaultAuthorizationAttributes(nil, r.reviewRequest.Action.Namespace, r.reviewRequest.Action)
 
 	ctx := apirequest.WithNamespace(apirequest.WithUser(apirequest.NewContext(), &user.DefaultInfo{}), r.reviewRequest.Action.Namespace)
 	obj, err := storage.Create(ctx, r.reviewRequest, false)

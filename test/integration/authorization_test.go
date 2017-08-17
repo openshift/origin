@@ -306,7 +306,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	// the policy cache taking time to react
 	if err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
 		err := addValerie.AddRole()
-		if kapierror.IsNotFound(err) {
+		if err == nil || kapierror.IsNotFound(err) { // TODO what does this mean?
 			return true, nil
 		}
 		return false, err
@@ -318,7 +318,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	roleWithGroup.Name = "with-group"
 	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
 		Verbs:     sets.NewString("list"),
-		Resources: sets.NewString("resourcegroup:builds"),
+		Resources: sets.NewString("builds"), // TODO we may need to track these down
 	})
 	if _, err := clusterAdminClient.ClusterRoles().Create(roleWithGroup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -628,7 +628,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Users:           sets.NewString("edgar"),
 				Groups:          sets.NewString(),
 				Namespace:       "mallet-project",
-				EvaluationError: `[role.authorization.openshift.io "admin" not found, role.authorization.openshift.io "admin" not found]`,
+				EvaluationError: `[clusterrole.rbac.authorization.k8s.io "admin" not found, clusterrole.rbac.authorization.k8s.io "admin" not found]`,
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
@@ -877,7 +877,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -934,7 +934,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -947,7 +947,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -960,7 +960,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -973,7 +973,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -1073,7 +1073,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in default",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1136,7 +1136,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1163,7 +1163,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in mallet-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1217,7 +1217,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1256,7 +1256,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1267,7 +1267,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1413,7 +1413,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeSkip: true, // cannot do impersonation with kube clientset
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in default`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1461,7 +1461,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in hammer-project`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: namespace,
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1488,7 +1488,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in hammer-project`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: namespace,
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||

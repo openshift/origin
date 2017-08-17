@@ -38,7 +38,6 @@ function os::start::configure_server() {
 
 	os::start::internal::create_master_certs     "${version}"
 	os::start::internal::configure_node          "${version}"
-	os::start::internal::create_bootstrap_policy "${version}"
 	os::start::internal::configure_master        "${version}"
 
 	# fix up owner after creating initial config
@@ -107,23 +106,6 @@ function os::start::internal::configure_node() {
 	                        --listen="${KUBELET_SCHEME}://${KUBELET_BIND_HOST}:${KUBELET_PORT}"
 }
 readonly -f os::start::internal::configure_node
-
-# os::start::internal::create_bootstrap_policy creates bootstrap policy files
-#
-# Globals:
-#  - MASTER_CONFIG_DIR
-# Arguments:
-#  1 - alternate version for the config
-function os::start::internal::create_bootstrap_policy() {
-	local version="${1:-}"
-	local openshift_volumes=( "${MASTER_CONFIG_DIR}" )
-	local openshift_executable
-	openshift_executable="$(os::start::internal::openshift_executable "${version}")"
-
-	os::log::debug "Creating boostrap policy files for the OpenShift server"
-	${openshift_executable} admin create-bootstrap-policy-file --filename="${MASTER_CONFIG_DIR}/policy.json"
-}
-readonly -f os::start::internal::create_bootstrap_policy
 
 # os::start::internal::configure_master creates the configuration for the OpenShift master
 #

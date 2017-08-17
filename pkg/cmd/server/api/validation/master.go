@@ -623,7 +623,6 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig, fldPath 
 func ValidatePolicyConfig(config api.PolicyConfig, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	allErrs = append(allErrs, ValidateFile(config.BootstrapPolicyFile, fldPath.Child("bootstrapPolicyFile"))...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftSharedResourcesNamespace, fldPath.Child("openShiftSharedResourcesNamespace"))...)
 	allErrs = append(allErrs, ValidateNamespace(config.OpenShiftInfrastructureNamespace, fldPath.Child("openShiftInfrastructureNamespace"))...)
 

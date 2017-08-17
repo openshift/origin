@@ -13,11 +13,12 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
+	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	"github.com/openshift/origin/pkg/authorization/util"
-	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apis/template/validation"
 )
@@ -126,7 +127,7 @@ func SelectableFields(obj *templateapi.TemplateInstance) fields.Set {
 }
 
 func (s *templateInstanceStrategy) validateImpersonationUpdate(templateInstance, oldTemplateInstance *templateapi.TemplateInstance, userinfo user.Info) field.ErrorList {
-	if oadmission.IsOnlyMutatingGCFields(templateInstance, oldTemplateInstance) {
+	if rbacregistry.IsOnlyMutatingGCFields(templateInstance, oldTemplateInstance, kapihelper.Semantic) {
 		return nil
 	}
 
