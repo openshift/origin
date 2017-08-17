@@ -232,6 +232,12 @@ function run-extended-tests() {
   local test_args="--test.v '--ginkgo.skip=${skip_regex}' \
 '--ginkgo.focus=${focus_regex}' ${TEST_EXTRA_ARGS}"
 
+  # this ${FOCUS} value will override the $focus_regex in the same way that
+  # the --ginkgo.focus argument did previously.
+  if [[ -n "${FOCUS:-}" ]]; then
+    test_args="${test_args} --ginkgo.focus=${FOCUS}"
+  fi
+
   if [[ -n "${dlv_debug}" ]]; then
     # run tests using delve debugger
     local extended_test; extended_test="$( os::util::find::built_binary extended.test )"
@@ -282,6 +288,10 @@ ${OPENSHIFT_INSTANCE_PREFIX:-openshift}"
 esac
 
 TEST_EXTRA_ARGS="$@"
+
+if [[ "$@[@]" =~ "ginkgo.focus" ]]; then
+      os::log::fatal "the --ginkgo.focus flag is no longer supported, use FOCUS=foo <suite.sh> instead."
+fi
 
 if [[ -n "${OPENSHIFT_SKIP_BUILD:-}" ]] &&
      os::util::find::built_binary 'extended.test' >/dev/null 2>&1; then

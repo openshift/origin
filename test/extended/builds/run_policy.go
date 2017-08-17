@@ -145,7 +145,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 				}
 				if build.Status.Phase == buildapi.BuildPhaseRunning {
 					latency := lastCompletion.Sub(time.Now())
-					o.Expect(latency).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after last completed build")
+					o.Expect(latency).To(o.BeNumerically("<", 15*time.Second), "next build should have started less than 15s after last completed build")
 
 					// Ignore events from complete builds (if there are any) if we already
 					// verified the build.
@@ -209,14 +209,14 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 					}
 					if build.Name == "sample-serial-build-2" {
 						duration := time.Now().Sub(cancelTime)
-						o.Expect(duration).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after canceled build")
+						o.Expect(duration).To(o.BeNumerically("<", 15*time.Second), "next build should have started less than 15s after canceled build")
 						err := oc.Run("cancel-build").Args("sample-serial-build-2").Execute()
 						o.Expect(err).ToNot(o.HaveOccurred())
 						cancelTime2 = time.Now()
 					}
 					if build.Name == "sample-serial-build-3" {
 						duration := time.Now().Sub(cancelTime2)
-						o.Expect(duration).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after canceled build")
+						o.Expect(duration).To(o.BeNumerically("<", 15*time.Second), "next build should have started less than 15s after canceled build")
 						break
 					}
 				}
@@ -261,7 +261,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 						}
 						if build.Name == "sample-serial-build-fail-2" {
 							duration := time.Now().Sub(failTime)
-							o.Expect(duration).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after failed build")
+							o.Expect(duration).To(o.BeNumerically("<", 15*time.Second), "next build should have started less than 15s after failed build")
 							if build.Status.CompletionTimestamp != nil {
 								o.Expect(build.Status.StartTimestamp).ToNot(o.BeNil(), "failed builds should have a valid start time")
 								o.Expect(build.Status.CompletionTimestamp).ToNot(o.BeNil(), "failed builds should have a valid completion time")
@@ -271,7 +271,7 @@ var _ = g.Describe("[builds][Slow] using build configuration runPolicy", func() 
 						}
 						if build.Name == "sample-serial-build-fail-3" {
 							duration := time.Now().Sub(failTime2)
-							o.Expect(duration).To(o.BeNumerically("<", 10*time.Second), "next build should have started less than 10s after failed build")
+							o.Expect(duration).To(o.BeNumerically("<", 15*time.Second), "next build should have started less than 15s after failed build")
 							if build.Status.CompletionTimestamp != nil {
 								o.Expect(build.Status.StartTimestamp).ToNot(o.BeNil(), "failed builds should have a valid start time")
 								o.Expect(build.Status.CompletionTimestamp).ToNot(o.BeNil(), "failed builds should have a valid completion time")

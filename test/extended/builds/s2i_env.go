@@ -45,7 +45,8 @@ var _ = g.Describe("[builds][Slow] s2i build with environment file in sources", 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", "test/extended/testdata/sti-environment-build-app")
+			path := exutil.FixturePath("testdata", "sti-environment-build-app")
+			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", path)
 			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
