@@ -33,6 +33,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/master"
+	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
@@ -344,18 +346,6 @@ func (o MasterOptions) CreateCerts() error {
 	return nil
 }
 
-func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
-	return kubernetes.BuildKubernetesMasterConfig(
-		openshiftConfig.Options,
-		openshiftConfig.RequestContextMapper,
-		openshiftConfig.KubeClientsetExternal(),
-		openshiftConfig.KubeClientsetInternal(),
-		openshiftConfig.KubeAdmissionControl,
-		openshiftConfig.Authenticator,
-		openshiftConfig.Authorizer,
-	)
-}
-
 // Master encapsulates starting the components of the master
 type Master struct {
 	config      *configapi.MasterConfig
@@ -515,20 +505,29 @@ func (m *Master) Start() error {
 			return err
 		}
 
-		kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
+		kubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(
+			openshiftConfig.Options,
+			openshiftConfig.RequestContextMapper,
+			openshiftConfig.KubeAdmissionControl,
+			openshiftConfig.Authenticator,
+			openshiftConfig.Authorizer,
+		)
 		if err != nil {
 			return err
 		}
-		kubeMasterConfig.Master.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
+		kubeAPIServerConfig.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
 
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
 			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
 		}
-		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate.Format = m.config.ImageConfig.Format
+		imageTemplate.Latest = m.config.ImageConfig.Latest
+		glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-		if err := StartAPI(openshiftConfig, kubeMasterConfig, informers, controllerPlug); err != nil {
+		if err := StartAPI(openshiftConfig, kubeAPIServerConfig, informers, controllerPlug); err != nil {
 			return err
 		}
 	}
@@ -540,32 +539,19 @@ func (m *Master) Start() error {
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *informers, controllerPlug plug.Plug) error {
+func StartAPI(oc *origin.MasterConfig, kubeAPIServerConfig *master.Config, informers *informers, controllerPlug plug.Plug) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
 		etcdserver.RunEtcd(oc.Options.EtcdConfig)
 	}
 
 	// verify we can connect to etcd with the provided config
-	if len(kc.Options.APIServerArguments) > 0 && len(kc.Options.APIServerArguments["storage-backend"]) > 0 && kc.Options.APIServerArguments["storage-backend"][0] == "etcd3" {
-		etcdClient, err := etcd.MakeEtcdClientV3(oc.Options.EtcdClientInfo)
-		if err != nil {
-			return err
-		}
-		if err := etcd.TestEtcdClientV3(etcdClient); err != nil {
-			return err
-		}
-	} else {
-		etcdClient, err := etcd.MakeEtcdClient(oc.Options.EtcdClientInfo)
-		if err != nil {
-			return err
-		}
-		if err := etcd.TestEtcdClient(etcdClient); err != nil {
-			return err
-		}
+	// TODO remove when this becomes a health check in 3.8
+	if err := testEtcdConnectivity(oc.Options.EtcdClientInfo); err != nil {
+		return err
 	}
 
-	if err := oc.Run(kc.Master, controllerPlug, utilwait.NeverStop); err != nil {
+	if err := oc.Run(kubeAPIServerConfig, controllerPlug, utilwait.NeverStop); err != nil {
 		return err
 	}
 
@@ -590,6 +576,28 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 		if err := assetapiserver.RunAssetServer(assetServer, utilwait.NeverStop); err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
+	// first try etcd2
+	etcdClient2, etcd2Err := etcd.MakeEtcdClient(etcdClientInfo)
+	if etcd2Err == nil {
+		etcd2Err = etcd.TestEtcdClient(etcdClient2)
+		if etcd2Err == nil {
+			return nil
+		}
+	}
+
+	// try etcd3 otherwise
+	etcdClient3, etcd3Err := etcd.MakeEtcdClientV3(etcdClientInfo)
+	if etcd3Err != nil {
+		return kutilerrors.NewAggregate([]error{etcd2Err, etcd3Err})
+	}
+	if etcd3Err := etcd.TestEtcdClientV3(etcdClient3); etcd3Err != nil {
+		return kutilerrors.NewAggregate([]error{etcd2Err, etcd3Err})
 	}
 
 	return nil

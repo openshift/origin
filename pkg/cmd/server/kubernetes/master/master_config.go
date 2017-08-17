@@ -2,7 +2,6 @@ package master
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -51,8 +50,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
-	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
@@ -82,15 +79,6 @@ const DefaultWatchCacheSize = 1000
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
 
 var LegacyAPIGroupPrefixes = sets.NewString(apiserver.DefaultLegacyAPIPrefix, api.Prefix)
-
-// MasterConfig defines the required values to start a Kubernetes master
-type MasterConfig struct {
-	// this is a mutated copy of options!
-	// TODO stop mutating values!
-	Options configapi.KubernetesMasterConfig
-
-	Master *master.Config
-}
 
 // BuildKubeAPIserverOptions constructs the appropriate kube-apiserver run options.
 // It returns an error if no KubernetesMasterConfig was defined.
@@ -182,7 +170,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 
 // BuildStorageFactory builds a storage factory based on server.Etcd.StorageConfig with overrides from masterConfig.
 // This storage factory is used for kubernetes and origin registries. Compare pkg/util/restoptions/configgetter.go.
-func BuildStorageFactory(masterConfig configapi.MasterConfig, server *kapiserveroptions.ServerRunOptions, enforcedStorageVersions map[schema.GroupResource]schema.GroupVersion) (*apiserverstorage.DefaultStorageFactory, error) {
+func BuildStorageFactory(server *kapiserveroptions.ServerRunOptions, enforcedStorageVersions map[schema.GroupResource]schema.GroupVersion) (*apiserverstorage.DefaultStorageFactory, error) {
 	resourceEncodingConfig := apiserverstorage.NewDefaultResourceEncodingConfig(kapi.Registry)
 
 	storageGroupsToEncodingVersion, err := server.StorageSerialization.StorageGroupsToEncodingVersion()
@@ -416,8 +404,6 @@ func buildPublicAddress(masterConfig configapi.MasterConfig) (net.IP, error) {
 func buildKubeApiserverConfig(
 	masterConfig configapi.MasterConfig,
 	requestContextMapper apirequest.RequestContextMapper,
-	kubeClient kclientset.Interface,
-	internalKubeClient kinternalclientset.Interface,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
@@ -437,7 +423,7 @@ func buildKubeApiserverConfig(
 		return nil, err
 	}
 
-	storageFactory, err := BuildStorageFactory(masterConfig, apiserverOptions, nil)
+	storageFactory, err := BuildStorageFactory(apiserverOptions, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +449,7 @@ func buildKubeApiserverConfig(
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestContextMapper = requestContextMapper
-	genericConfig.OpenAPIConfig = DefaultOpenAPIConfig(masterConfig)
+	genericConfig.OpenAPIConfig = defaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
 	_, loopbackClientConfig, err := configapi.GetInternalKubeClient(masterConfig.MasterClients.OpenShiftLoopbackKubeConfig, masterConfig.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
@@ -603,20 +589,13 @@ func buildKubeApiserverConfig(
 func BuildKubernetesMasterConfig(
 	masterConfig configapi.MasterConfig,
 	requestContextMapper apirequest.RequestContextMapper,
-	kubeClient kclientset.Interface,
-	internalKubeClient kinternalclientset.Interface,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
-) (*MasterConfig, error) {
-	if masterConfig.KubernetesMasterConfig == nil {
-		return nil, errors.New("insufficient information to build KubernetesMasterConfig")
-	}
+) (*master.Config, error) {
 	apiserverConfig, err := buildKubeApiserverConfig(
 		masterConfig,
 		requestContextMapper,
-		kubeClient,
-		internalKubeClient,
 		admissionControl,
 		originAuthenticator,
 		kubeAuthorizer)
@@ -630,16 +609,10 @@ func BuildKubernetesMasterConfig(
 		apiserverConfig.GenericConfig.OpenAPIConfig = nil
 	}
 
-	kmaster := &MasterConfig{
-		Options: *masterConfig.KubernetesMasterConfig,
-
-		Master: apiserverConfig,
-	}
-
-	return kmaster, nil
+	return apiserverConfig, nil
 }
 
-func DefaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
+func defaultOpenAPIConfig(config configapi.MasterConfig) *openapicommon.Config {
 	securityDefinitions := spec.SecurityDefinitions{}
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
 		securityDefinitions["BearerToken"] = &spec.SecurityScheme{

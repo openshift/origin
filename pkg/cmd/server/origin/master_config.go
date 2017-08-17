@@ -69,7 +69,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
-	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -84,7 +83,6 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -104,7 +102,6 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -139,23 +136,11 @@ type MasterConfig struct {
 	// of both the origin config AND the kube config, so this spot makes more sense.
 	KubeAdmissionControl admission.Interface
 
-	// ImageFor is a function that returns the appropriate image to use for a named component
-	ImageFor func(component string) string
 	// RegistryNameFn retrieves the name of the integrated registry, or false if no such registry
 	// is available.
 	RegistryNameFn imageapi.DefaultRegistryFunc
 
-	// ExternalVersionCodec is the codec used when serializing annotations, which cannot be changed
-	// without all clients being aware of the new version.
-	ExternalVersionCodec runtime.Codec
-
 	KubeletClientConfig *kubeletclient.KubeletClientConfig
-
-	// ClientCAs will be used to request client certificates in connections to the API.
-	// This CertPool should contain all the CAs that will be used for client certificate verification.
-	ClientCAs *x509.CertPool
-	// APIClientCAs is used to verify client certificates presented for API auth
-	APIClientCAs *x509.CertPool
 
 	// PrivilegedLoopbackClientConfig is the client configuration used to call OpenShift APIs from system components
 	// To apply different access control to a system component, create a client config specifically for that component.
@@ -181,15 +166,10 @@ type MasterConfig struct {
 
 	// TODO inspect uses to eliminate them
 	InternalKubeInformers  kinternalinformers.SharedInformerFactory
-	ExternalKubeInformers  kinformers.SharedInformerFactory
 	ClientGoKubeInformers  kubeclientgoinformers.SharedInformerFactory
 	AuthorizationInformers authorizationinformer.SharedInformerFactory
-	AppInformers           appinformer.SharedInformerFactory
-	BuildInformers         buildinformer.SharedInformerFactory
-	ImageInformers         imageinformer.SharedInformerFactory
 	QuotaInformers         quotainformer.SharedInformerFactory
 	SecurityInformers      securityinformer.SharedInformerFactory
-	TemplateInformers      templateinformer.SharedInformerFactory
 	UserInformers          userinformer.SharedInformerFactory
 }
 
@@ -198,12 +178,9 @@ type InformerAccess interface {
 	GetExternalKubeInformers() kinformers.SharedInformerFactory
 	GetClientGoKubeInformers() kubeclientgoinformers.SharedInformerFactory
 	GetAuthorizationInformers() authorizationinformer.SharedInformerFactory
-	GetAppInformers() appinformer.SharedInformerFactory
-	GetBuildInformers() buildinformer.SharedInformerFactory
 	GetImageInformers() imageinformer.SharedInformerFactory
 	GetQuotaInformers() quotainformer.SharedInformerFactory
 	GetSecurityInformers() securityinformer.SharedInformerFactory
-	GetTemplateInformers() templateinformer.SharedInformerFactory
 	GetUserInformers() userinformer.SharedInformerFactory
 }
 
@@ -211,15 +188,6 @@ type InformerAccess interface {
 // provided options
 func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess) (*MasterConfig, error) {
 	restOptsGetter, err := originrest.StorageOptions(options)
-	if err != nil {
-		return nil, err
-	}
-
-	clientCAs, err := configapi.GetClientCertCAPool(options)
-	if err != nil {
-		return nil, err
-	}
-	apiClientCAs, err := configapi.GetAPIClientCertCAPool(options)
 	if err != nil {
 		return nil, err
 	}
@@ -240,10 +208,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
-
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = options.ImageConfig.Format
-	imageTemplate.Latest = options.ImageConfig.Latest
 
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientsetInternal.Core().Services(metav1.NamespaceDefault).Get)
@@ -336,6 +300,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
+	apiClientCAs, err := configapi.GetAPIClientCertCAPool(options)
+	if err != nil {
+		return nil, err
+	}
 	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, userClient.Users(), apiClientCAs, usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()))
 	if err != nil {
 		return nil, err
@@ -365,16 +333,9 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		AdmissionControl:     originAdmission,
 		KubeAdmissionControl: kubeAdmission,
 
-		ImageFor:       imageTemplate.ExpandOrDie,
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
 
-		// TODO: migration of versions of resources stored in annotations must be sorted out
-		ExternalVersionCodec: kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"}),
-
 		KubeletClientConfig: kubeletClientConfig,
-
-		ClientCAs:    clientCAs,
-		APIClientCAs: apiClientCAs,
 
 		PrivilegedLoopbackClientConfig:                *privilegedLoopbackClientConfig,
 		PrivilegedLoopbackOpenShiftClient:             privilegedLoopbackOpenShiftClient,
@@ -382,15 +343,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
 		InternalKubeInformers:  informers.GetInternalKubeInformers(),
-		ExternalKubeInformers:  informers.GetExternalKubeInformers(),
 		ClientGoKubeInformers:  informers.GetClientGoKubeInformers(),
-		AppInformers:           informers.GetAppInformers(),
 		AuthorizationInformers: informers.GetAuthorizationInformers(),
-		BuildInformers:         informers.GetBuildInformers(),
-		ImageInformers:         informers.GetImageInformers(),
 		QuotaInformers:         informers.GetQuotaInformers(),
 		SecurityInformers:      informers.GetSecurityInformers(),
-		TemplateInformers:      informers.GetTemplateInformers(),
 		UserInformers:          informers.GetUserInformers(),
 	}
 
