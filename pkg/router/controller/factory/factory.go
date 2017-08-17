@@ -2,7 +2,10 @@ package factory
 
 import (
 	"fmt"
+	"github.com/golang/glog"
+	"io/ioutil"
 	"sort"
+	"strconv"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -123,6 +126,21 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 			label:     labels.Everything(),
 		}, &kapi.Secret{}, secretEventQueue, factory.ResyncInterval).Run()
 	}
+
+	// Check ARP Cache and endpoint list
+	go utilwait.Forever(func() {
+		data, err := ioutil.ReadFile("/proc/sys/net/ipv4/neigh/default/gc_thresh3")
+		if err != nil {
+			glog.Warning("Error reading ARP neighbour information")
+		}
+		endpoints, _ := factory.KClient.Endpoints(factory.Namespace).List(metav1.ListOptions{})
+		items := len(endpoints.Items)
+		arpcache, _ := strconv.Atoi(string(data[:len(data)-1]))
+		arpthreshold := float64(arpcache) * 0.9
+		if items > int(arpthreshold) {
+			glog.Warningf("Number of endpoints: %d is exceeding size of ARP neighbour cache threshold: %d", items, int(arpthreshold))
+		}
+	}, time.Second*600) //run every 10 minutes
 
 	return &routercontroller.RouterController{
 		Plugin: plugin,
