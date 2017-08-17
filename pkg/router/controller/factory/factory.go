@@ -131,7 +131,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 	go utilwait.Forever(func() {
 		data, err := ioutil.ReadFile("/proc/sys/net/ipv4/neigh/default/gc_thresh3")
 		if err != nil {
-			glog.Warning("Error reading ARP neighbour information")
+			glog.Warningf("Error reading ARP neighbour information: %s", err)
 		}
 		endpoints, _ := factory.KClient.Endpoints(factory.Namespace).List(metav1.ListOptions{})
 		items := len(endpoints.Items)
