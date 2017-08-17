@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	fakeosb "github.com/pmorie/go-open-service-broker-client/v2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/testing"
 )
@@ -166,4 +167,8 @@ func checkCatalogClientActions(actual []testing.Action, expected []catalogClient
 		}
 	}
 	return nil
+}
+
+type brokerClientAction struct {
+	actionType fakeosb.ActionType
 }

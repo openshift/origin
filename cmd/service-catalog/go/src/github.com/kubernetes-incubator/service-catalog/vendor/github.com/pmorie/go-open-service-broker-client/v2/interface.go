@@ -9,6 +9,7 @@ import (
 // supported.
 type AuthConfig struct {
 	BasicAuthConfig *BasicAuthConfig
+	BearerConfig *BearerConfig
 }
 
 // BasicAuthConfig represents a set of basic auth credentials.
@@ -17,6 +18,12 @@ type BasicAuthConfig struct {
 	Username string
 	// Password is the basic auth password.
 	Password string
+}
+
+// BearerConfig represents bearer token credentials.
+type BearerConfig struct {
+	// Token is the bearer token.
+	Token string
 }
 
 // ClientConfiguration represents the configuration of a Client.

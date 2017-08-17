@@ -63,6 +63,12 @@ func TestDeprovisionInstance(t *testing.T) {
 				status: http.StatusOK,
 				body:   successDeprovisionResponseBody,
 			},
+			httpChecks: httpChecks{
+				params: map[string]string{
+					serviceIDKey: string(testServiceID),
+					planIDKey:    string(testPlanID),
+				},
+			},
 			expectedResponse: successDeprovisionResponse(),
 		},
 		{
@@ -141,10 +147,6 @@ func TestDeprovisionInstance(t *testing.T) {
 
 		if tc.httpChecks.URL == "" {
 			tc.httpChecks.URL = "/v2/service_instances/test-instance-id"
-		}
-
-		if tc.httpChecks.body == "" {
-			tc.httpChecks.body = "{}"
 		}
 
 		version := Version2_11()

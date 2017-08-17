@@ -14,15 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-export HELM_NAME=catalog
-export SVCCAT_NAMESPACE=catalog
-export SVCCAT_SERVICE_NAME=${HELM_NAME}-${SVCCAT_NAMESPACE}-apiserver
+export HELM_RELEASE_NAME=${HELM_RELEASE_NAME:-catalog}
+export SVCCAT_NAMESPACE=${SVCCAT_NAMESPACE:-catalog}
+SVCCAT_SERVICE_NAME=${HELM_RELEASE_NAME}-catalog-apiserver
 
-export CA_NAME=ca
+CA_NAME=ca
 
-export ALT_NAMES="\"${SVCCAT_SERVICE_NAME}.${SVCCAT_NAMESPACE}\",\"${SVCCAT_SERVICE_NAME}.${SVCCAT_NAMESPACE}.svc"\"
+ALT_NAMES="\"${SVCCAT_SERVICE_NAME}.${SVCCAT_NAMESPACE}\",\"${SVCCAT_SERVICE_NAME}.${SVCCAT_NAMESPACE}.svc"\"
 
-export SVCCAT_CA_SETUP=svc-cat-ca.json
+SVCCAT_CA_SETUP=svc-cat-ca.json
 cat > ${SVCCAT_CA_SETUP} << EOF
 {
     "hosts": [ ${ALT_NAMES} ],
@@ -46,10 +46,10 @@ EOF
 cfssl genkey --initca ${SVCCAT_CA_SETUP} | cfssljson -bare ${CA_NAME}
 # now the files 'ca.csr  ca-key.pem  ca.pem' exist
 
-export SVCCAT_CA_CERT=${CA_NAME}.pem
-export SVCCAT_CA_KEY=${CA_NAME}-key.pem
+SVCCAT_CA_CERT=${CA_NAME}.pem
+SVCCAT_CA_KEY=${CA_NAME}-key.pem
 
-export PURPOSE=server
+PURPOSE=server
 echo '{"signing":{"default":{"expiry":"43800h","usages":["signing","key encipherment","'${PURPOSE}'"]}}}' > "${PURPOSE}-ca-config.json"
 
 echo '{"CN":"'${SVCCAT_SERVICE_NAME}'","hosts":['${ALT_NAMES}'],"key":{"algo":"rsa","size":2048}}' \

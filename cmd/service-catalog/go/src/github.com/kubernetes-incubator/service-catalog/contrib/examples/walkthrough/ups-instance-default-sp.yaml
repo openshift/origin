@@ -1,0 +1,11 @@
+apiVersion: servicecatalog.k8s.io/v1alpha1
+kind: Instance
+metadata:
+  name: ups-instance-default
+  namespace: test-ns
+spec:
+  serviceClassName: user-provided-service
+  parameters:
+    credentials:
+      name: root
+      password: letmein

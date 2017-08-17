@@ -114,7 +114,7 @@ items:
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: Role
   metadata:
-    name: "servicecatalog.k8s.io::leader-locking-controller-manager"
+    name: "servicecatalog.k8s.io:leader-locking-controller-manager"
     namespace: kube-system
   rules:
   - apiGroups: [""]
@@ -132,7 +132,7 @@ items:
   roleRef:
     apiGroup: rbac.authorization.k8s.io
     kind: Role
-    name: service-catalog-controller-manager
+    name: "servicecatalog.k8s.io:leader-locking-controller-manager"
   subjects:
   - apiGroup: ""
     kind: ServiceAccount

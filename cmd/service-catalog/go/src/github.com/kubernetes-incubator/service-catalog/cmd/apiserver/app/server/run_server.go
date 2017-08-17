@@ -43,6 +43,12 @@ func RunServer(opts *ServiceCatalogServerOptions) error {
 		if there is a need to stop the API server */
 		opts.StopCh = make(chan struct{})
 	}
+
+	err = opts.Validate()
+	if nil != err {
+		return err
+	}
+
 	if storageType == server.StorageTypeTPR {
 		return runTPRServer(opts)
 	}
@@ -100,12 +106,6 @@ func runEtcdServer(opts *ServiceCatalogServerOptions) error {
 	genericConfig, scConfig, err := buildGenericConfig(opts)
 	if err != nil {
 		return err
-	}
-
-	// etcd options
-	if errs := etcdOpts.Validate(); len(errs) > 0 {
-		glog.Errorln("Error validating etcd options, do you have `--etcd-servers localhost` set?")
-		return errs[0]
 	}
 
 	glog.V(4).Infoln("Creating storage factory")
