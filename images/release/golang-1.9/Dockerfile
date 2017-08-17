@@ -10,22 +10,17 @@ ENV VERSION=1.9beta2 \
     GOARM=5 \
     GOPATH=/go \
     GOROOT=/usr/local/go \
-    OS_VERSION_FILE=/go/src/github.com/openshift/origin/os-version-defs \
-    TMPDIR=/openshifttmp
+    OS_VERSION_FILE=/go/src/github.com/openshift/origin/os-version-defs
 ENV PATH=$PATH:$GOROOT/bin:$GOPATH/bin
 
 ADD *.rpm /tmp/origin-rpm/
-RUN mkdir $TMPDIR && \
-    INSTALL_PKGS="make gcc glibc-static zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel" && \
+RUN INSTALL_PKGS="make gcc glibc-static zip mercurial krb5-devel bsdtar bc rsync bind-utils file jq tito createrepo openssl gpgme gpgme-devel libassuan libassuan-devel protobuf-compiler goversioninfo" && \
     yum install -y $INSTALL_PKGS /tmp/origin-rpm/*.rpm && \
     rpm -V $INSTALL_PKGS && \
     yum clean all && \
-    curl -L https://github.com/google/protobuf/releases/download/v3.0.0-beta-4/protoc-3.0.0-beta-4-linux-x86_64.zip | bsdtar -C /usr/local -xf - && \
-    chmod uga+x /usr/local/bin/protoc && \
     curl https://storage.googleapis.com/golang/go$VERSION.linux-amd64.tar.gz | tar -C /usr/local -xzf - && \
     go get golang.org/x/tools/cmd/cover golang.org/x/tools/cmd/goimports \
         github.com/tools/godep github.com/golang/lint/golint \
-        github.com/josephspurrier/goversioninfo/cmd/goversioninfo \
         github.com/openshift/imagebuilder/cmd/imagebuilder && \
     touch /os-build-image && \
     git config --system user.name origin-release-container && \
