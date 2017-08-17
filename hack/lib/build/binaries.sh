@@ -20,6 +20,21 @@ function os::build::host_platform() {
 }
 readonly -f os::build::host_platform
 
+# Return the associated sys arch for the given go arch
+function os::build::goarch_to_sysarch() {
+  local arch
+  arch=${1:-$(os::build::host_arch)}
+
+  if [[ "$arch" == "amd64" ]]; then
+    echo "x86_64"
+  elif [[ "$arch" == "arm64" ]]; then
+    echo "aarch64"
+  else
+    echo "${arch}"
+  fi
+}
+readonly -f os::build::goarch_to_sysarch
+
 # Create a user friendly version of host_platform for end users
 function os::build::host_platform_friendly() {
   local platform=${1:-}
@@ -57,6 +72,13 @@ function os::build::platform_arch() {
   echo $(echo ${platform} | tr '[:lower:]/' '[:upper:]_')
 }
 readonly -f os::build::platform_arch
+
+# os::build::host_arch determines what the host architecture is, as Golang
+# sees it.
+function os::build::host_arch() {
+  echo "$(go env GOHOSTARCH)"
+}
+readonly -f os::build::host_arch
 
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is

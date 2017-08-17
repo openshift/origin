@@ -6,7 +6,11 @@
 #
 FROM openshift/origin-source
 
-RUN INSTALL_PKGS="bsdtar ceph-common device-mapper device-mapper-persistent-data e2fsprogs epel-release ethtool findutils git hostname iptables lsof nmap-ncat socat sysvinit-tools tar tree util-linux wget which xfsprogs" && \
+RUN ARCH=$(arch) && \
+    INSTALL_PKGS="bsdtar device-mapper device-mapper-persistent-data e2fsprogs epel-release ethtool findutils git hostname iptables lsof nmap-ncat socat sysvinit-tools tar tree util-linux wget which xfsprogs" && \
+    if [[ "${ARCH}" == "x86_64" ]]; then \
+      INSTALL_PKGS+=" ceph-common"; \
+    fi && \
     yum install -y ${INSTALL_PKGS} && \
     rpm -V ${INSTALL_PKGS} && \
     yum clean all && \
