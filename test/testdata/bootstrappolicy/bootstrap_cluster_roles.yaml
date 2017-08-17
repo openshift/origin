@@ -1221,6 +1221,20 @@ items:
     - update
     - watch
   - apiGroups:
+    - settings
+    attributeRestrictions: null
+    resources:
+    - podpresets
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - build.openshift.io
     - ""
     attributeRestrictions: null
@@ -1540,6 +1554,15 @@ items:
     - deployments
     - deployments/scale
     - statefulsets
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - settings
+    attributeRestrictions: null
+    resources:
+    - podpresets
     verbs:
     - get
     - list
