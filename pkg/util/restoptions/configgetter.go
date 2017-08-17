@@ -48,7 +48,7 @@ func NewConfigGetter(masterOptions configapi.MasterConfig, defaultResourceConfig
 	if err != nil {
 		return nil, err
 	}
-	storageFactory, err := kubernetes.BuildStorageFactory(masterOptions, apiserverOptions, enforcedStorageVersions)
+	storageFactory, err := kubernetes.BuildStorageFactory(apiserverOptions, enforcedStorageVersions)
 	if err != nil {
 		return nil, err
 	}

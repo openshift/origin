@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
+	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
@@ -109,7 +110,13 @@ func (o *DebugAPIServerOptions) StartAPIServer(masterConfig configapi.MasterConf
 		return err
 	}
 
-	kubeMasterConfig, err := start.BuildKubernetesMasterConfig(openshiftConfig)
+	kubeMasterConfig, err := kubernetes.BuildKubernetesMasterConfig(
+		openshiftConfig.Options,
+		openshiftConfig.RequestContextMapper,
+		openshiftConfig.KubeAdmissionControl,
+		openshiftConfig.Authenticator,
+		openshiftConfig.Authorizer,
+	)
 	if err != nil {
 		return err
 	}
