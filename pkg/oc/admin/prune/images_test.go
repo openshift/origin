@@ -15,9 +15,9 @@ func TestImagePruneNamespaced(t *testing.T) {
 	opts := &PruneImagesOptions{
 		Namespace: "foo",
 
-		OSClient: osFake,
-		KClient:  kFake,
-		Out:      ioutil.Discard,
+		OSClient:   osFake,
+		KubeClient: kFake,
+		Out:        ioutil.Discard,
 	}
 
 	if err := opts.Run(); err != nil {
