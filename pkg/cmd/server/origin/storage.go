@@ -58,8 +58,10 @@ import (
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
+	"github.com/openshift/origin/pkg/project/registry/projectreservation"
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	networkapiv1 "github.com/openshift/origin/pkg/sdn/apis/network/v1"
@@ -293,6 +295,10 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	deployConfigRollbackStorage := deployrollback.NewREST(c.DeprecatedOpenshiftClient, c.KubeClientInternal, externalVersionCodec)
 
 	projectStorage := projectproxy.NewREST(c.KubeClientInternal.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
+	projectReservationStorage, err := projectreservation.NewREST(c.GenericConfig.RESTOptionsGetter)
+	if err != nil {
+		return nil, err
+	}
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.ProjectRequestTemplate)
 	if err != nil {
@@ -300,11 +306,16 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		// we can continue on, the storage that gets created will be valid, it simply won't work properly.  There's no reason to kill the master
 	}
 
+	projectClient, err := projectclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	projectRequestStorage := projectrequeststorage.NewREST(
 		c.ProjectRequestMessage,
 		namespace, templateName,
 		c.DeprecatedOpenshiftClient,
 		c.GenericConfig.LoopbackClientConfig,
+		projectClient.Project(),
 		c.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
 	)
 
@@ -420,8 +431,9 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	}
 
 	storage[projectapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"projects":        projectStorage,
-		"projectRequests": projectRequestStorage,
+		"projects":            projectStorage,
+		"projectRequests":     projectRequestStorage,
+		"projectreservations": projectReservationStorage,
 	}
 
 	storage[deployapiv1.SchemeGroupVersion] = map[string]rest.Storage{

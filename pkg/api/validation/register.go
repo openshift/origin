@@ -83,6 +83,7 @@ func registerAll() {
 
 	Validator.MustRegister(&projectapi.Project{}, projectvalidation.ValidateProject, projectvalidation.ValidateProjectUpdate)
 	Validator.MustRegister(&projectapi.ProjectRequest{}, projectvalidation.ValidateProjectRequest, nil)
+	Validator.MustRegister(&projectapi.ProjectReservation{}, projectvalidation.ValidateProjectReservation, projectvalidation.ValidateProjectReservationUpdate)
 
 	Validator.MustRegister(&routeapi.Route{}, routevalidation.ValidateRoute, routevalidation.ValidateRouteUpdate)
 

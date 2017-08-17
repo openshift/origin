@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
@@ -36,8 +37,9 @@ type REST struct {
 	templateNamespace string
 	templateName      string
 
-	openshiftClient *client.Client
-	restConfig      *restclient.Config
+	openshiftClient          *client.Client
+	restConfig               *restclient.Config
+	projectReservationClient projectclient.ProjectReservationsGetter
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
@@ -47,14 +49,15 @@ type REST struct {
 var _ rest.Lister = &REST{}
 var _ rest.Creater = &REST{}
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, restConfig *restclient.Config, roleBindings rbaclisters.RoleBindingLister) *REST {
+func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, restConfig *restclient.Config, projectReservationClient projectclient.ProjectReservationsGetter, roleBindings rbaclisters.RoleBindingLister) *REST {
 	return &REST{
-		message:           message,
-		templateNamespace: templateNamespace,
-		templateName:      templateName,
-		openshiftClient:   openshiftClient,
-		restConfig:        restConfig,
-		roleBindings:      roleBindings,
+		message:                  message,
+		templateNamespace:        templateNamespace,
+		templateName:             templateName,
+		openshiftClient:          openshiftClient,
+		restConfig:               restConfig,
+		projectReservationClient: projectReservationClient,
+		roleBindings:             roleBindings,
 	}
 }
 
@@ -151,6 +154,14 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	}
 	if projectFromTemplate == nil {
 		return nil, kapierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain a project resource", r.templateNamespace, r.templateName))
+	}
+
+	_, err = r.projectReservationClient.ProjectReservations().Get(projectFromTemplate.Name, metav1.GetOptions{})
+	if err == nil {
+		return nil, kapierror.NewAlreadyExists(projectapi.Resource("projects"), projectFromTemplate.Name)
+	}
+	if !kapierror.IsNotFound(err) {
+		return nil, kapierror.NewInternalError(fmt.Errorf("unable to check for an existing reservation: %v", err))
 	}
 
 	// we split out project creation separately so that in a case of racers for the same project, only one will win and create the rest of their template objects

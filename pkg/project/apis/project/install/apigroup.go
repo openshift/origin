@@ -23,7 +23,7 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 			VersionPreferenceOrder:     []string{projectapiv1.SchemeGroupVersion.Version},
 			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: projectapi.AddToScheme,
-			RootScopedKinds:            sets.NewString("Project", "ProjectRequest"),
+			RootScopedKinds:            sets.NewString("Project", "ProjectRequest", "ProjectReservation"),
 		},
 		announced.VersionToSchemeFunc{
 			projectapiv1.SchemeGroupVersion.Version: projectapiv1.AddToScheme,

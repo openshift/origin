@@ -101,6 +101,17 @@ func ValidateProjectRequest(request *projectapi.ProjectRequest) field.ErrorList 
 	return ValidateProject(project)
 }
 
+func ValidateProjectReservation(projectReservation *projectapi.ProjectReservation) field.ErrorList {
+	result := validation.ValidateObjectMeta(&projectReservation.ObjectMeta, false, ValidateProjectName, field.NewPath("metadata"))
+	return result
+}
+
+func ValidateProjectReservationUpdate(newProjectReservation *projectapi.ProjectReservation, oldProjectReservation *projectapi.ProjectReservation) field.ErrorList {
+	allErrs := validation.ValidateObjectMetaUpdate(&newProjectReservation.ObjectMeta, &oldProjectReservation.ObjectMeta, field.NewPath("metadata"))
+	allErrs = append(allErrs, ValidateProjectReservation(newProjectReservation)...)
+	return allErrs
+}
+
 func validateNodeSelector(p *projectapi.Project) field.ErrorList {
 	allErrs := field.ErrorList{}
 

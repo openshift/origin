@@ -68,3 +68,33 @@ type ProjectRequest struct {
 	// Description is the description to apply to a project
 	Description string `json:"description,omitempty" protobuf:"bytes,3,opt,name=description"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
+
+// ProjectReservation prevents the creation of a project via the ProjectRequest endpoint.
+// The name matches the namespace name that is reserved.
+type ProjectReservation struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	Spec ProjectReservationSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+}
+
+// ProjectReservationSpec provides metadata about the reservation
+type ProjectReservationSpec struct {
+	// ReservedFor is the username this name is reserved for.  It is optional and not forced
+	// to any particular value.
+	ReservedFor string `json:"reservedFor,omitempty" protobuf:"bytes,1,opt,name=reservedFor"`
+	// Reason is a human readable indication of why the project is reserved.
+	Reason string `json:"reason,omitempty" protobuf:"bytes,2,opt,name=reason"`
+}
+
+// ProjectReservationList is a list of ProjectReservation objects.
+type ProjectReservationList struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object's metadata.
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	// Items is the list of projectreservations
+	Items []ProjectReservation `json:"items" protobuf:"bytes,2,rep,name=items"`
+}

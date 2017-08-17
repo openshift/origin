@@ -59,6 +59,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&Project{},
 		&ProjectList{},
 		&ProjectRequest{},
+		&ProjectReservation{},
+		&ProjectReservationList{},
 	)
 	return nil
 }
