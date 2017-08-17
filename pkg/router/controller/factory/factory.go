@@ -140,7 +140,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		if items > int(arpthreshold) {
 			glog.Warningf("Number of endpoints: %d is exceeding size of ARP neighbour cache threshold: %d", items, int(arpthreshold))
 		}
-	}, time.Second*600) //run every 10 minutes
+	}, time.Minute*10) //run every 10 minutes
 
 	return &routercontroller.RouterController{
 		Plugin: plugin,
