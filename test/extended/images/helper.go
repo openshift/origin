@@ -3,6 +3,7 @@ package images
 import (
 	"bytes"
 	cryptorand "crypto/rand"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -21,6 +22,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/client/retry"
@@ -517,20 +519,41 @@ func MirrorBlobInRegistry(oc *exutil.CLI, dgst digest.Digest, repository string,
 	if err != nil {
 		return err
 	}
-	req, err := http.NewRequest("GET", fmt.Sprintf("http://%s/v2/%s/blobs/%s", registryURL, repository, dgst.String()), nil)
-	if err != nil {
-		return err
-	}
 	token, err := oc.Run("whoami").Args("-t").Output()
 	if err != nil {
 		return err
 	}
-	req.Header.Set("range", "bytes=0-1")
-	req.Header.Set("Authorization", "Bearer "+token)
-	c := http.Client{}
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
+
+	c := http.Client{
+		Transport: knet.SetTransportDefaults(&http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}),
+	}
+
+	peekAtBlob := func(schema string) (*http.Request, *http.Response, error) {
+		req, err := http.NewRequest("GET", fmt.Sprintf("%s://%s/v2/%s/blobs/%s", schema, registryURL, repository, dgst.String()), nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		req.Header.Set("range", "bytes=0-1")
+		req.Header.Set("Authorization", "Bearer "+token)
+		resp, err := c.Do(req)
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "failed to %s %s: %v (%#+v)\n", req.Method, req.URL, err, err)
+			return nil, nil, err
+		}
+		return req, resp, nil
+	}
+
+	var (
+		req    *http.Request
+		resp   *http.Response
+		getErr error
+	)
+	if req, resp, getErr = peekAtBlob("https"); getErr != nil {
+		if req, resp, getErr = peekAtBlob("http"); getErr != nil {
+			return getErr
+		}
 	}
 	defer resp.Body.Close()
 
