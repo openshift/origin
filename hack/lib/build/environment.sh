@@ -276,6 +276,9 @@ readonly -f os::build::environment::remove_volume
 # os::build::environment::run launches the container with the provided arguments and
 # the current commit (defaults to HEAD). The container is automatically cleaned up.
 function os::build::environment::run() {
+  local env_golang="${OS_BUILD_ENV_GOLANG:-}"
+  local env_arch="${OS_BUILD_ENV_ARCH:-}"
+  local release_image="${OS_BUILD_ENV_IMAGE:-$(os::build::environment::image "${env_golang}" "${env_arch}")}"
   local commit="${OS_GIT_COMMIT:-HEAD}"
   local volume
   local tmp_volume
@@ -292,8 +295,8 @@ function os::build::environment::run() {
   fi
 
   if [[ -n "${OS_BUILD_ENV_PULL_IMAGE:-}" ]]; then
-    os::log::info "Pulling the ${OS_BUILD_ENV_IMAGE} image to update it..."
-    docker pull "${OS_BUILD_ENV_IMAGE}"
+    os::log::info "Pulling the ${release_image} image to update it..."
+    docker pull "${release_image}"
   fi
 
   os::log::debug "Using commit ${commit}"
