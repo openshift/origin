@@ -614,16 +614,16 @@ introduced in Kubernetes. Make sure:
 
 1. `make clean ; hack/build-go.sh` compiles without errors and the standalone
 server starts correctly.
-1. all of our generated code is up to date by running all `hack/update-*`
+2. all of our generated code is up to date by running all `hack/update-*`
 scripts.
-1. `hack/verify-open-ports.sh` runs without errors.
-1. `hack/copy-kube-artifacts.sh` so Kubernetes tests can be fully functional.
+3. `hack/verify-open-ports.sh` runs without errors.
+4. `hack/copy-kube-artifacts.sh` so Kubernetes tests can be fully functional.
 The diff resulting from this script should be squashed into the Kube bump
 commit.
-2. `TEST_KUBE=1 hack/test-go.sh` runs without errors.
-3. `hack/test-cmd.sh` runs without errors.
-3. `hack/test-integration.sh` runs without errors.
-3. `hack/test-end-to-end.sh` runs without errors.
+5. `TEST_KUBE=1 hack/test-go.sh` runs without errors.
+6. `hack/test-cmd.sh` runs without errors.
+7. `hack/test-integration.sh` runs without errors.
+8. `hack/test-end-to-end.sh` runs without errors.
     See *Building a Release* above for setting up the environment for the
 *test-end-to-end.sh* tests.
 
@@ -633,14 +633,9 @@ can potentially break or change any part of Origin, the most affected parts are
 usually:
 
 1. https://github.com/openshift/origin/blob/master/pkg/cmd/server/start
-2.
-https://github.com/openshift/origin/blob/master/pkg/cmd/server/kubernetes/master
-.go
-3.
-https://github.com/openshift/origin/blob/master/pkg/cmd/server/origin/master.go
-4.
-https://github.com/openshift/origin/blob/master/pkg/cmd/util/clientcmd/factory.g
-o
+2. https://github.com/openshift/origin/blob/master/pkg/cmd/server/kubernetes/master.go
+3. https://github.com/openshift/origin/blob/master/pkg/cmd/server/origin/master.go
+4. https://github.com/openshift/origin/blob/master/pkg/cmd/util/clientcmd/factory.go
 5. https://github.com/openshift/origin/blob/master/pkg/cmd/cli/cli.go
 6. https://github.com/openshift/origin/blob/master/pkg/api/meta/meta.go
 
