@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// Projects returns a ProjectInformer.
 	Projects() ProjectInformer
+	// ProjectReservations returns a ProjectReservationInformer.
+	ProjectReservations() ProjectReservationInformer
 }
 
 type version struct {
@@ -24,4 +26,9 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // Projects returns a ProjectInformer.
 func (v *version) Projects() ProjectInformer {
 	return &projectInformer{factory: v.SharedInformerFactory}
+}
+
+// ProjectReservations returns a ProjectReservationInformer.
+func (v *version) ProjectReservations() ProjectReservationInformer {
+	return &projectReservationInformer{factory: v.SharedInformerFactory}
 }
