@@ -47,17 +47,14 @@ func (s *refreshTokenStore) SetRefreshToken(url *url.URL, service string, token 
 type noopCredentialStore struct{}
 
 func (s *noopCredentialStore) Basic(url *url.URL) (string, string) {
-	glog.Infof("asked to provide Basic credentials for %s", url)
 	return "", ""
 }
 
 func (s *noopCredentialStore) RefreshToken(url *url.URL, service string) string {
-	glog.Infof("asked to provide RefreshToken for %s", url)
 	return ""
 }
 
 func (s *noopCredentialStore) SetRefreshToken(url *url.URL, service string, token string) {
-	glog.Infof("asked to provide SetRefreshToken for %s", url)
 }
 
 func NewBasicCredentials() *BasicCredentials {
