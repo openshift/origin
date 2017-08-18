@@ -41,6 +41,7 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/dns"
+	"github.com/openshift/origin/pkg/sdn"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 )
@@ -177,7 +178,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
 	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
 
-	if sdnapi.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
+	if sdn.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 	}
@@ -448,7 +449,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubePr
 }
 
 func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
-	if sdnapi.IsOpenShiftNetworkPlugin(pluginName) {
+	if sdn.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
 		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {

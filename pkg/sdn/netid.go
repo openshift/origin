@@ -1,9 +1,11 @@
-package network
+package sdn
 
 // Accessor methods to annotate NetNamespace for multitenant support
 import (
 	"fmt"
 	"strings"
+
+	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 type PodNetworkAction string
@@ -44,7 +46,7 @@ func ValidVNID(vnid uint32) error {
 }
 
 // GetChangePodNetworkAnnotation fetches network change intent from NetNamespace
-func GetChangePodNetworkAnnotation(netns *NetNamespace) (PodNetworkAction, string, error) {
+func GetChangePodNetworkAnnotation(netns *sdnapi.NetNamespace) (PodNetworkAction, string, error) {
 	value, ok := netns.Annotations[ChangePodNetworkAnnotation]
 	if !ok {
 		return PodNetworkAction(""), "", ErrorPodNetworkAnnotationNotFound
@@ -68,7 +70,7 @@ func GetChangePodNetworkAnnotation(netns *NetNamespace) (PodNetworkAction, strin
 }
 
 // SetChangePodNetworkAnnotation sets network change intent on NetNamespace
-func SetChangePodNetworkAnnotation(netns *NetNamespace, action PodNetworkAction, params string) {
+func SetChangePodNetworkAnnotation(netns *sdnapi.NetNamespace, action PodNetworkAction, params string) {
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string)
 	}
@@ -81,6 +83,6 @@ func SetChangePodNetworkAnnotation(netns *NetNamespace, action PodNetworkAction,
 }
 
 // DeleteChangePodNetworkAnnotation removes network change intent from NetNamespace
-func DeleteChangePodNetworkAnnotation(netns *NetNamespace) {
+func DeleteChangePodNetworkAnnotation(netns *sdnapi.NetNamespace) {
 	delete(netns.Annotations, ChangePodNetworkAnnotation)
 }

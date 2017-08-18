@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/origin/pkg/sdn/plugin/cniserver"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -116,13 +117,13 @@ func NewNodePlugin(c *OsdnNodeConfig) (*OsdnNode, error) {
 	var minOvsVersion string
 	var useConnTrack bool
 	switch strings.ToLower(c.PluginName) {
-	case osapi.SingleTenantPluginName:
+	case sdn.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
 		pluginId = 0
-	case osapi.MultiTenantPluginName:
+	case sdn.MultiTenantPluginName:
 		policy = NewMultiTenantPlugin()
 		pluginId = 1
-	case osapi.NetworkPolicyPluginName:
+	case sdn.NetworkPolicyPluginName:
 		policy = NewNetworkPolicyPlugin()
 		pluginId = 2
 		minOvsVersion = "2.6.0"

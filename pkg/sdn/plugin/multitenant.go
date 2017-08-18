@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
+	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
@@ -27,7 +28,7 @@ func NewMultiTenantPlugin() osdnPolicy {
 }
 
 func (mp *multiTenantPlugin) Name() string {
-	return osapi.MultiTenantPluginName
+	return sdn.MultiTenantPluginName
 }
 
 func (mp *multiTenantPlugin) Start(node *OsdnNode) error {

@@ -5,7 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn"
 )
 
 func TestNodeVNIDMap(t *testing.T) {
@@ -180,7 +180,7 @@ func checkAllocatedVNIDs(t *testing.T, vmap *nodeVNIDMap, match []uint32) {
 	ids := []uint32{}
 	idSet := sets.Int{}
 	for _, id := range vmap.ids {
-		if id != osapi.GlobalVNID {
+		if id != sdn.GlobalVNID {
 			if !idSet.Has(int(id)) {
 				ids = append(ids, id)
 				idSet.Insert(int(id))
