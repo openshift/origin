@@ -2,6 +2,7 @@ package integration
 
 import (
 	"testing"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -23,6 +24,12 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	"github.com/openshift/origin/pkg/cmd/server/start"
+	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -135,28 +142,44 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 
+	imageClient, err := imageclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftConfig.ImageInformers = imageinformer.NewSharedInformerFactory(imageClient, 10*time.Minute)
+
+	appsClient, err := appclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftConfig.AppInformers = appinformer.NewSharedInformerFactory(appsClient, 10*time.Minute)
+	securityClient, err := securityclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	openshiftConfig.SecurityInformers = securityinformer.NewSharedInformerFactory(securityClient, 10*time.Minute)
 	go func() {
-		informers.GetBuildInformers().Start(utilwait.NeverStop)
-		informers.GetImageInformers().Start(utilwait.NeverStop)
-		informers.GetAppInformers().Start(utilwait.NeverStop)
-		informers.GetSecurityInformers().Start(utilwait.NeverStop)
+		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
+		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
+		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
+		openshiftConfig.SecurityInformers.Start(utilwait.NeverStop)
 	}()
 
 	controllerContext := kctrlmgr.ControllerContext{
 		ClientBuilder: saClientBuilder,
 		InformerFactory: genericInformers{
-			SharedInformerFactory: informers.GetExternalKubeInformers(),
+			SharedInformerFactory: openshiftConfig.ExternalKubeInformers,
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetImageInformers().ForResource(resource)
+					return openshiftConfig.ImageInformers.ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetBuildInformers().ForResource(resource)
+					return openshiftConfig.BuildInformers.ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return informers.GetAppInformers().ForResource(resource)
+					return openshiftConfig.AppInformers.ForResource(resource)
 				}),
-				informers.GetExternalKubeInformers(),
+				openshiftConfig.ExternalKubeInformers,
 			},
 		},
 		Options:            *controllerManagerOptions,
@@ -173,12 +196,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		ExternalKubeInformers: informers.GetExternalKubeInformers(),
-		InternalKubeInformers: informers.GetInternalKubeInformers(),
-		AppInformers:          informers.GetAppInformers(),
-		BuildInformers:        informers.GetBuildInformers(),
-		ImageInformers:        informers.GetImageInformers(),
-		SecurityInformers:     informers.GetSecurityInformers(),
+		ExternalKubeInformers: openshiftConfig.ExternalKubeInformers,
+		InternalKubeInformers: openshiftConfig.InternalKubeInformers,
+		AppInformers:          openshiftConfig.AppInformers,
+		BuildInformers:        openshiftConfig.BuildInformers,
+		ImageInformers:        openshiftConfig.ImageInformers,
+		SecurityInformers:     openshiftConfig.SecurityInformers,
 		Stop:                  controllerContext.Stop,
 	}
 
