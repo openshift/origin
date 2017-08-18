@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	"k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	"github.com/openshift/origin/pkg/api/v1"
@@ -22,8 +23,7 @@ import (
 )
 
 func TestOpenshiftRoles(t *testing.T) {
-	rbacRoles := bootstrappolicy.GetBootstrapOpenshiftRoles("openshift")
-	roles := bootstrappolicy.ConvertToOriginRolesOrDie(rbacRoles)
+	roles := bootstrappolicy.GetBootstrapOpenshiftRoles("openshift")
 	list := &api.List{}
 	for i := range roles {
 		list.Items = append(list.Items, &roles[i])
@@ -41,8 +41,7 @@ func TestBootstrapProjectRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoleBindings(t *testing.T) {
-	rbacRoleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
-	roleBindings := bootstrappolicy.ConvertToOriginClusterRoleBindingsOrDie(rbacRoleBindings)
+	roleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
 	list := &api.List{}
 	for i := range roleBindings {
 		list.Items = append(list.Items, &roleBindings[i])
@@ -51,8 +50,7 @@ func TestBootstrapClusterRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoles(t *testing.T) {
-	rbacRoles := bootstrappolicy.GetBootstrapClusterRoles()
-	roles := bootstrappolicy.ConvertToOriginClusterRolesOrDie(rbacRoles)
+	roles := bootstrappolicy.GetBootstrapClusterRoles()
 	list := &api.List{}
 	for i := range roles {
 		list.Items = append(list.Items, &roles[i])
@@ -67,11 +65,11 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 		t.Fatal(err)
 	}
 
-	if err := runtime.EncodeList(api.Codecs.LegacyCodec(v1.SchemeGroupVersion), list.Items); err != nil {
+	if err := runtime.EncodeList(api.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list.Items); err != nil {
 		t.Fatal(err)
 	}
 
-	jsonData, err := runtime.Encode(api.Codecs.LegacyCodec(v1.SchemeGroupVersion), list)
+	jsonData, err := runtime.Encode(api.Codecs.LegacyCodec(v1beta1.SchemeGroupVersion, v1.SchemeGroupVersion), list)
 	if err != nil {
 		t.Fatal(err)
 	}

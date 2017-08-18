@@ -64,23 +64,3 @@ func ConvertToOriginClusterRoleBindingsOrDie(in []rbac.ClusterRoleBinding) []aut
 
 	return out
 }
-
-func ConvertToOriginRolesOrDie(in []rbac.Role) []authorizationapi.Role {
-	out := []authorizationapi.Role{}
-	errs := []error{}
-
-	for i := range in {
-		newRole := &authorizationapi.Role{}
-		if err := kapi.Scheme.Convert(&in[i], newRole, nil); err != nil {
-			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
-			continue
-		}
-		out = append(out, *newRole)
-	}
-
-	if len(errs) > 0 {
-		panic(errs)
-	}
-
-	return out
-}
