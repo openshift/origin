@@ -1,6 +1,7 @@
 package imagepolicy
 
 import (
+	"bytes"
 	"os"
 	"reflect"
 	"strings"
@@ -436,9 +437,16 @@ func TestAdmissionResolveImages(t *testing.T) {
 		DockerImageReference: "integrated.registry/image1/image1:latest",
 	}
 
+	obj, err := configlatest.ReadYAML(bytes.NewBufferString(`{"kind":"ImagePolicyConfig","apiVersion":"v1"}`))
+	if err != nil || obj == nil {
+		t.Fatal(err)
+	}
+	defaultPolicyConfig := obj.(*api.ImagePolicyConfig)
+
 	testCases := []struct {
 		client *testclient.Fake
 		policy api.ImageResolutionType
+		config *api.ImagePolicyConfig
 		attrs  admission.Attributes
 		admit  bool
 		expect runtime.Object
@@ -585,6 +593,168 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
+
+		// resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)
+		{
+			policy: api.RequiredRewrite,
+			client: testclient.NewSimpleFake(
+				image1,
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								SourceStrategy: &buildapi.SourceBuildStrategy{
+									From: kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/test/mysql@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								From: kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/test/mysql@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// does not rewrite the config because build has DoNotAttempt by default, which overrides global policy
+		{
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.RequiredRewrite,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}},
+				},
+			},
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					Image:      *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// does not rewrite the config because build has Attempt by default, which overrides global policy
+		{
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.RequiredRewrite,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: api.Attempt},
+				},
+			},
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					Image:      *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// rewrites the config because build has AttemptRewrite which overrides the global policy
+		{
+			config: &api.ImagePolicyConfig{
+				ResolveImages: api.DoNotAttempt,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{TargetResource: metav1.GroupResource{Group: "", Resource: "builds"}, Policy: api.AttemptRewrite},
+				},
+			},
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					Image:      *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "DockerImage", Name: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+
 		// resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set.
 		{
 			policy: api.RequiredRewrite,
@@ -729,6 +899,43 @@ func TestAdmissionResolveImages(t *testing.T) {
 						Spec: kapi.PodSpec{
 							Containers: []kapi.Container{
 								{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+							},
+						},
+					},
+				},
+			},
+		},
+		// does not resolve replica sets by default
+		{
+			config: defaultPolicyConfig,
+			client: testclient.NewSimpleFake(
+				&imageapi.ImageStreamTag{
+					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					Image:      *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&kapiextensions.ReplicaSet{
+					Spec: kapiextensions.ReplicaSetSpec{
+						Template: kapi.PodTemplateSpec{
+							Spec: kapi.PodSpec{
+								Containers: []kapi.Container{
+									{Image: "integrated.registry/default/test:other"},
+								},
+							},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "ReplicaSet", Group: "extensions"},
+				"default", "rs1", schema.GroupVersionResource{Version: "v1", Resource: "replicasets", Group: "extensions"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapiextensions.ReplicaSet{
+				Spec: kapiextensions.ReplicaSetSpec{
+					Template: kapi.PodTemplateSpec{
+						Spec: kapi.PodSpec{
+							Containers: []kapi.Container{
+								{Image: "integrated.registry/default/test:other"},
 							},
 						},
 					},
@@ -925,16 +1132,21 @@ func TestAdmissionResolveImages(t *testing.T) {
 	}
 	for i, test := range testCases {
 		onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
-		p, err := newImagePolicyPlugin(&api.ImagePolicyConfig{
-			ResolveImages: test.policy,
-			ResolutionRules: []api.ImageResolutionPolicyRule{
-				{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}},
-				{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}},
-			},
-			ExecutionRules: []api.ImageExecutionPolicyRule{
-				{ImageCondition: api.ImageCondition{OnResources: onResources}},
-			},
-		})
+		config := test.config
+		if config == nil {
+			// old style config
+			config = &api.ImagePolicyConfig{
+				ResolveImages: test.policy,
+				ResolutionRules: []api.ImageResolutionPolicyRule{
+					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}, Policy: test.policy},
+					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}, Policy: test.policy},
+				},
+				ExecutionRules: []api.ImageExecutionPolicyRule{
+					{ImageCondition: api.ImageCondition{OnResources: onResources}},
+				},
+			}
+		}
+		p, err := newImagePolicyPlugin(config)
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -13596,7 +13596,6 @@ executionRules:
   - key: images.openshift.io/deny-execution
     value: "true"
   skipOnResolutionFailure: true
-
 `)
 
 func pkgImageAdmissionImagepolicyApiV1DefaultPolicyYamlBytes() ([]byte, error) {
