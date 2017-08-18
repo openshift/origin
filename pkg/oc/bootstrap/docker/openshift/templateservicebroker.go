@@ -23,7 +23,7 @@ const (
 )
 
 // InstallServiceCatalog checks whether the template service broker is installed and installs it if not already installed
-func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat string) error {
+func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat string, serverLogLevel int) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
@@ -45,7 +45,8 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	imageTemplate.Latest = false
 
 	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), tsbNamespace, tsbTemplateName, tsbNamespace, map[string]string{
-		"IMAGE": imageTemplate.ExpandOrDie(""),
+		"IMAGE":    imageTemplate.ExpandOrDie(""),
+		"LOGLEVEL": fmt.Sprint(serverLogLevel),
 	}, true); err != nil {
 		return errors.NewError("cannot instantiate logger accounts").WithCause(err)
 	}
