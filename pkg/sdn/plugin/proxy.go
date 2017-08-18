@@ -59,7 +59,7 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (*OsdnProxy, error) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (sdn.ProxyInterface, error) {
 	if !sdn.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}

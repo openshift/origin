@@ -2,6 +2,8 @@ package sdn
 
 import (
 	"strings"
+
+	proxyconfig "k8s.io/kubernetes/pkg/proxy/config"
 )
 
 const (
@@ -23,4 +25,14 @@ func IsOpenShiftMultitenantNetworkPlugin(pluginName string) bool {
 		return true
 	}
 	return false
+}
+
+type NodeInterface interface {
+	Start() error
+}
+
+type ProxyInterface interface {
+	proxyconfig.EndpointsHandler
+
+	Start(proxyconfig.EndpointsHandler) error
 }
