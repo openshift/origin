@@ -227,7 +227,7 @@
 		"soft": 1024
 	    }
 	],
-	"noNewPrivileges": true
+	"noNewPrivileges": false
     },
     "root": {
 	"path": "rootfs",
@@ -236,13 +236,11 @@
     "mounts": [
 	{
 	    "destination": "/dev",
-	    "type": "tmpfs",
-	    "source": "tmpfs",
+	    "type": "bind",
+	    "source": "/dev",
 	    "options": [
-		"nosuid",
-		"strictatime",
-		"mode=755",
-		"size=65536k"
+		"rbind",
+		"rslave"
 	    ]
 	},
 	{
@@ -268,16 +266,6 @@
 		"nodev",
 		"mode=1777",
 		"size=65536k"
-	    ]
-	},
-	{
-	    "destination": "/dev/mqueue",
-	    "type": "mqueue",
-	    "source": "mqueue",
-	    "options": [
-		"nosuid",
-		"noexec",
-		"nodev"
 	    ]
 	},
         {
@@ -510,6 +498,11 @@
 	    "devices": [
 		{
 		    "allow": false,
+		    "access": "rwm"
+		},
+		{
+		    "allow": true,
+		    "type": "b",
 		    "access": "rwm"
 		}
 	    ]
