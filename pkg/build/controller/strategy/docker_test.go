@@ -16,6 +16,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/util"
+	buildutil "github.com/openshift/origin/pkg/build/util"
 )
 
 func TestDockerCreateBuildPod(t *testing.T) {
@@ -53,26 +54,29 @@ func TestDockerCreateBuildPod(t *testing.T) {
 	if actual.Spec.RestartPolicy != v1.RestartPolicyNever {
 		t.Errorf("Expected never, got %#v", actual.Spec.RestartPolicy)
 	}
-	if len(container.Env) != 10 {
-		var keys []string
-		for _, env := range container.Env {
-			keys = append(keys, env.Name)
-		}
-		t.Fatalf("Expected 10 elements in Env table, got %d:\n%s", len(container.Env), strings.Join(keys, ", "))
+	expectedKeys := map[string]string{"BUILD": "", "SOURCE_REPOSITORY": "", "SOURCE_URI": "", "SOURCE_CONTEXT_DIR": "", "SOURCE_REF": "", "ORIGIN_VERSION": "", "BUILD_LOGLEVEL": "", "PUSH_DOCKERCFG_PATH": "", "PULL_DOCKERCFG_PATH": ""}
+	gotKeys := map[string]string{}
+	for _, k := range container.Env {
+		gotKeys[k.Name] = ""
 	}
+	if !reflect.DeepEqual(expectedKeys, gotKeys) {
+		t.Errorf("Expected environment keys:\n%v\ngot keys\n%v", expectedKeys, gotKeys)
+	}
+
+	// the pod has 5 volumes but the git source secret is not mounted into the main container.
 	if len(container.VolumeMounts) != 4 {
 		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)
 	}
-	for i, expected := range []string{dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath, sourceSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 4 {
-		t.Fatalf("Expected 4 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 5 {
+		t.Fatalf("Expected 5 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if !kapihelper.Semantic.DeepEqual(container.Resources, util.CopyApiResourcesToV1Resources(&build.Spec.Resources)) {
 		t.Fatalf("Expected actual=expected, %v != %v", container.Resources, build.Spec.Resources)

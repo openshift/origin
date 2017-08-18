@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/cli"
+	_ "github.com/openshift/origin/test/extended/cluster"
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
 	_ "github.com/openshift/origin/test/extended/idling"
@@ -16,6 +17,7 @@ import (
 	_ "github.com/openshift/origin/test/extended/jobs"
 	_ "github.com/openshift/origin/test/extended/localquota"
 	_ "github.com/openshift/origin/test/extended/networking"
+	_ "github.com/openshift/origin/test/extended/prometheus"
 	_ "github.com/openshift/origin/test/extended/registry"
 	_ "github.com/openshift/origin/test/extended/router"
 	_ "github.com/openshift/origin/test/extended/security"

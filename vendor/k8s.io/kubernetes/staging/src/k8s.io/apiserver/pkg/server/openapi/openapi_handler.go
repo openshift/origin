@@ -24,6 +24,7 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-openapi/spec"
@@ -41,6 +42,9 @@ type OpenAPIService struct {
 	specPbGz     []byte
 	lastModified time.Time
 	updateHooks  []func(*http.Request)
+
+	closeOnce   sync.Once
+	initialized chan struct{}
 }
 
 // RegisterOpenAPIService registers a handler to provides standard OpenAPI specification.
@@ -51,7 +55,9 @@ func RegisterOpenAPIService(openapiSpec *spec.Swagger, servePath string, mux *ge
 
 	servePathBase := servePath[:len(servePath)-len(JSON_EXT)]
 
-	o := OpenAPIService{}
+	o := OpenAPIService{
+		initialized: make(chan struct{}),
+	}
 	if err := o.UpdateSpec(openapiSpec); err != nil {
 		return nil, err
 	}
@@ -94,33 +100,48 @@ func RegisterOpenAPIService(openapiSpec *spec.Swagger, servePath string, mux *ge
 }
 
 func (o *OpenAPIService) getSwaggerBytes() []byte {
+	<-o.initialized
 	return o.specBytes
 }
 
 func (o *OpenAPIService) getSwaggerPbBytes() []byte {
+	<-o.initialized
 	return o.specPb
 }
 
 func (o *OpenAPIService) getSwaggerPbGzBytes() []byte {
+	<-o.initialized
 	return o.specPbGz
 }
 
 func (o *OpenAPIService) GetSpec() *spec.Swagger {
+	<-o.initialized
 	return o.orgSpec
 }
 
+// this method is stupidly crazy slow.  Order of 6 seconds on a reasonable development machine.
+// don't stop the api server start on it.  Most things don't need it to be ready and we'll hold requests for it
+// using the channel.
 func (o *OpenAPIService) UpdateSpec(openapiSpec *spec.Swagger) (err error) {
-	o.orgSpec = openapiSpec
-	o.specBytes, err = json.MarshalIndent(openapiSpec, " ", " ")
-	if err != nil {
-		return err
-	}
-	o.specPb, err = toProtoBinary(o.specBytes)
-	if err != nil {
-		return err
-	}
-	o.specPbGz = toGzip(o.specPb)
-	o.lastModified = time.Now()
+	go func() {
+		defer o.closeOnce.Do(func() {
+			close(o.initialized)
+		})
+
+		o.orgSpec = openapiSpec
+		o.specBytes, err = json.MarshalIndent(openapiSpec, " ", " ")
+		if err != nil {
+			// this is some kind of coding error, just kill it all
+			panic(err)
+		}
+		o.specPb, err = toProtoBinary(o.specBytes)
+		if err != nil {
+			// this is some kind of coding error, just kill it all
+			panic(err)
+		}
+		o.specPbGz = toGzip(o.specPb)
+		o.lastModified = time.Now()
+	}()
 
 	return nil
 }

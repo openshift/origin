@@ -5,31 +5,27 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
-	"github.com/openshift/origin/pkg/user/registry/user"
-	"github.com/openshift/origin/pkg/user/registry/useridentitymapping"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 var _ = authapi.UserIdentityMapper(&lookupIdentityMapper{})
 
 // lookupIdentityMapper does not provision a new identity or user, it only allows identities already associated with users
 type lookupIdentityMapper struct {
-	mappings useridentitymapping.Registry
-	users    user.Registry
+	mappings userclient.UserIdentityMappingInterface
+	users    userclient.UserResourceInterface
 }
 
 // UserFor returns info about the user for whom identity info has been provided
 func (p *lookupIdentityMapper) UserFor(info authapi.UserIdentityInfo) (kuser.Info, error) {
-	ctx := apirequest.NewContext()
-
-	mapping, err := p.mappings.GetUserIdentityMapping(ctx, info.GetIdentityName(), &metav1.GetOptions{})
+	mapping, err := p.mappings.Get(info.GetIdentityName(), metav1.GetOptions{})
 	if err != nil {
 		return nil, NewLookupError(info, err)
 	}
 
-	u, err := p.users.GetUser(ctx, mapping.User.Name, &metav1.GetOptions{})
+	u, err := p.users.Get(mapping.User.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, NewLookupError(info, err)
 	}

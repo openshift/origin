@@ -26,6 +26,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/componentconfig"
+	osb "github.com/pmorie/go-open-service-broker-client/v2"
 	k8scomponentconfig "k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/client/leaderelection"
 )
@@ -49,6 +50,8 @@ const (
 	defaultLeaderElectionNamespace      = "kube-system"
 )
 
+var defaultOSBAPIPreferredVersion = osb.LatestAPIVersion().HeaderValue()
+
 // NewControllerManagerServer creates a new ControllerManagerServer with a
 // default config.
 func NewControllerManagerServer() *ControllerManagerServer {
@@ -62,6 +65,7 @@ func NewControllerManagerServer() *ControllerManagerServer {
 			ResyncInterval:               defaultResyncInterval,
 			BrokerRelistInterval:         defaultBrokerRelistInterval,
 			OSBAPIContextProfile:         defaultOSBAPIContextProfile,
+			OSBAPIPreferredVersion:       defaultOSBAPIPreferredVersion,
 			ConcurrentSyncs:              defaultConcurrentSyncs,
 			LeaderElection:               leaderelection.DefaultLeaderElectionConfiguration(),
 			LeaderElectionNamespace:      defaultLeaderElectionNamespace,
@@ -82,9 +86,12 @@ func (s *ControllerManagerServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.K8sKubeconfigPath, "k8s-kubeconfig", "", "Path to k8s core kubeconfig")
 	fs.StringVar(&s.ServiceCatalogAPIServerURL, "service-catalog-api-server-url", "", "The URL for the service-catalog API server")
 	fs.StringVar(&s.ServiceCatalogKubeconfigPath, "service-catalog-kubeconfig", "", "Path to service-catalog kubeconfig")
+	fs.BoolVar(&s.ServiceCatalogInsecureSkipVerify, "service-catalog-insecure-skip-verify", s.ServiceCatalogInsecureSkipVerify, "Skip verification of the TLS certificate for the service-catalog API server")
 	fs.DurationVar(&s.ResyncInterval, "resync-interval", s.ResyncInterval, "The interval on which the controller will resync its informers")
 	fs.DurationVar(&s.BrokerRelistInterval, "broker-relist-interval", s.BrokerRelistInterval, "The interval on which a broker's catalog is relisted after the broker becomes ready")
-	fs.BoolVar(&s.OSBAPIContextProfile, "enable-osb-api-context-profile", s.OSBAPIContextProfile, "Whether or not to send the proposed optional OpenServiceBroker API Context Profile field")
+	fs.BoolVar(&s.OSBAPIContextProfile, "enable-osb-api-context-profile", s.OSBAPIContextProfile, "This does nothing.")
+	fs.MarkHidden("enable-osb-api-context-profile")
+	fs.StringVar(&s.OSBAPIPreferredVersion, "osb-api-preferred-version", s.OSBAPIPreferredVersion, "The string to send as the version header.")
 	fs.BoolVar(&s.EnableProfiling, "profiling", s.EnableProfiling, "Enable profiling via web interface host:port/debug/pprof/")
 	fs.BoolVar(&s.EnableContentionProfiling, "contention-profiling", s.EnableContentionProfiling, "Enable lock contention profiling, if profiling is enabled")
 	leaderelection.BindFlags(&s.LeaderElection, fs)

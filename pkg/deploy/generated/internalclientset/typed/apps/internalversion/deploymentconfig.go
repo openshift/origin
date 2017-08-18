@@ -43,6 +43,41 @@ func newDeploymentConfigs(c *AppsClient, namespace string) *deploymentConfigs {
 	}
 }
 
+// Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
+func (c *deploymentConfigs) Get(name string, options v1.GetOptions) (result *apps.DeploymentConfig, err error) {
+	result = &apps.DeploymentConfig{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
+func (c *deploymentConfigs) List(opts v1.ListOptions) (result *apps.DeploymentConfigList, err error) {
+	result = &apps.DeploymentConfigList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested deploymentConfigs.
+func (c *deploymentConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a deploymentConfig and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
 func (c *deploymentConfigs) Create(deploymentConfig *apps.DeploymentConfig) (result *apps.DeploymentConfig, err error) {
 	result = &apps.DeploymentConfig{}
@@ -69,7 +104,7 @@ func (c *deploymentConfigs) Update(deploymentConfig *apps.DeploymentConfig) (res
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *deploymentConfigs) UpdateStatus(deploymentConfig *apps.DeploymentConfig) (result *apps.DeploymentConfig, err error) {
 	result = &apps.DeploymentConfig{}
@@ -104,41 +139,6 @@ func (c *deploymentConfigs) DeleteCollection(options *v1.DeleteOptions, listOpti
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
-func (c *deploymentConfigs) Get(name string, options v1.GetOptions) (result *apps.DeploymentConfig, err error) {
-	result = &apps.DeploymentConfig{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
-func (c *deploymentConfigs) List(opts v1.ListOptions) (result *apps.DeploymentConfigList, err error) {
-	result = &apps.DeploymentConfigList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched deploymentConfig.

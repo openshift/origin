@@ -42,6 +42,41 @@ func newClusterNetworks(c *NetworkV1Client, namespace string) *clusterNetworks {
 	}
 }
 
+// Get takes name of the clusterNetwork, and returns the corresponding clusterNetwork object, and an error if there is any.
+func (c *clusterNetworks) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterNetwork, err error) {
+	result = &v1.ClusterNetwork{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("clusternetworks").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of ClusterNetworks that match those selectors.
+func (c *clusterNetworks) List(opts meta_v1.ListOptions) (result *v1.ClusterNetworkList, err error) {
+	result = &v1.ClusterNetworkList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("clusternetworks").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested clusterNetworks.
+func (c *clusterNetworks) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("clusternetworks").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a clusterNetwork and creates it.  Returns the server's representation of the clusterNetwork, and an error, if there is any.
 func (c *clusterNetworks) Create(clusterNetwork *v1.ClusterNetwork) (result *v1.ClusterNetwork, err error) {
 	result = &v1.ClusterNetwork{}
@@ -87,41 +122,6 @@ func (c *clusterNetworks) DeleteCollection(options *meta_v1.DeleteOptions, listO
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the clusterNetwork, and returns the corresponding clusterNetwork object, and an error if there is any.
-func (c *clusterNetworks) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterNetwork, err error) {
-	result = &v1.ClusterNetwork{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("clusternetworks").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of ClusterNetworks that match those selectors.
-func (c *clusterNetworks) List(opts meta_v1.ListOptions) (result *v1.ClusterNetworkList, err error) {
-	result = &v1.ClusterNetworkList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("clusternetworks").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested clusterNetworks.
-func (c *clusterNetworks) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("clusternetworks").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched clusterNetwork.

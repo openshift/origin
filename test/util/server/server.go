@@ -4,15 +4,22 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
+	"sync"
+	"testing"
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+
+	etcdclient "github.com/coreos/etcd/client"
+	etcdclientv3 "github.com/coreos/etcd/clientv3"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -21,21 +28,53 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/client"
-	newproject "github.com/openshift/origin/pkg/cmd/admin/project"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	"github.com/openshift/origin/pkg/cmd/server/start"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
+	newproject "github.com/openshift/origin/pkg/oc/admin/project"
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
+
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	_ "k8s.io/kubernetes/pkg/api/install"
 	_ "k8s.io/kubernetes/pkg/apis/extensions/install"
 )
+
+var (
+	// startLock protects access to the start vars
+	startLock sync.Mutex
+	// startedMaster is true if the master has already been started in process
+	startedMaster = false
+	// startedNode is true if the node has already been started in process
+	startedNode = false
+)
+
+// guardMaster prevents multiple master processes from being started at once
+func guardMaster() {
+	startLock.Lock()
+	defer startLock.Unlock()
+	if startedMaster {
+		panic("the master has already been started once in this process - run only a single test, or use the sub-shell")
+	}
+	startedMaster = true
+}
+
+// guardMaster prevents multiple master processes from being started at once
+func guardNode() {
+	startLock.Lock()
+	defer startLock.Unlock()
+	if startedNode {
+		panic("the node has already been started once in this process - run only a single test, or use the sub-shell")
+	}
+	startedNode = true
+}
 
 // ServiceAccountWaitTimeout is used to determine how long to wait for the service account
 // controllers to start up, and populate the service accounts in the test namespace
@@ -52,7 +91,13 @@ func FindAvailableBindAddress(lowPort, highPort int) (string, error) {
 		return "", errors.New("lowPort must be <= highPort")
 	}
 	for port := lowPort; port <= highPort; port++ {
-		l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+		tryPort := port
+		if tryPort == 0 {
+			tryPort = int(rand.Int31n(int32(highPort-1024)) + 1024)
+		} else {
+			tryPort = int(rand.Int31n(int32(highPort-lowPort))) + lowPort
+		}
+		l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", tryPort))
 		if err != nil {
 			if port == 0 {
 				// Only get one shot to get an ephemeral port
@@ -90,7 +135,7 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 		// don't wait for nodes to come up
 		masterAddr := os.Getenv("OS_MASTER_ADDR")
 		if len(masterAddr) == 0 {
-			if addr, err := FindAvailableBindAddress(12000, 12999); err != nil {
+			if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
 				glog.Fatalf("Couldn't find free address for master: %v", err)
 			} else {
 				masterAddr = addr
@@ -102,12 +147,13 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 	}
 
 	if !startEtcd {
+		masterArgs.EtcdAddr.Provided = true
 		masterArgs.EtcdAddr.Set(util.GetEtcdURL())
 	}
 
 	dnsAddr := os.Getenv("OS_DNS_ADDR")
 	if len(dnsAddr) == 0 {
-		if addr, err := FindAvailableBindAddress(8053, 8100); err != nil {
+		if addr, err := FindAvailableBindAddress(10000, 29999); err != nil {
 			glog.Fatalf("Couldn't find free address for DNS: %v", err)
 		} else {
 			dnsAddr = addr
@@ -119,19 +165,17 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 }
 
 func DefaultMasterOptions() (*configapi.MasterConfig, error) {
-	return DefaultMasterOptionsWithTweaks(false, false)
+	return DefaultMasterOptionsWithTweaks(true, false)
 }
 
 func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.MasterConfig, error) {
 	startOptions := start.MasterOptions{}
 	startOptions.MasterArgs, _, _, _, _ = setupStartOptions(startEtcd, useDefaultPort)
 	startOptions.Complete()
+	// reset, since Complete alters the default
 	startOptions.MasterArgs.ConfigDir.Default(path.Join(util.GetBaseDir(), "openshift.local.config", "master"))
 
 	if err := CreateMasterCerts(startOptions.MasterArgs); err != nil {
-		return nil, err
-	}
-	if err := CreateBootstrapPolicy(startOptions.MasterArgs); err != nil {
 		return nil, err
 	}
 
@@ -140,6 +184,7 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 		return nil, err
 	}
 
+	masterConfig.DisableOpenAPI = true
 	masterConfig.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds = 1
 	allowedRegistries := append(
 		*configapi.DefaultAllowedRegistriesForImport,
@@ -149,23 +194,10 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 
 	// force strict handling of service account secret references by default, so that all our examples and controllers will handle it.
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = true
+
+	glog.Infof("Starting integration server from master %s", startOptions.MasterArgs.ConfigDir.Value())
+
 	return masterConfig, nil
-}
-
-func CreateBootstrapPolicy(masterArgs *start.MasterArgs) error {
-	createBootstrapPolicy := &admin.CreateBootstrapPolicyFileOptions{
-		File: path.Join(masterArgs.ConfigDir.Value(), "policy.json"),
-		OpenShiftSharedResourcesNamespace: "openshift",
-	}
-
-	if err := createBootstrapPolicy.Validate(nil); err != nil {
-		return err
-	}
-	if err := createBootstrapPolicy.CreateBootstrapPolicyFile(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func CreateMasterCerts(masterArgs *start.MasterArgs) error {
@@ -236,7 +268,7 @@ func CreateNodeCerts(nodeArgs *start.NodeArgs, masterURL string) error {
 
 func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *utilflags.ComponentFlag, error) {
 	startOptions := start.AllInOneOptions{MasterOptions: &start.MasterOptions{}, NodeArgs: &start.NodeArgs{}}
-	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(false, false)
+	startOptions.MasterOptions.MasterArgs, startOptions.NodeArgs, _, _, _ = setupStartOptions(true, false)
 	startOptions.NodeArgs.AllowDisabledDocker = true
 	startOptions.NodeArgs.Components.Disable("plugins", "proxy", "dns")
 	startOptions.ServiceNetworkCIDR = start.NewDefaultNetworkArgs().ServiceNetworkCIDR
@@ -250,33 +282,32 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
 		return nil, nil, nil, err
 	}
-	if err := CreateBootstrapPolicy(startOptions.MasterOptions.MasterArgs); err != nil {
-		return nil, nil, nil, err
-	}
 
 	if err := CreateNodeCerts(startOptions.NodeArgs, startOptions.MasterOptions.MasterArgs.MasterAddr.String()); err != nil {
 		return nil, nil, nil, err
 	}
 
-	masterOptions, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
+	masterConfig, err := startOptions.MasterOptions.MasterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
+	masterConfig.DisableOpenAPI = true
+
 	if fn := startOptions.MasterOptions.MasterArgs.OverrideConfig; fn != nil {
-		if err := fn(masterOptions); err != nil {
+		if err := fn(masterConfig); err != nil {
 			return nil, nil, nil, err
 		}
 	}
 
-	nodeOptions, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
+	nodeConfig, err := startOptions.NodeArgs.BuildSerializeableNodeConfig()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	nodeOptions.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
-	nodeOptions.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
+	nodeConfig.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
+	nodeConfig.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
 
-	return masterOptions, nodeOptions, startOptions.NodeArgs.Components, nil
+	return masterConfig, nodeConfig, startOptions.NodeArgs.Components, nil
 }
 
 func StartConfiguredAllInOne(masterConfig *configapi.MasterConfig, nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) (string, error) {
@@ -302,6 +333,33 @@ func StartTestAllInOne() (*configapi.MasterConfig, *configapi.NodeConfig, string
 	return master, node, adminKubeConfigFile, err
 }
 
+func MasterEtcdClients(config *configapi.MasterConfig) (etcdclient.Client, *etcdclientv3.Client, error) {
+	etcd2, err := etcd.MakeEtcdClient(config.EtcdClientInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+	etcd3, err := etcd.MakeEtcdClientV3(config.EtcdClientInfo)
+	if err != nil {
+		return nil, nil, err
+	}
+	return etcd2, etcd3, nil
+}
+
+func CleanupMasterEtcd(t *testing.T, config *configapi.MasterConfig) {
+	etcd2, etcd3, err := MasterEtcdClients(config)
+	if err != nil {
+		t.Logf("Unable to get etcd client available for master: %v", err)
+	}
+	util.DumpEtcdOnFailure(t, etcd2, etcd3)
+	if config.EtcdConfig != nil {
+		if len(config.EtcdConfig.StorageDir) > 0 {
+			if err := os.RemoveAll(config.EtcdConfig.StorageDir); err != nil {
+				t.Logf("Unable to clean up the config storage directory %s: %v", config.EtcdConfig.StorageDir, err)
+			}
+		}
+	}
+}
+
 type TestOptions struct {
 	EnableControllers bool
 }
@@ -311,6 +369,7 @@ func DefaultTestOptions() TestOptions {
 }
 
 func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags.ComponentFlag) error {
+	guardNode()
 	kubernetes.SetFakeCadvisorInterfaceForIntegrationTest()
 	kubernetes.SetFakeContainerManagerInterfaceForIntegrationTest()
 
@@ -318,14 +377,13 @@ func StartConfiguredNode(nodeConfig *configapi.NodeConfig, components *utilflags
 	if err != nil {
 		return err
 	}
-	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
 	if err := start.StartNode(*nodeConfig, components); err != nil {
 		return err
 	}
 
 	// wait for the server to come up for 30 seconds (average time on desktop is 2 seconds, but Jenkins timed out at 10 seconds)
-	if err := cmdutil.WaitForSuccessfulDial(nodeTLS, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
+	if err := cmdutil.WaitForSuccessfulDial(true, "tcp", net.JoinHostPort(nodeConfig.NodeName, nodePort), 100*time.Millisecond, 1*time.Second, 30); err != nil {
 		return err
 	}
 
@@ -343,6 +401,10 @@ func StartConfiguredMasterAPI(masterConfig *configapi.MasterConfig) (string, err
 }
 
 func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, testOptions TestOptions) (string, error) {
+	guardMaster()
+	if masterConfig.EtcdConfig != nil && len(masterConfig.EtcdConfig.StorageDir) > 0 {
+		os.RemoveAll(masterConfig.EtcdConfig.StorageDir)
+	}
 	if err := start.NewMaster(masterConfig, testOptions.EnableControllers, true).Start(); err != nil {
 		return "", err
 	}
@@ -361,16 +423,17 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 		return "", err
 	}
 
-	err = wait.Poll(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
+	var healthzResponse string
+	err = wait.Poll(100*time.Millisecond, 10*time.Second, func() (bool, error) {
 		var healthy bool
-		healthy, err = IsServerHealthy(*masterURL)
+		healthy, healthzResponse, err = IsServerHealthy(*masterURL)
 		if err != nil {
 			return false, err
 		}
 		return healthy, nil
 	})
 	if err == wait.ErrWaitTimeout {
-		return "", fmt.Errorf("server did not become healthy")
+		return "", fmt.Errorf("server did not become healthy: %v", healthzResponse)
 	}
 	if err != nil {
 		return "", err
@@ -379,7 +442,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	return adminKubeConfigFile, nil
 }
 
-func IsServerHealthy(url url.URL) (bool, error) {
+func IsServerHealthy(url url.URL) (bool, string, error) {
 	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -391,9 +454,12 @@ func IsServerHealthy(url url.URL) (bool, error) {
 	req.Header.Set("Accept", "text/html")
 	resp, err := transport.RoundTrip(req)
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
-	return resp.StatusCode == http.StatusOK, nil
+	defer resp.Body.Close()
+	content, _ := ioutil.ReadAll(resp.Body)
+
+	return resp.StatusCode == http.StatusOK, string(content), nil
 }
 
 // StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs

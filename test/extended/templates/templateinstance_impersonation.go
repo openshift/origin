@@ -145,17 +145,6 @@ var _ = g.Describe("[templates] templateinstance impersonation tests", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminClient().PolicyBindings(cli.Namespace()).Create(&authorizationapi.PolicyBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: authorizationapi.GetPolicyBindingName(cli.Namespace()),
-			},
-			PolicyRef: kapi.ObjectReference{
-				Name:      "default",
-				Namespace: cli.Namespace(),
-			},
-		})
-		o.Expect(err).NotTo(o.HaveOccurred())
-
 		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater-binding",

@@ -98,9 +98,7 @@ func omitDuplicates(kl *Kubelet, pod *v1.Pod, combinedSearch []string) []string 
 			combinedSearch[len(uniqueDomains)] = dnsDomain
 			uniqueDomains[dnsDomain] = true
 		} else {
-			log := fmt.Sprintf("Found and omitted duplicated dns domain in host search line: '%s' during merging with cluster dns domains", dnsDomain)
-			kl.recorder.Event(pod, v1.EventTypeWarning, "DNSSearchForming", log)
-			glog.Error(log)
+			glog.V(5).Infof("Found and omitted duplicated dns domain in host search line: '%s' during merging with cluster dns domains", dnsDomain)
 		}
 	}
 	return combinedSearch[:len(uniqueDomains)]

@@ -43,6 +43,41 @@ func newDeploymentConfigs(c *AppsV1Client, namespace string) *deploymentConfigs 
 	}
 }
 
+// Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
+func (c *deploymentConfigs) Get(name string, options meta_v1.GetOptions) (result *v1.DeploymentConfig, err error) {
+	result = &v1.DeploymentConfig{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
+func (c *deploymentConfigs) List(opts meta_v1.ListOptions) (result *v1.DeploymentConfigList, err error) {
+	result = &v1.DeploymentConfigList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested deploymentConfigs.
+func (c *deploymentConfigs) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a deploymentConfig and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
 func (c *deploymentConfigs) Create(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
@@ -69,7 +104,7 @@ func (c *deploymentConfigs) Update(deploymentConfig *v1.DeploymentConfig) (resul
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *deploymentConfigs) UpdateStatus(deploymentConfig *v1.DeploymentConfig) (result *v1.DeploymentConfig, err error) {
 	result = &v1.DeploymentConfig{}
@@ -104,41 +139,6 @@ func (c *deploymentConfigs) DeleteCollection(options *meta_v1.DeleteOptions, lis
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
-func (c *deploymentConfigs) Get(name string, options meta_v1.GetOptions) (result *v1.DeploymentConfig, err error) {
-	result = &v1.DeploymentConfig{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of DeploymentConfigs that match those selectors.
-func (c *deploymentConfigs) List(opts meta_v1.ListOptions) (result *v1.DeploymentConfigList, err error) {
-	result = &v1.DeploymentConfigList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested deploymentConfigs.
-func (c *deploymentConfigs) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("deploymentconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched deploymentConfig.

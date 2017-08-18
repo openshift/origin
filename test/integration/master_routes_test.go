@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -32,6 +33,8 @@ var expectedIndex = []string{
 	"/apis/",
 	"/apis/apiextensions.k8s.io",
 	"/apis/apiextensions.k8s.io/v1beta1",
+	"/apis/apiregistration.k8s.io",
+	"/apis/apiregistration.k8s.io/v1beta1",
 	"/apis/apps",
 	"/apis/apps.openshift.io",
 	"/apis/apps.openshift.io/v1",
@@ -84,33 +87,41 @@ var expectedIndex = []string{
 	"/apis/user.openshift.io/v1",
 	"/controllers",
 	"/healthz",
+	"/healthz/autoregister-completion",
 	"/healthz/ping",
+	"/healthz/poststarthook/apiservice-registration-controller",
+	"/healthz/poststarthook/apiservice-status-available-controller",
+	"/healthz/poststarthook/authorization.openshift.io-bootstrapclusterroles",
+	"/healthz/poststarthook/authorization.openshift.io-ensureSARolesDefault",
+	"/healthz/poststarthook/authorization.openshift.io-ensureopenshift-infra",
 	"/healthz/poststarthook/bootstrap-controller",
 	"/healthz/poststarthook/ca-registration",
 	// "/healthz/poststarthook/extensions/third-party-resources",  // Do not enable this controller, we do not support it
 	"/healthz/poststarthook/generic-apiserver-start-informers",
+	"/healthz/poststarthook/kube-apiserver-autoregistration",
+	"/healthz/poststarthook/project.openshift.io-projectauthorizationcache",
+	"/healthz/poststarthook/project.openshift.io-projectcache",
+	"/healthz/poststarthook/quota.openshift.io-clusterquotamapping",
+	"/healthz/poststarthook/security.openshift.io-bootstrapscc",
 	"/healthz/poststarthook/start-apiextensions-controllers",
 	"/healthz/poststarthook/start-apiextensions-informers",
+	"/healthz/poststarthook/start-kube-aggregator-informers",
+	"/healthz/poststarthook/template.openshift.io-sharednamespace",
 	"/healthz/ready",
 	"/metrics",
 	"/oapi",
 	"/oapi/v1",
-	"/swagger-2.0.0.json",
-	"/swagger-2.0.0.pb-v1",
-	"/swagger-2.0.0.pb-v1.gz",
-	"/swagger.json",
 	"/swaggerapi",
 	"/version",
 	"/version/openshift",
 }
 
 func TestRootRedirect(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	transport, err := anonymousHttpTransport(clusterAdminKubeConfig)
 	if err != nil {
@@ -140,7 +151,19 @@ func TestRootRedirect(t *testing.T) {
 	json.Unmarshal(body, &got)
 	sort.Strings(got.Paths)
 	if !reflect.DeepEqual(got.Paths, expectedIndex) {
-		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v", got, expectedIndex)
+		for i := range got.Paths {
+			if i > len(expectedIndex) {
+				t.Errorf("expected missing %v", got.Paths[i:])
+				break
+			}
+			if got.Paths[i] == expectedIndex[i] {
+				continue
+			}
+			t.Errorf("expected[%d]==%v actual[%d]==%v", i, expectedIndex[i], i, got.Paths[i])
+			break
+		}
+
+		t.Fatalf("Unexpected index: \ngot=%v,\n\n expected=%v,\n\ndiff=%v", got.Paths, expectedIndex, diff.ObjectDiff(expectedIndex, got.Paths))
 	}
 
 	req, err = http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL, nil)
@@ -161,12 +184,11 @@ func TestRootRedirect(t *testing.T) {
 }
 
 func TestWellKnownOAuth(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	transport, err := anonymousHttpTransport(clusterAdminKubeConfig)
 	if err != nil {
@@ -192,12 +214,11 @@ func TestWellKnownOAuth(t *testing.T) {
 }
 
 func TestWellKnownOAuthOff(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.OAuthConfig = nil
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
@@ -223,6 +244,8 @@ func TestWellKnownOAuthOff(t *testing.T) {
 var preferredVersions = map[string]string{
 	"":                          "v1",
 	"apps":                      "v1beta1",
+	"apiextensions.k8s.io":      "v1beta1",
+	"apiregistration.k8s.io":    "v1beta1",
 	"authentication.k8s.io":     "v1",
 	"authorization.k8s.io":      "v1",
 	"autoscaling":               "v1",
@@ -249,12 +272,11 @@ var preferredVersions = map[string]string{
 }
 
 func TestApiGroupPreferredVersions(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.OAuthConfig = nil
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {
@@ -294,12 +316,11 @@ func TestApiGroupPreferredVersions(t *testing.T) {
 }
 
 func TestApiGroups(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.OAuthConfig = nil
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterConfig)
 	if err != nil {

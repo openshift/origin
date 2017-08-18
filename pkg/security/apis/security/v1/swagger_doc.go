@@ -130,7 +130,7 @@ func (SELinuxContextStrategyOptions) SwaggerDoc() map[string]string {
 var map_SecurityContextConstraints = map[string]string{
 	"":                         "SecurityContextConstraints governs the ability to make requests that affect the SecurityContext that will be applied to a container.",
 	"metadata":                 "Standard object's metadata. More info: http://releases.k8s.io/HEAD/docs/devel/api-conventions.md#metadata",
-	"priority":                 "Priority influences the sort order of SCCs when evaluating which SCCs to try first for a given pod request based on access in the Users and Groups fields.  The higher the int, the higher priority.  If scores for multiple SCCs are equal they will be sorted by name.",
+	"priority":                 "Priority influences the sort order of SCCs when evaluating which SCCs to try first for a given pod request based on access in the Users and Groups fields.  The higher the int, the higher priority. An unset value is considered a 0 priority. If scores for multiple SCCs are equal they will be sorted from most restrictive to least restrictive. If both priorities and restrictions are equal the SCCs will be sorted by name.",
 	"allowPrivilegedContainer": "AllowPrivilegedContainer determines if a container can request to be run as privileged.",
 	"defaultAddCapabilities":   "DefaultAddCapabilities is the default set of capabilities that will be added to the container unless the pod spec specifically drops the capability.  You may not list a capabiility in both DefaultAddCapabilities and RequiredDropCapabilities.",
 	"requiredDropCapabilities": "RequiredDropCapabilities are the capabilities that will be dropped from the container.  These are required to be dropped and cannot be added.",

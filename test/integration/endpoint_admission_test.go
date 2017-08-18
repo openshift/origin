@@ -52,12 +52,11 @@ func testOne(t *testing.T, client kclientset.Interface, namespace, addrType stri
 }
 
 func TestEndpointAdmission(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		serviceadmit.RestrictedEndpointsPluginName: {
 			Configuration: &configapi.DefaultAdmissionConfig{},

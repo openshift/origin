@@ -338,6 +338,7 @@ func (t *stiTar) ExtractTarStreamFromTarReader(dir string, tarReader Reader, log
 					glog.Errorf("Error creating dir %q: %v", dirPath, err)
 					return err
 				}
+				t.Chmod(dirPath, header.FileInfo().Mode())
 			} else {
 				fileDir := filepath.Dir(header.Name)
 				dirPath := filepath.Join(dir, fileDir)

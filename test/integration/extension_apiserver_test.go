@@ -14,12 +14,11 @@ import (
 )
 
 func TestExtensionAPIServerConfigMap(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {

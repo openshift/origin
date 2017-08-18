@@ -34,7 +34,6 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   #cmd/oc
   cmd/apiserver
   cmd/controller-manager
-  contrib/cmd/user-broker
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
@@ -49,6 +48,9 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-recycle
   openshift-sti-build
   openshift-docker-build
+  openshift-git-clone
+  openshift-manage-dockerfile
+  openshift-extract-image-content
   origin
   osc
   oadm

@@ -21,25 +21,24 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/serviceaccounts/controllers"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestServiceAccountAuthorization(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 	saUsername := apiserverserviceaccount.MakeUsername(saNamespace, saName)
 
 	// Start one OpenShift master as "cluster1" to play the external kube server
-	_, cluster1AdminConfigFile, err := testserver.StartTestMaster()
+	masterConfig, cluster1AdminConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	cluster1AdminConfig, err := testutil.GetClusterAdminClientConfig(cluster1AdminConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -169,12 +168,11 @@ func TestAutomaticCreationOfPullSecrets(t *testing.T) {
 	saNamespace := api.NamespaceDefault
 	saName := serviceaccountadmission.DefaultServiceAccountName
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -227,13 +225,12 @@ func getServiceAccountPullSecret(client kclientset.Interface, ns, name string) (
 }
 
 func TestEnforcingServiceAccount(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	masterConfig.ServiceAccountConfig.LimitSecretReferences = false
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminConfig, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
@@ -323,13 +320,11 @@ func TestEnforcingServiceAccount(t *testing.T) {
 }
 
 func TestDockercfgTokenDeletedController(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

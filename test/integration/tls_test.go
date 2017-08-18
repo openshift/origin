@@ -5,17 +5,15 @@ import (
 	"testing"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
 func TestTLSDefaults(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	master, node, components, err := testserver.DefaultAllInOneOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, master)
 	_, err = testserver.StartConfiguredAllInOne(master, node, components)
 	if err != nil {
 		t.Fatal(err)
@@ -83,12 +81,11 @@ func TestTLSDefaults(t *testing.T) {
 }
 
 func TestTLSOverrides(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	master, node, components, err := testserver.DefaultAllInOneOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, master)
 
 	// Pick these ciphers because the first is http2 compatible, and the second works with TLS10
 	master.ServingInfo.MinTLSVersion = "VersionTLS10"

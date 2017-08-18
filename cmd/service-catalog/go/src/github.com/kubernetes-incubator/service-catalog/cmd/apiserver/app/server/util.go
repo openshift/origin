@@ -18,7 +18,7 @@ package server
 
 import (
 	"fmt"
-	"strings"
+	"net"
 	"time"
 
 	"github.com/golang/glog"
@@ -33,6 +33,7 @@ import (
 	scadmission "github.com/kubernetes-incubator/service-catalog/pkg/apiserver/admission"
 	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/internalversion"
+	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/pkg/version"
 )
 
@@ -55,23 +56,15 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 	if !inCluster {
 		glog.Infof("service catalog is in standalone mode")
 	}
-	if _, err := s.SecureServingOptions.ServingOptions.DefaultExternalAddress(); err != nil {
-		return nil, nil, err
-	}
 	// server configuration options
-	if err := s.SecureServingOptions.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String()); err != nil {
+	if err := s.SecureServingOptions.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), nil /*alternateDNS*/, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
 		return nil, nil, err
 	}
-	// NOTE: in k8s 1.7, this will take the explicit codec as input
-	genericConfig := genericapiserver.NewConfig()
+	genericConfig := genericapiserver.NewConfig(server.Codecs)
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, nil, err
 	}
 	if err := s.SecureServingOptions.ApplyTo(genericConfig); err != nil {
-		return nil, nil, err
-	}
-	// this MUST be done after secure so we have a valid loopbackClientConfig
-	if err := s.InsecureServingOptions.ApplyTo(genericConfig); err != nil {
 		return nil, nil, err
 	}
 	if !s.DisableAuth && inCluster {
@@ -148,16 +141,16 @@ func buildAdmission(s *ServiceCatalogServerOptions,
 	client internalclientset.Interface, sharedInformers informers.SharedInformerFactory,
 	kubeClient kubeclientset.Interface, kubeSharedInformers kubeinformers.SharedInformerFactory) (admission.Interface, error) {
 
-	admissionControlPluginNames := strings.Split(s.GenericServerRunOptions.AdmissionControl, ",")
+	admissionControlPluginNames := s.AdmissionOptions.PluginNames
 	glog.Infof("Admission control plugin names: %v", admissionControlPluginNames)
 	var err error
 
 	pluginInitializer := scadmission.NewPluginInitializer(client, sharedInformers, kubeClient, kubeSharedInformers)
-	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.GenericServerRunOptions.AdmissionControlConfigFile)
+	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.AdmissionOptions.ConfigFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read plugin config: %v", err)
 	}
-	return admission.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer)
+	return s.AdmissionOptions.Plugins.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer)
 }
 
 // addPostStartHooks adds the common post start hooks we invoke when using either server storage option.

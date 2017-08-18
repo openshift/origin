@@ -6155,6 +6155,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
+						"publicDockerImageRepository": {
+							SchemaProps: spec.SchemaProps{
+								Description: "PublicDockerImageRepository represents the public location from where the image can be pulled outside the cluster. This field may be empty if the administrator has not exposed the integrated registry externally.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"tags": {
 							SchemaProps: spec.SchemaProps{
 								Description: "Tags are a historical record of images associated with each tag. The first entry in the TagEvent array is the currently tagged image.",
@@ -8104,7 +8111,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 		"github.com/openshift/origin/pkg/route/apis/route/v1.RouteSpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "RouteSpec describes the hostname or path the route exposes, any security information, and one or more backends the route points to. Weights on each backend can define the balance of traffic sent to each backend - if all weights are zero the route will be considered to have no backends and return a standard 503 response.\n\nThe `tls` field is optional and allows specific certificates or behavior for the route. Routers typically configure a default certificate on a wildcard domain to terminate routes without explicit certificates, but custom hostnames usually must choose passthrough (send traffic directly to the backend via the TLS Server-Name- Indication field) or provide a certificate.",
+					Description: "RouteSpec describes the hostname or path the route exposes, any security information, and one to four backends (services) the route points to. Requests are distributed among the backends depending on the weights assigned to each backend. When using roundrobin scheduling the portion of requests that go to each backend is the backend weight divided by the sum of all of the backend weights. When the backend has more than one endpoint the requests that end up on the backend are roundrobin distributed among the endpoints. Weights are between 0 and 256 with default 1. Weight 0 causes no requests to the backend. If all weights are zero the route will be considered to have no backends and return a standard 503 response.\n\nThe `tls` field is optional and allows specific certificates or behavior for the route. Routers typically configure a default certificate on a wildcard domain to terminate routes without explicit certificates, but custom hostnames usually must choose passthrough (send traffic directly to the backend via the TLS Server-Name- Indication field) or provide a certificate.",
 					Properties: map[string]spec.Schema{
 						"host": {
 							SchemaProps: spec.SchemaProps{
@@ -8122,13 +8129,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"to": {
 							SchemaProps: spec.SchemaProps{
-								Description: "to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field is set to zero, no traffic will be sent to this service.",
+								Description: "to is an object the route should use as the primary backend. Only the Service kind is allowed, and it will be defaulted to Service. If the weight field (0-256 default 1) is set to zero, no traffic will be sent to this backend.",
 								Ref:         ref("github.com/openshift/origin/pkg/route/apis/route/v1.RouteTargetReference"),
 							},
 						},
 						"alternateBackends": {
 							SchemaProps: spec.SchemaProps{
-								Description: "alternateBackends is an extension of the 'to' field. If more than one service needs to be pointed to, then use this field. Use the weight field in RouteTargetReference object to specify relative preference. If the weight field is zero, the backend is ignored.",
+								Description: "alternateBackends allows up to 3 additional backends to be assigned to the route. Only the Service kind is allowed, and it will be defaulted to Service. Use the weight field in RouteTargetReference object to specify relative preference.",
 								Type:        []string{"array"},
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
@@ -8211,7 +8218,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"weight": {
 							SchemaProps: spec.SchemaProps{
-								Description: "weight as an integer between 1 and 256 that specifies the target's relative weight against other target reference objects",
+								Description: "weight as an integer between 0 and 256, default 1, that specifies the target's relative weight against other target reference objects. 0 suppresses requests to this backend.",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
@@ -9153,7 +9160,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"priority": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Priority influences the sort order of SCCs when evaluating which SCCs to try first for a given pod request based on access in the Users and Groups fields.  The higher the int, the higher priority.  If scores for multiple SCCs are equal they will be sorted by name.",
+								Description: "Priority influences the sort order of SCCs when evaluating which SCCs to try first for a given pod request based on access in the Users and Groups fields.  The higher the int, the higher priority. An unset value is considered a 0 priority. If scores for multiple SCCs are equal they will be sorted from most restrictive to least restrictive. If both priorities and restrictions are equal the SCCs will be sorted by name.",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
@@ -9845,6 +9852,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstance", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
+		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TemplateInstanceObject references an object created by a TemplateInstance.",
+					Properties: map[string]spec.Schema{
+						"ref": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ref is a reference to the created object.  When used under .spec, only name and namespace are used; these can contain references to parameters which will be substituted following the usual rules.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceRequester": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -9911,12 +9935,24 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"objects": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Objects references the objects created by the TemplateInstance.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"),
+										},
+									},
+								},
+							},
+						},
 					},
-					Required: []string{"conditions"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition"},
+				"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceCondition", "github.com/openshift/origin/pkg/template/apis/template/v1.TemplateInstanceObject"},
 		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.TemplateList": {
 			Schema: spec.Schema{
@@ -12811,7 +12847,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestType": {
+		"k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestType": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -12831,16 +12867,16 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"status": {
 							SchemaProps: spec.SchemaProps{
-								Ref: ref("k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeStatus"),
+								Ref: ref("k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestTypeStatus"),
 							},
 						},
 					},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeStatus"},
+				"k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestTypeStatus"},
 		},
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeList": {
+		"k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestTypeList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{
@@ -12869,7 +12905,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestType"),
+											Ref: ref("k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestType"),
 										},
 									},
 								},
@@ -12880,9 +12916,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestType"},
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestType"},
 		},
-		"k8s.io/kubernetes/cmd/libs/go2idl/client-gen/test_apis/testgroup/v1.TestTypeStatus": {
+		"k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup/v1.TestTypeStatus": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Properties: map[string]spec.Schema{

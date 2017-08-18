@@ -19,14 +19,16 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apiserver/pkg/util/flag"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
+	tsbcmd "github.com/openshift/origin/pkg/openservicebroker/cmd/server"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 type AllInOneOptions struct {
@@ -60,9 +62,7 @@ var allInOneLong = templates.LongDesc(`
 	address that will be visible inside running Docker containers. This is not always successful,
 	so if you have problems tell OpenShift what public address it will be via --master=<ip>.
 
-	You may also pass --etcd=<address> to connect to an external etcd server.
-
-	You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`)
+	You may also pass --etcd=<address> to connect to an external etcd server.`)
 
 // NewCommandStartAllInOne provides a CLI handler for 'start' command
 func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Command, *AllInOneOptions) {
@@ -125,10 +125,12 @@ func NewCommandStartAllInOne(basename string, out, errout io.Writer) (*cobra.Com
 	startNode, _ := NewCommandStartNode(basename, out, errout)
 	startNodeNetwork, _ := NewCommandStartNetwork(basename, out, errout)
 	startEtcdServer, _ := NewCommandStartEtcdServer(RecommendedStartEtcdServerName, basename, out, errout)
+	startTSBServer := tsbcmd.NewCommandStartTemplateServiceBrokerServer(out, errout, wait.NeverStop)
 	cmds.AddCommand(startMaster)
 	cmds.AddCommand(startNode)
 	cmds.AddCommand(startNodeNetwork)
 	cmds.AddCommand(startEtcdServer)
+	cmds.AddCommand(startTSBServer)
 
 	startKube := kubernetes.NewCommand("kubernetes", basename, out, errout)
 	cmds.AddCommand(startKube)

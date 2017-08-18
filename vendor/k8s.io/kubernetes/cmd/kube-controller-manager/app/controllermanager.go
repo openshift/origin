@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 
@@ -199,7 +200,7 @@ func Run(s *options.CMServer) error {
 	rl, err := resourcelock.New(s.LeaderElection.ResourceLock,
 		"kube-system",
 		"kube-controller-manager",
-		leaderElectionClient,
+		leaderElectionClient.Core(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: recorder,
@@ -340,6 +341,7 @@ func NewControllerInitializers() map[string]InitFunc {
 func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (map[schema.GroupVersionResource]bool, error) {
 	var discoveryClient discovery.DiscoveryInterface
 
+	var healthzContent string
 	// If apiserver is not running we should wait for some time and fail only then. This is particularly
 	// important when we start apiserver and controller manager at the same time.
 	err := wait.PollImmediate(time.Second, 5*time.Minute, func() (bool, error) {
@@ -350,22 +352,27 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 		}
 
 		healthStatus := 0
-		client.Discovery().RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
+		resp := client.Discovery().RESTClient().Get().AbsPath("/healthz").Do().StatusCode(&healthStatus)
 		if healthStatus != http.StatusOK {
 			glog.Errorf("Server isn't healthy yet.  Waiting a little while.")
 			return false, nil
 		}
+		content, _ := resp.Raw()
+		healthzContent = string(content)
 
 		discoveryClient = client.Discovery()
 		return true, nil
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get api versions from server: %v", err)
+		return nil, fmt.Errorf("failed to get api versions from server: %v: %v", healthzContent, err)
 	}
 
 	resourceMap, err := discoveryClient.ServerResources()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get supported resources from server: %v", err)
+		utilruntime.HandleError(fmt.Errorf("unable to get all supported resources from server: %v", err))
+	}
+	if len(resourceMap) == 0 {
+		return nil, fmt.Errorf("unable to get any supported resources from server")
 	}
 
 	allResources := map[schema.GroupVersionResource]bool{}

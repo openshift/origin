@@ -190,21 +190,6 @@ function os::util::curl_etcd() {
 	fi
 }
 
-# os::util::host_platform determines what the host OS and architecture
-# are, as Golang sees it. The go tool chain does some slightly different
-# things when the target platform matches the host platform.
-#
-# Globals:
-#  None
-# Arguments:
-#  None
-# Returns:
-#  None
-function os::util::host_platform() {
-	echo "$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
-}
-readonly -f os::util::host_platform
-
 # os::util::list_go_src_files lists files we consider part of our project
 # source code, useful for tools that iterate over source to provide vet-
 # ting or linting, etc.
@@ -222,7 +207,7 @@ function os::util::list_go_src_files() {
 		-o -wholename './.*' \
 		-o -wholename './pkg/assets/bindata.go' \
 		-o -wholename './pkg/assets/*/bindata.go' \
-		-o -wholename './pkg/bootstrap/bindata.go' \
+		-o -wholename './pkg/oc/bootstrap/bindata.go' \
 		-o -wholename './openshift.local.*' \
 		-o -wholename './test/extended/testdata/bindata.go' \
 		-o -wholename '*/vendor/*' \

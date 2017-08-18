@@ -592,15 +592,21 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 
 // CreateServiceUnit creates a new service named with the given id.
 func (r *templateRouter) CreateServiceUnit(id string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.createServiceUnitInternal(id)
+}
+
+// CreateServiceUnit creates a new service named with the given id - internal
+// lockless form, caller needs to ensure lock acquisition [and release].
+func (r *templateRouter) createServiceUnitInternal(id string) {
 	parts := strings.SplitN(id, "/", 2)
 	service := ServiceUnit{
 		Name:          id,
 		Hostname:      fmt.Sprintf("%s.%s.svc", parts[1], parts[0]),
 		EndpointTable: []Endpoint{},
 	}
-
-	r.lock.Lock()
-	defer r.lock.Unlock()
 
 	r.serviceUnits[id] = service
 	r.stateChanged = true
@@ -685,7 +691,7 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
 
 	// Get the service units and count the active ones (with a non-zero weight)
-	serviceUnits := getServiceUnits(route)
+	serviceUnits := getServiceUnits(r.numberOfEndpoints, route)
 	activeServiceUnits := 0
 	for _, weight := range serviceUnits {
 		if weight > 0 {
@@ -767,6 +773,11 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 
 	newConfig := r.createServiceAliasConfig(route, backendKey)
 
+	// We have to call the internal form of functions after this
+	// because we are holding the state lock.
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	if existingConfig, exists := r.state[backendKey]; exists {
 		if configsAreEqual(newConfig, &existingConfig) {
 			return
@@ -775,7 +786,7 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 		glog.V(4).Infof("Updating route %s/%s", route.Namespace, route.Name)
 
 		// Delete the route first, because modify is to be treated as delete+add
-		r.RemoveRoute(route)
+		r.removeRouteInternal(route)
 
 		// TODO - clean up service units that are no longer
 		// referenced.  This may be challenging if a service unit can
@@ -788,14 +799,11 @@ func (r *templateRouter) AddRoute(route *routeapi.Route) {
 
 	// Add service units referred to by the config
 	for key := range newConfig.ServiceUnitNames {
-		if _, ok := r.FindServiceUnit(key); !ok {
+		if _, ok := r.findMatchingServiceUnit(key); !ok {
 			glog.V(4).Infof("Creating new frontend for key: %v", key)
-			r.CreateServiceUnit(key)
+			r.createServiceUnitInternal(key)
 		}
 	}
-
-	r.lock.Lock()
-	defer r.lock.Unlock()
 
 	r.state[backendKey] = *newConfig
 	r.stateChanged = true
@@ -806,6 +814,12 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	r.removeRouteInternal(route)
+}
+
+// removeRouteInternal removes the given route - internal
+// lockless form, caller needs to ensure lock acquisition [and release].
+func (r *templateRouter) removeRouteInternal(route *routeapi.Route) {
 	routeKey := r.routeKey(route)
 	serviceAliasConfig, ok := r.state[routeKey]
 	if !ok {
@@ -815,6 +829,19 @@ func (r *templateRouter) RemoveRoute(route *routeapi.Route) {
 	r.cleanUpServiceAliasConfig(&serviceAliasConfig)
 	delete(r.state, routeKey)
 	r.stateChanged = true
+}
+
+// numberOfEndpoints returns the number of endpoints
+func (r *templateRouter) numberOfEndpoints(id string) int32 {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	var eps = 0
+	svc, ok := r.findMatchingServiceUnit(id)
+	if ok && len(svc.EndpointTable) > eps {
+		eps = len(svc.EndpointTable)
+	}
+	return int32(eps)
 }
 
 // AddEndpoints adds new Endpoints for the given id.
@@ -957,23 +984,72 @@ func generateDestCertKey(config *ServiceAliasConfig) string {
 	return config.Host + destCertPostfix
 }
 
+type endpointsCounter func(key string) int32
+
 // getServiceUnits returns a map of service keys to their weights.
-// Weight suggests the % of traffic that a given service will receive
-// compared to other services pointed to by the route.
-func getServiceUnits(route *routeapi.Route) map[string]int32 {
+// The requests are loadbalanced among the services referenced by the route.
+// The weight (0-256, default 1) sets the relative proportions each
+// service gets (weight/sum_of_weights fraction of the requests).
+// When the weight is 0 no traffic goes to the service. If they are
+// all 0 the request is returned with 503 response.
+// For each service, the requests are distributed among the endpoints.
+// Each endpoint gets weight/numberOfEndpoints portion of the requests.
+// The above assumes roundRobin scheduling.
+func getServiceUnits(counter endpointsCounter, route *routeapi.Route) map[string]int32 {
 	serviceUnits := make(map[string]int32)
 	key := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
+
+	// find the maximum weight
+	var maxWeight int32 = 1
+	if route.Spec.To.Weight != nil && *route.Spec.To.Weight > maxWeight {
+		maxWeight = *route.Spec.To.Weight
+	}
+	for _, svc := range route.Spec.AlternateBackends {
+		if svc.Weight != nil && *svc.Weight > maxWeight {
+			maxWeight = *svc.Weight
+		}
+	}
+	// Scale the weights to near the maximum (256).
+	// This improves precision when scaling for the endpoints
+	var scaleWeight int32 = 256 / maxWeight
+
+	// The weight assigned to the service is distributed among the endpoints
+	// for example the if we have two services "A" with weight 20 and 2 endpoints
+	// and "B" with  weight 10 and 4 endpoints the ultimate weights on
+	// endpoints would work out as:
+	// maxWeight = 20, scaleWeight 12 (division truncates 12.8 to 12)
+	// Scaled "A" is 240, "B" is 120
+	// "A" has 2 endpoints: each gets weight 120 (of the available 240)
+	// "B" has 4 endpoints: each gets weight 30  (of the available 120)
+
+	// serviceUnits[key] is the weigth for each endpoint in the service
+	// the sum of the weights of the endpoints is the scaled service weight.
+
+	var numEp int32 = counter(key)
+	if numEp < 1 {
+		numEp = 1
+	}
 	if route.Spec.To.Weight == nil {
-		serviceUnits[key] = 0
+		serviceUnits[key] = scaleWeight / numEp
 	} else {
-		serviceUnits[key] = *route.Spec.To.Weight
+		serviceUnits[key] = (*route.Spec.To.Weight * scaleWeight) / numEp
+		if *route.Spec.To.Weight > 0 && serviceUnits[key] < 1 {
+			serviceUnits[key] = 1
+		}
 	}
 	for _, svc := range route.Spec.AlternateBackends {
 		key = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
+		numEp = counter(key)
+		if numEp < 1 {
+			numEp = 1
+		}
 		if svc.Weight == nil {
-			serviceUnits[key] = 0
+			serviceUnits[key] = scaleWeight / numEp
 		} else {
-			serviceUnits[key] = *svc.Weight
+			serviceUnits[key] = (*svc.Weight * scaleWeight) / numEp
+			if *svc.Weight > 0 && serviceUnits[key] < 1 {
+				serviceUnits[key] = 1
+			}
 		}
 	}
 	return serviceUnits

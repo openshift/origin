@@ -241,6 +241,10 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.CertFile)
 		refs = append(refs, &config.KubernetesMasterConfig.ProxyClientInfo.KeyFile)
+
+		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.APIServerArguments)
+		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.SchedulerArguments)
+		refs = appendFlagsWithFileExtensions(refs, config.KubernetesMasterConfig.ControllerArguments)
 	}
 
 	if config.AuthConfig.RequestHeader != nil {
@@ -268,6 +272,21 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 
 	refs = append(refs, &config.AuditConfig.AuditFilePath)
 
+	return refs
+}
+
+func appendFlagsWithFileExtensions(refs []*string, args ExtendedArguments) []*string {
+	for key, s := range args {
+		if len(s) == 0 {
+			continue
+		}
+		if !strings.HasSuffix(key, "-file") && !strings.HasSuffix(key, "-dir") {
+			continue
+		}
+		for i := range s {
+			refs = append(refs, &s[i])
+		}
+	}
 	return refs
 }
 
@@ -299,6 +318,8 @@ func GetNodeFileReferences(config *NodeConfig) []*string {
 	if config.PodManifestConfig != nil {
 		refs = append(refs, &config.PodManifestConfig.Path)
 	}
+
+	refs = appendFlagsWithFileExtensions(refs, config.KubeletArguments)
 
 	return refs
 }
@@ -408,10 +429,6 @@ func DefaultClientTransport(rt http.RoundTripper) http.RoundTripper {
 	return transport
 }
 
-func UseTLS(servingInfo ServingInfo) bool {
-	return len(servingInfo.ServerCert.CertFile) > 0
-}
-
 // GetAPIClientCertCAPool returns the cert pool used to validate client certificates to the API server
 func GetAPIClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 	return cmdutil.CertPoolFromFile(options.ServingInfo.ClientCA)
@@ -463,10 +480,6 @@ func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
 }
 
 func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return nil, nil
-	}
-
 	allCerts := []*x509.Certificate{}
 
 	if options.OAuthConfig != nil {
@@ -491,9 +504,6 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 }
 
 func GetRequestHeaderClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return nil, nil
-	}
 	if options.AuthConfig.RequestHeader == nil {
 		return nil, nil
 	}
@@ -506,10 +516,6 @@ func GetRequestHeaderClientCertCAs(options MasterConfig) ([]*x509.Certificate, e
 }
 
 func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if !UseTLS(options.ServingInfo.ServingInfo) {
-		return nil, nil
-	}
-
 	return cmdutil.CertificatesFromFile(options.ServingInfo.ClientCA)
 }
 

@@ -15,16 +15,16 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
-	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/util/namer"
 )
 
@@ -71,54 +71,54 @@ type GeneratorClient interface {
 
 // Client is an implementation of the GeneratorClient interface
 type Client struct {
-	GetBuildConfigFunc      func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error)
-	UpdateBuildConfigFunc   func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error
-	GetBuildFunc            func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error)
-	CreateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
-	UpdateBuildFunc         func(ctx apirequest.Context, build *buildapi.Build) error
-	GetImageStreamFunc      func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error)
-	GetImageStreamImageFunc func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error)
-	GetImageStreamTagFunc   func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error)
+	BuildConfigs      buildclient.BuildConfigsGetter
+	Builds            buildclient.BuildsGetter
+	ImageStreams      imageclient.ImageStreamsGetter
+	ImageStreamImages imageclient.ImageStreamImagesGetter
+	ImageStreamTags   imageclient.ImageStreamTagsGetter
 }
 
 // GetBuildConfig retrieves a named build config
 func (c Client) GetBuildConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-	return c.GetBuildConfigFunc(ctx, name, options)
+	return c.BuildConfigs.BuildConfigs(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // UpdateBuildConfig updates a named build config
 func (c Client) UpdateBuildConfig(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
-	return c.UpdateBuildConfigFunc(ctx, buildConfig)
+	_, err := c.BuildConfigs.BuildConfigs(apirequest.NamespaceValue(ctx)).Update(buildConfig)
+	return err
 }
 
 // GetBuild retrieves a build
 func (c Client) GetBuild(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
-	return c.GetBuildFunc(ctx, name, options)
+	return c.Builds.Builds(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // CreateBuild creates a new build
 func (c Client) CreateBuild(ctx apirequest.Context, build *buildapi.Build) error {
-	return c.CreateBuildFunc(ctx, build)
+	_, err := c.Builds.Builds(apirequest.NamespaceValue(ctx)).Create(build)
+	return err
 }
 
 // UpdateBuild updates a build
 func (c Client) UpdateBuild(ctx apirequest.Context, build *buildapi.Build) error {
-	return c.UpdateBuildFunc(ctx, build)
+	_, err := c.Builds.Builds(apirequest.NamespaceValue(ctx)).Update(build)
+	return err
 }
 
 // GetImageStream retrieves a named image stream
 func (c Client) GetImageStream(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
-	return c.GetImageStreamFunc(ctx, name, options)
+	return c.ImageStreams.ImageStreams(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // GetImageStreamImage retrieves an image stream image
 func (c Client) GetImageStreamImage(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
-	return c.GetImageStreamImageFunc(ctx, name, options)
+	return c.ImageStreamImages.ImageStreamImages(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 // GetImageStreamTag retrieves and image stream tag
 func (c Client) GetImageStreamTag(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
-	return c.GetImageStreamTagFunc(ctx, name, options)
+	return c.ImageStreamTags.ImageStreamTags(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
 type streamRef struct {
@@ -495,7 +495,6 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	if builderSecrets, err = g.FetchServiceAccountSecrets(bcCopy.Namespace, serviceAccount); err != nil {
 		return nil, err
 	}
-	setBuildPushSecret(g.resolveImageSecret(ctx, builderSecrets, build.Spec.Output.To, bcCopy.Namespace), &build.Spec.Output)
 
 	// Resolve image source if present
 	if err = g.setBuildSourceImage(ctx, builderSecrets, bcCopy, &build.Spec.Source); err != nil {
@@ -548,7 +547,7 @@ func (g *BuildGenerator) setBuildSourceImage(ctx apirequest.Context, builderSecr
 	return nil
 }
 
-// setBaseImageAndPullSecretForBuildStrategy sets base image and pullSecret items used in buildStragety for new builds
+// setBaseImageAndPullSecretForBuildStrategy sets base image and pullSecret items used in buildStrategy for new builds
 func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx apirequest.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, strategy *buildapi.BuildStrategy) error {
 	var err error
 	var image string
@@ -738,31 +737,17 @@ func (g *BuildGenerator) resolveImageSecret(ctx apirequest.Context, secrets []ka
 	if len(secrets) == 0 || imageRef == nil {
 		return nil
 	}
-	emptyKeyring := credentialprovider.BasicDockerKeyring{}
 	// Get the image pull spec from the image stream reference
 	imageSpec, err := g.resolveImageStreamDockerRepository(ctx, *imageRef, buildNamespace)
 	if err != nil {
 		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
 		return nil
 	}
-	for _, secret := range secrets {
-		secretsv1 := make([]kapiv1.Secret, 1)
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
-		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
-			continue
-		}
-		keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, &emptyKeyring)
-		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
-			continue
-		}
-		if _, found := keyring.Lookup(imageSpec); found {
-			return &kapi.LocalObjectReference{Name: secret.Name}
-		}
+	s := buildutil.FindDockerSecretAsReference(secrets, imageSpec)
+	if s == nil {
+		glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
 	}
-	glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
-	return nil
+	return s
 }
 
 func resolveError(kind string, namespace string, name string, err error) error {
@@ -943,11 +928,4 @@ func setBuildAnnotationAndLabel(bcCopy *buildapi.BuildConfig, build *buildapi.Bu
 	build.Labels[buildapi.BuildConfigLabelDeprecated] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildConfigLabel] = buildapi.LabelValue(bcCopy.Name)
 	build.Labels[buildapi.BuildRunPolicyLabel] = string(bcCopy.Spec.RunPolicy)
-}
-
-// setBuildPushSecret set push secret for new build
-func setBuildPushSecret(pushSecret *kapi.LocalObjectReference, output *buildapi.BuildOutput) {
-	if output.PushSecret == nil {
-		output.PushSecret = pushSecret
-	}
 }

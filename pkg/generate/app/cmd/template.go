@@ -17,15 +17,16 @@ import (
 )
 
 // TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
-func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsNamespacer, namespace string, parameters map[string]string) (*templateapi.Template, error) {
+func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsNamespacer, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
 		v := template.GetParameterByName(tpl, k)
-		if v == nil {
+		if v != nil {
+			v.Value = value
+			v.Generate = ""
+		} else if !ignoreUnknownParameters {
 			return nil, fmt.Errorf("unexpected parameter name %q", k)
 		}
-		v.Value = value
-		v.Generate = ""
 	}
 
 	name := localOrRemoteName(tpl.ObjectMeta, namespace)

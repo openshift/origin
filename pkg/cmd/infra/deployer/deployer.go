@@ -15,17 +15,17 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client"
-	ocmd "github.com/openshift/origin/pkg/cmd/cli/cmd"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
 	"github.com/openshift/origin/pkg/deploy/strategy/rolling"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 )
 
 var (

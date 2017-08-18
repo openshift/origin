@@ -36,6 +36,10 @@ func TestValidateServingInfo(t *testing.T) {
 				BindAddress: "0.0.0.0:1234",
 				BindNetwork: "tcp",
 			},
+			ExpectedErrors: []string{
+				"certFile: Required value: The certificate file must be provided",
+				"keyFile: Required value: The certificate key must be provided",
+			},
 		},
 		"missing key": {
 			ServingInfo: api.ServingInfo{
@@ -46,6 +50,7 @@ func TestValidateServingInfo(t *testing.T) {
 				},
 			},
 			ExpectedErrors: []string{
+				"keyFile: Required value: The certificate key must be provided",
 				"certFile: Required value: Both the certificate file and the certificate key must be provided together or not at all",
 				"keyFile: Required value: Both the certificate file and the certificate key must be provided together or not at all",
 			},
@@ -91,7 +96,11 @@ func TestValidateServingInfo(t *testing.T) {
 					{Names: []string{"example.com"}, CertInfo: api.CertInfo{CertFile: certFileName, KeyFile: keyFileName}},
 				},
 			},
-			ExpectedErrors: []string{"namedCertificates: Invalid value"},
+			ExpectedErrors: []string{
+				"certFile: Required value: The certificate file must be provided",
+				"keyFile: Required value: The certificate key must be provided",
+				"namedCertificates: Invalid value",
+			},
 		},
 
 		"namedCertificates with missing names": {

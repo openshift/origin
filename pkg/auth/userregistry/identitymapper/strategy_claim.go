@@ -10,7 +10,7 @@ import (
 
 	"github.com/openshift/origin/pkg/user"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 var _ = UserForNewIdentityGetter(&StrategyClaim{})
@@ -18,7 +18,7 @@ var _ = UserForNewIdentityGetter(&StrategyClaim{})
 // StrategyClaim associates a new identity with a user with the identity's preferred username
 // if no other identities are already associated with the user
 type StrategyClaim struct {
-	user        userregistry.Registry
+	user        userclient.UserResourceInterface
 	initializer user.Initializer
 }
 
@@ -39,22 +39,22 @@ func (c claimError) Error() string {
 	return fmt.Sprintf("user %q cannot be claimed by identity %q because it is already mapped to %v", c.User.Name, c.Identity.Name, c.User.Identities)
 }
 
-func NewStrategyClaim(user userregistry.Registry, initializer user.Initializer) UserForNewIdentityGetter {
+func NewStrategyClaim(user userclient.UserResourceInterface, initializer user.Initializer) UserForNewIdentityGetter {
 	return &StrategyClaim{user, initializer}
 }
 
 func (s *StrategyClaim) UserForNewIdentity(ctx apirequest.Context, preferredUserName string, identity *userapi.Identity) (*userapi.User, error) {
 
-	persistedUser, err := s.user.GetUser(ctx, preferredUserName, &metav1.GetOptions{})
+	persistedUser, err := s.user.Get(preferredUserName, metav1.GetOptions{})
 
 	switch {
 	case kerrs.IsNotFound(err):
-		// Create a new user, propagating any "already exists" errors
+		// CreateUser a new user, propagating any "already exists" errors
 		desiredUser := &userapi.User{}
 		desiredUser.Name = preferredUserName
 		desiredUser.Identities = []string{identity.Name}
 		s.initializer.InitializeUser(identity, desiredUser)
-		return s.user.CreateUser(ctx, desiredUser)
+		return s.user.Create(desiredUser)
 
 	case err == nil:
 		// If the existing user already references our identity, we're done
@@ -66,7 +66,7 @@ func (s *StrategyClaim) UserForNewIdentity(ctx apirequest.Context, preferredUser
 		if len(persistedUser.Identities) == 0 {
 			persistedUser.Identities = []string{identity.Name}
 			s.initializer.InitializeUser(identity, persistedUser)
-			return s.user.UpdateUser(ctx, persistedUser)
+			return s.user.Update(persistedUser)
 		}
 
 		// Otherwise another identity has already claimed this user, return an error

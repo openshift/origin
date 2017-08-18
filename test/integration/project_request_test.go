@@ -20,9 +20,6 @@ import (
 )
 
 func TestProjectRequestError(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	const (
 		ns                = "testns"
 		templateNamespace = "default"
@@ -32,6 +29,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	masterConfig.ProjectConfig.ProjectRequestTemplate = templateNamespace + "/" + templateName
 
@@ -72,7 +70,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	policywatch, err := openshiftClient.PolicyBindings(ns).Watch(metav1.ListOptions{})
+	roleWatch, err := kubeClientset.Rbac().RoleBindings(ns).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,11 +115,11 @@ func TestProjectRequestError(t *testing.T) {
 		}
 		t.Errorf("expected 1 namespace to be added and deleted, got %d added / %d deleted", added, deleted)
 	}
-	if added, deleted, events := pairCreationDeletion(policywatch); added != deleted || added != 1 {
+	if added, deleted, events := pairCreationDeletion(roleWatch); added != deleted || added != 4 {
 		for _, e := range events {
 			t.Logf("%s %#v", e.Type, e.Object)
 		}
-		t.Errorf("expected 1 policybinding to be added and deleted, got %d added / %d deleted", added, deleted)
+		t.Errorf("expected 4 (1 admin + 3 SA) roleBindings to be added and deleted, got %d added / %d deleted", added, deleted)
 	}
 	if added, deleted, events := pairCreationDeletion(cmwatch); added != deleted || added != 1 {
 		for _, e := range events {

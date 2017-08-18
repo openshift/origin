@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -19,6 +20,8 @@ import (
 // REST implements RESTStorage interface for processing Template objects.
 type REST struct {
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST creates new RESTStorage interface for processing Template objects. If
 // legacyReturn is used, a Config object is returned. Otherwise, a List is returned

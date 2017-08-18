@@ -6,6 +6,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/controller/common"
@@ -27,6 +28,7 @@ type buildUpdate struct {
 	duration          *time.Duration
 	outputRef         *string
 	logSnippet        *string
+	pushSecret        *kapi.LocalObjectReference
 }
 
 func (u *buildUpdate) setPhase(phase buildapi.BuildPhase) {
@@ -65,6 +67,10 @@ func (u *buildUpdate) setLogSnippet(message string) {
 	u.logSnippet = &message
 }
 
+func (u *buildUpdate) setPushSecret(pushSecret kapi.LocalObjectReference) {
+	u.pushSecret = &pushSecret
+}
+
 func (u *buildUpdate) reset() {
 	u.podNameAnnotation = nil
 	u.phase = nil
@@ -75,6 +81,7 @@ func (u *buildUpdate) reset() {
 	u.duration = nil
 	u.outputRef = nil
 	u.logSnippet = nil
+	u.pushSecret = nil
 }
 
 func (u *buildUpdate) isEmpty() bool {
@@ -86,7 +93,8 @@ func (u *buildUpdate) isEmpty() bool {
 		u.completionTime == nil &&
 		u.duration == nil &&
 		u.outputRef == nil &&
-		u.logSnippet == nil
+		u.logSnippet == nil &&
+		u.pushSecret == nil
 }
 
 func (u *buildUpdate) apply(build *buildapi.Build) {
@@ -116,6 +124,9 @@ func (u *buildUpdate) apply(build *buildapi.Build) {
 	}
 	if u.logSnippet != nil {
 		build.Status.LogSnippet = *u.logSnippet
+	}
+	if u.pushSecret != nil {
+		build.Spec.Output.PushSecret = u.pushSecret
 	}
 }
 
@@ -149,6 +160,9 @@ func (u *buildUpdate) String() string {
 	}
 	if u.logSnippet != nil {
 		updates = append(updates, fmt.Sprintf("logSnippet: %q", *u.logSnippet))
+	}
+	if u.pushSecret != nil {
+		updates = append(updates, fmt.Sprintf("pushSecret: %v", *u.pushSecret))
 	}
 	return fmt.Sprintf("buildUpdate(%s)", strings.Join(updates, ", "))
 }

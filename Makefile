@@ -45,16 +45,20 @@ all build:
 #
 # Example:
 #   make build-tests
-build-tests: build-extended-test build-integration-test
+build-tests: build-extended-test build-integration-test build-router-e2e-test
 .PHONY: build-tests
 
 build-extended-test:
 	hack/build-go.sh test/extended/extended.test
 .PHONY: build-extended-test
 
-build-integration-test:
+build-integration-test: build-router-e2e-test
 	hack/build-go.sh test/integration/integration.test
 .PHONY: build-integration-test
+
+build-router-e2e-test:
+	hack/build-go.sh test/end-to-end/end-to-end.test
+.PHONY: build-router-e2e-test
 
 # Run core verification and all self contained tests.
 #
@@ -77,6 +81,7 @@ verify: build
 	{ \
 	hack/verify-gofmt.sh ||r=1;\
 	hack/verify-govet.sh ||r=1;\
+	hack/verify-imports.sh ||r=1;\
 	hack/verify-generated-bindata.sh ||r=1;\
 	hack/verify-generated-deep-copies.sh ||r=1;\
 	hack/verify-generated-conversions.sh ||r=1;\
@@ -187,6 +192,7 @@ test-cmd: build
 # Example:
 #   make test-end-to-end
 test-end-to-end: build
+	KUBE_COVER=" " KUBE_RACE=" " OS_TEST_PACKAGE=test/end-to-end hack/test-integration.sh
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 
@@ -240,27 +246,16 @@ clean:
 #
 # Example:
 #   make release
-official-release: build-rpms build-cross
-	hack/build-images.sh
+official-release: build-images build-cross
 .PHONY: official-release
 
 # Build a release of OpenShift for linux/amd64 and the images that depend on it.
 #
 # Example:
 #   make release
-release: build-rpms
-	hack/build-images.sh
+release: build-images
 	hack/extract-release.sh
 .PHONY: release
-
-# Build only the release binaries for OpenShift
-#
-# Example:
-#   make release-binaries
-release-binaries:
-	hack/build-release.sh
-	hack/extract-release.sh
-.PHONY: release-binaries
 
 # Build the cross compiled release binaries
 #
@@ -297,6 +292,16 @@ build-rpms:
 build-rpms-redistributable:
 	hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
+
+# Build images from the official RPMs
+# 
+# Args:
+#
+# Example:
+#   make build-images
+build-images: build-rpms
+	hack/build-images.sh
+.PHONY: build-images
 
 # Vendor the Origin Web Console
 #

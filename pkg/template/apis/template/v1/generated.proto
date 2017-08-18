@@ -166,6 +166,14 @@ message TemplateInstanceList {
   repeated TemplateInstance items = 2;
 }
 
+// TemplateInstanceObject references an object created by a TemplateInstance.
+message TemplateInstanceObject {
+  // ref is a reference to the created object.  When used under .spec, only
+  // name and namespace are used; these can contain references to parameters
+  // which will be substituted following the usual rules.
+  optional k8s.io.kubernetes.pkg.api.v1.ObjectReference ref = 1;
+}
+
 // TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
 message TemplateInstanceRequester {
@@ -192,6 +200,9 @@ message TemplateInstanceStatus {
   // conditions represent the latest available observations of a
   // TemplateInstance's current state.
   repeated TemplateInstanceCondition conditions = 1;
+
+  // Objects references the objects created by the TemplateInstance.
+  repeated TemplateInstanceObject objects = 2;
 }
 
 // TemplateList is a list of Template objects.

@@ -20,6 +20,7 @@ spec:
         release: "{{ .Release.Name }}"
         heritage: "{{ .Release.Service }}"
     spec:
+      serviceAccountName: "{{ .Values.apiserver.serviceAccount }}"
       containers:
       - name: apiserver
         image: {{ .Values.apiserver.image }}
@@ -37,15 +38,9 @@ spec:
         - {{ .Values.apiserver.audit.logPath }}
         {{- end}}
         - --admission-control
-        - "KubernetesNamespaceLifecycle"
+        - "KubernetesNamespaceLifecycle,DefaultServicePlan"
         - --secure-port
         - "8443"
-        {{- if .Values.apiserver.insecure }}
-        - --insecure-bind-address
-        - 0.0.0.0
-        - --insecure-port
-        - "8080"
-        {{- end }}
         - --storage-type
         - {{ .Values.apiserver.storage.type }}
         {{- if eq .Values.apiserver.storage.type "etcd" }}
@@ -64,9 +59,6 @@ spec:
         - --disable-auth
         {{- end }}
         ports:
-        {{- if .Values.apiserver.insecure }}
-        - containerPort: 8080
-        {{- end }}
         - containerPort: 8443
         volumeMounts:
         - name: apiserver-cert

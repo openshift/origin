@@ -23,12 +23,12 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
-	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	policy "github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -91,13 +91,11 @@ func prettyPrintReviewResponse(resp *authorizationapi.ResourceAccessReviewRespon
 }
 
 func TestClusterReaderCoverage(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -198,13 +196,11 @@ func TestClusterReaderCoverage(t *testing.T) {
 }
 
 func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -271,13 +267,11 @@ func waitForProject(t *testing.T, client client.Interface, projectName string, d
 }
 
 func TestAuthorizationResolution(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -312,7 +306,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	// the policy cache taking time to react
 	if err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
 		err := addValerie.AddRole()
-		if kapierror.IsNotFound(err) {
+		if err == nil || kapierror.IsNotFound(err) { // TODO what does this mean?
 			return true, nil
 		}
 		return false, err
@@ -324,7 +318,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	roleWithGroup.Name = "with-group"
 	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
 		Verbs:     sets.NewString("list"),
-		Resources: sets.NewString("resourcegroup:builds"),
+		Resources: sets.NewString("builds"), // TODO we may need to track these down
 	})
 	if _, err := clusterAdminClient.ClusterRoles().Create(roleWithGroup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -507,13 +501,11 @@ func (test localResourceAccessReviewTest) run(t *testing.T) {
 }
 
 func TestAuthorizationResourceAccessReview(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -636,7 +628,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 				Users:           sets.NewString("edgar"),
 				Groups:          sets.NewString(),
 				Namespace:       "mallet-project",
-				EvaluationError: `[role.authorization.openshift.io "admin" not found, role.authorization.openshift.io "admin" not found]`,
+				EvaluationError: `[clusterrole.rbac.authorization.k8s.io "admin" not found, clusterrole.rbac.authorization.k8s.io "admin" not found]`,
 			},
 		}
 		test.response.Users.Insert(globalClusterReaderUsers.List()...)
@@ -846,13 +838,11 @@ func toKubeClusterSAR(sar *authorizationapi.SubjectAccessReview) *kubeauthorizat
 }
 
 func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -887,7 +877,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -944,7 +934,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -957,7 +947,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -970,7 +960,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
@@ -983,20 +973,18 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		kubeAuthInterface: clusterAdminSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in any-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "any-project",
 		},
 	}.run(t)
 }
 
 func TestAuthorizationSubjectAccessReview(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -1085,7 +1073,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in default",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1148,7 +1136,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1175,7 +1163,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in mallet-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "mallet-project",
 		},
 	}.run(t)
@@ -1229,7 +1217,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1268,7 +1256,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1279,7 +1267,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    "allowed by rule in hammer-project",
+			Reason:    "allowed by openshift authorizer",
 			Namespace: "hammer-project",
 		},
 	}.run(t)
@@ -1425,7 +1413,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		kubeSkip: true, // cannot do impersonation with kube clientset
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in default`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: "default",
 		},
 	}.run(t)
@@ -1434,13 +1422,11 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 // TestOldLocalSubjectAccessReviewEndpoint checks to make sure that the old subject access review endpoint still functions properly
 // this is needed to support old docker registry images
 func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -1475,7 +1461,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in hammer-project`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: namespace,
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1502,7 +1488,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 
 		expectedResponse := &authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   true,
-			Reason:    `allowed by rule in hammer-project`,
+			Reason:    `allowed by openshift authorizer`,
 			Namespace: namespace,
 		}
 		if (actualResponse.Namespace != expectedResponse.Namespace) ||
@@ -1563,13 +1549,11 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 // TestOldLocalResourceAccessReviewEndpoint checks to make sure that the old resource access review endpoint still functions properly
 // this is needed to support old who-can client
 func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -1644,13 +1628,11 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 
 // TestClusterPolicyCache confirms that the creation of cluster role bindings fallback to live lookups when the referenced cluster role is not cached
 func TestClusterPolicyCache(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
@@ -1676,13 +1658,11 @@ func TestClusterPolicyCache(t *testing.T) {
 
 // TestPolicyCache confirms that the creation of role bindings fallback to live lookups when the referenced role is not cached
 func TestPolicyCache(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {

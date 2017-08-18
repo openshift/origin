@@ -46,16 +46,16 @@ import (
 )
 
 const (
-	authPrefix               = "/v2/auth"
-	keysPrefix               = "/v2/keys"
-	deprecatedMachinesPrefix = "/v2/machines"
-	membersPrefix            = "/v2/members"
-	statsPrefix              = "/v2/stats"
-	varsPath                 = "/debug/vars"
-	metricsPath              = "/metrics"
-	healthPath               = "/health"
-	versionPath              = "/version"
-	configPath               = "/config"
+	authPrefix     = "/v2/auth"
+	keysPrefix     = "/v2/keys"
+	machinesPrefix = "/v2/machines"
+	membersPrefix  = "/v2/members"
+	statsPrefix    = "/v2/stats"
+	varsPath       = "/debug/vars"
+	metricsPath    = "/metrics"
+	healthPath     = "/health"
+	versionPath    = "/version"
+	configPath     = "/config"
 )
 
 // NewClientHandler generates a muxed http.Handler with the given parameters to serve etcd client requests.
@@ -84,9 +84,7 @@ func NewClientHandler(server *etcdserver.EtcdServer, timeout time.Duration) http
 		clientCertAuthEnabled: server.Cfg.ClientCertAuthEnabled,
 	}
 
-	dmh := &deprecatedMachinesHandler{
-		cluster: server.Cluster(),
-	}
+	mah := &machinesHandler{cluster: server.Cluster()}
 
 	sech := &authHandler{
 		sec:                   sec,
@@ -108,7 +106,7 @@ func NewClientHandler(server *etcdserver.EtcdServer, timeout time.Duration) http
 	mux.Handle(metricsPath, prometheus.Handler())
 	mux.Handle(membersPrefix, mh)
 	mux.Handle(membersPrefix+"/", mh)
-	mux.Handle(deprecatedMachinesPrefix, dmh)
+	mux.Handle(machinesPrefix, mah)
 	handleAuth(mux, sech)
 
 	return requestLogger(mux)
@@ -170,11 +168,11 @@ func (h *keysHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type deprecatedMachinesHandler struct {
+type machinesHandler struct {
 	cluster api.Cluster
 }
 
-func (h *deprecatedMachinesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *machinesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !allowMethod(w, r.Method, "GET", "HEAD") {
 		return
 	}
@@ -234,7 +232,7 @@ func (h *membersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		now := h.clock.Now()
 		m := membership.NewMember("", req.PeerURLs, "", &now)
-		err := h.server.AddMember(ctx, *m)
+		_, err := h.server.AddMember(ctx, *m)
 		switch {
 		case err == membership.ErrIDExists || err == membership.ErrPeerURLexists:
 			writeError(w, r, httptypes.NewHTTPError(http.StatusConflict, err.Error()))
@@ -255,7 +253,7 @@ func (h *membersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if !ok {
 			return
 		}
-		err := h.server.RemoveMember(ctx, uint64(id))
+		_, err := h.server.RemoveMember(ctx, uint64(id))
 		switch {
 		case err == membership.ErrIDRemoved:
 			writeError(w, r, httptypes.NewHTTPError(http.StatusGone, fmt.Sprintf("Member permanently removed: %s", id)))
@@ -280,7 +278,7 @@ func (h *membersHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ID:             id,
 			RaftAttributes: membership.RaftAttributes{PeerURLs: req.PeerURLs.StringSlice()},
 		}
-		err := h.server.UpdateMember(ctx, m)
+		_, err := h.server.UpdateMember(ctx, m)
 		switch {
 		case err == membership.ErrPeerURLexists:
 			writeError(w, r, httptypes.NewHTTPError(http.StatusConflict, err.Error()))

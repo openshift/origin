@@ -30,13 +30,11 @@ import (
 )
 
 func TestFrontProxy(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	frontProxyCAPrefix := "frontproxycatest"
 	proxyCertCommonName := "frontproxycerttest"

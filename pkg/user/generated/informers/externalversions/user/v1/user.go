@@ -29,10 +29,10 @@ func newUserInformer(client clientset.Interface, resyncPeriod time.Duration) cac
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.UserV1().Users(meta_v1.NamespaceAll).List(options)
+				return client.UserV1().Users().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.UserV1().Users(meta_v1.NamespaceAll).Watch(options)
+				return client.UserV1().Users().Watch(options)
 			},
 		},
 		&user_v1.User{},

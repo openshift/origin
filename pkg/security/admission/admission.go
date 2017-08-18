@@ -9,12 +9,13 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	allocator "github.com/openshift/origin/pkg/security"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
-	oscc "github.com/openshift/origin/pkg/security/scc"
 	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	admission "k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -69,22 +70,24 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	}
 
 	pod, ok := a.GetObject().(*kapi.Pod)
-	// if we can't convert then we don't handle this object so just return
+	// if we can't convert then fail closed since we've already checked that this is supposed to be a pod object.
+	// this shouldn't normally happen during admission but could happen if an integrator passes a versioned
+	// pod object rather than an internal object.
 	if !ok {
-		return nil
+		return admission.NewForbidden(a, fmt.Errorf("object was marked as kind pod but was unable to be converted: %v", a.GetObject()))
 	}
 
 	// if this is an update, see if we are only updating the ownerRef.  Garbage collection does this
 	// and we should allow it in general, since you had the power to update and the power to delete.
 	// The worst that happens is that you delete something, but you aren't controlling the privileged object itself
-	if a.GetOldObject() != nil && oadmission.IsOnlyMutatingGCFields(a.GetObject(), a.GetOldObject()) {
+	if a.GetOldObject() != nil && rbacregistry.IsOnlyMutatingGCFields(a.GetObject(), a.GetOldObject(), kapihelper.Semantic) {
 		return nil
 	}
 
 	// get all constraints that are usable by the user
 	glog.V(4).Infof("getting security context constraints for pod %s (generate: %s) in namespace %s with user info %v", pod.Name, pod.GenerateName, a.GetNamespace(), a.GetUserInfo())
 
-	sccMatcher := oscc.NewDefaultSCCMatcher(c.sccLister)
+	sccMatcher := scc.NewDefaultSCCMatcher(c.sccLister)
 	matchedConstraints, err := sccMatcher.FindApplicableSCCs(a.GetUserInfo())
 	if err != nil {
 		return admission.NewForbidden(a, err)
@@ -102,10 +105,10 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	}
 
 	// remove duplicate constraints and sort
-	matchedConstraints = oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
+	matchedConstraints = scc.DeduplicateSecurityContextConstraints(matchedConstraints)
+	sort.Sort(scc.ByPriority(matchedConstraints))
 
-	providers, errs := oscc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
+	providers, errs := scc.CreateProvidersFromConstraints(a.GetNamespace(), matchedConstraints, c.client)
 	logProviders(pod, providers, errs)
 
 	if len(providers) == 0 {
@@ -115,7 +118,7 @@ func (c *constraint) Admit(a admission.Attributes) error {
 	// all containers in a single pod must validate under a single provider or we will reject the request
 	validationErrs := field.ErrorList{}
 	for _, provider := range providers {
-		if errs := oscc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
+		if errs := scc.AssignSecurityContext(provider, pod, field.NewPath(fmt.Sprintf("provider %s: ", provider.GetSCCName()))); len(errs) > 0 {
 			validationErrs = append(validationErrs, errs...)
 			continue
 		}

@@ -95,6 +95,7 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		sort.Sort(ByCreationTimestamp(successfulBuilds))
 
 		successfulBuildsHistoryLimit := int(*buildConfig.Spec.SuccessfulBuildsHistoryLimit)
+		glog.V(4).Infof("Current builds: %v, SuccessfulBuildsHistoryLimit: %v", len(successfulBuilds), successfulBuildsHistoryLimit)
 		if len(successfulBuilds) > successfulBuildsHistoryLimit {
 			glog.V(4).Infof("Preparing to prune %v of %v old successful builds, successfulBuildsHistoryLimit set to %v", (len(successfulBuilds) - successfulBuildsHistoryLimit), len(successfulBuilds), successfulBuildsHistoryLimit)
 			buildsToDelete = append(buildsToDelete, successfulBuilds[successfulBuildsHistoryLimit:]...)
@@ -111,6 +112,7 @@ func HandleBuildPruning(buildConfigName string, namespace string, buildLister bu
 		sort.Sort(ByCreationTimestamp(failedBuilds))
 
 		failedBuildsHistoryLimit := int(*buildConfig.Spec.FailedBuildsHistoryLimit)
+		glog.V(4).Infof("Current builds: %v, FailedBuildsHistoryLimit: %v", len(failedBuilds), failedBuildsHistoryLimit)
 		if len(failedBuilds) > failedBuildsHistoryLimit {
 			glog.V(4).Infof("Preparing to prune %v of %v old failed builds, failedBuildsHistoryLimit set to %v", (len(failedBuilds) - failedBuildsHistoryLimit), len(failedBuilds), failedBuildsHistoryLimit)
 			buildsToDelete = append(buildsToDelete, failedBuilds[failedBuildsHistoryLimit:]...)

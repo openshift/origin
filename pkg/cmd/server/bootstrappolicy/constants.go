@@ -12,9 +12,11 @@ const (
 	BuilderServiceAccountName  = "builder"
 	DeployerServiceAccountName = "deployer"
 
-	MasterUnqualifiedUsername = "openshift-master"
+	MasterUnqualifiedUsername     = "openshift-master"
+	AggregatorUnqualifiedUsername = "openshift-aggregator"
 
 	MasterUsername      = "system:" + MasterUnqualifiedUsername
+	AggregatorUsername  = "system:" + AggregatorUnqualifiedUsername
 	SystemAdminUsername = "system:admin"
 
 	// Not granted any API permissions, just an identity for a client certificate for the API proxy to use

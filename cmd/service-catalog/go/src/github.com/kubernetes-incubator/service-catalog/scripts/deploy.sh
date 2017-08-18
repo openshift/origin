@@ -22,9 +22,9 @@ export REGISTRY=quay.io/kubernetes-service-catalog/
 
 docker login -e="${QUAY_EMAIL}" -u "${QUAY_USERNAME}" -p "${QUAY_PASSWORD}" quay.io
 
-if [[ "${TRAVIS_TAG}" =~ ^v[0-9]\.[0-9]\.[0-9][a-z]*$ ]]; then
+if [[ "${TRAVIS_TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+[a-z]*$ ]]; then
     echo "Pushing images with tags '${TRAVIS_TAG}' and 'latest'."
-    VERSION="${TRAVIS_TAG}" MUTABLE_TAG="latest" make push
+    VERSION="${TRAVIS_TAG}" MUTABLE_TAG="latest" make release-push
 elif [[ "${TRAVIS_BRANCH}" == "master" ]]; then
     echo "Pushing images with default tags (git sha and 'canary')."
     make push

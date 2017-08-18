@@ -9,7 +9,9 @@ import (
 
 type UserV1Interface interface {
 	RESTClient() rest.Interface
+	IdentitiesGetter
 	UsersGetter
+	UserIdentityMappingsGetter
 }
 
 // UserV1Client is used to interact with features provided by the user.openshift.io group.
@@ -17,8 +19,16 @@ type UserV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *UserV1Client) Users(namespace string) UserResourceInterface {
-	return newUsers(c, namespace)
+func (c *UserV1Client) Identities() IdentityInterface {
+	return newIdentities(c)
+}
+
+func (c *UserV1Client) Users() UserResourceInterface {
+	return newUsers(c)
+}
+
+func (c *UserV1Client) UserIdentityMappings() UserIdentityMappingInterface {
+	return newUserIdentityMappings(c)
 }
 
 // NewForConfig creates a new UserV1Client for the given config.

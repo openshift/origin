@@ -8,7 +8,7 @@ import (
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	"github.com/openshift/origin/pkg/user/registry/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	kapirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -16,13 +16,13 @@ import (
 
 type TokenAuthenticator struct {
 	tokens      oauthaccesstoken.Registry
-	users       user.Registry
+	users       userclient.UserResourceInterface
 	groupMapper identitymapper.UserToGroupMapper
 }
 
 var ErrExpired = errors.New("Token is expired")
 
-func NewTokenAuthenticator(tokens oauthaccesstoken.Registry, users user.Registry, groupMapper identitymapper.UserToGroupMapper) *TokenAuthenticator {
+func NewTokenAuthenticator(tokens oauthaccesstoken.Registry, users userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper) *TokenAuthenticator {
 	return &TokenAuthenticator{
 		tokens:      tokens,
 		users:       users,
@@ -44,7 +44,7 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 		return nil, false, ErrExpired
 	}
 
-	u, err := a.users.GetUser(ctx, token.UserName, &metav1.GetOptions{})
+	u, err := a.users.Get(token.UserName, metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}

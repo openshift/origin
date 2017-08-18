@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -16,14 +17,16 @@ type REST struct {
 	*registry.Store
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a RESTStorage object that will work against oauth clients
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &oauthapi.OAuthClient{} },
-		NewListFunc:       func() runtime.Object { return &oauthapi.OAuthClientList{} },
-		PredicateFunc:     oauthclient.Matcher,
-		QualifiedResource: oauthapi.Resource("oauthclients"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthClient{} },
+		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthClientList{} },
+		PredicateFunc:            oauthclient.Matcher,
+		DefaultQualifiedResource: oauthapi.Resource("oauthclients"),
 
 		CreateStrategy: oauthclient.Strategy,
 		UpdateStrategy: oauthclient.Strategy,

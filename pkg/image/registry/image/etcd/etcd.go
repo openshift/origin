@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -16,14 +17,16 @@ type REST struct {
 	*registry.Store
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &imageapi.Image{} },
-		NewListFunc:       func() runtime.Object { return &imageapi.ImageList{} },
-		PredicateFunc:     image.Matcher,
-		QualifiedResource: imageapi.Resource("images"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &imageapi.Image{} },
+		NewListFunc:              func() runtime.Object { return &imageapi.ImageList{} },
+		PredicateFunc:            image.Matcher,
+		DefaultQualifiedResource: imageapi.Resource("images"),
 
 		CreateStrategy: image.Strategy,
 		UpdateStrategy: image.Strategy,

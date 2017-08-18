@@ -7,6 +7,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
@@ -17,6 +18,8 @@ import (
 type REST struct {
 	clusterSARRegistry subjectaccessreview.Registry
 }
+
+var _ rest.Creater = &REST{}
 
 func NewREST(clusterSARRegistry subjectaccessreview.Registry) *REST {
 	return &REST{clusterSARRegistry}

@@ -50,7 +50,7 @@ can be built locally or in the `openshift/release` container environment. The
 http://golang.org/[Go] programming language is only necessary for building on
 the local host.
 
-Currently, OpenShift is built with `go` 1.7 and uses Docker 1.12. The exact
+Currently, OpenShift is built with `go` 1.8 and uses Docker 1.12. The exact
 requirement for Docker is documented
 https://docs.openshift.org/latest/install_config/install/prerequisites.html#installing-docker[here].
 
@@ -137,7 +137,7 @@ $ hack/env make release
 In order to make use of the binaries from your shell, add the build output
 directory to the `$PATH`:
 ----
-$ export PATH="${PATH}:$( source hack/lib/init.sh; echo "${OS_OUTPUT_BINPATH}/$( os::util::host_platform )/" )"
+$ export PATH="${PATH}:$( source hack/lib/init.sh; echo "${OS_OUTPUT_BINPATH}/$( os::build::host_platform )/" )"
 ----
 
 See more information in https://github.com/openshift/origin/blob/master/HACKING.md#building-on-non-linux-systems[`HACKING.md`]

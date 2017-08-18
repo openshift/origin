@@ -17,7 +17,6 @@ import (
 	"k8s.io/kubernetes/pkg/master/ports"
 	"k8s.io/kubernetes/pkg/registry/core/service/ipallocator"
 
-	"github.com/openshift/origin/pkg/bootstrap"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -25,6 +24,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
+	"github.com/openshift/origin/pkg/oc/bootstrap"
 	"github.com/spf13/cobra"
 )
 
@@ -197,6 +197,19 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		KubernetesMasterConfig: kubernetesMasterConfig,
 		EtcdConfig:             etcdConfig,
 
+		AuthConfig: configapi.MasterAuthConfig{
+			RequestHeader: &configapi.RequestHeaderAuthenticationOptions{
+				ClientCA:            admin.DefaultCertFilename(args.ConfigDir.Value(), admin.FrontProxyCAFilePrefix),
+				ClientCommonNames:   []string{bootstrappolicy.AggregatorUsername},
+				UsernameHeaders:     []string{"X-Remote-User"},
+				GroupHeaders:        []string{"X-Remote-Group"},
+				ExtraHeaderPrefixes: []string{"X-Remote-Extra-"}},
+		},
+
+		AggregatorConfig: configapi.AggregatorConfig{
+			ProxyClientInfo: admin.DefaultAggregatorClientCertInfo(args.ConfigDir.Value()).CertLocation,
+		},
+
 		OAuthConfig: oauthConfig,
 
 		PauseControllers: args.PauseControllers,
@@ -279,29 +292,27 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 	}
 
-	if args.ListenArg.UseTLS() {
-		config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
-		config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
+	config.ServingInfo.ServerCert = admin.DefaultMasterServingCertInfo(args.ConfigDir.Value())
+	config.ServingInfo.ClientCA = admin.DefaultAPIClientCAFile(args.ConfigDir.Value())
 
-		config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
+	config.AssetConfig.ServingInfo.ServerCert = admin.DefaultAssetServingCertInfo(args.ConfigDir.Value())
 
-		if oauthConfig != nil {
-			s := admin.DefaultCABundleFile(args.ConfigDir.Value())
-			oauthConfig.MasterCA = &s
-		}
+	if oauthConfig != nil {
+		s := admin.DefaultCABundleFile(args.ConfigDir.Value())
+		oauthConfig.MasterCA = &s
+	}
 
-		// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
-		if builtInKubernetes {
-			config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
-			config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
-			config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
-		}
+	// Only set up ca/cert info for kubelet connections if we're self-hosting Kubernetes
+	if builtInKubernetes {
+		config.KubeletClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+		config.KubeletClientInfo.ClientCert = kubeletClientInfo.CertLocation
+		config.ServiceAccountConfig.MasterCA = admin.DefaultCABundleFile(args.ConfigDir.Value())
+	}
 
-		// Only set up ca/cert info for etcd connections if we're self-hosting etcd
-		if builtInEtcd {
-			config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
-			config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
-		}
+	// Only set up ca/cert info for etcd connections if we're self-hosting etcd
+	if builtInEtcd {
+		config.EtcdClientInfo.CA = admin.DefaultRootCAFile(args.ConfigDir.Value())
+		config.EtcdClientInfo.ClientCert = etcdClientInfo.CertLocation
 	}
 
 	if builtInKubernetes {

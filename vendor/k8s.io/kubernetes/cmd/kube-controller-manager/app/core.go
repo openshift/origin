@@ -29,6 +29,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
@@ -52,6 +53,7 @@ import (
 	persistentvolumecontroller "k8s.io/kubernetes/pkg/controller/volume/persistentvolume"
 	"k8s.io/kubernetes/pkg/features"
 	quotainstall "k8s.io/kubernetes/pkg/quota/install"
+	"k8s.io/kubernetes/pkg/util/metrics"
 )
 
 func startServiceController(ctx ControllerContext) (bool, error) {
@@ -178,6 +180,7 @@ func startEndpointController(ctx ControllerContext) (bool, error) {
 	go endpointcontroller.NewEndpointController(
 		ctx.InformerFactory.Core().V1().Pods(),
 		ctx.InformerFactory.Core().V1().Services(),
+		ctx.InformerFactory.Core().V1().Endpoints(),
 		ctx.ClientBuilder.ClientOrDie("endpoint-controller"),
 	).Run(int(ctx.Options.ConcurrentEndpointSyncs), ctx.Stop)
 	return true, nil
@@ -214,7 +217,7 @@ func startResourceQuotaController(ctx ControllerContext) (bool, error) {
 		api.Kind("ConfigMap"),
 	}
 	resourceQuotaControllerOptions := &resourcequotacontroller.ResourceQuotaControllerOptions{
-		KubeClient:                resourceQuotaControllerClient,
+		QuotaClient:               resourceQuotaControllerClient.Core(),
 		ResourceQuotaInformer:     ctx.InformerFactory.Core().V1().ResourceQuotas(),
 		ResyncPeriod:              controller.StaticResyncPeriodFunc(ctx.Options.ResourceQuotaSyncPeriod.Duration),
 		Registry:                  resourceQuotaRegistry,
@@ -222,6 +225,10 @@ func startResourceQuotaController(ctx ControllerContext) (bool, error) {
 		ReplenishmentResyncPeriod: ResyncPeriod(&ctx.Options),
 		GroupKindsToReplenish:     groupKindsToReplenish,
 	}
+	if resourceQuotaControllerClient.Core().RESTClient().GetRateLimiter() != nil {
+		metrics.RegisterMetricAndTrackRateLimiterUsage("resource_quota_controller", resourceQuotaControllerClient.Core().RESTClient().GetRateLimiter())
+	}
+
 	go resourcequotacontroller.NewResourceQuotaController(
 		resourceQuotaControllerOptions,
 	).Run(int(ctx.Options.ConcurrentResourceQuotaSyncs), ctx.Stop)
@@ -285,7 +292,10 @@ func startGarbageCollectorController(ctx ControllerContext) (bool, error) {
 	gcClientset := ctx.ClientBuilder.ClientOrDie("generic-garbage-collector")
 	preferredResources, err := gcClientset.Discovery().ServerPreferredResources()
 	if err != nil {
-		return true, fmt.Errorf("failed to get supported resources from server: %v", err)
+		utilruntime.HandleError(fmt.Errorf("unable to get all supported resources from server: %v", err))
+	}
+	if len(preferredResources) == 0 {
+		return true, fmt.Errorf("unable to get any supported resources from server: %v", err)
 	}
 	deletableResources := discovery.FilteredBy(discovery.SupportsAllVerbs{Verbs: []string{"get", "list", "watch", "patch", "update", "delete"}}, preferredResources)
 	deletableGroupVersionResources, err := discovery.GroupVersionResources(deletableResources)

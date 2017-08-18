@@ -8,7 +8,8 @@ import (
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
-// +genclient=true
+// +genclient
+// +genclient:nonNamespaced
 
 type User struct {
 	metav1.TypeMeta
@@ -26,6 +27,9 @@ type UserList struct {
 	metav1.ListMeta
 	Items []User
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 type Identity struct {
 	metav1.TypeMeta
@@ -50,6 +54,10 @@ type IdentityList struct {
 	Items []Identity
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=get,create,update,delete
+
 type UserIdentityMapping struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
@@ -57,6 +65,8 @@ type UserIdentityMapping struct {
 	Identity kapi.ObjectReference
 	User     kapi.ObjectReference
 }
+
+// +genclient
 
 // Group represents a referenceable set of Users
 type Group struct {

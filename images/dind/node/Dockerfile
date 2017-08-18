@@ -57,8 +57,7 @@ RUN mkdir -p /opt/cni/bin
 # Symlink from the data path intended to be mounted as a volume to
 # make reloading easy.  Revisit if/when dind becomes useful for more
 # than dev/test.
-RUN ln -sf /data/openshift-sdn-ovs /usr/local/bin/ && \
-    ln -sf /data/openshift /usr/local/bin/ && \
+RUN ln -sf /data/openshift /usr/local/bin/ && \
     ln -sf /data/openshift /usr/local/bin/oc && \
     ln -sf /data/openshift /usr/local/bin/oadm && \
     ln -sf /data/openshift /usr/local/bin/osc && \
@@ -67,6 +66,9 @@ RUN ln -sf /data/openshift-sdn-ovs /usr/local/bin/ && \
     ln -sf /data/openshift /usr/local/bin/openshift-deploy && \
     ln -sf /data/openshift /usr/local/bin/openshift-docker-build && \
     ln -sf /data/openshift /usr/local/bin/openshift-sti-build && \
+    ln -sf /data/openshift /usr/local/bin/openshift-git-clone && \
+    ln -sf /data/openshift /usr/local/bin/openshift-manage-dockerfile && \
+    ln -sf /data/openshift /usr/local/bin/openshift-extract-image-content && \
     ln -sf /data/openshift /usr/local/bin/openshift-f5-router && \
     ln -sf /data/openshift-sdn /opt/cni/bin/ && \
     ln -sf /data/host-local    /opt/cni/bin/ && \

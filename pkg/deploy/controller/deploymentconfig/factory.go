@@ -20,7 +20,6 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	oscontroller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
@@ -51,7 +50,7 @@ func NewDeploymentConfigController(
 
 		rcLister:       rcInformer.Lister(),
 		rcListerSynced: rcInformer.Informer().HasSynced,
-		rcControl: oscontroller.RealRCControl{
+		rcControl: RealRCControl{
 			KubeClient: kubeClientset,
 			Recorder:   recorder,
 		},

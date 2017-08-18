@@ -24,17 +24,6 @@ import (
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
-// RunProjectAuthorizationCache starts the project authorization cache
-func (c *MasterConfig) RunProjectAuthorizationCache() {
-	// TODO: look at exposing a configuration option in future to control how often we run this loop
-	period := 1 * time.Second
-	c.ProjectAuthorizationCache.Run(period)
-}
-
-// RunAssetServer starts the asset server for the OpenShift UI.
-func (c *MasterConfig) RunAssetServer() {
-}
-
 // RunDNSServer starts the DNS server
 func (c *MasterConfig) RunDNSServer() {
 	config, err := dns.NewServerDefaults()
@@ -84,12 +73,6 @@ func (c *MasterConfig) RunDNSServer() {
 	cmdutil.WaitForSuccessfulDial(false, "tcp", c.Options.DNSConfig.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 
 	glog.Infof("DNS listening at %s", c.Options.DNSConfig.BindAddress)
-}
-
-// RunProjectCache populates project cache, used by scheduler and project admission controller.
-func (c *MasterConfig) RunProjectCache() {
-	glog.Infof("Using default project node label selector: %s", c.Options.ProjectConfig.DefaultNodeSelector)
-	go c.ProjectCache.Run(utilwait.NeverStop)
 }
 
 type SecurityAllocationController struct {
@@ -151,9 +134,4 @@ func (c SecurityAllocationController) RunSecurityAllocationController() {
 	)
 	// TODO: scale out
 	go controller.Run(utilwait.NeverStop, 1)
-}
-
-// RunGroupCache starts the group cache
-func (c *MasterConfig) RunGroupCache() {
-	c.GroupCache.Run()
 }

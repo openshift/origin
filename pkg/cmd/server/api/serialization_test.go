@@ -163,6 +163,9 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					},
 				}
 			}
+
+			// this field isn't serialized
+			obj.DisableOpenAPI = false
 		},
 		func(obj *configapi.KubernetesMasterConfig, c fuzz.Continue) {
 			c.FuzzNoCustom(obj)

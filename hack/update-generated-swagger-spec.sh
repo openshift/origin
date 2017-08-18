@@ -22,9 +22,6 @@ os::cleanup::tmpdir
 os::util::environment::setup_all_server_vars
 os::start::configure_server
 
-cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
-openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"templateServiceBrokerConfig\": {\"templateNamespaces\": [\"openshift\"]}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-
 SWAGGER_SPEC_REL_DIR="${1:-}"
 SWAGGER_SPEC_OUT_DIR="${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/swagger-spec"
 mkdir -p "${SWAGGER_SPEC_OUT_DIR}"
@@ -52,7 +49,7 @@ generated_file="${SWAGGER_SPEC_OUT_DIR}/openshift-openapi-spec.json"
 oc get --raw "/swagger.json" --config="${MASTER_CONFIG_DIR}/admin.kubeconfig" > "${generated_file}"
 
 os::util::sed 's|https://127.0.0.1:38443|https://127.0.0.1:8443|g' "${generated_file}"
-os::util::sed -E 's|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
+os::util::sed -E '0,/"version":/ s|"version": "[^\"]+"|"version": "latest"|g' "${generated_file}"
 os::util::sed '$a\' "${generated_file}" # add eof newline if it is missing
 
 # Copy all protobuf generated specs into the api/protobuf-spec directory

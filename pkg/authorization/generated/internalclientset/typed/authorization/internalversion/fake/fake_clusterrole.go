@@ -19,37 +19,7 @@ var clusterrolesResource = schema.GroupVersionResource{Group: "authorization.ope
 
 var clusterrolesKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "", Kind: "ClusterRole"}
 
-func (c *FakeClusterRoles) Create(clusterRole *authorization.ClusterRole) (result *authorization.ClusterRole, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterrolesResource, clusterRole), &authorization.ClusterRole{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.ClusterRole), err
-}
-
-func (c *FakeClusterRoles) Update(clusterRole *authorization.ClusterRole) (result *authorization.ClusterRole, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterrolesResource, clusterRole), &authorization.ClusterRole{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.ClusterRole), err
-}
-
-func (c *FakeClusterRoles) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterrolesResource, name), &authorization.ClusterRole{})
-	return err
-}
-
-func (c *FakeClusterRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(clusterrolesResource, listOptions)
-
-	_, err := c.Fake.Invokes(action, &authorization.ClusterRoleList{})
-	return err
-}
-
+// Get takes name of the clusterRole, and returns the corresponding clusterRole object, and an error if there is any.
 func (c *FakeClusterRoles) Get(name string, options v1.GetOptions) (result *authorization.ClusterRole, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(clusterrolesResource, name), &authorization.ClusterRole{})
@@ -59,6 +29,7 @@ func (c *FakeClusterRoles) Get(name string, options v1.GetOptions) (result *auth
 	return obj.(*authorization.ClusterRole), err
 }
 
+// List takes label and field selectors, and returns the list of ClusterRoles that match those selectors.
 func (c *FakeClusterRoles) List(opts v1.ListOptions) (result *authorization.ClusterRoleList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(clusterrolesResource, clusterrolesKind, opts), &authorization.ClusterRoleList{})
@@ -83,6 +54,41 @@ func (c *FakeClusterRoles) List(opts v1.ListOptions) (result *authorization.Clus
 func (c *FakeClusterRoles) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(clusterrolesResource, opts))
+}
+
+// Create takes the representation of a clusterRole and creates it.  Returns the server's representation of the clusterRole, and an error, if there is any.
+func (c *FakeClusterRoles) Create(clusterRole *authorization.ClusterRole) (result *authorization.ClusterRole, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateAction(clusterrolesResource, clusterRole), &authorization.ClusterRole{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.ClusterRole), err
+}
+
+// Update takes the representation of a clusterRole and updates it. Returns the server's representation of the clusterRole, and an error, if there is any.
+func (c *FakeClusterRoles) Update(clusterRole *authorization.ClusterRole) (result *authorization.ClusterRole, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateAction(clusterrolesResource, clusterRole), &authorization.ClusterRole{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.ClusterRole), err
+}
+
+// Delete takes name of the clusterRole and deletes it. Returns an error if one occurs.
+func (c *FakeClusterRoles) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewRootDeleteAction(clusterrolesResource, name), &authorization.ClusterRole{})
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeClusterRoles) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(clusterrolesResource, listOptions)
+
+	_, err := c.Fake.Invokes(action, &authorization.ClusterRoleList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched clusterRole.

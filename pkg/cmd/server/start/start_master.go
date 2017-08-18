@@ -23,13 +23,20 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	genericapiserver "k8s.io/apiserver/pkg/server"
+	clientgoclientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
+	"k8s.io/kubernetes/pkg/master"
+	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
+	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
@@ -39,16 +46,14 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	kubecontrollers "github.com/openshift/origin/pkg/cmd/server/kubernetes/master/controller"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
-	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
-	override "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride"
-	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
+	usercache "github.com/openshift/origin/pkg/user/cache"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -80,9 +85,7 @@ var masterLong = templates.LongDesc(`
 	address that will be visible inside running Docker containers. This is not always successful,
 	so if you have problems tell the master what public address it should use via --master=<ip>.
 
-	You may also pass --etcd=<address> to connect to an external etcd server.
-
-	You may also pass --kubeconfig=<path> to connect to an external Kubernetes cluster.`)
+	You may also pass --etcd=<address> to connect to an external etcd server.`)
 
 // NewCommandStartMaster provides a CLI handler for 'start master' command
 func NewCommandStartMaster(basename string, out, errout io.Writer) (*cobra.Command, *MasterOptions) {
@@ -226,9 +229,6 @@ func (o MasterOptions) RunMaster() error {
 		if err := o.CreateCerts(); err != nil {
 			return err
 		}
-		if err := o.CreateBootstrapPolicy(); err != nil {
-			return err
-		}
 	}
 
 	var masterConfig *configapi.MasterConfig
@@ -311,15 +311,6 @@ func (o MasterOptions) RunMaster() error {
 	return m.Start()
 }
 
-func (o MasterOptions) CreateBootstrapPolicy() error {
-	writeBootstrapPolicy := admin.CreateBootstrapPolicyFileOptions{
-		File: o.MasterArgs.GetPolicyFile(),
-		OpenShiftSharedResourcesNamespace: bootstrappolicy.DefaultOpenShiftSharedResourcesNamespace,
-	}
-
-	return writeBootstrapPolicy.CreateBootstrapPolicyFile()
-}
-
 func (o MasterOptions) CreateCerts() error {
 	masterAddr, err := o.MasterArgs.GetMasterAddress()
 	if err != nil {
@@ -343,7 +334,6 @@ func (o MasterOptions) CreateCerts() error {
 		Hostnames:          hostnames.List(),
 		APIServerURL:       masterAddr.String(),
 		APIServerCAFiles:   o.MasterArgs.APIServerCAFiles,
-		CABundleFile:       admin.DefaultCABundleFile(o.MasterArgs.ConfigDir.Value()),
 		PublicAPIServerURL: publicMasterAddr.String(),
 		Output:             cmdutil.NewGLogWriterV(3),
 	}
@@ -355,18 +345,6 @@ func (o MasterOptions) CreateCerts() error {
 	}
 
 	return nil
-}
-
-func BuildKubernetesMasterConfig(openshiftConfig *origin.MasterConfig) (*kubernetes.MasterConfig, error) {
-	return kubernetes.BuildKubernetesMasterConfig(
-		openshiftConfig.Options,
-		openshiftConfig.RequestContextMapper,
-		openshiftConfig.KubeClientsetExternal(),
-		openshiftConfig.KubeClientsetInternal(),
-		openshiftConfig.KubeAdmissionControl,
-		openshiftConfig.Authenticator,
-		openshiftConfig.Authorizer,
-	)
 }
 
 // Master encapsulates starting the components of the master
@@ -403,12 +381,10 @@ func (m *Master) Start() error {
 		return fmt.Errorf("KubernetesMasterConfig is required to start this server - use of external Kubernetes is no longer supported.")
 	}
 
-	if len(m.config.AggregatorConfig.ProxyClientInfo.KeyFile) > 0 {
-		// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
-		// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
-		// TODO: make scheme threadsafe and do this as part of aggregator config building
-		aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
-	}
+	// install aggregator types into the scheme so that "normal" RESTOptionsGetters can work for us.
+	// done in Start() prior to doing any other initialization so we don't mutate the scheme after it is being used by clients in other goroutines.
+	// TODO: make scheme threadsafe and do this as part of aggregator config building
+	aggregatorinstall.Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 
 	// we have a strange, optional linkage from controllers to the API server regarding the plug.  In the end, this should be structured
 	// as a separate API server which can be chained as a delegate
@@ -421,7 +397,11 @@ func (m *Master) Start() error {
 		if err != nil {
 			return err
 		}
-		kubeInternal, _, err := configapi.GetInternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		_, config, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		if err != nil {
+			return err
+		}
+		clientGoKubeExternal, err := clientgoclientset.NewForConfig(config)
 		if err != nil {
 			return err
 		}
@@ -438,7 +418,7 @@ func (m *Master) Start() error {
 			}
 			glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-			if err := origin.RunControllerServer(m.config.ServingInfo, kubeInternal); err != nil {
+			if err := origincontrollers.RunControllerServer(m.config.ServingInfo, clientGoKubeExternal); err != nil {
 				return err
 			}
 		}
@@ -458,6 +438,7 @@ func (m *Master) Start() error {
 			*m.config,
 			kubeControllerManagerConfig.KubeControllerManagerConfiguration.LeaderElection,
 			kubeExternal,
+			clientGoKubeExternal.Core().Events(""),
 		)
 		if err != nil {
 			return err
@@ -496,7 +477,7 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
-			if err := startControllers(*m.config, allocationController, informers, controllerContext); err != nil {
+			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
@@ -506,33 +487,50 @@ func (m *Master) Start() error {
 
 	if m.api {
 		// informers are shared amongst all the various api components we build
+		// TODO the needs of the apiserver and the controllers are drifting. We should consider two different skins here
 		informers, err := NewInformers(*m.config)
 		if err != nil {
 			return err
 		}
+		// the API server runs a reverse index on users to groups which requires an index on the group informer
+		// this activates the lister/watcher, so we want to do it only in this path
+		err = informers.userInformers.User().InternalVersion().Groups().Informer().AddIndexers(cache.Indexers{
+			usercache.ByUserIndexName: usercache.ByUserIndexKeys,
+		})
+		if err != nil {
+			return err
+		}
+
 		openshiftConfig, err := origin.BuildMasterConfig(*m.config, informers)
 		if err != nil {
 			return err
 		}
 
-		kubeMasterConfig, err := BuildKubernetesMasterConfig(openshiftConfig)
+		kubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(
+			openshiftConfig.Options,
+			openshiftConfig.RequestContextMapper,
+			openshiftConfig.KubeAdmissionControl,
+			openshiftConfig.Authenticator,
+			openshiftConfig.Authorizer,
+		)
 		if err != nil {
 			return err
 		}
-		kubeMasterConfig.Master.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
+		kubeAPIServerConfig.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
 
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
 			glog.V(4).Infof("Disabled features: %s", strings.Join(m.config.DisabledFeatures, ", "))
 		}
-		glog.Infof("Using images from %q", openshiftConfig.ImageFor("<component>"))
+		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate.Format = m.config.ImageConfig.Format
+		imageTemplate.Latest = m.config.ImageConfig.Latest
+		glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-		if err := StartAPI(openshiftConfig, kubeMasterConfig, informers, controllerPlug); err != nil {
+		if err := StartAPI(openshiftConfig, kubeAPIServerConfig, informers, controllerPlug); err != nil {
 			return err
 		}
-
-		informers.Start(utilwait.NeverStop)
 	}
 
 	return nil
@@ -542,52 +540,21 @@ func (m *Master) Start() error {
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *informers, controllerPlug plug.Plug) error {
+func StartAPI(oc *origin.MasterConfig, kubeAPIServerConfig *master.Config, informers *informers, controllerPlug plug.Plug) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
 		etcdserver.RunEtcd(oc.Options.EtcdConfig)
 	}
 
 	// verify we can connect to etcd with the provided config
-	if len(kc.Options.APIServerArguments) > 0 && len(kc.Options.APIServerArguments["storage-backend"]) > 0 && kc.Options.APIServerArguments["storage-backend"][0] == "etcd3" {
-		if _, err := etcd.GetAndTestEtcdClientV3(oc.Options.EtcdClientInfo); err != nil {
-			return err
-		}
-	} else {
-		if _, err := etcd.GetAndTestEtcdClient(oc.Options.EtcdClientInfo); err != nil {
-			return err
-		}
+	// TODO remove when this becomes a health check in 3.8
+	if err := testEtcdConnectivity(oc.Options.EtcdClientInfo); err != nil {
+		return err
 	}
 
-	// Must start policy and quota caching immediately
-	oc.QuotaInformers.Start(utilwait.NeverStop)
-	oc.AuthorizationInformers.Start(utilwait.NeverStop)
-	clusterQuotaMapping := origincontrollers.ClusterQuotaMappingControllerConfig{
-		ClusterQuotaMappingController: oc.ClusterQuotaMappingController,
+	if err := oc.Run(kubeAPIServerConfig, controllerPlug, utilwait.NeverStop); err != nil {
+		return err
 	}
-	clusterQuotaMapping.RunController(origincontrollers.ControllerContext{Stop: utilwait.NeverStop})
-	oc.RunGroupCache()
-	oc.RunProjectCache()
-
-	var standaloneAssetConfig, embeddedAssetConfig *origin.AssetConfig
-	if oc.WebConsoleEnabled() {
-		overrideConfig, err := getResourceOverrideConfig(oc)
-		if err != nil {
-			return err
-		}
-		config, err := origin.NewAssetConfig(*oc.Options.AssetConfig, overrideConfig)
-		if err != nil {
-			return err
-		}
-
-		if oc.Options.AssetConfig.ServingInfo.BindAddress == oc.Options.ServingInfo.BindAddress {
-			embeddedAssetConfig = config
-		} else {
-			standaloneAssetConfig = config
-		}
-	}
-
-	oc.Run(kc.Master, embeddedAssetConfig, controllerPlug, utilwait.NeverStop)
 
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {
@@ -595,55 +562,46 @@ func StartAPI(oc *origin.MasterConfig, kc *kubernetes.MasterConfig, informers *i
 	}
 
 	// start up the informers that we're trying to use in the API server
-	informers.GetInternalKubeInformers().Start(utilwait.NeverStop)
-	informers.GetExternalKubeInformers().Start(utilwait.NeverStop)
-	oc.InitializeObjects()
+	informers.Start(utilwait.NeverStop)
 
-	if standaloneAssetConfig != nil {
-		standaloneAssetConfig.Run()
+	// if the webconsole is configured to be standalone, go ahead and create and run it
+	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
+		config, err := origin.NewAssetServerConfigFromMasterConfig(oc.Options)
+		if err != nil {
+			return err
+		}
+		assetServer, err := config.Complete().New(genericapiserver.EmptyDelegate)
+		if err != nil {
+			return err
+		}
+		if err := assetapiserver.RunAssetServer(assetServer, utilwait.NeverStop); err != nil {
+			return err
+		}
 	}
 
-	oc.RunProjectAuthorizationCache()
 	return nil
 }
 
-// getResourceOverrideConfig looks in two potential places where ClusterResourceOverrideConfig can be specified
-func getResourceOverrideConfig(oc *origin.MasterConfig) (*overrideapi.ClusterResourceOverrideConfig, error) {
-	overrideConfig, err := checkForOverrideConfig(oc.Options.AdmissionConfig)
-	if err != nil {
-		return nil, err
+func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
+	// first try etcd2
+	etcdClient2, etcd2Err := etcd.MakeEtcdClient(etcdClientInfo)
+	if etcd2Err == nil {
+		etcd2Err = etcd.TestEtcdClient(etcdClient2)
+		if etcd2Err == nil {
+			return nil
+		}
 	}
-	if overrideConfig != nil {
-		return overrideConfig, nil
-	}
-	if oc.Options.KubernetesMasterConfig == nil { // external kube gets you a nil pointer here
-		return nil, nil
-	}
-	overrideConfig, err = checkForOverrideConfig(oc.Options.KubernetesMasterConfig.AdmissionConfig)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
-}
 
-// checkForOverrideConfig looks for ClusterResourceOverrideConfig plugin cfg in the admission PluginConfig
-func checkForOverrideConfig(ac configapi.AdmissionConfig) (*overrideapi.ClusterResourceOverrideConfig, error) {
-	overridePluginConfigFile, err := pluginconfig.GetPluginConfigFile(ac.PluginConfig, overrideapi.PluginName, "")
-	if err != nil {
-		return nil, err
+	// try etcd3 otherwise
+	etcdClient3, etcd3Err := etcd.MakeEtcdClientV3(etcdClientInfo)
+	if etcd3Err != nil {
+		return kutilerrors.NewAggregate([]error{etcd2Err, etcd3Err})
 	}
-	if overridePluginConfigFile == "" {
-		return nil, nil
+	if etcd3Err := etcd.TestEtcdClientV3(etcdClient3); etcd3Err != nil {
+		return kutilerrors.NewAggregate([]error{etcd2Err, etcd3Err})
 	}
-	configFile, err := os.Open(overridePluginConfigFile)
-	if err != nil {
-		return nil, err
-	}
-	overrideConfig, err := override.ReadConfig(configFile)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
+
+	return nil
 }
 
 type GenericResourceInformer interface {
@@ -689,12 +647,12 @@ func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kin
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, informers *informers, controllerContext origincontrollers.ControllerContext) error {
-	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(options, informers)
+func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, controllerContext origincontrollers.ControllerContext) error {
+	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(options)
 	if err != nil {
 		return err
 	}
-	kubeControllerConfig, err := origin.BuildKubeControllerConfig(options)
+	kubeControllerConfig, err := kubecontrollers.BuildKubeControllerConfig(options)
 	if err != nil {
 		return err
 	}
@@ -800,9 +758,6 @@ func getExcludedControllers(options configapi.MasterConfig) sets.String {
 	if !configapi.IsBuildEnabled(&options) {
 		excludedControllers.Insert("openshift.io/build")
 		excludedControllers.Insert("openshift.io/build-config-change")
-	}
-	if options.TemplateServiceBrokerConfig == nil {
-		excludedControllers.Insert("openshift.io/templateinstance")
 	}
 
 	return excludedControllers

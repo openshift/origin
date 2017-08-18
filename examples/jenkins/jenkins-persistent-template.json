@@ -3,7 +3,6 @@
   "apiVersion": "v1",
   "metadata": {
     "name": "jenkins-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "Jenkins (Persistent)",
       "description": "Jenkins service, with persistent storage.\n\nNOTE: You must have persistent volumes available in your cluster to use this template.",
@@ -22,7 +21,6 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "http://{.spec.host}{.spec.path}"
         }
@@ -60,7 +58,9 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${JENKINS_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -92,7 +92,6 @@
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${JENKINS_SERVICE_NAME}"
             }
@@ -238,8 +237,7 @@
          "annotations": {
            "service.alpha.openshift.io/dependencies": "[{\"name\": \"${JNLP_SERVICE_NAME}\", \"namespace\": \"\", \"kind\": \"Service\"}]",
            "service.openshift.io/infrastructure": "true"
-         },
-         "creationTimestamp": null
+         }
        },
        "spec": {
          "ports": [

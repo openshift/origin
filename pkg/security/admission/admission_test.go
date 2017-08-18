@@ -12,6 +12,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	v1kapi "k8s.io/kubernetes/pkg/api/v1"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	clientsetfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
@@ -19,7 +20,7 @@ import (
 	admissiontesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
 func NewTestAdmission(lister securitylisters.SecurityContextConstraintsLister, kclient clientset.Interface) kadmission.Interface {
@@ -27,6 +28,20 @@ func NewTestAdmission(lister securitylisters.SecurityContextConstraintsLister, k
 		Handler:   kadmission.NewHandler(kadmission.Create),
 		client:    kclient,
 		sccLister: lister,
+	}
+}
+
+func TestFailClosedOnInvalidPod(t *testing.T) {
+	plugin := NewTestAdmission(nil, nil)
+	pod := &v1kapi.Pod{}
+	attrs := kadmission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion("version"), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion("version"), "", kadmission.Create, &user.DefaultInfo{})
+	err := plugin.Admit(attrs)
+
+	if err == nil {
+		t.Fatalf("expected versioned pod object to fail admission")
+	}
+	if !strings.Contains(err.Error(), "object was marked as kind pod but was unable to be converted") {
+		t.Errorf("expected error to be conversion erorr but got: %v", err)
 	}
 }
 
@@ -53,7 +68,7 @@ func TestAdmitCaps(t *testing.T) {
 
 	allowAllInAllowed := restrictiveSCC()
 	allowAllInAllowed.Name = "allowAllCapsInAllowed"
-	allowAllInAllowed.AllowedCapabilities = []kapi.Capability{kapi.CapabilityAll}
+	allowAllInAllowed.AllowedCapabilities = []kapi.Capability{securityapi.AllowAllCapabilities}
 
 	tc := map[string]struct {
 		pod                  *kapi.Pod

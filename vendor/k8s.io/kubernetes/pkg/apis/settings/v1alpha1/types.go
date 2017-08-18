@@ -21,7 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 
 // PodPreset is a policy resource that defines additional runtime
 // requirements for a Pod.

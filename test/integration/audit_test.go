@@ -11,8 +11,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client) {
-	testutil.RequireEtcd(t)
+func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -30,13 +29,14 @@ func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client) {
 	if err != nil {
 		t.Fatalf("error getting openshift client: %v", err)
 	}
-	return kubeClient, openshiftClient
-
+	return kubeClient, openshiftClient, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }
 
 func TestBasicFunctionalityWithAudit(t *testing.T) {
-	kubeClient, _ := setupAuditTest(t)
-	defer testutil.DumpEtcdOnFailure(t)
+	kubeClient, _, fn := setupAuditTest(t)
+	defer fn()
 
 	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {
 		t.Errorf("Unexpected error watching pods: %v", err)

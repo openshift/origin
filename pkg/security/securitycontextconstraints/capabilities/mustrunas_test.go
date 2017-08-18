@@ -1,9 +1,12 @@
 package capabilities
 
 import (
-	"k8s.io/kubernetes/pkg/api"
 	"reflect"
 	"testing"
+
+	"k8s.io/kubernetes/pkg/api"
+
+	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
 func TestGenerateAdds(t *testing.T) {
@@ -243,7 +246,7 @@ func TestValidateAdds(t *testing.T) {
 			shouldPass: true,
 		},
 		"no required, all allowed, container requests valid": {
-			allowedCaps: []api.Capability{api.CapabilityAll},
+			allowedCaps: []api.Capability{securityapi.AllowAllCapabilities},
 			containerCaps: &api.Capabilities{
 				Add: []api.Capability{"foo"},
 			},

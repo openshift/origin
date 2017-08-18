@@ -12,12 +12,12 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/origin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -29,13 +29,12 @@ type testRequest struct {
 }
 
 func TestNodeAuth(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	// Server config
 	masterConfig, nodeConfig, adminKubeConfigFile, err := testserver.StartTestAllInOne()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	// Cluster admin clients and client configs
 	adminClient, err := testutil.GetClusterAdminKubeClient(adminKubeConfigFile)
@@ -81,7 +80,7 @@ func TestNodeAuth(t *testing.T) {
 	}
 	whoamiOnlyBobToken := &oauthapi.OAuthAccessToken{
 		ObjectMeta: metav1.ObjectMeta{Name: "whoami-token-plus-some-padding-here-to-make-the-limit"},
-		ClientName: origin.OpenShiftCLIClientID,
+		ClientName: oauthapiserver.OpenShiftCLIClientID,
 		ExpiresIn:  200,
 		Scopes:     []string{scope.UserInfo},
 		UserName:   bobUser.Name,
@@ -119,12 +118,11 @@ func TestNodeAuth(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	nodeTLS := configapi.UseTLS(nodeConfig.ServingInfo)
 
 	kubeletClientConfig := func(config *restclient.Config) *kubeletclient.KubeletClientConfig {
 		return &kubeletclient.KubeletClientConfig{
 			Port:            uint(nodePortInt),
-			EnableHttps:     nodeTLS,
+			EnableHttps:     true,
 			TLSClientConfig: config.TLSClientConfig,
 			BearerToken:     config.BearerToken,
 		}

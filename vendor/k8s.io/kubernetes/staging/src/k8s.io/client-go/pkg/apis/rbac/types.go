@@ -87,7 +87,7 @@ type RoleRef struct {
 	Name string
 }
 
-// +genclient=true
+// +genclient
 
 // Role is a namespaced, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding.
 type Role struct {
@@ -99,7 +99,7 @@ type Role struct {
 	Rules []PolicyRule
 }
 
-// +genclient=true
+// +genclient
 
 // RoleBinding references a role, but does not contain it.  It can reference a Role in the same namespace or a ClusterRole in the global namespace.
 // It adds who information via Subjects and namespace information by which namespace it exists in.  RoleBindings in a given
@@ -136,8 +136,8 @@ type RoleList struct {
 	Items []Role
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterRole is a cluster level, logical grouping of PolicyRules that can be referenced as a unit by a RoleBinding or ClusterRoleBinding.
 type ClusterRole struct {
@@ -149,8 +149,8 @@ type ClusterRole struct {
 	Rules []PolicyRule
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference a ClusterRole in the global namespace,
 // and adds who information via Subject.

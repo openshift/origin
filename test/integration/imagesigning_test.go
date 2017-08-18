@@ -11,9 +11,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -21,7 +21,8 @@ import (
 const testUserName = "bob"
 
 func TestImageAddSignature(t *testing.T) {
-	adminClient, userClient, image := testSetupImageSignatureTest(t, testUserName)
+	adminClient, userClient, image, fn := testSetupImageSignatureTest(t, testUserName)
+	defer fn()
 
 	if len(image.Signatures) != 0 {
 		t.Fatalf("expected empty signatures, not: %s", diff.ObjectDiff(image.Signatures, []imageapi.ImageSignature{}))
@@ -96,7 +97,8 @@ func TestImageAddSignature(t *testing.T) {
 }
 
 func TestImageRemoveSignature(t *testing.T) {
-	adminClient, userClient, image := testSetupImageSignatureTest(t, testUserName)
+	adminClient, userClient, image, fn := testSetupImageSignatureTest(t, testUserName)
+	defer fn()
 	makeUserAnImageSigner(adminClient, userClient, testUserName)
 
 	// create some signatures
@@ -193,9 +195,8 @@ func TestImageRemoveSignature(t *testing.T) {
 	}
 }
 
-func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *client.Client, userClient *client.Client, image *imageapi.Image) {
-	testutil.RequireEtcd(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *client.Client, userClient *client.Client, image *imageapi.Image, cleanup func()) {
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -228,7 +229,9 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (adminClient *cl
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	return adminClient, userClient, image
+	return adminClient, userClient, image, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }
 
 func makeUserAnImageSigner(clusterAdminClient *client.Client, userClient *client.Client, userName string) error {

@@ -34,8 +34,8 @@ items:
     name: sudoer
   rules:
   - apiGroups:
-    - user.openshift.io
     - ""
+    - user.openshift.io
     attributeRestrictions: null
     resourceNames:
     - system:admin
@@ -98,6 +98,26 @@ items:
     - deployments/status
     - statefulsets
     - statefulsets/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apiextensions.k8s.io
+    attributeRestrictions: null
+    resources:
+    - customresourcedefinitions
+    - customresourcedefinitions/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - apiregistration.k8s.io
+    attributeRestrictions: null
+    resources:
+    - apiservices
+    - apiservices/status
     verbs:
     - get
     - list
@@ -215,8 +235,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - clusterpolicies
@@ -233,8 +253,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -247,8 +267,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs
@@ -260,8 +280,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
@@ -275,16 +295,16 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
     verbs:
     - get
   - apiGroups:
-    - oauth.openshift.io
     - ""
+    - oauth.openshift.io
     attributeRestrictions: null
     resources:
     - oauthclientauthorizations
@@ -293,8 +313,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
@@ -304,8 +324,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - quota.openshift.io
     - ""
+    - quota.openshift.io
     attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
@@ -316,8 +336,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes
@@ -327,8 +347,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - network.openshift.io
     - ""
+    - network.openshift.io
     attributeRestrictions: null
     resources:
     - clusternetworks
@@ -340,8 +360,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - security.openshift.io
     - ""
+    - security.openshift.io
     attributeRestrictions: null
     resources:
     - securitycontextconstraints
@@ -350,8 +370,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - template.openshift.io
     - ""
+    - template.openshift.io
     attributeRestrictions: null
     resources:
     - processedtemplates
@@ -363,8 +383,19 @@ items:
     - list
     - watch
   - apiGroups:
-    - user.openshift.io
     - ""
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - brokertemplateinstances
+    - templateinstances/status
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    - user.openshift.io
     attributeRestrictions: null
     resources:
     - groups
@@ -376,8 +407,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - localresourceaccessreviews
@@ -405,8 +436,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - security.openshift.io
     - ""
+    - security.openshift.io
     attributeRestrictions: null
     resources:
     - podsecuritypolicyreviews
@@ -438,8 +469,8 @@ items:
     verbs:
     - get
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildlogs
@@ -482,8 +513,8 @@ items:
     name: system:build-strategy-docker
   rules:
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/docker
@@ -499,8 +530,8 @@ items:
     name: system:build-strategy-custom
   rules:
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/custom
@@ -515,8 +546,8 @@ items:
     name: system:build-strategy-source
   rules:
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/source
@@ -531,8 +562,8 @@ items:
     name: system:build-strategy-jenkinspipeline
   rules:
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/jenkinspipeline
@@ -696,7 +727,6 @@ items:
     - deployments/rollback
     - deployments/scale
     - horizontalpodautoscalers
-    - jobs
     - networkpolicies
     - replicasets
     - replicasets/scale
@@ -737,8 +767,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - rolebindings
@@ -753,8 +783,23 @@ items:
     - update
     - watch
   - apiGroups:
-    - authorization.openshift.io
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - rolebindings
+    - roles
+    verbs:
+    - create
+    - delete
+    - deletecollection
+    - get
+    - list
+    - patch
+    - update
+    - watch
+  - apiGroups:
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - localresourceaccessreviews
@@ -763,8 +808,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - security.openshift.io
     - ""
+    - security.openshift.io
     attributeRestrictions: null
     resources:
     - podsecuritypolicyreviews
@@ -780,8 +825,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - policies
@@ -792,8 +837,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -809,8 +854,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/log
@@ -819,8 +864,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs/instantiate
@@ -829,8 +874,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/details
@@ -846,13 +891,12 @@ items:
     - edit
     - view
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs
     - deploymentconfigs/scale
-    - generatedeploymentconfigs
     verbs:
     - create
     - delete
@@ -863,8 +907,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigrollbacks
@@ -873,8 +917,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs/log
@@ -884,8 +928,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -903,8 +947,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/status
@@ -913,8 +957,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -922,16 +966,16 @@ items:
     - get
     - update
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
     - create
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -941,8 +985,8 @@ items:
     - patch
     - update
   - apiGroups:
-    - quota.openshift.io
     - ""
+    - quota.openshift.io
     attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
@@ -951,8 +995,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes
@@ -966,16 +1010,16 @@ items:
     - update
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/custom-host
     verbs:
     - create
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/status
@@ -984,16 +1028,16 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/status
     verbs:
     - update
   - apiGroups:
-    - template.openshift.io
     - ""
+    - template.openshift.io
     attributeRestrictions: null
     resources:
     - processedtemplates
@@ -1010,8 +1054,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildlogs
@@ -1034,8 +1078,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - resourceaccessreviews
@@ -1154,7 +1198,6 @@ items:
     - deployments/rollback
     - deployments/scale
     - horizontalpodautoscalers
-    - jobs
     - replicasets
     - replicasets/scale
     - replicationcontrollers/scale
@@ -1194,8 +1237,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -1211,8 +1254,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/log
@@ -1221,8 +1264,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs/instantiate
@@ -1231,8 +1274,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/details
@@ -1247,13 +1290,12 @@ items:
     - edit
     - view
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs
     - deploymentconfigs/scale
-    - generatedeploymentconfigs
     verbs:
     - create
     - delete
@@ -1264,8 +1306,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigrollbacks
@@ -1274,8 +1316,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs/log
@@ -1285,8 +1327,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -1304,8 +1346,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/status
@@ -1314,8 +1356,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -1323,24 +1365,24 @@ items:
     - get
     - update
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
     - create
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
     verbs:
     - get
   - apiGroups:
-    - quota.openshift.io
     - ""
+    - quota.openshift.io
     attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
@@ -1349,8 +1391,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes
@@ -1364,16 +1406,16 @@ items:
     - update
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/custom-host
     verbs:
     - create
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/status
@@ -1382,8 +1424,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - template.openshift.io
     - ""
+    - template.openshift.io
     attributeRestrictions: null
     resources:
     - processedtemplates
@@ -1400,8 +1442,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildlogs
@@ -1492,7 +1534,6 @@ items:
     - deployments
     - deployments/scale
     - horizontalpodautoscalers
-    - jobs
     - replicasets
     - replicasets/scale
     verbs:
@@ -1520,8 +1561,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -1532,8 +1573,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/log
@@ -1549,8 +1590,8 @@ items:
     verbs:
     - view
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs
@@ -1560,8 +1601,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs/log
@@ -1571,8 +1612,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -1584,8 +1625,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/status
@@ -1594,16 +1635,16 @@ items:
     - list
     - watch
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
     verbs:
     - get
   - apiGroups:
-    - quota.openshift.io
     - ""
+    - quota.openshift.io
     attributeRestrictions: null
     resources:
     - appliedclusterresourcequotas
@@ -1612,8 +1653,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes
@@ -1622,8 +1663,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/status
@@ -1632,8 +1673,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - template.openshift.io
     - ""
+    - template.openshift.io
     attributeRestrictions: null
     resources:
     - processedtemplates
@@ -1645,8 +1686,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildlogs
@@ -1672,8 +1713,8 @@ items:
     name: basic-user
   rules:
   - apiGroups:
-    - user.openshift.io
     - ""
+    - user.openshift.io
     attributeRestrictions: null
     resourceNames:
     - "~"
@@ -1682,22 +1723,31 @@ items:
     verbs:
     - get
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
     verbs:
     - list
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - clusterroles
     verbs:
     - get
     - list
+  - apiGroups:
+    - rbac.authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - clusterroles
+    verbs:
+    - get
+    - list
+    - watch
   - apiGroups:
     - storage.k8s.io
     attributeRestrictions: null
@@ -1707,8 +1757,8 @@ items:
     - get
     - list
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -1716,8 +1766,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - selfsubjectrulesreviews
@@ -1739,8 +1789,8 @@ items:
     name: self-access-reviewer
   rules:
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - selfsubjectrulesreviews
@@ -1763,8 +1813,8 @@ items:
     name: self-provisioner
   rules:
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projectrequests
@@ -1790,6 +1840,7 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /
     - /.well-known
     - /.well-known/*
     - /api
@@ -1817,8 +1868,8 @@ items:
     name: system:image-auditor
   rules:
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
@@ -1837,8 +1888,8 @@ items:
     name: system:image-puller
   rules:
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -1854,8 +1905,8 @@ items:
     name: system:image-pusher
   rules:
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -1872,8 +1923,8 @@ items:
     name: system:image-builder
   rules:
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -1881,24 +1932,24 @@ items:
     - get
     - update
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams
     verbs:
     - create
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds/details
     verbs:
     - update
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - builds
@@ -1929,8 +1980,8 @@ items:
     verbs:
     - list
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs
@@ -1939,8 +1990,8 @@ items:
     - get
     - list
   - apiGroups:
-    - apps.openshift.io
     - ""
+    - apps.openshift.io
     attributeRestrictions: null
     resources:
     - deploymentconfigs
@@ -1948,16 +1999,16 @@ items:
     - get
     - list
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
     verbs:
     - delete
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
@@ -1966,8 +2017,8 @@ items:
     - get
     - list
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/status
@@ -1982,8 +2033,8 @@ items:
     name: system:image-signer
   rules:
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
@@ -1991,8 +2042,8 @@ items:
     verbs:
     - get
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagesignatures
@@ -2051,8 +2102,8 @@ items:
     - create
     - list
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamtags
@@ -2089,8 +2140,8 @@ items:
     name: system:oauth-token-deleter
   rules:
   - apiGroups:
-    - oauth.openshift.io
     - ""
+    - oauth.openshift.io
     attributeRestrictions: null
     resources:
     - oauthaccesstokens
@@ -2122,8 +2173,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes
@@ -2131,8 +2182,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - route.openshift.io
     - ""
+    - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes/status
@@ -2155,8 +2206,8 @@ items:
     verbs:
     - list
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
@@ -2165,8 +2216,8 @@ items:
     - delete
     - get
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -2174,8 +2225,8 @@ items:
     verbs:
     - get
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - images
@@ -2184,8 +2235,8 @@ items:
     - get
     - update
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreammappings
@@ -2292,8 +2343,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - localsubjectaccessreviews
@@ -2409,8 +2460,8 @@ items:
     name: system:sdn-reader
   rules:
   - apiGroups:
-    - network.openshift.io
     - ""
+    - network.openshift.io
     attributeRestrictions: null
     resources:
     - egressnetworkpolicies
@@ -2440,8 +2491,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - network.openshift.io
     - ""
+    - network.openshift.io
     attributeRestrictions: null
     resources:
     - clusternetworks
@@ -2456,8 +2507,8 @@ items:
     name: system:sdn-manager
   rules:
   - apiGroups:
-    - network.openshift.io
     - ""
+    - network.openshift.io
     attributeRestrictions: null
     resources:
     - hostsubnets
@@ -2469,8 +2520,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - network.openshift.io
     - ""
+    - network.openshift.io
     attributeRestrictions: null
     resources:
     - clusternetworks
@@ -2495,8 +2546,8 @@ items:
     name: system:webhook
   rules:
   - apiGroups:
-    - build.openshift.io
     - ""
+    - build.openshift.io
     attributeRestrictions: null
     resources:
     - buildconfigs/webhooks
@@ -2514,6 +2565,7 @@ items:
   - apiGroups: null
     attributeRestrictions: null
     nonResourceURLs:
+    - /
     - /.well-known
     - /.well-known/*
     - /api
@@ -2605,8 +2657,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -2624,16 +2676,16 @@ items:
     - update
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
     - create
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -2641,8 +2693,8 @@ items:
     - get
     - update
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - rolebindings
@@ -2657,8 +2709,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - localresourceaccessreviews
@@ -2674,8 +2726,8 @@ items:
     verbs:
     - create
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - policies
@@ -2692,8 +2744,8 @@ items:
     verbs:
     - get
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -2701,8 +2753,8 @@ items:
     - delete
     - get
   - apiGroups:
-    - authorization.openshift.io
     - ""
+    - authorization.openshift.io
     attributeRestrictions: null
     resources:
     - resourceaccessreviews
@@ -2733,8 +2785,8 @@ items:
     - update
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -2752,16 +2804,16 @@ items:
     - update
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimports
     verbs:
     - create
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -2776,8 +2828,8 @@ items:
     verbs:
     - get
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -2792,8 +2844,8 @@ items:
     name: registry-viewer
   rules:
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreamimages
@@ -2805,8 +2857,8 @@ items:
     - list
     - watch
   - apiGroups:
-    - image.openshift.io
     - ""
+    - image.openshift.io
     attributeRestrictions: null
     resources:
     - imagestreams/layers
@@ -2820,8 +2872,8 @@ items:
     verbs:
     - get
   - apiGroups:
-    - project.openshift.io
     - ""
+    - project.openshift.io
     attributeRestrictions: null
     resources:
     - projects
@@ -2971,90 +3023,6 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
     creationTimestamp: null
-    name: system:node-bootstrapper
-  rules:
-  - apiGroups:
-    - certificates.k8s.io
-    attributeRestrictions: null
-    resources:
-    - certificatesigningrequests
-    verbs:
-    - create
-    - get
-    - list
-    - watch
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
-    name: system:openshift:template-service-broker
-  rules:
-  - apiGroups:
-    - authorization.k8s.io
-    attributeRestrictions: null
-    resources:
-    - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
-    - template.openshift.io
-    attributeRestrictions: null
-    resources:
-    - brokertemplateinstances
-    verbs:
-    - create
-    - delete
-    - get
-    - update
-  - apiGroups:
-    - template.openshift.io
-    attributeRestrictions: null
-    resources:
-    - templateinstances
-    verbs:
-    - assign
-    - create
-    - delete
-    - get
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - secrets
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - services
-    verbs:
-    - list
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - configmaps
-    verbs:
-    - list
-  - apiGroups:
-    - route.openshift.io
-    attributeRestrictions: null
-    resources:
-    - routes
-    verbs:
-    - list
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-    creationTimestamp: null
     name: system:openshift:controller:build-controller
   rules:
   - apiGroups:
@@ -3132,6 +3100,14 @@ items:
     - namespaces
     verbs:
     - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - serviceaccounts
+    verbs:
+    - get
+    - list
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -3752,7 +3728,7 @@ items:
     - ""
     attributeRestrictions: null
     resources:
-    - configMaps
+    - configmaps
     verbs:
     - get
     - list
@@ -4031,7 +4007,92 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    name: system:openshift:controller:template-service-broker
+  rules:
+  - apiGroups:
+    - authorization.k8s.io
+    attributeRestrictions: null
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - authorization.openshift.io
+    attributeRestrictions: null
+    resources:
+    - subjectaccessreviews
+    verbs:
+    - create
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - brokertemplateinstances
+    verbs:
+    - create
+    - delete
+    - get
+    - update
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - templateinstances
+    verbs:
+    - assign
+    - create
+    - delete
+    - get
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - templates
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - secrets
+    verbs:
+    - create
+    - delete
+    - get
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    - services
+    verbs:
+    - list
+  - apiGroups:
+    - route.openshift.io
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - list
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - events
+    verbs:
+    - create
+    - patch
+    - update
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4085,7 +4146,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4144,7 +4205,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4219,7 +4280,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4282,7 +4343,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4355,7 +4416,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4403,7 +4464,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4435,7 +4496,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4524,7 +4585,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4573,7 +4634,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4612,7 +4673,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4666,7 +4727,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4774,7 +4835,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4801,7 +4862,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4850,7 +4911,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4899,7 +4960,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4934,7 +4995,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4969,7 +5030,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -4996,7 +5057,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5040,7 +5101,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5117,7 +5178,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5147,7 +5208,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5191,7 +5252,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5209,7 +5270,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5232,7 +5293,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5266,7 +5327,28 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    labels:
+      kubernetes.io/bootstrapping: rbac-defaults
+    name: system:node-bootstrapper
+  rules:
+  - apiGroups:
+    - certificates.k8s.io
+    attributeRestrictions: null
+    resources:
+    - certificatesigningrequests
+    verbs:
+    - create
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5291,7 +5373,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5312,7 +5394,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5382,7 +5464,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults
@@ -5484,7 +5566,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
+      openshift.io/reconcile-protect: "false"
     creationTimestamp: null
     labels:
       kubernetes.io/bootstrapping: rbac-defaults

@@ -9,8 +9,9 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
-	policy "github.com/openshift/origin/pkg/cmd/admin/policy"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	policy "github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -27,8 +28,8 @@ func buildStrategyTypesRestricted() []string {
 }
 
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, false)
+	clusterAdminClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, false)
+	defer fn()
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
 	builds := map[string]*buildapi.Build{}
@@ -103,8 +104,8 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 }
 
 func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	clusterAdminClient, projectAdminClient, projectEditorClient := setupBuildStrategyTest(t, true)
+	clusterAdminClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, true)
+	defer fn()
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
 	buildConfigs := map[string]*buildapi.BuildConfig{}
@@ -178,19 +179,22 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	}
 }
 
-func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
-	testutil.RequireEtcd(t)
+func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client, cleanup func()) {
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
+	var masterConfig *configapi.MasterConfig
 	var err error
 
 	if includeControllers {
-		_, clusterAdminKubeConfig, err = testserver.StartTestMaster()
+		masterConfig, clusterAdminKubeConfig, err = testserver.StartTestMaster()
 	} else {
-		_, clusterAdminKubeConfig, err = testserver.StartTestMasterAPI()
+		masterConfig, clusterAdminKubeConfig, err = testserver.StartTestMasterAPI()
 	}
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+	cleanup = func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 
 	clusterAdminClient, err = testutil.GetClusterAdminClient(clusterAdminKubeConfig)

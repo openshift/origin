@@ -4,12 +4,11 @@ import (
 	"github.com/golang/glog"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 var (
-	deadClusterRoles = []authorizationapi.ClusterRole{}
+	deadClusterRoles = []rbac.ClusterRole{}
 )
 
 func addDeadClusterRole(name string) {
@@ -20,20 +19,15 @@ func addDeadClusterRole(name string) {
 	}
 
 	deadClusterRoles = append(deadClusterRoles,
-		authorizationapi.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: name,
-				Annotations: map[string]string{
-					roleSystemOnly: roleIsSystemOnly,
-				},
-			},
+		rbac.ClusterRole{
+			ObjectMeta: metav1.ObjectMeta{Name: name},
 		},
 	)
 }
 
 // GetDeadClusterRoles returns cluster roles which should no longer have any permissions.
 // These are enumerated so that a reconcile that tightens permissions will properly.
-func GetDeadClusterRoles() []authorizationapi.ClusterRole {
+func GetDeadClusterRoles() []rbac.ClusterRole {
 	return deadClusterRoles
 }
 
@@ -56,5 +50,4 @@ func init() {
 	addDeadClusterRole("system:build-controller")
 	addDeadClusterRole("system:deploymentconfig-controller")
 	addDeadClusterRole("system:deployment-controller")
-
 }

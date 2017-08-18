@@ -32,12 +32,6 @@ import:
 - package: gopkg.in/natefinch/lumberjack.v2
 - package: github.com/pkg/errors
 - package: github.com/howeyc/gopass
-- package: github.com/coreos/etcd
-  version: cc198e22d3b8fd7ec98304c95e68ee375be54589
-- package: google.golang.org/grpc
-  version: 231b4cfea0e79843053a33f5fe90bd4d84b23cd3
-- package: github.com/grpc-ecosystem/grpc-gateway
-  version: f52d055dc48aec25854ed7d31862f78913cf17d1
 - package: github.com/ghodss/yaml
 - package: github.com/gorilla/handlers
 - package: github.com/gorilla/mux
@@ -46,24 +40,28 @@ import:
 - package: github.com/spf13/cobra
   version: f62e98d28ab7ad31d707ba837a966378465c7b57
 - package: k8s.io/gengo
+  version: c79c13d131b0a8f42d05faa6491c12e94ccc6f30 # see https://github.com/kubernetes/kubernetes/blob/release-1.7/Godeps/Godeps.json
   subpackages:
   - args
 - package: github.com/kubernetes/repo-infra
   version: 4c4ae2e2e6994e887da16f3c31f495e10062b810
 - package: k8s.io/kubernetes
-  version: 9497139cb62015905ba5b3d11836f2b0c117ff80
+  version: ebb8d6e0fadfc95f3d64ccecc36c8ed2ac9224ef # client-go origin version
 - package: k8s.io/client-go
-  version: 76153773eaa3a268131d3d993290a194a1370585
+  version: e356aa2e77ab4a5914c216c12ba14cce25a25ab0 # in sync with kubernetes 1.7.0
 - package: k8s.io/apimachinery
-  version: 75b8dd260ef0469d96d578705a87cffd0e09dab8
+  version: abe34e4f5b4413c282a83011892cbeea5b32223b # wanted by client-go; release-1.7 branch
 - package: k8s.io/apiserver
-  version: fbf5c43dfaa8eb5627bac6058e3bd51db8532cbb
+  version: ab57ed5a72c3b67058f665d660e23bae18339fc2 # June 23, similar to client-go. No 1.7 branch yet BUT this version is perfectly compatible it seems
 - package: github.com/ugorji/go
   subpackages:
   - codec/codecgen
 - package: github.com/onsi/gomega
-  version: v1.1.0
+  version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3 # wanted by k8s.io/kubernetes
 - package: github.com/onsi/ginkgo
-  version: v1.3.1
+  version: 67b9df7f55fe1165fd9ad49aca7754cce01a42b8 # wanted by k8s.io/kubernetes
 - package: github.com/pivotal-cf/brokerapi
 - package: code.cloudfoundry.org/lager
+  version: dfcbcba2dd4a5228c43b0292d219d5c010daed3a
+- package: github.com/pmorie/go-open-service-broker-client
+  version: a15af7d9e6c264f61daf883b78ed3f13a0b53de6

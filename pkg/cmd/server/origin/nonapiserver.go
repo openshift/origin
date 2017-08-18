@@ -7,15 +7,9 @@ import (
 	"github.com/golang/glog"
 
 	genericmux "k8s.io/apiserver/pkg/server/mux"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	openservicebrokerserver "github.com/openshift/origin/pkg/openservicebroker/server"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
-	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 )
 
@@ -28,12 +22,6 @@ type OpenshiftNonAPIConfig struct {
 
 	MasterPublicURL string
 	EnableOAuth     bool
-
-	// these are only needed for the template service broker, which should move out
-	KubeClientInternal          kclientsetinternal.Interface
-	EnableTemplateServiceBroker bool
-	TemplateInformers           templateinformer.SharedInformerFactory
-	TemplateNamespaces          []string
 }
 
 // OpenshiftNonAPIServer serves non-API endpoints for openshift.
@@ -57,7 +45,7 @@ func (c *OpenshiftNonAPIConfig) SkipComplete() completedOpenshiftNonAPIConfig {
 	return completedOpenshiftNonAPIConfig{c}
 }
 
-func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.DelegationTarget, stopCh <-chan struct{}) (*OpenshiftNonAPIServer, error) {
+func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftNonAPIServer, error) {
 	genericServer, err := c.OpenshiftNonAPIConfig.GenericConfig.SkipComplete().New("openshift-non-api-routes", delegationTarget) // completion is done in Complete, no need for a second time
 	if err != nil {
 		return nil, err
@@ -69,21 +57,6 @@ func (c completedOpenshiftNonAPIConfig) New(delegationTarget genericapiserver.De
 
 	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
 	initControllerRoutes(s.GenericAPIServer.Handler.GoRestfulContainer, "/controllers", c.ControllerPlug)
-
-	// TODO punt this out to its own "unrelated gorp" delegation target.  It is not related to API
-	if c.EnableTemplateServiceBroker {
-		openservicebrokerserver.Route(
-			s.GenericAPIServer.Handler.GoRestfulContainer,
-			templateapi.ServiceBrokerRoot,
-			templateservicebroker.NewBroker(
-				*c.GenericConfig.LoopbackClientConfig,
-				c.KubeClientInternal,
-				bootstrappolicy.DefaultOpenShiftInfraNamespace,
-				c.TemplateInformers.Template().InternalVersion().Templates(),
-				c.TemplateNamespaces,
-			),
-		)
-	}
 
 	// TODO move this up to the spot where we wire the oauth endpoint
 	// Set up OAuth metadata only if we are configured to use OAuth

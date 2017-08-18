@@ -40,7 +40,7 @@ func (g GetRESTOptionsHelper) GetRESTOptions(resource schema.GroupResource) (gen
 		Decorator: generic.StorageDecorator(func(
 			copier runtime.ObjectCopier,
 			config *storagebackend.Config,
-			capacity int,
+			capacity *int,
 			objectType runtime.Object,
 			resourcePrefix string,
 			keyFunc func(obj runtime.Object) (string, error),

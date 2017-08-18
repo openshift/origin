@@ -7,10 +7,7 @@ situations for which process is not specified.
 
 PRs may only be merged after the following criteria are met:
 
-1. It has been open for at least 1 business day
-1. It has no `veto` label on it
-1. It has been 'LGTM'-ed by 3 different reviewers, each from a different
-  organization
+1. It has been 'LGTM'-ed by 2 different reviewers
 1. It has all appropriate corresponding documentation and testcases
 
 ## LGTMs
@@ -23,8 +20,8 @@ changes they believe should be made before merge.
 ## Vetoing
 
 If a reviewer decides that a PR should not be merged in its current state,
-even if it gets 3 'LGTM' approvals from others, they should mark that PR with
-`veto` label.
+even if it has 2 'LGTM' approvals from others, they should mark that PR with
+`do-not-merge` label.
 
 This label should only be used by a reviewer when that person believes there
 is a fundamental problem with the PR. The reviewer should summarize that problem

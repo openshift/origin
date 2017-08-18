@@ -19,37 +19,7 @@ var clusterpolicybindingsResource = schema.GroupVersionResource{Group: "authoriz
 
 var clusterpolicybindingsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "", Kind: "ClusterPolicyBinding"}
 
-func (c *FakeClusterPolicyBindings) Create(clusterPolicyBinding *authorization.ClusterPolicyBinding) (result *authorization.ClusterPolicyBinding, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterpolicybindingsResource, clusterPolicyBinding), &authorization.ClusterPolicyBinding{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.ClusterPolicyBinding), err
-}
-
-func (c *FakeClusterPolicyBindings) Update(clusterPolicyBinding *authorization.ClusterPolicyBinding) (result *authorization.ClusterPolicyBinding, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterpolicybindingsResource, clusterPolicyBinding), &authorization.ClusterPolicyBinding{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.ClusterPolicyBinding), err
-}
-
-func (c *FakeClusterPolicyBindings) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterpolicybindingsResource, name), &authorization.ClusterPolicyBinding{})
-	return err
-}
-
-func (c *FakeClusterPolicyBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(clusterpolicybindingsResource, listOptions)
-
-	_, err := c.Fake.Invokes(action, &authorization.ClusterPolicyBindingList{})
-	return err
-}
-
+// Get takes name of the clusterPolicyBinding, and returns the corresponding clusterPolicyBinding object, and an error if there is any.
 func (c *FakeClusterPolicyBindings) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicyBinding, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(clusterpolicybindingsResource, name), &authorization.ClusterPolicyBinding{})
@@ -59,6 +29,7 @@ func (c *FakeClusterPolicyBindings) Get(name string, options v1.GetOptions) (res
 	return obj.(*authorization.ClusterPolicyBinding), err
 }
 
+// List takes label and field selectors, and returns the list of ClusterPolicyBindings that match those selectors.
 func (c *FakeClusterPolicyBindings) List(opts v1.ListOptions) (result *authorization.ClusterPolicyBindingList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(clusterpolicybindingsResource, clusterpolicybindingsKind, opts), &authorization.ClusterPolicyBindingList{})
@@ -83,6 +54,41 @@ func (c *FakeClusterPolicyBindings) List(opts v1.ListOptions) (result *authoriza
 func (c *FakeClusterPolicyBindings) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(clusterpolicybindingsResource, opts))
+}
+
+// Create takes the representation of a clusterPolicyBinding and creates it.  Returns the server's representation of the clusterPolicyBinding, and an error, if there is any.
+func (c *FakeClusterPolicyBindings) Create(clusterPolicyBinding *authorization.ClusterPolicyBinding) (result *authorization.ClusterPolicyBinding, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateAction(clusterpolicybindingsResource, clusterPolicyBinding), &authorization.ClusterPolicyBinding{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.ClusterPolicyBinding), err
+}
+
+// Update takes the representation of a clusterPolicyBinding and updates it. Returns the server's representation of the clusterPolicyBinding, and an error, if there is any.
+func (c *FakeClusterPolicyBindings) Update(clusterPolicyBinding *authorization.ClusterPolicyBinding) (result *authorization.ClusterPolicyBinding, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateAction(clusterpolicybindingsResource, clusterPolicyBinding), &authorization.ClusterPolicyBinding{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.ClusterPolicyBinding), err
+}
+
+// Delete takes name of the clusterPolicyBinding and deletes it. Returns an error if one occurs.
+func (c *FakeClusterPolicyBindings) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewRootDeleteAction(clusterpolicybindingsResource, name), &authorization.ClusterPolicyBinding{})
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeClusterPolicyBindings) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(clusterpolicybindingsResource, listOptions)
+
+	_, err := c.Fake.Invokes(action, &authorization.ClusterPolicyBindingList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched clusterPolicyBinding.

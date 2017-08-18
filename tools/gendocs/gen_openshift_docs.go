@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/origin/pkg/cmd/admin"
-	"github.com/openshift/origin/pkg/cmd/cli"
 	"github.com/openshift/origin/pkg/cmd/util/gendocs"
+	"github.com/openshift/origin/pkg/oc/admin"
+	"github.com/openshift/origin/pkg/oc/cli"
 )
 
 func OutDir(path string) (string, error) {

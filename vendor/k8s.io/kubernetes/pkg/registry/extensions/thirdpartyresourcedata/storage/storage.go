@@ -99,12 +99,12 @@ func NewREST(optsGetter generic.RESTOptionsGetter, group, kind string) *REST {
 	opts.ResourcePrefix = "/ThirdPartyResourceData/" + group + "/" + strings.ToLower(kind) + "s"
 
 	store := &genericregistry.Store{
-		Copier:            api.Scheme,
-		NewFunc:           func() runtime.Object { return &extensions.ThirdPartyResourceData{} },
-		NewListFunc:       func() runtime.Object { return &extensions.ThirdPartyResourceDataList{} },
-		PredicateFunc:     thirdpartyresourcedata.Matcher,
-		QualifiedResource: resource,
-		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource(resource.Resource),
+		Copier:                   api.Scheme,
+		NewFunc:                  func() runtime.Object { return &extensions.ThirdPartyResourceData{} },
+		NewListFunc:              func() runtime.Object { return &extensions.ThirdPartyResourceDataList{} },
+		PredicateFunc:            thirdpartyresourcedata.Matcher,
+		DefaultQualifiedResource: resource,
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource(resource.Resource),
 
 		CreateStrategy: thirdpartyresourcedata.Strategy,
 		UpdateStrategy: thirdpartyresourcedata.Strategy,

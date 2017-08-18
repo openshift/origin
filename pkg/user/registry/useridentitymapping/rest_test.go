@@ -86,22 +86,22 @@ func setupRegistries(identity *userapi.Identity, users ...*userapi.User) (*[]tes
 	actions := &[]test.Action{}
 
 	userRegistry := &test.UserRegistry{
-		Get:       map[string]*userapi.User{},
+		GetUsers:  map[string]*userapi.User{},
 		GetErr:    map[string]error{},
 		UpdateErr: map[string]error{},
 		Actions:   actions,
 	}
 	for _, user := range users {
-		userRegistry.Get[user.Name] = user
+		userRegistry.GetUsers[user.Name] = user
 	}
 
 	identityRegistry := &test.IdentityRegistry{
-		Get:     map[string]*userapi.Identity{},
-		GetErr:  map[string]error{},
-		Actions: actions,
+		GetIdentities: map[string]*userapi.Identity{},
+		GetErr:        map[string]error{},
+		Actions:       actions,
 	}
 	if identity != nil {
-		identityRegistry.Get[identity.Name] = identity
+		identityRegistry.GetIdentities[identity.Name] = identity
 	}
 
 	rest := NewREST(userRegistry, identityRegistry)
@@ -335,7 +335,7 @@ func TestCreateUserUpdateError(t *testing.T) {
 		{Name: "GetUser", Object: unassociatedUser.Name},
 		{Name: "UpdateUser", Object: associatedUser},
 	}
-	expectedErr := errors.New("Update error")
+	expectedErr := errors.New("UpdateUser error")
 
 	mapping := &userapi.UserIdentityMapping{
 		Identity: kapi.ObjectReference{Name: unassociatedIdentity.Name},
@@ -371,7 +371,7 @@ func TestCreateIdentityUpdateError(t *testing.T) {
 	}
 
 	actions, _, identityRegistry, rest := setupRegistries(unassociatedIdentity, unassociatedUser)
-	identityRegistry.UpdateErr = errors.New("Update error")
+	identityRegistry.UpdateErr = errors.New("UpdateUser error")
 	_, err := rest.Create(apirequest.NewContext(), mapping, false)
 
 	if err == nil {

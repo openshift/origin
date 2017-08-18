@@ -17,7 +17,6 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -82,15 +81,14 @@ func tryAccessURL(t *testing.T, url string, expectedStatus int, expectedRedirect
 }
 
 func TestAccessOriginWebConsole(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err = testserver.StartConfiguredMaster(masterOptions); err != nil {
+	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	for endpoint, exp := range map[string]struct {
 		statusCode int
@@ -110,8 +108,6 @@ func TestAccessOriginWebConsole(t *testing.T) {
 }
 
 func TestAccessDisabledWebConsole(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -120,6 +116,7 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	resp := tryAccessURL(t, masterOptions.AssetConfig.MasterPublicURL+"/", http.StatusOK, "", nil)
 	body, err := ioutil.ReadAll(resp.Body)
@@ -149,8 +146,6 @@ func TestAccessDisabledWebConsole(t *testing.T) {
 }
 
 func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -184,9 +179,10 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	})
 
 	// Launch the configured server
-	if _, err = testserver.StartConfiguredMaster(masterOptions); err != nil {
+	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	// Create a map of URLs to test
 	type urlResults struct {
@@ -198,7 +194,7 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 	linkRegexps := make([]string, 0)
 
 	// Verify that the plain /login URI is unavailable when multiple IDPs are in use.
-	urlMap["/login"] = urlResults{http.StatusForbidden, ""}
+	urlMap["/login"] = urlResults{http.StatusNotFound, ""}
 
 	// Create the common base URLs
 	escapedPublicURL := url.QueryEscape(masterOptions.OAuthConfig.AssetPublicURL)
@@ -243,9 +239,6 @@ func TestAccessOriginWebConsoleMultipleIdentityProviders(t *testing.T) {
 }
 
 func TestAccessStandaloneOriginWebConsole(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -261,16 +254,17 @@ func TestAccessStandaloneOriginWebConsole(t *testing.T) {
 	masterOptions.AssetConfig.PublicURL = assetBaseURL + "/console/"
 	masterOptions.OAuthConfig.AssetPublicURL = assetBaseURL + "/console/"
 
-	if _, err = testserver.StartConfiguredMaster(masterOptions); err != nil {
+	if _, err := testserver.StartConfiguredMaster(masterOptions); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
 	for endpoint, exp := range map[string]struct {
 		statusCode int
 		location   string
 	}{
 		"":             {http.StatusFound, "/console/"},
-		"blarg":        {http.StatusFound, "/console/"},
+		"blarg":        {http.StatusNotFound, ""},
 		"console":      {http.StatusMovedPermanently, "/console/"},
 		"console/":     {http.StatusOK, ""},
 		"console/java": {http.StatusOK, ""},

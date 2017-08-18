@@ -21,22 +21,23 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/golang/glog"
+	osb "github.com/pmorie/go-open-service-broker-client/v2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	runtimeutil "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/pkg/api"
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
-	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi"
 	servicecatalogclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1alpha1"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/externalversions/servicecatalog/v1alpha1"
 	listers "github.com/kubernetes-incubator/service-catalog/pkg/client/listers_generated/servicecatalog/v1alpha1"
@@ -62,23 +63,23 @@ func NewController(
 	serviceClassInformer informers.ServiceClassInformer,
 	instanceInformer informers.InstanceInformer,
 	bindingInformer informers.BindingInformer,
-	brokerClientCreateFunc brokerapi.CreateFunc,
+	brokerClientCreateFunc osb.CreateFunc,
 	brokerRelistInterval time.Duration,
-	osbAPIContextProfile bool,
+	osbAPIPreferredVersion string,
 	recorder record.EventRecorder,
 ) (Controller, error) {
 	controller := &controller{
-		kubeClient:                kubeClient,
-		serviceCatalogClient:      serviceCatalogClient,
-		brokerClientCreateFunc:    brokerClientCreateFunc,
-		brokerRelistInterval:      brokerRelistInterval,
-		enableOSBAPIContextProfle: osbAPIContextProfile,
-		recorder:                  recorder,
-		brokerQueue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "broker"),
-		serviceClassQueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-class"),
-		instanceQueue:             workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "instance"),
-		bindingQueue:              workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "binding"),
-		pollingQueue:              workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "poller"),
+		kubeClient:             kubeClient,
+		serviceCatalogClient:   serviceCatalogClient,
+		brokerClientCreateFunc: brokerClientCreateFunc,
+		brokerRelistInterval:   brokerRelistInterval,
+		OSBAPIPreferredVersion: osbAPIPreferredVersion,
+		recorder:               recorder,
+		brokerQueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "broker"),
+		serviceClassQueue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-class"),
+		instanceQueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "instance"),
+		bindingQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "binding"),
+		pollingQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "poller"),
 	}
 
 	brokerInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -123,20 +124,20 @@ type Controller interface {
 
 // controller is a concrete Controller.
 type controller struct {
-	kubeClient                kubernetes.Interface
-	serviceCatalogClient      servicecatalogclientset.ServicecatalogV1alpha1Interface
-	brokerClientCreateFunc    brokerapi.CreateFunc
-	brokerLister              listers.BrokerLister
-	serviceClassLister        listers.ServiceClassLister
-	instanceLister            listers.InstanceLister
-	bindingLister             listers.BindingLister
-	brokerRelistInterval      time.Duration
-	enableOSBAPIContextProfle bool
-	recorder                  record.EventRecorder
-	brokerQueue               workqueue.RateLimitingInterface
-	serviceClassQueue         workqueue.RateLimitingInterface
-	instanceQueue             workqueue.RateLimitingInterface
-	bindingQueue              workqueue.RateLimitingInterface
+	kubeClient             kubernetes.Interface
+	serviceCatalogClient   servicecatalogclientset.ServicecatalogV1alpha1Interface
+	brokerClientCreateFunc osb.CreateFunc
+	brokerLister           listers.BrokerLister
+	serviceClassLister     listers.ServiceClassLister
+	instanceLister         listers.InstanceLister
+	bindingLister          listers.BindingLister
+	brokerRelistInterval   time.Duration
+	OSBAPIPreferredVersion string
+	recorder               record.EventRecorder
+	brokerQueue            workqueue.RateLimitingInterface
+	serviceClassQueue      workqueue.RateLimitingInterface
+	instanceQueue          workqueue.RateLimitingInterface
+	bindingQueue           workqueue.RateLimitingInterface
 	// pollingQueue is separate from instanceQueue because we want
 	// it to have different backoff / timeout characteristics from
 	//  a reconciling of an instance.
@@ -155,7 +156,7 @@ func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 		go wait.Until(worker(c.serviceClassQueue, "ServiceClass", maxRetries, c.reconcileServiceClassKey), time.Second, stopCh)
 		go wait.Until(worker(c.instanceQueue, "Instance", maxRetries, c.reconcileInstanceKey), time.Second, stopCh)
 		go wait.Until(worker(c.bindingQueue, "Binding", maxRetries, c.reconcileBindingKey), time.Second, stopCh)
-		go wait.Until(worker(c.pollingQueue, "Poller", maxRetries, c.reconcileInstanceKey), time.Second, stopCh)
+		go wait.Until(worker(c.pollingQueue, "Poller", maxRetries, c.requeueInstanceForPoll), time.Second, stopCh)
 	}
 
 	<-stopCh
@@ -171,9 +172,6 @@ func (c *controller) Run(workers int, stopCh <-chan struct{}) {
 // worker runs a worker thread that just dequeues items, processes them, and marks them done.
 // If reconciler returns an error, requeue the item up to maxRetries before giving up.
 // It enforces that the reconciler is never invoked concurrently with the same key.
-// TODO: Consider allowing the reconciler to return an error that either specifies whether
-// this is recoverable or not, rather than always continuing on an error condition. Seems
-// like it should be possible to return an error, yet stop any further polling work.
 func worker(queue workqueue.RateLimitingInterface, resourceType string, maxRetries int, reconciler func(key string) error) func() {
 	return func() {
 		exit := false
@@ -208,7 +206,7 @@ func worker(queue workqueue.RateLimitingInterface, resourceType string, maxRetri
 // getServiceClassPlanAndBroker is a sequence of operations that's done in couple of
 // places so this method fetches the Service Class, Service Plan and creates
 // a brokerClient to use for that method given an Instance.
-func (c *controller) getServiceClassPlanAndBroker(instance *v1alpha1.Instance) (*v1alpha1.ServiceClass, *v1alpha1.ServicePlan, string, brokerapi.BrokerClient, error) {
+func (c *controller) getServiceClassPlanAndBroker(instance *v1alpha1.Instance) (*v1alpha1.ServiceClass, *v1alpha1.ServicePlan, string, osb.Client, error) {
 	serviceClass, err := c.serviceClassLister.Get(instance.Spec.ServiceClassName)
 	if err != nil {
 		s := fmt.Sprintf("Instance \"%s/%s\" references a non-existent ServiceClass %q", instance.Namespace, instance.Name, instance.Spec.ServiceClassName)
@@ -254,7 +252,7 @@ func (c *controller) getServiceClassPlanAndBroker(instance *v1alpha1.Instance) (
 		return nil, nil, "", nil, err
 	}
 
-	username, password, err := getAuthCredentialsFromBroker(c.kubeClient, broker)
+	authConfig, err := getAuthCredentialsFromBroker(c.kubeClient, broker)
 	if err != nil {
 		s := fmt.Sprintf("Error getting broker auth credentials for broker %q: %s", broker.Name, err)
 		glog.Info(s)
@@ -269,15 +267,26 @@ func (c *controller) getServiceClassPlanAndBroker(instance *v1alpha1.Instance) (
 		return nil, nil, "", nil, err
 	}
 
+	clientConfig := osb.DefaultClientConfiguration()
+	clientConfig.Name = broker.Name
+	clientConfig.URL = broker.Spec.URL
+	clientConfig.AuthConfig = authConfig
+	clientConfig.EnableAlphaFeatures = true
+	clientConfig.Insecure = true
+
 	glog.V(4).Infof("Creating client for Broker %v, URL: %v", broker.Name, broker.Spec.URL)
-	brokerClient := c.brokerClientCreateFunc(broker.Name, broker.Spec.URL, username, password)
+	brokerClient, err := c.brokerClientCreateFunc(clientConfig)
+	if err != nil {
+		return nil, nil, "", nil, err
+	}
+
 	return serviceClass, servicePlan, broker.Name, brokerClient, nil
 }
 
 // getServiceClassPlanAndBrokerForBinding is a sequence of operations that's
 // done to validate service plan, service class exist, and handles creating
 // a brokerclient to use for a given Instance.
-func (c *controller) getServiceClassPlanAndBrokerForBinding(instance *v1alpha1.Instance, binding *v1alpha1.Binding) (*v1alpha1.ServiceClass, *v1alpha1.ServicePlan, string, brokerapi.BrokerClient, error) {
+func (c *controller) getServiceClassPlanAndBrokerForBinding(instance *v1alpha1.Instance, binding *v1alpha1.Binding) (*v1alpha1.ServiceClass, *v1alpha1.ServicePlan, string, osb.Client, error) {
 	serviceClass, err := c.serviceClassLister.Get(instance.Spec.ServiceClassName)
 	if err != nil {
 		s := fmt.Sprintf("Binding \"%s/%s\" references a non-existent ServiceClass %q", binding.Namespace, binding.Name, instance.Spec.ServiceClassName)
@@ -323,7 +332,7 @@ func (c *controller) getServiceClassPlanAndBrokerForBinding(instance *v1alpha1.I
 		return nil, nil, "", nil, err
 	}
 
-	username, password, err := getAuthCredentialsFromBroker(c.kubeClient, broker)
+	authConfig, err := getAuthCredentialsFromBroker(c.kubeClient, broker)
 	if err != nil {
 		s := fmt.Sprintf("Error getting broker auth credentials for broker %q: %s", broker.Name, err)
 		glog.Warning(s)
@@ -338,50 +347,106 @@ func (c *controller) getServiceClassPlanAndBrokerForBinding(instance *v1alpha1.I
 		return nil, nil, "", nil, err
 	}
 
+	clientConfig := osb.DefaultClientConfiguration()
+	clientConfig.Name = broker.Name
+	clientConfig.URL = broker.Spec.URL
+	clientConfig.AuthConfig = authConfig
+	clientConfig.EnableAlphaFeatures = true
+	clientConfig.Insecure = true
+
 	glog.V(4).Infof("Creating client for Broker %v, URL: %v", broker.Name, broker.Spec.URL)
-	brokerClient := c.brokerClientCreateFunc(broker.Name, broker.Spec.URL, username, password)
+	brokerClient, err := c.brokerClientCreateFunc(clientConfig)
+	if err != nil {
+		return nil, nil, "", nil, err
+	}
+
 	return serviceClass, servicePlan, broker.Name, brokerClient, nil
 }
 
 // Broker utility methods - move?
 
-// getAuthCredentialsFromBroker returns the auth credentials, if any,
-// contained in the secret referenced in the Broker's AuthSecret field, or
-// returns an error. If the AuthSecret field is nil, empty values are
+// getAuthCredentialsFromBroker returns the auth credentials, if any, or
+// returns an error. If the AuthInfo field is nil, empty values are
 // returned.
-func getAuthCredentialsFromBroker(client kubernetes.Interface, broker *v1alpha1.Broker) (username, password string, err error) {
-	// TODO: when we start supporting additional auth schemes, this code will have to accommodate
-	// the new schemes
+func getAuthCredentialsFromBroker(client kubernetes.Interface, broker *v1alpha1.Broker) (*osb.AuthConfig, error) {
 	if broker.Spec.AuthInfo == nil {
-		return "", "", nil
+		return nil, nil
 	}
 
-	basicAuthSecret := broker.Spec.AuthInfo.BasicAuthSecret
-
-	if basicAuthSecret == nil {
-		return "", "", nil
+	authInfo := broker.Spec.AuthInfo
+	if authInfo.Basic != nil {
+		secretRef := authInfo.Basic.SecretRef
+		secret, err := client.Core().Secrets(secretRef.Namespace).Get(secretRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		basicAuthConfig, err := getBasicAuthConfig(secret)
+		if err != nil {
+			return nil, err
+		}
+		return &osb.AuthConfig{
+			BasicAuthConfig: basicAuthConfig,
+		}, nil
+	} else if authInfo.Bearer != nil {
+		secretRef := authInfo.Bearer.SecretRef
+		secret, err := client.Core().Secrets(secretRef.Namespace).Get(secretRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		bearerConfig, err := getBearerConfig(secret)
+		if err != nil {
+			return nil, err
+		}
+		return &osb.AuthConfig{
+			BearerConfig: bearerConfig,
+		}, nil
+	} else if authInfo.BasicAuthSecret != nil {
+		secretRef := authInfo.BasicAuthSecret
+		secret, err := client.Core().Secrets(secretRef.Namespace).Get(secretRef.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		basicAuthConfig, err := getBasicAuthConfig(secret)
+		if err != nil {
+			return nil, err
+		}
+		return &osb.AuthConfig{
+			BasicAuthConfig: basicAuthConfig,
+		}, nil
 	}
+	return nil, fmt.Errorf("empty auth info or unsupported auth mode: %s", authInfo)
+}
 
-	authSecret, err := client.Core().Secrets(basicAuthSecret.Namespace).Get(basicAuthSecret.Name, metav1.GetOptions{})
-	if err != nil {
-		return "", "", err
-	}
-
-	usernameBytes, ok := authSecret.Data["username"]
+func getBasicAuthConfig(secret *apiv1.Secret) (*osb.BasicAuthConfig, error) {
+	usernameBytes, ok := secret.Data["username"]
 	if !ok {
-		return "", "", fmt.Errorf("auth secret didn't contain username")
+		return nil, fmt.Errorf("auth secret didn't contain username")
 	}
 
-	passwordBytes, ok := authSecret.Data["password"]
+	passwordBytes, ok := secret.Data["password"]
 	if !ok {
-		return "", "", fmt.Errorf("auth secret didn't contain password")
+		return nil, fmt.Errorf("auth secret didn't contain password")
 	}
 
-	return string(usernameBytes), string(passwordBytes), nil
+	return &osb.BasicAuthConfig{
+		Username: string(usernameBytes),
+		Password: string(passwordBytes),
+	}, nil
+}
+
+func getBearerConfig(secret *apiv1.Secret) (*osb.BearerConfig, error) {
+	tokenBytes, ok := secret.Data["token"]
+	if !ok {
+		return nil, fmt.Errorf("auth secret didn't contain token")
+	}
+
+	return &osb.BearerConfig{
+		Token: string(tokenBytes),
+	}, nil
 }
 
 // convertCatalog converts a service broker catalog into an array of ServiceClasses
-func convertCatalog(in *brokerapi.Catalog) ([]*v1alpha1.ServiceClass, error) {
+func convertCatalog(in *osb.CatalogResponse) ([]*v1alpha1.ServiceClass, error) {
 	ret := make([]*v1alpha1.ServiceClass, len(in.Services))
 	for i, svc := range in.Services {
 		plans, err := convertServicePlans(svc.Plans)
@@ -391,7 +456,7 @@ func convertCatalog(in *brokerapi.Catalog) ([]*v1alpha1.ServiceClass, error) {
 		ret[i] = &v1alpha1.ServiceClass{
 			Bindable:      svc.Bindable,
 			Plans:         plans,
-			PlanUpdatable: svc.PlanUpdateable,
+			PlanUpdatable: (svc.PlanUpdatable != nil && *svc.PlanUpdatable),
 			ExternalID:    svc.ID,
 			AlphaTags:     svc.Tags,
 			Description:   svc.Description,
@@ -413,13 +478,13 @@ func convertCatalog(in *brokerapi.Catalog) ([]*v1alpha1.ServiceClass, error) {
 	return ret, nil
 }
 
-func convertServicePlans(plans []brokerapi.ServicePlan) ([]v1alpha1.ServicePlan, error) {
+func convertServicePlans(plans []osb.Plan) ([]v1alpha1.ServicePlan, error) {
 	ret := make([]v1alpha1.ServicePlan, len(plans))
 	for i := range plans {
 		ret[i] = v1alpha1.ServicePlan{
 			Name:        plans[i].Name,
 			ExternalID:  plans[i].ID,
-			Free:        plans[i].Free,
+			Free:        (plans[i].Free != nil && *plans[i].Free),
 			Description: plans[i].Description,
 		}
 
@@ -438,7 +503,7 @@ func convertServicePlans(plans []brokerapi.ServicePlan) ([]v1alpha1.ServicePlan,
 			ret[i].ExternalMetadata = &runtime.RawExtension{Raw: metadata}
 		}
 
-		if schemas := plans[i].Schemas; schemas != nil {
+		if schemas := plans[i].AlphaParameterSchemas; schemas != nil {
 			if instanceSchemas := schemas.ServiceInstances; instanceSchemas != nil {
 				if instanceCreateSchema := instanceSchemas.Create; instanceCreateSchema != nil && instanceCreateSchema.Parameters != nil {
 					schema, err := json.Marshal(instanceCreateSchema.Parameters)
@@ -476,16 +541,6 @@ func convertServicePlans(plans []brokerapi.ServicePlan) ([]v1alpha1.ServicePlan,
 	return ret, nil
 }
 
-func unmarshalParameters(in []byte) (map[string]interface{}, error) {
-	parameters := make(map[string]interface{})
-	if len(in) > 0 {
-		if err := yaml.Unmarshal(in, &parameters); err != nil {
-			return parameters, err
-		}
-	}
-	return parameters, nil
-}
-
 // isInstanceReady returns whether the given instance has a ready condition
 // with status true.
 func isInstanceReady(instance *v1alpha1.Instance) bool {
@@ -496,4 +551,42 @@ func isInstanceReady(instance *v1alpha1.Instance) bool {
 	}
 
 	return false
+}
+
+// TODO (nilebox): The controllerRef methods below are merged into apimachinery and will be released in 1.8:
+// https://github.com/kubernetes/kubernetes/pull/48319
+// Remove them after 1.8 is released and Service Catalog is migrated to it
+
+// IsControlledBy checks if the given object has a controller ownerReference set to the given owner
+func IsControlledBy(obj metav1.Object, owner metav1.Object) bool {
+	ref := GetControllerOf(obj)
+	if ref == nil {
+		return false
+	}
+	return ref.UID == owner.GetUID()
+}
+
+// GetControllerOf returns the controllerRef if controllee has a controller,
+// otherwise returns nil.
+func GetControllerOf(controllee metav1.Object) *metav1.OwnerReference {
+	for _, ref := range controllee.GetOwnerReferences() {
+		if ref.Controller != nil && *ref.Controller == true {
+			return &ref
+		}
+	}
+	return nil
+}
+
+// NewControllerRef creates an OwnerReference pointing to the given owner.
+func NewControllerRef(owner metav1.Object, gvk schema.GroupVersionKind) *metav1.OwnerReference {
+	blockOwnerDeletion := true
+	isController := true
+	return &metav1.OwnerReference{
+		APIVersion:         gvk.GroupVersion().String(),
+		Kind:               gvk.Kind,
+		Name:               owner.GetName(),
+		UID:                owner.GetUID(),
+		BlockOwnerDeletion: &blockOwnerDeletion,
+		Controller:         &isController,
+	}
 }

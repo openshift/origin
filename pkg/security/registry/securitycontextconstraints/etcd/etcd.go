@@ -4,6 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 
@@ -16,6 +17,8 @@ type REST struct {
 	*registry.Store
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a RESTStorage object that will work against security context constraints objects.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 	store := &registry.Store{
@@ -25,9 +28,9 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		ObjectNameFunc: func(obj runtime.Object) (string, error) {
 			return obj.(*securityapi.SecurityContextConstraints).Name, nil
 		},
-		PredicateFunc:     securitycontextconstraints.Matcher,
-		QualifiedResource: securityapi.Resource("securitycontextconstraints"),
-		WatchCacheSize:    cachesize.GetWatchCacheSizeByResource("securitycontextconstraints"),
+		PredicateFunc:            securitycontextconstraints.Matcher,
+		DefaultQualifiedResource: securityapi.Resource("securitycontextconstraints"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("securitycontextconstraints"),
 
 		CreateStrategy:      securitycontextconstraints.Strategy,
 		UpdateStrategy:      securitycontextconstraints.Strategy,

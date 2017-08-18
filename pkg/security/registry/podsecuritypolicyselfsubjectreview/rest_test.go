@@ -14,7 +14,7 @@ import (
 	admissionttesting "github.com/openshift/origin/pkg/security/admission/testing"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securitylisters "github.com/openshift/origin/pkg/security/generated/listers/security/internalversion"
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )

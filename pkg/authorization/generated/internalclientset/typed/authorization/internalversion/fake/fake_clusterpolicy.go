@@ -19,37 +19,7 @@ var clusterpoliciesResource = schema.GroupVersionResource{Group: "authorization.
 
 var clusterpoliciesKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "", Kind: "ClusterPolicy"}
 
-func (c *FakeClusterPolicies) Create(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(clusterpoliciesResource, clusterPolicy), &authorization.ClusterPolicy{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.ClusterPolicy), err
-}
-
-func (c *FakeClusterPolicies) Update(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(clusterpoliciesResource, clusterPolicy), &authorization.ClusterPolicy{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*authorization.ClusterPolicy), err
-}
-
-func (c *FakeClusterPolicies) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteAction(clusterpoliciesResource, name), &authorization.ClusterPolicy{})
-	return err
-}
-
-func (c *FakeClusterPolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(clusterpoliciesResource, listOptions)
-
-	_, err := c.Fake.Invokes(action, &authorization.ClusterPolicyList{})
-	return err
-}
-
+// Get takes name of the clusterPolicy, and returns the corresponding clusterPolicy object, and an error if there is any.
 func (c *FakeClusterPolicies) Get(name string, options v1.GetOptions) (result *authorization.ClusterPolicy, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootGetAction(clusterpoliciesResource, name), &authorization.ClusterPolicy{})
@@ -59,6 +29,7 @@ func (c *FakeClusterPolicies) Get(name string, options v1.GetOptions) (result *a
 	return obj.(*authorization.ClusterPolicy), err
 }
 
+// List takes label and field selectors, and returns the list of ClusterPolicies that match those selectors.
 func (c *FakeClusterPolicies) List(opts v1.ListOptions) (result *authorization.ClusterPolicyList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewRootListAction(clusterpoliciesResource, clusterpoliciesKind, opts), &authorization.ClusterPolicyList{})
@@ -83,6 +54,41 @@ func (c *FakeClusterPolicies) List(opts v1.ListOptions) (result *authorization.C
 func (c *FakeClusterPolicies) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewRootWatchAction(clusterpoliciesResource, opts))
+}
+
+// Create takes the representation of a clusterPolicy and creates it.  Returns the server's representation of the clusterPolicy, and an error, if there is any.
+func (c *FakeClusterPolicies) Create(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootCreateAction(clusterpoliciesResource, clusterPolicy), &authorization.ClusterPolicy{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.ClusterPolicy), err
+}
+
+// Update takes the representation of a clusterPolicy and updates it. Returns the server's representation of the clusterPolicy, and an error, if there is any.
+func (c *FakeClusterPolicies) Update(clusterPolicy *authorization.ClusterPolicy) (result *authorization.ClusterPolicy, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateAction(clusterpoliciesResource, clusterPolicy), &authorization.ClusterPolicy{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*authorization.ClusterPolicy), err
+}
+
+// Delete takes name of the clusterPolicy and deletes it. Returns an error if one occurs.
+func (c *FakeClusterPolicies) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewRootDeleteAction(clusterpoliciesResource, name), &authorization.ClusterPolicy{})
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeClusterPolicies) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewRootDeleteCollectionAction(clusterpoliciesResource, listOptions)
+
+	_, err := c.Fake.Invokes(action, &authorization.ClusterPolicyList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched clusterPolicy.

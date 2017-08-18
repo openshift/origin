@@ -15,12 +15,11 @@ import (
 func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	const projName = "ext-disabled-batch-enabled-proj"
 
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	// Disable all extensions API versions
 	// Leave autoscaling/batch APIs enabled

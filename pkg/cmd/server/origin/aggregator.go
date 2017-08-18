@@ -31,6 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/kube-aggregator/pkg/apis/apiregistration"
@@ -41,14 +42,12 @@ import (
 	"k8s.io/kubernetes/pkg/master/thirdparty"
 )
 
-func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
-	// make a shallow copy to let us twiddle a few things
-	// most of the config actually remains the same.  We only need to mess with a couple items related to the particulars of the aggregator
-	genericConfig := kubeAPIServerConfig
-
+func (c *MasterConfig) createAggregatorConfig(genericConfig genericapiserver.Config) (*aggregatorapiserver.Config, error) {
+	// this is a shallow copy so let's twiddle a few things
 	// the aggregator doesn't wire these up.  It just delegates them to the kubeapiserver
 	genericConfig.EnableSwaggerUI = false
 	genericConfig.SwaggerConfig = nil
+	genericConfig.OpenAPIConfig = nil
 
 	// This depends on aggregator types being registered into the kapi.Scheme, which is currently done in Start() to avoid concurrent scheme modification
 	// install our types into the scheme so that "normal" RESTOptionsGetters can work for us
@@ -58,13 +57,18 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 		c.ClientGoKubeInformers.Core().V1().Services().Lister(),
 	)
 
-	certBytes, err := ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.CertFile)
-	if err != nil {
-		return nil, err
-	}
-	keyBytes, err := ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile)
-	if err != nil {
-		return nil, err
+	var certBytes []byte
+	var keyBytes []byte
+	var err error
+	if len(c.Options.AggregatorConfig.ProxyClientInfo.CertFile) > 0 {
+		certBytes, err = ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.CertFile)
+		if err != nil {
+			return nil, err
+		}
+		keyBytes, err = ioutil.ReadFile(c.Options.AggregatorConfig.ProxyClientInfo.KeyFile)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	aggregatorConfig := &aggregatorapiserver.Config{
@@ -73,6 +77,7 @@ func (c *MasterConfig) createAggregatorConfig(kubeAPIServerConfig genericapiserv
 		ProxyClientCert:   certBytes,
 		ProxyClientKey:    keyBytes,
 		ServiceResolver:   serviceResolver,
+		ProxyTransport:    utilnet.SetTransportDefaults(&http.Transport{}),
 	}
 	return aggregatorConfig, nil
 }
@@ -95,12 +100,14 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 		apiExtensionInformers.Apiextensions().InternalVersion().CustomResourceDefinitions(),
 		autoRegistrationController)
 
-	aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
+	if err := aggregatorServer.GenericAPIServer.AddPostStartHook("kube-apiserver-autoregistration", func(context genericapiserver.PostStartHookContext) error {
 		go autoRegistrationController.Run(5, context.StopCh)
 		go tprRegistrationController.Run(5, context.StopCh)
 		return nil
-	})
-	aggregatorServer.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("autoregister-completion", func(r *http.Request) error {
+	}); err != nil {
+		return nil, err
+	}
+	if err := aggregatorServer.GenericAPIServer.AddHealthzChecks(healthz.NamedCheck("autoregister-completion", func(r *http.Request) error {
 		items, err := aggregatorServer.APIRegistrationInformers.Apiregistration().InternalVersion().APIServices().Lister().List(labels.Everything())
 		if err != nil {
 			return err
@@ -128,7 +135,9 @@ func createAggregatorServer(aggregatorConfig *aggregatorapiserver.Config, delega
 			return fmt.Errorf("missing APIService: %v", missing)
 		}
 		return nil
-	}))
+	})); err != nil {
+		return nil, err
+	}
 
 	return aggregatorServer, nil
 }

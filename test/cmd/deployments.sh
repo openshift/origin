@@ -153,7 +153,7 @@ os::test::junit::declare_suite_start "cmd/deployments/setdeploymenthook"
 arg="-f test/integration/testdata/test-deployment-config.yaml"
 os::cmd::expect_failure_and_text "oc set deployment-hook" "error: one or more deployment configs"
 os::cmd::expect_failure_and_text "oc set deployment-hook ${arg}" "error: you must specify one of --pre, --mid, or --post"
-os::cmd::expect_failure_and_text "oc set deployment-hook ${arg} -o yaml --pre -- mycmd" 'deploymentconfigs.apps.openshift.io "test-deployment-config" not found'
+os::cmd::expect_failure_and_text "oc set deployment-hook ${arg} -o yaml --pre -- mycmd" 'deploymentconfigs "test-deployment-config" not found'
 os::cmd::expect_success_and_text "oc set deployment-hook ${arg} --local -o yaml --post -- mycmd" 'mycmd'
 os::cmd::expect_success_and_not_text "oc set deployment-hook ${arg} --local -o yaml --post -- mycmd | oc set deployment-hook -f - --local -o yaml --post --remove" 'mycmd'
 os::cmd::expect_success "oc create ${arg}"

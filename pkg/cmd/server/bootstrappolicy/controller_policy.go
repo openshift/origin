@@ -9,9 +9,46 @@ import (
 	rbac "k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+
+	// we need the conversions registered for our init block
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
 const saRolePrefix = "system:openshift:controller:"
+
+const (
+	InfraOriginNamespaceServiceAccountName                      = "origin-namespace-controller"
+	InfraServiceAccountControllerServiceAccountName             = "serviceaccount-controller"
+	InfraServiceAccountPullSecretsControllerServiceAccountName  = "serviceaccount-pull-secrets-controller"
+	InfraServiceAccountTokensControllerServiceAccountName       = "serviceaccount-tokens-controller"
+	InfraServiceServingCertServiceAccountName                   = "service-serving-cert-controller"
+	InfraBuildControllerServiceAccountName                      = "build-controller"
+	InfraBuildConfigChangeControllerServiceAccountName          = "build-config-change-controller"
+	InfraDeploymentConfigControllerServiceAccountName           = "deploymentconfig-controller"
+	InfraDeploymentTriggerControllerServiceAccountName          = "deployment-trigger-controller"
+	InfraDeployerControllerServiceAccountName                   = "deployer-controller"
+	InfraImageTriggerControllerServiceAccountName               = "image-trigger-controller"
+	InfraImageImportControllerServiceAccountName                = "image-import-controller"
+	InfraSDNControllerServiceAccountName                        = "sdn-controller"
+	InfraClusterQuotaReconciliationControllerServiceAccountName = "cluster-quota-reconciliation-controller"
+	InfraUnidlingControllerServiceAccountName                   = "unidling-controller"
+	InfraServiceIngressIPControllerServiceAccountName           = "service-ingress-ip-controller"
+	InfraPersistentVolumeRecyclerControllerServiceAccountName   = "pv-recycler-controller"
+	InfraResourceQuotaControllerServiceAccountName              = "resourcequota-controller"
+
+	// template instance controller watches for TemplateInstance object creation
+	// and instantiates templates as a result.
+	InfraTemplateInstanceControllerServiceAccountName = "template-instance-controller"
+
+	// template service broker is an open service broker-compliant API
+	// implementation which serves up OpenShift templates.  It uses the
+	// TemplateInstance backend for most of the heavy lifting.
+	InfraTemplateServiceBrokerServiceAccountName = "template-service-broker"
+
+	// This is a special constant which maps to the service account name used by the underlying
+	// Kubernetes code, so that we can build out the extra policy required to scale OpenShift resources.
+	InfraHorizontalPodAutoscalerControllerServiceAccountName = "horizontal-pod-autoscaler"
+)
 
 var (
 	// controllerRoles is a slice of roles used for controllers
@@ -38,11 +75,6 @@ func addControllerRoleToSA(saNamespace, saName string, role rbac.ClusterRole) {
 		}
 	}
 
-	if role.Annotations == nil {
-		role.Annotations = map[string]string{}
-	}
-	role.Annotations[roleSystemOnly] = roleIsSystemOnly
-
 	controllerRoles = append(controllerRoles, role)
 
 	controllerRoleBindings = append(controllerRoleBindings,
@@ -66,6 +98,7 @@ func init() {
 			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
 			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 			rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 			eventsRule(),
 		},
 	})
@@ -229,7 +262,7 @@ func init() {
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraClusterQuotaReconciliationControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
-			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configMaps").RuleOrDie(),
+			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
 			rbac.NewRule("get", "list").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 			rbac.NewRule("update").Groups(quotaGroup, legacyQuotaGroup).Resources("clusterresourcequotas/status").RuleOrDie(),
 			eventsRule(),
@@ -295,6 +328,20 @@ func init() {
 		},
 	})
 
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraTemplateServiceBrokerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
+			rbac.NewRule("create").Groups(authzGroup).Resources("subjectaccessreviews").RuleOrDie(),
+			rbac.NewRule("get", "create", "update", "delete").Groups(templateGroup).Resources("brokertemplateinstances").RuleOrDie(),
+			rbac.NewRule("get", "create", "delete", "assign").Groups(templateGroup).Resources("templateinstances").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch").Groups(templateGroup).Resources("templates").RuleOrDie(),
+			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("list").Groups(kapiGroup).Resources("services", "configmaps").RuleOrDie(),
+			rbac.NewRule("list").Groups(routeGroup).Resources("routes").RuleOrDie(),
+			eventsRule(),
+		},
+	})
 }
 
 // ControllerRoles returns the cluster roles used by controllers

@@ -198,10 +198,10 @@ func (s *Server) Addr() string {
 //Close() should be called at the end of each test.  It spins down and cleans up the test server.
 func (s *Server) Close() {
 	s.writeLock.Lock()
+	defer s.writeLock.Unlock()
+
 	server := s.HTTPTestServer
 	s.HTTPTestServer = nil
-	s.writeLock.Unlock()
-
 	if server != nil {
 		server.Close()
 	}

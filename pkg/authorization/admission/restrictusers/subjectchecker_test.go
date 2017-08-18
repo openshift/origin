@@ -12,7 +12,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	usercache "github.com/openshift/origin/pkg/user/cache"
 )
 
 func mustNewSubjectChecker(t *testing.T, spec *authorizationapi.RoleBindingRestrictionSpec) SubjectChecker {
@@ -340,10 +339,12 @@ func TestSubjectCheckers(t *testing.T) {
 		},
 	}
 
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
 	kclient := fake.NewSimpleClientset(otestclient.UpstreamObjects(objects)...)
 	oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(objects)...)
-	groupCache := usercache.NewGroupCache(&groupCache{[]userapi.Group{group}})
-	groupCache.Run()
+	groupCache := fakeGroupCache{groups: []userapi.Group{group}}
 	// This is a terrible, horrible, no-good, very bad hack to avoid a race
 	// condition between the test "allow regular user by group membership"
 	// and the group cache's initialisation.

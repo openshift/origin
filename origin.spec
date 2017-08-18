@@ -315,10 +315,13 @@ for cmd in \
     oadm \
     openshift-deploy \
     openshift-docker-build \
+    openshift-sti-build \
+    openshift-git-clone \
+    openshift-manage-dockerfile \
+    openshift-extract-image-content \
     openshift-f5-router \
     openshift-recycle \
     openshift-router \
-    openshift-sti-build \
     origin
 do
     ln -s openshift %{buildroot}%{_bindir}/$cmd
@@ -356,9 +359,6 @@ mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
 # Install sdn scripts
 install -d -m 0755 %{buildroot}%{_sysconfdir}/cni/net.d
-pushd pkg/sdn/plugin/bin
-   install -p -m 0755 openshift-sdn-ovs %{buildroot}%{_bindir}/openshift-sdn-ovs
-popd
 install -d -m 0755 %{buildroot}/opt/cni/bin
 install -p -m 0755 _output/local/bin/${PLATFORM}/sdn-cni-plugin %{buildroot}/opt/cni/bin/openshift-sdn
 install -p -m 0755 _output/local/bin/${PLATFORM}/host-local %{buildroot}/opt/cni/bin
@@ -414,11 +414,14 @@ install -p -m 755 contrib/migration/* %{buildroot}%{_datadir}/%{name}/migration/
 %{_bindir}/kubernetes
 %{_bindir}/oadm
 %{_bindir}/openshift-deploy
-%{_bindir}/openshift-docker-build
 %{_bindir}/openshift-f5-router
 %{_bindir}/openshift-recycle
 %{_bindir}/openshift-router
+%{_bindir}/openshift-docker-build
 %{_bindir}/openshift-sti-build
+%{_bindir}/openshift-git-clone
+%{_bindir}/openshift-extract-image-content
+%{_bindir}/openshift-manage-dockerfile
 %{_bindir}/origin
 %{_sharedstatedir}/origin
 %{_sysconfdir}/bash_completion.d/oadm
@@ -530,7 +533,6 @@ fi
 %dir %{_unitdir}/%{name}-node.service.d/
 %dir %{_sysconfdir}/cni/net.d
 %dir /opt/cni/bin
-%{_bindir}/openshift-sdn-ovs
 %{_unitdir}/%{name}-node.service.d/openshift-sdn-ovs.conf
 /opt/cni/bin/*
 

@@ -67,16 +67,16 @@ func NewFactory(optionalClientConfig kclientcmd.ClientConfig) *Factory {
 
 // PrintResourceInfos receives a list of resource infos and prints versioned objects if a generic output format was specified
 // otherwise, it iterates through info objects, printing each resource with a unique printer for its mapping
-func (f *Factory) PrintResourceInfos(cmd *cobra.Command, infos []*resource.Info, out io.Writer) error {
+func (f *Factory) PrintResourceInfos(cmd *cobra.Command, isLocal bool, infos []*resource.Info, out io.Writer) error {
 	// mirrors PrintResourceInfoForCommand upstream
-	printer, err := f.PrinterForCommand(cmd, false, nil, printers.PrintOptions{})
+	printer, err := f.PrinterForCommand(cmd, isLocal, nil, printers.PrintOptions{})
 	if err != nil {
 		return nil
 	}
 	if !printer.IsGeneric() {
 		for _, info := range infos {
 			mapping := info.ResourceMapping()
-			printer, err := f.PrinterForMapping(cmd, false, nil, mapping, false)
+			printer, err := f.PrinterForMapping(cmd, isLocal, nil, mapping, false)
 			if err != nil {
 				return err
 			}
@@ -327,17 +327,6 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 			return "", err
 		}
 		return pod.Name, nil
-	case extensions.Resource("jobs"):
-		kc, err := f.ClientSet()
-		if err != nil {
-			return "", err
-		}
-		// TODO/REBASE kc.Extensions() doesn't exist any more. Is this ok?
-		job, err := kc.Batch().Jobs(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return "", err
-		}
-		return podNameForJob(job, kc, timeout, sortBy)
 	case batch.Resource("jobs"):
 		kc, err := f.ClientSet()
 		if err != nil {

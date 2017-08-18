@@ -23,7 +23,6 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
-	oscontroller "github.com/openshift/origin/pkg/controller"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -73,7 +72,7 @@ type DeploymentConfigController struct {
 	// rcListerSynced makes sure the rc shared informer is synced before reconcling any deployment config.
 	rcListerSynced func() bool
 	// rcControl is used for adopting/releasing replication controllers.
-	rcControl oscontroller.RCControlInterface
+	rcControl RCControlInterface
 
 	// codec is used to build deployments from configs.
 	codec runtime.Codec
@@ -109,7 +108,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		}
 		return fresh, nil
 	})
-	cm := oscontroller.NewRCControllerRefManager(c.rcControl, config, selector, deployutil.DeploymentConfigControllerRefKind, canAdoptFunc)
+	cm := NewRCControllerRefManager(c.rcControl, config, selector, deployutil.DeploymentConfigControllerRefKind, canAdoptFunc)
 	existingDeployments, err := cm.ClaimReplicationControllers(rcList)
 	if err != nil {
 		return fmt.Errorf("error while deploymentConfigController claiming replication controllers: %v", err)
@@ -257,7 +256,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 // successful deployment, not necessarily the latest in terms of the config
 // version. The active deployment replica count should follow the config, and
 // all other deployments should be scaled to zero.
-func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*v1.ReplicationController, config *deployapi.DeploymentConfig, cm *oscontroller.RCControllerRefManager) error {
+func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []*v1.ReplicationController, config *deployapi.DeploymentConfig, cm *RCControllerRefManager) error {
 	activeDeployment := deployutil.ActiveDeploymentV1(existingDeployments)
 
 	// Reconcile deployments. The active deployment follows the config, and all

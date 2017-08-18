@@ -20,50 +20,7 @@ var buildsResource = schema.GroupVersionResource{Group: "build.openshift.io", Ve
 
 var buildsKind = schema.GroupVersionKind{Group: "build.openshift.io", Version: "", Kind: "Build"}
 
-func (c *FakeBuilds) Create(buildResource *build.Build) (result *build.Build, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(buildsResource, c.ns, buildResource), &build.Build{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*build.Build), err
-}
-
-func (c *FakeBuilds) Update(buildResource *build.Build) (result *build.Build, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(buildsResource, c.ns, buildResource), &build.Build{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*build.Build), err
-}
-
-func (c *FakeBuilds) UpdateStatus(buildResource *build.Build) (*build.Build, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(buildsResource, "status", c.ns, buildResource), &build.Build{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*build.Build), err
-}
-
-func (c *FakeBuilds) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(buildsResource, c.ns, name), &build.Build{})
-
-	return err
-}
-
-func (c *FakeBuilds) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(buildsResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &build.BuildList{})
-	return err
-}
-
+// Get takes name of the buildResource, and returns the corresponding buildResource object, and an error if there is any.
 func (c *FakeBuilds) Get(name string, options v1.GetOptions) (result *build.Build, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(buildsResource, c.ns, name), &build.Build{})
@@ -74,6 +31,7 @@ func (c *FakeBuilds) Get(name string, options v1.GetOptions) (result *build.Buil
 	return obj.(*build.Build), err
 }
 
+// List takes label and field selectors, and returns the list of Builds that match those selectors.
 func (c *FakeBuilds) List(opts v1.ListOptions) (result *build.BuildList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(buildsResource, buildsKind, c.ns, opts), &build.BuildList{})
@@ -100,6 +58,56 @@ func (c *FakeBuilds) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(buildsResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a buildResource and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *FakeBuilds) Create(buildResource *build.Build) (result *build.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(buildsResource, c.ns, buildResource), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}
+
+// Update takes the representation of a buildResource and updates it. Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *FakeBuilds) Update(buildResource *build.Build) (result *build.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(buildsResource, c.ns, buildResource), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeBuilds) UpdateStatus(buildResource *build.Build) (*build.Build, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(buildsResource, "status", c.ns, buildResource), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}
+
+// Delete takes name of the buildResource and deletes it. Returns an error if one occurs.
+func (c *FakeBuilds) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(buildsResource, c.ns, name), &build.Build{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeBuilds) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(buildsResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &build.BuildList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched buildResource.

@@ -6,12 +6,12 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
-	kapirest "k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	rest "github.com/openshift/origin/pkg/template/registry/templateinstance"
+	"github.com/openshift/origin/pkg/template/registry/templateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -20,29 +20,31 @@ type REST struct {
 	*registry.Store
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a RESTStorage object that will work against templateinstances.
-func NewREST(optsGetter restoptions.Getter, kc kclientset.Interface) (*REST, *StatusREST, error) {
-	strategy := rest.NewStrategy(kc)
+func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationinternalversion.AuthorizationInterface) (*REST, *StatusREST, error) {
+	strategy := templateinstance.NewStrategy(authorizationClient)
 
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &templateapi.TemplateInstance{} },
-		NewListFunc:       func() runtime.Object { return &templateapi.TemplateInstanceList{} },
-		PredicateFunc:     rest.Matcher,
-		QualifiedResource: templateapi.Resource("templateinstances"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
+		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
+		PredicateFunc:            templateinstance.Matcher,
+		DefaultQualifiedResource: templateapi.Resource("templateinstances"),
 
 		CreateStrategy: strategy,
 		UpdateStrategy: strategy,
 		DeleteStrategy: strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: templateinstance.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, err
 	}
 
 	statusStore := *store
-	statusStore.UpdateStrategy = rest.StatusStrategy
+	statusStore.UpdateStrategy = templateinstance.StatusStrategy
 
 	return &REST{store}, &StatusREST{&statusStore}, nil
 }
@@ -53,7 +55,7 @@ type StatusREST struct {
 }
 
 // StatusREST implements Patcher
-var _ = kapirest.Patcher(&StatusREST{})
+var _ = rest.Patcher(&StatusREST{})
 
 // New creates a new templateInstance resource
 func (r *StatusREST) New() runtime.Object {
@@ -66,6 +68,6 @@ func (r *StatusREST) Get(ctx request.Context, name string, options *metav1.GetOp
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx request.Context, name string, objInfo kapirest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(ctx request.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo)
 }

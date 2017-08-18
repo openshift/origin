@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/pkg/api"
 )
 
-// +genclient=true
+// +genclient
 
 // StatefulSet represents a set of pods with consistent identities.
 // Identities are defined as:
@@ -196,7 +196,7 @@ type StatefulSetList struct {
 	Items []StatefulSet
 }
 
-// +genclient=true
+// +genclient
 
 // ControllerRevision implements an immutable snapshot of state data. Clients
 // are responsible for serializing and deserializing the objects that contain

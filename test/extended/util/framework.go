@@ -35,6 +35,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/test/e2e/framework"
 
+	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -1031,26 +1032,42 @@ func CreatePersistentVolume(name, capacity, hostPath string) *kapiv1.PersistentV
 func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapiv1.PersistentVolume, err error) {
 	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
 	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "Error creating pv dir %s: %v\n", TestContext.OutputDir, err)
 		return volumes, err
 	}
+	fmt.Fprintf(g.GinkgoWriter, "Created pv dir %s\n", rootDir)
 	for i := 0; i < count; i++ {
 		dir, err := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
 		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error creating pv subdir %s: %v\n", rootDir, err)
 			return volumes, err
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Created pv subdir %s\n", dir)
 		if _, err = exec.LookPath("chcon"); err == nil {
-			err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
+			fmt.Fprintf(g.GinkgoWriter, "Found chcon in path\n")
+			//err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
+			out, err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).CombinedOutput()
 			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "Error running chcon on %s, %s, %v\n", dir, string(out), err)
 				return volumes, err
 			}
+			fmt.Fprintf(g.GinkgoWriter, "Ran chcon on %s\n", dir)
+		}
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error finding chcon in path: %v\n", err)
+			return volumes, err
 		}
 		if err = os.Chmod(dir, 0777); err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error running chmod on %s, %v\n", dir, err)
 			return volumes, err
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Ran chmod on %s\n", dir)
 		pv, err := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
 		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "Error defining PV %v\n", err)
 			return volumes, err
 		}
+		fmt.Fprintf(g.GinkgoWriter, "Created PVs\n")
 		volumes = append(volumes, pv)
 	}
 	return volumes, err
@@ -1297,4 +1314,24 @@ func (r *podExecutor) Exec(script string) (string, error) {
 		return true, err
 	})
 	return out, waitErr
+}
+
+// WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
+// and the provided user is authorized to perform the action on the resource.
+func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
+	sar := authapi.SubjectAccessReview{
+		User: user,
+		Action: authapi.Action{
+			Namespace: oc.Namespace(),
+			Verb:      verb,
+			Resource:  resource,
+		},
+	}
+	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
+		resp, err := oc.AdminClient().SubjectAccessReviews().Create(&sar)
+		if err == nil && resp != nil && resp.Allowed {
+			return true, nil
+		}
+		return false, err
+	})
 }

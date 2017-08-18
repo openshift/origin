@@ -34,8 +34,8 @@ func init() {
 }
 
 func TestImageStreamTagsAdmission(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	kClient, client := setupImageStreamAdmissionTest(t)
+	kClient, client, fn := setupImageStreamAdmissionTest(t)
+	defer fn()
 
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest, imagetest.MiscImageDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
@@ -236,8 +236,8 @@ func TestImageStreamTagsAdmission(t *testing.T) {
 }
 
 func TestImageStreamAdmitSpecUpdate(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	kClient, client := setupImageStreamAdmissionTest(t)
+	kClient, client, fn := setupImageStreamAdmissionTest(t)
+	defer fn()
 
 	for i, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
 		imageReference := fmt.Sprintf("openshift/test@%s", name)
@@ -350,8 +350,8 @@ func TestImageStreamAdmitSpecUpdate(t *testing.T) {
 }
 
 func TestImageStreamAdmitStatusUpdate(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	kClient, client := setupImageStreamAdmissionTest(t)
+	kClient, client, fn := setupImageStreamAdmissionTest(t)
+	defer fn()
 	images := []*imageapi.Image{}
 
 	for _, name := range []string{imagetest.BaseImageWith1LayerDigest, imagetest.BaseImageWith2LayersDigest} {
@@ -470,10 +470,8 @@ func TestImageStreamAdmitStatusUpdate(t *testing.T) {
 	}
 }
 
-func setupImageStreamAdmissionTest(t *testing.T) (kclientset.Interface, *client.Client) {
-	testutil.RequireEtcd(t)
-
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+func setupImageStreamAdmissionTest(t *testing.T) (kclientset.Interface, *client.Client, func()) {
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -503,7 +501,9 @@ func setupImageStreamAdmissionTest(t *testing.T) (kclientset.Interface, *client.
 		}
 		break
 	}
-	return kClient, client
+	return kClient, client, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }
 
 // errForbiddenWithRetry returns true if this is a status error and has requested a retry

@@ -70,15 +70,6 @@ func (c *FakeDeploymentConfigs) Watch(opts metav1.ListOptions) (watch.Interface,
 	return c.Fake.InvokesWatch(clientgotesting.NewWatchAction(deploymentConfigsResource, c.Namespace, opts))
 }
 
-func (c *FakeDeploymentConfigs) Generate(name string) (*deployapi.DeploymentConfig, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(deployapi.LegacySchemeGroupVersion.WithResource("generatedeploymentconfigs"), c.Namespace, name), &deployapi.DeploymentConfig{})
-	if obj == nil {
-		return nil, err
-	}
-
-	return obj.(*deployapi.DeploymentConfig), err
-}
-
 func (c *FakeDeploymentConfigs) Rollback(inObj *deployapi.DeploymentConfigRollback) (result *deployapi.DeploymentConfig, err error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(deployapi.LegacySchemeGroupVersion.WithResource("deploymentconfigs/rollback"), c.Namespace, inObj), inObj)
 	if obj == nil {

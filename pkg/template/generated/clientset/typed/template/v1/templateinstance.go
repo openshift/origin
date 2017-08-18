@@ -43,6 +43,41 @@ func newTemplateInstances(c *TemplateV1Client, namespace string) *templateInstan
 	}
 }
 
+// Get takes name of the templateInstance, and returns the corresponding templateInstance object, and an error if there is any.
+func (c *templateInstances) Get(name string, options meta_v1.GetOptions) (result *v1.TemplateInstance, err error) {
+	result = &v1.TemplateInstance{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("templateinstances").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// List takes label and field selectors, and returns the list of TemplateInstances that match those selectors.
+func (c *templateInstances) List(opts meta_v1.ListOptions) (result *v1.TemplateInstanceList, err error) {
+	result = &v1.TemplateInstanceList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("templateinstances").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// Watch returns a watch.Interface that watches the requested templateInstances.
+func (c *templateInstances) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
+	opts.Watch = true
+	return c.client.Get().
+		Namespace(c.ns).
+		Resource("templateinstances").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Watch()
+}
+
 // Create takes the representation of a templateInstance and creates it.  Returns the server's representation of the templateInstance, and an error, if there is any.
 func (c *templateInstances) Create(templateInstance *v1.TemplateInstance) (result *v1.TemplateInstance, err error) {
 	result = &v1.TemplateInstance{}
@@ -69,7 +104,7 @@ func (c *templateInstances) Update(templateInstance *v1.TemplateInstance) (resul
 }
 
 // UpdateStatus was generated because the type contains a Status member.
-// Add a +genclientstatus=false comment above the type to avoid generating UpdateStatus().
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
 
 func (c *templateInstances) UpdateStatus(templateInstance *v1.TemplateInstance) (result *v1.TemplateInstance, err error) {
 	result = &v1.TemplateInstance{}
@@ -104,41 +139,6 @@ func (c *templateInstances) DeleteCollection(options *meta_v1.DeleteOptions, lis
 		Body(options).
 		Do().
 		Error()
-}
-
-// Get takes name of the templateInstance, and returns the corresponding templateInstance object, and an error if there is any.
-func (c *templateInstances) Get(name string, options meta_v1.GetOptions) (result *v1.TemplateInstance, err error) {
-	result = &v1.TemplateInstance{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("templateinstances").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of TemplateInstances that match those selectors.
-func (c *templateInstances) List(opts meta_v1.ListOptions) (result *v1.TemplateInstanceList, err error) {
-	result = &v1.TemplateInstanceList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("templateinstances").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Do().
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested templateInstances.
-func (c *templateInstances) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("templateinstances").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Watch()
 }
 
 // Patch applies the patch and returns the patched templateInstance.

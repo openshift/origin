@@ -194,12 +194,36 @@ func TestConversionErrors(t *testing.T) {
 			},
 		},
 		{
+			name:     "invalid origin rol ref namespace",
+			expected: `invalid origin cluster role binding clusterrolebindingname: attempts to reference role in namespace "fancyns" instead of cluster scope`,
+			f: func() error {
+				return authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{Name: "clusterrolebindingname"},
+					RoleRef: api.ObjectReference{
+						Namespace: "fancyns",
+					},
+				}, &rbac.ClusterRoleBinding{}, nil)
+			},
+		},
+		{
 			name:     "invalid RBAC subject kind",
 			expected: `invalid kind for rbac subject: "evenfancieruser"`,
 			f: func() error {
 				return authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
 					Subjects: []rbac.Subject{
 						{Kind: "evenfancieruser"},
+					},
+				}, &authorizationapi.ClusterRoleBinding{}, nil)
+			},
+		},
+		{
+			name:     "invalid RBAC rol ref kind",
+			expected: `invalid kind "anewfancykind" for rbac role ref "fancyrolref"`,
+			f: func() error {
+				return authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
+					RoleRef: rbac.RoleRef{
+						Name: "fancyrolref",
+						Kind: "anewfancykind",
 					},
 				}, &authorizationapi.ClusterRoleBinding{}, nil)
 			},
@@ -268,6 +292,58 @@ func TestResourceAndNonResourceRuleSplit(t *testing.T) {
 	}
 	if covered, uncoveredRules := rulevalidation.Covers(ocr2.Rules, ocr.Rules); !covered {
 		t.Errorf("output rules expected rule split not seen; the uncovered rules are %#v", uncoveredRules)
+	}
+}
+
+func TestAnnotationsConversion(t *testing.T) {
+	for _, boolval := range []string{"true", "false"} {
+		ocr := &authorizationapi.ClusterRole{
+			Rules: []authorizationapi.PolicyRule{},
+		}
+		ocr.Annotations = map[string]string{"openshift.io/reconcile-protect": boolval}
+		ocr2 := &authorizationapi.ClusterRole{}
+		crcr := &rbac.ClusterRole{}
+		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, crcr, nil); err != nil {
+			t.Fatal(err)
+		}
+		value, ok := crcr.Annotations[rbac.AutoUpdateAnnotationKey]
+		if ok {
+			if (boolval == "true" && value != "false") || (boolval == "false" && value != "true") {
+				t.Fatal(fmt.Errorf("Wrong conversion value, 'true' instead of 'false'"))
+			}
+		} else {
+			t.Fatal(fmt.Errorf("Missing converted Annotation"))
+		}
+		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(crcr, ocr2, nil); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(ocr, ocr2) {
+			t.Errorf("origin cluster data not preserved; the diff is %s", diff.ObjectDiff(ocr, ocr2))
+		}
+
+		rcr := &rbac.ClusterRole{
+			Rules: []rbac.PolicyRule{},
+		}
+		rcr.Annotations = map[string]string{rbac.AutoUpdateAnnotationKey: boolval}
+		rcr2 := &rbac.ClusterRole{}
+		cocr := &authorizationapi.ClusterRole{}
+		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, cocr, nil); err != nil {
+			t.Fatal(err)
+		}
+		value, ok = cocr.Annotations["openshift.io/reconcile-protect"]
+		if ok {
+			if (boolval == "true" && value != "false") || (boolval == "false" && value != "true") {
+				t.Fatal(fmt.Errorf("Wrong conversion value, 'true' instead of 'false'"))
+			}
+		} else {
+			t.Fatal(fmt.Errorf("Missing converted Annotation"))
+		}
+		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(cocr, rcr2, nil); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(rcr, rcr2) {
+			t.Errorf("rbac cluster data not preserved; the diff is %s", diff.ObjectDiff(rcr, rcr2))
+		}
 	}
 }
 
@@ -349,7 +425,7 @@ func setRandomRBACRoleBindingData(subjects []rbac.Subject, roleRef *rbac.RoleRef
 		setValidRBACKindAndNamespace(subject, i, c)
 	}
 	roleRef.APIGroup = rbac.GroupName
-	roleRef.Kind = getRBACRoleRefKind(namespace)
+	roleRef.Kind = getRBACRoleRefKind(getRandomScope(namespace, c))
 }
 
 func setValidRBACKindAndNamespace(subject *rbac.Subject, i int, c fuzz.Continue) {
@@ -375,7 +451,15 @@ func setRandomOriginRoleBindingData(subjects []api.ObjectReference, roleRef *api
 	}
 	unsetUnusedOriginFields(roleRef)
 	roleRef.Kind = ""
-	roleRef.Namespace = namespace
+	roleRef.Namespace = getRandomScope(namespace, c)
+}
+
+// we want bindings to both cluster and local roles
+func getRandomScope(namespace string, c fuzz.Continue) string {
+	if c.RandBool() {
+		return ""
+	}
+	return namespace
 }
 
 func setValidOriginKindAndNamespace(subject *api.ObjectReference, i int, c fuzz.Continue) {

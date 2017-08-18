@@ -9,16 +9,20 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
+	"github.com/openshift/origin/pkg/authorization/registry/util"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
 	authorizer kauthorizer.Authorizer
 }
+
+var _ rest.Creater = &REST{}
 
 // NewREST creates a new REST for policies.
 func NewREST(authorizer kauthorizer.Authorizer) *REST {
@@ -103,7 +107,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		userToCheck.Extra[authorizationapi.ScopesKey] = subjectAccessReview.Scopes
 	}
 
-	attributes := authorizer.ToDefaultAuthorizationAttributes(userToCheck, subjectAccessReview.Action.Namespace, subjectAccessReview.Action)
+	attributes := util.ToDefaultAuthorizationAttributes(userToCheck, subjectAccessReview.Action.Namespace, subjectAccessReview.Action)
 	allowed, reason, err := r.authorizer.Authorize(attributes)
 	response := &authorizationapi.SubjectAccessReviewResponse{
 		Namespace: subjectAccessReview.Action.Namespace,

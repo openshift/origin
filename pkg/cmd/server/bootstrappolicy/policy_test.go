@@ -11,10 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	rulevalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	"github.com/openshift/origin/pkg/api/v1"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 
 	// install all APIs
@@ -22,7 +22,8 @@ import (
 )
 
 func TestOpenshiftRoles(t *testing.T) {
-	roles := bootstrappolicy.GetBootstrapOpenshiftRoles("openshift")
+	rbacRoles := bootstrappolicy.GetBootstrapOpenshiftRoles("openshift")
+	roles := bootstrappolicy.ConvertToOriginRolesOrDie(rbacRoles)
 	list := &api.List{}
 	for i := range roles {
 		list.Items = append(list.Items, &roles[i])
@@ -40,7 +41,8 @@ func TestBootstrapProjectRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoleBindings(t *testing.T) {
-	roleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
+	rbacRoleBindings := bootstrappolicy.GetBootstrapClusterRoleBindings()
+	roleBindings := bootstrappolicy.ConvertToOriginClusterRoleBindingsOrDie(rbacRoleBindings)
 	list := &api.List{}
 	for i := range roleBindings {
 		list.Items = append(list.Items, &roleBindings[i])
@@ -49,7 +51,8 @@ func TestBootstrapClusterRoleBindings(t *testing.T) {
 }
 
 func TestBootstrapClusterRoles(t *testing.T) {
-	roles := bootstrappolicy.GetBootstrapClusterRoles()
+	rbacRoles := bootstrappolicy.GetBootstrapClusterRoles()
+	roles := bootstrappolicy.ConvertToOriginClusterRolesOrDie(rbacRoles)
 	list := &api.List{}
 	for i := range roles {
 		list.Items = append(list.Items, &roles[i])
@@ -97,17 +100,17 @@ func testObjects(t *testing.T, list *api.List, fixtureFilename string) {
 // Some roles should always cover others
 func TestCovers(t *testing.T) {
 	allRoles := bootstrappolicy.GetBootstrapClusterRoles()
-	var admin *authorizationapi.ClusterRole
-	var editor *authorizationapi.ClusterRole
-	var viewer *authorizationapi.ClusterRole
-	var registryAdmin *authorizationapi.ClusterRole
-	var registryEditor *authorizationapi.ClusterRole
-	var registryViewer *authorizationapi.ClusterRole
-	var systemMaster *authorizationapi.ClusterRole
-	var systemDiscovery *authorizationapi.ClusterRole
-	var clusterAdmin *authorizationapi.ClusterRole
-	var storageAdmin *authorizationapi.ClusterRole
-	var imageBuilder *authorizationapi.ClusterRole
+	var admin *rbac.ClusterRole
+	var editor *rbac.ClusterRole
+	var viewer *rbac.ClusterRole
+	var registryAdmin *rbac.ClusterRole
+	var registryEditor *rbac.ClusterRole
+	var registryViewer *rbac.ClusterRole
+	var systemMaster *rbac.ClusterRole
+	var systemDiscovery *rbac.ClusterRole
+	var clusterAdmin *rbac.ClusterRole
+	var storageAdmin *rbac.ClusterRole
+	var imageBuilder *rbac.ClusterRole
 
 	for i := range allRoles {
 		role := allRoles[i]

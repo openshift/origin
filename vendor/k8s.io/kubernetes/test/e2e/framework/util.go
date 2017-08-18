@@ -4983,6 +4983,11 @@ func retryCmd(command string, args ...string) (string, string, error) {
 // GetPodsScheduled returns a number of currently scheduled and not scheduled Pods.
 func GetPodsScheduled(masterNodes sets.String, pods *v1.PodList) (scheduledPods, notScheduledPods []v1.Pod) {
 	for _, pod := range pods.Items {
+		// the TSB uses a daemonset which places pods on the master.  The scheduler tests fail when this happens.
+		// TODO this should be reverted once there is a real fix for https://github.com/openshift/origin/issues/15254
+		if pod.Namespace == "openshift-template-service-broker" {
+			continue
+		}
 		if !masterNodes.Has(pod.Spec.NodeName) {
 			if pod.Spec.NodeName != "" {
 				_, scheduledCondition := podutil.GetPodCondition(&pod.Status, v1.PodScheduled)

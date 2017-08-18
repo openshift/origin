@@ -56,11 +56,11 @@ import (
 	_ "k8s.io/client-go/pkg/api/install"
 
 	"github.com/kubernetes-incubator/service-catalog/cmd/controller-manager/app/options"
-	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi/openservicebroker"
 	servicecataloginformers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/externalversions"
 	"github.com/kubernetes-incubator/service-catalog/pkg/controller"
 
 	"github.com/golang/glog"
+	osb "github.com/pmorie/go-open-service-broker-client/v2"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -83,6 +83,8 @@ the core control loops shipped with the service catalog.`,
 
 const controllerManagerAgentName = "service-catalog-controller-manager"
 const controllerDiscoveryAgentName = "service-catalog-controller-discovery"
+
+var catalogGVR = schema.GroupVersionResource{Group: "servicecatalog.k8s.io", Version: "v1alpha1", Resource: "brokers"}
 
 // Run runs the service-catalog controller-manager; should never exit.
 func Run(controllerManagerOptions *options.ControllerManagerServer) error {
@@ -141,14 +143,18 @@ func Run(controllerManagerOptions *options.ControllerManagerServer) error {
 		// TODO: disambiguate API errors
 		return fmt.Errorf("failed to get Service Catalog client configuration: %v", err)
 	}
-
-	// due to using both k8s.io/kubernetes and k8s.io/client-go, we need to convert this object over
+	serviceCatalogKubeconfig.Insecure = controllerManagerOptions.ServiceCatalogInsecureSkipVerify
 
 	glog.V(4).Info("Starting http server and mux")
 	// Start http server and handlers
 	go func() {
 		mux := http.NewServeMux()
-		healthz.InstallHandler(mux)
+		apiAvailableChecker := checkAPIAvailableResources{
+			controller.SimpleClientBuilder{
+				ClientConfig: serviceCatalogKubeconfig,
+			},
+		}
+		healthz.InstallHandler(mux, healthz.PingHealthz, apiAvailableChecker)
 		configz.InstallHandler(mux)
 
 		if controllerManagerOptions.EnableProfiling {
@@ -306,8 +312,9 @@ func StartControllers(s *options.ControllerManagerServer,
 	}
 
 	// Launch service-catalog controller
-	if availableResources[schema.GroupVersionResource{Group: "servicecatalog.k8s.io", Version: "v1alpha1", Resource: "brokers"}] {
-		glog.V(5).Info("Creating shared informers; resync interval: %v", s.ResyncInterval)
+	if availableResources[catalogGVR] {
+		glog.V(5).Infof("Creating shared informers; resync interval: %v", s.ResyncInterval)
+
 		// Build the informer factory for service-catalog resources
 		informerFactory := servicecataloginformers.NewSharedInformerFactory(
 			serviceCatalogClientBuilder.ClientOrDie("shared-informers"),
@@ -316,7 +323,7 @@ func StartControllers(s *options.ControllerManagerServer,
 		// All shared informers are v1alpha1 API level
 		serviceCatalogSharedInformers := informerFactory.Servicecatalog().V1alpha1()
 
-		glog.V(5).Info("Creating controller; broker relist interval: %v", s.BrokerRelistInterval)
+		glog.V(5).Infof("Creating controller; broker relist interval: %v", s.BrokerRelistInterval)
 		serviceCatalogController, err := controller.NewController(
 			coreClient,
 			serviceCatalogClientBuilder.ClientOrDie(controllerManagerAgentName).ServicecatalogV1alpha1(),
@@ -324,9 +331,9 @@ func StartControllers(s *options.ControllerManagerServer,
 			serviceCatalogSharedInformers.ServiceClasses(),
 			serviceCatalogSharedInformers.Instances(),
 			serviceCatalogSharedInformers.Bindings(),
-			openservicebroker.NewClient,
+			osb.NewClient,
 			s.BrokerRelistInterval,
-			s.OSBAPIContextProfile,
+			s.OSBAPIPreferredVersion,
 			recorder,
 		)
 		if err != nil {
@@ -343,4 +350,26 @@ func StartControllers(s *options.ControllerManagerServer,
 	}
 
 	select {}
+}
+
+// checkAPIAvailableResourcesServer is a HealthzChecker that makes sure the
+// Service-Catalog APIServer is contactable.
+type checkAPIAvailableResources struct {
+	serviceCatalogClientBuilder controller.ClientBuilder
+}
+
+func (c checkAPIAvailableResources) Name() string {
+	return "checkAPIAvailableResources"
+}
+
+func (c checkAPIAvailableResources) Check(_ *http.Request) error {
+	glog.Info("available resources health checker called")
+	availableResources, err := getAvailableResources(c.serviceCatalogClientBuilder)
+	if err != nil {
+		return err
+	}
+	if !availableResources[catalogGVR] {
+		return fmt.Errorf("failed to get %q, the apiserver does not seem to be ready", catalogGVR)
+	}
+	return nil
 }

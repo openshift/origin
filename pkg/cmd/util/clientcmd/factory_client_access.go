@@ -34,11 +34,11 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/config"
-	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
 	imageutil "github.com/openshift/origin/pkg/image/util"
+	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"
 )
 
@@ -264,15 +264,7 @@ func (f *ring0Factory) SuggestedPodTemplateResources() []schema.GroupResource {
 	return f.kubeClientAccessFactory.SuggestedPodTemplateResources()
 }
 
-// Saves current resource name (or alias if any) in PrintOptions. Once saved, it will not be overwritten by the
-// kubernetes resource alias look-up, as it will notice a non-empty value in `options.Kind`
 func (f *ring0Factory) Printer(mapping *meta.RESTMapping, options kprinters.PrintOptions) (kprinters.ResourcePrinter, error) {
-	if mapping != nil {
-		options.Kind = mapping.Resource
-		if alias, ok := resourceShortFormFor(mapping.Resource); ok {
-			options.Kind = alias
-		}
-	}
 	return describe.NewHumanReadablePrinter(f.JSONEncoder(), f.Decoder(true), options), nil
 }
 

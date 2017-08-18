@@ -61,6 +61,22 @@ type osdnPolicy interface {
 	SyncVNIDRules()
 }
 
+type OsdnNodeConfig struct {
+	PluginName      string
+	Hostname        string
+	SelfIP          string
+	RuntimeEndpoint string
+	MTU             uint32
+
+	OSClient *osclient.Client
+	KClient  kclientset.Interface
+
+	KubeInformers kinternalinformers.SharedInformerFactory
+
+	IPTablesSyncPeriod time.Duration
+	ProxyMode          componentconfig.ProxyMode
+}
+
 type OsdnNode struct {
 	policy             osdnPolicy
 	kClient            kclientset.Interface
@@ -94,13 +110,12 @@ type OsdnNode struct {
 }
 
 // Called by higher layers to create the plugin SDN node instance
-func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface, kubeInformers kinternalinformers.SharedInformerFactory,
-	hostname string, selfIP string, mtu uint32, proxyConfig componentconfig.KubeProxyConfiguration, runtimeEndpoint string) (*OsdnNode, error) {
+func NewNodePlugin(c *OsdnNodeConfig) (*OsdnNode, error) {
 	var policy osdnPolicy
 	var pluginId int
 	var minOvsVersion string
 	var useConnTrack bool
-	switch strings.ToLower(pluginName) {
+	switch strings.ToLower(c.PluginName) {
 	case osapi.SingleTenantPluginName:
 		policy = NewSingleTenantPlugin()
 		pluginId = 0
@@ -121,35 +136,35 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 	// we're ready yet
 	os.Remove(filepath.Join(cniDirPath, openshiftCNIFile))
 
-	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", pluginName, hostname, selfIP, proxyConfig.IPTables.SyncPeriod.Duration.String())
-	if hostname == "" {
+	log.Infof("Initializing SDN node of type %q with configured hostname %q (IP %q), iptables sync period %q", c.PluginName, c.Hostname, c.SelfIP, c.IPTablesSyncPeriod.String())
+	if c.Hostname == "" {
 		output, err := kexec.New().Command("uname", "-n").CombinedOutput()
 		if err != nil {
 			return nil, err
 		}
-		hostname = strings.TrimSpace(string(output))
-		log.Infof("Resolved hostname to %q", hostname)
+		c.Hostname = strings.TrimSpace(string(output))
+		log.Infof("Resolved hostname to %q", c.Hostname)
 	}
-	if selfIP == "" {
+	if c.SelfIP == "" {
 		var err error
-		selfIP, err = netutils.GetNodeIP(hostname)
+		c.SelfIP, err = netutils.GetNodeIP(c.Hostname)
 		if err != nil {
-			log.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", hostname, err)
+			log.V(5).Infof("Failed to determine node address from hostname %s; using default interface (%v)", c.Hostname, err)
 			var defaultIP net.IP
 			defaultIP, err = kubeutilnet.ChooseHostInterface()
 			if err != nil {
 				return nil, err
 			}
-			selfIP = defaultIP.String()
-			log.Infof("Resolved IP address to %q", selfIP)
+			c.SelfIP = defaultIP.String()
+			log.Infof("Resolved IP address to %q", c.SelfIP)
 		}
 	}
 
-	if useConnTrack && proxyConfig.Mode != componentconfig.ProxyModeIPTables {
-		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", pluginName, proxyConfig.Mode)
+	if useConnTrack && c.ProxyMode != componentconfig.ProxyModeIPTables {
+		return nil, fmt.Errorf("%q plugin is not compatible with proxy-mode %q", c.PluginName, c.ProxyMode)
 	}
 
-	ovsif, err := ovs.New(kexec.New(), BR, minOvsVersion)
+	ovsif, err := ovs.New(kexec.New(), Br0, minOvsVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -157,20 +172,20 @@ func NewNodePlugin(pluginName string, osClient *osclient.Client, kClient kclient
 
 	plugin := &OsdnNode{
 		policy:             policy,
-		kClient:            kClient,
-		osClient:           osClient,
+		kClient:            c.KClient,
+		osClient:           c.OSClient,
 		oc:                 oc,
-		podManager:         newPodManager(kClient, policy, mtu, oc),
-		localIP:            selfIP,
-		hostName:           hostname,
+		podManager:         newPodManager(c.KClient, policy, c.MTU, oc),
+		localIP:            c.SelfIP,
+		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
-		iptablesSyncPeriod: proxyConfig.IPTables.SyncPeriod.Duration,
-		mtu:                mtu,
+		iptablesSyncPeriod: c.IPTablesSyncPeriod,
+		mtu:                c.MTU,
 		egressPolicies:     make(map[uint32][]osapi.EgressNetworkPolicy),
 		egressDNS:          NewEgressDNS(),
-		kubeInformers:      kubeInformers,
+		kubeInformers:      c.KubeInformers,
 
-		runtimeEndpoint: runtimeEndpoint,
+		runtimeEndpoint: c.RuntimeEndpoint,
 		// 2 minutes is the current default value used in kubelet
 		runtimeRequestTimeout: 2 * time.Minute,
 		// populated on demand
@@ -253,6 +268,25 @@ func ensureDockerClient() (dockertools.Interface, error) {
 	return dockerClient, nil
 }
 
+func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
+	for _, pod := range pods {
+		// Get the sandbox ID for this pod from the runtime
+		filter := &kruntimeapi.PodSandboxFilter{
+			LabelSelector: map[string]string{ktypes.KubernetesPodUIDLabel: string(pod.UID)},
+		}
+		sandboxID, err := node.getPodSandboxID(filter)
+		if err != nil {
+			return err
+		}
+
+		log.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", pod.Namespace, pod.Name)
+		if err := node.runtimeService.StopPodSandbox(sandboxID); err != nil {
+			log.Warningf("Failed to kill pod '%s/%s' sandbox: %v", pod.Namespace, pod.Name, err)
+		}
+	}
+	return nil
+}
+
 func (node *OsdnNode) Start() error {
 	var err error
 	node.networkInfo, err = getNetworkInfo(node.osClient)
@@ -260,7 +294,7 @@ func (node *OsdnNode) Start() error {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}
 
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{TUN})
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{Tun0})
 	if err != nil {
 		return fmt.Errorf("failed to get host network information: %v", err)
 	}
@@ -324,10 +358,7 @@ func (node *OsdnNode) Start() error {
 		// Kill pods we couldn't recover; they will get restarted and then
 		// we'll be able to set them up correctly
 		if len(podsToKill) > 0 {
-			docker, err := ensureDockerClient()
-			if err != nil {
-				log.Warningf("failed to get docker client: %v", err)
-			} else if err := killUpdateFailedPods(docker, podsToKill); err != nil {
+			if err := node.killUpdateFailedPods(podsToKill); err != nil {
 				log.Warningf("failed to restart pods that failed to update at startup: %v", err)
 			}
 		}

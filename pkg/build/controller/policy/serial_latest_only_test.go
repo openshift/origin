@@ -50,7 +50,7 @@ func TestSerialLatestOnlyIsRunnableNewBuilds(t *testing.T) {
 	}
 }
 
-func TestSerialLatestOnlyIsRunnableMixed(t *testing.T) {
+func TestSerialLatestOnlyIsRunnableMixedRunning(t *testing.T) {
 	allNewBuilds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerialLatestOnly),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseCancelled, buildapi.BuildRunPolicySerialLatestOnly),

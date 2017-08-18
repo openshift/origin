@@ -19,13 +19,13 @@ import (
 )
 
 func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
 	}
-	kubeClientset := setupClusterResourceOverrideTest(t, config)
+	kubeClientset, fn := setupClusterResourceOverrideTest(t, config)
+	defer fn()
 	podHandler := kubeClientset.Core().Pods(testutil.Namespace())
 
 	// test with no limits object present
@@ -49,13 +49,13 @@ func TestClusterResourceOverridePluginWithNoLimits(t *testing.T) {
 }
 
 func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	config := &overrideapi.ClusterResourceOverrideConfig{
 		LimitCPUToMemoryPercent:     100,
 		CPURequestToLimitPercent:    50,
 		MemoryRequestToLimitPercent: 50,
 	}
-	kubeClientset := setupClusterResourceOverrideTest(t, config)
+	kubeClientset, fn := setupClusterResourceOverrideTest(t, config)
+	defer fn()
 	podHandler := kubeClientset.Core().Pods(testutil.Namespace())
 	limitHandler := kubeClientset.Core().LimitRanges(testutil.Namespace())
 
@@ -105,8 +105,7 @@ func TestClusterResourceOverridePluginWithLimits(t *testing.T) {
 	}
 }
 
-func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) kclientset.Interface {
-	testutil.RequireEtcd(t)
+func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.ClusterResourceOverrideConfig) (kclientset.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
@@ -148,7 +147,9 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.DefaultServiceAccountName}); err != nil {
 		t.Fatal(err)
 	}
-	return clusterAdminKubeClientset
+	return clusterAdminKubeClientset, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }
 
 func testClusterResourceOverridePod(name string, memory string, cpu string) *kapi.Pod {

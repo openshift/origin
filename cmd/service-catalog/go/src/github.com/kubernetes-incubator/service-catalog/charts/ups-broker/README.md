@@ -34,7 +34,7 @@ Service Broker
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `image` | Image to use | `quay.io/kubernetes-service-catalog/user-broker:canary` |
+| `image` | Image to use | `quay.io/kubernetes-service-catalog/user-broker:v0.0.15` |
 | `imagePullPolicy` | `imagePullPolicy` for the ups-broker | `Always` |
 
 Specify each parameter using the `--set key=value[,key=value]` argument to

@@ -20,6 +20,8 @@ type CloneREST struct {
 	generator *generator.BuildGenerator
 }
 
+var _ rest.Creater = &CloneREST{}
+
 // New creates a new build clone request
 func (s *CloneREST) New() runtime.Object {
 	return &buildapi.BuildRequest{}

@@ -27,13 +27,15 @@
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
           "template.openshift.io/expose-password": "{.data['database-password']}",
-          "template.openshift.io/expose-root_password": "{.data['database-root-password']}"
+          "template.openshift.io/expose-root_password": "{.data['database-root-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${MYSQL_USER}",
         "database-password" : "${MYSQL_PASSWORD}",
-        "database-root-password" : "${MYSQL_ROOT_PASSWORD}"
+        "database-root-password" : "${MYSQL_ROOT_PASSWORD}",
+        "database-name" : "${MYSQL_DATABASE}"
       }
     },
     {
@@ -61,7 +63,10 @@
       "kind": "DeploymentConfig",
       "apiVersion": "v1",
       "metadata": {
-        "name": "${DATABASE_SERVICE_NAME}"
+        "name": "${DATABASE_SERVICE_NAME}",
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -151,7 +156,12 @@
                   },
                   {
                     "name": "MYSQL_DATABASE",
-                    "value": "${MYSQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {

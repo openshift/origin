@@ -6,24 +6,19 @@ import (
 	"sync"
 	"testing"
 
-	etcdclient "github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	etcdutil "k8s.io/apiserver/pkg/storage/etcd/util"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	identityregistry "github.com/openshift/origin/pkg/user/registry/identity"
-	identityetcd "github.com/openshift/origin/pkg/user/registry/identity/etcd"
-	userregistry "github.com/openshift/origin/pkg/user/registry/user"
-	useretcd "github.com/openshift/origin/pkg/user/registry/user/etcd"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -68,48 +63,34 @@ func makeMapping(user, identity string) *userapi.UserIdentityMapping {
 }
 
 func TestUserInitialization(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	userClient, err := userclient.NewForConfig(clusterAdminClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	optsGetter, err := originrest.StorageOptions(*masterConfig)
+	lookup, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodLookup)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	userStorage, err := useretcd.NewREST(optsGetter)
+	generate, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodGenerate)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	userRegistry := userregistry.NewRegistry(userStorage)
-
-	identityStorage, err := identityetcd.NewREST(optsGetter)
+	add, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodAdd)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	identityRegistry := identityregistry.NewRegistry(identityStorage)
-
-	lookup, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodLookup)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	generate, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodGenerate)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	add, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodAdd)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	claim, err := identitymapper.NewIdentityUserMapper(identityRegistry, userRegistry, identitymapper.MappingMethodClaim)
+	claim, err := identitymapper.NewIdentityUserMapper(userClient.Identities(), userClient.Users(), userClient.UserIdentityMappings(), identitymapper.MappingMethodClaim)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -403,38 +384,37 @@ func TestUserInitialization(t *testing.T) {
 		},
 	}
 
-	oldEtcdClient, err := etcd.MakeEtcdClient(masterConfig.EtcdClientInfo)
+	client, err := etcd.MakeEtcdClientV3(masterConfig.EtcdClientInfo)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	etcdClient := etcdclient.NewKeysAPI(oldEtcdClient)
 
 	for k, testcase := range testcases {
 		// Cleanup
-		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/users"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
+		if _, err := client.KV.Delete(context.Background(), path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/users"), clientv3.WithPrefix()); err != nil {
 			t.Fatalf("Could not clean up users: %v", err)
 		}
-		if _, err := etcdClient.Delete(context.Background(), path.Join(masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/useridentities"), &etcdclient.DeleteOptions{Recursive: true}); err != nil && !etcdutil.IsEtcdNotFound(err) {
+		if _, err := client.KV.Delete(context.Background(), path.Join("/", masterConfig.EtcdStorageConfig.OpenShiftStoragePrefix, "/useridentities"), clientv3.WithPrefix()); err != nil {
 			t.Fatalf("Could not clean up identities: %v", err)
 		}
 
 		// Pre-create items
 		if testcase.CreateUser != nil {
-			_, err := clusterAdminClient.Users().Create(testcase.CreateUser)
+			_, err := userClient.Users().Create(testcase.CreateUser)
 			if err != nil {
 				t.Errorf("%s: Could not create user: %v", k, err)
 				continue
 			}
 		}
 		if testcase.CreateIdentity != nil {
-			_, err := clusterAdminClient.Identities().Create(testcase.CreateIdentity)
+			_, err := userClient.Identities().Create(testcase.CreateIdentity)
 			if err != nil {
 				t.Errorf("%s: Could not create identity: %v", k, err)
 				continue
 			}
 		}
 		if testcase.CreateMapping != nil {
-			_, err := clusterAdminClient.UserIdentityMappings().Update(testcase.CreateMapping)
+			_, err := userClient.UserIdentityMappings().Update(testcase.CreateMapping)
 			if err != nil {
 				t.Errorf("%s: Could not create mapping: %v", k, err)
 				continue
@@ -442,14 +422,14 @@ func TestUserInitialization(t *testing.T) {
 		}
 		if testcase.UpdateUser != nil {
 			if testcase.UpdateUser.ResourceVersion == "" {
-				existingUser, err := clusterAdminClient.Users().Get(testcase.UpdateUser.Name, metav1.GetOptions{})
+				existingUser, err := userClient.Users().Get(testcase.UpdateUser.Name, metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Could not get user to update: %v", k, err)
 					continue
 				}
 				testcase.UpdateUser.ResourceVersion = existingUser.ResourceVersion
 			}
-			_, err := clusterAdminClient.Users().Update(testcase.UpdateUser)
+			_, err := userClient.Users().Update(testcase.UpdateUser)
 			if err != nil {
 				t.Errorf("%s: Could not update user: %v", k, err)
 				continue
@@ -482,7 +462,7 @@ func TestUserInitialization(t *testing.T) {
 					return
 				}
 
-				user, err := clusterAdminClient.Users().Get(userInfo.GetName(), metav1.GetOptions{})
+				user, err := userClient.Users().Get(userInfo.GetName(), metav1.GetOptions{})
 				if err != nil {
 					t.Errorf("%s: Error getting user: %v", k, err)
 				}

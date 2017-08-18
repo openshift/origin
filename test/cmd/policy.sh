@@ -160,19 +160,19 @@ cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${worki
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
 os::cmd::expect_success "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml"
 
-# alternate-cluster-admin can restrict himself to no groups
+# alternate-cluster-admin can restrict himself to less groups (no star)
 os::cmd::try_until_text "oc policy who-can update clusterrroles" "alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
 cp ${OS_ROOT}/test/testdata/bootstrappolicy/cluster_admin_without_apigroups.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/cluster_admin_without_apigroups.yaml
 os::cmd::expect_success "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/cluster_admin_without_apigroups.yaml"
 
-# alternate-cluster-admin should NOT have the power add back star now
+# alternate-cluster-admin should NOT have the power add back star now (anything other than star is considered less so this mimics testing against no groups)
 os::cmd::try_until_failure "oc policy who-can update hpa.autoscaling | grep -q alternate-cluster-admin-user"
 resourceversion=$(oc get clusterrole/alternate-cluster-admin -o=jsonpath="{.metadata.resourceVersion}")
 cp ${OS_ROOT}/test/testdata/bootstrappolicy/alternate_cluster_admin.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION/${resourceversion}/g" ${workingdir}/alternate_cluster_admin.yaml
-os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "cannot grant extra privileges"
+os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterrole/alternate-cluster-admin -f ${workingdir}/alternate_cluster_admin.yaml" "attempt to grant extra privileges"
 
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level

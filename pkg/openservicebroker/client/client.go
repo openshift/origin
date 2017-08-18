@@ -15,6 +15,8 @@ import (
 )
 
 type Client interface {
+	Client() *http.Client
+
 	Catalog(ctx context.Context) (*api.CatalogResponse, error)
 	Provision(ctx context.Context, instanceID string, preq *api.ProvisionRequest) (*api.ProvisionResponse, error)
 	Deprovision(ctx context.Context, instanceID string) error
@@ -42,6 +44,10 @@ func (e *ServerError) Error() string {
 
 func newServerError(statusCode int, description string) error {
 	return &ServerError{StatusCode: statusCode, Description: description}
+}
+
+func (c *client) Client() *http.Client {
+	return c.cli
 }
 
 func (c *client) Catalog(ctx context.Context) (*api.CatalogResponse, error) {

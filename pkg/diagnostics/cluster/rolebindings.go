@@ -9,8 +9,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	osclient "github.com/openshift/origin/pkg/client"
-	policycmd "github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 // ClusterRoleBindings is a Diagnostic to check that the default cluster role bindings match expectations
@@ -56,7 +56,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 		RoleBindingClient: d.ClusterRoleBindingsClient.ClusterRoleBindings(),
 	}
 
-	changedClusterRoleBindings, err := reconcileOptions.ChangedClusterRoleBindings()
+	changedClusterRoleBindings, _, err := reconcileOptions.ChangedClusterRoleBindings()
 	if policycmd.IsClusterRoleBindingLookupError(err) {
 		// we got a partial match, so we log the error that stopped us from getting a full match
 		// but continue to interpret the partial results that we did get

@@ -82,9 +82,9 @@ function os::build::setup_env() {
   if [[ "${TRAVIS:-}" != "true" ]]; then
     local go_version
     go_version=($(go version))
-    if [[ "${go_version[2]}" < "go1.7" ]]; then
+    if [[ "${go_version[2]}" < "go1.8" ]]; then
       os::log::fatal "Detected Go version: ${go_version[*]}.
-Origin builds require Go version 1.7 or greater."
+Origin builds require Go version 1.8 or greater."
     fi
   fi
   # For any tools that expect this to be set (it is default in golang 1.6),
@@ -509,7 +509,7 @@ function os::build::ldflags() {
 
   declare -a ldflags=()
 
-  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/bootstrap/docker.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
+  ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/oc/bootstrap/docker.defaultImageStreams" "${OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/cmd/util/variable.DefaultImagePrefix" "${OS_BUILD_LDFLAGS_IMAGE_PREFIX}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.majorFromGit" "${OS_GIT_MAJOR}"))
   ldflags+=($(os::build::ldflag "${OS_GO_PACKAGE}/pkg/version.minorFromGit" "${OS_GIT_MINOR}"))

@@ -10,8 +10,16 @@ type FakeUserV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeUserV1) Users(namespace string) v1.UserResourceInterface {
-	return &FakeUsers{c, namespace}
+func (c *FakeUserV1) Identities() v1.IdentityInterface {
+	return &FakeIdentities{c}
+}
+
+func (c *FakeUserV1) Users() v1.UserResourceInterface {
+	return &FakeUsers{c}
+}
+
+func (c *FakeUserV1) UserIdentityMappings() v1.UserIdentityMappingInterface {
+	return &FakeUserIdentityMappings{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

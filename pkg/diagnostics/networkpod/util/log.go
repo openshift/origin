@@ -26,8 +26,8 @@ func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
 
 	l.Run("brctl show", "bridges")
 	l.Run("docker ps -a", "docker-ps")
-	l.Run(fmt.Sprintf("ovs-ofctl -O OpenFlow13 dump-flows %s", sdnplugin.BR), "flows")
-	l.Run(fmt.Sprintf("ovs-ofctl -O OpenFlow13 show %s", sdnplugin.BR), "ovs-show")
+	l.Run(fmt.Sprintf("ovs-ofctl -O OpenFlow13 dump-flows %s", sdnplugin.Br0), "flows")
+	l.Run(fmt.Sprintf("ovs-ofctl -O OpenFlow13 show %s", sdnplugin.Br0), "ovs-show")
 	l.Run("tc qdisc show", "tc-qdisc")
 	l.Run("tc class show", "tc-class")
 	l.Run("tc filter show", "tc-filter")

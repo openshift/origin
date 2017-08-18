@@ -41,6 +41,9 @@ var (
 		"connection reset by peer",
 		"transport closed before response was received",
 		"connection refused",
+		"no route to host",
+		"unexpected end of JSON input",
+		"i/o timeout",
 	}
 )
 
@@ -253,7 +256,7 @@ func buildDirectImage(dir string, ignoreFailures bool, opts *docker.BuildImageOp
 		if err != nil {
 			return err
 		}
-		if err := e.Prepare(b, node); err != nil {
+		if err := e.Prepare(b, node, ""); err != nil {
 			return err
 		}
 		if err := e.Execute(b, node); err != nil {

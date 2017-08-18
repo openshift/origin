@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sort"
 
-	kscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	clientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -16,17 +16,19 @@ import (
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	podsecuritypolicysubjectreview "github.com/openshift/origin/pkg/security/registry/podsecuritypolicysubjectreview"
-	oscc "github.com/openshift/origin/pkg/security/scc"
+	scc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 )
 
 // REST implements the RESTStorage interface in terms of an Registry.
 type REST struct {
-	sccMatcher oscc.SCCMatcher
+	sccMatcher scc.SCCMatcher
 	client     clientset.Interface
 }
 
+var _ rest.Creater = &REST{}
+
 // NewREST creates a new REST for policies..
-func NewREST(m oscc.SCCMatcher, c clientset.Interface) *REST {
+func NewREST(m scc.SCCMatcher, c clientset.Interface) *REST {
 	return &REST{sccMatcher: m, client: c}
 }
 
@@ -66,15 +68,15 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		}
 		matchedConstraints = append(matchedConstraints, saConstraints...)
 	}
-	oscc.DeduplicateSecurityContextConstraints(matchedConstraints)
-	sort.Sort(oscc.ByPriority(matchedConstraints))
+	scc.DeduplicateSecurityContextConstraints(matchedConstraints)
+	sort.Sort(scc.ByPriority(matchedConstraints))
 	var namespace *kapi.Namespace
 	for _, constraint := range matchedConstraints {
 		var (
-			provider kscc.SecurityContextConstraintsProvider
+			provider scc.SecurityContextConstraintsProvider
 			err      error
 		)
-		if provider, namespace, err = oscc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
+		if provider, namespace, err = scc.CreateProviderFromConstraint(ns, namespace, constraint, r.client); err != nil {
 			glog.Errorf("Unable to create provider for constraint: %v", err)
 			continue
 		}

@@ -197,9 +197,7 @@ var _ = g.Describe("[templates] templateinstance security tests", func() {
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			cond := &templateinstance.Status.Conditions[0]
-			o.Expect(cond.Status).To(o.Equal(kapi.ConditionTrue))
-			o.Expect(cond.Type).To(o.Equal(test.expectCondition))
+			o.Expect(templateinstance.HasCondition(test.expectCondition, kapi.ConditionTrue)).To(o.Equal(true))
 			o.Expect(test.checkOK(test.namespace)).To(o.BeTrue())
 
 			err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Delete(templateinstance.Name, nil)

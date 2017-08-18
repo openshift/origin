@@ -16,8 +16,8 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/cmd/login"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -44,12 +44,11 @@ func TestOAuthRequestHeader(t *testing.T) {
 	}
 
 	// Get master config
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	masterOptions, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 	masterURL, _ := url.Parse(masterOptions.OAuthConfig.MasterPublicURL)
 
 	// Set up an auth proxy

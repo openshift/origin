@@ -70,8 +70,23 @@ function exectest() {
 		result=$?
 	elif [[ -n "${junit_report}" ]]; then
 		# run tests and generate jUnit xml
-		out=$("${testexec}" -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1 | tee -a "${JUNIT_REPORT_OUTPUT}" )
+		# when running with junit (normally done in CI), we retry failing tests to see if they just flaked
+		# this involves suppressing the first junit output in the case of failure to prevent dying jobs
+		firstJunitReport="${TMPDIR:-/tmp}/first-integration-attempt.xml"
+		out=$("${testexec}" -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1 | tee "${firstJunitReport}" )
 		result=$?
+
+		# if the test failed, retry it, but this time we're committed to the result and its junit wins
+		if [[ ${result} -eq 0 ]]; then
+			cat "${firstJunitReport}" >> "${JUNIT_REPORT_OUTPUT}"
+		else
+			os::text::clear_last_line
+			os::text::print_red "failed  $1, retrying"
+			echo "Running $1..."
+			# skuznets, this is the spot to inject your counter of failures.  The ${firstJunitReport} has the information about the failure
+			out=$("${testexec}" -test.v -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1 | tee -a "${JUNIT_REPORT_OUTPUT}" )
+			result=$?
+		fi
 	else
 		# run tests normally
 		out=$("${testexec}" -test.timeout=4m -test.run="^$1$" "${@:2}" 2>&1)

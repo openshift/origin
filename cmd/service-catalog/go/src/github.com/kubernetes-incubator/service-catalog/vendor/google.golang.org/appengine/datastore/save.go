@@ -25,7 +25,7 @@ func toUnixMicro(t time.Time) int64 {
 }
 
 func fromUnixMicro(t int64) time.Time {
-	return time.Unix(t/1e6, (t%1e6)*1e3).UTC()
+	return time.Unix(t/1e6, (t%1e6)*1e3)
 }
 
 var (

@@ -98,7 +98,7 @@ var (
 	WhitelistEnvVarNames = [2]string{"BUILD_LOGLEVEL", "GIT_SSL_NO_VERIFY"}
 )
 
-// +genclient=true
+// +genclient
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
@@ -442,6 +442,10 @@ const (
 	// output is an invalid reference.
 	StatusReasonInvalidOutputReference StatusReason = "InvalidOutputReference"
 
+	// StatusReasonInvalidImageReference is an error condition when the build
+	// references an invalid image.
+	StatusReasonInvalidImageReference StatusReason = "InvalidImageReference"
+
 	// StatusReasonCancelBuildFailed is an error condition when cancelling a build
 	// fails.
 	StatusReasonCancelBuildFailed StatusReason = "CancelBuildFailed"
@@ -505,6 +509,10 @@ const (
 	// StatusReasonGenericBuildFailed is the reason associated with a broad
 	// range of build failures.
 	StatusReasonGenericBuildFailed StatusReason = "GenericBuildFailed"
+
+	// StatusCannotRetrieveServiceAccount is the reason associated with a failure
+	// to look up the service account associated with the BuildConfig.
+	StatusReasonCannotRetrieveServiceAccount StatusReason = "CannotRetrieveServiceAccount"
 )
 
 // NOTE: These messages might change.
@@ -512,6 +520,7 @@ const (
 	StatusMessageCannotCreateBuildPodSpec        = "Failed to create pod spec."
 	StatusMessageCannotCreateBuildPod            = "Failed creating build pod."
 	StatusMessageInvalidOutputRef                = "Output image could not be resolved."
+	StatusMessageInvalidImageRef                 = "Referenced image could not be resolved."
 	StatusMessageCancelBuildFailed               = "Failed to cancel build."
 	StatusMessageBuildPodDeleted                 = "The pod for this build was deleted before the build completed."
 	StatusMessageExceededRetryTimeout            = "Build did not complete and retrying timed out."
@@ -528,6 +537,7 @@ const (
 	StatusMessageFailedContainer                 = "The pod for this build has at least one container with a non-zero exit status."
 	StatusMessageGenericBuildFailed              = "Generic Build failure - check logs for details."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
+	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account associated with this build."
 )
 
 // BuildStatusOutput contains the status of the built image.
@@ -989,7 +999,7 @@ type ImageLabel struct {
 	Value string
 }
 
-// +genclient=true
+// +genclient
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {

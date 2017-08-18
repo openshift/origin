@@ -1,26 +1,27 @@
 package start
 
 import (
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509/pkix"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/tools/clientcmd"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	utilcert "k8s.io/client-go/util/cert"
+	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	"k8s.io/kubernetes/pkg/apis/certificates"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
-	"crypto/rsa"
+	clientcertificates "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/certificates/internalversion"
 
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -49,123 +50,67 @@ func readOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {
 	return utilcert.NewPrivateKey()
 }
 
-// loadBootstrapClientCertificate attempts to read a node.kubeconfig file from the config dir,
-// and otherwise tries to request a client certificate as a node (system:node:NODE_NAME). It will
-// reuse a private key if one exists, and exit with an error if the CSR is not completed within
-// timeout or if the current CSR does not validate against the local private key.
-func (o NodeOptions) loadBootstrapClientCertificate(nodeConfigDir string, c kclientset.Interface, timeout time.Duration) (kclientset.Interface, error) {
-	nodeConfigPath := filepath.Join(nodeConfigDir, "node.kubeconfig")
+// requestCertificate will create a certificate signing request using the PEM
+// encoded CSR and send it to API server, then it will watch the object's
+// status, once approved by API server, it will return the API server's issued
+// certificate (pem-encoded). If there is any errors, or the watch timeouts, it
+// will return an error.
+func requestCertificate(client clientcertificates.CertificateSigningRequestInterface, csrData []byte, usages []certificates.KeyUsage) (certData []byte, err error) {
+	req, err := client.Create(&certificates.CertificateSigningRequest{
+		// Username, UID, Groups will be injected by API server.
+		ObjectMeta: metav1.ObjectMeta{GenerateName: "csr-"},
 
-	// if the node config exists, try to use it or fail
-	if _, err := os.Stat(nodeConfigPath); err == nil {
-		kubeClientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: nodeConfigPath}, &clientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		return kclientset.NewForConfig(kubeClientConfig)
-	}
-
-	clientCertPath := filepath.Join(nodeConfigDir, "master-client.crt")
-	clientKeyPath := filepath.Join(nodeConfigDir, "master-client.key")
-
-	// create and sign a client cert
-	privateKey, err := readOrCreatePrivateKey(clientKeyPath)
-	if err != nil {
-		return nil, err
-	}
-	privateKeyData := utilcert.EncodePrivateKeyPEM(privateKey)
-	csrData, err := utilcert.MakeCSR(privateKey, &pkix.Name{
-		Organization: []string{"system:nodes"},
-		CommonName:   fmt.Sprintf("system:node:%s", o.NodeArgs.NodeName),
-		// TODO: indicate usage for client
-	}, nil, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	signingRequest := &certificates.CertificateSigningRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("node-bootstrapper-client-%s", safeSecretName(o.NodeArgs.NodeName)),
-		},
 		Spec: certificates.CertificateSigningRequestSpec{
 			Request: csrData,
+			Usages:  usages,
 		},
-	}
-
-	csr, err := c.Certificates().CertificateSigningRequests().Create(signingRequest)
-	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
-			return nil, err
-		}
-		glog.V(3).Infof("Bootstrap client certificate already exists at %s", signingRequest.Name)
-		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-	}
-	if err := ioutil.WriteFile(clientKeyPath, privateKeyData, 0600); err != nil {
-		return nil, err
-	}
-
-	err = wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
-		if deny := hasCSRCondition(csr.Status.Conditions, certificates.CertificateDenied); deny != nil {
-			glog.V(2).Infof("Bootstrap signing rejected (%s): %s", deny.Reason, deny.Message)
-			return false, fmt.Errorf("certificate signing request rejected (%s): %s", deny.Reason, deny.Message)
-		}
-		if approved := hasCSRCondition(csr.Status.Conditions, certificates.CertificateApproved); approved != nil {
-			glog.V(2).Infof("Bootstrap client cert approved")
-			return true, nil
-		}
-		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name, metav1.GetOptions{})
-		return false, err
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot create certificate signing request: %v", err)
 	}
 
-	if err := ioutil.WriteFile(clientCertPath, csr.Status.Certificate, 0600); err != nil {
-		return nil, err
-	}
-
-	if _, err := tls.LoadX509KeyPair(clientCertPath, clientKeyPath); err != nil {
-		return nil, fmt.Errorf("bootstrap client certificate does not match private key, you may need to delete the client CSR: %v", err)
-	}
-
-	// write a kube config file for the node that contains the client cert
-	cfg, err := o.NodeArgs.KubeConnectionArgs.ClientConfig.RawConfig()
+	// Make a default timeout = 3600s.
+	var defaultTimeoutSeconds int64 = 3600
+	certWatch, err := client.Watch(metav1.ListOptions{
+		Watch:          true,
+		TimeoutSeconds: &defaultTimeoutSeconds,
+		FieldSelector:  fields.OneTermEqualSelector("metadata.name", req.Name).String(),
+	})
 	if err != nil {
-		return nil, err
-	}
-	if err := clientcmdapi.MinifyConfig(&cfg); err != nil {
-		return nil, err
-	}
-	ctx := cfg.Contexts[cfg.CurrentContext]
-	if len(ctx.AuthInfo) == 0 {
-		ctx.AuthInfo = "bootstrap"
-	}
-	cfg.AuthInfos = map[string]*clientcmdapi.AuthInfo{
-		ctx.AuthInfo: {
-			ClientCertificateData: csr.Status.Certificate,
-			ClientKeyData:         privateKeyData,
-		},
-	}
-	if err := clientcmd.WriteToFile(cfg, nodeConfigPath); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("cannot watch on the certificate signing request: %v", err)
 	}
 
-	kubeClientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: nodeConfigPath}, &clientcmd.ConfigOverrides{}).ClientConfig()
-	if err != nil {
-		return nil, err
-	}
+	var certificateData []byte
+	_, err = watch.Until(0, certWatch, func(event watch.Event) (bool, error) {
+		if event.Type != watch.Modified && event.Type != watch.Added {
+			return false, nil
+		}
+		if event.Object.(*certificates.CertificateSigningRequest).UID != req.UID {
+			return false, nil
+		}
 
-	return kclientset.NewForConfig(kubeClientConfig)
+		status := event.Object.(*certificates.CertificateSigningRequest).Status
+		for _, c := range status.Conditions {
+			if c.Type == certificates.CertificateDenied {
+				return false, fmt.Errorf("certificate signing request is not approved, reason: %v, message: %v", c.Reason, c.Message)
+			}
+			if c.Type == certificates.CertificateApproved && status.Certificate != nil {
+				certificateData = status.Certificate
+				return true, nil
+			}
+		}
+		return false, nil
+	})
+	return certificateData, err
 }
 
 // loadBootstrapServerCertificate attempts to read a server certificate file from the config dir,
 // and otherwise tries to request a server certificate for its registered addresses. It will
 // reuse a private key if one exists, and exit with an error if the CSR is not completed within
 // timeout or if the current CSR does not validate against the local private key.
-func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostnames []string, c kclientset.Interface, timeout time.Duration) error {
+func loadBootstrapServerCertificate(nodeConfigDir string, hostnames []string, c kclientset.Interface) error {
+	glog.V(2).Info("Using node kubeconfig to generate TLS server cert and key file")
+
 	serverCertPath := filepath.Join(nodeConfigDir, "server.crt")
 	serverKeyPath := filepath.Join(nodeConfigDir, "server.key")
 
@@ -193,47 +138,31 @@ func (o NodeOptions) loadBootstrapServerCertificate(nodeConfigDir string, hostna
 		return err
 	}
 
-	signingRequest := &certificates.CertificateSigningRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("node-bootstrapper-server-%s", safeSecretName(o.NodeArgs.NodeName)),
+	serverCertData, err := requestCertificate(
+		c.Certificates().CertificateSigningRequests(),
+		csrData,
+		[]certificates.KeyUsage{
+			// https://tools.ietf.org/html/rfc5280#section-4.2.1.3
+			//
+			// Digital signature allows the certificate to be used to verify
+			// digital signatures used during TLS negotiation.
+			certificates.UsageDigitalSignature,
+			// KeyEncipherment allows the cert/key pair to be used to encrypt
+			// keys, including the symetric keys negotiated during TLS setup
+			// and used for data transfer.
+			certificates.UsageKeyEncipherment,
+			// ServerAuth allows the cert to be used by a TLS server to
+			// authenticate itself to a TLS client.
+			certificates.UsageServerAuth,
 		},
-		Spec: certificates.CertificateSigningRequestSpec{
-			Request: csrData,
-		},
-	}
-
-	csr, err := c.Certificates().CertificateSigningRequests().Create(signingRequest)
+	)
 	if err != nil {
-		if !kerrors.IsAlreadyExists(err) {
-			return err
-		}
-		glog.V(3).Infof("Bootstrap server certificate already exists at %s", signingRequest.Name)
-		csr, err = c.Certificates().CertificateSigningRequests().Get(signingRequest.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
+		return err
 	}
 	if err := ioutil.WriteFile(serverKeyPath, privateKeyData, 0600); err != nil {
 		return err
 	}
-
-	err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		if deny := hasCSRCondition(csr.Status.Conditions, certificates.CertificateDenied); deny != nil {
-			glog.V(2).Infof("Bootstrap signing rejected (%s): %s", deny.Reason, deny.Message)
-			return false, fmt.Errorf("certificate signing request rejected (%s): %s", deny.Reason, deny.Message)
-		}
-		if approved := hasCSRCondition(csr.Status.Conditions, certificates.CertificateApproved); approved != nil {
-			glog.V(2).Infof("Bootstrap serving cert approved")
-			return true, nil
-		}
-		csr, err = c.Certificates().CertificateSigningRequests().Get(csr.Name, metav1.GetOptions{})
-		return false, err
-	})
-	if err != nil {
-		return err
-	}
-
-	if err := ioutil.WriteFile(serverCertPath, csr.Status.Certificate, 0600); err != nil {
+	if err := ioutil.WriteFile(serverCertPath, serverCertData, 0600); err != nil {
 		return err
 	}
 	if _, err := tls.LoadX509KeyPair(serverCertPath, serverKeyPath); err != nil {
@@ -253,36 +182,37 @@ func (o NodeOptions) loadBootstrap(hostnames []string, nodeConfigDir string) err
 		return err
 	}
 
-	kubeClientConfig, err := o.NodeArgs.KubeConnectionArgs.ClientConfig.ClientConfig()
-	if err != nil {
-		return err
-	}
-	var c kclientset.Interface
-	c, err = kclientset.NewForConfig(kubeClientConfig)
-	if err != nil {
+	nodeKubeconfig := filepath.Join(nodeConfigDir, "node.kubeconfig")
+
+	if err := kubeletapp.BootstrapClientCert(
+		nodeKubeconfig,
+		o.NodeArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath,
+		nodeConfigDir,
+		types.NodeName(o.NodeArgs.NodeName),
+	); err != nil {
 		return err
 	}
 
-	glog.Infof("Bootstrapping from API server %s (experimental)", kubeClientConfig.Host)
-
-	c, err = o.loadBootstrapClientCertificate(nodeConfigDir, c, 1*time.Minute)
+	kubeClientConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(&clientcmd.ClientConfigLoadingRules{ExplicitPath: nodeKubeconfig}, &clientcmd.ConfigOverrides{}).ClientConfig()
 	if err != nil {
 		return err
 	}
-	if err := o.loadBootstrapServerCertificate(nodeConfigDir, hostnames, c, 1*time.Minute); err != nil {
+	c, err := kclientset.NewForConfig(kubeClientConfig)
+	if err != nil {
+		return err
+	}
+	if err := loadBootstrapServerCertificate(nodeConfigDir, hostnames, c); err != nil {
 		return err
 	}
 
 	nodeClientCAPath := filepath.Join(nodeConfigDir, "node-client-ca.crt")
-	if len(kubeClientConfig.CAData) > 0 {
-		if err := ioutil.WriteFile(nodeClientCAPath, []byte(kubeClientConfig.CAData), 0600); err != nil {
-			return err
-		}
+	if err := utilcert.WriteCert(nodeClientCAPath, kubeClientConfig.CAData); err != nil {
+		return err
 	}
 
 	// try to refresh the latest node-config.yaml
 	o.ConfigFile = filepath.Join(nodeConfigDir, "node-config.yaml")
-	config, err := c.Core().ConfigMaps("openshift-infra").Get("node-config", metav1.GetOptions{})
+	config, err := c.Core().ConfigMaps("kube-system").Get("node-config", metav1.GetOptions{})
 	if err == nil {
 		// skip all the config we generated ourselves
 		skipConfig := map[string]struct{}{"server.crt": {}, "server.key": {}, "master-client.crt": {}, "master-client.key": {}, "node.kubeconfig": {}}

@@ -6,7 +6,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-// +genclient=true
+// +genclient
 
 // Route encapsulates the inputs needed to connect an alias to endpoints.
 type Route struct {

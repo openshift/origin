@@ -2,6 +2,7 @@ package build
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -22,10 +23,10 @@ import (
 	kinternalclientfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 
-	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/apis/build/validation"
+	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	"github.com/openshift/origin/pkg/build/controller/common"
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
@@ -44,7 +45,9 @@ import (
 // TestHandleBuild is the main test for build updates through the controller
 func TestHandleBuild(t *testing.T) {
 
-	now := metav1.Now()
+	// patch appears to drop sub-second accuracy from times, which causes problems
+	// during equality testing later, so start with a rounded number of seconds for a time.
+	now := metav1.NewTime(time.Now().Round(time.Second))
 	before := metav1.NewTime(now.Time.Add(-1 * time.Hour))
 
 	build := func(phase buildapi.BuildPhase) *buildapi.Build {
@@ -59,8 +62,20 @@ func TestHandleBuild(t *testing.T) {
 		p := mockBuildPod(build(buildapi.BuildPhaseNew))
 		p.Status.Phase = phase
 		switch phase {
-		case v1.PodRunning, v1.PodFailed:
+		case v1.PodRunning:
 			p.Status.StartTime = &now
+		case v1.PodFailed:
+			p.Status.StartTime = &now
+			p.Status.ContainerStatuses = []v1.ContainerStatus{
+				{
+					Name: "container",
+					State: v1.ContainerState{
+						Terminated: &v1.ContainerStateTerminated{
+							ExitCode: 1,
+						},
+					},
+				},
+			}
 		case v1.PodSucceeded:
 			p.Status.StartTime = &now
 			p.Status.ContainerStatuses = []v1.ContainerStatus{
@@ -76,6 +91,15 @@ func TestHandleBuild(t *testing.T) {
 		}
 		return p
 	}
+	withTerminationMessage := func(pod *v1.Pod) *v1.Pod {
+		pod.Status.ContainerStatuses[0].State.Terminated.Message = "termination message"
+		return pod
+	}
+	withPodCreationTS := func(pod *v1.Pod, tm metav1.Time) *v1.Pod {
+		pod.CreationTimestamp = tm
+		return pod
+	}
+
 	cancelled := func(build *buildapi.Build) *buildapi.Build {
 		build.Status.Cancelled = true
 		return build
@@ -88,9 +112,9 @@ func TestHandleBuild(t *testing.T) {
 		build.CreationTimestamp = tm
 		return build
 	}
-	withPodCreationTS := func(pod *v1.Pod, tm metav1.Time) *v1.Pod {
-		pod.CreationTimestamp = tm
-		return pod
+	withLogSnippet := func(build *buildapi.Build) *buildapi.Build {
+		build.Status.LogSnippet = "termination message"
+		return build
 	}
 
 	tests := []struct {
@@ -267,15 +291,21 @@ func TestHandleBuild(t *testing.T) {
 				update,
 		},
 		{
-			name:             "failed -> failed with completion timestamp+message",
-			build:            withCompletionTS(build(buildapi.BuildPhaseFailed)),
-			pod:              pod(v1.PodFailed),
-			expectOnComplete: true,
+			name:  "failed -> failed with completion timestamp+message and no logsnippet",
+			build: withCompletionTS(build(buildapi.BuildPhaseFailed)),
+			pod:   withTerminationMessage(pod(v1.PodFailed)),
+			// no oncomplete call because the completion timestamp is already set.
+			expectOnComplete: false,
 			expectUpdate: newUpdate().
 				startTime(now).
-				completionTime(now).
-				logSnippet("").
+				logSnippet("termination message").
 				update,
+		},
+		{
+			name:             "failed -> failed with completion timestamp+message and logsnippet",
+			build:            withLogSnippet(withCompletionTS(build(buildapi.BuildPhaseFailed))),
+			pod:              withTerminationMessage(pod(v1.PodFailed)),
+			expectOnComplete: false,
 		},
 	}
 
@@ -426,7 +456,6 @@ func TestCreateBuildPod(t *testing.T) {
 	expected.setPhase(buildapi.BuildPhasePending)
 	expected.setReason("")
 	expected.setMessage("")
-	expected.setOutputRef("")
 	validateUpdate(t, "create build pod", expected, update)
 	// Make sure that a pod was created
 	_, err = kubeClient.Core().Pods("namespace").Get(podName, metav1.GetOptions{})
@@ -440,18 +469,16 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	imageStream.Namespace = "isnamespace"
 	imageStream.Name = "isname"
 	imageStream.Status.DockerImageRepository = "namespace/image-name"
-	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	imageClient := fakeImageClient(imageStream)
+	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, nil, imageClient, nil, nil)
 	defer bc.stop()
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
 	podName := buildapi.GetBuildPodName(build)
 
 	update, err := bc.createBuildPod(build)
-
 	if err != nil {
-		t.Errorf("unexpected error: %v", err)
-		return
+		t.Fatalf("unexpected error: %v", err)
 	}
 	expected := &buildUpdate{}
 	expected.setPodNameAnnotation(podName)
@@ -460,9 +487,12 @@ func TestCreateBuildPodWithImageStreamOutput(t *testing.T) {
 	expected.setMessage("")
 	expected.setOutputRef("namespace/image-name:latest")
 	validateUpdate(t, "create build pod with imagestream output", expected, update)
+	if len(bc.imageStreamQueue.Pop("isnamespace/isname")) > 0 {
+		t.Errorf("should not have queued build update")
+	}
 }
 
-func TestCreateBuildPodWithImageStreamError(t *testing.T) {
+func TestCreateBuildPodWithOutputImageStreamMissing(t *testing.T) {
 	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
 	bc := newFakeBuildController(nil, nil, nil, nil, nil)
 	defer bc.stop()
@@ -470,13 +500,61 @@ func TestCreateBuildPodWithImageStreamError(t *testing.T) {
 
 	update, err := bc.createBuildPod(build)
 
-	if err == nil {
-		t.Errorf("Expected error")
+	if err != nil {
+		t.Fatalf("Expected no error")
 	}
 	expected := &buildUpdate{}
 	expected.setReason(buildapi.StatusReasonInvalidOutputReference)
 	expected.setMessage(buildapi.StatusMessageInvalidOutputRef)
 	validateUpdate(t, "create build pod with image stream error", expected, update)
+	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("isnamespace/isname"), []string{"namespace/data-build"}) {
+		t.Errorf("should have queued build update: %#v", bc.imageStreamQueue)
+	}
+}
+
+func TestCreateBuildPodWithImageStreamMissing(t *testing.T) {
+	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Kind: "DockerImage"}
+	bc := newFakeBuildController(nil, nil, nil, nil, nil)
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+	build.Spec.Strategy.DockerStrategy.From = &kapi.ObjectReference{Kind: "ImageStreamTag", Name: "isname:latest"}
+
+	update, err := bc.createBuildPod(build)
+	if err != nil {
+		t.Fatalf("Expected no error: %v", err)
+	}
+	expected := &buildUpdate{}
+	expected.setReason(buildapi.StatusReasonInvalidImageReference)
+	expected.setMessage(buildapi.StatusMessageInvalidImageRef)
+	validateUpdate(t, "create build pod with image stream error", expected, update)
+	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("namespace/isname"), []string{"namespace/data-build"}) {
+		t.Errorf("should have queued build update: %#v", bc.imageStreamQueue)
+	}
+}
+
+func TestCreateBuildPodWithImageStreamUnresolved(t *testing.T) {
+	imageStream := &imageapi.ImageStream{}
+	imageStream.Namespace = "isnamespace"
+	imageStream.Name = "isname"
+	imageStream.Status.DockerImageRepository = ""
+	imageClient := fakeImageClient(imageStream)
+	imageStreamRef := &kapi.ObjectReference{Name: "isname:latest", Namespace: "isnamespace", Kind: "ImageStreamTag"}
+	bc := newFakeBuildController(nil, nil, imageClient, nil, nil)
+	defer bc.stop()
+	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{To: imageStreamRef}))
+
+	update, err := bc.createBuildPod(build)
+
+	if err == nil {
+		t.Fatalf("Expected error")
+	}
+	expected := &buildUpdate{}
+	expected.setReason(buildapi.StatusReasonInvalidOutputReference)
+	expected.setMessage(buildapi.StatusMessageInvalidOutputRef)
+	validateUpdate(t, "create build pod with image stream error", expected, update)
+	if !reflect.DeepEqual(bc.imageStreamQueue.Pop("isnamespace/isname"), []string{"namespace/data-build"}) {
+		t.Errorf("should have queued build update")
+	}
 }
 
 type errorStrategy struct{}
@@ -982,7 +1060,10 @@ func newFakeBuildController(openshiftClient client.Interface, buildClient buildi
 		kubeExternalClient = fakeKubeExternalClientSet()
 	}
 	if kubeInternalClient == nil {
-		kubeInternalClient = fakeKubeInternalClientSet()
+		builderSA := kapi.ServiceAccount{}
+		builderSA.Name = "builder"
+		builderSA.Namespace = "namespace"
+		kubeInternalClient = fakeKubeInternalClientSet(&builderSA)
 	}
 
 	kubeExternalInformers := fakeKubeExternalInformers(kubeExternalClient)

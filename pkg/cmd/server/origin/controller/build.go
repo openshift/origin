@@ -3,9 +3,9 @@ package controller
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 
-	builddefaults "github.com/openshift/origin/pkg/build/admission/defaults"
-	buildoverrides "github.com/openshift/origin/pkg/build/admission/overrides"
 	buildcontroller "github.com/openshift/origin/pkg/build/controller/build"
+	builddefaults "github.com/openshift/origin/pkg/build/controller/build/defaults"
+	buildoverrides "github.com/openshift/origin/pkg/build/controller/build/overrides"
 	buildconfigcontroller "github.com/openshift/origin/pkg/build/controller/buildconfig"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -15,7 +15,7 @@ import (
 
 type BuildControllerConfig struct {
 	DockerImage           string
-	STIImage              string
+	S2IImage              string
 	AdmissionPluginConfig map[string]configapi.AdmissionPluginConfig
 
 	Codec runtime.Codec
@@ -67,7 +67,7 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 			Codec: c.Codec,
 		},
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
-			Image: c.STIImage,
+			Image: c.S2IImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
 			Codec:            c.Codec,
 			AdmissionControl: sccAdmission,

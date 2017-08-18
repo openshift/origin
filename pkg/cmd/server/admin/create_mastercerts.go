@@ -15,10 +15,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/cert"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/util/parallel"
 )
 
@@ -76,7 +76,6 @@ type CreateMasterCertsOptions struct {
 	SignerExpireDays int
 
 	APIServerCAFiles []string
-	CABundleFile     string
 
 	Hostnames []string
 
@@ -180,39 +179,52 @@ func (o CreateMasterCertsOptions) Validate(args []string) error {
 func (o CreateMasterCertsOptions) CreateMasterCerts() error {
 	glog.V(4).Infof("Creating all certs with: %#v", o)
 
+	getSignerCertOptions, err := o.createNewSigner(CAFilePrefix)
+	if err != nil {
+		return err
+	}
+	getFrontProxySignerCertOptions, err := o.createNewSigner(FrontProxyCAFilePrefix)
+	if err != nil {
+		return err
+	}
+
+	errs := parallel.Run(
+		func() error { return o.createCABundle(getSignerCertOptions) },
+		func() error { return o.createServerCerts(getSignerCertOptions) },
+		func() error { return o.createAPIClients(getSignerCertOptions) },
+		func() error { return o.createEtcdClientCerts(getSignerCertOptions) },
+		func() error { return o.createKubeletClientCerts(getSignerCertOptions) },
+		func() error { return o.createProxyClientCerts(getSignerCertOptions) },
+		func() error { return o.createServiceAccountKeys() },
+		func() error { return o.createServiceSigningCA(getSignerCertOptions) },
+		func() error { return o.createAggregatorClientCerts(getFrontProxySignerCertOptions) },
+	)
+	return utilerrors.NewAggregate(errs)
+}
+
+func (o CreateMasterCertsOptions) createNewSigner(prefix string) (*SignerCertOptions, error) {
 	signerCertOptions := CreateSignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
-		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
-		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
+		CertFile:   DefaultCertFilename(o.CertDir, prefix),
+		KeyFile:    DefaultKeyFilename(o.CertDir, prefix),
+		SerialFile: DefaultSerialFilename(o.CertDir, prefix),
 		ExpireDays: o.SignerExpireDays,
 		Name:       o.SignerName,
 		Overwrite:  o.Overwrite,
 		Output:     o.Output,
 	}
 	if err := signerCertOptions.Validate(nil); err != nil {
-		return err
+		return nil, err
 	}
 	if _, err := signerCertOptions.CreateSignerCert(); err != nil {
-		return err
+		return nil, err
 	}
 	// once we've minted the signer, don't overwrite it
-	getSignerCertOptions := SignerCertOptions{
-		CertFile:   DefaultCertFilename(o.CertDir, CAFilePrefix),
-		KeyFile:    DefaultKeyFilename(o.CertDir, CAFilePrefix),
-		SerialFile: DefaultSerialFilename(o.CertDir, CAFilePrefix),
-	}
+	return &SignerCertOptions{
+		CertFile:   DefaultCertFilename(o.CertDir, prefix),
+		KeyFile:    DefaultKeyFilename(o.CertDir, prefix),
+		SerialFile: DefaultSerialFilename(o.CertDir, prefix),
+	}, nil
 
-	errs := parallel.Run(
-		func() error { return o.createCABundle(&getSignerCertOptions) },
-		func() error { return o.createServerCerts(&getSignerCertOptions) },
-		func() error { return o.createAPIClients(&getSignerCertOptions) },
-		func() error { return o.createEtcdClientCerts(&getSignerCertOptions) },
-		func() error { return o.createKubeletClientCerts(&getSignerCertOptions) },
-		func() error { return o.createProxyClientCerts(&getSignerCertOptions) },
-		func() error { return o.createServiceAccountKeys() },
-		func() error { return o.createServiceSigningCA(&getSignerCertOptions) },
-	)
-	return utilerrors.NewAggregate(errs)
 }
 
 func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerCertOptions) error {
@@ -240,6 +252,13 @@ func (o CreateMasterCertsOptions) createAPIClients(getSignerCertOptions *SignerC
 		if _, err := createKubeConfigOptions.CreateKubeConfig(); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (o CreateMasterCertsOptions) createAggregatorClientCerts(getSignerCertOptions *SignerCertOptions) error {
+	if err := o.createClientCert(DefaultAggregatorClientCertInfo(o.CertDir), getSignerCertOptions); err != nil {
+		return err
 	}
 	return nil
 }

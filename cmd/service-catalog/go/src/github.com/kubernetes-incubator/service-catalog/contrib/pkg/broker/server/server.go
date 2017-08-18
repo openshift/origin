@@ -17,9 +17,10 @@ limitations under the License.
 package server
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	"strconv"
+	"time"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/broker/controller"
@@ -35,7 +36,7 @@ type server struct {
 
 // CreateHandler creates Broker HTTP handler based on an implementation
 // of a controller.Controller interface.
-func CreateHandler(c controller.Controller) http.Handler {
+func createHandler(c controller.Controller) http.Handler {
 	s := server{
 		controller: c,
 	}
@@ -43,7 +44,7 @@ func CreateHandler(c controller.Controller) http.Handler {
 	var router = mux.NewRouter()
 
 	router.HandleFunc("/v2/catalog", s.catalog).Methods("GET")
-	router.HandleFunc("/v2/service_instances/{instance_id}", s.getServiceInstance).Methods("GET")
+	router.HandleFunc("/v2/service_instances/{instance_id}/last_operation", s.getServiceInstanceLastOperation).Methods("GET")
 	router.HandleFunc("/v2/service_instances/{instance_id}", s.createServiceInstance).Methods("PUT")
 	router.HandleFunc("/v2/service_instances/{instance_id}", s.removeServiceInstance).Methods("DELETE")
 	router.HandleFunc("/v2/service_instances/{instance_id}/service_bindings/{binding_id}", s.bind).Methods("PUT")
@@ -52,14 +53,23 @@ func CreateHandler(c controller.Controller) http.Handler {
 	return router
 }
 
-// Start creates the HTTP handler based on an implementation of a
-// controller.Controller interface, and begins to listen on the specified port.
-func Start(serverPort int, c controller.Controller) {
-	glog.Infof("Starting server on %d\n", serverPort)
-	http.Handle("/", CreateHandler(c))
-	if err := http.ListenAndServe(":"+strconv.Itoa(serverPort), nil); err != nil {
-		panic(err)
+// Run creates the HTTP handler based on an implementation of a
+// controller.Controller interface, and begins to listen on the specified address.
+func Run(ctx context.Context, addr string, c controller.Controller) error {
+	glog.Infof("Starting server on %d\n", addr)
+	srv := http.Server{
+		Addr:    addr,
+		Handler: createHandler(c),
 	}
+	go func() {
+		<-ctx.Done()
+		c, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		if srv.Shutdown(c) != nil {
+			srv.Close()
+		}
+	}()
+	return srv.ListenAndServe()
 }
 
 func (s *server) catalog(w http.ResponseWriter, r *http.Request) {
@@ -68,18 +78,22 @@ func (s *server) catalog(w http.ResponseWriter, r *http.Request) {
 	if result, err := s.controller.Catalog(); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }
 
-func (s *server) getServiceInstance(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["instance_id"]
-	glog.Infof("GetServiceInstance ... %s\n", id)
+func (s *server) getServiceInstanceLastOperation(w http.ResponseWriter, r *http.Request) {
+	instanceID := mux.Vars(r)["instance_id"]
+	q := r.URL.Query()
+	serviceID := q.Get("service_id")
+	planID := q.Get("plan_id")
+	operation := q.Get("operation")
+	glog.Infof("GetServiceInstance ... %s\n", instanceID)
 
-	if result, err := s.controller.GetServiceInstance(id); err == nil {
+	if result, err := s.controller.GetServiceInstanceLastOperation(instanceID, serviceID, planID, operation); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }
 
@@ -90,7 +104,7 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	var req brokerapi.CreateServiceInstanceRequest
 	if err := util.BodyToObject(r, &req); err != nil {
 		glog.Errorf("error unmarshalling: %v", err)
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -104,18 +118,22 @@ func (s *server) createServiceInstance(w http.ResponseWriter, r *http.Request) {
 	if result, err := s.controller.CreateServiceInstance(id, &req); err == nil {
 		util.WriteResponse(w, http.StatusCreated, result)
 	} else {
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }
 
 func (s *server) removeServiceInstance(w http.ResponseWriter, r *http.Request) {
-	id := mux.Vars(r)["instance_id"]
-	glog.Infof("RemoveServiceInstance %s...\n", id)
+	instanceID := mux.Vars(r)["instance_id"]
+	q := r.URL.Query()
+	serviceID := q.Get("service_id")
+	planID := q.Get("plan_id")
+	acceptsIncomplete := q.Get("accepts_incomplete") == "true"
+	glog.Infof("RemoveServiceInstance %s...\n", instanceID)
 
-	if result, err := s.controller.RemoveServiceInstance(id); err == nil {
+	if result, err := s.controller.RemoveServiceInstance(instanceID, serviceID, planID, acceptsIncomplete); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }
 
@@ -129,7 +147,7 @@ func (s *server) bind(w http.ResponseWriter, r *http.Request) {
 
 	if err := util.BodyToObject(r, &req); err != nil {
 		glog.Errorf("Failed to unmarshall request: %v", err)
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -146,19 +164,23 @@ func (s *server) bind(w http.ResponseWriter, r *http.Request) {
 	if result, err := s.controller.Bind(instanceID, bindingID, &req); err == nil {
 		util.WriteResponse(w, http.StatusOK, result)
 	} else {
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }
 
 func (s *server) unBind(w http.ResponseWriter, r *http.Request) {
 	instanceID := mux.Vars(r)["instance_id"]
 	bindingID := mux.Vars(r)["binding_id"]
+	q := r.URL.Query()
+	serviceID := q.Get("service_id")
+	planID := q.Get("plan_id")
 	glog.Infof("UnBind: Service instance guid: %s:%s", bindingID, instanceID)
 
-	if err := s.controller.UnBind(instanceID, bindingID); err == nil {
+	if err := s.controller.UnBind(instanceID, bindingID, serviceID, planID); err == nil {
 		w.WriteHeader(http.StatusOK)
-		fmt.Print(w, "{}") //id)
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprint(w, "{}") //id)
 	} else {
-		util.WriteResponse(w, http.StatusBadRequest, err)
+		util.WriteErrorResponse(w, http.StatusBadRequest, err)
 	}
 }

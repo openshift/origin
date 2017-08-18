@@ -57,18 +57,58 @@ type BrokerSpec struct {
 // BrokerAuthInfo is a union type that contains information on one of the authentication methods
 // the the service catalog and brokers may support, according to the OpenServiceBroker API
 // specification (https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md).
-//
-// Note that we currently restrict a single broker to have only one of these fields
-// set on it.
 type BrokerAuthInfo struct {
+	// Basic provides configuration for basic authentication.
+	Basic *BasicAuthConfig `json:"basic,omitempty"`
+	// BearerTokenAuthConfig provides configuration to send an opaque value as a bearer token.
+	// The value is referenced from the 'token' field of the given secret.  This value should only
+	// contain the token value and not the `Bearer` scheme.
+	Bearer *BearerTokenAuthConfig `json:"bearer,omitempty"`
+
+	// DEPRECATED: use `Basic` field for configuring basic authentication instead.
 	// BasicAuthSecret is a reference to a Secret containing auth information the
 	// catalog should use to authenticate to this Broker using basic auth.
 	BasicAuthSecret *v1.ObjectReference `json:"basicAuthSecret,omitempty"`
 }
 
+// BasicAuthConfig provides config for the basic authentication.
+type BasicAuthConfig struct {
+	// SecretRef is a reference to a Secret containing information the
+	// catalog should use to authenticate to this Broker.
+	//
+	// Required at least one of the fields:
+	// - Secret.Data["username"] - username used for authentication
+	// - Secret.Data["password"] - password or token needed for authentication
+	SecretRef *v1.ObjectReference `json:"secretRef,omitempty"`
+}
+
+// BearerTokenAuthConfig provides config for the bearer token authentication.
+type BearerTokenAuthConfig struct {
+	// SecretRef is a reference to a Secret containing information the
+	// catalog should use to authenticate to this Broker.
+	//
+	// Required field:
+	// - Secret.Data["token"] - bearer token for authentication
+	SecretRef *v1.ObjectReference `json:"secretRef,omitempty"`
+}
+
+const (
+	// BasicAuthUsernameKey is the key of the username for SecretTypeBasicAuth secrets
+	BasicAuthUsernameKey = "username"
+	// BasicAuthPasswordKey is the key of the password or token for SecretTypeBasicAuth secrets
+	BasicAuthPasswordKey = "password"
+
+	// BearerTokenKey is the key of the bearer token for SecretTypeBearerTokenAuth secrets
+	BearerTokenKey = "token"
+)
+
 // BrokerStatus represents the current status of a Broker.
 type BrokerStatus struct {
 	Conditions []BrokerCondition `json:"conditions"`
+
+	// Checksum is the sha hash of the BrokerSpec that was last successfully
+	// reconciled against the broker.
+	Checksum *string `json:"checksum,omitempty"`
 }
 
 // BrokerCondition contains condition information for a Broker.
@@ -265,11 +305,28 @@ type InstanceSpec struct {
 
 	// PlanName is the name of the ServicePlan this Instance should be
 	// provisioned from.
-	PlanName string `json:"planName"`
+	// If omitted and there is only one plan in the specified ServiceClass
+	// it will be used.
+	// If omitted and there are more than one plan in the specified ServiceClass
+	// the request will be rejected.
+	PlanName string `json:"planName,omitempty"`
 
-	// Parameters is a YAML representation of the properties to be
+	// Parameters is a set of the parameters to be
 	// passed to the underlying broker.
+	// The inline YAML/JSON payload to be translated into equivalent
+	// JSON object.
+	// If a top-level parameter name exists in multiples sources among
+	// `Parameters` and `ParametersFrom` fields, it is
+	// considered to be a user error in the specification
+	// +optional
 	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
+
+	// List of sources to populate parameters.
+	// If a top-level parameter name exists in multiples sources among
+	// `Parameters` and `ParametersFrom` fields, it is
+	// considered to be a user error in the specification
+	// +optional
+	ParametersFrom []ParametersFromSource `json:"parametersFrom,omitempty"`
 
 	// ExternalID is the identity of this object for use with the OSB SB API.
 	//
@@ -329,6 +386,10 @@ const (
 	// InstanceConditionReady represents that a given InstanceCondition is in
 	// ready state.
 	InstanceConditionReady InstanceConditionType = "Ready"
+
+	// InstanceConditionFailed represents information about a final failure
+	// that should not be retried.
+	InstanceConditionFailed InstanceConditionType = "Failed"
 )
 
 // BindingList is a list of Bindings.
@@ -358,40 +419,31 @@ type BindingSpec struct {
 	// Immutable.
 	InstanceRef v1.LocalObjectReference `json:"instanceRef"`
 
-	// Parameters is a YAML representation of the properties to be
+	// Parameters is a set of the parameters to be
 	// passed to the underlying broker.
+	// The inline YAML/JSON payload to be translated into equivalent
+	// JSON object.
+	// If a top-level parameter name exists in multiples sources among
+	// `Parameters` and `ParametersFrom` fields, it is
+	// considered to be a user error in the specification
+	// +optional
 	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
+
+	// List of sources to populate parameters.
+	// If a top-level parameter name exists in multiples sources among
+	// `Parameters` and `ParametersFrom` fields, it is
+	// considered to be a user error in the specification
+	// +optional
+	ParametersFrom []ParametersFromSource `json:"parametersFrom,omitempty"`
 
 	// SecretName is the name of the secret to create in the Binding's
 	// namespace that will hold the credentials associated with the Binding.
-	SecretName string `json:"secretName"`
+	SecretName string `json:"secretName,omitempty"`
 
 	// ExternalID is the identity of this object for use with the OSB API.
 	//
 	// Immutable.
 	ExternalID string `json:"externalID"`
-
-	// Currently, this field is ALPHA: it may change or disappear at any time
-	// and its data will not be migrated.
-	//
-	// AlphaPodPresetTemplate describes how a PodPreset should be created once
-	// the Binding has been made. If supplied, a PodPreset will be created
-	// using information in this field once the Binding has been made in the
-	// Broker. The PodPreset will use the EnvFrom feature to expose the keys
-	// from the Secret (specified by SecretName) that holds the Binding
-	// information into Pods.
-	//
-	// In the future, we will provide a higher degree of control over the PodPreset.
-	AlphaPodPresetTemplate *AlphaPodPresetTemplate `json:"alphaPodPresetTemplate,omitempty"`
-}
-
-// AlphaPodPresetTemplate represents how a PodPreset should be created for a
-// Binding.
-type AlphaPodPresetTemplate struct {
-	// Name is the name of the PodPreset to create.
-	Name string `json:"name"`
-	// Selector is the LabelSelector of the PodPreset to create.
-	Selector metav1.LabelSelector `json:"selector"`
 }
 
 // BindingStatus represents the current status of a Binding.
@@ -430,9 +482,29 @@ type BindingConditionType string
 const (
 	// BindingConditionReady represents a binding condition is in ready state.
 	BindingConditionReady BindingConditionType = "Ready"
+
+	// BindingConditionFailed represents a BindingCondition that has failed
+	// completely and should not be retried.
+	BindingConditionFailed BindingConditionType = "Failed"
 )
 
 // These are external finalizer values to service catalog, must be qualified name.
 const (
 	FinalizerServiceCatalog string = "kubernetes-incubator/service-catalog"
 )
+
+// ParametersFromSource represents the source of a set of Parameters
+type ParametersFromSource struct {
+	// The Secret key to select from.
+	// The value must be a JSON object.
+	//+optional
+	SecretKeyRef *SecretKeyReference `json:"secretKeyRef,omitempty"`
+}
+
+// SecretKeyReference references a key of a Secret.
+type SecretKeyReference struct {
+	// The name of the secret in the pod's namespace to select from.
+	Name string `json:"name"`
+	// The key of the secret to select from.  Must be a valid secret key.
+	Key string `json:"key"`
+}

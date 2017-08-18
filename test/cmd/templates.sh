@@ -97,6 +97,9 @@ os::cmd::expect_failure_and_text "oc process -f test/testdata/template_required_
 os::cmd::expect_success "oc process -f '${guestbook_template}' --param-file=/dev/null --param-file='${guestbook_params}'"
 os::cmd::expect_failure_and_text "echo 'fo%(o=bar' | oc process -f test/testdata/template_required_params.yaml --param-file=-"        'invalid parameter assignment'
 os::cmd::expect_failure_and_text "echo 'S P A C E S=test' | oc process -f test/testdata/template_required_params.yaml --param-file=-" 'invalid parameter assignment'
+# Handle absent parameter
+os::cmd::expect_failure_and_text "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent" 'unknown parameter name'
+os::cmd::expect_success "oc process -f '${guestbook_template}' -p ABSENT_PARAMETER=absent --ignore-unknown-parameters"
 echo "template+parameters: ok"
 os::test::junit::declare_suite_end
 

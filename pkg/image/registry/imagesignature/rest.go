@@ -18,6 +18,9 @@ type REST struct {
 	imageClient client.ImageInterface
 }
 
+var _ rest.Creater = &REST{}
+var _ rest.Deleter = &REST{}
+
 // NewREST returns a new REST.
 func NewREST(imageClient client.ImageInterface) *REST {
 	return &REST{imageClient: imageClient}

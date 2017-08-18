@@ -32,12 +32,7 @@ func ValidateEtcdConnectionInfo(config api.EtcdConnectionInfo, server *api.EtcdC
 
 	// If we have server config info, make sure the client connection info will work with it
 	if server != nil {
-		var builtInAddress string
-		if api.UseTLS(server.ServingInfo) {
-			builtInAddress = fmt.Sprintf("https://%s", server.Address)
-		} else {
-			builtInAddress = fmt.Sprintf("http://%s", server.Address)
-		}
+		var builtInAddress = fmt.Sprintf("https://%s", server.Address)
 
 		// Require a client cert to connect to an etcd that requires client certs
 		if len(server.ServingInfo.ClientCA) > 0 {

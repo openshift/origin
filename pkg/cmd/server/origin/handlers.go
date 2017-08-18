@@ -15,7 +15,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
-	"github.com/openshift/origin/pkg/util/httprequest"
 )
 
 // TODO We would like to use the IndexHandler from k8s but we do not yet have a
@@ -194,20 +193,6 @@ func (c *MasterConfig) versionSkewFilter(handler http.Handler, contextMapper api
 			}
 		}
 
-		handler.ServeHTTP(w, req)
-	})
-}
-
-// If we know the location of the asset server, redirect to it when / is requested
-// and the Accept header supports text/html
-func WithAssetServerRedirect(handler http.Handler, assetPublicURL string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.Path == "/" {
-			if httprequest.PrefersHTML(req) {
-				http.Redirect(w, req, assetPublicURL, http.StatusFound)
-			}
-		}
-		// Dispatch to the next handler
 		handler.ServeHTTP(w, req)
 	})
 }

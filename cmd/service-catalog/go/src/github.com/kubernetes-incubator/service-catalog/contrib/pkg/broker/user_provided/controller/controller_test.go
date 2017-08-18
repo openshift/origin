@@ -17,8 +17,12 @@ limitations under the License.
 package controller
 
 import (
+	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/broker/controller"
 	"testing"
 )
+
+// Make sure that userProvidedController implements Controller interface
+var _ controller.Controller = &userProvidedController{}
 
 func TestController(t *testing.T) {
 }

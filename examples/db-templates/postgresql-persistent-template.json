@@ -3,7 +3,6 @@
   "apiVersion": "v1",
   "metadata": {
     "name": "postgresql-persistent",
-    "creationTimestamp": null,
     "annotations": {
       "openshift.io/display-name": "PostgreSQL (Persistent)",
       "description": "PostgreSQL database service, with persistent storage. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/postgresql-container/blob/master/9.5.\n\nNOTE: Scaling to more than one replica is not supported. You must have persistent volumes available in your cluster to use this template.",
@@ -27,12 +26,14 @@
         "name": "${DATABASE_SERVICE_NAME}",
         "annotations": {
           "template.openshift.io/expose-username": "{.data['database-user']}",
-          "template.openshift.io/expose-password": "{.data['database-password']}"
+          "template.openshift.io/expose-password": "{.data['database-password']}",
+          "template.openshift.io/expose-database_name": "{.data['database-name']}"
         }
       },
       "stringData" : {
         "database-user" : "${POSTGRESQL_USER}",
-        "database-password" : "${POSTGRESQL_PASSWORD}"
+        "database-password" : "${POSTGRESQL_PASSWORD}",
+        "database-name" : "${POSTGRESQL_DATABASE}"
       }
     },
     {
@@ -40,7 +41,6 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null,
         "annotations": {
           "template.openshift.io/expose-uri": "postgres://{.spec.clusterIP}:{.spec.ports[?(.name==\"postgresql\")].port}"
         }
@@ -87,7 +87,9 @@
       "apiVersion": "v1",
       "metadata": {
         "name": "${DATABASE_SERVICE_NAME}",
-        "creationTimestamp": null
+        "annotations": {
+          "template.alpha.openshift.io/wait-for-ready": "true"
+        }
       },
       "spec": {
         "strategy": {
@@ -119,7 +121,6 @@
         },
         "template": {
           "metadata": {
-            "creationTimestamp": null,
             "labels": {
               "name": "${DATABASE_SERVICE_NAME}"
             }
@@ -170,7 +171,12 @@
                   },
                   {
                     "name": "POSTGRESQL_DATABASE",
-                    "value": "${POSTGRESQL_DATABASE}"
+                    "valueFrom": {
+                      "secretKeyRef" : {
+                        "name" : "${DATABASE_SERVICE_NAME}",
+                        "key" : "database-name"
+                      }
+                    }
                   }
                 ],
                 "resources": {

@@ -23,12 +23,13 @@ export PATH=${ROOT}/contrib/hack:${PATH}
 # Clean up old containers if still around
 docker rm -f etcd-svc-cat apiserver > /dev/null 2>&1 || true
 
-# Start etcd, our DB. Also, map 8081 (api server port) to some random
-# port on the host - then ask Docker for the port # as we'll need to use
-# that when we talk to it.
+# Start etcd, our DB.
 echo Starting etcd
-docker run --name etcd-svc-cat -d -p 8081 quay.io/coreos/etcd > /dev/null
-PORT=$(docker port etcd-svc-cat 8081 | sed "s/.*://")
+# we map the port here (even though etcd doesn't use 443) because we
+# can't map it later when we put the apiserver into the same network
+# namespace as etcd
+docker run --name etcd-svc-cat -p 443 -d quay.io/coreos/etcd > /dev/null
+PORT=$(docker port etcd-svc-cat 443 | sed "s/.*://")
 
 # And now our API Server
 echo Starting the API Server
@@ -43,7 +44,6 @@ docker run -d --name apiserver \
 	--net container:etcd-svc-cat \
 	scbuildimage \
 	bin/apiserver -v 10 --etcd-servers http://localhost:2379 \
-		--insecure-bind-address=0.0.0.0 --insecure-port=8081 \
 		--storage-type=etcd --disable-auth
 
 # Wait for apiserver to be up and running
@@ -52,12 +52,12 @@ count=0
 D_HOST=${DOCKER_HOST:-localhost}
 D_HOST=${D_HOST#*//}   # remove leading proto://
 D_HOST=${D_HOST%:*}    # remove trailing port #
-while ! curl http://${D_HOST}:${PORT} > /dev/null 2>&1 ; do
+while ! curl --cacert ${ROOT}/.var/run/kubernetes-service-catalog/apiserver.crt https://${D_HOST}:${PORT} > /dev/null 2>&1 ; do
 	sleep 1
 	(( count++ )) || true
 	if [ "${count}" == "30" ]; then
 		echo "Timed-out waiting for API Server"
-		(set -x ; curl http://${D_HOST}:${PORT})
+		(set -x ; curl --cacert ${ROOT}/.var/run/kubernetes-service-catalog/apiserver.crt https://${D_HOST}:${PORT})
 		(set -x ; docker ps)
 		(set -x ; docker logs apiserver)
 		exit 1

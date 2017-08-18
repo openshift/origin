@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/credentialprovider"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
@@ -24,6 +26,15 @@ import (
 const (
 	// NoBuildLogsMessage reports that no build logs are available
 	NoBuildLogsMessage = "No logs are available."
+
+	// WorkDir is the working directory within the build pod, mounted as a volume.
+	BuildWorkDirMount = "/tmp/build"
+)
+
+var (
+	// InputContentPath is the path at which the build inputs will be available
+	// to all the build containers.
+	InputContentPath = filepath.Join(BuildWorkDirMount, "inputs")
 )
 
 // GetBuildName returns name of the build pod.
@@ -435,4 +446,48 @@ func UpdateBuildEnv(build *buildapi.Build, env []kapi.EnvVar) {
 	}
 	newEnv = append(newEnv, env...)
 	SetBuildEnv(build, newEnv)
+}
+
+// FindDockerSecretAsReference looks through a set of k8s Secrets to find one that represents Docker credentials
+// and which contains credentials that are associated with the registry identified by the image.  It returns
+// a LocalObjectReference to the Secret, or nil if no match was found.
+func FindDockerSecretAsReference(secrets []kapi.Secret, image string) *kapi.LocalObjectReference {
+	emptyKeyring := credentialprovider.BasicDockerKeyring{}
+	for _, secret := range secrets {
+		secretsv1 := make([]v1.Secret, 1)
+		err := v1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[0], nil)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, &emptyKeyring)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+		if _, found := keyring.Lookup(image); found {
+			return &kapi.LocalObjectReference{Name: secret.Name}
+		}
+	}
+	return nil
+}
+
+// ParseProxyURL parses a proxy URL and allows fallback to non-URLs like
+// myproxy:80 (for example) which url.Parse no longer accepts in Go 1.8.  The
+// logic is copied from net/http.ProxyFromEnvironment to try to maintain
+// backwards compatibility.
+func ParseProxyURL(proxy string) (*url.URL, error) {
+	proxyURL, err := url.Parse(proxy)
+
+	// logic copied from net/http.ProxyFromEnvironment
+	if err != nil || !strings.HasPrefix(proxyURL.Scheme, "http") {
+		// proxy was bogus. Try prepending "http://" to it and see if that
+		// parses correctly. If not, we fall through and complain about the
+		// original one.
+		if proxyURL, err := url.Parse("http://" + proxy); err == nil {
+			return proxyURL, nil
+		}
+	}
+
+	return proxyURL, err
 }

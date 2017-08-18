@@ -20,6 +20,7 @@ spec:
         release: "{{ .Release.Name }}"
         heritage: "{{ .Release.Service }}"
     spec:
+      serviceAccountName: "{{ .Values.controllerManager.serviceAccount }}"
       containers:
       - name: controller-manager
         image: {{ .Values.controllerManager.image }}
@@ -39,8 +40,10 @@ spec:
         args:
         - --port
         - "8080"
-        {{ if .Values.controllerManager.leaderElectionNamespace.activated -}}
+        {{ if .Values.controllerManager.leaderElection.activated -}}
         - "--leader-election-namespace=$(K8S_NAMESPACE)"
+        {{- else }}
+        - "--leader-elect=false"
         {{- end }}
         {{ if .Values.controllerManager.profiling.disabled -}}
         - "--profiling=false"
@@ -50,11 +53,10 @@ spec:
         {{- end}}
         {{- if not .Values.useAggregator }}
         - --service-catalog-api-server-url
-        {{- if .Values.apiserver.insecure }}
-        - http://{{ template "fullname" . }}-apiserver
-        {{- else }}
         - https://{{ template "fullname" . }}-apiserver
         {{- end }}
+        {{ if and (.Values.controllerManager.apiserverSkipVerify) (not .Values.useAggregator) -}}
+        - "--service-catalog-insecure-skip-verify=true"
         {{- end }}
         - -v
         - "{{ .Values.controllerManager.verbosity }}"

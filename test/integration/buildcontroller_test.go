@@ -2,7 +2,6 @@ package integration
 
 import (
 	"testing"
-	"time"
 
 	"github.com/golang/glog"
 
@@ -24,12 +23,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	"github.com/openshift/origin/pkg/cmd/server/start"
-	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
-	appclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
-	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -44,53 +37,52 @@ type controllerCount struct {
 // TestConcurrentBuildControllers tests the transition of a build from new to pending. Ensures that only a single New -> Pending
 // transition happens and that only a single pod is created during a set period of time.
 func TestConcurrentBuildControllers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple BuildControllers
-	osClient, kClient := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	defer fn()
 	build.RunBuildControllerTest(t, osClient, kClient)
 }
 
 // TestConcurrentBuildControllersPodSync tests the lifecycle of a build pod when running multiple controllers.
 func TestConcurrentBuildControllersPodSync(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple BuildControllers
-	osClient, kClient := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	defer fn()
 	build.RunBuildControllerPodSyncTest(t, osClient, kClient)
 }
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	// Start a master with multiple ImageChangeTrigger controllers
-	osClient, _ := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
+	osClient, _, fn := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
+	defer fn()
 	build.RunImageChangeTriggerTest(t, osClient)
 }
 
 func TestBuildDeleteController(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	defer fn()
 	build.RunBuildDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	defer fn()
 	build.RunBuildRunningPodDeleteTest(t, osClient, kClient)
 }
 
 func TestBuildCompletePodDeleteController(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	defer fn()
 	build.RunBuildCompletePodDeleteTest(t, osClient, kClient)
 }
 
 func TestConcurrentBuildConfigControllers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	osClient, kClient := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	osClient, kClient, fn := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	defer fn()
 	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface) {
-	testutil.RequireEtcd(t)
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface, func()) {
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
@@ -143,44 +135,28 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		t.Fatal(err)
 	}
 
-	imageClient, err := imageclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	openshiftConfig.ImageInformers = imageinformer.NewSharedInformerFactory(imageClient, 10*time.Minute)
-
-	appsClient, err := appclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	openshiftConfig.AppInformers = appinformer.NewSharedInformerFactory(appsClient, 10*time.Minute)
-	securityClient, err := securityclient.NewForConfig(&openshiftConfig.PrivilegedLoopbackClientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	openshiftConfig.SecurityInformers = securityinformer.NewSharedInformerFactory(securityClient, 10*time.Minute)
 	go func() {
-		openshiftConfig.BuildInformers.Start(utilwait.NeverStop)
-		openshiftConfig.ImageInformers.Start(utilwait.NeverStop)
-		openshiftConfig.AppInformers.Start(utilwait.NeverStop)
-		openshiftConfig.SecurityInformers.Start(utilwait.NeverStop)
+		informers.GetBuildInformers().Start(utilwait.NeverStop)
+		informers.GetImageInformers().Start(utilwait.NeverStop)
+		informers.GetAppInformers().Start(utilwait.NeverStop)
+		informers.GetSecurityInformers().Start(utilwait.NeverStop)
 	}()
 
 	controllerContext := kctrlmgr.ControllerContext{
 		ClientBuilder: saClientBuilder,
 		InformerFactory: genericInformers{
-			SharedInformerFactory: openshiftConfig.ExternalKubeInformers,
+			SharedInformerFactory: informers.GetExternalKubeInformers(),
 			generic: []GenericResourceInformer{
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return openshiftConfig.ImageInformers.ForResource(resource)
+					return informers.GetImageInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return openshiftConfig.BuildInformers.ForResource(resource)
+					return informers.GetBuildInformers().ForResource(resource)
 				}),
 				genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-					return openshiftConfig.AppInformers.ForResource(resource)
+					return informers.GetAppInformers().ForResource(resource)
 				}),
-				openshiftConfig.ExternalKubeInformers,
+				informers.GetExternalKubeInformers(),
 			},
 		},
 		Options:            *controllerManagerOptions,
@@ -197,16 +173,16 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 				Namespace:            bootstrappolicy.DefaultOpenShiftInfraNamespace,
 			},
 		},
-		ExternalKubeInformers: openshiftConfig.ExternalKubeInformers,
-		InternalKubeInformers: openshiftConfig.InternalKubeInformers,
-		AppInformers:          openshiftConfig.AppInformers,
-		BuildInformers:        openshiftConfig.BuildInformers,
-		ImageInformers:        openshiftConfig.ImageInformers,
-		SecurityInformers:     openshiftConfig.SecurityInformers,
+		ExternalKubeInformers: informers.GetExternalKubeInformers(),
+		InternalKubeInformers: informers.GetInternalKubeInformers(),
+		AppInformers:          informers.GetAppInformers(),
+		BuildInformers:        informers.GetBuildInformers(),
+		ImageInformers:        informers.GetImageInformers(),
+		SecurityInformers:     informers.GetSecurityInformers(),
 		Stop:                  controllerContext.Stop,
 	}
 
-	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(*master, informers)
+	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(*master)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -233,7 +209,9 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 			t.Fatal(err)
 		}
 	}
-	return clusterAdminClient, clusterAdminKubeClientset
+	return clusterAdminClient, clusterAdminKubeClientset, func() {
+		testserver.CleanupMasterEtcd(t, master)
+	}
 }
 
 type GenericResourceInformer interface {

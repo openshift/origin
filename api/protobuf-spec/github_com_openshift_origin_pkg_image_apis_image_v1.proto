@@ -277,6 +277,11 @@ message ImageStreamStatus {
   // May be empty until the server determines where the repository is located
   optional string dockerImageRepository = 1;
 
+  // PublicDockerImageRepository represents the public location from where the image can
+  // be pulled outside the cluster. This field may be empty if the administrator
+  // has not exposed the integrated registry externally.
+  optional string publicDockerImageRepository = 3;
+
   // Tags are a historical record of images associated with each tag. The first entry in the
   // TagEvent array is the currently tagged image.
   repeated NamedTagEventList tags = 2;

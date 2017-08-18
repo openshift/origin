@@ -10,9 +10,9 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
-	oc "github.com/openshift/origin/pkg/cmd/cli/cmd"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	oc "github.com/openshift/origin/pkg/oc/cli/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -45,12 +45,11 @@ import (
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
@@ -116,8 +115,6 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 }
 func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
 	namespace := "foo"
 	templateName := "bar"
 
@@ -125,6 +122,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterOptions)
 	masterOptions.ProjectConfig.ProjectRequestTemplate = namespace + "/" + templateName
 
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(masterOptions)
@@ -212,12 +210,11 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 }
 
 func TestUnprivilegedNewProjectDenied(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-	_, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {

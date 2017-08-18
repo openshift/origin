@@ -21,7 +21,7 @@ import (
 	"k8s.io/client-go/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
 
 // Job represents the configuration of a single job.
 type Job struct {

@@ -52,9 +52,18 @@ a URL to access the management console for your cluster.
      ```
      INSECURE_REGISTRY='--insecure-registry 172.30.0.0/16'
      ```
-
-   - After editing the config, restart the Docker daemon.
+     or edit the `/etc/docker/daemon.json` file and add the following:
+     ```json
+     {
+        "insecure-registries": [
+          "172.30.0.0/16"
+        ]
+     }
      ```
+
+   - After editing the config, reload systemd and restart the Docker daemon.
+     ```
+     $ sudo systemctl daemon-reload
      $ sudo systemctl restart docker
      ```
 3. Ensure that your firewall allows containers access to the OpenShift master API (8443/tcp) and DNS (53/udp) endpoints.

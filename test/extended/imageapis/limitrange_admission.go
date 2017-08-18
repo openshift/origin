@@ -184,10 +184,14 @@ var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 
 	g.It(fmt.Sprintf("should deny an import of a repository exceeding limit on %s resource", imageapi.ResourceImageStreamTags), func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
-		defer tearDown(oc)
 
 		maxBulkImport, err := getMaxImagesBulkImportedPerRepository()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			g.Skip(err.Error())
+			return
+		}
+
+		defer tearDown(oc)
 
 		s1tag2Image, err := buildAndPushTestImagesTo(oc, "src1st", "tag", maxBulkImport+1)
 		s2tag2Image, err := buildAndPushTestImagesTo(oc, "src2nd", "t", 2)
@@ -235,7 +239,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 
 	for i := 1; i <= numberOfImages; i++ {
 		tag := fmt.Sprintf("%s%d", tagPrefix, i)
-		dgst, err := imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true)
+		dgst, _, err := imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, isName, tag, imageSize, 2, g.GinkgoWriter, true, true)
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +313,7 @@ func bumpLimit(oc *exutil.CLI, resourceName kapi.ResourceName, limit string) (ka
 func getMaxImagesBulkImportedPerRepository() (int, error) {
 	max := os.Getenv("MAX_IMAGES_BULK_IMPORTED_PER_REPOSITORY")
 	if len(max) == 0 {
-		return 0, fmt.Errorf("MAX_IMAGES_BULK_IMAGES_IMPORTED_PER_REPOSITORY needs to be set")
+		return 0, fmt.Errorf("MAX_IMAGES_BULK_IMAGES_IMPORTED_PER_REPOSITORY is not set")
 	}
 	return strconv.Atoi(max)
 }

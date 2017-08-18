@@ -28,11 +28,10 @@ func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Regis
 	return &REST{imageRegistry: imageRegistry, imageStreamRegistry: imageStreamRegistry}
 }
 
-var _ rest.Creater = &REST{}
-var _ rest.Lister = &REST{}
 var _ rest.Getter = &REST{}
+var _ rest.Lister = &REST{}
+var _ rest.CreaterUpdater = &REST{}
 var _ rest.Deleter = &REST{}
-var _ rest.Updater = &REST{}
 
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {
@@ -148,7 +147,9 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	if exists {
 		return nil, kapierrors.NewAlreadyExists(imageapi.Resource("imagestreamtag"), istag.Name)
 	}
-	target.Spec.Tags[imageTag] = *istag.Tag
+	if istag.Tag != nil {
+		target.Spec.Tags[imageTag] = *istag.Tag
+	}
 
 	// Check the stream creation timestamp and make sure we will not
 	// create a new image stream while deleting.

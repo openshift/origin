@@ -1,3 +1,8 @@
-ingvagabund
-aveshagarwal
-hodovska
+reviewers:
+  - ingvagabund
+  - aveshagarwal
+  - hodovska
+approvers:
+  - ingvagabund
+  - aveshagarwal
+  - hodovska

@@ -6,9 +6,9 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/admin/policy"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,8 +22,8 @@ const (
 )
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	projectAdminClient, _ := setup(t)
+	projectAdminClient, _, fn := setup(t)
+	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := stiStrategy("ImageStreamTag", streamName+":"+tag)
@@ -32,8 +32,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	projectAdminClient, _ := setup(t)
+	projectAdminClient, _, fn := setup(t)
+	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := stiStrategy("ImageStreamTag", streamName+":"+tag)
@@ -42,8 +42,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *t
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	projectAdminClient, _ := setup(t)
+	projectAdminClient, _, fn := setup(t)
+	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := dockerStrategy("ImageStreamTag", streamName+":"+tag)
@@ -52,8 +52,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	projectAdminClient, _ := setup(t)
+	projectAdminClient, _, fn := setup(t)
+	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
 	strategy := dockerStrategy("ImageStreamTag", streamName+":"+tag)
@@ -62,8 +62,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	projectAdminClient, clusterAdminClient := setup(t)
+	projectAdminClient, clusterAdminClient, fn := setup(t)
+	defer fn()
 
 	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(clusterAdminClient)
 	subjects := []kapi.ObjectReference{
@@ -92,8 +92,8 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
-	projectAdminClient, _ := setup(t)
+	projectAdminClient, _, fn := setup(t)
+	defer fn()
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(testutil.GetBaseDir() + "/openshift.local.config/master/admin.kubeconfig")
 	if err != nil {
@@ -228,9 +228,8 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 	}
 }
 
-func setup(t *testing.T) (*client.Client, *client.Client) {
-	testutil.RequireEtcd(t)
-	_, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
+func setup(t *testing.T) (*client.Client, *client.Client, func()) {
+	masterConfig, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -250,7 +249,9 @@ func setup(t *testing.T) (*client.Client, *client.Client) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	return projectAdminClient, clusterAdminClient
+	return projectAdminClient, clusterAdminClient, func() {
+		testserver.CleanupMasterEtcd(t, masterConfig)
+	}
 }
 
 func runTest(t *testing.T, testname string, projectAdminClient *client.Client, imageStream *imageapi.ImageStream, imageStreamMapping *imageapi.ImageStreamMapping, config *buildapi.BuildConfig, tag string) {
@@ -415,7 +416,6 @@ func runTest(t *testing.T, testname string, projectAdminClient *client.Client, i
 }
 
 func TestMultipleImageChangeBuildTriggers(t *testing.T) {
-	defer testutil.DumpEtcdOnFailure(t)
 	mockImageStream := func(name, tag string) *imageapi.ImageStream {
 		return &imageapi.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{Name: name},
@@ -476,7 +476,8 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		}
 		return bc
 	}
-	projectAdminClient, _ := setup(t)
+	projectAdminClient, _, fn := setup(t)
+	defer fn()
 	config := multipleImageChangeBuildConfig()
 	triggersToTest := []struct {
 		triggerIndex int

@@ -4,10 +4,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	rest "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
+	"github.com/openshift/origin/pkg/template/registry/brokertemplateinstance"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
@@ -16,21 +17,23 @@ type REST struct {
 	*registry.Store
 }
 
+var _ rest.StandardStorage = &REST{}
+
 // NewREST returns a RESTStorage object that will work against brokertemplateinstances.
 func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 	store := &registry.Store{
-		Copier:            kapi.Scheme,
-		NewFunc:           func() runtime.Object { return &templateapi.BrokerTemplateInstance{} },
-		NewListFunc:       func() runtime.Object { return &templateapi.BrokerTemplateInstanceList{} },
-		PredicateFunc:     rest.Matcher,
-		QualifiedResource: templateapi.Resource("brokertemplateinstances"),
+		Copier:                   kapi.Scheme,
+		NewFunc:                  func() runtime.Object { return &templateapi.BrokerTemplateInstance{} },
+		NewListFunc:              func() runtime.Object { return &templateapi.BrokerTemplateInstanceList{} },
+		PredicateFunc:            brokertemplateinstance.Matcher,
+		DefaultQualifiedResource: templateapi.Resource("brokertemplateinstances"),
 
-		CreateStrategy: rest.Strategy,
-		UpdateStrategy: rest.Strategy,
-		DeleteStrategy: rest.Strategy,
+		CreateStrategy: brokertemplateinstance.Strategy,
+		UpdateStrategy: brokertemplateinstance.Strategy,
+		DeleteStrategy: brokertemplateinstance.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rest.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: brokertemplateinstance.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

@@ -15,26 +15,32 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/webhook"
 	"github.com/openshift/origin/pkg/util/rest"
 )
 
 // NewWebHookREST returns the webhook handler wrapped in a rest.WebHook object.
-func NewWebHookREST(registry Registry, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
+func NewWebHookREST(buildConfigClient buildclient.BuildInterface, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
+	return newWebHookREST(buildConfigClient, client.BuildConfigInstantiatorClient{BuildClient: buildConfigClient}, groupVersion, plugins)
+}
+
+// this supports simple unit testing
+func newWebHookREST(buildConfigClient buildclient.BuildInterface, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
 	hook := &WebHook{
-		groupVersion: groupVersion,
-		registry:     registry,
-		instantiator: instantiator,
-		plugins:      plugins,
+		groupVersion:      groupVersion,
+		buildConfigClient: buildConfigClient,
+		instantiator:      instantiator,
+		plugins:           plugins,
 	}
 	return rest.NewWebHook(hook, false)
 }
 
 type WebHook struct {
-	groupVersion schema.GroupVersion
-	registry     Registry
-	instantiator client.BuildConfigInstantiator
-	plugins      map[string]webhook.Plugin
+	groupVersion      schema.GroupVersion
+	buildConfigClient buildclient.BuildInterface
+	instantiator      client.BuildConfigInstantiator
+	plugins           map[string]webhook.Plugin
 }
 
 // ServeHTTP implements rest.HookHandler
@@ -50,7 +56,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx a
 		return errors.NewNotFound(buildapi.LegacyResource("buildconfighook"), hookType)
 	}
 
-	config, err := w.registry.GetBuildConfig(ctx, name, &metav1.GetOptions{})
+	config, err := w.buildConfigClient.BuildConfigs(apirequest.NamespaceValue(ctx)).Get(name, metav1.GetOptions{})
 	if err != nil {
 		// clients should not be able to find information about build configs in
 		// the system unless the config exists and the secret matches
@@ -80,6 +86,7 @@ func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx a
 		Env:         envvars,
 		DockerStrategyOptions: dockerStrategyOptions,
 	}
+
 	newBuild, err := w.instantiator.Instantiate(config.Namespace, request)
 	if err != nil {
 		return errors.NewInternalError(fmt.Errorf("could not generate a build: %v", err))

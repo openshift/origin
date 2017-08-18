@@ -5,6 +5,7 @@ import (
 	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
 // Authorization is calculated against
@@ -52,7 +53,17 @@ var DiscoveryRule = PolicyRule{
 		"/swaggerapi", "/swaggerapi/*", "/swagger.json",
 		"/osapi", "/osapi/", // these cannot be removed until we can drop support for pre 3.1 clients
 		"/.well-known", "/.well-known/*",
+
+		// we intentionally allow all to here
+		"/",
 	),
+}
+
+// The Kubernetes Rbac version
+// TODO make this the authoritative rule
+var RbacDiscoveryRule = rbac.PolicyRule{
+	Verbs:           DiscoveryRule.Verbs.List(),
+	NonResourceURLs: DiscoveryRule.NonResourceURLs.List(),
 }
 
 // PolicyRule holds information that describes a policy rule, but does not contain information
@@ -81,7 +92,7 @@ type IsPersonalSubjectAccessReview struct {
 	metav1.TypeMeta
 }
 
-// +genclient=true
+// +genclient
 
 // Role is a logical grouping of PolicyRules that can be referenced as a unit by RoleBindings.
 type Role struct {
@@ -93,7 +104,7 @@ type Role struct {
 	Rules []PolicyRule
 }
 
-// +genclient=true
+// +genclient
 
 // RoleBinding references a Role, but not contain it.  It can reference any Role in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  RoleBindings in a given
@@ -113,7 +124,7 @@ type RoleBinding struct {
 
 type RolesByName map[string]*Role
 
-// +genclient=true
+// +genclient
 
 // Policy is a object that holds all the Roles for a particular namespace.  There is at most
 // one Policy document per namespace.
@@ -130,7 +141,7 @@ type Policy struct {
 
 type RoleBindingsByName map[string]*RoleBinding
 
-// +genclient=true
+// +genclient
 
 // PolicyBinding is a object that holds all the RoleBindings for a particular namespace.  There is
 // one PolicyBinding document per referenced Policy namespace
@@ -348,8 +359,8 @@ type RoleList struct {
 	Items []Role
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.
 type ClusterRole struct {
@@ -361,8 +372,8 @@ type ClusterRole struct {
 	Rules []PolicyRule
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterRoleBinding references a ClusterRole, but not contain it.  It can reference any ClusterRole in the same namespace or in the global namespace.
 // It adds who information via Users and Groups and namespace information by which namespace it exists in.  ClusterRoleBindings in a given
@@ -383,8 +394,8 @@ type ClusterRoleBinding struct {
 
 type ClusterRolesByName map[string]*ClusterRole
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterPolicy is a object that holds all the ClusterRoles for a particular namespace.  There is at most
 // one ClusterPolicy document per namespace.
@@ -402,8 +413,8 @@ type ClusterPolicy struct {
 
 type ClusterRoleBindingsByName map[string]*ClusterRoleBinding
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // ClusterPolicyBinding is a object that holds all the ClusterRoleBindings for a particular namespace.  There is
 // one ClusterPolicyBinding document per referenced ClusterPolicy namespace

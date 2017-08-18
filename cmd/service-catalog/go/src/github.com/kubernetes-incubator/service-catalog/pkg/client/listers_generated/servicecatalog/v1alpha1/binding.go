@@ -19,7 +19,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	servicecatalog "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	v1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
@@ -89,7 +88,7 @@ func (s bindingNamespaceLister) Get(name string) (*v1alpha1.Binding, error) {
 		return nil, err
 	}
 	if !exists {
-		return nil, errors.NewNotFound(servicecatalog.Resource("binding"), name)
+		return nil, errors.NewNotFound(v1alpha1.Resource("binding"), name)
 	}
 	return obj.(*v1alpha1.Binding), nil
 }

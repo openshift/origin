@@ -39,6 +39,10 @@ os::cmd::expect_success 'oc login -u system:admin'
 username="$(oc get user/scoped-user -o jsonpath='{.metadata.name}')"
 useruid="$(oc get user/scoped-user -o jsonpath='{.metadata.uid}')"
 os::cmd::expect_success_and_text "oc policy can-i --list -n '${project}' --as=scoped-user" 'get.*pods'
+os::cmd::expect_success "oc policy can-i --list --output=yaml"
+os::cmd::expect_success "oc policy can-i --list --output=json"
+os::cmd::expect_success "oc policy can-i --list --output=wide"
+os::cmd::expect_success "oc policy can-i --list"
 
 whoamitoken="$(oc process -f "${OS_ROOT}/test/testdata/authentication/scoped-token-template.yaml" TOKEN_PREFIX=whoami SCOPE=user:info USER_NAME="${username}" USER_UID="${useruid}" | oc create -f - -o name | awk -F/ '{print $2}')"
 os::cmd::expect_success_and_text "oc get user/~ --token='${whoamitoken}'" "${username}"
@@ -77,8 +81,8 @@ os::cmd::expect_success_and_text "curl -k -XPOST -H 'Content-Type: application/j
 os::cmd::expect_success_and_text "curl -k -XPOST -H 'Content-Type: application/json' -H 'Authorization: Bearer ${accesstoken}' '${API_SCHEME}://${API_HOST}:${API_PORT}/apis/authorization.openshift.io/v1/subjectaccessreviews' -d '{\"namespace\":\"${project}\",\"verb\":\"create\",\"resource\":\"pods\"}'" '"kind": "SubjectAccessReviewResponse"'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n '${project}' --ignore-scopes" 'yes'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n '${project}'" 'no'
-os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews.v1. --token='${accesstoken}' -n '${project}'" 'no'
-os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews.v1. --token='${accesstoken}' -n '${project}' --ignore-scopes" 'yes'
+os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews --token='${accesstoken}' -n '${project}'" 'no'
+os::cmd::expect_success_and_text "oc policy can-i create subjectaccessreviews --token='${accesstoken}' -n '${project}' --ignore-scopes" 'yes'
 os::cmd::expect_success_and_text "oc policy can-i create pods --token='${accesstoken}' -n '${project}' --scopes='role:admin:*'" 'yes'
 os::cmd::expect_success_and_text "oc policy can-i --list --token='${accesstoken}' -n '${project}' --scopes='role:admin:*'" 'get.*pods'
 os::cmd::expect_success_and_not_text "oc policy can-i --list --token='${accesstoken}' -n '${project}'" 'get.*pods'

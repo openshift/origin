@@ -57,13 +57,11 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	batch.Resource("jobtemplates"):          batch.Kind("JobTemplate"),
 
 	// TODO do we still need this or is cronjob sufficient?
-	batch.Resource("scheduledjobs"):     batch.Kind("ScheduledJob"),
-	batch.Resource("cronjobs"):          batch.Kind("CronJob"),
-	extensions.Resource("deployments"):  extensions.Kind("Deployment"),
-	extensions.Resource("replicasets"):  extensions.Kind("ReplicaSet"),
-	extensions.Resource("jobs"):         extensions.Kind("Job"),
-	extensions.Resource("jobtemplates"): extensions.Kind("JobTemplate"),
-	apps.Resource("statefulsets"):       apps.Kind("StatefulSet"),
+	batch.Resource("scheduledjobs"):    batch.Kind("ScheduledJob"),
+	batch.Resource("cronjobs"):         batch.Kind("CronJob"),
+	extensions.Resource("deployments"): extensions.Kind("Deployment"),
+	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
+	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
 
 	deployapi.Resource("deploymentconfigs"):                           deployapi.Kind("DeploymentConfig"),
 	deployapi.LegacyResource("deploymentconfigs"):                     deployapi.LegacyKind("DeploymentConfig"),
@@ -270,11 +268,11 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	for i := range m.spec.InitContainers {
 		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.InitContainers[i].Image}
 		if err := fn(&ref); err != nil {
-			errs = append(errs, field.InternalError(m.path.Child("initContainers").Index(i).Child("image"), err))
+			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
 		}
 		if ref.Kind != "DockerImage" {
-			errs = append(errs, field.InternalError(m.path.Child("initContainers").Index(i).Child("image"), fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind)))
+			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("initContainers").Index(i).Child("image")))
 			continue
 		}
 		m.spec.InitContainers[i].Image = ref.Name
@@ -282,11 +280,11 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	for i := range m.spec.Containers {
 		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.Containers[i].Image}
 		if err := fn(&ref); err != nil {
-			errs = append(errs, field.InternalError(m.path.Child("containers").Index(i).Child("image"), err))
+			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
 		}
 		if ref.Kind != "DockerImage" {
-			errs = append(errs, field.InternalError(m.path.Child("containers").Index(i).Child("image"), fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind)))
+			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("containers").Index(i).Child("image")))
 			continue
 		}
 		m.spec.Containers[i].Image = ref.Name
@@ -345,11 +343,11 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	for i := range m.spec.InitContainers {
 		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.InitContainers[i].Image}
 		if err := fn(&ref); err != nil {
-			errs = append(errs, field.InternalError(m.path.Child("initContainers").Index(i).Child("image"), err))
+			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
 		}
 		if ref.Kind != "DockerImage" {
-			errs = append(errs, field.InternalError(m.path.Child("initContainers").Index(i).Child("image"), fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind)))
+			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("initContainers").Index(i).Child("image")))
 			continue
 		}
 		m.spec.InitContainers[i].Image = ref.Name
@@ -357,11 +355,11 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	for i := range m.spec.Containers {
 		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.Containers[i].Image}
 		if err := fn(&ref); err != nil {
-			errs = append(errs, field.InternalError(m.path.Child("containers").Index(i).Child("image"), err))
+			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
 		}
 		if ref.Kind != "DockerImage" {
-			errs = append(errs, field.InternalError(m.path.Child("containers").Index(i).Child("image"), fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind)))
+			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("containers").Index(i).Child("image")))
 			continue
 		}
 		m.spec.Containers[i].Image = ref.Name

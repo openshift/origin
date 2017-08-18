@@ -20,12 +20,12 @@ import (
 
 func TestClientSet_v1_3(t *testing.T) {
 	const namespace = "test-clientset-v13"
-	testutil.RequireEtcd(t)
 
-	_, clusterAdminKubeConfig, err := testserver.StartTestMaster()
+	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)

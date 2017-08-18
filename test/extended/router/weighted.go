@@ -85,7 +85,7 @@ var _ = g.Describe("[Conformance][networking][router] weighted openshift router"
 			err = expectRouteStatusCodeRepeatedExec(ns, execPodName, routerURL, "weighted.example.com", http.StatusOK, times)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By(fmt.Sprintf("checking that there are two weighted backends in the router stats"))
+			g.By(fmt.Sprintf("checking that there are three weighted backends in the router stats"))
 			var trafficValues []string
 			err = wait.PollImmediate(100*time.Millisecond, changeTimeoutSeconds*time.Second, func() (bool, error) {
 				statsURL := fmt.Sprintf("http://%s:1936/;csv", routerIP)
@@ -93,7 +93,7 @@ var _ = g.Describe("[Conformance][networking][router] weighted openshift router"
 				o.Expect(err).NotTo(o.HaveOccurred())
 				trafficValues, err = parseStats(stats, "weightedroute", 7)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				return len(trafficValues) == 2, nil
+				return len(trafficValues) == 3, nil
 			})
 			o.Expect(err).NotTo(o.HaveOccurred())
 

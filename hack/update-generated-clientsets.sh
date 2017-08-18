@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-os::util::ensure::built_binary_exists 'client-gen' 'vendor/k8s.io/kubernetes/cmd/libs/go2idl/client-gen'
+os::util::ensure::built_binary_exists 'client-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/kube-gen/cmd/client-gen'
 
 # list of package to generate client set for
 packages=(
@@ -40,7 +40,9 @@ verify="${VERIFY:-}"
 if [[ -z "${verify}" ]]; then
   for pkg in "${packages[@]}"; do
     grouppkg=$(realpath --canonicalize-missing --relative-to=$(pwd) ${pkg}/../..)
-    go list -f '{{.Dir}}' "${grouppkg}/generated/clientset/..." "${grouppkg}/generated/internalclientset/..." | xargs rm -rf
+    # delete all generated go files excluding files named *_expansion.go
+    go list -f '{{.Dir}}' "${grouppkg}/generated/clientset" "${grouppkg}/generated/internalclientset" \
+		| xargs -n1 -I{} find {} -type f -not -name "*_expansion.go" -delete
   done
 fi
 

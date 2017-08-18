@@ -7,9 +7,9 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	exutil "github.com/openshift/origin/test/extended/util"
-
 	"k8s.io/kubernetes/test/e2e/framework"
+
+	exutil "github.com/openshift/origin/test/extended/util"
 )
 
 var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build strategy environment variables", func() {
@@ -49,6 +49,7 @@ var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build 
 	})
 
 	g.It("should successfully resolve valueFrom in s2i build environment variables", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test successful build config")
 		err := oc.Run("create").Args("-f", successfulSTIBuildValueFrom).Execute()
@@ -71,8 +72,8 @@ var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build 
 	})
 
 	g.It("should successfully resolve valueFrom in docker build environment variables", func() {
-
 		framework.SkipIfProviderIs("gce")
+
 		g.By("creating test successful build config")
 		err := oc.Run("create").Args("-f", successfulDockerBuildValueFrom).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -94,6 +95,7 @@ var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build 
 	})
 
 	g.It("should fail resolving unresolvable valueFrom in sti build environment variable references", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test build config")
 		err := oc.Run("create").Args("-f", failedSTIBuildValueFrom).Execute()
@@ -111,6 +113,7 @@ var _ = g.Describe("[builds][Conformance][valueFrom] process valueFrom in build 
 	})
 
 	g.It("should fail resolving unresolvable valueFrom in docker build environment variable references", func() {
+		framework.SkipIfProviderIs("gce")
 
 		g.By("creating test build config")
 		err := oc.Run("create").Args("-f", failedDockerBuildValueFrom).Execute()

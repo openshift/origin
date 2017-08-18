@@ -16,8 +16,8 @@ type ImageList struct {
 	Items []Image `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
@@ -57,6 +57,10 @@ type ImageLayer struct {
 	// MediaType of the referenced object.
 	MediaType string `json:"mediaType" protobuf:"bytes,3,opt,name=mediaType"`
 }
+
+// +genclient
+// +genclient:onlyVerbs=create,delete
+// +genclient:nonNamespaced
 
 // ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims
 // as long as the signature is trusted. Based on this information it is possible to restrict runnable images
@@ -147,7 +151,7 @@ type ImageStreamList struct {
 	Items []ImageStream `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// +genclient=true
+// +genclient
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a Docker image
@@ -245,6 +249,10 @@ type ImageStreamStatus struct {
 	// DockerImageRepository represents the effective location this stream may be accessed at.
 	// May be empty until the server determines where the repository is located
 	DockerImageRepository string `json:"dockerImageRepository" protobuf:"bytes,1,opt,name=dockerImageRepository"`
+	// PublicDockerImageRepository represents the public location from where the image can
+	// be pulled outside the cluster. This field may be empty if the administrator
+	// has not exposed the integrated registry externally.
+	PublicDockerImageRepository string `json:"publicDockerImageRepository,omitempty" protobuf:"bytes,3,opt,name=publicDockerImageRepository"`
 	// Tags are a historical record of images associated with each tag. The first entry in the
 	// TagEvent array is the currently tagged image.
 	Tags []NamedTagEventList `json:"tags,omitempty" protobuf:"bytes,2,rep,name=tags"`
@@ -296,6 +304,9 @@ type TagEventCondition struct {
 	Generation int64 `json:"generation" protobuf:"varint,6,opt,name=generation"`
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as
 // well as the reference to the Docker image stream the image came from.
 type ImageStreamMapping struct {
@@ -308,6 +319,9 @@ type ImageStreamMapping struct {
 	// Tag is a string value this image can be located with inside the stream.
 	Tag string `json:"tag" protobuf:"bytes,3,opt,name=tag"`
 }
+
+// +genclient
+// +genclient:onlyVerbs=get,create,update,delete
 
 // ImageStreamTag represents an Image that is retrieved by tag name from an ImageStream.
 type ImageStreamTag struct {
@@ -345,6 +359,9 @@ type ImageStreamTagList struct {
 	// Items is the list of image stream tags
 	Items []ImageStreamTag `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
+// +genclient:onlyVerbs=get
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {

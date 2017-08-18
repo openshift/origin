@@ -17,13 +17,11 @@ import (
 )
 
 func TestRestrictUsers(t *testing.T) {
-	testutil.RequireEtcd(t)
-	defer testutil.DumpEtcdOnFailure(t)
-
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
 	}
+	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
 	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"openshift.io/RestrictSubjectBindings": {
@@ -57,20 +55,6 @@ func TestRestrictUsers(t *testing.T) {
 		},
 	}
 	if _, err := clusterAdminClient.Roles("namespace").Create(role); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	policyBinding := &authorizationapi.PolicyBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "namespace",
-			Name:      "policybinding",
-		},
-		PolicyRef: kapi.ObjectReference{
-			Namespace: "namespace",
-			Name:      authorizationapi.GetPolicyBindingName("policy"),
-		},
-	}
-	if _, err := clusterAdminClient.PolicyBindings("namespace").Create(policyBinding); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

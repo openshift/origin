@@ -34,9 +34,9 @@ import (
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/cli/describe"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
+	"github.com/openshift/origin/pkg/oc/cli/describe"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -336,7 +336,7 @@ func (f *ring1Factory) Validator(validate bool, cacheDir string) (validation.Sch
 }
 
 func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiDeclaration, error) {
-	if !latest.OriginKind(gvk) {
+	if !latest.OriginLegacyKind(gvk) {
 		return f.kubeObjectMappingFactory.SwaggerSchema(gvk)
 	}
 	// TODO: we need to register the OpenShift API under the Kube group, and start returning the OpenShift

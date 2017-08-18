@@ -79,12 +79,12 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, "first.example.com", changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL+"/Letter", "FIRST.example.com", changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"second.example.com", "third.example.com"} {
 				g.By(fmt.Sprintf("checking that %s does not match a route", host))
-				err = expectRouteStatusCodeExec(ns, execPodName, routerURL, host, http.StatusServiceUnavailable)
+				err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusServiceUnavailable)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})
@@ -128,18 +128,18 @@ var _ = g.Describe("[Conformance][networking][router] openshift routers", func()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the valid route to respond")
-			err = waitForRouterOKResponseExec(ns, execPodName, routerURL, fmt.Sprintf(pattern, "route-1", ns), changeTimeoutSeconds)
+			err = waitForRouterOKResponseExec(ns, execPodName, routerURL+"/Letter", fmt.Sprintf(pattern, "route-1", ns), changeTimeoutSeconds)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("checking that the stored domain name does not match a route")
 			host := "first.example.com"
-			err = expectRouteStatusCodeExec(ns, execPodName, routerURL, host, http.StatusServiceUnavailable)
+			err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusServiceUnavailable)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			for _, host := range []string{"route-1", "route-2"} {
 				host = fmt.Sprintf(pattern, host, ns)
 				g.By(fmt.Sprintf("checking that %s matches a route", host))
-				err = expectRouteStatusCodeExec(ns, execPodName, routerURL, host, http.StatusOK)
+				err = expectRouteStatusCodeExec(ns, execPodName, routerURL+"/Letter", host, http.StatusOK)
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 		})

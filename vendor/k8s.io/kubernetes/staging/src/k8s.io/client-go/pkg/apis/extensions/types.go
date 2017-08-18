@@ -60,8 +60,8 @@ type ScaleStatus struct {
 	Selector *metav1.LabelSelector
 }
 
-// +genclient=true
-// +noMethods=true
+// +genclient
+// +genclient:noVerbs
 
 // represents a scaling request for a resource.
 type Scale struct {
@@ -107,8 +107,8 @@ type CustomMetricCurrentStatusList struct {
 	Items []CustomMetricCurrentStatus
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // A ThirdPartyResource is a generic representation of a resource, it is used by add-ons and plugins to add new resource
 // types to the API.  It consists of one or more Versions of the api.
@@ -157,7 +157,7 @@ type ThirdPartyResourceData struct {
 	Data []byte
 }
 
-// +genclient=true
+// +genclient
 
 type Deployment struct {
 	metav1.TypeMeta
@@ -506,7 +506,7 @@ type DaemonSetStatus struct {
 	CollisionCount *int64
 }
 
-// +genclient=true
+// +genclient
 
 // DaemonSet represents the configuration of a daemon set.
 type DaemonSet struct {
@@ -560,7 +560,7 @@ type ThirdPartyResourceDataList struct {
 	Items []ThirdPartyResourceData
 }
 
-// +genclient=true
+// +genclient
 
 // Ingress is a collection of rules that allow inbound connections to reach the
 // endpoints defined by a backend. An Ingress can be configured to give services
@@ -726,7 +726,7 @@ type IngressBackend struct {
 	ServicePort intstr.IntOrString
 }
 
-// +genclient=true
+// +genclient
 
 // ReplicaSet represents the configuration of a replica set.
 type ReplicaSet struct {
@@ -832,8 +832,8 @@ type ReplicaSetCondition struct {
 	Message string
 }
 
-// +genclient=true
-// +nonNamespaced=true
+// +genclient
+// +genclient:nonNamespaced
 
 // PodSecurityPolicy governs the ability to make requests that affect the SecurityContext
 // that will be applied to a pod and container.
@@ -1054,7 +1054,7 @@ type PodSecurityPolicyList struct {
 	Items []PodSecurityPolicy
 }
 
-// +genclient=true
+// +genclient
 
 // NetworkPolicy describes what network traffic is allowed for a set of Pods
 type NetworkPolicy struct {

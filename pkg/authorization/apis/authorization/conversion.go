@@ -12,6 +12,10 @@ import (
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
+// reconcileProtectAnnotation is the name of an annotation which prevents reconciliation if set to "true"
+// can't use this const in pkg/oc/admin/policy because of import cycle
+const reconcileProtectAnnotation = "openshift.io/reconcile-protect"
+
 func addConversionFuncs(scheme *runtime.Scheme) error {
 	if err := scheme.AddConversionFuncs(
 		Convert_authorization_ClusterRole_To_rbac_ClusterRole,
@@ -30,6 +34,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 
 func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *ClusterRole, out *rbac.ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	return nil
 }
@@ -41,6 +46,9 @@ func Convert_authorization_Role_To_rbac_Role(in *Role, out *rbac.Role, _ convers
 }
 
 func Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(in *ClusterRoleBinding, out *rbac.ClusterRoleBinding, _ conversion.Scope) error {
+	if len(in.RoleRef.Namespace) != 0 {
+		return fmt.Errorf("invalid origin cluster role binding %s: attempts to reference role in namespace %q instead of cluster scope", in.Name, in.RoleRef.Namespace)
+	}
 	var err error
 	if out.Subjects, err = convert_api_Subjects_To_rbac_Subjects(in.Subjects); err != nil {
 		return err
@@ -151,13 +159,14 @@ func getRBACRoleRefKind(namespace string) string {
 
 func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole, out *ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	out.Rules = convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
+	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
+	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
 
 func Convert_rbac_Role_To_authorization_Role(in *rbac.Role, out *Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
-	out.Rules = convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
+	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
 
@@ -166,7 +175,9 @@ func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rba
 	if out.Subjects, err = convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
 	}
-	out.RoleRef = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, "")
+	if out.RoleRef, err = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, ""); err != nil {
+		return err
+	}
 	out.ObjectMeta = in.ObjectMeta
 	return nil
 }
@@ -176,7 +187,9 @@ func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding,
 	if out.Subjects, err = convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
 	}
-	out.RoleRef = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, in.Namespace)
+	if out.RoleRef, err = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, in.Namespace); err != nil {
+		return err
+	}
 	out.ObjectMeta = in.ObjectMeta
 	return nil
 }
@@ -205,17 +218,22 @@ func convert_rbac_Subjects_To_authorization_Subjects(in []rbac.Subject) ([]api.O
 	return subjects, nil
 }
 
-// rbac.RoleRef has no namespace field since that can be inferred.
-// The Origin role ref (api.ObjectReference) requires its namespace value to match the binding's namespace.
-// Thus we have to explicitly provide that value as a parameter.
-func convert_rbac_RoleRef_To_authorization_RoleRef(in *rbac.RoleRef, namespace string) api.ObjectReference {
-	return api.ObjectReference{
-		Name:      in.Name,
-		Namespace: namespace,
+// rbac.RoleRef has no namespace field since that can be inferred from the kind of referenced role.
+// The Origin role ref (api.ObjectReference) requires its namespace value to match the binding's namespace
+// for a binding to a role.  For a binding to a cluster role, the namespace value must be the empty string.
+// Thus we have to explicitly provide the namespace value as a parameter and use it based on the role's kind.
+func convert_rbac_RoleRef_To_authorization_RoleRef(in *rbac.RoleRef, namespace string) (api.ObjectReference, error) {
+	switch in.Kind {
+	case "ClusterRole":
+		return api.ObjectReference{Name: in.Name}, nil
+	case "Role":
+		return api.ObjectReference{Name: in.Name, Namespace: namespace}, nil
+	default:
+		return api.ObjectReference{}, fmt.Errorf("invalid kind %q for rbac role ref %q", in.Kind, in.Name)
 	}
 }
 
-func convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule) []PolicyRule {
+func Convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule) []PolicyRule {
 	rules := make([]PolicyRule, 0, len(in))
 	for _, rule := range in {
 		r := PolicyRule{
@@ -228,4 +246,42 @@ func convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule)
 		rules = append(rules, r)
 	}
 	return rules
+}
+
+func copyMapExcept(in map[string]string, except string) map[string]string {
+	out := map[string]string{}
+	for k, v := range in {
+		if k != except {
+			out[k] = v
+		}
+	}
+	return out
+}
+
+var stringBool = sets.NewString("true", "false")
+
+func convert_authorization_Annotations_To_rbac_Annotations(in map[string]string) map[string]string {
+	if value, ok := in[reconcileProtectAnnotation]; ok && stringBool.Has(value) {
+		out := copyMapExcept(in, reconcileProtectAnnotation)
+		if value == "true" {
+			out[rbac.AutoUpdateAnnotationKey] = "false"
+		} else {
+			out[rbac.AutoUpdateAnnotationKey] = "true"
+		}
+		return out
+	}
+	return in
+}
+
+func convert_rbac_Annotations_To_authorization_Annotations(in map[string]string) map[string]string {
+	if value, ok := in[rbac.AutoUpdateAnnotationKey]; ok && stringBool.Has(value) {
+		out := copyMapExcept(in, rbac.AutoUpdateAnnotationKey)
+		if value == "true" {
+			out[reconcileProtectAnnotation] = "false"
+		} else {
+			out[reconcileProtectAnnotation] = "true"
+		}
+		return out
+	}
+	return in
 }

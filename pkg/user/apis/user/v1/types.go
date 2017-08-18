@@ -7,7 +7,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
-// +genclient=true
+// +genclient
+// +genclient:nonNamespaced
 
 // Upon log in, every user of the system receives a User and Identity resource. Administrators
 // may directly manipulate the attributes of the users for their own tracking, or set groups
@@ -39,6 +40,9 @@ type UserList struct {
 	// Items is the list of users
 	Items []User `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 // Identity records a successful authentication of a user with an identity provider. The
 // information about the source of authentication is stored on the identity, and the identity
@@ -72,6 +76,10 @@ type IdentityList struct {
 	// Items is the list of identities
 	Items []Identity `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=get,create,update,delete
 
 // UserIdentityMapping maps a user to an identity
 type UserIdentityMapping struct {
