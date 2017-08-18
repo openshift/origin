@@ -132,10 +132,19 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		data, err := ioutil.ReadFile("/proc/sys/net/ipv4/neigh/default/gc_thresh3")
 		if err != nil {
 			glog.Warningf("Error reading ARP neighbour information: %s", err)
+			return
 		}
-		endpoints, _ := factory.KClient.Endpoints(factory.Namespace).List(metav1.ListOptions{})
+		endpoints, err := factory.KClient.Endpoints(factory.Namespace).List(metav1.ListOptions{})
+		if err != nil {
+			glog.Warningf("Error getting endpoint list: %s", err)
+			return
+		}
 		items := len(endpoints.Items)
-		arpcache, _ := strconv.Atoi(string(data[:len(data)-1]))
+		arpcache, err := strconv.Atoi(string(data[:len(data)-1]))
+		if err != nil {
+			glog.Warningf("Error: %s", err)
+			return
+		}
 		arpthreshold := float64(arpcache) * 0.9
 		if items > int(arpthreshold) {
 			glog.Warningf("Number of endpoints: %d is exceeding size of ARP neighbour cache threshold: %d", items, int(arpthreshold))
