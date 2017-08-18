@@ -96,28 +96,6 @@ func TestValidateBinding(t *testing.T) {
 			}(),
 			valid: false,
 		},
-		{
-			name: "invalid alphaPodPresetTemplate.name",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
-				b.Spec.AlphaPodPresetTemplate = &servicecatalog.AlphaPodPresetTemplate{
-					Name: "T_T",
-				}
-				return b
-			}(),
-			valid: false,
-		},
-		{
-			name: "invalid alphaPodPresetTemplate.selector",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
-				b.Spec.AlphaPodPresetTemplate = &servicecatalog.AlphaPodPresetTemplate{
-					Selector: metav1.LabelSelector{},
-				}
-				return b
-			}(),
-			valid: false,
-		},
 	}
 
 	for _, tc := range cases {

@@ -214,7 +214,7 @@ $(BINDIR)/e2e.test: .init
 .PHONY: verify verify-client-gen
 verify: .init .generate_files verify-client-gen
 	@echo Running gofmt:
-	@$(DOCKER_CMD) gofmt -l -s $(TOP_SRC_DIRS) > .out 2>&1 || true
+	@$(DOCKER_CMD) gofmt -l -s $(TOP_TEST_DIRS) $(TOP_SRC_DIRS) &> .out || true
 	@bash -c '[ "`cat .out`" == "" ] || \
 	  (echo -e "\n*** Please 'gofmt' the following:" ; cat .out ; echo ; false)'
 	@rm .out

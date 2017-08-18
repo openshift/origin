@@ -61,9 +61,9 @@ that is useless for the purposes of aggregation. All of the DNS
 entries must match.
 
 ```
-export HELM_NAME=catalog
+export HELM_RELEASE_NAME=catalog
 export SVCCAT_NAMESPACE=catalog
-export SVCCAT_SERVICE_NAME=${HELM_NAME}-${SVCCAT_NAMESPACE}-apiserver
+export SVCCAT_SERVICE_NAME=${HELM_RELEASE_NAME}-catalog-apiserver
 ```
 
 ## Set up the certificate bundle
@@ -179,7 +179,7 @@ keys we just generated inline.
 
 ```
 helm install charts/catalog \
-    --name ${HELM_NAME} --namespace ${SVCCAT_NAMESPACE} \
+    --name ${HELM_RELEASE_NAME} --namespace ${SVCCAT_NAMESPACE} \
     --set apiserver.auth.enabled=true \
         --set useAggregator=true \
         --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \

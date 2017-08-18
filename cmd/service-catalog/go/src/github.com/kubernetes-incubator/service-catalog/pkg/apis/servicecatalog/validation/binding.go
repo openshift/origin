@@ -18,7 +18,6 @@ package validation
 
 import (
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
-	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
@@ -51,14 +50,6 @@ func validateBindingSpec(spec *sc.BindingSpec, fldPath *field.Path, create bool)
 
 	for _, msg := range apivalidation.NameIsDNSSubdomain(spec.SecretName, false /* prefix */) {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("secretName"), spec.SecretName, msg))
-	}
-
-	if spec.AlphaPodPresetTemplate != nil {
-		allErrs = append(allErrs, metav1validation.ValidateLabelSelector(&spec.AlphaPodPresetTemplate.Selector, fldPath.Child("alphaPodPresetTemplate", "selector"))...)
-
-		for _, msg := range apivalidation.NameIsDNSSubdomain(spec.AlphaPodPresetTemplate.Name, false /* prefix */) {
-			allErrs = append(allErrs, field.Invalid(fldPath.Child("alphaPodPresetTemplate", "name"), spec.AlphaPodPresetTemplate.Name, msg))
-		}
 	}
 
 	return allErrs

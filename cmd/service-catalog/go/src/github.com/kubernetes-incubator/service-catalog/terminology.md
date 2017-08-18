@@ -19,7 +19,7 @@ application developer or a cluster operator
 cluster. This team may operate the cluster on behalf of other users, or may
 operate the cluster to facilitate their own work
 
-**Catalog operator**: The person or team responsible for adminstration of the
+**Catalog operator**: The person or team responsible for administration of the
 Service Catalog, including catalog curation and Service Broker registration
 
 **Broker operator**: The person or team responsible for running and managing one

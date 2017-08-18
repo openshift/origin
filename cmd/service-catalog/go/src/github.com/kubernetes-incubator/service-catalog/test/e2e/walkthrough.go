@@ -60,11 +60,11 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 
 	It("Run walkthrough-example ", func() {
 		var (
-			brokerName = upsbrokername
+			brokerName       = upsbrokername
 			serviceclassName = "user-provided-service"
-			testns = "test-ns"
-			instanceName = "ups-instance"
-			bindingName = "ups-binding"
+			testns           = "test-ns"
+			instanceName     = "ups-instance"
+			bindingName      = "ups-binding"
 		)
 
 		//Broker and ServiceClass should become ready
@@ -79,7 +79,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		}
 
 		By("Creating a Broker")
-		url := "http://" + upsbrokername + "." +f.Namespace.Name + ".svc.cluster.local"
+		url := "http://" + upsbrokername + "." + f.Namespace.Name + ".svc.cluster.local"
 		broker := &v1alpha1.Broker{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: brokerName,
@@ -95,7 +95,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		err = util.WaitForBrokerCondition(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(),
 			broker.Name,
 			v1alpha1.BrokerCondition{
-				Type: v1alpha1.BrokerConditionReady,
+				Type:   v1alpha1.BrokerConditionReady,
 				Status: v1alpha1.ConditionTrue,
 			},
 		)
@@ -113,23 +113,24 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		By("Creating a Instance")
 		instance := &v1alpha1.Instance{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: instanceName,
+				Name:      instanceName,
 				Namespace: testnamespace.Name,
 			},
 			Spec: v1alpha1.InstanceSpec{
 				ServiceClassName: serviceclassName,
-				PlanName: "default",
+				PlanName:         "default",
 			},
 		}
 		instance, err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().Instances(testnamespace.Name).Create(instance)
 		Expect(err).NotTo(HaveOccurred(), "failed to create instance")
+		Expect(instance).NotTo(BeNil())
 
 		By("Waiting for Instance to be ready")
 		err = util.WaitForInstanceCondition(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(),
 			testnamespace.Name,
 			instanceName,
 			v1alpha1.InstanceCondition{
-				Type: v1alpha1.InstanceConditionReady,
+				Type:   v1alpha1.InstanceConditionReady,
 				Status: v1alpha1.ConditionTrue,
 			},
 		)
@@ -139,7 +140,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		By("Creating a Binding")
 		binding := &v1alpha1.Binding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: bindingName,
+				Name:      bindingName,
 				Namespace: testnamespace.Name,
 			},
 			Spec: v1alpha1.BindingSpec{
@@ -151,13 +152,14 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		}
 		binding, err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().Bindings(testnamespace.Name).Create(binding)
 		Expect(err).NotTo(HaveOccurred(), "failed to create binding")
+		Expect(binding).NotTo(BeNil())
 
 		By("Waiting for Binding to be ready")
 		err = util.WaitForBindingCondition(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(),
 			testnamespace.Name,
 			bindingName,
 			v1alpha1.BindingCondition{
-				Type: v1alpha1.BindingConditionReady,
+				Type:   v1alpha1.BindingConditionReady,
 				Status: v1alpha1.ConditionTrue,
 			},
 		)

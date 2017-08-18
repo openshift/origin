@@ -53,11 +53,14 @@ func NewClient(config *ClientConfiguration) (Client, error) {
 	c.doRequestFunc = c.doRequest
 
 	if config.AuthConfig != nil {
-		if config.AuthConfig.BasicAuthConfig == nil {
-			return nil, errors.New("BasicAuthConfig is required if AuthConfig is provided")
+		if config.AuthConfig.BasicAuthConfig == nil && config.AuthConfig.BearerConfig == nil {
+			return nil, errors.New("Non-nil AuthConfig cannot be empty")
+		}
+		if config.AuthConfig.BasicAuthConfig != nil && config.AuthConfig.BearerConfig != nil {
+			return nil, errors.New("Only one AuthConfig implementation must be set at a time")
 		}
 
-		c.BasicAuthConfig = config.AuthConfig.BasicAuthConfig
+		c.AuthConfig = config.AuthConfig
 	}
 
 	return c, nil
@@ -72,7 +75,7 @@ type client struct {
 	Name                string
 	URL                 string
 	APIVersion          APIVersion
-	BasicAuthConfig     *BasicAuthConfig
+	AuthConfig          *AuthConfig
 	EnableAlphaFeatures bool
 	Verbose             bool
 
@@ -124,8 +127,14 @@ func (c *client) prepareAndDo(method, URL string, params map[string]string, body
 		request.Header.Set(contentType, jsonType)
 	}
 
-	if c.BasicAuthConfig != nil {
-		request.SetBasicAuth(c.BasicAuthConfig.Username, c.BasicAuthConfig.Password)
+	if c.AuthConfig != nil {
+		if c.AuthConfig.BasicAuthConfig != nil {
+			basicAuth := c.AuthConfig.BasicAuthConfig
+			request.SetBasicAuth(basicAuth.Username, basicAuth.Password)
+		} else if c.AuthConfig.BearerConfig != nil {
+			bearer := c.AuthConfig.BearerConfig
+			request.Header.Set("Authorization", "Bearer "+bearer.Token)
+		}
 	}
 
 	if params != nil {

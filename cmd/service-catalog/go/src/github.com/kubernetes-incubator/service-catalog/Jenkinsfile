@@ -110,7 +110,7 @@ node {
 
       // Run through the walkthrough on the cluster, once with an etcd-backed API server and once
       // with a TPR-backed one.
-      sh """${env.ROOT}/contrib/hack/test_walkthrough.sh \
+      sh """${env.ROOT}/contrib/jenkins/test_walkthrough.sh \
             --registry gcr.io/${test_project}/catalog/ \
             --version ${version} \
             --cleanup \
@@ -118,7 +118,7 @@ node {
             --create-artifacts
       """
 
-      sh """${env.ROOT}/contrib/hack/test_walkthrough.sh \
+      sh """${env.ROOT}/contrib/jenkins/test_walkthrough.sh \
             --registry gcr.io/${test_project}/catalog/ \
             --version ${version} \
             --with-tpr \

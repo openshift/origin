@@ -51,25 +51,54 @@ func validateBrokerSpec(spec *sc.BrokerSpec, fldPath *field.Path) field.ErrorLis
 
 	// if there is auth information, check it to make sure that it's properly formatted
 	if spec.AuthInfo != nil {
-		// TODO: when we start supporting additional auth schemes, this code will have to accommodate
-		// the new schemes
-		basicAuthSecret := spec.AuthInfo.BasicAuthSecret
-		if basicAuthSecret != nil {
-			for _, msg := range apivalidation.ValidateNamespaceName(basicAuthSecret.Namespace, false /* prefix */) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basicAuthSecret", "namespace"), basicAuthSecret.Namespace, msg))
+		if spec.AuthInfo.Basic != nil {
+			secretRef := spec.AuthInfo.Basic.SecretRef
+			if secretRef != nil {
+				for _, msg := range apivalidation.ValidateNamespaceName(secretRef.Namespace, false /* prefix */) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basic", "secretRef", "namespace"), secretRef.Namespace, msg))
+				}
+				for _, msg := range apivalidation.NameIsDNSSubdomain(secretRef.Name, false /* prefix */) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basic", "secretRef", "name"), secretRef.Name, msg))
+				}
+			} else {
+				allErrs = append(
+					allErrs,
+					field.Required(fldPath.Child("authInfo", "basic", "secretRef"), "a basic auth secret is required"),
+				)
 			}
-
-			for _, msg := range apivalidation.NameIsDNSSubdomain(basicAuthSecret.Name, false /* prefix */) {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basicAuthSecret", "name"), basicAuthSecret.Name, msg))
+		} else if spec.AuthInfo.Bearer != nil {
+			secretRef := spec.AuthInfo.Bearer.SecretRef
+			if secretRef != nil {
+				for _, msg := range apivalidation.ValidateNamespaceName(secretRef.Namespace, false /* prefix */) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "bearer", "secretRef", "namespace"), secretRef.Namespace, msg))
+				}
+				for _, msg := range apivalidation.NameIsDNSSubdomain(secretRef.Name, false /* prefix */) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "bearer", "secretRef", "name"), secretRef.Name, msg))
+				}
+			} else {
+				allErrs = append(
+					allErrs,
+					field.Required(fldPath.Child("authInfo", "bearer", "secretRef"), "a basic auth secret is required"),
+				)
+			}
+		} else if spec.AuthInfo.BasicAuthSecret != nil {
+			basicAuthSecret := spec.AuthInfo.BasicAuthSecret
+			if basicAuthSecret != nil {
+				for _, msg := range apivalidation.ValidateNamespaceName(basicAuthSecret.Namespace, false /* prefix */) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basicAuthSecret", "namespace"), basicAuthSecret.Namespace, msg))
+				}
+				for _, msg := range apivalidation.NameIsDNSSubdomain(basicAuthSecret.Name, false /* prefix */) {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("authInfo", "basicAuthSecret", "name"), basicAuthSecret.Name, msg))
+				}
 			}
 		} else {
-			// if there's no BasicAuthSecret, then we need to error because there are no other auth
-			// options right now
+			// Authentication
 			allErrs = append(
 				allErrs,
-				field.Required(fldPath.Child("authInfo", "basicAuthSecret"), "a basic auth secret is required"),
+				field.Required(fldPath.Child("authInfo"), "auth config is required"),
 			)
 		}
+
 	}
 
 	return allErrs

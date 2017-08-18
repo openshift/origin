@@ -28,30 +28,39 @@ import (
 
 func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.OpenAPIDefinition {
 	return map[string]openapi.OpenAPIDefinition{
-		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.AlphaPodPresetTemplate": {
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BasicAuthConfig": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "AlphaPodPresetTemplate represents how a PodPreset should be created for a Binding.",
+					Description: "BasicAuthConfig provides config for the basic authentication.",
 					Properties: map[string]spec.Schema{
-						"name": {
+						"secretRef": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Name is the name of the PodPreset to create.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"selector": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Selector is the LabelSelector of the PodPreset to create.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+								Description: "SecretRef is a reference to a Secret containing information the catalog should use to authenticate to this Broker.\n\nRequired at least one of the fields: - Secret.Data[\"username\"] - username used for authentication - Secret.Data[\"password\"] - password or token needed for authentication",
+								Ref:         ref("k8s.io/client-go/pkg/api/v1.ObjectReference"),
 							},
 						},
 					},
-					Required: []string{"name", "selector"},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+				"k8s.io/client-go/pkg/api/v1.ObjectReference"},
+		},
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BearerTokenAuthConfig": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "BearerTokenAuthConfig provides config for the bearer token authentication.",
+					Properties: map[string]spec.Schema{
+						"secretRef": {
+							SchemaProps: spec.SchemaProps{
+								Description: "SecretRef is a reference to a Secret containing information the catalog should use to authenticate to this Broker.\n\nRequired field: - Secret.Data[\"token\"] - bearer token for authentication",
+								Ref:         ref("k8s.io/client-go/pkg/api/v1.ObjectReference"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/client-go/pkg/api/v1.ObjectReference"},
 		},
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.Binding": {
 			Schema: spec.Schema{
@@ -196,8 +205,21 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"parameters": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Parameters is a YAML representation of the properties to be passed to the underlying broker.",
+								Description: "Parameters is a set of the parameters to be passed to the underlying broker. The inline YAML/JSON payload to be translated into equivalent JSON object. If a top-level parameter name exists in multiples sources among `Parameters` and `ParametersFrom` fields, it is considered to be a user error in the specification",
 								Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+							},
+						},
+						"parametersFrom": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of sources to populate parameters. If a top-level parameter name exists in multiples sources among `Parameters` and `ParametersFrom` fields, it is considered to be a user error in the specification",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ParametersFromSource"),
+										},
+									},
+								},
 							},
 						},
 						"secretName": {
@@ -214,18 +236,12 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
-						"alphaPodPresetTemplate": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Currently, this field is ALPHA: it may change or disappear at any time and its data will not be migrated.\n\nAlphaPodPresetTemplate describes how a PodPreset should be created once the Binding has been made. If supplied, a PodPreset will be created using information in this field once the Binding has been made in the Broker. The PodPreset will use the EnvFrom feature to expose the keys from the Secret (specified by SecretName) that holds the Binding information into Pods.\n\nIn the future, we will provide a higher degree of control over the PodPreset.",
-								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.AlphaPodPresetTemplate"),
-							},
-						},
 					},
 					Required: []string{"instanceRef", "externalID"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.AlphaPodPresetTemplate", "k8s.io/apimachinery/pkg/runtime.RawExtension", "k8s.io/client-go/pkg/api/v1.LocalObjectReference"},
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ParametersFromSource", "k8s.io/apimachinery/pkg/runtime.RawExtension", "k8s.io/client-go/pkg/api/v1.LocalObjectReference"},
 		},
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BindingStatus": {
 			Schema: spec.Schema{
@@ -303,11 +319,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BrokerAuthInfo": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "BrokerAuthInfo is a union type that contains information on one of the authentication methods the the service catalog and brokers may support, according to the OpenServiceBroker API specification (https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md).\n\nNote that we currently restrict a single broker to have only one of these fields set on it.",
+					Description: "BrokerAuthInfo is a union type that contains information on one of the authentication methods the the service catalog and brokers may support, according to the OpenServiceBroker API specification (https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md).",
 					Properties: map[string]spec.Schema{
+						"basic": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Basic provides configuration for basic authentication.",
+								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BasicAuthConfig"),
+							},
+						},
+						"bearer": {
+							SchemaProps: spec.SchemaProps{
+								Description: "BearerTokenAuthConfig provides configuration to send an opaque value as a bearer token. The value is referenced from the 'token' field of the given secret.  This value should only contain the token value and not the `Bearer` scheme.",
+								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BearerTokenAuthConfig"),
+							},
+						},
 						"basicAuthSecret": {
 							SchemaProps: spec.SchemaProps{
-								Description: "BasicAuthSecret is a reference to a Secret containing auth information the catalog should use to authenticate to this Broker using basic auth.",
+								Description: "DEPRECATED: use `Basic` field for configuring basic authentication instead. BasicAuthSecret is a reference to a Secret containing auth information the catalog should use to authenticate to this Broker using basic auth.",
 								Ref:         ref("k8s.io/client-go/pkg/api/v1.ObjectReference"),
 							},
 						},
@@ -315,7 +343,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/client-go/pkg/api/v1.ObjectReference"},
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BasicAuthConfig", "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BearerTokenAuthConfig", "k8s.io/client-go/pkg/api/v1.ObjectReference"},
 		},
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.BrokerCondition": {
 			Schema: spec.Schema{
@@ -606,15 +634,28 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"planName": {
 							SchemaProps: spec.SchemaProps{
-								Description: "PlanName is the name of the ServicePlan this Instance should be provisioned from.",
+								Description: "PlanName is the name of the ServicePlan this Instance should be provisioned from. If omitted and there is only one plan in the specified ServiceClass it will be used. If omitted and there are more than one plan in the specified ServiceClass the request will be rejected.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
 						"parameters": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Parameters is a YAML representation of the properties to be passed to the underlying broker.",
+								Description: "Parameters is a set of the parameters to be passed to the underlying broker. The inline YAML/JSON payload to be translated into equivalent JSON object. If a top-level parameter name exists in multiples sources among `Parameters` and `ParametersFrom` fields, it is considered to be a user error in the specification",
 								Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+							},
+						},
+						"parametersFrom": {
+							SchemaProps: spec.SchemaProps{
+								Description: "List of sources to populate parameters. If a top-level parameter name exists in multiples sources among `Parameters` and `ParametersFrom` fields, it is considered to be a user error in the specification",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ParametersFromSource"),
+										},
+									},
+								},
 							},
 						},
 						"externalID": {
@@ -625,11 +666,11 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"serviceClassName", "planName", "externalID"},
+					Required: []string{"serviceClassName", "externalID"},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ParametersFromSource", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 		},
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.InstanceStatus": {
 			Schema: spec.Schema{
@@ -683,6 +724,48 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{
 				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.InstanceCondition"},
+		},
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ParametersFromSource": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ParametersFromSource represents the source of a set of Parameters",
+					Properties: map[string]spec.Schema{
+						"secretKeyRef": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The Secret key to select from. The value must be a JSON object.",
+								Ref:         ref("github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.SecretKeyReference"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.SecretKeyReference"},
+		},
+		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.SecretKeyReference": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "SecretKeyReference references a key of a Secret.",
+					Properties: map[string]spec.Schema{
+						"name": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The name of the secret in the pod's namespace to select from.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"key": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The key of the secret to select from.  Must be a valid secret key.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"name", "key"},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ServiceClass": {
 			Schema: spec.Schema{

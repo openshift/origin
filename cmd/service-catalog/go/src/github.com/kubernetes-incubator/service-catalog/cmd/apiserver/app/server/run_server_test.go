@@ -29,7 +29,7 @@ import (
 
 // make sure RunServer returns with an error when TPR fails to install
 func TestRunServerInstallTPRFails(t *testing.T) {
-	options := &ServiceCatalogServerOptions{}
+	options := NewServiceCatalogServerOptions()
 
 	fakeClientset := &kubeclientfake.Clientset{}
 	fakeClientset.AddReactor("get", "thirdpartyresources", func(core.Action) (bool, runtime.Object, error) {

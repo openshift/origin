@@ -4,10 +4,13 @@ metadata:
   name: test-broker
 spec:
   url: http://beefco.de
-  # put the basic auth for the broker in a secret, and reference the secret here.
-  # service-catalog will use the contents of the secret. The secret should have "username"
-  # and "password" keys
+  # Put the basic auth for the broker in a secret, and reference the secret here.
+  # Service Catalog will use the contents of the secret. The secret should have "username"
+  # and "password" keys.
+  # Alternatively you can use bearer token auth for which the secret should have a
+  # "token" key with bearer token.
   authInfo:
-    basicAuthSecret:
-      namespace: some-namespace
-      name: secret-name
+    basic:
+      secretRef:
+        namespace: some-namespace
+        name: secret-name

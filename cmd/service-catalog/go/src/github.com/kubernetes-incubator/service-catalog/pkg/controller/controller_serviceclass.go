@@ -63,5 +63,5 @@ func (c *controller) serviceClassDelete(obj interface{}) {
 		return
 	}
 
-	glog.V(4).Infof("Received delete event for ServiceClass %v", serviceClass.Name)
+	glog.V(4).Infof("Received delete event for ServiceClass %v; no further processing will occur", serviceClass.Name)
 }

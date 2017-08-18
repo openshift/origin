@@ -19,8 +19,10 @@ package server
 import (
 	"os"
 
+	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/spf13/pflag"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
 )
 
@@ -52,6 +54,21 @@ type ServiceCatalogServerOptions struct {
 	StandaloneMode bool
 }
 
+// NewServiceCatalogServerOptions creates a new instances of
+// ServiceCatalogServerOptions with all sub-options filled in.
+func NewServiceCatalogServerOptions() *ServiceCatalogServerOptions {
+	return &ServiceCatalogServerOptions{
+		GenericServerRunOptions: genericserveroptions.NewServerRunOptions(),
+		AdmissionOptions:        genericserveroptions.NewAdmissionOptions(),
+		SecureServingOptions:    genericserveroptions.NewSecureServingOptions(),
+		AuthenticationOptions:   genericserveroptions.NewDelegatingAuthenticationOptions(),
+		AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
+		AuditOptions:            genericserveroptions.NewAuditOptions(),
+		EtcdOptions:             NewEtcdOptions(),
+		TPROptions:              NewTPROptions(),
+	}
+}
+
 func (s *ServiceCatalogServerOptions) addFlags(flags *pflag.FlagSet) {
 	flags.StringVar(
 		&s.StorageTypeString,
@@ -81,6 +98,32 @@ func (s *ServiceCatalogServerOptions) addFlags(flags *pflag.FlagSet) {
 // invalid storage type
 func (s *ServiceCatalogServerOptions) StorageType() (server.StorageType, error) {
 	return server.StorageTypeFromString(s.StorageTypeString)
+}
+
+// Validate checks all subOptions flags have been set and that they
+// have not been set in a conflictory manner.
+func (s *ServiceCatalogServerOptions) Validate() error {
+	errors := []error{}
+	// TODO uncomment after 1.8 rebase expecting
+	// https://github.com/kubernetes/kubernetes/pull/50308/files
+	// errors = append(errors, s.AdmissionOptions.Validate()...)
+	errors = append(errors, s.SecureServingOptions.Validate()...)
+	errors = append(errors, s.AuthenticationOptions.Validate()...)
+	errors = append(errors, s.AuthorizationOptions.Validate()...)
+	// etcd options
+	if "etcd" == s.StorageTypeString {
+		etcdErrs := s.EtcdOptions.Validate()
+		if len(etcdErrs) > 0 {
+			glog.Errorln("Error validating etcd options, do you have `--etcd-servers localhost` set?")
+		}
+		errors = append(errors, etcdErrs...)
+	}
+	// TODO add alternative storage validation
+	// errors = append(errors, s.TPROptions.Validate()...)
+	// TODO uncomment after 1.8 rebase expecting
+	// https://github.com/kubernetes/kubernetes/pull/47043
+	// errors = append(errors, s.AuditOptions.Validate()...)
+	return utilerrors.NewAggregate(errors)
 }
 
 // standaloneMode returns true if the env var SERVICE_CATALOG_STANALONE=true
