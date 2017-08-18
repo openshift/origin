@@ -1,249 +1,248 @@
 apiVersion: v1
 items:
-- apiVersion: v1
-  groupNames:
-  - system:masters
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:masters
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:master
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:masters
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:node-admins
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:node-admins
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-admin
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:master
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:node-admins
-  userNames:
-  - system:master
-- apiVersion: v1
-  groupNames:
-  - system:cluster-admins
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: cluster-admins
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-admin
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:cluster-admins
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:admin
-  userNames:
-  - system:admin
-- apiVersion: v1
-  groupNames:
-  - system:cluster-readers
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: cluster-readers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-reader
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:cluster-readers
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: basic-users
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: basic-user
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: self-access-reviewers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: self-access-reviewer
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated:oauth
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: self-provisioners
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: self-provisioner
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated:oauth
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:oauth-token-deleters
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:oauth-token-deleter
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: cluster-status-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-status
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:nodes
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:node-proxiers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-proxier
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:sdn-readers
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:sdn-reader
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:webhooks
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:webhook
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:discovery-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:discovery
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:build-strategy-docker-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:build-strategy-docker
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:build-strategy-source-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:build-strategy-source
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:build-strategy-jenkinspipeline-binding
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:build-strategy-jenkinspipeline
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -253,15 +252,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:attachdetach-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:attachdetach-controller
   subjects:
   - kind: ServiceAccount
     name: attachdetach-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:attachdetach-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -271,15 +269,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:cronjob-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:cronjob-controller
   subjects:
   - kind: ServiceAccount
     name: cronjob-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:cronjob-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -289,15 +286,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:daemon-set-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:daemon-set-controller
   subjects:
   - kind: ServiceAccount
     name: daemon-set-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:daemon-set-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -307,15 +303,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:deployment-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:deployment-controller
   subjects:
   - kind: ServiceAccount
     name: deployment-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:deployment-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -325,15 +320,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:disruption-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:disruption-controller
   subjects:
   - kind: ServiceAccount
     name: disruption-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:disruption-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -343,15 +337,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:endpoint-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:endpoint-controller
   subjects:
   - kind: ServiceAccount
     name: endpoint-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:endpoint-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -361,15 +354,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:generic-garbage-collector
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:generic-garbage-collector
   subjects:
   - kind: ServiceAccount
     name: generic-garbage-collector
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:generic-garbage-collector
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -379,15 +371,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:horizontal-pod-autoscaler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:horizontal-pod-autoscaler
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:horizontal-pod-autoscaler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -397,15 +388,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:job-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:job-controller
   subjects:
   - kind: ServiceAccount
     name: job-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:job-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -415,15 +405,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:namespace-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:namespace-controller
   subjects:
   - kind: ServiceAccount
     name: namespace-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:namespace-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -433,15 +422,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:node-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:node-controller
   subjects:
   - kind: ServiceAccount
     name: node-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:node-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -451,15 +439,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:persistent-volume-binder
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:persistent-volume-binder
   subjects:
   - kind: ServiceAccount
     name: persistent-volume-binder
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:persistent-volume-binder
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -469,15 +456,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:pod-garbage-collector
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:pod-garbage-collector
   subjects:
   - kind: ServiceAccount
     name: pod-garbage-collector
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:pod-garbage-collector
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -487,15 +473,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:replicaset-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:replicaset-controller
   subjects:
   - kind: ServiceAccount
     name: replicaset-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:replicaset-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -505,15 +490,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:replication-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:replication-controller
   subjects:
   - kind: ServiceAccount
     name: replication-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:replication-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -523,15 +507,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:resourcequota-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:resourcequota-controller
   subjects:
   - kind: ServiceAccount
     name: resourcequota-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:resourcequota-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -541,15 +524,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:route-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:route-controller
   subjects:
   - kind: ServiceAccount
     name: route-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:route-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -559,15 +541,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:service-account-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:service-account-controller
   subjects:
   - kind: ServiceAccount
     name: service-account-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:service-account-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -577,15 +558,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:service-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:service-controller
   subjects:
   - kind: ServiceAccount
     name: service-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:service-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -595,15 +575,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:statefulset-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:statefulset-controller
   subjects:
   - kind: ServiceAccount
     name: statefulset-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:statefulset-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -613,15 +592,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:ttl-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:ttl-controller
   subjects:
   - kind: ServiceAccount
     name: ttl-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:ttl-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -631,310 +609,287 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:controller:certificate-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:controller:certificate-controller
   subjects:
   - kind: ServiceAccount
     name: certificate-controller
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:certificate-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:build-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:build-controller
   subjects:
   - kind: ServiceAccount
     name: build-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:build-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:build-config-change-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:build-config-change-controller
   subjects:
   - kind: ServiceAccount
     name: build-config-change-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:build-config-change-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:deployer-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:deployer-controller
   subjects:
   - kind: ServiceAccount
     name: deployer-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:deployer-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:deploymentconfig-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:deploymentconfig-controller
   subjects:
   - kind: ServiceAccount
     name: deploymentconfig-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:deploymentconfig-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:deployment-trigger-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:deployment-trigger-controller
   subjects:
   - kind: ServiceAccount
     name: deployment-trigger-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:deployment-trigger-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:template-instance-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:template-instance-controller
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-instance-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: admin
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: admin
   subjects:
   - kind: ServiceAccount
     name: template-instance-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-instance-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:origin-namespace-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:origin-namespace-controller
   subjects:
   - kind: ServiceAccount
     name: origin-namespace-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:origin-namespace-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:serviceaccount-controller
   subjects:
   - kind: ServiceAccount
     name: serviceaccount-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:serviceaccount-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-pull-secrets-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:serviceaccount-pull-secrets-controller
   subjects:
   - kind: ServiceAccount
     name: serviceaccount-pull-secrets-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:serviceaccount-pull-secrets-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:image-trigger-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:image-trigger-controller
   subjects:
   - kind: ServiceAccount
     name: image-trigger-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:image-trigger-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:service-serving-cert-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:service-serving-cert-controller
   subjects:
   - kind: ServiceAccount
     name: service-serving-cert-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:service-serving-cert-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:image-import-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:image-import-controller
   subjects:
   - kind: ServiceAccount
     name: image-import-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:image-import-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:sdn-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:sdn-controller
   subjects:
   - kind: ServiceAccount
     name: sdn-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:sdn-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:cluster-quota-reconciliation-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:cluster-quota-reconciliation-controller
   subjects:
   - kind: ServiceAccount
     name: cluster-quota-reconciliation-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:cluster-quota-reconciliation-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:unidling-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:unidling-controller
   subjects:
   - kind: ServiceAccount
     name: unidling-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:unidling-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:service-ingress-ip-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:service-ingress-ip-controller
   subjects:
   - kind: ServiceAccount
     name: service-ingress-ip-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:service-ingress-ip-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:pv-recycler-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:pv-recycler-controller
   subjects:
   - kind: ServiceAccount
     name: pv-recycler-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:pv-recycler-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:resourcequota-controller
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:resourcequota-controller
   subjects:
   - kind: ServiceAccount
     name: resourcequota-controller
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:resourcequota-controller
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:horizontal-pod-autoscaler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:horizontal-pod-autoscaler
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:horizontal-pod-autoscaler
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
     name: system:openshift:controller:template-service-broker
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:openshift:controller:template-service-broker
   subjects:
   - kind: ServiceAccount
     name: template-service-broker
     namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:template-service-broker
-- apiVersion: v1
-  groupNames:
-  - system:masters
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -944,15 +899,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: cluster-admin
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: cluster-admin
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:masters
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -962,17 +916,17 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:discovery
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:discovery
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames:
-  - system:authenticated
-  - system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -982,15 +936,17 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:basic-user
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:basic-user
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:unauthenticated
-  userNames: null
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -1000,14 +956,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:node-proxier
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node-proxier
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-proxy
-  userNames:
-  - system:kube-proxy
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -1017,14 +973,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:kube-controller-manager
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:kube-controller-manager
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-controller-manager
-  userNames:
-  - system:kube-controller-manager
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -1034,15 +990,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:kube-dns
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:kube-dns
   subjects:
   - kind: ServiceAccount
     name: kube-dns
     namespace: kube-system
-  userNames:
-  - system:serviceaccount:kube-system:kube-dns
-- apiVersion: v1
-  groupNames: null
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -1052,15 +1007,14 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:kube-scheduler
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:kube-scheduler
   subjects:
-  - kind: SystemUser
+  - apiGroup: rbac.authorization.k8s.io
+    kind: User
     name: system:kube-scheduler
-  userNames:
-  - system:kube-scheduler
-- apiVersion: v1
-  groupNames:
-  - system:nodes
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     annotations:
@@ -1070,10 +1024,12 @@ items:
       kubernetes.io/bootstrapping: rbac-defaults
     name: system:node
   roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
     name: system:node
   subjects:
-  - kind: SystemGroup
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:nodes
-  userNames: null
 kind: List
 metadata: {}
