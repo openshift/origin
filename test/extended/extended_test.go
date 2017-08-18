@@ -7,6 +7,7 @@ import (
 
 	_ "github.com/openshift/origin/test/extended/builds"
 	_ "github.com/openshift/origin/test/extended/cli"
+	_ "github.com/openshift/origin/test/extended/cluster"
 	_ "github.com/openshift/origin/test/extended/deployments"
 	_ "github.com/openshift/origin/test/extended/dns"
 	_ "github.com/openshift/origin/test/extended/idling"
