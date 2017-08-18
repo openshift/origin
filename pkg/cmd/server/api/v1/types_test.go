@@ -497,7 +497,6 @@ servingInfo:
     keyFile: ""
     names: null
   requestTimeoutSeconds: 0
-templateServiceBrokerConfig: null
 volumeConfig:
   dynamicProvisioningEnabled: false
 `

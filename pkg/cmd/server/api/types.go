@@ -427,11 +427,6 @@ type MasterConfig struct {
 	// AuditConfig holds information related to auditing capabilities.
 	AuditConfig AuditConfig
 
-	// TemplateServiceBrokerConfig holds information related to the template
-	// service broker.  The broker is enabled if TemplateServiceBrokerConfig is
-	// non-nil.
-	TemplateServiceBrokerConfig *TemplateServiceBrokerConfig
-
 	// DisableOpenAPI avoids starting the openapi endpoint because it is very expensive.
 	// This option will be removed at a later time.  It is never serialized.
 	DisableOpenAPI bool
@@ -1477,12 +1472,4 @@ type DefaultAdmissionConfig struct {
 
 	// Disable turns off an admission plugin that is enabled by default.
 	Disable bool
-}
-
-// TemplateServiceBrokerConfig holds information related to the template
-// service broker
-type TemplateServiceBrokerConfig struct {
-	// TemplateNamespaces indicates the namespace(s) in which the template service
-	// broker looks for templates to serve to the catalog.
-	TemplateNamespaces []string
 }
