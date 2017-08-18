@@ -243,6 +243,7 @@
 // examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql.json
+// examples/templateservicebroker/apiserver-config.yaml
 // examples/templateservicebroker/templateservicebroker-template.yaml
 // DO NOT EDIT!
 
@@ -27717,6 +27718,26 @@ func examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson() (*asset, error) {
 	return a, nil
 }
 
+var _examplesTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
+apiVersion: config.templateservicebroker.openshift.io/v1
+templateNamespaces:
+- openshift`)
+
+func examplesTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
+	return _examplesTemplateservicebrokerApiserverConfigYaml, nil
+}
+
+func examplesTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
+	bytes, err := examplesTemplateservicebrokerApiserverConfigYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -27724,14 +27745,18 @@ metadata:
 parameters:
 - name: IMAGE
   value: openshift/origin:latest
-- name: TSB_TEMPLATE_NAMESPACE
-  value: openshift
 - name: NAMESPACE
   value: openshift-template-service-broker
 - name: KUBE_SYSTEM
   value: kube-system
 - name: LOGLEVEL
   value: "0"
+- name: API_SERVER_CONFIG
+  value: |
+   kind: TemplateServiceBrokerConfig
+   apiVersion: config.templateservicebroker.openshift.io/v1
+   templateNamespaces:
+   - openshift
 objects:
 
 # to create the tsb server
@@ -27761,18 +27786,33 @@ objects:
           - "--audit-log-path=-"
           - "--tls-cert-file=/var/serving-cert/tls.crt"
           - "--tls-private-key-file=/var/serving-cert/tls.key"
-          - "--template-namespace=${TSB_TEMPLATE_NAMESPACE}"
           - "--loglevel=${LOGLEVEL}"
+          - "--config=/var/apiserver-config/apiserver-config.yaml"
           ports:
           - containerPort: 8443
           volumeMounts:
           - mountPath: /var/serving-cert
             name: serving-cert
+          - mountPath: /var/apiserver-config
+            name: apiserver-config
         volumes:
         - name: serving-cert
           secret:
             defaultMode: 420
             secretName: apiserver-serving-cert
+        - name: apiserver-config
+          configMap:
+            defaultMode: 420
+            name: apiserver-config
+
+# to create the config for the TSB
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    namespace: ${NAMESPACE}
+    name: apiserver-config
+  data:
+    apiserver-config.yaml: ${API_SERVER_CONFIG}
 
 # to be able to assign powers to the process
 - apiVersion: v1
@@ -28145,6 +28185,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
+	"examples/templateservicebroker/apiserver-config.yaml": examplesTemplateservicebrokerApiserverConfigYaml,
 	"examples/templateservicebroker/templateservicebroker-template.yaml": examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml,
 }
 
@@ -28250,6 +28291,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"pullimages.sh": &bintree{examplesSampleAppPullimagesSh, map[string]*bintree{}},
 		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
+			"apiserver-config.yaml": &bintree{examplesTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"templateservicebroker-template.yaml": &bintree{examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
 		}},
 	}},

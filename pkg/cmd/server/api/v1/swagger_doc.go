@@ -488,39 +488,38 @@ func (MasterClients) SwaggerDoc() map[string]string {
 }
 
 var map_MasterConfig = map[string]string{
-	"":                            "MasterConfig holds the necessary configuration options for the OpenShift master",
-	"servingInfo":                 "ServingInfo describes how to start serving",
-	"authConfig":                  "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
-	"aggregatorConfig":            "AggregatorConfig has options for configuring the aggregator component of the API server.",
-	"corsAllowedOrigins":          "CORSAllowedOrigins",
-	"apiLevels":                   "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
-	"masterPublicURL":             "MasterPublicURL is how clients can access the OpenShift API server",
-	"controllers":                 "Controllers is a list of the controllers that should be started. If set to \"none\", no controllers will start automatically. The default value is \"*\" which will start all controllers. When using \"*\", you may exclude controllers by prepending a \"-\" in front of their name. No other values are recognized at this time.",
-	"pauseControllers":            "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: Will be removed in 3.7.",
-	"controllerLeaseTTL":          "ControllerLeaseTTL enables controller election against etcd, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: use controllerConfig.lockServiceName to force leader election via config, and the\n  appropriate leader election flags in controllerArguments. Will be removed in 3.9.",
-	"admissionConfig":             "AdmissionConfig contains admission control plugin configuration.",
-	"controllerConfig":            "ControllerConfig holds configuration values for controllers",
-	"disabledFeatures":            "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
-	"etcdStorageConfig":           "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
-	"etcdClientInfo":              "EtcdClientInfo contains information about how to connect to etcd",
-	"kubeletClientInfo":           "KubeletClientInfo contains information about how to connect to kubelets",
-	"kubernetesMasterConfig":      "KubernetesMasterConfig, if present start the kubernetes master in this process",
-	"etcdConfig":                  "EtcdConfig, if present start etcd in this process",
-	"oauthConfig":                 "OAuthConfig, if present start the /oauth endpoint in this process",
-	"assetConfig":                 "AssetConfig, if present start the asset server in this process",
-	"dnsConfig":                   "DNSConfig, if present start the DNS server in this process",
-	"serviceAccountConfig":        "ServiceAccountConfig holds options related to service accounts",
-	"masterClients":               "MasterClients holds all the client connection information for controllers and other system components",
-	"imageConfig":                 "ImageConfig holds options that describe how to build image names for system components",
-	"imagePolicyConfig":           "ImagePolicyConfig controls limits and behavior for importing images",
-	"policyConfig":                "PolicyConfig holds information about where to locate critical pieces of bootstrapping policy",
-	"projectConfig":               "ProjectConfig holds information about project creation and defaults",
-	"routingConfig":               "RoutingConfig holds information about routing and route generation",
-	"networkConfig":               "NetworkConfig to be passed to the compiled in network plugin",
-	"volumeConfig":                "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
-	"jenkinsPipelineConfig":       "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
-	"auditConfig":                 "AuditConfig holds information related to auditing capabilities.",
-	"templateServiceBrokerConfig": "TemplateServiceBrokerConfig holds information related to the template service broker.  The broker is enabled if TemplateServiceBrokerConfig is non-nil.",
+	"":                       "MasterConfig holds the necessary configuration options for the OpenShift master",
+	"servingInfo":            "ServingInfo describes how to start serving",
+	"authConfig":             "AuthConfig configures authentication options in addition to the standard oauth token and client certificate authenticators",
+	"aggregatorConfig":       "AggregatorConfig has options for configuring the aggregator component of the API server.",
+	"corsAllowedOrigins":     "CORSAllowedOrigins",
+	"apiLevels":              "APILevels is a list of API levels that should be enabled on startup: v1 as examples",
+	"masterPublicURL":        "MasterPublicURL is how clients can access the OpenShift API server",
+	"controllers":            "Controllers is a list of the controllers that should be started. If set to \"none\", no controllers will start automatically. The default value is \"*\" which will start all controllers. When using \"*\", you may exclude controllers by prepending a \"-\" in front of their name. No other values are recognized at this time.",
+	"pauseControllers":       "PauseControllers instructs the master to not automatically start controllers, but instead to wait until a notification to the server is received before launching them. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: Will be removed in 3.7.",
+	"controllerLeaseTTL":     "ControllerLeaseTTL enables controller election against etcd, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: use controllerConfig.lockServiceName to force leader election via config, and the\n  appropriate leader election flags in controllerArguments. Will be removed in 3.9.",
+	"admissionConfig":        "AdmissionConfig contains admission control plugin configuration.",
+	"controllerConfig":       "ControllerConfig holds configuration values for controllers",
+	"disabledFeatures":       "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
+	"etcdStorageConfig":      "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
+	"etcdClientInfo":         "EtcdClientInfo contains information about how to connect to etcd",
+	"kubeletClientInfo":      "KubeletClientInfo contains information about how to connect to kubelets",
+	"kubernetesMasterConfig": "KubernetesMasterConfig, if present start the kubernetes master in this process",
+	"etcdConfig":             "EtcdConfig, if present start etcd in this process",
+	"oauthConfig":            "OAuthConfig, if present start the /oauth endpoint in this process",
+	"assetConfig":            "AssetConfig, if present start the asset server in this process",
+	"dnsConfig":              "DNSConfig, if present start the DNS server in this process",
+	"serviceAccountConfig":   "ServiceAccountConfig holds options related to service accounts",
+	"masterClients":          "MasterClients holds all the client connection information for controllers and other system components",
+	"imageConfig":            "ImageConfig holds options that describe how to build image names for system components",
+	"imagePolicyConfig":      "ImagePolicyConfig controls limits and behavior for importing images",
+	"policyConfig":           "PolicyConfig holds information about where to locate critical pieces of bootstrapping policy",
+	"projectConfig":          "ProjectConfig holds information about project creation and defaults",
+	"routingConfig":          "RoutingConfig holds information about routing and route generation",
+	"networkConfig":          "NetworkConfig to be passed to the compiled in network plugin",
+	"volumeConfig":           "MasterVolumeConfig contains options for configuring volume plugins in the master node.",
+	"jenkinsPipelineConfig":  "JenkinsPipelineConfig holds information about the default Jenkins template used for JenkinsPipeline build strategy.",
+	"auditConfig":            "AuditConfig holds information related to auditing capabilities.",
 }
 
 func (MasterConfig) SwaggerDoc() map[string]string {
@@ -892,15 +891,6 @@ var map_StringSourceSpec = map[string]string{
 
 func (StringSourceSpec) SwaggerDoc() map[string]string {
 	return map_StringSourceSpec
-}
-
-var map_TemplateServiceBrokerConfig = map[string]string{
-	"":                   "TemplateServiceBrokerConfig holds information related to the template service broker",
-	"templateNamespaces": "TemplateNamespaces indicates the namespace(s) in which the template service broker looks for templates to serve to the catalog.",
-}
-
-func (TemplateServiceBrokerConfig) SwaggerDoc() map[string]string {
-	return map_TemplateServiceBrokerConfig
 }
 
 var map_TokenConfig = map[string]string{
