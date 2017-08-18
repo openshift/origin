@@ -361,8 +361,6 @@ func (m *podManager) update(req *cniserver.PodRequest) (uint32, error) {
 
 // Clean up all pod networking (clear OVS flows, release IPAM lease, remove host/container veth)
 func (m *podManager) teardown(req *cniserver.PodRequest) error {
-	errList := []error{}
-
 	netnsValid := true
 	if err := ns.IsNSorErr(req.Netns); err != nil {
 		if _, ok := err.(ns.NSPathNotExistErr); ok {
@@ -371,13 +369,14 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		}
 	}
 
+	errList := []error{}
 	if netnsValid {
 		hostVethName, _, podIP, err := getVethInfo(req.Netns, podInterfaceName)
 		if err != nil {
 			return err
 		}
 
-		if err := m.ovs.TearDownPod(hostVethName, podIP); err != nil {
+		if err := m.ovs.TearDownPod(hostVethName, podIP, req.SandboxID); err != nil {
 			errList = append(errList, err)
 		}
 	}
