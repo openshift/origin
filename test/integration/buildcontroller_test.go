@@ -205,7 +205,7 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		Stop:                  controllerContext.Stop,
 	}
 
-	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(*master, informers)
+	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(*master)
 	if err != nil {
 		t.Fatal(err)
 	}

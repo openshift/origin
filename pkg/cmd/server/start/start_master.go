@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	kubecontrollers "github.com/openshift/origin/pkg/cmd/server/kubernetes/master/controller"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
@@ -486,7 +487,7 @@ func (m *Master) Start() error {
 				glog.Fatal(err)
 			}
 
-			if err := startControllers(*m.config, allocationController, informers, controllerContext); err != nil {
+			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
 
@@ -638,12 +639,12 @@ func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kin
 
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
-func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, informers *informers, controllerContext origincontrollers.ControllerContext) error {
-	openshiftControllerConfig, err := origin.BuildOpenshiftControllerConfig(options, informers)
+func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, controllerContext origincontrollers.ControllerContext) error {
+	openshiftControllerConfig, err := origincontrollers.BuildOpenshiftControllerConfig(options)
 	if err != nil {
 		return err
 	}
-	kubeControllerConfig, err := origin.BuildKubeControllerConfig(options)
+	kubeControllerConfig, err := kubecontrollers.BuildKubeControllerConfig(options)
 	if err != nil {
 		return err
 	}

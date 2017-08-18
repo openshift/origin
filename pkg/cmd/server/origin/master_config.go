@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
-	"os"
-	"path"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/golang/glog"
 
@@ -18,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/initializer"
@@ -41,7 +37,6 @@ import (
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/util/cert"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
@@ -49,19 +44,14 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
-	kcontroller "k8s.io/kubernetes/pkg/controller"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/pkg/serviceaccount"
-	scheduleroptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
-	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
-	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
-	latestschedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api/latest"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -74,14 +64,9 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
-	kubecontrollers "github.com/openshift/origin/pkg/cmd/server/kubernetes/master/controller"
 	admissionregistry "github.com/openshift/origin/pkg/cmd/server/origin/admission"
-	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
@@ -412,179 +397,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	}))
 
 	return config, nil
-}
-
-func BuildOpenshiftControllerConfig(options configapi.MasterConfig, informers InformerAccess) (*origincontrollers.OpenshiftControllerConfig, error) {
-	var err error
-	ret := &origincontrollers.OpenshiftControllerConfig{}
-
-	_, loopbackClientConfig, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-
-	ret.ServiceAccountTokenControllerOptions = origincontrollers.ServiceAccountTokenControllerOptions{
-		RootClientBuilder: kcontroller.SimpleControllerClientBuilder{
-			ClientConfig: loopbackClientConfig,
-		},
-	}
-	if len(options.ServiceAccountConfig.PrivateKeyFile) > 0 {
-		ret.ServiceAccountTokenControllerOptions.PrivateKey, err = serviceaccount.ReadPrivateKey(options.ServiceAccountConfig.PrivateKeyFile)
-		if err != nil {
-			return nil, fmt.Errorf("error reading signing key for Service Account Token Manager: %v", err)
-		}
-	}
-	if len(options.ServiceAccountConfig.MasterCA) > 0 {
-		ret.ServiceAccountTokenControllerOptions.RootCA, err = ioutil.ReadFile(options.ServiceAccountConfig.MasterCA)
-		if err != nil {
-			return nil, fmt.Errorf("error reading master ca file for Service Account Token Manager: %s: %v", options.ServiceAccountConfig.MasterCA, err)
-		}
-		if _, err := cert.ParseCertsPEM(ret.ServiceAccountTokenControllerOptions.RootCA); err != nil {
-			return nil, fmt.Errorf("error parsing master ca file for Service Account Token Manager: %s: %v", options.ServiceAccountConfig.MasterCA, err)
-		}
-	}
-	if options.ControllerConfig.ServiceServingCert.Signer != nil && len(options.ControllerConfig.ServiceServingCert.Signer.CertFile) > 0 {
-		certFile := options.ControllerConfig.ServiceServingCert.Signer.CertFile
-		serviceServingCA, err := ioutil.ReadFile(certFile)
-		if err != nil {
-			return nil, fmt.Errorf("error reading ca file for Service Serving Certificate Signer: %s: %v", certFile, err)
-		}
-		if _, err := crypto.CertsFromPEM(serviceServingCA); err != nil {
-			return nil, fmt.Errorf("error parsing ca file for Service Serving Certificate Signer: %s: %v", certFile, err)
-		}
-
-		// if we have a rootCA bundle add that too.  The rootCA will be used when hitting the default master service, since those are signed
-		// using a different CA by default.  The rootCA's key is more closely guarded than ours and if it is compromised, that power could
-		// be used to change the trusted signers for every pod anyway, so we're already effectively trusting it.
-		if len(ret.ServiceAccountTokenControllerOptions.RootCA) > 0 {
-			ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, ret.ServiceAccountTokenControllerOptions.RootCA...)
-			ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, []byte("\n")...)
-		}
-		ret.ServiceAccountTokenControllerOptions.ServiceServingCA = append(ret.ServiceAccountTokenControllerOptions.ServiceServingCA, serviceServingCA...)
-	}
-
-	ret.ServiceAccountControllerOptions = origincontrollers.ServiceAccountControllerOptions{
-		ManagedNames: options.ServiceAccountConfig.ManagedNames,
-	}
-
-	storageVersion := options.EtcdStorageConfig.OpenShiftStorageVersion
-	groupVersion := schema.GroupVersion{Group: "", Version: storageVersion}
-	annotationCodec := kapi.Codecs.LegacyCodec(groupVersion)
-
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = options.ImageConfig.Format
-	imageTemplate.Latest = options.ImageConfig.Latest
-
-	ret.BuildControllerConfig = origincontrollers.BuildControllerConfig{
-		DockerImage:           imageTemplate.ExpandOrDie("docker-builder"),
-		S2IImage:              imageTemplate.ExpandOrDie("sti-builder"),
-		AdmissionPluginConfig: options.AdmissionConfig.PluginConfig,
-		Codec: annotationCodec,
-	}
-
-	vars, err := getOpenShiftClientEnvVars(options)
-	if err != nil {
-		return nil, err
-	}
-	ret.DeployerControllerConfig = origincontrollers.DeployerControllerConfig{
-		ImageName:     imageTemplate.ExpandOrDie("deployer"),
-		Codec:         annotationCodec,
-		ClientEnvVars: vars,
-	}
-	ret.DeploymentConfigControllerConfig = origincontrollers.DeploymentConfigControllerConfig{
-		Codec: annotationCodec,
-	}
-	ret.DeploymentTriggerControllerConfig = origincontrollers.DeploymentTriggerControllerConfig{
-		Codec: annotationCodec,
-	}
-
-	ret.ImageTriggerControllerConfig = origincontrollers.ImageTriggerControllerConfig{
-		HasBuilderEnabled: options.DisabledFeatures.Has(configapi.FeatureBuilder),
-		// TODO: make these consts in configapi
-		HasDeploymentsEnabled:  options.DisabledFeatures.Has("triggers.image.openshift.io/deployments"),
-		HasDaemonSetsEnabled:   options.DisabledFeatures.Has("triggers.image.openshift.io/daemonsets"),
-		HasStatefulSetsEnabled: options.DisabledFeatures.Has("triggers.image.openshift.io/statefulsets"),
-		HasCronJobsEnabled:     options.DisabledFeatures.Has("triggers.image.openshift.io/cronjobs"),
-	}
-	ret.ImageImportControllerConfig = origincontrollers.ImageImportControllerConfig{
-		MaxScheduledImageImportsPerMinute:          options.ImagePolicyConfig.MaxScheduledImageImportsPerMinute,
-		ResyncPeriod:                               10 * time.Minute,
-		DisableScheduledImport:                     options.ImagePolicyConfig.DisableScheduledImport,
-		ScheduledImageImportMinimumIntervalSeconds: options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds,
-	}
-
-	ret.ServiceServingCertsControllerOptions = origincontrollers.ServiceServingCertsControllerOptions{
-		Signer: options.ControllerConfig.ServiceServingCert.Signer,
-	}
-
-	ret.SDNControllerConfig = origincontrollers.SDNControllerConfig{
-		NetworkConfig: options.NetworkConfig,
-	}
-	ret.UnidlingControllerConfig = origincontrollers.UnidlingControllerConfig{
-		ResyncPeriod: 2 * time.Hour,
-	}
-	ret.IngressIPControllerConfig = origincontrollers.IngressIPControllerConfig{
-		IngressIPSyncPeriod:  10 * time.Minute,
-		IngressIPNetworkCIDR: options.NetworkConfig.IngressIPNetworkCIDR,
-	}
-
-	// TODO rewire this to accep them during the init function
-	clusterQuotaMappingController := clusterquotamapping.NewClusterQuotaMappingController(
-		informers.GetExternalKubeInformers().Core().V1().Namespaces(),
-		informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas())
-	ret.ClusterQuotaMappingControllerConfig = origincontrollers.ClusterQuotaMappingControllerConfig{
-		ClusterQuotaMappingController: clusterQuotaMappingController,
-	}
-	ret.ClusterQuotaReconciliationControllerConfig = origincontrollers.ClusterQuotaReconciliationControllerConfig{
-		Mapper:                         clusterQuotaMappingController.GetClusterQuotaMapper(),
-		DefaultResyncPeriod:            5 * time.Minute,
-		DefaultReplenishmentSyncPeriod: 12 * time.Hour,
-	}
-
-	return ret, nil
-}
-
-func BuildKubeControllerConfig(options configapi.MasterConfig) (*kubecontrollers.KubeControllerConfig, error) {
-	var err error
-	ret := &kubecontrollers.KubeControllerConfig{}
-
-	kubeExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-
-	var schedulerPolicy *schedulerapi.Policy
-	if _, err := os.Stat(options.KubernetesMasterConfig.SchedulerConfigFile); err == nil {
-		schedulerPolicy = &schedulerapi.Policy{}
-		configData, err := ioutil.ReadFile(options.KubernetesMasterConfig.SchedulerConfigFile)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read scheduler config: %v", err)
-		}
-		if err := runtime.DecodeInto(latestschedulerapi.Codec, configData, schedulerPolicy); err != nil {
-			return nil, fmt.Errorf("invalid scheduler configuration: %v", err)
-		}
-	}
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	schedulerserver := scheduleroptions.NewSchedulerServer()
-	schedulerserver.PolicyConfigFile = options.KubernetesMasterConfig.SchedulerConfigFile
-	if err := cmdflags.Resolve(options.KubernetesMasterConfig.SchedulerArguments, schedulerserver.AddFlags); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
-	}
-	ret.SchedulerControllerConfig = kubecontrollers.SchedulerControllerConfig{
-		PrivilegedClient: kubeExternal,
-		SchedulerServer:  schedulerserver,
-	}
-
-	imageTemplate := variable.NewDefaultImageTemplate()
-	imageTemplate.Format = options.ImageConfig.Format
-	imageTemplate.Latest = options.ImageConfig.Latest
-	ret.RecyclerImage = imageTemplate.ExpandOrDie("recycler")
-
-	ret.HeapsterNamespace = options.PolicyConfig.OpenShiftInfrastructureNamespace
-
-	return ret, nil
 }
 
 var (
@@ -1060,39 +872,9 @@ func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
 	return c.PrivilegedLoopbackOpenShiftClient
 }
 
-// PolicyClient returns the policy client object
-// It must have the following capabilities:
-//  list, watch all policyBindings in all namespaces
-//  list, watch all policies in all namespaces
-//  create resourceAccessReviews in all namespaces
-func (c *MasterConfig) PolicyClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
 // RouteAllocatorClients returns the route allocator client objects
 func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, kclientsetinternal.Interface) {
 	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
-}
-
-// SecurityAllocationControllerClient returns the security allocation controller client object
-func (c *MasterConfig) SecurityAllocationControllerClient() kclientsetexternal.Interface {
-	return c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, error) {
-	_, kclientConfig, err := configapi.GetInternalKubeClient(
-		options.MasterClients.OpenShiftLoopbackKubeConfig,
-		options.MasterClients.OpenShiftLoopbackClientConnectionOverrides,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return clientcmd.EnvVars(
-		kclientConfig.Host,
-		kclientConfig.CAData,
-		kclientConfig.Insecure,
-		path.Join(serviceaccountadmission.DefaultAPITokenMountPath, kapi.ServiceAccountTokenKey),
-	), nil
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.
