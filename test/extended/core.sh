@@ -17,7 +17,7 @@ TEST_PARALLEL="${PARALLEL_NODES:-5}" TEST_REPORT_FILE_NAME=core_parallel os::tes
 # run tests in serial
 os::log::info ""
 os::log::info "Running serial tests"
-TEST_REPORT_FILE_NAME=core_serial os::test::extended::run -- -suite "parallel.conformance.openshift.io" -test.timeout 2h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
+TEST_REPORT_FILE_NAME=core_serial os::test::extended::run -- -suite "serial.conformance.openshift.io" -test.timeout 2h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
 os::test::extended::merge_junit
 
