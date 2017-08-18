@@ -451,26 +451,32 @@ var skipImageRewriteOnUpdate = map[schema.GroupResource]struct{}{
 }
 
 // RewriteImagePullSpec applies to implicit rewrite attributes and local resources as well as if the policy requires it.
+// If a local name check is requested and a rule matches true is returned. The policy default resolution is only respected
+// if a resource isn't covered by a rule - if pods have a rule with DoNotAttempt and the global policy is RequiredRewrite,
+// no pods will be rewritten.
 func (config resolutionConfig) RewriteImagePullSpec(attr *rules.ImagePolicyAttributes, isUpdate bool, gr schema.GroupResource) bool {
 	if isUpdate {
 		if _, ok := skipImageRewriteOnUpdate[gr]; ok {
 			return false
 		}
 	}
-	if api.RequestsResolution(config.config.ResolveImages) {
-		return true
-	}
-	if attr.LocalRewrite {
-		for _, rule := range config.config.ResolutionRules {
-			if !rule.LocalNames {
-				continue
-			}
-			if resolutionRuleCoversResource(rule.TargetResource, gr) {
-				return true
-			}
+	hasMatchingRule := false
+	for _, rule := range config.config.ResolutionRules {
+		if !resolutionRuleCoversResource(rule.TargetResource, gr) {
+			continue
 		}
+		if rule.LocalNames && attr.LocalRewrite {
+			return true
+		}
+		if api.RewriteImagePullSpec(rule.Policy) {
+			return true
+		}
+		hasMatchingRule = true
 	}
-	return false
+	if hasMatchingRule {
+		return false
+	}
+	return api.RewriteImagePullSpec(config.config.ResolveImages)
 }
 
 // resolutionRuleCoversResource implements wildcard checking on Resource names
