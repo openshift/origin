@@ -23,26 +23,22 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 	cfg.Name = defaultName
 	cfg.Dir = etcdServerConfig.StorageDir
 
-	clientTLS := configapi.UseTLS(etcdServerConfig.ServingInfo)
-	if clientTLS {
-		cfg.ClientTLSInfo.CAFile = etcdServerConfig.ServingInfo.ClientCA
-		cfg.ClientTLSInfo.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
-		cfg.ClientTLSInfo.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
-		cfg.ClientTLSInfo.ClientCertAuth = len(cfg.ClientTLSInfo.CAFile) > 0
-	}
+	clientTLS := true
+	cfg.ClientTLSInfo.CAFile = etcdServerConfig.ServingInfo.ClientCA
+	cfg.ClientTLSInfo.CertFile = etcdServerConfig.ServingInfo.ServerCert.CertFile
+	cfg.ClientTLSInfo.KeyFile = etcdServerConfig.ServingInfo.ServerCert.KeyFile
+	cfg.ClientTLSInfo.ClientCertAuth = len(cfg.ClientTLSInfo.CAFile) > 0
 	u, err := types.NewURLs(addressToURLs(etcdServerConfig.ServingInfo.BindAddress, clientTLS))
 	if err != nil {
 		glog.Fatalf("Unable to build etcd peer URLs: %v", err)
 	}
 	cfg.LCUrls = []url.URL(u)
 
-	peerTLS := configapi.UseTLS(etcdServerConfig.PeerServingInfo)
-	if peerTLS {
-		cfg.PeerTLSInfo.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
-		cfg.PeerTLSInfo.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
-		cfg.PeerTLSInfo.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
-		cfg.PeerTLSInfo.ClientCertAuth = len(cfg.PeerTLSInfo.CAFile) > 0
-	}
+	peerTLS := true
+	cfg.PeerTLSInfo.CAFile = etcdServerConfig.PeerServingInfo.ClientCA
+	cfg.PeerTLSInfo.CertFile = etcdServerConfig.PeerServingInfo.ServerCert.CertFile
+	cfg.PeerTLSInfo.KeyFile = etcdServerConfig.PeerServingInfo.ServerCert.KeyFile
+	cfg.PeerTLSInfo.ClientCertAuth = len(cfg.PeerTLSInfo.CAFile) > 0
 	u, err = types.NewURLs(addressToURLs(etcdServerConfig.PeerServingInfo.BindAddress, peerTLS))
 	if err != nil {
 		glog.Fatalf("Unable to build etcd peer URLs: %v", err)

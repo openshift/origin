@@ -139,8 +139,6 @@ type MasterConfig struct {
 	// of both the origin config AND the kube config, so this spot makes more sense.
 	KubeAdmissionControl admission.Interface
 
-	TLS bool
-
 	// ImageFor is a function that returns the appropriate image to use for a named component
 	ImageFor func(component string) string
 	// RegistryNameFn retrieves the name of the integrated registry, or false if no such registry
@@ -366,8 +364,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 
 		AdmissionControl:     originAdmission,
 		KubeAdmissionControl: kubeAdmission,
-
-		TLS: configapi.UseTLS(options.ServingInfo.ServingInfo),
 
 		ImageFor:       imageTemplate.ExpandOrDie,
 		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
@@ -954,15 +950,13 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 		authenticators = append(authenticators, union.New(tokenAuthenticators...))
 	}
 
-	if configapi.UseTLS(config.ServingInfo.ServingInfo) {
-		// build cert authenticator
-		// TODO: add "system:" prefix in authenticator, limit cert to username
-		// TODO: add "system:" prefix to groups in authenticator, limit cert to group name
-		opts := x509request.DefaultVerifyOptions()
-		opts.Roots = apiClientCAs
-		certauth := x509request.New(opts, x509request.CommonNameUserConversion)
-		authenticators = append(authenticators, certauth)
-	}
+	// build cert authenticator
+	// TODO: add "system:" prefix in authenticator, limit cert to username
+	// TODO: add "system:" prefix to groups in authenticator, limit cert to group name
+	opts := x509request.DefaultVerifyOptions()
+	opts.Roots = apiClientCAs
+	certauth := x509request.New(opts, x509request.CommonNameUserConversion)
+	authenticators = append(authenticators, certauth)
 
 	resultingAuthenticator := union.NewFailOnError(authenticators...)
 
