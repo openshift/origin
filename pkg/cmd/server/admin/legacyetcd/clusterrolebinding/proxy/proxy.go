@@ -8,11 +8,11 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
-	rolebindingstorage "github.com/openshift/origin/pkg/authorization/registry/rolebinding/policybased"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/clusterpolicybinding"
+	rolebindingstorage "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/rolebinding/policybased"
 )
 
 type ClusterRoleBindingStorage struct {

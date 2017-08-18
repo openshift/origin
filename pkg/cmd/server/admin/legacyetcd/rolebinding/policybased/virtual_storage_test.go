@@ -17,10 +17,10 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	clusterpolicybindingregistry "github.com/openshift/origin/pkg/authorization/registry/clusterpolicybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
-	"github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	clusterpolicybindingregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/clusterpolicybinding"
+	"github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/test"
 )
 
 func testNewClusterPolicies() []authorizationapi.ClusterPolicy {

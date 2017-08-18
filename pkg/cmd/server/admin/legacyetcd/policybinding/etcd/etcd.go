@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/registry/policybinding"
+	"github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/policybinding"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
