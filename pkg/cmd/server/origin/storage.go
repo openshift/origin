@@ -30,7 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/build/webhook/gitlab"
 	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	deployconfigregistry "github.com/openshift/origin/pkg/deploy/registry/deployconfig"
+	oappsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
@@ -150,7 +150,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
-	deployConfigRegistry := deployconfigregistry.NewRegistry(deployConfigStorage)
 
 	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
@@ -260,13 +259,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		Secrets:         c.KubeClientInternal.Core(),
 	}
 
-	deployRollbackClient := deployrollback.Client{
-		DCFn: deployConfigRegistry.GetDeploymentConfig,
-		RCFn: clientDeploymentInterface{c.KubeClientInternal}.GetDeployment,
-		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
-	}
-	deployConfigRollbackStorage := deployrollback.NewREST(c.DeprecatedOpenshiftClient, c.KubeClientInternal, externalVersionCodec)
-
 	projectStorage := projectproxy.NewREST(c.KubeClientInternal.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.ProjectRequestTemplate)
@@ -333,6 +325,20 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
+	originAppsClient, err := oappsclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	coreClient, err := kclientset.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	deployRollbackClient := deployrollback.Client{
+		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
+		DeploymentConfigGetter:      originAppsClient.Apps(),
+		ReplicationControllerGetter: coreClient.Core(),
+	}
+	deployConfigRollbackStorage := deployrollback.NewREST(c.DeprecatedOpenshiftClient, c.KubeClientInternal, externalVersionCodec)
 	storage := map[schema.GroupVersion]map[string]rest.Storage{
 		v1.SchemeGroupVersion: {
 			// TODO: Deprecate these
