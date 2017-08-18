@@ -20,9 +20,9 @@ import (
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
-	policybindingregistry "github.com/openshift/origin/pkg/authorization/registry/policybinding"
 	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	policybindingregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/policybinding"
 )
 
 type VirtualStorage struct {

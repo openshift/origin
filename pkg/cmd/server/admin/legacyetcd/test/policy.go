@@ -12,7 +12,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationlister "github.com/openshift/origin/pkg/authorization/generated/listers/authorization/internalversion"
-	policyregistry "github.com/openshift/origin/pkg/authorization/registry/policy"
+	policyregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/policy"
 )
 
 type PolicyRegistry struct {
