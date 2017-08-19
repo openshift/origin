@@ -366,7 +366,21 @@ func (oc *ovsController) UpdatePod(sandboxID string, vnid uint32) error {
 	return oc.setupPodFlows(ofport, podIP, podMAC, note, vnid)
 }
 
-func (oc *ovsController) TearDownPod(hostVeth, podIP string) error {
+func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
+	if podIP == "" {
+		flows, err := oc.ovs.DumpFlows()
+		if err != nil {
+			return err
+		}
+		_, ip, _, _, err := getPodDetailsBySandboxID(flows, sandboxID)
+		if err != nil {
+			// OVS flows related to sandboxID not found
+			// Nothing needs to be done in that case
+			return nil
+		}
+		podIP = ip
+	}
+
 	err := oc.cleanupPodFlows(podIP)
 	if err != nil {
 		return err

@@ -16,8 +16,8 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
-	"github.com/openshift/origin/pkg/authorization/registry/test"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	"github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/test"
 )
 
 func testNewLocalPolicies() []authorizationapi.Policy {
