@@ -993,6 +993,9 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 		newOriginClusterBinding(BuildStrategyJenkinsPipelineRoleBindingName, BuildStrategyJenkinsPipelineRoleName).
 			Groups(AuthenticatedGroup).
 			BindingOrDie(),
+		newOriginClusterBinding(NodeBootstrapRoleBindingName, NodeBootstrapRoleName).
+			SAs(DefaultOpenShiftInfraNamespace, InfraNodeBootstrapServiceAccountName).
+			BindingOrDie(),
 	}
 }
 

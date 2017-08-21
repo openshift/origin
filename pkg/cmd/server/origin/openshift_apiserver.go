@@ -506,6 +506,12 @@ func (c *OpenshiftAPIConfig) ensureOpenShiftInfraNamespace(context genericapiser
 		return nil
 	}
 
+	// Ensure we have the bootstrap SA for Nodes
+	_, err = c.KubeClientInternal.Core().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraNodeBootstrapServiceAccountName}})
+	if err != nil && !kapierror.IsAlreadyExists(err) {
+		glog.Errorf("Error creating service account %s/%s: %v", namespace, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
+	}
+
 	EnsureNamespaceServiceAccountRoleBindings(c.KubeClientInternal, c.DeprecatedOpenshiftClient, namespace)
 	return nil
 }
