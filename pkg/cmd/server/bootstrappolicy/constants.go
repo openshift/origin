@@ -28,6 +28,8 @@ const (
 	// This should remain in the default role bindings for the NodeAdmin role
 	LegacyMasterKubeletAdminClientUsername = "system:master"
 	MasterKubeletAdminClientUsername       = "system:openshift-node-admin"
+
+	InfraNodeBootstrapServiceAccountName = "system:" + NodeBootstrapRoleName
 )
 
 // groups
@@ -96,6 +98,8 @@ const (
 	NodeReaderRoleName = "system:node-reader"
 
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
+
+	NodeBootstrapRoleName = "node-bootstrapper"
 )
 
 // RoleBindings
@@ -131,4 +135,6 @@ const (
 	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
 
 	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
+
+	NodeBootstrapRoleBindingName = NodeBootstrapRoleName + "s"
 )
