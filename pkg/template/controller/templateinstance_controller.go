@@ -206,6 +206,10 @@ func (c *TemplateInstanceController) sync(key string) error {
 }
 
 func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance) (bool, error) {
+	if time.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
+		return false, fmt.Errorf("Timeout")
+	}
+
 	u := &user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}
 
 	for _, object := range templateInstance.Status.Objects {
@@ -261,10 +265,6 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 		if !ready {
 			return false, nil
 		}
-	}
-
-	if time.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
-		return false, fmt.Errorf("Timeout")
 	}
 
 	return true, nil
