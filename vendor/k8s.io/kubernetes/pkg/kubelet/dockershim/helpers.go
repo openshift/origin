@@ -18,6 +18,8 @@ package dockershim
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,6 +31,7 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/credentialprovider"
 	runtimeapi "k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime"
 	"k8s.io/kubernetes/pkg/kubelet/dockertools"
 	"k8s.io/kubernetes/pkg/kubelet/types"
@@ -340,6 +343,11 @@ func getSecurityOptSeparator(v *semver.Version) rune {
 
 // ensureSandboxImageExists pulls the sandbox image when it's not present.
 func ensureSandboxImageExists(client dockertools.DockerInterface, image string) error {
+	dockerCfgSearchPath := []string{"/.docker", filepath.Join(os.Getenv("HOME"), ".docker")}
+	return ensureSandboxImageExistsDockerCfg(client, image, dockerCfgSearchPath)
+}
+
+func ensureSandboxImageExistsDockerCfg(client dockertools.DockerInterface, image string, dockerCfgSearchPath []string) error {
 	_, err := client.InspectImageByRef(image)
 	if err == nil {
 		return nil
@@ -347,8 +355,32 @@ func ensureSandboxImageExists(client dockertools.DockerInterface, image string) 
 	if !dockertools.IsImageNotFoundError(err) {
 		return fmt.Errorf("failed to inspect sandbox image %q: %v", image, err)
 	}
-	err = client.PullImage(image, dockertypes.AuthConfig{}, dockertypes.ImagePullOptions{})
+
+	// To support images in private registries, try to read docker config
+	authConfig := dockertypes.AuthConfig{}
+	keyring := &credentialprovider.BasicDockerKeyring{}
+	var cfgLoadErr error
+	if cfg, err := credentialprovider.ReadDockerConfigJSONFile(dockerCfgSearchPath); err == nil {
+		keyring.Add(cfg)
+	} else if cfg, err := credentialprovider.ReadDockercfgFile(dockerCfgSearchPath); err == nil {
+		keyring.Add(cfg)
+	} else {
+		cfgLoadErr = err
+	}
+	if creds, withCredentials := keyring.Lookup(image); withCredentials {
+		// Use the first one that matched our image
+		for _, cred := range creds {
+			authConfig.Username = cred.Username
+			authConfig.Password = cred.Password
+			break
+		}
+	}
+
+	err = client.PullImage(image, authConfig, dockertypes.ImagePullOptions{})
 	if err != nil {
+		if cfgLoadErr != nil {
+			glog.Warningf("Couldn't load Docker cofig. If sandbox image %q is in a private registry, this will cause further errors. Error: %v", image, cfgLoadErr)
+		}
 		return fmt.Errorf("unable to pull sandbox image %q: %v", image, err)
 	}
 	return nil
