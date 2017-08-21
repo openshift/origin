@@ -58,6 +58,13 @@ function os::build::platform_arch() {
 }
 readonly -f os::build::platform_arch
 
+# os::build::host_arch determines what the host architecture is, as Golang
+# sees it.
+function os::build::host_arch() {
+  echo "$(go env GOHOSTARCH)"
+}
+readonly -f os::build::host_arch
+
 # os::build::setup_env will check that the `go` commands is available in
 # ${PATH}. If not running on Travis, it will also check that the Go version is
 # good enough for the Kubernetes build.
