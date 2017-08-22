@@ -22,11 +22,12 @@
 {{/* cidrListPattern: Match a space separated list of CIDRs; e.g. 192.168.21.23/24 192.10.2.12 */}}
 {{- $cidrListPattern := printf `(?:%s(?: +%s)*)` $cidrPattern $cidrPattern -}}
 
+{{- $timeSpecRE := "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
 global
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
 
   daemon
-{{- with (env "ROUTER_SYSLOG_ADDRESS" "") }}
+{{- with (env "ROUTER_SYSLOG_ADDRESS") }}
   log {{.}} {{env "ROUTER_LOG_FACILITY" "local1"}} {{env "ROUTER_LOG_LEVEL" "warning"}}
 {{- end}}
   ca-base /etc/ssl
@@ -76,9 +77,9 @@ defaults
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
 
   # Add x-forwarded-for header.
-{{- if ne (env "ROUTER_SYSLOG_ADDRESS" "") "" }}
-  {{- if ne (env "ROUTER_SYSLOG_FORMAT" "") "" }}
-  log-format {{env "ROUTER_SYSLOG_FORMAT" ""}}
+{{- if ne (env "ROUTER_SYSLOG_ADDRESS") "" }}
+  {{- if ne (env "ROUTER_SYSLOG_FORMAT") "" }}
+  log-format {{env "ROUTER_SYSLOG_FORMAT"}}
   {{- else }}
   option httplog
   {{- end }}
@@ -92,62 +93,25 @@ defaults
   # server openshift_backend 127.0.0.1:8080
   errorfile 503 /var/lib/haproxy/conf/error-page-503.http
 
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "")) }}
-  timeout connect {{env "ROUTER_DEFAULT_CONNECT_TIMEOUT" "5s"}}
-{{- else }}
-  timeout connect 5s
-{{- end }}
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "")) }}
-  timeout client {{env "ROUTER_DEFAULT_CLIENT_TIMEOUT" "30s"}}
-{{- else }}
-  timeout client 30s
-{{- end }}
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_CLIENT_FIN_TIMEOUT" "")) }}
-  timeout client-fin {{env "ROUTER_CLIENT_FIN_TIMEOUT" "1s"}}
-{{- else }}
-  timeout client-fin 1s
-{{- end }}
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_TIMEOUT" "")) }}
-  timeout server {{env "ROUTER_DEFAULT_SERVER_TIMEOUT" "30s"}}
-{{- else }}
-  timeout server 30s
-{{- end }}
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT" "")) }}
-  timeout server-fin {{env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT" "1s"}}
-{{- else }}
-  timeout server-fin 1s
-{{- end }}
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_TIMEOUT" "")) }}
-  timeout http-request {{env "ROUTER_SLOWLORIS_TIMEOUT" "10s" }}
-{{- else }}
-  timeout http-request 10s
-{{- end }}
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE" "")) }}
-  timeout http-keep-alive {{env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE" "" }}
-{{- else }}
-  timeout http-keep-alive 300s
-{{- end }}
+  timeout connect {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_CONNECT_TIMEOUT") "5s"}}
+  timeout client {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_CLIENT_TIMEOUT") "30s"}}
+  timeout client-fin {{firstMatch $timeSpecRE (env "ROUTER_CLIENT_FIN_TIMEOUT") "1s"}}
+  timeout server {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_SERVER_TIMEOUT") "30s"}}
+  timeout server-fin {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT") "1s"}}
+  timeout http-request {{firstMatch $timeSpecRE (env "ROUTER_SLOWLORIS_TIMEOUT") "10s" }}
+  timeout http-keep-alive {{firstMatch $timeSpecRE (env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE") "300s" }}
 
   # Long timeout for WebSocket connections.
-{{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "")) }}
-  timeout tunnel {{env "ROUTER_DEFAULT_TUNNEL_TIMEOUT" "1h" }}
-{{- else }}
-  timeout tunnel 1h
-{{- end }}
+  timeout tunnel {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT") "1h" }}
 
-{{- if (matchPattern "true|TRUE" (env "ROUTER_ENABLE_COMPRESSION" "false")) }}
+{{- if isTrue (env "ROUTER_ENABLE_COMPRESSION") }}
   compression algo gzip
-  {{- with  $mimeType := (env "ROUTER_COMPRESSION_MIME" "text/html text/plain text/css") }}
-  compression type {{$mimeType}}
-  {{- end }}
+  compression type {{env "ROUTER_COMPRESSION_MIME" "text/html text/plain text/css"}}
 {{- end }}
 
 {{ if (gt .StatsPort -1) }}
-{{ if (gt .StatsPort 0) }}
-listen stats :{{.StatsPort}}
-{{- else }}
-listen stats :1936
-{{- end }}
+listen stats
+  bind :{{if (gt .StatsPort 0)}}{{.StatsPort}}{{else}}1936{{end}}
   mode http
   # Health check monitoring uri.
   monitor-uri /healthz
@@ -172,7 +136,7 @@ frontend public
     {{- else }}
   bind :{{env "ROUTER_SERVICE_HTTP_PORT" "80"}}
     {{- end }}
-    {{- if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+    {{- if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} accept-proxy{{ end }}
   mode http
   tcp-request inspect-delay 5s
   tcp-request content accept if HTTP
@@ -215,7 +179,7 @@ frontend public_ssl
     {{- else }}
   bind :{{env "ROUTER_SERVICE_HTTPS_PORT" "443"}}
     {{- end }}
-    {{- if matchPattern "true|TRUE" (env "ROUTER_USE_PROXY_PROTOCOL" "") }} accept-proxy{{ end }}
+    {{- if isTrue (env "ROUTER_USE_PROXY_PROTOCOL") }} accept-proxy{{ end }}
   tcp-request  inspect-delay 5s
   tcp-request content accept if { req_ssl_hello_type 1 }
 
@@ -249,8 +213,8 @@ backend be_sni
 frontend fe_sni
   # terminate ssl on edge
   bind 127.0.0.1:{{env "ROUTER_SERVICE_SNI_PORT" "10444"}} ssl no-sslv3
-    {{- if matchPattern "true|TRUE" (env "ROUTER_STRICT_SNI" "") }} strict-sni {{ end }}
-    {{- if gt (len .DefaultCertificate) 0 }} crt {{.DefaultCertificate}}{{ else }} crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }}
+    {{- if isTrue (env "ROUTER_STRICT_SNI") }} strict-sni {{ end }}
+    {{- ""}} crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}}
     {{- ""}} crt-list /var/lib/haproxy/conf/cert_config.map accept-proxy
   mode http
 
@@ -292,7 +256,7 @@ backend be_no_sni
 
 frontend fe_no_sni
   # terminate ssl on edge
-  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 {{ if gt (len .DefaultCertificate) 0 }}crt {{.DefaultCertificate}}{{ else }}crt /var/lib/haproxy/conf/default_pub_keys.pem{{ end }} accept-proxy
+  bind 127.0.0.1:{{env "ROUTER_SERVICE_NO_SNI_PORT" "10443"}} ssl no-sslv3 crt {{firstMatch ".+" .DefaultCertificate "/var/lib/haproxy/conf/default_pub_keys.pem"}} accept-proxy
   mode http
 
   # Strip off Proxy headers to prevent HTTpoxy (https://httpoxy.org/)
@@ -343,7 +307,7 @@ backend openshift_default
           passed through to the backend pod by just looking at the TCP headers.
 */}}
 {{- range $cfgIdx, $cfg := .State }}
-  {{- if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt") }}
+  {{- if matchValues (print $cfg.TLSTermination) "" "edge" "reencrypt" }}
     {{- if (eq $cfg.TLSTermination "") }}
 
 # Plain http backend
@@ -360,30 +324,25 @@ backend be_secure:{{$cfgIdx}}
   mode http
   option redispatch
   option forwardfor
-    {{- with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
-      {{- with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
+
+    {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_LOAD_BALANCE_ALGORITHM") }}
   balance {{ $balanceAlgo }}
-      {{- end }}
     {{- else }}
-      {{- if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_LOAD_BALANCE_ALGORITHM" "")) }}
-  balance {{ env "ROUTER_LOAD_BALANCE_ALGORITHM" "leastconn"}}
-      {{- else }}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}leastconn{{ end }}
-      {{- end }}
     {{- end }}
-    {{- with $ip_whiteList := index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist" }}
-      {{- if (matchPattern $cidrListPattern $ip_whiteList) }}
+    {{- with $ip_whiteList := firstMatch $cidrListPattern (index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist") }}
   acl whitelist src {{ $ip_whiteList }}
   tcp-request content reject if !whitelist
-      {{- end }}
     {{- end }}
-    {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
-      {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
+    {{- with $value := firstMatch $timeSpecRE (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
   timeout server  {{$value}}
-      {{- end }}
     {{- end }} {{/* end balance algorithm setting. */}}
 
-    {{- if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
+    {{- with $value := firstMatch $timeSpecRE (index $cfg.Annotations "haproxy.router.openshift.io/timeout") }}
+  timeout server  {{$value}}
+    {{- end }}
+
+    {{- if isTrue (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
   stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
   tcp-request content track-sc2 src
       {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
@@ -417,9 +376,9 @@ backend be_secure:{{$cfgIdx}}
   http-request set-header Forwarded for=%[src];host=%[req.hdr(host)];proto=%[req.hdr(X-Forwarded-Proto)]
   {{- end }}
 
-  {{- if not (matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
+  {{- if not (isTrue (index $cfg.Annotations "haproxy.router.openshift.io/disable_cookies")) }}
   cookie {{$cfg.RoutingKeyName}} insert indirect nocache httponly
-    {{- if and (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }} secure
+    {{- if and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (ne $cfg.InsecureEdgeTerminationPolicy "Allow") }} secure
     {{- end }}
   {{- end }}{{/* end disable cookies check */}}
 
@@ -442,16 +401,7 @@ backend be_secure:{{$cfgIdx}}
           {{- else if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
           {{- end }}{{/* end type specific options*/}}
 
-            {{- if not $endpoint.NoHealthCheck }}
-              {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }} check inter {{$healthIntv}}
-                {{- else }} check inter 5000ms
-                {{- end }}
-              {{- else }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}}
-                {{- else }} check inter 5000ms
-                {{- end }}
-              {{- end }}{{/* end get health interval annotation */}}
+            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecRE (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
 
 
@@ -466,33 +416,23 @@ backend be_secure:{{$cfgIdx}}
 
 # Secure backend, pass through
 backend be_tcp:{{$cfgIdx}}
-{{- if ne (env "ROUTER_SYSLOG_ADDRESS" "") ""}}
+{{- if ne (env "ROUTER_SYSLOG_ADDRESS") ""}}
   option tcplog
 {{- end }}
-    {{- with $balanceAlgo := index $cfg.Annotations "haproxy.router.openshift.io/balance" }}
-      {{- with $matchValue := (matchValues $balanceAlgo "roundrobin" "leastconn" "source" ) }}
+    {{- with $balanceAlgo := firstMatch "roundrobin|leastconn|source" (index $cfg.Annotations "haproxy.router.openshift.io/balance") (env "ROUTER_LOAD_BALANCE_ALGORITHM") }}
   balance {{ $balanceAlgo }}
-      {{- end }}
     {{- else }}
-      {{- if (matchPattern "roundrobin|leastconn|source" (env "ROUTER_TCP_BALANCE_SCHEME" "")) }}
-  balance {{ env "ROUTER_TCP_BALANCE_SCHEME" "source"}}
-      {{- else }}
   balance {{ if gt $cfg.ActiveServiceUnits 1 }}roundrobin{{ else }}source{{ end }}
-      {{- end }}
     {{- end }}
-    {{- with $ip_whiteList := index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist" }}
-      {{- if (matchPattern $cidrListPattern $ip_whiteList) }}
+    {{- with $ip_whiteList := firstMatch $cidrListPattern (index $cfg.Annotations "haproxy.router.openshift.io/ip_whitelist") }}
   acl whitelist src {{$ip_whiteList}}
   tcp-request content reject if !whitelist
-      {{- end }}
     {{- end }}
-    {{- with $value := index $cfg.Annotations "haproxy.router.openshift.io/timeout"}}
-      {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $value) }}
+    {{- with $value := firstMatch $timeSpecRE (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
   timeout tunnel  {{$value}}
-      {{- end }}
     {{- end }}
 
-{{- if matchPattern "true|TRUE" (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
+{{- if isTrue (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections") }}
   stick-table type ip size 100k expire 30s store conn_cur,conn_rate(3s),http_req_rate(10s)
   tcp-request content track-sc2 src
   {{- if (isInteger (index $cfg.Annotations "haproxy.router.openshift.io/rate-limit-connections.concurrent-tcp")) }}
@@ -515,16 +455,7 @@ backend be_tcp:{{$cfgIdx}}
         {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{- range $idx, $endpoint := processEndpointsForAlias $cfg $serviceUnit (env "ROUTER_BACKEND_PROCESS_ENDPOINTS" "") }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} weight {{$weight}}
-            {{- if not $endpoint.NoHealthCheck }}
-              {{- with $healthIntv := index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval" }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" $healthIntv) }} check inter {{$healthIntv}}
-                {{- else }} check inter 5000ms
-                {{- end }}
-              {{- else }}
-                {{- if (matchPattern "[1-9][0-9]*(us|ms|s|m|h|d)?" (env "ROUTER_BACKEND_CHECK_INTERVAL" "")) }} check inter {{env "ROUTER_BACKEND_CHECK_INTERVAL" "5000ms"}}
-                {{- else }} check inter 5000ms
-                {{- end }}
-              {{- end }}{{/* end get health interval annotation */}}
+            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecRE (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
           {{- end }}{{/* end range processEndpointsForAlias */}}
         {{- end }}{{/* end get ServiceUnit from serviceUnitName */}}
@@ -545,7 +476,7 @@ backend be_tcp:{{$cfgIdx}}
 			a host matches a [sub]domain with has wildcard support.
 */}}
 {{ define "/var/lib/haproxy/conf/os_wildcard_domain.map" -}}
-{{     if matchPattern "true|TRUE" (env "ROUTER_ALLOW_WILDCARD_ROUTES" "") -}}
+{{     if isTrue (env "ROUTER_ALLOW_WILDCARD_ROUTES") -}}
 {{       range $idx, $cfg := .State -}}
 {{         if ne $cfg.Host "" -}}
 {{           if $cfg.IsWildcard -}}
@@ -587,7 +518,7 @@ backend be_tcp:{{$cfgIdx}}
 */}}
 {{ define "/var/lib/haproxy/conf/os_route_http_expose.map" -}}
 {{     range $idx, $cfg := .State -}}
-{{       if and (ne $cfg.Host "") (and (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) (eq $cfg.InsecureEdgeTerminationPolicy "Allow")) -}}
+{{       if and (ne $cfg.Host "") (and (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") (eq $cfg.InsecureEdgeTerminationPolicy "Allow")) -}}
 {{         if (eq $cfg.TLSTermination "edge") -}}
 {{generateRouteRegexp $cfg.Host $cfg.Path $cfg.IsWildcard}} be_edge_http:{{$idx}}
 {{         else -}}
@@ -617,7 +548,7 @@ backend be_tcp:{{$cfgIdx}}
 */}}
 {{ define "/var/lib/haproxy/conf/os_tcp_be.map" -}}
 {{     range $idx, $cfg := .State -}}
-{{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "passthrough") (eq $cfg.TLSTermination "reencrypt"))) -}}
+{{       if and (eq $cfg.Path "") (and (ne $cfg.Host "") (matchValues (print $cfg.TLSTermination) "passthrough" "reencrypt")) -}}
 {{generateRouteRegexp $cfg.Host "" $cfg.IsWildcard}} {{$idx}}
 {{       end -}}
 {{     end -}}
@@ -659,7 +590,7 @@ backend be_tcp:{{$cfgIdx}}
 {{ define "/var/lib/haproxy/conf/cert_config.map" -}}
 {{     $workingDir := .WorkingDir -}}
 {{     range $idx, $cfg := .State -}}
-{{       if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) -}}
+{{       if and (ne $cfg.Host "") (matchValues (print $cfg.TLSTermination) "edge" "reencrypt") -}}
 {{         $cert := index $cfg.Certificates $cfg.Host -}}
 {{         if ne $cert.Contents "" -}}
 {{$workingDir}}/certs/{{$idx}}.pem {{genCertificateHostName $cfg.Host $cfg.IsWildcard}}
