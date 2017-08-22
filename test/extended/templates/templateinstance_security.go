@@ -26,7 +26,7 @@ import (
 
 // Check that objects created through the TemplateInstance mechanism are done
 // impersonating the requester, and that privilege escalation is not possible.
-var _ = g.Describe("[templates] templateinstance security tests", func() {
+var _ = g.Describe("[Conformance][templates] templateinstance security tests", func() {
 	defer g.GinkgoRecover()
 
 	var (
