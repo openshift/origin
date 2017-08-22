@@ -103,13 +103,15 @@ func (c completedTemplateServiceBrokerConfig) New(delegationTarget genericapiser
 		return nil, err
 	}
 
-	s.GenericAPIServer.AddPostStartHook("template-service-broker-synctemplates", func(context genericapiserver.PostStartHookContext) error {
+	if err := s.GenericAPIServer.AddPostStartHook("template-service-broker-synctemplates", func(context genericapiserver.PostStartHookContext) error {
 		templateInformers.Start(context.StopCh)
 		if !controller.WaitForCacheSync("tsb", context.StopCh, templateInformers.Template().InternalVersion().Templates().Informer().HasSynced) {
 			return fmt.Errorf("unable to sync caches")
 		}
 		return nil
-	})
+	}); err != nil {
+		return nil, err
+	}
 
 	Route(
 		s.GenericAPIServer.Handler.GoRestfulContainer,

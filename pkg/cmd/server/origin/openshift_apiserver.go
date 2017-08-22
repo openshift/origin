@@ -342,12 +342,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	initOpenshiftVersionRoute(s.GenericAPIServer.Handler.GoRestfulContainer, "/version/openshift")
 
 	// register our poststarthooks
-	s.GenericAPIServer.AddPostStartHook("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
-	s.GenericAPIServer.AddPostStartHook("project.openshift.io-projectcache", c.startProjectCache)
-	s.GenericAPIServer.AddPostStartHook("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
-	s.GenericAPIServer.AddPostStartHook("security.openshift.io-bootstrapscc", c.bootstrapSCC)
-	s.GenericAPIServer.AddPostStartHook("authorization.openshift.io-ensureSARolesDefault", c.ensureDefaultNamespaceServiceAccountRoles)
-	s.GenericAPIServer.AddPostStartHook("authorization.openshift.io-ensureopenshift-infra", c.ensureOpenShiftInfraNamespace)
+	s.GenericAPIServer.AddPostStartHookOrDie("quota.openshift.io-clusterquotamapping", c.startClusterQuotaMapping)
+	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectcache", c.startProjectCache)
+	s.GenericAPIServer.AddPostStartHookOrDie("project.openshift.io-projectauthorizationcache", c.startProjectAuthorizationCache)
+	s.GenericAPIServer.AddPostStartHookOrDie("security.openshift.io-bootstrapscc", c.bootstrapSCC)
+	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureSARolesDefault", c.ensureDefaultNamespaceServiceAccountRoles)
+	s.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-ensureopenshift-infra", c.ensureOpenShiftInfraNamespace)
 
 	return s, nil
 }
