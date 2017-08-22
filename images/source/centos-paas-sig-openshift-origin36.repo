@@ -1,7 +1,0 @@
-[centos-paas-sig-openshift-origin36]
-name = CentOS PaaS SIG Origin 3.6 Repository
-baseurl = https://buildlogs.centos.org/centos/7/paas/x86_64/openshift-origin36/
-enabled = 1
-gpgcheck = 0
-sslverify = 0
-includepkgs = openvswitch*
