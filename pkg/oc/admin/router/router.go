@@ -622,9 +622,6 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 
 	// create new router
 	secretEnv := app.Environment{}
-	if len(cfg.ServiceAccount) == 0 {
-		return fmt.Errorf("router could not be created; you must specify a service account with --service-account")
-	}
 
 	defaultCert, err := fileutil.LoadData(cfg.DefaultCertificate)
 	if err != nil {
