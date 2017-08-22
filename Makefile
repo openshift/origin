@@ -210,18 +210,15 @@ test-tools:
 #   SUITE: Which Bash entrypoint under test/extended/ to use. Don't include the
 #          ending `.sh`. Ex: `core`.
 #   FOCUS: Literal string to pass to `--ginkgo.focus=`
+# The FOCUS env variable is handled by the respective suite scripts.
 #
 # Example:
 #   make test-extended SUITE=core
 #   make test-extended SUITE=conformance FOCUS=pods
+# 
 SUITE ?= conformance
-ifneq ($(strip $(FOCUS)),)
-	FOCUS_ARG=--ginkgo.focus="$(FOCUS)"
-else
-	FOCUS_ARG=
-endif
 test-extended:
-	test/extended/$(SUITE).sh $(FOCUS_ARG)
+	test/extended/$(SUITE).sh
 .PHONY: test-extended
 
 # Run All-in-one OpenShift server.

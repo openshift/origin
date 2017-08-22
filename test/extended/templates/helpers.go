@@ -94,16 +94,23 @@ func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, *exec.Cmd) {
 	if !exists {
 		e2e.Logf("Installing TSB onto the cluster for testing")
 		_, _, err := tsbOC.AsAdmin().WithoutNamespace().Run("create", "namespace").Args(tsbNS).Outputs()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		// If template tests run in parallel this could be created twice, we don't really care.
+		if err != nil {
+			e2e.Logf("Error creating TSB namespace %s: %v \n", tsbNS, err)
+		}
 		configPath := exutil.FixturePath("..", "..", "examples", "templateservicebroker", "templateservicebroker-template.yaml")
 		stdout, _, err := tsbOC.WithoutNamespace().Run("process").Args("-f", configPath).Outputs()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			e2e.Logf("Error processing TSB template at %s: %v \n", configPath, err)
+		}
 		err = tsbOC.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
-		// this is weird, but we have to ignore this error in case some of this already exists (race between tests and the like)
-		//o.Expect(err).NotTo(o.HaveOccurred())
-		err = WaitForDaemonSetStatus(tsbOC.AdminKubeClient(), &extensions.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "apiserver", Namespace: tsbNS}})
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			// If template tests run in parallel this could be created twice, we don't really care.
+			e2e.Logf("Error creating TSB resources: %v \n", err)
+		}
 	}
+	err := WaitForDaemonSetStatus(tsbOC.AdminKubeClient(), &extensions.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "apiserver", Namespace: tsbNS}})
+	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// we're trying to test the TSB, not the service.  We're outside all the normal networks.  Run a portforward to a particular
 	// pod and test that
