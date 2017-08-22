@@ -361,7 +361,11 @@ type describingImageStreamDeleter struct {
 
 var _ prune.ImageStreamDeleter = &describingImageStreamDeleter{}
 
-func (p *describingImageStreamDeleter) DeleteImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
+func (p *describingImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	return stream, nil
+}
+
+func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "Deleting references from image streams to images ...")
@@ -374,7 +378,7 @@ func (p *describingImageStreamDeleter) DeleteImageStream(stream *imageapi.ImageS
 		return stream, nil
 	}
 
-	updatedStream, err := p.delegate.DeleteImageStream(stream, image, updatedTags)
+	updatedStream, err := p.delegate.UpdateImageStream(stream, image, updatedTags)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error updating image stream %s/%s to remove references to image %s: %v\n", stream.Namespace, stream.Name, image.Name, err)
 	}

@@ -20,6 +20,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/client/retry"
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
@@ -71,9 +72,11 @@ type ImageDeleter interface {
 
 // ImageStreamDeleter knows how to remove an image reference from an image stream.
 type ImageStreamDeleter interface {
-	// DeleteImageStream removes all references to the image from the image
+	// GetImageStream returns a fresh copy of an image stream.
+	GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	// UpdateImageStream removes all references to the image from the image
 	// stream's status.tags. The updated image stream is returned.
-	DeleteImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error)
+	UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error)
 }
 
 // BlobDeleter knows how to delete a blob from the Docker registry.
@@ -671,7 +674,7 @@ func calculatePrunableImageComponents(g graph.Graph) []*imagegraph.ImageComponen
 }
 
 // pruneStreams removes references from all image streams' status.tags entries
-// to prunable images, invoking streamPruner.DeleteImageStream for each updated
+// to prunable images, invoking streamPruner.UpdateImageStream for each updated
 // stream.
 func pruneStreams(g graph.Graph, imageNodes []*imagegraph.ImageNode, streamPruner ImageStreamDeleter) []error {
 	errs := []error{}
@@ -684,43 +687,49 @@ func pruneStreams(g graph.Graph, imageNodes []*imagegraph.ImageNode, streamPrune
 				continue
 			}
 
-			stream := streamNode.ImageStream
-			updatedTags := sets.NewString()
+			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+				stream, err := streamPruner.GetImageStream(streamNode.ImageStream)
+				if err != nil {
+					return err
+				}
+				updatedTags := sets.NewString()
 
-			glog.V(4).Infof("Checking if ImageStream %s has references to image %s in status.tags", getName(stream), imageNode.Image.Name)
+				glog.V(4).Infof("Checking if ImageStream %s has references to image %s in status.tags", getName(stream), imageNode.Image.Name)
 
-			for tag, history := range stream.Status.Tags {
-				glog.V(4).Infof("Checking tag %q", tag)
+				for tag, history := range stream.Status.Tags {
+					glog.V(4).Infof("Checking tag %q", tag)
 
-				newHistory := imageapi.TagEventList{}
+					newHistory := imageapi.TagEventList{}
 
-				for i, tagEvent := range history.Items {
-					glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
+					for i, tagEvent := range history.Items {
+						glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
 
-					if tagEvent.Image != imageNode.Image.Name {
-						glog.V(4).Infof("Tag event doesn't match deleted image - keeping")
-						newHistory.Items = append(newHistory.Items, tagEvent)
+						if tagEvent.Image != imageNode.Image.Name {
+							glog.V(4).Infof("Tag event doesn't match deleted image - keeping")
+							newHistory.Items = append(newHistory.Items, tagEvent)
+						} else {
+							glog.V(4).Infof("Tag event matches deleted image - removing reference")
+							updatedTags.Insert(tag)
+						}
+					}
+					if len(newHistory.Items) == 0 {
+						glog.V(4).Infof("Removing tag %q from status.tags of ImageStream %s", tag, getName(stream))
+						delete(stream.Status.Tags, tag)
 					} else {
-						glog.V(4).Infof("Tag event matches deleted image - removing reference")
-						updatedTags.Insert(tag)
+						stream.Status.Tags[tag] = newHistory
 					}
 				}
-				if len(newHistory.Items) == 0 {
-					glog.V(4).Infof("Removing tag %q from status.tags of ImageStream %s", tag, getName(stream))
-					delete(stream.Status.Tags, tag)
-				} else {
-					stream.Status.Tags[tag] = newHistory
-				}
-			}
 
-			updatedStream, err := streamPruner.DeleteImageStream(stream, imageNode.Image, updatedTags.List())
-			if err != nil {
+				updatedStream, err := streamPruner.UpdateImageStream(stream, imageNode.Image, updatedTags.List())
+				if err == nil {
+					streamNode.ImageStream = updatedStream
+				}
+				return err
+			}); err != nil {
 				errs = append(errs, fmt.Errorf("error removing image %s from stream %s: %v",
-					imageNode.Image.Name, getName(stream), err))
+					imageNode.Image.Name, getName(streamNode.ImageStream), err))
 				continue
 			}
-
-			streamNode.ImageStream = updatedStream
 		}
 	}
 	glog.V(4).Infof("Done removing pruned image references from streams")
@@ -922,7 +931,11 @@ func NewImageStreamDeleter(streams client.ImageStreamsNamespacer) ImageStreamDel
 	}
 }
 
-func (p *imageStreamDeleter) DeleteImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
+func (p *imageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	return p.streams.ImageStreams(stream.Namespace).Get(stream.Name, metav1.GetOptions{})
+}
+
+func (p *imageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
 	glog.V(4).Infof("Updating ImageStream %s", getName(stream))
 	is, err := p.streams.ImageStreams(stream.Namespace).UpdateStatus(stream)
 	if err == nil {
