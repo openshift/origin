@@ -80,10 +80,10 @@ var _ = g.Describe("deploymentconfigs", func() {
 					e2e.Logf("%02d: cancelling deployment", i)
 					if out, err := oc.Run("rollout").Args("cancel", "dc/deployment-simple").Output(); err != nil {
 						// TODO: we should fix this
-						if !strings.Contains(out, "the object has been modified") {
+						if !strings.Contains(out, "the object has been modified") && !strings.Contains(out, "there have been no replication controllers") {
 							o.Expect(err).NotTo(o.HaveOccurred())
 						}
-						e2e.Logf("rollout cancel deployment failed due to conflict: %v", err)
+						e2e.Logf("rollout cancel deployment failed due to known safe error: %v", err)
 					}
 
 				case n < 0.0:
