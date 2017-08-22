@@ -27730,6 +27730,8 @@ parameters:
   value: openshift-template-service-broker
 - name: KUBE_SYSTEM
   value: kube-system
+- name: LOGLEVEL
+  value: "0"
 objects:
 
 # to create the tsb server
@@ -27760,6 +27762,7 @@ objects:
           - "--tls-cert-file=/var/serving-cert/tls.crt"
           - "--tls-private-key-file=/var/serving-cert/tls.key"
           - "--template-namespace=${TSB_TEMPLATE_NAMESPACE}"
+          - "--loglevel=${LOGLEVEL}"
           ports:
           - containerPort: 8443
           volumeMounts:
