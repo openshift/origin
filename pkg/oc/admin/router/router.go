@@ -362,7 +362,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 	}
 
 	if len(defaultCert) > 0 {
-		// When the user sets the default cert from the "oadm router --default-cert ..."
+		// When the user sets the default cert from the "oc adm router --default-cert ..."
 		// command we end up here. In this case the default cert must be in pem format.
 		// The secret has a crt and key. The crt contains the supplied default cert (pem)
 		// and the key is extracted from the default cert but its ultimately not used.
@@ -914,11 +914,11 @@ func validateServiceAccount(client kclientset.Interface, ns string, serviceAccou
 	}
 
 	if hostNetwork {
-		errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
+		errMsg := "service account %q is not allowed to access the host network on nodes, grant access with oc adm policy add-scc-to-user %s -z %s"
 		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 	}
 	if hostPorts {
-		errMsg := "service account %q is not allowed to access host ports on nodes, grant access with oadm policy add-scc-to-user %s -z %s"
+		errMsg := "service account %q is not allowed to access host ports on nodes, grant access with oc adm policy add-scc-to-user %s -z %s"
 		return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintsHostNetwork, serviceAccount)
 	}
 	return nil

@@ -34,8 +34,8 @@ Options:
                      Run this command as cluster admin to give particular
                      user enough rights to query the images:
 
-                       \$ oadm policy add-cluster-role-to-user ${REGISTRY_VIEWER_ROLE} <user>
-                       \$ oadm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} <user>
+                       \$ oc adm policy add-cluster-role-to-user ${REGISTRY_VIEWER_ROLE} <user>
+                       \$ oc adm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} <user>
 
   -f                 Force migration of externally managed images (those imported
                      from remote registries). A migration attempt is done by
@@ -49,8 +49,8 @@ Options:
 
                      For this to work, the user must be an image auditor:
 
-                       \$ oadm policy add-cluster-role-to-user ${AUDITOR_ROLE} <user>
-                       \$ oadm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} <user>
+                       \$ oc adm policy add-cluster-role-to-user ${AUDITOR_ROLE} <user>
+                       \$ oc adm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} <user>
 "
 
 registry_address=""
@@ -100,15 +100,15 @@ function check_permissions() {
     done
     if [[ "${authorized}" == 0 ]]; then
         echo "Ask your admin to give you permissions to work with images, e.g.:" >&2
-        echo "  oadm policy add-cluster-role-to-user ${AUDITOR_ROLE} $(oc whoami)" >&2
-        echo "  oadm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} $(oc whoami)" >&2
+        echo "  oc adm policy add-cluster-role-to-user ${AUDITOR_ROLE} $(oc whoami)" >&2
+        echo "  oc adm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} $(oc whoami)" >&2
         return 1
     fi
 
     if ! oc policy can-i -q get --all-namespaces imagestreams/layers --token="${token}"; then
         echo "The registry user isn't authorized to get imagestreams/layers!" >&2
-        echo "  oadm policy add-cluster-role-to-user registry-viewer <user>" >&2
-        echo "  oadm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} <user>" >&2
+        echo "  oc adm policy add-cluster-role-to-user registry-viewer <user>" >&2
+        echo "  oc adm policy add-cluster-role-to-user ${CLUSTER_READER_ROLE} <user>" >&2
         return 1
     fi
 }

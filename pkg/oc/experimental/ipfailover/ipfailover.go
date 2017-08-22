@@ -228,6 +228,6 @@ func validateServiceAccount(client kclientset.Interface, ns string, serviceAccou
 			}
 		}
 	}
-	errMsg := "service account %q does not have sufficient privileges, grant access with oadm policy add-scc-to-user %s -z %s"
+	errMsg := "service account %q does not have sufficient privileges, grant access with oc adm policy add-scc-to-user %s -z %s"
 	return fmt.Errorf(errMsg, serviceAccount, bootstrappolicy.SecurityContextConstraintPrivileged, serviceAccount)
 }

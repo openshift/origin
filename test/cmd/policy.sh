@@ -8,7 +8,7 @@ os::test::junit::declare_suite_start "cmd/policy"
 # This test validates user level policy
 os::cmd::expect_success_and_text 'oc whoami --as deads' "deads"
 
-os::cmd::expect_success 'oadm policy add-cluster-role-to-user sudoer wheel'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user sudoer wheel'
 os::cmd::try_until_text 'oc policy who-can impersonate systemusers system:admin' "wheel"
 os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
@@ -58,30 +58,30 @@ os::cmd::try_until_failure 'oc get pods pod/test-build-pod-issue'
 
 os::cmd::expect_success_and_text 'oc policy add-role-to-user admin namespaced-user' 'role "admin" added: "namespaced-user"'
 # Ensure the user has create permissions on builds, but that build strategy permissions are granted through the authenticated users group
-os::cmd::try_until_text              'oadm policy who-can create builds' 'namespaced-user'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'namespaced-user'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'namespaced-user'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'namespaced-user'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/jenkinspipeline' 'namespaced-user'
-os::cmd::expect_success_and_text     'oadm policy who-can create builds/docker' 'system:authenticated'
-os::cmd::expect_success_and_text     'oadm policy who-can create builds/source' 'system:authenticated'
-os::cmd::expect_success_and_text     'oadm policy who-can create builds/jenkinspipeline' 'system:authenticated'
+os::cmd::try_until_text              'oc adm policy who-can create builds' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/source' 'namespaced-user'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/jenkinspipeline' 'namespaced-user'
+os::cmd::expect_success_and_text     'oc adm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_text     'oc adm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success_and_text     'oc adm policy who-can create builds/jenkinspipeline' 'system:authenticated'
 # if this method for removing access to docker/custom/source/jenkinspipeline builds changes, docs need to be updated as well
-os::cmd::expect_success_and_text 'oadm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'cluster role "system:build-strategy-docker" removed: "system:authenticated"'
-os::cmd::expect_success_and_text 'oadm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'cluster role "system:build-strategy-source" removed: "system:authenticated"'
-os::cmd::expect_success_and_text 'oadm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'cluster role "system:build-strategy-jenkinspipeline" removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-docker system:authenticated' 'cluster role "system:build-strategy-docker" removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-source system:authenticated' 'cluster role "system:build-strategy-source" removed: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group system:build-strategy-jenkinspipeline system:authenticated' 'cluster role "system:build-strategy-jenkinspipeline" removed: "system:authenticated"'
 # ensure build strategy permissions no longer exist
-os::cmd::try_until_failure           'oadm policy who-can create builds/source | grep system:authenticated'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/docker' 'system:authenticated'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/source' 'system:authenticated'
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/jenkinspipeline' 'system:authenticated'
+os::cmd::try_until_failure           'oc adm policy who-can create builds/source | grep system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/source' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/jenkinspipeline' 'system:authenticated'
 
 # ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
-os::cmd::expect_success_and_not_text 'oadm policy who-can create builds/custom' 'system:authenticated'
-os::cmd::expect_success_and_text 'oadm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'cluster role "system:build-strategy-custom" added: "system:authenticated"'
-os::cmd::expect_success_and_text 'oadm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'cluster role "system:build-strategy-custom" added: "system:authenticated"'
+os::cmd::expect_success_and_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
 
-os::cmd::expect_success 'oadm policy reconcile-cluster-role-bindings --confirm'
+os::cmd::expect_success 'oc adm policy reconcile-cluster-role-bindings --confirm'
 
 os::cmd::expect_success_and_text 'oc policy can-i --list' 'get update.*imagestreams/layers'
 os::cmd::expect_success_and_text 'oc policy can-i create pods --all-namespaces' 'yes'
@@ -146,7 +146,7 @@ workingdir=$(mktemp -d)
 cp ${OS_ROOT}/test/testdata/bootstrappolicy/cluster_admin_1.0.yaml ${workingdir}
 os::util::sed "s/RESOURCE_VERSION//g" ${workingdir}/cluster_admin_1.0.yaml
 os::cmd::expect_success "oc create -f ${workingdir}/cluster_admin_1.0.yaml"
-os::cmd::expect_success 'oadm policy add-cluster-role-to-user alternate-cluster-admin alternate-cluster-admin-user'
+os::cmd::expect_success 'oc adm policy add-cluster-role-to-user alternate-cluster-admin alternate-cluster-admin-user'
 
 # switch to test user to be sure that default project admin policy works properly
 new_kubeconfig="${workingdir}/tempconfig"
@@ -177,12 +177,12 @@ os::cmd::expect_failure_and_text "oc replace --config=${new_kubeconfig} clusterr
 # This test validates cluster level policy for serviceaccounts
 # ensure service account cannot list pods at the namespace level
 os::cmd::expect_success_and_text "oc policy can-i list pods --as=system:serviceaccount:cmd-policy:testserviceaccount" "no"
-os::cmd::expect_success_and_text "oadm policy add-role-to-user view -z=testserviceaccount" "role \"view\" added: \"testserviceaccount\""
+os::cmd::expect_success_and_text "oc adm policy add-role-to-user view -z=testserviceaccount" "role \"view\" added: \"testserviceaccount\""
 # ensure service account can list pods at the namespace level after "view" role is added, but not at the cluster level
 os::cmd::try_until_text "oc policy can-i list pods --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "no"
 # ensure service account can list pods at the cluster level after "cluster-reader" cluster role is added
-os::cmd::expect_success_and_text "oadm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" "cluster role \"cluster-reader\" added: \"testserviceaccount\""
+os::cmd::expect_success_and_text "oc adm policy add-cluster-role-to-user cluster-reader -z=testserviceaccount" "cluster role \"cluster-reader\" added: \"testserviceaccount\""
 os::cmd::try_until_text "oc policy can-i list pods --all-namespaces --as=system:serviceaccount:${project}:testserviceaccount" "yes"
 
 echo "policy: ok"

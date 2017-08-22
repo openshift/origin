@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	// oadm ca create-signer-cert --cert=sni-ca.crt --key=sni-ca.key --name=sni-signer --serial=sni-serial.txt
+	// oc adm ca create-signer-cert --cert=sni-ca.crt --key=sni-ca.key --name=sni-signer --serial=sni-serial.txt
 	sniCACert = "sni-ca.crt"
 
-	// oadm ca create-server-cert --cert=sni.crt --key=sni.key --hostnames=127.0.0.1,customhost.com,*.wildcardhost.com --signer-cert=sni-ca.crt --signer-key=sni-ca.key --signer-serial=sni-serial.txt
+	// oc adm ca create-server-cert --cert=sni.crt --key=sni.key --hostnames=127.0.0.1,customhost.com,*.wildcardhost.com --signer-cert=sni-ca.crt --signer-key=sni-ca.key --signer-serial=sni-serial.txt
 	sniServerCert = "sni-server.crt"
 	sniServerKey  = "sni-server.key"
 )

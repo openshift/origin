@@ -90,7 +90,7 @@ references:
 
 1.  The existing docker registry images will not be able to support auto-provisioning of image streams based on docker pushes against new API servers.
   Upgrade your docker registry image to make auto-provisioning work again.
-1. New service accounts specific to the PersistentVolume operations of binding, recycling, and provisioning were added.  Run `oadm policy reconcile-sccs --confirm` to update your SecurityContextConstraints.
+1. New service accounts specific to the PersistentVolume operations of binding, recycling, and provisioning were added.  Run `oc adm policy reconcile-sccs --confirm` to update your SecurityContextConstraints.
 
 ## Origin 1.3.x / OSE 3.3.x
 

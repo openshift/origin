@@ -38,11 +38,11 @@ and any existing scheduled pods will be considered failed and removed.
 	nodeNotSched = `Node {{.node}} is ready but is marked Unschedulable.
 This is usually set manually for administrative reasons.
 An administrator can mark the node schedulable with:
-    oadm manage-node {{.node}} --schedulable=true
+    oc adm manage-node {{.node}} --schedulable=true
 
 While in this state, pods should not be scheduled to deploy on the node.
 Existing pods will continue to run until completed or evacuated (see
-other options for 'oadm manage-node').
+other options for 'oc adm manage-node').
 `
 )
 

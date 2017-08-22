@@ -146,7 +146,7 @@ func TestExtractMessage(t *testing.T) {
 	}{
 		{
 			name:            "fail on error code",
-			testLine:        `FAILURE after 0.041s: hack/../test/cmd/help.sh:32: executing 'oadm' expecting success: the command returned the wrong error code`,
+			testLine:        `FAILURE after 0.041s: hack/../test/cmd/help.sh:32: executing 'oc' expecting success: the command returned the wrong error code`,
 			expectedMessage: "the command returned the wrong error code",
 		},
 		{

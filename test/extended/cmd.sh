@@ -41,7 +41,7 @@ export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 oc login -u system:admin -n default
 # let everyone be able to see stuff in the default namespace
-oadm policy add-role-to-group view system:authenticated -n default
+oc adm policy add-role-to-group view system:authenticated -n default
 
 os::start::registry
 oc rollout status dc/docker-registry
@@ -152,7 +152,7 @@ os::test::junit::declare_suite_start "extended/cmd/service-signer"
 # check to make sure that service serving cert signing works correctly
 # nginx currently needs to run as root
 os::cmd::expect_success "oc login -u system:admin -n default"
-os::cmd::expect_success "oadm policy add-scc-to-user anyuid system:serviceaccount:service-serving-cert-generation:default"
+os::cmd::expect_success "oc adm policy add-scc-to-user anyuid system:serviceaccount:service-serving-cert-generation:default"
 
 os::cmd::expect_success "oc login -u serving-cert -p asdf"
 VERBOSE=true os::cmd::expect_success "oc new-project service-serving-cert-generation"

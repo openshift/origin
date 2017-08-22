@@ -15,7 +15,7 @@ do
   number=$RANDOM
   let "number %= $NUM_USERS"
   ADMIN_USER=${USER_NAME_PREFIX}${number}
-  oadm new-project ${PROJECT_NAME_PREFIX}${i} --admin=$ADMIN_USER>/dev/null
+  oc adm new-project ${PROJECT_NAME_PREFIX}${i} --admin=$ADMIN_USER>/dev/null
 done
 
 echo "Done"

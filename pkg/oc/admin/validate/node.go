@@ -18,7 +18,7 @@ import (
 
 const (
 	ValidateNodeConfigRecommendedName    = "node-config"
-	validateNodeConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oadm diagnostics NodeConfigCheck --node-config=path/to/config.yaml' instead.`
+	validateNodeConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oc adm diagnostics NodeConfigCheck --node-config=path/to/config.yaml' instead.`
 )
 
 var (
