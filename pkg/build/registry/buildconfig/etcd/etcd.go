@@ -25,14 +25,13 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:                  func() runtime.Object { return &buildapi.BuildConfig{} },
 		NewListFunc:              func() runtime.Object { return &buildapi.BuildConfigList{} },
 		DefaultQualifiedResource: buildapi.Resource("buildconfigs"),
-		PredicateFunc:            buildconfig.Matcher,
 
 		CreateStrategy: buildconfig.GroupStrategy,
 		UpdateStrategy: buildconfig.GroupStrategy,
 		DeleteStrategy: buildconfig.GroupStrategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: buildconfig.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

@@ -34,7 +34,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &deployapi.DeploymentConfig{} },
 		NewListFunc:              func() runtime.Object { return &deployapi.DeploymentConfigList{} },
-		PredicateFunc:            deployconfig.Matcher,
 		DefaultQualifiedResource: deployapi.Resource("deploymentconfigs"),
 
 		CreateStrategy: deployconfig.GroupStrategy,
@@ -42,7 +41,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 		DeleteStrategy: deployconfig.GroupStrategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: deployconfig.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, nil, err
 	}

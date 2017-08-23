@@ -25,7 +25,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &sdnapi.HostSubnet{} },
 		NewListFunc:              func() runtime.Object { return &sdnapi.HostSubnetList{} },
-		PredicateFunc:            hostsubnet.Matcher,
 		DefaultQualifiedResource: sdnapi.Resource("hostsubnets"),
 
 		CreateStrategy: hostsubnet.Strategy,
@@ -33,7 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: hostsubnet.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: hostsubnet.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

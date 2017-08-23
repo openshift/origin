@@ -20,12 +20,6 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		return err
 	}
 
-	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthClient",
-		oapi.GetFieldLabelConversionFunc(oauthapi.OAuthClientToSelectableFields(&oauthapi.OAuthClient{}), nil),
-	); err != nil {
-		return err
-	}
-
 	if err := scheme.AddFieldLabelConversionFunc("v1", "OAuthClientAuthorization",
 		oapi.GetFieldLabelConversionFunc(oauthapi.OAuthClientAuthorizationToSelectableFields(&oauthapi.OAuthClientAuthorization{}), nil),
 	); err != nil {

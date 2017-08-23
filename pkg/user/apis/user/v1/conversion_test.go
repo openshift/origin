@@ -11,11 +11,6 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Group",
-		// Ensure all currently returned labels are supported
-		userapi.GroupToSelectableFields(&userapi.Group{}),
-	)
-
 	testutil.CheckFieldLabelConversions(t, "v1", "Identity",
 		// Ensure all currently returned labels are supported
 		userapi.IdentityToSelectableFields(&userapi.Identity{}),
@@ -23,8 +18,4 @@ func TestFieldSelectorConversions(t *testing.T) {
 		"providerName", "providerUserName", "user.name", "user.uid",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "User",
-		// Ensure all currently returned labels are supported
-		userapi.UserToSelectableFields(&userapi.User{}),
-	)
 }

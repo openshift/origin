@@ -25,7 +25,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.Image{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageList{} },
-		PredicateFunc:            image.Matcher,
 		DefaultQualifiedResource: imageapi.Resource("images"),
 
 		CreateStrategy: image.Strategy,
@@ -33,7 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: image.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: image.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

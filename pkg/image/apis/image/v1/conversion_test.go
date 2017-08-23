@@ -50,10 +50,6 @@ func TestRoundTripVersionedObject(t *testing.T) {
 }
 
 func TestFieldSelectors(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Image",
-		// Ensure all currently returned labels are supported
-		newer.ImageToSelectableFields(&newer.Image{}),
-	)
 	testutil.CheckFieldLabelConversions(t, "v1", "ImageStream",
 		// Ensure all currently returned labels are supported
 		newer.ImageStreamToSelectableFields(&newer.ImageStream{}),

@@ -35,7 +35,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &userapi.User{} },
 		NewListFunc:              func() runtime.Object { return &userapi.UserList{} },
-		PredicateFunc:            user.Matcher,
 		DefaultQualifiedResource: userapi.Resource("users"),
 
 		CreateStrategy: user.Strategy,
@@ -43,7 +42,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: user.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: user.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

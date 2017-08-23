@@ -1,15 +1,10 @@
 package clusterresourcequota
 
 import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
@@ -65,24 +60,6 @@ func (strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Error
 
 func (strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateClusterResourceQuotaUpdate(obj.(*quotaapi.ClusterResourceQuota), old.(*quotaapi.ClusterResourceQuota))
-}
-
-// GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	quota, ok := obj.(*quotaapi.ClusterResourceQuota)
-	if !ok {
-		return nil, nil, false, fmt.Errorf("not a ClusterResourceQuota")
-	}
-	return labels.Set(quota.ObjectMeta.Labels), quotaapi.ClusterResourceQuotaToSelectableFields(quota), quota.Initializers != nil, nil
-}
-
-// Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-	return storage.SelectionPredicate{
-		Label:    label,
-		Field:    field,
-		GetAttrs: GetAttrs,
-	}
 }
 
 type statusStrategy struct {
