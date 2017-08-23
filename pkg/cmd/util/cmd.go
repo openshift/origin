@@ -95,6 +95,22 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 			groups = append(groups, groupMeta)
 		}
 
+		// if no preferred versions given, pass all group versions found.
+		if len(preferredVersions) == 0 {
+			defaultGroupVersions := []runtime.GroupVersioner{}
+			for _, group := range groups {
+				defaultGroupVersions = append(defaultGroupVersions, group.GroupVersion)
+			}
+
+			defaultGroupVersioners := runtime.GroupVersioners(defaultGroupVersions)
+			convertedObject, err := kapi.Scheme.ConvertToVersion(obj, defaultGroupVersioners)
+			if err != nil {
+				return nil, err
+			}
+			ret = append(ret, convertedObject)
+			continue
+		}
+
 		actualOutputVersion := schema.GroupVersion{}
 		// Find the first preferred version that contains the object kind group.
 		// If there are more groups for the given resource, prefer those that are first in the
@@ -121,6 +137,23 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 			}
 		}
 
+		// if no preferred version found in the list of given GroupVersions,
+		// attempt to convert to first GroupVersion that satisfies a preferred version
+		if len(actualOutputVersion.Version) == 0 {
+			preferredVersioners := []runtime.GroupVersioner{}
+			for _, gv := range preferredVersions {
+				preferredVersions = append(preferredVersions, gv)
+			}
+			preferredVersioner := runtime.GroupVersioners(preferredVersioners)
+			convertedObject, err := kapi.Scheme.ConvertToVersion(obj, preferredVersioner)
+			if err != nil {
+				return nil, err
+			}
+
+			ret = append(ret, convertedObject)
+			continue
+		}
+
 		convertedObject, err := kapi.Scheme.ConvertToVersion(obj, actualOutputVersion)
 		if err != nil {
 			return nil, err
@@ -138,6 +171,10 @@ func convertItemsForDisplay(objs []runtime.Object, preferredVersions ...schema.G
 func convertItemsForDisplayFromDefaultCommand(cmd *cobra.Command, objs []runtime.Object) ([]runtime.Object, error) {
 	requested := kcmdutil.GetFlagString(cmd, "output-version")
 	versions := []schema.GroupVersion{}
+	if len(requested) == 0 {
+		return convertItemsForDisplay(objs, versions...)
+	}
+
 	for _, v := range strings.Split(requested, ",") {
 		version, err := schema.ParseGroupVersion(v)
 		if err != nil {
