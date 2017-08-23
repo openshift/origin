@@ -58,9 +58,9 @@ var (
 		Insecure connection is allowed in the following cases unless certificate-authority is
 		specified:
 
-		 1. --force-insecure is given  
-		 2. provided registry-url is prefixed with http://  
-		 3. registry url is a private or link-local address  
+		 1. --force-insecure is given
+		 2. provided registry-url is prefixed with http://
+		 3. registry url is a private or link-local address
 		 4. user's config allows for insecure connection (the user logged in to the cluster with
 			--insecure-skip-tls-verify or allowed for insecure connection)`)
 
@@ -361,7 +361,11 @@ type describingImageStreamDeleter struct {
 
 var _ prune.ImageStreamDeleter = &describingImageStreamDeleter{}
 
-func (p *describingImageStreamDeleter) DeleteImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
+func (p *describingImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	return stream, nil
+}
+
+func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
 	if !p.headerPrinted {
 		p.headerPrinted = true
 		fmt.Fprintln(p.w, "Deleting references from image streams to images ...")
@@ -374,7 +378,7 @@ func (p *describingImageStreamDeleter) DeleteImageStream(stream *imageapi.ImageS
 		return stream, nil
 	}
 
-	updatedStream, err := p.delegate.DeleteImageStream(stream, image, updatedTags)
+	updatedStream, err := p.delegate.UpdateImageStream(stream, image, updatedTags)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error updating image stream %s/%s to remove references to image %s: %v\n", stream.Namespace, stream.Name, image.Name, err)
 	}
