@@ -265,3 +265,10 @@ func setOwnerReference(pod *v1.Pod, build *buildapi.Build) {
 		},
 	}
 }
+
+// copyEnvVarSlice returns a copy of an []v1.EnvVar
+func copyEnvVarSlice(in []v1.EnvVar) []v1.EnvVar {
+	out := make([]v1.EnvVar, len(in))
+	copy(out, in)
+	return out
+}

@@ -107,6 +107,8 @@ func TestDockerCreateBuildPod(t *testing.T) {
 			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
 		}
 	}
+
+	checkAliasing(t, actual)
 }
 
 func TestDockerBuildLongName(t *testing.T) {

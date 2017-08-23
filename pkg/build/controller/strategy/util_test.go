@@ -1,7 +1,9 @@
 package strategy
 
 import (
+	"reflect"
 	"testing"
+	"unsafe"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -116,5 +118,38 @@ func TestSetupDockerSecrets(t *testing.T) {
 			t.Errorf("Duplicate volume mount path %s", m.MountPath)
 		}
 		seenMountPath[m.Name] = true
+	}
+}
+
+func TestCopyEnvVarSlice(t *testing.T) {
+	s1 := []v1.EnvVar{{Name: "FOO", Value: "bar"}, {Name: "BAZ", Value: "qux"}}
+	s2 := copyEnvVarSlice(s1)
+
+	if !reflect.DeepEqual(s1, s2) {
+		t.Error(s2)
+	}
+
+	if (*reflect.SliceHeader)(unsafe.Pointer(&s1)).Data == (*reflect.SliceHeader)(unsafe.Pointer(&s2)).Data {
+		t.Error("copyEnvVarSlice didn't copy backing store")
+	}
+}
+
+func checkAliasing(t *testing.T, pod *v1.Pod) {
+	m := map[uintptr]bool{}
+	for _, c := range pod.Spec.Containers {
+		p := (*reflect.SliceHeader)(unsafe.Pointer(&c.Env)).Data
+		if m[p] {
+			t.Error("pod Env slices are aliased")
+			return
+		}
+		m[p] = true
+	}
+	for _, c := range pod.Spec.InitContainers {
+		p := (*reflect.SliceHeader)(unsafe.Pointer(&c.Env)).Data
+		if m[p] {
+			t.Error("pod Env slices are aliased")
+			return
+		}
+		m[p] = true
 	}
 }

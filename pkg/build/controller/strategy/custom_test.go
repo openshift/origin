@@ -97,6 +97,8 @@ func TestCustomCreateBuildPod(t *testing.T) {
 			t.Errorf("Expected %s variable to be set", name)
 		}
 	}
+
+	checkAliasing(t, actual)
 }
 
 func TestCustomCreateBuildPodExpectedForcePull(t *testing.T) {
