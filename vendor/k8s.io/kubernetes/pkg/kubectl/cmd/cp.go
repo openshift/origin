@@ -131,6 +131,13 @@ func runCopy(f cmdutil.Factory, cmd *cobra.Command, out, cmderr io.Writer, args 
 
 func copyToPod(f cmdutil.Factory, cmd *cobra.Command, stdout, stderr io.Writer, src, dest fileSpec) error {
 	reader, writer := io.Pipe()
+
+	// if destination path ends in a "/", assume destination is a directory
+	// and copy source path inside destination directory
+	if string(dest.File[len(dest.File)-1]) == "/" {
+		dest.File = dest.File + path.Base(src.File)
+	}
+
 	go func() {
 		defer writer.Close()
 		err := makeTar(src.File, dest.File, writer)
