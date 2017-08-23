@@ -8,6 +8,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
@@ -205,7 +206,7 @@ func TestRouteKey(t *testing.T) {
 		},
 	}
 
-	key := router.routeKey(route)
+	key := routeKey(route)
 
 	if key != "foo:bar" {
 		t.Errorf("Expected key 'foo:bar' but got: %s", key)
@@ -266,7 +267,7 @@ func TestRouteKey(t *testing.T) {
 		}
 
 		router.AddRoute(route)
-		routeKey := router.routeKey(route)
+		routeKey := routeKey(route)
 		_, ok := router.state[routeKey]
 		if !ok {
 			t.Errorf("Unable to find created service alias config for route %s", routeKey)
@@ -316,7 +317,7 @@ func TestCreateServiceAliasConfig(t *testing.T) {
 
 	config := *router.createServiceAliasConfig(route, "foo")
 
-	suName := fmt.Sprintf("%s/%s", namespace, serviceName)
+	suName := endpointsKeyFromParts(namespace, serviceName)
 	expectedSUs := map[string]int32{
 		suName: serviceWeight,
 	}
@@ -356,7 +357,7 @@ func TestAddRoute(t *testing.T) {
 		t.Fatalf("router state not marked as changed")
 	}
 
-	suName := fmt.Sprintf("%s/%s", namespace, serviceName)
+	suName := endpointsKeyFromParts(namespace, serviceName)
 	expectedSUs := map[string]ServiceUnit{
 		suName: {
 			Name:          suName,
@@ -369,7 +370,7 @@ func TestAddRoute(t *testing.T) {
 		t.Fatalf("Unexpected service units:\nwant: %#v\n got: %#v", expectedSUs, router.serviceUnits)
 	}
 
-	routeKey := router.routeKey(route)
+	routeKey := routeKey(route)
 
 	if config, ok := router.state[routeKey]; !ok {
 		t.Errorf("Unable to find created service alias config for route %s", routeKey)
@@ -476,7 +477,7 @@ func TestRemoveRoute(t *testing.T) {
 			Host: "host",
 		},
 	}
-	suKey := "bar/test"
+	suKey := endpointsKeyFromParts("bar", "test")
 
 	router.CreateServiceUnit(suKey)
 	router.AddRoute(route)
@@ -487,20 +488,20 @@ func TestRemoveRoute(t *testing.T) {
 		t.Fatalf("Unable to find created service unit %s", suKey)
 	}
 
-	routeKey := router.routeKey(route)
-	saCfg, ok := router.state[routeKey]
+	rKey := routeKey(route)
+	saCfg, ok := router.state[rKey]
 	if !ok {
-		t.Fatalf("Unable to find created serivce alias config for route %s", routeKey)
+		t.Fatalf("Unable to find created serivce alias config for route %s", rKey)
 	}
 	if saCfg.Host != route.Spec.Host || saCfg.Path != route.Spec.Path {
 		t.Fatalf("Route %v did not match serivce alias config %v", route, saCfg)
 	}
 
 	router.RemoveRoute(route)
-	if _, ok := router.state[routeKey]; ok {
+	if _, ok := router.state[rKey]; ok {
 		t.Errorf("Route %v was expected to be deleted but was still found", route)
 	}
-	if _, ok := router.state[router.routeKey(route2)]; !ok {
+	if _, ok := router.state[routeKey(route2)]; !ok {
 		t.Errorf("Route %v was expected to exist but was not found", route2)
 	}
 }
@@ -657,7 +658,7 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 
 		router.AddRoute(route)
 
-		routeKey := router.routeKey(route)
+		routeKey := routeKey(route)
 		saCfg, ok := router.state[routeKey]
 
 		if !ok {
