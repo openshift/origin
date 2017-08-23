@@ -43,8 +43,15 @@ def get_os_git_vars():
     git_vars["OS_GIT_TREE_STATE"] = "clean"
 
     # To derive the correct tag for images in 3.7 and beyond, 
-    # oc version must include Release information. Any +metadata can be removed.
-    git_vars["OS_GIT_VERSION"] = git_vars["OS_GIT_VERSION"].split('+')[0]
+    # (1) For pre-release builds, with Release=0*, include Release field in oc version.
+    # (2) For release candidates, do not include Release field in oc version since 
+    #     registry.access cannot be populated with images which exactly match the RPM release.
+    if "-0" in git_vars["OS_GIT_VERSION"]:
+        # Only remove +metadata, but retain remaining Release field (3.7.0-0.1.1+git9898 => 3.7.0-0.1.1)
+        git_vars["OS_GIT_VERSION"] = git_vars["OS_GIT_VERSION"].split('+')[0]
+    else:
+        # For release candidates, remove entire Release field (3.7.5-1 => 3.7.5)
+        git_vars["OS_GIT_VERSION"] = git_vars["OS_GIT_VERSION"].split('-')[0]
     
     # Buildtime variables required to change origin to atomic-openshift
     git_vars["OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS"] = "rhel7"
