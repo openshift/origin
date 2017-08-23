@@ -72,7 +72,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("not a role")
 	}
-	return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), role.Initializers != nil, nil
+	return labels.Set(role.ObjectMeta.Labels), RoleToSelectableFields(role), role.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -81,5 +81,14 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 		Label:    label,
 		Field:    field,
 		GetAttrs: GetAttrs,
+	}
+}
+
+// RoleToSelectableFields returns a label set that represents the object
+// changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
+func RoleToSelectableFields(role *authorizationapi.Role) fields.Set {
+	return fields.Set{
+		"metadata.name":      role.Name,
+		"metadata.namespace": role.Namespace,
 	}
 }
