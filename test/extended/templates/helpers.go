@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os/exec"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -81,8 +80,8 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 }
 
 // EnsureTSB makes sure the TSB is present where expected and returns a client to speak to it and
-// and exec command which provides the proxy.  The caller must close the cmd, usually done in AfterEach
-func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, *exec.Cmd) {
+// and a close method which provides the proxy.  The caller must call the close method, usually done in AfterEach
+func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, func() error) {
 	exists := true
 	if _, err := tsbOC.AdminKubeClient().Extensions().DaemonSets(tsbNS).Get("apiserver", metav1.GetOptions{}); err != nil {
 		if !kerrors.IsNotFound(err) {
@@ -160,7 +159,12 @@ func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, *exec.Cmd) {
 		o.Expect(fmt.Errorf("error waiting for the TSB to be healthy: %v: %v", healthResponse, err)).NotTo(o.HaveOccurred())
 	}
 
-	return tsbclient, portForwardCmd
+	return tsbclient, func() error {
+		err := portForwardCmd.Process.Kill()
+		portForwardOutput, _ := portForwardCmd.CombinedOutput()
+		e2e.Logf("PortForward output:\n%v", string(portForwardOutput))
+		return err
+	}
 }
 
 // Waits for the daemonset to have at least one ready pod

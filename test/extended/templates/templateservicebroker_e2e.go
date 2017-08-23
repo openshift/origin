@@ -1,8 +1,6 @@
 package templates
 
 import (
-	"os/exec"
-
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -30,8 +28,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC          = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
-		portForwardCmd *exec.Cmd
+		tsbOC               = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
+		portForwardCmdClose func() error
 
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
 		instanceID         = uuid.NewRandom().String()
@@ -47,7 +45,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 	g.BeforeEach(func() {
 		framework.SkipIfProviderIs("gce")
-		brokercli, portForwardCmd = EnsureTSB(tsbOC)
+		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
 		var err error
 
@@ -97,7 +95,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		// namespace cleanup doesn't catch this.
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)
 
-		err = portForwardCmd.Process.Kill()
+		err = portForwardCmdClose()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
