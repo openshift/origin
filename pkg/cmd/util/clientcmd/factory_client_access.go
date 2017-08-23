@@ -298,7 +298,7 @@ func (o *imageResolutionOptions) Bind(f *pflag.FlagSet) {
 	if o.Bound() {
 		return
 	}
-	f.StringVarP(&o.Source, "source", "", "istag", "The image source type; valid types are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
+	f.StringVarP(&o.Source, "source", "", "docker", "The image source type; valid types are 'imagestreamtag', 'istag', 'imagestreamimage', 'isimage', and 'docker'")
 	o.bound = true
 }
 

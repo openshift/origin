@@ -74,8 +74,11 @@ var (
 Update existing container image(s) of resources.`)
 
 	setImageExample = ktemplates.Examples(`
-		# Set a deployment configs's nginx container image to 'nginx:1.9.1', and its busybox container image to 'busybox'.
+	  # Set a deployment configs's nginx container image to 'nginx:1.9.1', and its busybox container image to 'busybox'.
 	  %[1]s image dc/nginx busybox=busybox nginx=nginx:1.9.1
+
+	  # Set a deployment configs's app container image to the image referenced by the imagestream tag 'openshift/ruby:2.3'.
+	  %[1]s image dc/myapp app=openshift/ruby:2.3 --source=imagestreamtag
 
 	  # Update all deployments' and rc's nginx container's image to 'nginx:1.9.1'
 	  %[1]s image deployments,rc nginx=nginx:1.9.1 --all
