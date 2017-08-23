@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -93,7 +94,11 @@ func setupDockerSocket(pod *v1.Pod) {
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPath, volumeSuffix string) {
-	volumeName := namer.GetName(secretName, volumeSuffix, kvalidation.DNS1123SubdomainMaxLength)
+	volumeName := namer.GetName(secretName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
+
+	// coerce from RFC1123 subdomain to RFC1123 label.
+	volumeName = strings.Replace(volumeName, ".", "-", -1)
+
 	volumeExists := false
 	for _, v := range pod.Spec.Volumes {
 		if v.Name == volumeName {

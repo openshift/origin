@@ -81,7 +81,7 @@ func TestSetupDockerSecrets(t *testing.T) {
 	}
 
 	pushSecret := &kapi.LocalObjectReference{
-		Name: "pushSecret",
+		Name: "my.pushSecret.with.full.stops.and.longer.than.sixty.three.characters",
 	}
 	pullSecret := &kapi.LocalObjectReference{
 		Name: "pullSecret",
@@ -106,6 +106,13 @@ func TestSetupDockerSecrets(t *testing.T) {
 		seenName[v.Name] = true
 	}
 
+	if !seenName["my-pushSecret-with-full-stops-and-longer-than-six-c6eb4d75-push"] {
+		t.Errorf("volume my-pushSecret-with-full-stops-and-longer-than-six-c6eb4d75-push was not seen")
+	}
+	if !seenName["pullSecret-pull"] {
+		t.Errorf("volume pullSecret-pull was not seen")
+	}
+
 	seenMount := map[string]bool{}
 	seenMountPath := map[string]bool{}
 	for _, m := range pod.Spec.Containers[0].VolumeMounts {
@@ -118,6 +125,13 @@ func TestSetupDockerSecrets(t *testing.T) {
 			t.Errorf("Duplicate volume mount path %s", m.MountPath)
 		}
 		seenMountPath[m.Name] = true
+	}
+
+	if !seenMount["my-pushSecret-with-full-stops-and-longer-than-six-c6eb4d75-push"] {
+		t.Errorf("volumemount my-pushSecret-with-full-stops-and-longer-than-six-c6eb4d75-push was not seen")
+	}
+	if !seenMount["pullSecret-pull"] {
+		t.Errorf("volumemount pullSecret-pull was not seen")
 	}
 }
 
