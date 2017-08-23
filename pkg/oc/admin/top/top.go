@@ -12,7 +12,13 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const TopRecommendedName = "top"
+const (
+	TopRecommendedName = "top"
+
+	DefaultHeapsterNamespace = "openshift-infra"
+	DefaultHeapsterScheme    = "https"
+	DefaultHeapsterService   = "heapster"
+)
 
 var topLong = templates.LongDesc(`
 	Show usage statistics of resources on the server
@@ -29,12 +35,26 @@ func NewCommandTop(name, fullName string, f *clientcmd.Factory, out, errOut io.W
 		Run:   cmdutil.DefaultSubCommandRun(errOut),
 	}
 
+	ocHeapsterTopOpts := kcmd.HeapsterTopOptions{
+		Namespace: DefaultHeapsterNamespace,
+		Scheme:    DefaultHeapsterScheme,
+		Service:   DefaultHeapsterService,
+	}
+
+	cmdTopNodeOpts := &kcmd.TopNodeOptions{
+		HeapsterOptions: ocHeapsterTopOpts,
+	}
+	cmdTopNode := kcmd.NewCmdTopNode(f, cmdTopNodeOpts, out)
+
+	cmdTopPodOpts := &kcmd.TopPodOptions{
+		HeapsterOptions: ocHeapsterTopOpts,
+	}
+	cmdTopPod := kcmd.NewCmdTopPod(f, cmdTopPodOpts, out)
+
 	cmds.AddCommand(NewCmdTopImages(f, fullName, TopImagesRecommendedName, out))
 	cmds.AddCommand(NewCmdTopImageStreams(f, fullName, TopImageStreamsRecommendedName, out))
-	cmdTopNode := kcmd.NewCmdTopNode(f, out)
 	cmdTopNode.Long = templates.LongDesc(cmdTopNode.Long)
 	cmdTopNode.Example = templates.Examples(cmdTopNode.Example)
-	cmdTopPod := kcmd.NewCmdTopPod(f, out)
 	cmdTopPod.Long = templates.LongDesc(cmdTopPod.Long)
 	cmdTopPod.Example = templates.Examples(cmdTopPod.Example)
 	cmds.AddCommand(cmdTopNode)
