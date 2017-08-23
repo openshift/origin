@@ -88,7 +88,7 @@ var (
 )
 
 func GetBootstrapOpenshiftRoles(openshiftNamespace string) []rbac.Role {
-	roles := []rbac.Role{
+	return []rbac.Role{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      OpenshiftSharedResourceViewRoleName,
@@ -111,17 +111,6 @@ func GetBootstrapOpenshiftRoles(openshiftNamespace string) []rbac.Role {
 			},
 		},
 	}
-
-	// we don't want to expose the resourcegroups externally because it makes it very difficult for customers to learn from
-	// our default roles and hard for them to reason about what power they are granting their users
-	for i := range roles {
-		for j := range roles[i].Rules {
-			roles[i].Rules[j].Resources = authorizationapi.NormalizeResources(sets.NewString(roles[i].Rules[j].Resources...)).List()
-		}
-	}
-
-	return roles
-
 }
 
 func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
