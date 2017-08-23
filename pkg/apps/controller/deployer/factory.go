@@ -217,6 +217,7 @@ func (c *DeploymentController) getByKey(key string) (*v1.ReplicationController, 
 	}
 	rc, err := c.rcLister.ReplicationControllers(namespace).Get(name)
 	if errors.IsNotFound(err) {
+		// TODO tnozicka: this is not normal and should be refactored
 		glog.V(4).Infof("Replication controller %q has been deleted", key)
 		return nil, nil
 	}
