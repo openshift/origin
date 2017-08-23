@@ -34,6 +34,7 @@ func main() {
 		"github.com/openshift/origin/pkg/template/apis/template/v1",
 		"github.com/openshift/origin/pkg/user/apis/user/v1",
 		"github.com/openshift/origin/pkg/security/apis/security/v1",
+		"github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1",
 	)
 
 	// These are the packages containing types and conversion functions used by the packages we want to generate for

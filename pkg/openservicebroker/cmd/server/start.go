@@ -7,13 +7,22 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/authentication/authenticatorfactory"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
 	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"io/ioutil"
 
 	"github.com/openshift/origin/pkg/openservicebroker/server"
+	"github.com/openshift/origin/pkg/template/servicebroker/apis/config"
+	configinstall "github.com/openshift/origin/pkg/template/servicebroker/apis/config/install"
 )
 
 type TemplateServiceBrokerServerOptions struct {
@@ -27,7 +36,7 @@ type TemplateServiceBrokerServerOptions struct {
 	StdOut io.Writer
 	StdErr io.Writer
 
-	TemplateNamespaces []string
+	TSBConfig *config.TemplateServiceBrokerConfig
 }
 
 func NewTemplateServiceBrokerServerOptions(out, errOut io.Writer) *TemplateServiceBrokerServerOptions {
@@ -53,7 +62,7 @@ func NewCommandStartTemplateServiceBrokerServer(out, errOut io.Writer, stopCh <-
 		Short: "Launch a template service broker server",
 		Long:  "Launch a template service broker server",
 		RunE: func(c *cobra.Command, args []string) error {
-			if err := o.Complete(); err != nil {
+			if err := o.Complete(c); err != nil {
 				return err
 			}
 			if err := o.Validate(args); err != nil {
@@ -72,16 +81,40 @@ func NewCommandStartTemplateServiceBrokerServer(out, errOut io.Writer, stopCh <-
 	o.Authorization.AddFlags(flags)
 	o.Audit.AddFlags(flags)
 	o.Features.AddFlags(flags)
-	flags.StringSliceVar(&o.TemplateNamespaces, "template-namespace", o.TemplateNamespaces, "TemplateNamespaces indicates the namespace(s) in which the template service broker looks for templates to serve to the catalog.")
+	flags.String("config", "", "filename containing the TemplateServiceBrokerConfig")
 
 	return cmd
 }
 
 func (o TemplateServiceBrokerServerOptions) Validate(args []string) error {
+	if o.TSBConfig == nil {
+		return fmt.Errorf("missing config: specify --config")
+	}
+	if len(o.TSBConfig.TemplateNamespaces) == 0 {
+		return fmt.Errorf("templateNamespaces are required")
+	}
+
 	return nil
 }
 
-func (o *TemplateServiceBrokerServerOptions) Complete() error {
+func (o *TemplateServiceBrokerServerOptions) Complete(cmd *cobra.Command) error {
+	configFile := util.GetFlagString(cmd, "config")
+	if len(configFile) > 0 {
+		content, err := ioutil.ReadFile(configFile)
+		if err != nil {
+			return err
+		}
+		configObj, err := runtime.Decode(configCodecs.UniversalDecoder(), content)
+		if err != nil {
+			return err
+		}
+		config, ok := configObj.(*config.TemplateServiceBrokerConfig)
+		if !ok {
+			return fmt.Errorf("unexpected type: %T", configObj)
+		}
+		o.TSBConfig = config
+	}
+
 	return nil
 }
 
@@ -134,7 +167,7 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 	config := &server.TemplateServiceBrokerConfig{
 		GenericConfig: serverConfig,
 
-		TemplateNamespaces: o.TemplateNamespaces,
+		TemplateNamespaces: o.TSBConfig.TemplateNamespaces,
 		// TODO add the code to set up the client and informers that you need here
 	}
 	return config, nil
@@ -151,4 +184,16 @@ func (o TemplateServiceBrokerServerOptions) RunTemplateServiceBrokerServer(stopC
 		return err
 	}
 	return server.GenericAPIServer.PrepareRun().Run(stopCh)
+}
+
+// these are used to set up for reading the config
+var (
+	groupFactoryRegistry = make(announced.APIGroupFactoryRegistry)
+	registry             = registered.NewOrDie("")
+	configScheme         = runtime.NewScheme()
+	configCodecs         = serializer.NewCodecFactory(configScheme)
+)
+
+func init() {
+	configinstall.Install(groupFactoryRegistry, registry, configScheme)
 }
