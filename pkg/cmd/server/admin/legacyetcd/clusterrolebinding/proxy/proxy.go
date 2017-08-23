@@ -8,10 +8,10 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
-	rolebindingregistry "github.com/openshift/origin/pkg/authorization/registry/rolebinding"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	clusterpolicybindingregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/clusterpolicybinding"
+	"github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/clusterrolebinding"
+	rolebindingregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/rolebinding"
 	rolebindingstorage "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/rolebinding/policybased"
 )
 

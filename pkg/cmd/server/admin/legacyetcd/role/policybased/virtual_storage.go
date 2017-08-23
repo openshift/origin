@@ -20,9 +20,9 @@ import (
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
-	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
 	policyregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/policy"
+	roleregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/role"
 )
 
 // TODO sort out resourceVersions.  Perhaps a hash of the object contents?
