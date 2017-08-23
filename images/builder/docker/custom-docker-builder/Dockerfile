@@ -14,7 +14,7 @@
 #
 # The standard name for this image is openshift/origin-custom-docker-builder
 #
-FROM openshift/origin-base:v1.5
+FROM openshift/origin-base
 
 RUN INSTALL_PKGS="gettext automake make docker" && \
     yum install -y $INSTALL_PKGS && \

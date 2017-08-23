@@ -8,7 +8,7 @@
 #
 # The standard name for this image is openshift/node
 #
-FROM openshift/origin:v1.5
+FROM openshift/origin
 
 COPY scripts/* /usr/local/bin/
 

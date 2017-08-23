@@ -3,7 +3,7 @@
 #
 # The standard name for this image is openshift/origin-haproxy-router
 #
-FROM openshift/origin:v1.5
+FROM openshift/origin
 
 #
 # Note: /var is changed to 777 to allow access when running this container as a non-root uid
