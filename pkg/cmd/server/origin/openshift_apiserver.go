@@ -475,7 +475,7 @@ func (c *OpenshiftAPIConfig) bootstrapSCC(context genericapiserver.PostStartHook
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err := legacyclient.NewFromClient(c.KubeClientInternal.Core().RESTClient()).Create(&scc)
+		_, err := legacyclient.NewFromClient(c.KubeClientInternal.Core().RESTClient()).Create(scc)
 		if kapierror.IsAlreadyExists(err) {
 			continue
 		}
