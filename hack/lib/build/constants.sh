@@ -3,7 +3,7 @@
 # This script provides constants for the Golang binary build process
 
 readonly OS_BUILD_ENV_GOLANG="${OS_BUILD_ENV_GOLANG:-1.8}"
-readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-openshift/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
+readonly OS_BUILD_ENV_IMAGE="${OS_BUILD_ENV_IMAGE:-registry.svc.ci.openshift.org/release-test/origin-release:golang-${OS_BUILD_ENV_GOLANG}}"
 
 readonly OS_OUTPUT_BASEPATH="${OS_OUTPUT_BASEPATH:-_output}"
 readonly OS_BASE_OUTPUT="${OS_ROOT}/${OS_OUTPUT_BASEPATH}"
