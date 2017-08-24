@@ -16,7 +16,7 @@ import (
 )
 
 func getPodNameForTest(image string, t tc) string {
-	return fmt.Sprintf("%s-%s-%s", image, t.Version, t.BaseOS)
+	return fmt.Sprintf("%s-%s-centos7", image, t.Version)
 }
 
 // defineTest will create the gingko test.  This ensures the test
@@ -106,7 +106,7 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	for image, tcs := range GetTestCaseForImages(AllImages) {
+	for image, tcs := range GetTestCaseForImages() {
 		for _, t := range tcs {
 			defineTest(image, t, oc)
 		}
