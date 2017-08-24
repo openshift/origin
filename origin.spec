@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 3c2194aa030b4f1a50d954108e6f3e078583098d
+%global commit 6f5f22eff2c4d9c235cc917a96cd462732fc45d8
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.104.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3c2194a
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.105.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=6f5f22e
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.105.0%{?dist}
+Release:        0.106.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -644,6 +644,30 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Aug 24 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.106.0
+- move rbac field selectors to last point of use (deads@redhat.com)
+- simple legacy rbac moves (deads@redhat.com)
+- remove extraneous field selector conversions (deads@redhat.com)
+- Add Back node-bootstrapper Service Account creation (simo@redhat.com)
+- Clarify router cmd ignoreError comments. (mrogers@redhat.com)
+- Remove Resource normalization (simo@redhat.com)
+- Stop using NormalizeResources in rulevalidation (simo@redhat.com)
+- UPSTREAM: 51197: provide a default field selector for name and namespace
+  (deads@redhat.com)
+- generate API docs using new infrastructure (jminter@redhat.com)
+- replace API doc generation infrastructure (jminter@redhat.com)
+- securitycontextconstraints_test.go: use the existing method instead of own
+  version of it. (vsemushi@redhat.com)
+- UPSTREAM: 51144: Fix unready endpoints bug introduced in #50934
+  (joesmith@redhat.com)
+- Retry longer for metrics to become available (ccoleman@redhat.com)
+- Update stale comment: We use colon instead of underscore between namespace
+  and route name for uniquely identifying the route in the router
+  (rpenta@redhat.com)
+- UPSTREAM: 50934: Skip non-update endpoint updates (sjenning@redhat.com)
+- Router tests should not panic when router has no endpoints
+  (ccoleman@redhat.com)
+
 * Wed Aug 23 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.105.0
 - bump(github.com/openshift/origin-web-console):
   c9a5d1ae122b158d0cf5ade72e0d907cf77fbdc2 (eparis+openshiftbot@redhat.com)
