@@ -3,7 +3,6 @@ package authorization
 import (
 	"fmt"
 	"strings"
-	"unicode"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
@@ -12,61 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	// uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
-
-// NormalizeResources expands all resource groups and forces all resources to lower case.
-// If the rawResources are already normalized, it returns the original set to avoid the
-// allocation and GC cost, since this is hit multiple times for every REST call.
-// That means you should NEVER MODIFY THE RESULT of this call.
-func NormalizeResources(rawResources sets.String) sets.String {
-	// we only need to expand groups if the exist and we don't create them with groups
-	// by default.  Only accept the cost of expansion if we're doing work.
-	needsNormalization := false
-	for currResource := range rawResources {
-		if needsNormalizing(currResource) {
-			needsNormalization = true
-			break
-		}
-
-	}
-	if !needsNormalization {
-		return rawResources
-	}
-
-	ret := sets.String{}
-	toVisit := rawResources.List()
-	visited := sets.String{}
-
-	for i := 0; i < len(toVisit); i++ {
-		currResource := toVisit[i]
-		if visited.Has(currResource) {
-			continue
-		}
-		visited.Insert(currResource)
-
-		if !strings.HasPrefix(currResource, resourceGroupPrefix) {
-			ret.Insert(strings.ToLower(currResource))
-			continue
-		}
-
-		if resourceTypes, exists := groupsToResources[currResource]; exists {
-			toVisit = append(toVisit, resourceTypes...)
-		}
-	}
-
-	return ret
-}
-
-func needsNormalizing(in string) bool {
-	if strings.HasPrefix(in, resourceGroupPrefix) {
-		return true
-	}
-	for _, r := range in {
-		if unicode.IsUpper(r) {
-			return true
-		}
-	}
-	return false
-}
 
 func (r PolicyRule) String() string {
 	return "PolicyRule" + r.CompactString()

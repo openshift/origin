@@ -5,7 +5,6 @@ import (
 
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -135,7 +134,7 @@ func normalizePolicyRules(rules []rbac.PolicyRule) {
 		rule := &rules[i]
 		toLowerSlice(rule.Verbs)
 		toLowerSlice(rule.APIGroups)
-		rule.Resources = authorizationapi.NormalizeResources(sets.NewString(rule.Resources...)).List()
+		toLowerSlice(rule.Resources)
 	}
 }
 

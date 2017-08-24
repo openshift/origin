@@ -105,61 +105,6 @@ func TestMultipleRulesMissingSingleVerbResourceCombination(t *testing.T) {
 	}.test(t)
 }
 
-func TestResourceGroupCoveringEnumerated(t *testing.T) {
-	escalationTest{
-		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("create", "delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
-		},
-		servantRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs")},
-		},
-
-		expectedCovered:        true,
-		expectedUncoveredRules: []authorizationapi.PolicyRule{},
-	}.test(t)
-}
-
-func TestEnumeratedCoveringResourceGroup(t *testing.T) {
-	escalationTest{
-		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs", "buildlogs", "buildconfigs/instantiate", "buildconfigs/instantiatebinary", "builds/log", "builds/clone", "buildconfigs/webhooks")},
-		},
-		servantRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
-		},
-
-		expectedCovered:        true,
-		expectedUncoveredRules: []authorizationapi.PolicyRule{},
-	}.test(t)
-}
-
-func TestEnumeratedMissingPartOfResourceGroup(t *testing.T) {
-	escalationTest{
-		ownerRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("builds", "buildconfigs")},
-		},
-		servantRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete", "update"), Resources: sets.NewString("resourcegroup:builds")},
-		},
-
-		expectedCovered: false,
-		expectedUncoveredRules: []authorizationapi.PolicyRule{
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildlogs")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildlogs")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/instantiate")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/instantiate")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/instantiatebinary")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/instantiatebinary")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds/log")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds/log")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("builds/clone")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("builds/clone")},
-			{Verbs: sets.NewString("delete"), Resources: sets.NewString("buildconfigs/webhooks")},
-			{Verbs: sets.NewString("update"), Resources: sets.NewString("buildconfigs/webhooks")},
-		},
-	}.test(t)
-}
-
 func TestAPIGroupStarCoveringMultiple(t *testing.T) {
 	escalationTest{
 		ownerRules: []authorizationapi.PolicyRule{
