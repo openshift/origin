@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -625,7 +626,13 @@ func EnsureNamespaceServiceAccountRoleBindings(kubeClientInternal kclientsetinte
 	}
 
 	hasErrors := false
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name) {
+	for _, rbacBinding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name) {
+		binding, err := authorizationregistryutil.RoleBindingFromRBAC(&rbacBinding)
+		if err != nil {
+			glog.Errorf("Could not convert Role Binding %s in the %q namespace: %v\n", rbacBinding.Name, namespace.Name, err)
+			hasErrors = true
+			continue
+		}
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
@@ -633,7 +640,7 @@ func EnsureNamespaceServiceAccountRoleBindings(kubeClientInternal kclientsetinte
 			Subjects:            binding.Subjects,
 		}
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error { return addRole.AddRole() }); err != nil {
-			glog.Errorf("Could not add service accounts to the %v role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
+			glog.Errorf("Could not add service accounts to the %s role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
 			hasErrors = true
 		}
 	}
