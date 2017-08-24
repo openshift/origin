@@ -7,6 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	sccutil "github.com/openshift/origin/pkg/security/securitycontextconstraints/util"
 )
 
 func TestBootstrappedConstraints(t *testing.T) {
@@ -41,7 +42,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 		}
 
 		for _, expectedVolume := range expectedVolumes {
-			if !supportsFSType(expectedVolume, &constraint) {
+			if !sccutil.SCCAllowsFSType(&constraint, expectedVolume) {
 				t.Errorf("%s does not support %v which is required for all default SCCs", constraint.Name, expectedVolume)
 			}
 		}
@@ -86,13 +87,4 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 		SecurityContextConstraintHostMountAndAnyUID: {pvRecyclerControllerUsername},
 	}
 	return groups, users
-}
-
-func supportsFSType(fsType securityapi.FSType, scc *securityapi.SecurityContextConstraints) bool {
-	for _, v := range scc.Volumes {
-		if v == securityapi.FSTypeAll || v == fsType {
-			return true
-		}
-	}
-	return false
 }
