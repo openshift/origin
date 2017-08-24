@@ -96,6 +96,8 @@ const (
 	NodeReaderRoleName = "system:node-reader"
 
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
+
+	NodeBootstrapRoleName = "system:node-bootstrapper"
 )
 
 // RoleBindings

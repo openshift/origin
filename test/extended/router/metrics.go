@@ -16,6 +16,7 @@ import (
 	kapierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -59,6 +60,10 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 
 		epts, err := oc.AdminKubeClient().CoreV1().Endpoints("default").Get("router", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
+		if len(epts.Subsets) == 0 || len(epts.Subsets[0].Addresses) == 0 {
+			e2e.Failf("Unable to run HAProxy router tests, the router reports no endpoints: %#v", epts)
+			return
+		}
 		host = epts.Subsets[0].Addresses[0].IP
 
 		ns = oc.KubeFramework().Namespace.Name
@@ -100,7 +105,7 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 			times := 10
 			var results string
 			defer func() { e2e.Logf("received metrics:\n%s", results) }()
-			for i := 0; i < 30; i++ {
+			err = wait.PollImmediate(2*time.Second, 120*time.Second, func() (bool, error) {
 				results, err = getAuthenticatedURLViaPod(ns, execPodName, fmt.Sprintf("http://%s:%d/metrics", host, statsPort), username, password)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -110,16 +115,17 @@ var _ = g.Describe("[Conformance][networking][router] openshift router metrics",
 				//e2e.Logf("Metrics:\n%s", results)
 				if len(findGaugesWithLabels(metrics["haproxy_server_up"], serverLabels)) == 2 {
 					if findGaugesWithLabels(metrics["haproxy_backend_connections_total"], routeLabels)[0] >= float64(times) {
-						break
+						return true, nil
 					}
 					// send a burst of traffic to the router
 					g.By("sending traffic to a weighted route")
 					err = expectRouteStatusCodeRepeatedExec(ns, execPodName, fmt.Sprintf("http://%s", host), "weighted.example.com", http.StatusOK, times)
 					o.Expect(err).NotTo(o.HaveOccurred())
 				}
-				time.Sleep(2 * time.Second)
 				g.By("retrying metrics until all backend servers appear")
-			}
+				return false, nil
+			})
+			o.Expect(err).NotTo(o.HaveOccurred())
 
 			allEndpoints := sets.NewString()
 			services := []string{"weightedendpoints1", "weightedendpoints2"}

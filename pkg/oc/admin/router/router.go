@@ -831,7 +831,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	levelPrefixFilter := func(e error) string {
-		// ignore SA/RB errors if we were creating the service account
+		// Avoid failing when service accounts or role bindings already exist.
 		if ignoreError(e, cfg.ServiceAccount, generateRoleBindingName(cfg.Name)) {
 			return "warning"
 		}
@@ -849,8 +849,8 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 }
 
 // ignoreError will return true if the error is an already exists status error and
-// 1. it is for a cluster role binding named roleBindingName
-// 2. it is for a serivce account name saName
+// 1. it is for a cluster role binding named roleBindingName, or
+// 2. it is for a service account name saName
 func ignoreError(e error, saName string, roleBindingName string) bool {
 	if !errors.IsAlreadyExists(e) {
 		return false
@@ -864,8 +864,8 @@ func ignoreError(e error, saName string, roleBindingName string) bool {
 		return false
 	}
 	return (details.Kind == "serviceaccounts" && details.Name == saName) ||
-		(details.Kind == "clusterrolebinding" && details.Name == roleBindingName) ||
-		(details.Kind == "clusterrolebindings" && details.Name == roleBindingName) // TODO we should not need to do this
+		(details.Kind == "clusterrolebinding" /*pre-3.7*/ && details.Name == roleBindingName) ||
+		(details.Kind == "clusterrolebindings" /*3.7+*/ && details.Name == roleBindingName)
 }
 
 // generateRoleBindingName generates a name for the rolebinding object if it is

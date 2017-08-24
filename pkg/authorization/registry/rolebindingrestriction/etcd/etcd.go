@@ -25,14 +25,13 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		NewFunc:                  func() runtime.Object { return &authorizationapi.RoleBindingRestriction{} },
 		NewListFunc:              func() runtime.Object { return &authorizationapi.RoleBindingRestrictionList{} },
 		DefaultQualifiedResource: authorizationapi.Resource("rolebindingrestrictions"),
-		PredicateFunc:            rolebindingrestriction.Matcher,
 
 		CreateStrategy: rolebindingrestriction.Strategy,
 		UpdateStrategy: rolebindingrestriction.Strategy,
 		DeleteStrategy: rolebindingrestriction.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: rolebindingrestriction.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

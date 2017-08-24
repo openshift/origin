@@ -4,33 +4,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	oapi "github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/extension"
-	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
-
-func addConversionFuncs(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc("v1", "Template",
-		oapi.GetFieldLabelConversionFunc(templateapi.TemplateToSelectableFields(&templateapi.Template{}), nil),
-	); err != nil {
-		return err
-	}
-
-	if err := scheme.AddFieldLabelConversionFunc("v1", "TemplateInstance",
-		oapi.GetFieldLabelConversionFunc(templateapi.TemplateInstanceToSelectableFields(&templateapi.TemplateInstance{}), nil),
-	); err != nil {
-		return err
-	}
-
-	if err := scheme.AddFieldLabelConversionFunc("v1", "BrokerTemplateInstance",
-		oapi.GetFieldLabelConversionFunc(templateapi.BrokerTemplateInstanceToSelectableFields(&templateapi.BrokerTemplateInstance{}), nil),
-	); err != nil {
-		return err
-	}
-
-	return nil
-
-}
 
 var _ runtime.NestedObjectDecoder = &Template{}
 var _ runtime.NestedObjectEncoder = &Template{}

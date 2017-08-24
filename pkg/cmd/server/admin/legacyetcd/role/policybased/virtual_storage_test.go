@@ -15,8 +15,8 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	roleregistry "github.com/openshift/origin/pkg/authorization/registry/role"
 	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	roleregistry "github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/role"
 	"github.com/openshift/origin/pkg/cmd/server/admin/legacyetcd/test"
 )
 
