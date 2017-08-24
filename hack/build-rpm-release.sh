@@ -5,6 +5,14 @@
 # be running `hack/build-cross.sh` under the covers, so we transitively
 # consume all of the relevant envars.
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+
+function cleanup() {
+	return_code=$?
+	os::util::describe_return_code "${return_code}"
+	exit "${return_code}"
+}
+trap "cleanup" EXIT
+
 os::util::ensure::system_binary_exists tito
 os::util::ensure::system_binary_exists createrepo
 os::build::setup_env

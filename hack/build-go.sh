@@ -1,8 +1,14 @@
 #!/bin/bash
 
 # This script sets up a go workspace locally and builds all go components.
-STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+
+function cleanup() {
+	return_code=$?
+	os::util::describe_return_code "${return_code}"
+	exit "${return_code}"
+}
+trap "cleanup" EXIT
 
 build_targets=("$@")
 platform="$(os::build::host_platform)"
@@ -37,5 +43,3 @@ OS_BUILD_PLATFORMS=("${OS_BUILD_PLATFORMS[@]:-${platform}}")
 os::build::build_binaries "${build_targets[@]}"
 os::build::place_bins "${build_targets[@]}"
 os::build::make_openshift_binary_symlinks
-
-ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"

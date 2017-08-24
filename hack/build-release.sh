@@ -4,8 +4,14 @@
 # image to be built prior to executing this command via hack/build-base-images.sh.
 
 # NOTE:   only committed code is built.
-STARTTIME=$(date +%s)
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
+
+function cleanup() {
+	return_code=$?
+	os::util::describe_return_code "${return_code}"
+	exit "${return_code}"
+}
+trap "cleanup" EXIT
 
 export OS_BUILD_ENV_FROM_ARCHIVE=y
 export OS_BUILD_ENV_PRESERVE=_output/local
@@ -29,5 +35,3 @@ trap "os::build::environment::cleanup ${container}" EXIT
 )
 os::build::environment::withsource "${container}" "${OS_GIT_COMMIT:-HEAD}"
 echo "${OS_GIT_COMMIT}" > "${OS_OUTPUT_RELEASEPATH}/.commit"
-
-ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
