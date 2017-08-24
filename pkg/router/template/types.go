@@ -57,6 +57,10 @@ type ServiceAliasConfig struct {
 	// and valued on the weight attached to it with respect to other entries in the map
 	ServiceUnitNames map[string]int32
 
+	// ServiceEndpoints is the number of endpoints for each of the services, keyed by
+	// service name, that support this route.
+	ServiceEndpoints map[string]int32
+
 	// ActiveServiceUnits is a count of the service units with a non-zero weight
 	ActiveServiceUnits int
 }
