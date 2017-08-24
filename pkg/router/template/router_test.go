@@ -672,3 +672,99 @@ func TestAddRouteEdgeTerminationInsecurePolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestFilterNamespaces(t *testing.T) {
+	router := NewFakeTemplateRouter()
+
+	testCases := []struct {
+		name         string
+		serviceUnits map[string]ServiceUnit
+		state        map[string]ServiceAliasConfig
+
+		filterNamespaces sets.String
+
+		expectedServiceUnits map[string]ServiceUnit
+		expectedState        map[string]ServiceAliasConfig
+		expectedStateChanged bool
+	}{
+		{
+			name:                 "empty",
+			serviceUnits:         map[string]ServiceUnit{},
+			state:                map[string]ServiceAliasConfig{},
+			filterNamespaces:     sets.NewString("ns1"),
+			expectedServiceUnits: map[string]ServiceUnit{},
+			expectedState:        map[string]ServiceAliasConfig{},
+			expectedStateChanged: false,
+		},
+		{
+			name: "valid, filter none",
+			serviceUnits: map[string]ServiceUnit{
+				endpointsKeyFromParts("ns1", "svc"): {},
+				endpointsKeyFromParts("ns2", "svc"): {},
+			},
+			state: map[string]ServiceAliasConfig{
+				routeKeyFromParts("ns1", "svc"): {},
+				routeKeyFromParts("ns2", "svc"): {},
+			},
+			filterNamespaces: sets.NewString("ns1", "ns2"),
+			expectedServiceUnits: map[string]ServiceUnit{
+				endpointsKeyFromParts("ns1", "svc"): {},
+				endpointsKeyFromParts("ns2", "svc"): {},
+			},
+			expectedState: map[string]ServiceAliasConfig{
+				routeKeyFromParts("ns1", "svc"): {},
+				routeKeyFromParts("ns2", "svc"): {},
+			},
+			expectedStateChanged: false,
+		},
+		{
+			name: "valid, filter some",
+			serviceUnits: map[string]ServiceUnit{
+				endpointsKeyFromParts("ns1", "svc"): {},
+				endpointsKeyFromParts("ns2", "svc"): {},
+			},
+			state: map[string]ServiceAliasConfig{
+				routeKeyFromParts("ns1", "svc"): {},
+				routeKeyFromParts("ns2", "svc"): {},
+			},
+			filterNamespaces: sets.NewString("ns2"),
+			expectedServiceUnits: map[string]ServiceUnit{
+				endpointsKeyFromParts("ns2", "svc"): {},
+			},
+			expectedState: map[string]ServiceAliasConfig{
+				routeKeyFromParts("ns2", "svc"): {},
+			},
+			expectedStateChanged: true,
+		},
+		{
+			name: "valid, filter all",
+			serviceUnits: map[string]ServiceUnit{
+				endpointsKeyFromParts("ns1", "svc"): {},
+				endpointsKeyFromParts("ns2", "svc"): {},
+			},
+			state: map[string]ServiceAliasConfig{
+				routeKeyFromParts("ns1", "svc"): {},
+				routeKeyFromParts("ns2", "svc"): {},
+			},
+			filterNamespaces:     sets.NewString("ns3"),
+			expectedServiceUnits: map[string]ServiceUnit{},
+			expectedState:        map[string]ServiceAliasConfig{},
+			expectedStateChanged: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		router.serviceUnits = tc.serviceUnits
+		router.state = tc.state
+		router.FilterNamespaces(tc.filterNamespaces)
+		if !reflect.DeepEqual(router.serviceUnits, tc.expectedServiceUnits) {
+			t.Errorf("test %s: expected router serviceUnits:%v but got %v", tc.name, tc.expectedServiceUnits, router.serviceUnits)
+		}
+		if !reflect.DeepEqual(router.state, tc.expectedState) {
+			t.Errorf("test %s: expected router state:%v but got %v", tc.name, tc.expectedState, router.state)
+		}
+		if router.stateChanged != tc.expectedStateChanged {
+			t.Errorf("test %s: expected router stateChanged:%v but got %v", tc.name, tc.expectedStateChanged, router.stateChanged)
+		}
+	}
+}
