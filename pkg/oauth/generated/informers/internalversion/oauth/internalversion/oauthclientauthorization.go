@@ -14,28 +14,28 @@ import (
 	time "time"
 )
 
-// OAuthClientInformer provides access to a shared informer and lister for
-// OAuthClients.
-type OAuthClientInformer interface {
+// OAuthClientAuthorizationInformer provides access to a shared informer and lister for
+// OAuthClientAuthorizations.
+type OAuthClientAuthorizationInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() internalversion.OAuthClientLister
+	Lister() internalversion.OAuthClientAuthorizationLister
 }
 
-type oAuthClientInformer struct {
+type oAuthClientAuthorizationInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newOAuthClientInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newOAuthClientAuthorizationInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Oauth().OAuthClients().List(options)
+				return client.Oauth().OAuthClientAuthorizations().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Oauth().OAuthClients().Watch(options)
+				return client.Oauth().OAuthClientAuthorizations().Watch(options)
 			},
 		},
-		&oauth.OAuthClient{},
+		&oauth.OAuthClientAuthorization{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -43,10 +43,10 @@ func newOAuthClientInformer(client internalclientset.Interface, resyncPeriod tim
 	return sharedIndexInformer
 }
 
-func (f *oAuthClientInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth.OAuthClient{}, newOAuthClientInformer)
+func (f *oAuthClientAuthorizationInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&oauth.OAuthClientAuthorization{}, newOAuthClientAuthorizationInformer)
 }
 
-func (f *oAuthClientInformer) Lister() internalversion.OAuthClientLister {
-	return internalversion.NewOAuthClientLister(f.Informer().GetIndexer())
+func (f *oAuthClientAuthorizationInformer) Lister() internalversion.OAuthClientAuthorizationLister {
+	return internalversion.NewOAuthClientAuthorizationLister(f.Informer().GetIndexer())
 }

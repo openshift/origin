@@ -12,7 +12,7 @@ import (
 // OAuthClientsGetter has a method to return a OAuthClientInterface.
 // A group's client should implement this interface.
 type OAuthClientsGetter interface {
-	OAuthClients(namespace string) OAuthClientInterface
+	OAuthClients() OAuthClientInterface
 }
 
 // OAuthClientInterface has methods to work with OAuthClient resources.
@@ -31,14 +31,12 @@ type OAuthClientInterface interface {
 // oAuthClients implements OAuthClientInterface
 type oAuthClients struct {
 	client rest.Interface
-	ns     string
 }
 
 // newOAuthClients returns a OAuthClients
-func newOAuthClients(c *OauthClient, namespace string) *oAuthClients {
+func newOAuthClients(c *OauthClient) *oAuthClients {
 	return &oAuthClients{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -46,7 +44,6 @@ func newOAuthClients(c *OauthClient, namespace string) *oAuthClients {
 func (c *oAuthClients) Get(name string, options v1.GetOptions) (result *oauth.OAuthClient, err error) {
 	result = &oauth.OAuthClient{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -59,7 +56,6 @@ func (c *oAuthClients) Get(name string, options v1.GetOptions) (result *oauth.OA
 func (c *oAuthClients) List(opts v1.ListOptions) (result *oauth.OAuthClientList, err error) {
 	result = &oauth.OAuthClientList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -71,7 +67,6 @@ func (c *oAuthClients) List(opts v1.ListOptions) (result *oauth.OAuthClientList,
 func (c *oAuthClients) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -81,7 +76,6 @@ func (c *oAuthClients) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *oAuthClients) Create(oAuthClient *oauth.OAuthClient) (result *oauth.OAuthClient, err error) {
 	result = &oauth.OAuthClient{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		Body(oAuthClient).
 		Do().
@@ -93,7 +87,6 @@ func (c *oAuthClients) Create(oAuthClient *oauth.OAuthClient) (result *oauth.OAu
 func (c *oAuthClients) Update(oAuthClient *oauth.OAuthClient) (result *oauth.OAuthClient, err error) {
 	result = &oauth.OAuthClient{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		Name(oAuthClient.Name).
 		Body(oAuthClient).
@@ -105,7 +98,6 @@ func (c *oAuthClients) Update(oAuthClient *oauth.OAuthClient) (result *oauth.OAu
 // Delete takes name of the oAuthClient and deletes it. Returns an error if one occurs.
 func (c *oAuthClients) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		Name(name).
 		Body(options).
@@ -116,7 +108,6 @@ func (c *oAuthClients) Delete(name string, options *v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *oAuthClients) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("oauthclients").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -128,7 +119,6 @@ func (c *oAuthClients) DeleteCollection(options *v1.DeleteOptions, listOptions v
 func (c *oAuthClients) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *oauth.OAuthClient, err error) {
 	result = &oauth.OAuthClient{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("oauthclients").
 		SubResource(subresources...).
 		Name(name).

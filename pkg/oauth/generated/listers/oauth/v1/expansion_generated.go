@@ -2,10 +2,18 @@
 
 package v1
 
+// OAuthAccessTokenListerExpansion allows custom methods to be added to
+// OAuthAccessTokenLister.
+type OAuthAccessTokenListerExpansion interface{}
+
+// OAuthAuthorizeTokenListerExpansion allows custom methods to be added to
+// OAuthAuthorizeTokenLister.
+type OAuthAuthorizeTokenListerExpansion interface{}
+
 // OAuthClientListerExpansion allows custom methods to be added to
 // OAuthClientLister.
 type OAuthClientListerExpansion interface{}
 
-// OAuthClientNamespaceListerExpansion allows custom methods to be added to
-// OAuthClientNamespaceLister.
-type OAuthClientNamespaceListerExpansion interface{}
+// OAuthClientAuthorizationListerExpansion allows custom methods to be added to
+// OAuthClientAuthorizationLister.
+type OAuthClientAuthorizationListerExpansion interface{}

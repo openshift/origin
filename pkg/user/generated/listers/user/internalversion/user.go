@@ -5,6 +5,7 @@ package internalversion
 import (
 	user "github.com/openshift/origin/pkg/user/apis/user"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -13,8 +14,8 @@ import (
 type UserLister interface {
 	// List lists all Users in the indexer.
 	List(selector labels.Selector) (ret []*user.User, err error)
-	// Users returns an object that can list and get Users.
-	Users(namespace string) UserNamespaceLister
+	// Get retrieves the User from the index for a given name.
+	Get(name string) (*user.User, error)
 	UserListerExpansion
 }
 
@@ -36,38 +37,10 @@ func (s *userLister) List(selector labels.Selector) (ret []*user.User, err error
 	return ret, err
 }
 
-// Users returns an object that can list and get Users.
-func (s *userLister) Users(namespace string) UserNamespaceLister {
-	return userNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// UserNamespaceLister helps list and get Users.
-type UserNamespaceLister interface {
-	// List lists all Users in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*user.User, err error)
-	// Get retrieves the User from the indexer for a given namespace and name.
-	Get(name string) (*user.User, error)
-	UserNamespaceListerExpansion
-}
-
-// userNamespaceLister implements the UserNamespaceLister
-// interface.
-type userNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all Users in the indexer for a given namespace.
-func (s userNamespaceLister) List(selector labels.Selector) (ret []*user.User, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*user.User))
-	})
-	return ret, err
-}
-
-// Get retrieves the User from the indexer for a given namespace and name.
-func (s userNamespaceLister) Get(name string) (*user.User, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the User from the index for a given name.
+func (s *userLister) Get(name string) (*user.User, error) {
+	key := &user.User{ObjectMeta: v1.ObjectMeta{Name: name}}
+	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}
