@@ -25,7 +25,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.BrokerTemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.BrokerTemplateInstanceList{} },
-		PredicateFunc:            brokertemplateinstance.Matcher,
 		DefaultQualifiedResource: templateapi.Resource("brokertemplateinstances"),
 
 		CreateStrategy: brokertemplateinstance.Strategy,
@@ -33,7 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: brokertemplateinstance.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: brokertemplateinstance.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

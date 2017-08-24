@@ -30,7 +30,6 @@ func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationint
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &templateapi.TemplateInstance{} },
 		NewListFunc:              func() runtime.Object { return &templateapi.TemplateInstanceList{} },
-		PredicateFunc:            templateinstance.Matcher,
 		DefaultQualifiedResource: templateapi.Resource("templateinstances"),
 
 		CreateStrategy: strategy,
@@ -38,7 +37,7 @@ func NewREST(optsGetter restoptions.Getter, authorizationClient authorizationint
 		DeleteStrategy: strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: templateinstance.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, err
 	}

@@ -1,4 +1,4 @@
-package role
+package rolebinding
 
 import (
 	"fmt"
@@ -18,19 +18,19 @@ import (
 // strategy implements behavior for nodes
 type strategy struct {
 	namespaced bool
+
 	runtime.ObjectTyper
 }
 
-// Strategy is the default logic that applies when creating and updating Role objects.
 var ClusterStrategy = strategy{false, kapi.Scheme}
 var LocalStrategy = strategy{true, kapi.Scheme}
 
-// NamespaceScoped is false for policies.
+// NamespaceScoped is false for rolebindings.
 func (s strategy) NamespaceScoped() bool {
 	return s.namespaced
 }
 
-// AllowCreateOnUpdate is false for policies.
+// AllowCreateOnUpdate is false for rolebindings.
 func (s strategy) AllowCreateOnUpdate() bool {
 	return false
 }
@@ -45,12 +45,12 @@ func (s strategy) GenerateName(base string) string {
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (s strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
-	_ = obj.(*authorizationapi.Role)
+	_ = obj.(*authorizationapi.RoleBinding)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (s strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
-	_ = obj.(*authorizationapi.Role)
+	_ = obj.(*authorizationapi.RoleBinding)
 }
 
 // Canonicalize normalizes the object after validation.
@@ -59,20 +59,20 @@ func (strategy) Canonicalize(obj runtime.Object) {
 
 // Validate validates a new role.
 func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
-	return validation.ValidateRole(obj.(*authorizationapi.Role), s.namespaced)
+	return validation.ValidateRoleBinding(obj.(*authorizationapi.RoleBinding), s.namespaced)
 }
 
 // ValidateUpdate is the default update validation for an end user.
 func (s strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
-	return validation.ValidateRoleUpdate(obj.(*authorizationapi.Role), old.(*authorizationapi.Role), s.namespaced, nil)
+	return validation.ValidateRoleBindingUpdate(obj.(*authorizationapi.RoleBinding), old.(*authorizationapi.RoleBinding), s.namespaced)
 }
 
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	role, ok := obj.(*authorizationapi.Role)
+	roleBinding, ok := obj.(*authorizationapi.RoleBinding)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("not a role")
+		return nil, nil, false, fmt.Errorf("not a rolebinding")
 	}
-	return labels.Set(role.ObjectMeta.Labels), authorizationapi.RoleToSelectableFields(role), role.Initializers != nil, nil
+	return labels.Set(roleBinding.ObjectMeta.Labels), RoleBindingToSelectableFields(roleBinding), roleBinding.Initializers != nil, nil
 }
 
 // Matcher returns a generic matcher for a given label and field selector.
@@ -81,5 +81,14 @@ func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPre
 		Label:    label,
 		Field:    field,
 		GetAttrs: GetAttrs,
+	}
+}
+
+// RoleBindingToSelectableFields returns a label set that represents the object
+// changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
+func RoleBindingToSelectableFields(roleBinding *authorizationapi.RoleBinding) fields.Set {
+	return fields.Set{
+		"metadata.name":      roleBinding.Name,
+		"metadata.namespace": roleBinding.Namespace,
 	}
 }

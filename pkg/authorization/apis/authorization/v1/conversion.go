@@ -394,41 +394,12 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		return err
 	}
 
-	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicy",
-		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyToSelectableFields(&newer.ClusterPolicy{}), nil),
-	); err != nil {
-		return err
-	}
-
-	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicyBinding",
-		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyBindingToSelectableFields(&newer.ClusterPolicyBinding{}), nil),
-	); err != nil {
-		return err
-	}
-
-	if err := scheme.AddFieldLabelConversionFunc("v1", "Policy",
-		oapi.GetFieldLabelConversionFunc(newer.PolicyToSelectableFields(&newer.Policy{}), nil),
-	); err != nil {
-		return err
-	}
-
 	if err := scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
 	); err != nil {
 		return err
 	}
 
-	if err := scheme.AddFieldLabelConversionFunc("v1", "Role",
-		oapi.GetFieldLabelConversionFunc(newer.RoleToSelectableFields(&newer.Role{}), nil),
-	); err != nil {
-		return err
-	}
-
-	if err := scheme.AddFieldLabelConversionFunc("v1", "RoleBinding",
-		oapi.GetFieldLabelConversionFunc(newer.RoleBindingToSelectableFields(&newer.RoleBinding{}), nil),
-	); err != nil {
-		return err
-	}
 	return nil
 }
 

@@ -201,10 +201,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/api/extension",
-      "github.com/openshift/origin/pkg/api/install",
-      "github.com/openshift/origin/test/util/api"
+      "github.com/openshift/origin/pkg/api/extension"
     ]
   },
 
