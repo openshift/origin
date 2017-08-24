@@ -13,11 +13,11 @@ import (
 )
 
 func init() {
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 	legacy.InstallLegacy(oauthapi.GroupName, oauthapi.AddToSchemeInCoreGroup, oauthapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("OAuthAccessToken", "OAuthAuthorizeToken", "OAuthClient", "OAuthClientAuthorization"),
 		kapi.Registry, kapi.Scheme,
 	)
+	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

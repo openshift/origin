@@ -13,11 +13,11 @@ import (
 )
 
 func init() {
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 	legacy.InstallLegacy(sdnapi.GroupName, sdnapi.AddToSchemeInCoreGroup, sdnapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("ClusterNetwork", "HostSubnet", "NetNamespace"),
 		kapi.Registry, kapi.Scheme,
 	)
+	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

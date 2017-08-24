@@ -13,11 +13,11 @@ import (
 )
 
 func init() {
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 	legacy.InstallLegacy(templateapi.GroupName, templateapi.AddToSchemeInCoreGroup, templateapiv1.AddToSchemeInCoreGroup,
 		sets.NewString("BrokerTemplateInstance"),
 		kapi.Registry, kapi.Scheme,
 	)
+	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme

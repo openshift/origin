@@ -13,8 +13,8 @@ import (
 )
 
 func init() {
-	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 	legacy.InstallLegacy(buildapi.GroupName, buildapi.AddToSchemeInCoreGroup, buildapiv1.AddToSchemeInCoreGroup, sets.NewString(), kapi.Registry, kapi.Scheme)
+	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
 }
 
 // Install registers the API group and adds types to a scheme
