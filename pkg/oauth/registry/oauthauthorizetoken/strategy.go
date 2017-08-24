@@ -60,7 +60,7 @@ func (s strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.Err
 	token := obj.(*oauthapi.OAuthAuthorizeToken)
 	validationErrors := validation.ValidateAuthorizeToken(token)
 
-	client, err := s.clientGetter.GetClient(ctx, token.ClientName, &metav1.GetOptions{})
+	client, err := s.clientGetter.Get(token.ClientName, metav1.GetOptions{})
 	if err != nil {
 		return append(validationErrors, field.InternalError(field.NewPath("clientName"), err))
 	}

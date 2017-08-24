@@ -99,6 +99,7 @@ var expectedIndex = []string{
 	// "/healthz/poststarthook/extensions/third-party-resources",  // Do not enable this controller, we do not support it
 	"/healthz/poststarthook/generic-apiserver-start-informers",
 	"/healthz/poststarthook/kube-apiserver-autoregistration",
+	"/healthz/poststarthook/oauth.openshift.io-EnsureBootstrapOAuthClients",
 	"/healthz/poststarthook/project.openshift.io-projectauthorizationcache",
 	"/healthz/poststarthook/project.openshift.io-projectcache",
 	"/healthz/poststarthook/quota.openshift.io-clusterquotamapping",

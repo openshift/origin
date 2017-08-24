@@ -13,7 +13,6 @@ import (
 	"github.com/RangelReale/osin"
 	"github.com/RangelReale/osincli"
 	"github.com/golang/glog"
-	"github.com/pborman/uuid"
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +22,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
@@ -55,14 +53,8 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
-	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
-	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
-	clientauthregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
-	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
@@ -87,30 +79,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	// pass through all other requests
 	mux.Handle("/", handler)
 
-	clientStorage, err := clientetcd.NewREST(c.RESTOptionsGetter)
-	if err != nil {
-		return nil, err
-	}
-	clientRegistry := clientregistry.NewRegistry(clientStorage)
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient.Core(), c.KubeClient.Core(), c.OpenShiftClient, clientRegistry, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
-
-	accessTokenStorage, err := accesstokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter, c.EtcdBackends...)
-	if err != nil {
-		return nil, err
-	}
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
-	if err != nil {
-		return nil, err
-	}
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
-
-	clientAuthStorage, err := clientauthetcd.NewREST(c.RESTOptionsGetter, combinedOAuthClientGetter)
-	if err != nil {
-		return nil, err
-	}
-	clientAuthRegistry := clientauthregistry.NewRegistry(clientAuthStorage)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient.Core(), c.KubeClient.Core(), c.OpenShiftClient, c.OAuthClientClient, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
 
 	errorPageHandler, err := c.getErrorHandler()
 	if err != nil {
@@ -122,7 +91,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 		glog.Fatal(err)
 	}
 
-	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, combinedOAuthClientGetter, registry.NewUserConversion())
+	storage := registrystorage.New(c.OAuthAccessTokenClient, c.OAuthAuthorizeTokenClient, combinedOAuthClientGetter, registry.NewUserConversion())
 	config := osinserver.NewDefaultServerConfig()
 	if c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds > 0 {
 		config.AuthorizationExpiration = c.Options.TokenConfig.AuthorizeTokenMaxAgeSeconds
@@ -131,8 +100,8 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 		config.AccessExpiration = c.Options.TokenConfig.AccessTokenMaxAgeSeconds
 	}
 
-	grantChecker := registry.NewClientAuthorizationGrantChecker(clientAuthRegistry)
-	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, clientAuthRegistry)
+	grantChecker := registry.NewClientAuthorizationGrantChecker(c.OAuthClientAuthorizationClient)
+	grantHandler := c.getGrantHandler(mux, authRequestHandler, combinedOAuthClientGetter, c.OAuthClientAuthorizationClient)
 
 	server := osinserver.New(
 		config,
@@ -157,21 +126,14 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	)
 	server.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
-	if err := CreateOrUpdateDefaultOAuthClients(c.Options.MasterPublicURL, c.AssetPublicAddresses, clientRegistry); err != nil {
-		glog.Fatal(err)
-	}
-	browserClient, err := clientRegistry.GetClient(apirequest.NewContext(), OpenShiftBrowserClientID, &metav1.GetOptions{})
-	if err != nil {
-		glog.Fatal(err)
-	}
-	osOAuthClientConfig := c.NewOpenShiftOAuthClientConfig(browserClient)
+	osOAuthClientConfig := newOpenShiftOAuthClientConfig(OpenShiftBrowserClientID, "", c.Options.MasterPublicURL, c.Options.MasterURL)
 	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
 	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
 	if len(*c.Options.MasterCA) > 0 {
 		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
 		if err != nil {
-			glog.Fatal(err)
+			return nil, err
 		}
 
 		osOAuthClient.Transport = knet.SetTransportDefaults(&http.Transport{
@@ -217,29 +179,28 @@ func (c *OAuthServerConfig) getErrorHandler() (*errorpage.ErrorPage, error) {
 	return errorpage.NewErrorPageHandler(errorPageRenderer), nil
 }
 
-// NewOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
-func (c *OAuthServerConfig) NewOpenShiftOAuthClientConfig(client *oauthapi.OAuthClient) *osincli.ClientConfig {
+// newOpenShiftOAuthClientConfig provides config for OpenShift OAuth client
+func newOpenShiftOAuthClientConfig(clientId, clientSecret, masterPublicURL, masterURL string) *osincli.ClientConfig {
 	config := &osincli.ClientConfig{
-		ClientId:                 client.Name,
-		ClientSecret:             client.Secret,
+		ClientId:                 clientId,
+		ClientSecret:             clientSecret,
 		ErrorsInStatusCode:       true,
 		SendClientSecretInParams: true,
-		AuthorizeUrl:             oauthutil.OpenShiftOAuthAuthorizeURL(c.Options.MasterPublicURL),
-		TokenUrl:                 oauthutil.OpenShiftOAuthTokenURL(c.Options.MasterURL),
+		AuthorizeUrl:             oauthutil.OpenShiftOAuthAuthorizeURL(masterPublicURL),
+		TokenUrl:                 oauthutil.OpenShiftOAuthTokenURL(masterURL),
 		Scope:                    "",
 	}
 	return config
 }
 
-func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistry.Registry, preserveExistingRedirects, preserveExistingSecret bool) error {
-	ctx := apirequest.NewContext()
-	_, err := clientRegistry.CreateClient(ctx, &client)
+func ensureOAuthClient(client oauthapi.OAuthClient, oauthClients oauthclient.OAuthClientInterface, preserveExistingRedirects, preserveExistingSecret bool) error {
+	_, err := oauthClients.Create(&client)
 	if err == nil || !kerrs.IsAlreadyExists(err) {
 		return err
 	}
 
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		existing, err := clientRegistry.GetClient(ctx, client.Name, &metav1.GetOptions{})
+		existing, err := oauthClients.Get(client.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -272,52 +233,9 @@ func ensureOAuthClient(client oauthapi.OAuthClient, clientRegistry clientregistr
 			existing.GrantMethod = client.GrantMethod
 		}
 
-		_, err = clientRegistry.UpdateClient(ctx, existing)
+		_, err = oauthClients.Update(existing)
 		return err
 	})
-}
-
-func CreateOrUpdateDefaultOAuthClients(masterPublicAddr string, assetPublicAddresses []string, clientRegistry clientregistry.Registry) error {
-	{
-		webConsoleClient := oauthapi.OAuthClient{
-			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
-			Secret:                "",
-			RespondWithChallenges: false,
-			RedirectURIs:          assetPublicAddresses,
-			GrantMethod:           oauthapi.GrantHandlerAuto,
-		}
-		if err := ensureOAuthClient(webConsoleClient, clientRegistry, true, false); err != nil {
-			return err
-		}
-	}
-
-	{
-		browserClient := oauthapi.OAuthClient{
-			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
-			Secret:                uuid.New(),
-			RespondWithChallenges: false,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
-			GrantMethod:           oauthapi.GrantHandlerAuto,
-		}
-		if err := ensureOAuthClient(browserClient, clientRegistry, true, true); err != nil {
-			return err
-		}
-	}
-
-	{
-		cliClient := oauthapi.OAuthClient{
-			ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
-			Secret:                "",
-			RespondWithChallenges: true,
-			RedirectURIs:          []string{masterPublicAddr + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
-			GrantMethod:           oauthapi.GrantHandlerAuto,
-		}
-		if err := ensureOAuthClient(cliClient, clientRegistry, false, false); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 // getCSRF returns the object responsible for generating and checking CSRF tokens
@@ -341,7 +259,7 @@ func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, 
 }
 
 // getGrantHandler returns the object that handles approving or rejecting grant requests
-func (c *OAuthServerConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry clientauthregistry.Registry) handlers.GrantHandler {
+func (c *OAuthServerConfig) getGrantHandler(mux cmdutil.Mux, auth authenticator.Request, clientregistry clientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) handlers.GrantHandler {
 	// check that the global default strategy is something we honor
 	if !configapi.ValidGrantHandlerTypes.Has(string(c.Options.GrantConfig.Method)) {
 		glog.Fatalf("No grant handler found that matches %v.  The OAuth server cannot start!", c.Options.GrantConfig.Method)

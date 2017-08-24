@@ -180,20 +180,24 @@ func (c *MasterConfig) newAssetServerHandler() (http.Handler, error) {
 	return assetServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
 }
 
-func (c *MasterConfig) newOAuthServerHandler() (http.Handler, error) {
+func (c *MasterConfig) newOAuthServerHandler() (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
 	if c.Options.OAuthConfig == nil {
-		return http.NotFoundHandler(), nil
+		return http.NotFoundHandler(), nil, nil
 	}
 
 	config, err := NewOAuthServerConfigFromMasterConfig(c)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	oauthServer, err := config.Complete().New(apiserver.EmptyDelegate)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
+	return oauthServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain,
+		map[string]apiserver.PostStartHookFunc{
+			"oauth.openshift.io-EnsureBootstrapOAuthClients": config.EnsureBootstrapOAuthClients,
+		},
+		nil
 }
 
 func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarget, kubeAPIServerConfig apiserver.Config, apiExtensionsInformers apiextensionsinformers.SharedInformerFactory) (*aggregatorapiserver.APIAggregator, error) {
@@ -216,8 +220,9 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	var err error
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
 	var delegateAPIServer apiserver.DelegationTarget
+	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, err = c.buildHandlerChain()
+	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain()
 	if err != nil {
 		return err
 	}
@@ -255,6 +260,9 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	for name, fn := range extraPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
@@ -262,72 +270,74 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	return cmdutil.WaitForSuccessfulDial(true, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindNetwork, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, error) {
+func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
 	assetServerHandler, err := c.newAssetServerHandler()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	oauthServerHandler, err := c.newOAuthServerHandler()
+	oauthServerHandler, extraPostStartHooks, err := c.newOAuthServerHandler()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	return func(apiHandler http.Handler, genericConfig *apiserver.Config) http.Handler {
-		// these are after the kube handler
-		handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
-		handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
+			// these are after the kube handler
+			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
+			handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
 
-		// these are all equivalent to the kube handler chain
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
-		handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
-		// audit handler must comes before the impersonationFilter to read the original user
-		if c.Options.AuditConfig.Enabled {
-			var writer io.Writer
-			if len(c.Options.AuditConfig.AuditFilePath) > 0 {
-				writer = &lumberjack.Logger{
-					Filename:   c.Options.AuditConfig.AuditFilePath,
-					MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
-					MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
-					MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
+			// these are all equivalent to the kube handler chain
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
+			handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
+			// audit handler must comes before the impersonationFilter to read the original user
+			if c.Options.AuditConfig.Enabled {
+				var writer io.Writer
+				if len(c.Options.AuditConfig.AuditFilePath) > 0 {
+					writer = &lumberjack.Logger{
+						Filename:   c.Options.AuditConfig.AuditFilePath,
+						MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
+						MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
+						MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
+					}
+				} else {
+					// backwards compatible writer to regular log
+					writer = cmdutil.NewGLogWriterV(0)
 				}
-			} else {
-				// backwards compatible writer to regular log
-				writer = cmdutil.NewGLogWriterV(0)
+				c.AuditBackend = auditlog.NewBackend(writer)
+				auditPolicyChecker := auditpolicy.NewChecker(&auditinternal.Policy{
+					// This is for backwards compatibility maintaining the old visibility, ie. just
+					// raw overview of the requests comming in.
+					Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
+				})
+				handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
 			}
-			c.AuditBackend = auditlog.NewBackend(writer)
-			auditPolicyChecker := auditpolicy.NewChecker(&auditinternal.Policy{
-				// This is for backwards compatibility maintaining the old visibility, ie. just
-				// raw overview of the requests comming in.
-				Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
-			})
-			handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
-		}
-		handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper)
-		handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-		handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
-		// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
-		// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
-		// NOTE: read vs. write is implemented in Kube 1.6+
-		handler = apiserverfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
-		handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
-		handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
-		handler = apiserverfilters.WithPanicRecovery(handler)
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper)
+			handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
+			handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
+			// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
+			// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
+			// NOTE: read vs. write is implemented in Kube 1.6+
+			handler = apiserverfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
+			handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
+			handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
+			handler = apiserverfilters.WithPanicRecovery(handler)
+			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		// these handlers are all before the normal kube chain
-		handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
+			// these handlers are all before the normal kube chain
+			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
-		if c.WebConsoleEnabled() {
-			handler = assetapiserver.WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
-		}
-		// these handlers are actually separate API servers which have their own handler chains.
-		// our server embeds these
-		handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)
-		handler = c.withOAuthRedirection(handler, oauthServerHandler)
+			if c.WebConsoleEnabled() {
+				handler = assetapiserver.WithAssetServerRedirect(handler, c.Options.AssetConfig.PublicURL)
+			}
+			// these handlers are actually separate API servers which have their own handler chains.
+			// our server embeds these
+			handler = c.withConsoleRedirection(handler, assetServerHandler, c.Options.AssetConfig)
+			handler = c.withOAuthRedirection(handler, oauthServerHandler)
 
-		return handler
-	}, nil
+			return handler
+		},
+		extraPostStartHooks,
+		nil
 }
 
 func (c *MasterConfig) withConsoleRedirection(handler, assetServerHandler http.Handler, assetConfig *configapi.AssetConfig) http.Handler {
