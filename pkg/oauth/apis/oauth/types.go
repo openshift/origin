@@ -4,6 +4,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +genclient
+// +genclient:nonNamespaced
+
 type OAuthAccessToken struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
@@ -32,6 +35,9 @@ type OAuthAccessToken struct {
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 type OAuthAuthorizeToken struct {
 	metav1.TypeMeta
@@ -67,6 +73,7 @@ type OAuthAuthorizeToken struct {
 }
 
 // +genclient
+// +genclient:nonNamespaced
 
 type OAuthClient struct {
 	metav1.TypeMeta
@@ -124,6 +131,9 @@ type ClusterRoleScopeRestriction struct {
 	// AllowEscalation indicates whether you can request roles and their escalating resources
 	AllowEscalation bool
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 type OAuthClientAuthorization struct {
 	metav1.TypeMeta
