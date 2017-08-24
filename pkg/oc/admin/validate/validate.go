@@ -11,8 +11,8 @@ import (
 const (
 	ValidateRecommendedName = "validate"
 
-	validateDeprecationMessage = `and will be removed. Use "oadm diagnostics" to run configuration validations instead.
-See sub-command help text for specific instructions with "oadm diagnostics".`
+	validateDeprecationMessage = `and will be removed. Use "oc adm diagnostics" to run configuration validations instead.
+See sub-command help text for specific instructions with "oc adm diagnostics".`
 )
 
 var validateLong = templates.LongDesc(`

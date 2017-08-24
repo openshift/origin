@@ -52,7 +52,7 @@ echo "Starting registry services..."
 
 set -x
 
-$CMD oadm registry --latest-images=true
+$CMD oc adm registry --latest-images=true
 # we're hacking the service to use a node port to reduce deployment complexity
 $CMD oc patch service docker-registry -p \
      '{ "spec": { "type": "NodePort", "selector": {"docker-registry": "default"}, "ports": [ {"nodePort": 5000, "port": 5000, "targetPort": 5000}] }}'

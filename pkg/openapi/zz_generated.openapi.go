@@ -8701,7 +8701,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"netid": {
 							SchemaProps: spec.SchemaProps{
-								Description: "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oadm pod-network\" commands.",
+								Description: "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},

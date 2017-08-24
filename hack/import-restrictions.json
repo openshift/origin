@@ -236,16 +236,17 @@
       "vendor/k8s.io/client-go",
       "vendor/github.com/spf13/cobra",
       "vendor/golang.org",
-      "github.com/openshift/origin/pkg/template/generated"
+      "github.com/openshift/origin/pkg/template/generated",
+      "github.com/openshift/origin/pkg/template/servicebroker"
     ],
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
       "vendor/github.com/emicklei/go-restful",
       "vendor/github.com/lestrrat/go-jsschema",
       "vendor/k8s.io/kubernetes/pkg/controller",
+      "vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util",
       "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/template/apis/template",
-      "github.com/openshift/origin/pkg/template/servicebroker"
+      "github.com/openshift/origin/pkg/template/apis/template"
     ]
   }
 ]

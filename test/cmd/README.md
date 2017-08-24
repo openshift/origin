@@ -95,7 +95,7 @@ utility function returns `1`.
 
 In order to test that a command succeeds and outputs some text, pass it to `os::cmd::expect_success_and_text` like:
 ```sh
-$ os::cmd::expect_success_and_text 'oadm create-master-certs -h' 'Create keys and certificates'
+$ os::cmd::expect_success_and_text 'oc adm create-master-certs -h' 'Create keys and certificates'
 ```
 
 In order to test that a command succeeds and outputs some text matching a regular expression, pass it to `os::cmd::expect_success_and_text` like:

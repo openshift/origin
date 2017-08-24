@@ -47,7 +47,7 @@ A router is not strictly required; however it is needed for accessing
 pods from external networks and its absence likely indicates an incomplete
 installation of the cluster.
 
-Use the 'oadm router' command to create a router.
+Use the 'oc adm router' command to create a router.
 `
 	clGetRtFailed = `
 Client error while retrieving "%s" DC. Client retrieved records

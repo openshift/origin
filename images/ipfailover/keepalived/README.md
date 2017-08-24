@@ -31,7 +31,7 @@ Pre-requisites/Prep Time
         [ -n "$KUBECONFIG" ] ||  \
            export KUBECONFIG=/openshift.local.config/master/admin.kubeconfig
         #  openshift kube get dc,rc,pods,se,mi,routes
-        oadm router arparp --replicas=2
+        oc adm router arparp --replicas=2
 
 
 3. Wait for the Router pods to get into running state (I'm just sitting
@@ -66,8 +66,8 @@ Pre-requisites/Prep Time
 
         $ vagrant ssh minion-1
         #  Add user and project.
-        oadm policy add-role-to-user view test-admin
-        oadm new-project test --display-name="Failover Sample" \
+        oc adm policy add-role-to-user view test-admin
+        oc adm new-project test --display-name="Failover Sample" \
            --description="Router Failover" --admin=test-admin
         #  Create a test app using the template.
         cd /vagrant/hack/exp/router-failover

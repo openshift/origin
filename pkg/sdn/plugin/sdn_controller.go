@@ -24,9 +24,15 @@ import (
 
 func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 	var subnet *osapi.HostSubnet
+	// If the HostSubnet doesn't already exist, it will be created by the SDN master in
+	// response to the kubelet registering itself with the master (which should be
+	// happening in another goroutine in parallel with this). Sometimes this takes
+	// unexpectedly long though, so give it plenty of time before returning an error
+	// (since that will cause the node process to exit).
 	backoff := utilwait.Backoff{
-		Duration: 100 * time.Millisecond,
-		Factor:   2,
+		// A bit over 1 minute total
+		Duration: time.Second,
+		Factor:   1.5,
 		Steps:    8,
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {

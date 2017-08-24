@@ -15,7 +15,7 @@ The ServiceAccount '%[1]s' does not have a privileged SecurityContextConstraint 
 user with a cluster-admin role, you can grant the permissions by running
 the following:
 
-  $ oadm policy add-scc-to-user privileged system:serviceaccount:%[2]s:%[1]s
+  $ oc adm policy add-scc-to-user privileged system:serviceaccount:%[2]s:%[1]s
 `
 
 func checkSccs(r diagnosticReporter, adapter sccAdapter, project string) {

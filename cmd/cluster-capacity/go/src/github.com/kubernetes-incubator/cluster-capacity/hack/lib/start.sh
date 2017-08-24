@@ -606,11 +606,11 @@ function os::start::internal::print_server_info() {
 #  None
 function os::start::router() {
 	os::log::debug "Installing the router"
-	oadm policy add-scc-to-user privileged --serviceaccount='router' --config="${ADMIN_KUBECONFIG}"
+	oc adm policy add-scc-to-user privileged --serviceaccount='router' --config="${ADMIN_KUBECONFIG}"
 	# Create a TLS certificate for the router
 	if [[ -n "${CREATE_ROUTER_CERT:-}" ]]; then
 		os::log::debug "Generating router TLS certificate"
-		oadm ca create-server-cert --hostnames="*.${API_HOST}.nip.io"          \
+		oc adm ca create-server-cert --hostnames="*.${API_HOST}.nip.io"          \
 		                           --key="${MASTER_CONFIG_DIR}/router.key"     \
 		                           --cert="${MASTER_CONFIG_DIR}/router.crt"    \
 		                           --signer-key="${MASTER_CONFIG_DIR}/ca.key"  \

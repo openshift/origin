@@ -311,14 +311,14 @@ func testPruneAllImages(oc *exutil.CLI, setAllImagesToFalse bool, schemaVersion 
 		args = append(args, "--all=false")
 	}
 
-	g.By(fmt.Sprintf("dry-running oadm %s", strings.Join(args, " ")))
+	g.By(fmt.Sprintf("dry-running oc adm %s", strings.Join(args, " ")))
 	output, err := oc.WithoutNamespace().Run("adm").Args(args...).Output()
 
 	g.By("verify images, layers and configs about to be pruned")
 	checkAdminPruneOutput(output, true)
 
 	args = append(args, "--confirm")
-	g.By(fmt.Sprintf("running oadm %s", strings.Join(args, " ")))
+	g.By(fmt.Sprintf("running oc adm %s", strings.Join(args, " ")))
 	output, err = oc.WithoutNamespace().Run("adm").Args(args...).Output()
 
 	g.By("verify that blobs have been pruned")

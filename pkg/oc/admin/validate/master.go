@@ -20,7 +20,7 @@ import (
 
 const (
 	ValidateMasterConfigRecommendedName    = "master-config"
-	validateMasterConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oadm diagnostics MasterConfigCheck --master-config=path/to/config.yaml' instead.`
+	validateMasterConfigDeprecationMessage = `This command is deprecated and will be removed. Use 'oc adm diagnostics MasterConfigCheck --master-config=path/to/config.yaml' instead.`
 )
 
 var (

@@ -109,13 +109,13 @@ type LDAPGroupNameMapper interface {
 }
 ```
 
-## Exposed Options for `oadm sync-groups`
-The sync command will be exposed as `oadm sync-groups [<openshift-group-name>...] --sync-config=<location>` and invoked like:
-* `oadm sync-groups --all-openshift --sync-config=/etc/openshift/ldap-sync-config.yaml`
-* `oadm sync-groups <names> --sync-config=/etc/openshift/ldap-sync-config.yaml`
-* `oadm sync-groups --all-ldap --sync-config=/etc/openshift/ldap-sync-config.yaml`
-* `oadm sync-groups --whitelist-ldap --sync-config=/etc/openshift/ldap-sync-config.yaml`
-* `oadm sync-groups --prune --sync-config=/etc/openshift/ldap-sync-config.yaml`
+## Exposed Options for `oc adm sync-groups`
+The sync command will be exposed as `oc adm sync-groups [<openshift-group-name>...] --sync-config=<location>` and invoked like:
+* `oc adm sync-groups --all-openshift --sync-config=/etc/openshift/ldap-sync-config.yaml`
+* `oc adm sync-groups <names> --sync-config=/etc/openshift/ldap-sync-config.yaml`
+* `oc adm sync-groups --all-ldap --sync-config=/etc/openshift/ldap-sync-config.yaml`
+* `oc adm sync-groups --whitelist-ldap --sync-config=/etc/openshift/ldap-sync-config.yaml`
+* `oc adm sync-groups --prune --sync-config=/etc/openshift/ldap-sync-config.yaml`
 
 The sync command will default to doing a dry-run.
 

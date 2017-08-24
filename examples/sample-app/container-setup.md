@@ -65,7 +65,7 @@ step #3.
 
 ## Deploy the private docker registry
 
-    $ oadm registry
+    $ oc adm registry
     $ cd examples/sample-app
 
 For more information on this step, see [Application Build, Deploy, and Update

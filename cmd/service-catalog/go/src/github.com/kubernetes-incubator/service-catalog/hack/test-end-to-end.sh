@@ -62,12 +62,12 @@ export KUBECONFIG="${ADMIN_KUBECONFIG}"
 
 os::test::junit::declare_suite_start "end-to-end/startup"
 if [[ -n "${USE_IMAGES:-}" ]]; then
-    os::cmd::expect_success "oadm registry --dry-run -o json --images='$USE_IMAGES' | jq '$JQSETPULLPOLICY' | oc create -f -"
+    os::cmd::expect_success "oc adm registry --dry-run -o json --images='$USE_IMAGES' | jq '$JQSETPULLPOLICY' | oc create -f -"
 else
-    os::cmd::expect_success "oadm registry"
+    os::cmd::expect_success "oc adm registry"
 fi
-os::cmd::expect_success 'oadm policy add-scc-to-user hostnetwork -z router'
-os::cmd::expect_success 'oadm router'
+os::cmd::expect_success 'oc adm policy add-scc-to-user hostnetwork -z router'
+os::cmd::expect_success 'oc adm router'
 os::test::junit::declare_suite_end
 
 ${OS_ROOT}/test/end-to-end/core.sh

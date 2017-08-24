@@ -103,7 +103,7 @@ var map_NetNamespace = map[string]string{
 	"":         "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
 	"metadata": "Standard object's metadata.",
 	"netname":  "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
-	"netid":    "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oadm pod-network\" commands.",
+	"netid":    "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
 }
 
 func (NetNamespace) SwaggerDoc() map[string]string {
