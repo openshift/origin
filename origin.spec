@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit d3076ff94ecf764ef4d244f518dfd280a660b2a2
+%global commit 3c2194aa030b4f1a50d954108e6f3e078583098d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.103.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=d3076ff
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.104.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=3c2194a
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.104.0%{?dist}
+Release:        0.105.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -644,6 +644,46 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Aug 23 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.105.0
+- bump(github.com/openshift/origin-web-console):
+  c9a5d1ae122b158d0cf5ade72e0d907cf77fbdc2 (eparis+openshiftbot@redhat.com)
+- add logging information to debug failing port-forward (deads@redhat.com)
+- Correct splitting for release candidates (jupierce@redhat.com)
+- generated (deads@redhat.com)
+- Adjust NetworkPolicy OVS flows for compatibility with (as-yet-unreleased) OVS
+  2.8 (danw@redhat.com)
+- create TSB config types (deads@redhat.com)
+- Stop using NormalizeResources in bootstrap policy (simo@redhat.com)
+- run focused tests in parallel where possible (bparees@redhat.com)
+- Retry image stream updates when pruning images (maszulik@redhat.com)
+- Router template optimization (yhlou@travelsky.com)
+- oc cluster up: pass server loglevel to template service broker
+  (jminter@redhat.com)
+- fix templateinstance timeout logic (jminter@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5972dde58479ce9905ec35f243d3db576b831bb3 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  bb4cdb5709f557e69b173d29c042ff66da1bce4c (eparis+openshiftbot@redhat.com)
+- UPSTREAM: google/cadvisor: 1722: Skip subcontainer update on v2 calls
+  (sjenning@redhat.com)
+- add tests (jvallejo@redhat.com)
+- fix newapp resource convert for extensions and apps groups
+  (jvallejo@redhat.com)
+- Wait longer for kubelet registration in SDN node startup (danw@redhat.com)
+- Update origin spec, update golang requirement and add buildrequires for
+  goversioninfo (jdetiber@redhat.com)
+- Update release images, use binaries from CentOS PaaS SIG multiarch build repo
+  where possible (jdetiber@redhat.com)
+- Use centos-paas7-multiarch-el7-build instead of centos-paas-sig-openshift-
+  origin36 repo for source image (jdetiber@redhat.com)
+- add missing template.alpha.openshift.io/wait-for-ready annotations to
+  examples (jminter@redhat.com)
+- set openshift default metrics opts (jvallejo@redhat.com)
+- UPSTREAM: 50620: allow default option values - oc adm top node|pod
+  (jvallejo@redhat.com)
+- Use oc adm instead of oadm which might not exist in various installations.
+  (jpazdziora@redhat.com)
+
 * Sun Aug 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.104.0
 - 
 
