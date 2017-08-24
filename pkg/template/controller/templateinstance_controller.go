@@ -155,7 +155,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 	}
 
 	if !templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
-		ready, err := c.checkReadiness(templateInstance)
+		ready, err := c.checkReadiness(templateInstance, time.Now())
 		if err != nil {
 			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
@@ -205,8 +205,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 	return nil
 }
 
-func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance) (bool, error) {
-	if time.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
+func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance, now time.Time) (bool, error) {
+	if now.After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
 		return false, fmt.Errorf("Timeout")
 	}
 
