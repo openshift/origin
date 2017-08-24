@@ -28,7 +28,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC               = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
+		tsbOC               = exutil.NewCLI("openshift-template-service-broker", exutil.KubeConfigPath())
 		portForwardCmdClose func() error
 
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
