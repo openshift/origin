@@ -25,42 +25,29 @@ func Policy() *rbacrest.PolicyData {
 	}
 }
 
-func ConvertToOriginClusterRolesOrDie(in []rbac.ClusterRole) []authorizationapi.ClusterRole {
+func ConvertToOriginClusterRoles(in []rbac.ClusterRole) ([]authorizationapi.ClusterRole, error) {
 	out := []authorizationapi.ClusterRole{}
-	errs := []error{}
 
 	for i := range in {
 		newRole := &authorizationapi.ClusterRole{}
 		if err := kapi.Scheme.Convert(&in[i], newRole, nil); err != nil {
-			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
-			continue
+			return nil, fmt.Errorf("error converting %q: %v", in[i].Name, err)
 		}
 		out = append(out, *newRole)
 	}
-
-	if len(errs) > 0 {
-		panic(errs)
-	}
-
-	return out
+	return out, nil
 }
 
-func ConvertToOriginClusterRoleBindingsOrDie(in []rbac.ClusterRoleBinding) []authorizationapi.ClusterRoleBinding {
+func ConvertToOriginClusterRoleBindings(in []rbac.ClusterRoleBinding) ([]authorizationapi.ClusterRoleBinding, error) {
 	out := []authorizationapi.ClusterRoleBinding{}
-	errs := []error{}
 
 	for i := range in {
 		newRoleBinding := &authorizationapi.ClusterRoleBinding{}
 		if err := kapi.Scheme.Convert(&in[i], newRoleBinding, nil); err != nil {
-			errs = append(errs, fmt.Errorf("error converting %q: %v", in[i].Name, err))
-			continue
+			return nil, fmt.Errorf("error converting %q: %v", in[i].Name, err)
 		}
 		out = append(out, *newRoleBinding)
 	}
 
-	if len(errs) > 0 {
-		panic(errs)
-	}
-
-	return out
+	return out, nil
 }
