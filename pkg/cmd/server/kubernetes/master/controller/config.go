@@ -32,12 +32,6 @@ type KubeControllerConfig struct {
 func (c KubeControllerConfig) GetControllerInitializers() (map[string]kubecontroller.InitFunc, error) {
 	ret := kubecontroller.NewControllerInitializers()
 
-	// Remove the "normal" resource quota, because we run it as an openshift controller to cover all types
-	// TODO split openshift separately so we get upstream initialization here
-	delete(ret, "resourcequota")
-	// "serviceaccount-token" is used to create SA tokens for everyone else.  We special case this one.
-	delete(ret, "serviceaccount-token")
-
 	// overrides the Kube HPA controller config, so that we can point it at an HTTPS Heapster
 	// in openshift-infra, and pass it a scale client that knows how to scale DCs
 	ret["horizontalpodautoscaling"] = c.HorizontalPodAutoscalerControllerConfig.RunController

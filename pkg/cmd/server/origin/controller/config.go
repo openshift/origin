@@ -40,7 +40,6 @@ func getOpenShiftClientEnvVars(options configapi.MasterConfig) ([]kapi.EnvVar, e
 type OpenshiftControllerConfig struct {
 	ServiceAccountTokenControllerOptions ServiceAccountTokenControllerOptions
 
-	// TODO, this should only hold the delta on names and we run two controllers, upstream and ours
 	ServiceAccountControllerOptions ServiceAccountControllerOptions
 
 	BuildControllerConfig BuildControllerConfig
@@ -64,8 +63,7 @@ type OpenshiftControllerConfig struct {
 func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]InitFunc, error) {
 	ret := map[string]InitFunc{}
 
-	// TODO, this should only hold the delta on names and we run two controllers, upstream and ours
-	ret["serviceaccount"] = c.ServiceAccountControllerOptions.RunController
+	ret["openshift.io/serviceaccount"] = c.ServiceAccountControllerOptions.RunController
 
 	ret["openshift.io/serviceaccount-pull-secrets"] = RunServiceAccountPullSecretsController
 	ret["openshift.io/origin-namespace"] = RunOriginNamespaceController
@@ -87,8 +85,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 	ret["openshift.io/unidling"] = c.UnidlingControllerConfig.RunController
 	ret["openshift.io/ingress-ip"] = c.IngressIPControllerConfig.RunController
 
-	// Overrides the upstream "resourcequota" controller
-	ret["resourcequota"] = RunResourceQuotaManager
+	ret["openshift.io/resourcequota"] = RunResourceQuotaManager
 	ret["openshift.io/cluster-quota-reconciliation"] = c.ClusterQuotaReconciliationControllerConfig.RunController
 
 	return ret, nil
