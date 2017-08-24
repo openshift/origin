@@ -70,3 +70,5 @@ for proto_file in $( find "${OS_ROOT}/pkg" "${OS_ROOT}/vendor/k8s.io/kubernetes/
 
     cp "${proto_file}" "${proto_spec_out_dir}/${openapi_file}"
 done
+
+go run tools/genapidocs/genapidocs.go "${OS_ROOT}/${SWAGGER_SPEC_REL_DIR}/api/docs"
