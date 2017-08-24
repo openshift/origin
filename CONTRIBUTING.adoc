@@ -129,6 +129,14 @@ $ git remote add upstream git://github.com/openshift/origin
 
 ==== Building Origin Binaries, RPMs and Images
 
+In order to build the base and release images for use by the release build and image build, run:
+----
+$ hack/env hack/build-base-images.sh
+----
+NOTE: Avoiding above step can cause below error while running 'hack/env make release'
+----
+"openshift/origin-pod: unable to pull image (from: openshift/origin-source, tag: latest): API error (404): {"message":"repository openshift/origin-source not found: does not exist or no pull access"}"
+----
 In order to build a full release of Origin, containing binaries, RPMs and
 container images, run:
 ----
