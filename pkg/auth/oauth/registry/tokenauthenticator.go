@@ -35,8 +35,10 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 	if err != nil {
 		return nil, false, err
 	}
-	if token.CreationTimestamp.Time.Add(time.Duration(token.ExpiresIn) * time.Second).Before(time.Now()) {
-		return nil, false, ErrExpired
+	if token.ExpiresIn > 0 {
+		if token.CreationTimestamp.Time.Add(time.Duration(token.ExpiresIn) * time.Second).Before(time.Now()) {
+			return nil, false, ErrExpired
+		}
 	}
 	if token.DeletionTimestamp != nil {
 		return nil, false, ErrExpired

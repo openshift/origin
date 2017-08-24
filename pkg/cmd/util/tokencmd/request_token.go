@@ -42,11 +42,16 @@ type ChallengeHandler interface {
 type RequestTokenOptions struct {
 	ClientConfig *restclient.Config
 	Handler      ChallengeHandler
+	ClientID     string
 }
 
 // RequestToken uses the cmd arguments to locate an openshift oauth server and attempts to authenticate
 // it returns the access token if it gets one.  An error if it does not
 func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string) (string, error) {
+	return NewRequestTokenOptions(clientCfg, reader, defaultUsername, defaultPassword).RequestToken()
+}
+
+func NewRequestTokenOptions(clientCfg *restclient.Config, reader io.Reader, defaultUsername string, defaultPassword string) *RequestTokenOptions {
 	handlers := []ChallengeHandler{}
 	if GSSAPIEnabled() {
 		handlers = append(handlers, NewNegotiateChallengeHandler(NewGSSAPINegotiator(defaultUsername)))
@@ -62,12 +67,11 @@ func RequestToken(clientCfg *restclient.Config, reader io.Reader, defaultUsernam
 		handler = NewMultiHandler(handlers...)
 	}
 
-	opts := &RequestTokenOptions{
+	return &RequestTokenOptions{
 		ClientConfig: clientCfg,
 		Handler:      handler,
+		ClientID:     "openshift-challenging-client",
 	}
-
-	return opts.RequestToken()
 }
 
 // RequestToken locates an openshift oauth server and attempts to authenticate.
@@ -89,7 +93,7 @@ func (o *RequestTokenOptions) RequestToken() (string, error) {
 	}
 
 	// requestURL holds the current URL to make requests to. This can change if the server responds with a redirect
-	requestURL := o.ClientConfig.Host + "/oauth/authorize?response_type=token&client_id=openshift-challenging-client"
+	requestURL := o.ClientConfig.Host + "/oauth/authorize?" + url.Values{"response_type": []string{"token"}, "client_id": []string{o.ClientID}}.Encode()
 	// requestHeaders holds additional headers to add to the request. This can be changed by o.Handlers
 	requestHeaders := http.Header{}
 	// requestedURLSet/requestedURLList hold the URLs we have requested, to prevent redirect loops. Gets reset when a challenge is handled.

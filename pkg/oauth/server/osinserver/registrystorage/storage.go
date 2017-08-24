@@ -9,6 +9,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openshift/origin/pkg/auth/oauth/handlers"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
@@ -47,6 +48,7 @@ type clientWrapper struct {
 // Ensure we implement the secret matcher method that allows us to validate multiple secrets
 var _ = osin.Client(&clientWrapper{})
 var _ = osin.ClientSecretMatcher(&clientWrapper{})
+var _ = handlers.TokenMaxAgeSeconds(&clientWrapper{})
 
 func (w *clientWrapper) GetId() string {
 	return w.id
@@ -80,6 +82,10 @@ func (w *clientWrapper) GetRedirectUri() string {
 
 func (w *clientWrapper) GetUserData() interface{} {
 	return w.client
+}
+
+func (w *clientWrapper) GetTokenMaxAgeSeconds() *int32 {
+	return w.client.AccessTokenMaxAgeSeconds
 }
 
 // Clone the storage if needed. For example, using mgo, you can clone the session with session.Clone
