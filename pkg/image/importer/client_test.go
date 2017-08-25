@@ -211,18 +211,91 @@ func TestDockerV1Fallback(t *testing.T) {
 func TestPing(t *testing.T) {
 	retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials).(*repositoryRetriever)
 
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	fn404 := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(404) }
+	var fn http.HandlerFunc
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if fn != nil {
+			fn(w, r)
+		}
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
 	uri, _ := url.Parse(server.URL)
 
-	_, err := retriever.ping(*uri, true, retriever.context.InsecureTransport)
-	if !strings.Contains(err.Error(), "does not support v2 API") {
-		t.Errorf("Expected ErrNotV2Registry, got %v", err)
+	testCases := []struct {
+		name     string
+		uri      url.URL
+		expectV2 bool
+		fn       http.HandlerFunc
+	}{
+		{name: "http only", uri: url.URL{Scheme: "http", Host: uri.Host}, expectV2: false, fn: fn404},
+		{name: "https only", uri: url.URL{Scheme: "https", Host: uri.Host}, expectV2: false, fn: fn404},
+		{
+			name:     "403",
+			uri:      url.URL{Scheme: "https", Host: uri.Host},
+			expectV2: true,
+			fn: func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/v2/" {
+					w.WriteHeader(403)
+					return
+				}
+			},
+		},
+		{
+			name:     "401",
+			uri:      url.URL{Scheme: "https", Host: uri.Host},
+			expectV2: true,
+			fn: func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/v2/" {
+					w.WriteHeader(401)
+					return
+				}
+			},
+		},
+		{
+			name:     "200",
+			uri:      url.URL{Scheme: "https", Host: uri.Host},
+			expectV2: true,
+			fn: func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/v2/" {
+					w.WriteHeader(200)
+					return
+				}
+			},
+		},
+		{
+			name:     "has header but 500",
+			uri:      url.URL{Scheme: "https", Host: uri.Host},
+			expectV2: true,
+			fn: func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/v2/" {
+					w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
+					w.WriteHeader(500)
+					return
+				}
+			},
+		},
+		{
+			name:     "no header, 500",
+			uri:      url.URL{Scheme: "https", Host: uri.Host},
+			expectV2: false,
+			fn: func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/v2/" {
+					w.WriteHeader(500)
+					return
+				}
+			},
+		},
 	}
 
-	uri.Scheme = "https"
-	_, err = retriever.ping(*uri, true, retriever.context.InsecureTransport)
-	if !strings.Contains(err.Error(), "does not support v2 API") {
-		t.Errorf("Expected ErrNotV2Registry, got %v", err)
+	for _, test := range testCases {
+		fn = test.fn
+		_, err := retriever.ping(test.uri, true, retriever.context.InsecureTransport)
+		if (err != nil && strings.Contains(err.Error(), "does not support v2 API")) == test.expectV2 {
+			t.Errorf("%s: Expected ErrNotV2Registry, got %v", test.name, err)
+		}
 	}
 }
 
