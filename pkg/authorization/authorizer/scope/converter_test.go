@@ -226,14 +226,14 @@ func TestEscalationProtection(t *testing.T) {
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
-			name: "match old group secrets",
+			name: "no longer match old group secrets",
 			clusterRoles: []rbac.ClusterRole{
 				{
 					ObjectMeta: metav1.ObjectMeta{Name: "admin"},
 					Rules:      []rbac.PolicyRule{{APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
 				},
 			},
-			expectedRules: []rbac.PolicyRule{authorizationapi.RbacDiscoveryRule, {APIGroups: []string{}, Resources: []string{"pods"}}},
+			expectedRules: []rbac.PolicyRule{authorizationapi.RbacDiscoveryRule, {APIGroups: []string{}, Resources: []string{"pods", "secrets"}}},
 			scopes:        []string{ClusterRoleIndicator + "admin:*"},
 		},
 		{
