@@ -253,8 +253,8 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	}
 
 	// add post-start hooks
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHook("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
 
 	go aggregatedAPIServer.GenericAPIServer.PrepareRun().Run(stopCh)
 

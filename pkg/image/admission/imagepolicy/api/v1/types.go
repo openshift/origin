@@ -14,7 +14,9 @@ type ImagePolicyConfig struct {
 
 	// ResolutionRules allows more specific image resolution rules to be applied per resource. If
 	// empty, it defaults to allowing local image stream lookups - "mysql" will map to the image stream
-	// tag "mysql:latest" in the current namespace if the stream supports it.
+	// tag "mysql:latest" in the current namespace if the stream supports it. The default for this
+	// field is all known types that support image resolution, and the policy for those rules will be
+	// set to the overall resolution policy if an execution rule references the same resource.
 	ResolutionRules []ImageResolutionPolicyRule `json:"resolutionRules"`
 
 	// ExecutionRules determine whether the use of an image is allowed in an object with a pod spec.
@@ -42,6 +44,9 @@ var (
 
 // ImageResolutionPolicyRule describes resolution rules based on resource.
 type ImageResolutionPolicyRule struct {
+	// Policy controls whether resolution will happen if the rule doesn't match local names. This value
+	// overrides the global image policy for all target resources.
+	Policy ImageResolutionType `json:"policy"`
 	// TargetResource is the identified group and resource. If Resource is *, this rule will apply
 	// to all resources in that group.
 	TargetResource GroupResource `json:"targetResource"`

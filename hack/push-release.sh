@@ -35,11 +35,11 @@ if [[ -z "${source_tag}" ]]; then
 fi
 
 base_images=(
-  openshift/origin-base
   openshift/origin-release
 )
 images=(
   openshift/origin
+  openshift/origin-base
   openshift/origin-pod
   openshift/origin-deployer
   openshift/origin-docker-builder

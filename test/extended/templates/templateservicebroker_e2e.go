@@ -24,7 +24,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
+var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	defer g.GinkgoRecover()
 
 	var (
