@@ -16,7 +16,7 @@ fi
 commit="$( git rev-parse ${tag} )"
 
 export OS_GIT_TREE_STATE=clean
-export OS_BUILD_ENV_PRESERVE=_output/local/releases 
+export OS_BUILD_ENV_PRESERVE=_output/local/releases
 
 # Build images and push to the hub
 if [[ -z "${1-}" || "${1-}" == "images" ]]; then

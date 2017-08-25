@@ -20,6 +20,46 @@ function os::build::host_platform() {
 }
 readonly -f os::build::host_platform
 
+# os::build::go_arch determines what the host architecture is, as Golang
+# sees it.
+function os::build::go_arch() {
+	arch=${1:-}
+
+	if [[ -z "${arch}" ]]; then
+		# No arch requested, query go
+		echo "$(go env GOHOSTARCH)"
+	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known go arch
+		echo "${arch}"
+	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known system arch
+		echo "${OS_BUILD_SYSARCH_TO_GOARCH_MAP[${arch}]}"
+	else
+		os::log::error "Unkown arch: ${arch}"
+		exit 1
+	fi
+}
+readonly -f os::build::go_arch
+
+function os::build::sys_arch() {
+	arch=${1:-}
+
+	if [[ -z "${arch}" ]]; then
+		# No arch requested, query system
+		echo "$(uname -m)"
+	elif [[ "${!OS_BUILD_SYSARCH_TO_GOARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known system arch
+		echo "${arch}"
+	elif [[ "${!OS_BUILD_GOARCH_TO_SYSARCH_MAP[@]}" =~ "${arch}" ]]; then
+		# Requested arch is a known go arch
+		echo "${OS_BUILD_GOARCH_TO_SYSARCH_MAP[${arch}]}"
+	else
+		os::log::error "Unkown arch: ${arch}"
+		exit 1
+	fi
+}
+readonly -f os::build::sys_arch
+
 # Create a user friendly version of host_platform for end users
 function os::build::host_platform_friendly() {
   local platform=${1:-}

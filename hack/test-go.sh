@@ -11,8 +11,8 @@
 # This script consumes the following parameters as environment variables:
 #  - DRY_RUN:             prints all packages that would be tested with the args that would be used and exits
 #  - TEST_KUBE:           toggles testing of non-essential Kubernetes unit tests
-#  - TIMEOUT:             the timeout for any one unit test (default '60s')
-#  - DETECT_RACES:        toggles the 'go test' race detector (defaults '-race')
+#  - TIMEOUT:             the timeout for any one unit test (default '120s' for amd64 '300s' for other arches)
+#  - DETECT_RACES:        toggles the 'go test' race detector (defaults '-race' for amd64 only)
 #  - COVERAGE_OUTPUT_DIR: locates the directory in which coverage output files will be placed
 #  - COVERAGE_SPEC:       a set of flags for 'go test' that specify the coverage behavior (default '-cover -covermode=atomic')
 #  - GOTEST_FLAGS:        any other flags to be sent to 'go test'
@@ -40,15 +40,23 @@ os::build::setup_env
 os::cleanup::tmpdir
 
 # Internalize environment variables we consume and default if they're not set
+arch="$(os::build::go_arch)"
 dry_run="${DRY_RUN:-}"
 test_kube="${TEST_KUBE:-}"
-test_timeout="${TIMEOUT:-120s}"
-detect_races="${DETECT_RACES:-true}"
 coverage_output_dir="${COVERAGE_OUTPUT_DIR:-}"
 coverage_spec="${COVERAGE_SPEC:--cover -covermode atomic}"
 gotest_flags="${GOTEST_FLAGS:-}"
 junit_report="${JUNIT_REPORT:-}"
 dlv_debug="${DLV_DEBUG:-}"
+# race detection is only available for amd64 and there are
+# long running tests that disable race detection
+if [[ "${arch}" == "amd64" ]]; then
+    test_timeout="${TIMEOUT:-120s}"
+    detect_races="${DETECT_RACES:-true}"
+else
+    test_timeout="${TIMEOUT:-300s}"
+    detect_races="${DETECT_RACES:-false}"
+fi
 
 if [[ -n "${junit_report}" && -n "${coverage_output_dir}" ]]; then
     echo "$0 cannot create jUnit XML reports and coverage reports at the same time."

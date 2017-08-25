@@ -36,8 +36,8 @@ function ln_or_cp {
 }
 
 # Link or copy image binaries to the appropriate locations.
-ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/hello-openshift" examples/hello-openshift/bin
-ln_or_cp "${OS_OUTPUT_BINPATH}/linux/amd64/gitserver"       examples/gitserver/bin
+ln_or_cp "${OS_OUTPUT_BINPATH}/$(os::build::host_platform)/hello-openshift" examples/hello-openshift/bin
+ln_or_cp "${OS_OUTPUT_BINPATH}/$(os::build::host_platform)/gitserver"       examples/gitserver/bin
 
 # determine the correct tag prefix
 tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
