@@ -4,6 +4,7 @@
     					backend for a route and contains all the endpoints for the service
 */}}
 {{- define "/var/lib/nginx/conf/nginx.config" -}}
+{{- $workingDir := .WorkingDir }}
 #user       www www;  ## Default: nobody
 worker_processes  5;  ## Default: 1
 error_log  /var/lib/nginx/logs/error.log;
@@ -32,10 +33,8 @@ http {
 
 
 {{- range $cfgIdx, $cfg := .State }}
- {{- if (eq $cfg.TLSTermination "") }}
 
-# Plain http backend
-  upstream be_http_{{$cfgIdx}} {
+  upstream be_{{$cfg.Namespace}}_{{$cfg.Name}} {
     {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
       {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
         {{- range $idx, $endpoint := endpointsForAlias $cfg $serviceUnit }}
@@ -46,15 +45,26 @@ http {
   }
 
   server { # simple load balancing
+ {{- if (eq $cfg.TLSTermination "") }}
     listen          80;
+ {{- else }}
+    listen          443 ssl;
+ {{ end -}}
+
     server_name     {{$cfg.Host}};
-    access_log      /var/lib/nginx/logs/be_http_{{$cfgIdx}}.log main;
+ {{- if and (ne $cfg.Host "") (or (eq $cfg.TLSTermination "edge") (eq $cfg.TLSTermination "reencrypt")) -}}
+  {{ $cert := index $cfg.Certificates $cfg.Host -}}
+  {{ if ne $cert.Contents "" }}
+    ssl_certificate     {{$workingDir}}/certs/{{$cfgIdx}}.pem;
+    ssl_certificate_key {{$workingDir}}/certs/{{$cfgIdx}}.pem;
+  {{ end -}}
+ {{ end -}}
+    access_log      /var/lib/nginx/logs/be_{{$cfgIdx}}.log main;
 
     location / {
-      proxy_pass      http://be_http_{{$cfgIdx}};
+      proxy_pass      http://be_{{$cfg.Namespace}}_{{$cfg.Name}};
     }
   }
-  {{ end -}}{{/* end if plain http */}}
 {{ end -}}{{/* end all routes */}}
 }
 {{ end -}}{{/* end config file */}}
