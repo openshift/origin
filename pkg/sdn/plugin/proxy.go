@@ -292,7 +292,7 @@ func (proxy *OsdnProxy) OnEndpointsUpdate(old, ep *kapi.Endpoints) {
 	pep := proxy.allEndpoints[ep.UID]
 	if pep == nil {
 		glog.Warningf("Got OnEndpointsUpdate for unknown Endpoints %#v", ep)
-		pep := &proxyEndpoints{ep, true}
+		pep = &proxyEndpoints{ep, true}
 		proxy.allEndpoints[ep.UID] = pep
 	}
 	wasBlocked := pep.blocked
