@@ -4,17 +4,9 @@ import "fmt"
 
 type ImageBaseType string
 
-const (
-	RHELBased   ImageBaseType = "rhel7"
-	CentosBased ImageBaseType = "centos7"
-	AllImages   ImageBaseType = "all"
-)
-
 type tc struct {
 	// The image version string (eg. '27' or '34')
 	Version string
-	// The base OS ('rhel7' or 'centos7')
-	BaseOS ImageBaseType
 	// Command to execute
 	Cmd string
 	// Expected output from the command
@@ -27,9 +19,6 @@ type tc struct {
 	// Internal: We resolve this in JustBeforeEach
 	DockerImageReference string
 }
-
-// Internal OpenShift registry to fetch the RHEL7 images from
-const InternalRegistryAddr = "ci.dev.openshift.redhat.com:5000"
 
 // This is a complete list of supported S2I images
 var s2iImages = map[string][]tc{
@@ -90,30 +79,12 @@ var s2iImages = map[string][]tc{
 	},
 }
 
-func GetTestCaseForImages(base ImageBaseType) map[string][]tc {
-	if base == AllImages {
-		result := GetTestCaseForImages(RHELBased)
-		for n, t := range GetTestCaseForImages(CentosBased) {
-			result[n] = append(result[n], t...)
-		}
-		return result
-	}
+func GetTestCaseForImages() map[string][]tc {
 	result := make(map[string][]tc)
 	for name, variants := range s2iImages {
-		switch base {
-		case RHELBased:
-			for i := range variants {
-				variants[i].BaseOS = RHELBased
-				resolveDockerImageReference(name, &variants[i])
-				result[name] = append(result[name], variants[i])
-			}
-		case CentosBased:
-			for i := range variants {
-				variants[i].BaseOS = CentosBased
-				resolveDockerImageReference(name, &variants[i])
-				result[name] = append(result[name], variants[i])
-
-			}
+		for i := range variants {
+			resolveDockerImageReference(name, &variants[i])
+			result[name] = append(result[name], variants[i])
 		}
 	}
 	return result
@@ -124,8 +95,5 @@ func resolveDockerImageReference(name string, t *tc) {
 	if len(t.Repository) == 0 {
 		t.Repository = "openshift"
 	}
-	t.DockerImageReference = fmt.Sprintf("%s/%s-%s-%s", t.Repository, name, t.Version, t.BaseOS)
-	if t.BaseOS == RHELBased {
-		t.DockerImageReference = fmt.Sprintf("%s/%s", InternalRegistryAddr, t.DockerImageReference)
-	}
+	t.DockerImageReference = fmt.Sprintf("%s/%s-%s-centos7", t.Repository, name, t.Version)
 }
