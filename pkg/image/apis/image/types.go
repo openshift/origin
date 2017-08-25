@@ -432,6 +432,9 @@ type DockerImageReference struct {
 	ID        string
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // ImageStreamImport allows a caller to request information about a set of images for possible
 // import into an image stream, or actually tag the images into the image stream.
 type ImageStreamImport struct {

@@ -10,6 +10,8 @@ import (
 type Interface interface {
 	// Groups returns a GroupInformer.
 	Groups() GroupInformer
+	// Identities returns a IdentityInformer.
+	Identities() IdentityInformer
 	// Users returns a UserInformer.
 	Users() UserInformer
 }
@@ -26,6 +28,11 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // Groups returns a GroupInformer.
 func (v *version) Groups() GroupInformer {
 	return &groupInformer{factory: v.SharedInformerFactory}
+}
+
+// Identities returns a IdentityInformer.
+func (v *version) Identities() IdentityInformer {
+	return &identityInformer{factory: v.SharedInformerFactory}
 }
 
 // Users returns a UserInformer.

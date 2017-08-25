@@ -8,6 +8,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// Identities returns a IdentityInformer.
+	Identities() IdentityInformer
 	// Users returns a UserInformer.
 	Users() UserInformer
 }
@@ -19,6 +21,11 @@ type version struct {
 // New returns a new Interface.
 func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
+}
+
+// Identities returns a IdentityInformer.
+func (v *version) Identities() IdentityInformer {
+	return &identityInformer{factory: v.SharedInformerFactory}
 }
 
 // Users returns a UserInformer.

@@ -26,6 +26,10 @@ func (c *FakeImage) ImageStreamImages(namespace string) internalversion.ImageStr
 	return &FakeImageStreamImages{c, namespace}
 }
 
+func (c *FakeImage) ImageStreamImports(namespace string) internalversion.ImageStreamImportInterface {
+	return &FakeImageStreamImports{c, namespace}
+}
+
 func (c *FakeImage) ImageStreamMappings(namespace string) internalversion.ImageStreamMappingInterface {
 	return &FakeImageStreamMappings{c, namespace}
 }
