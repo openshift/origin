@@ -20,6 +20,9 @@ const (
 	// This is set as the default value for ActiveDeadlineSeconds for the deployer pod.
 	// Currently set to 6 hours.
 	MaxDeploymentDurationSeconds int64 = 21600
+	// DefaultRevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks.
+	// This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.
+	DefaultRevisionHistoryLimit int32 = 10
 )
 
 // These constants represent keys used for correlating objects related to deployments.
@@ -156,6 +159,7 @@ type DeploymentConfigSpec struct {
 
 	// RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks.
 	// This field is a pointer to allow for differentiation between an explicit zero and not specified.
+	// Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)
 	RevisionHistoryLimit *int32
 
 	// Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the
