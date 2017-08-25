@@ -13,6 +13,7 @@ import (
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	appsclientinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
@@ -49,9 +50,15 @@ type ControllerClientBuilder interface {
 	controller.ControllerClientBuilder
 	KubeInternalClient(name string) (kclientsetinternal.Interface, error)
 	KubeInternalClientOrDie(name string) kclientsetinternal.Interface
+
+	// Legacy OpenShift client (pkg/client)
 	DeprecatedOpenshiftClient(name string) (osclient.Interface, error)
 	DeprecatedOpenshiftClientOrDie(name string) osclient.Interface
+
+	// OpenShift clients based on generated internal clientsets
 	OpenshiftTemplateClient(name string) (templateclient.Interface, error)
+	AppsInternalClient(name string) (appsclientinternal.Interface, error)
+	AppsInternalClientOrDie(name string) appsclientinternal.Interface
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -101,6 +108,22 @@ func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (
 		return nil, err
 	}
 	return templateclient.NewForConfig(clientConfig)
+}
+
+func (b OpenshiftControllerClientBuilder) AppsInternalClient(name string) (appsclientinternal.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return appsclientinternal.NewForConfig(clientConfig)
+}
+
+func (b OpenshiftControllerClientBuilder) AppsInternalClientOrDie(name string) appsclientinternal.Interface {
+	client, err := b.AppsInternalClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
 }
 
 // FromKubeInitFunc adapts a kube init func to an openshift one

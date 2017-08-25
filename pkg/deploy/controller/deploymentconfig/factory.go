@@ -19,8 +19,8 @@ import (
 	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 )
 
 const (
@@ -34,7 +34,7 @@ const (
 func NewDeploymentConfigController(
 	dcInformer cache.SharedIndexInformer,
 	rcInformer kcoreinformers.ReplicationControllerInformer,
-	oc osclient.Interface,
+	appsClientset appsclient.Interface,
 	kubeClientset kclientset.Interface,
 	codec runtime.Codec,
 ) *DeploymentConfigController {
@@ -43,7 +43,7 @@ func NewDeploymentConfigController(
 	recorder := eventBroadcaster.NewRecorder(kapi.Scheme, kclientv1.EventSource{Component: "deploymentconfig-controller"})
 
 	c := &DeploymentConfigController{
-		dn: oc,
+		dn: appsClientset.Apps(),
 		rn: kubeClientset.Core(),
 
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
