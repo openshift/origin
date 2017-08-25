@@ -55,7 +55,7 @@ function os::util::ensure::built_binary_exists() {
 		fi
 
 		if [[ -n "${target}" ]]; then
-			os::log::warning "No compiled \`${binary}\` binary was found. Attempting to build one using:
+			os::log::info "No compiled \`${binary}\` binary was found. Attempting to build one using:
   $ hack/build-go.sh ${target}"
 			"${OS_ROOT}/hack/build-go.sh" "${target}"
 		else
