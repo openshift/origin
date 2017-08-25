@@ -7,6 +7,7 @@ import (
 
 	buildconfig "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
+	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
 	deploymentconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
@@ -206,7 +207,8 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 				case "deploymentConfigs":
 					restStorage := s.(*deploymentconfigetcd.REST)
 					store := *restStorage.Store
-					restStorage.DeleteStrategy = orphanByDefault(store.DeleteStrategy)
+					store.CreateStrategy = deployconfig.LegacyStrategy
+					store.DeleteStrategy = deployconfig.LegacyStrategy
 					legacyStorage[resource] = &deploymentconfigetcd.REST{Store: &store}
 				case "routes":
 					restStorage := s.(*routeetcd.REST)
@@ -222,16 +224,4 @@ func LegacyStorage(storage map[schema.GroupVersion]map[string]rest.Storage) map[
 		}
 	}
 	return legacyStorage
-}
-
-type orphaningDeleter struct {
-	rest.RESTDeleteStrategy
-}
-
-func (o orphaningDeleter) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
-	return rest.OrphanDependents
-}
-
-func orphanByDefault(in rest.RESTDeleteStrategy) rest.RESTDeleteStrategy {
-	return orphaningDeleter{in}
 }

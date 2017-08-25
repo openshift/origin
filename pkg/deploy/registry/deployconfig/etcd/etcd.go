@@ -37,9 +37,9 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 		PredicateFunc:            deployconfig.Matcher,
 		DefaultQualifiedResource: deployapi.Resource("deploymentconfigs"),
 
-		CreateStrategy: deployconfig.Strategy,
-		UpdateStrategy: deployconfig.Strategy,
-		DeleteStrategy: deployconfig.Strategy,
+		CreateStrategy: deployconfig.GroupStrategy,
+		UpdateStrategy: deployconfig.GroupStrategy,
+		DeleteStrategy: deployconfig.GroupStrategy,
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: deployconfig.GetAttrs}

@@ -10,10 +10,10 @@ type GroupListerExpansion interface{}
 // GroupNamespaceLister.
 type GroupNamespaceListerExpansion interface{}
 
+// IdentityListerExpansion allows custom methods to be added to
+// IdentityLister.
+type IdentityListerExpansion interface{}
+
 // UserListerExpansion allows custom methods to be added to
 // UserLister.
 type UserListerExpansion interface{}
-
-// UserNamespaceListerExpansion allows custom methods to be added to
-// UserNamespaceLister.
-type UserNamespaceListerExpansion interface{}

@@ -4669,7 +4669,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"revisionHistoryLimit": {
 							SchemaProps: spec.SchemaProps{
-								Description: "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified.",
+								Description: "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified. Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)",
 								Type:        []string{"integer"},
 								Format:      "int32",
 							},
