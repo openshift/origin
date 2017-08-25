@@ -49,6 +49,33 @@ func TestValidation(t *testing.T) {
 
 	if errs := Validate(&api.ImagePolicyConfig{
 		ResolveImages: api.DoNotAttempt,
+		ResolutionRules: []api.ImageResolutionPolicyRule{
+			{TargetResource: metav1.GroupResource{Resource: "test"}, Policy: api.Attempt},
+		},
+	}); len(errs) != 0 {
+		t.Fatal(errs)
+	}
+
+	if errs := Validate(&api.ImagePolicyConfig{
+		ResolveImages: api.DoNotAttempt,
+		ResolutionRules: []api.ImageResolutionPolicyRule{
+			{TargetResource: metav1.GroupResource{Resource: "test"}},
+		},
+	}); len(errs) == 0 {
+		t.Fatal(errs)
+	}
+
+	if errs := Validate(&api.ImagePolicyConfig{
+		ResolveImages: api.DoNotAttempt,
+		ResolutionRules: []api.ImageResolutionPolicyRule{
+			{Policy: api.Attempt},
+		},
+	}); len(errs) == 0 {
+		t.Fatal(errs)
+	}
+
+	if errs := Validate(&api.ImagePolicyConfig{
+		ResolveImages: api.DoNotAttempt,
 		ExecutionRules: []api.ImageExecutionPolicyRule{
 			{ImageCondition: api.ImageCondition{Name: "test", MatchDockerImageLabels: []api.ValueCondition{{}}}},
 		},
