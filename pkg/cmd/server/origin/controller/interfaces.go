@@ -53,6 +53,7 @@ type ControllerClientBuilder interface {
 	DeprecatedOpenshiftClient(name string) (osclient.Interface, error)
 	DeprecatedOpenshiftClientOrDie(name string) osclient.Interface
 	OpenshiftTemplateClient(name string) (templateclient.Interface, error)
+	OpenshiftTemplateClientOrDie(name string) templateclient.Interface
 	OpenshiftImageClient(name string) (imageclient.Interface, error)
 	OpenshiftImageClientOrDie(name string) imageclient.Interface
 }
@@ -104,6 +105,14 @@ func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (
 		return nil, err
 	}
 	return templateclient.NewForConfig(clientConfig)
+}
+
+func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClientOrDie(name string) templateclient.Interface {
+	client, err := b.OpenshiftTemplateClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
 }
 
 func (b OpenshiftControllerClientBuilder) OpenshiftImageClient(name string) (imageclient.Interface, error) {

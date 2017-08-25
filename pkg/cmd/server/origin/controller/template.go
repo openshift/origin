@@ -13,26 +13,11 @@ func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
 		return true, err
 	}
 
-	internalKubeClient, err := ctx.ClientBuilder.KubeInternalClient(saName)
-	if err != nil {
-		return true, err
-	}
-
-	deprecatedOcClient, err := ctx.ClientBuilder.DeprecatedOpenshiftClient(saName)
-	if err != nil {
-		return true, err
-	}
-
-	templateClient, err := ctx.ClientBuilder.OpenshiftTemplateClient(saName)
-	if err != nil {
-		return true, err
-	}
-
 	go templatecontroller.NewTemplateInstanceController(
 		restConfig,
-		deprecatedOcClient,
-		internalKubeClient,
-		templateClient.Template(),
+		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
+		ctx.ClientBuilder.KubeInternalClientOrDie(saName),
+		ctx.ClientBuilder.OpenshiftTemplateClientOrDie(saName),
 		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
 	).Run(5, ctx.Stop)
 
