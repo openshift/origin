@@ -8,10 +8,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/rulevalidation"
+	"github.com/openshift/origin/pkg/authorization/registry/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
+	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 )
 
 // ClusterRoles is a Diagnostic to check that the default cluster roles match expectations
@@ -103,12 +104,19 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 		}
 		if err != nil {
 			r.Error("CRD1001", err, fmt.Sprintf("Unable to get clusterrole/%s: %v", changedClusterRole.Name, err))
+			continue
 		}
 
-		_, missingRules := rulevalidation.Covers(actualClusterRole.Rules, changedClusterRole.Rules)
+		actualRBACClusterRole, err := util.ClusterRoleToRBAC(actualClusterRole)
+		if err != nil {
+			r.Error("CRD1009", err, fmt.Sprintf("Unable to convert clusterrole/%s to RBAC cluster role: %v", actualClusterRole.Name, err))
+			continue
+		}
+
+		_, missingRules := rbacregistryvalidation.Covers(actualRBACClusterRole.Rules, changedClusterRole.Rules)
 		if len(missingRules) == 0 {
 			r.Info("CRD1003", fmt.Sprintf(clusterRoleReduced, changedClusterRole.Name))
-			_, extraRules := rulevalidation.Covers(changedClusterRole.Rules, actualClusterRole.Rules)
+			_, extraRules := rbacregistryvalidation.Covers(changedClusterRole.Rules, actualRBACClusterRole.Rules)
 			for _, extraRule := range extraRules {
 				r.Info("CRD1008", fmt.Sprintf("clusterrole/%s has extra permission %v.", changedClusterRole.Name, extraRule))
 			}
