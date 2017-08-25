@@ -23199,7 +23199,7 @@
      "revisionHistoryLimit": {
       "type": "integer",
       "format": "int32",
-      "description": "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified."
+      "description": "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified. Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)"
      },
      "test": {
       "type": "boolean",

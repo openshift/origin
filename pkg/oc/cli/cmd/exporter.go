@@ -146,7 +146,7 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 		t.Secrets = newMountableSecrets
 
 	case *deployapi.DeploymentConfig:
-		return deployrest.Strategy.Export(ctx, obj, exact)
+		return deployrest.CommonStrategy.Export(ctx, obj, exact)
 
 	case *buildapi.BuildConfig:
 		// Use the legacy strategy to avoid setting prune defaults if

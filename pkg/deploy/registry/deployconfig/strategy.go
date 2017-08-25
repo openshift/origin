@@ -10,11 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kstorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
 )
 
@@ -24,8 +26,16 @@ type strategy struct {
 	names.NameGenerator
 }
 
-// Strategy is the default logic that applies when creating and updating DeploymentConfig objects.
-var Strategy = strategy{kapi.Scheme, names.SimpleNameGenerator}
+// CommonStrategy is the default logic that applies when creating and updating DeploymentConfig objects.
+var CommonStrategy = strategy{kapi.Scheme, names.SimpleNameGenerator}
+
+// LegacyStrategy is the logic that applies when creating and updating DeploymentConfig objects in the legacy API.
+// An example would be setting different defaults depending on API group
+var LegacyStrategy = legacyStrategy{CommonStrategy}
+
+// GroupStrategy is the logic that applies when creating and updating DeploymentConfig objects in the group API.
+// An example would be setting different defaults depending on API group
+var GroupStrategy = groupStrategy{CommonStrategy}
 
 // NamespaceScoped is true for DeploymentConfig objects.
 func (strategy) NamespaceScoped() bool {
@@ -105,12 +115,40 @@ func (strategy) CheckGracefulDelete(obj runtime.Object, options *metav1.DeleteOp
 	return false
 }
 
+// legacyStrategy implements behavior for DeploymentConfig objects in the legacy API
+type legacyStrategy struct {
+	strategy
+}
+
+// PrepareForCreate delegates to the common strategy.
+func (s legacyStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+	s.strategy.PrepareForCreate(ctx, obj)
+}
+
+// DefaultGarbageCollectionPolicy for legacy DeploymentConfigs will orphan dependents.
+func (s legacyStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+	return rest.OrphanDependents
+}
+
+// groupStrategy implements behavior for DeploymentConfig objects in the Group API
+type groupStrategy struct {
+	strategy
+}
+
+// PrepareForCreate delegates to the common strategy and sets defaults applicable only to Group API
+func (s groupStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+	s.strategy.PrepareForCreate(ctx, obj)
+
+	dc := obj.(*deployapi.DeploymentConfig)
+	deployapiv1.AppsV1DeploymentConfigLayeredDefaults(dc)
+}
+
 // statusStrategy implements behavior for DeploymentConfig status updates.
 type statusStrategy struct {
 	strategy
 }
 
-var StatusStrategy = statusStrategy{Strategy}
+var StatusStrategy = statusStrategy{CommonStrategy}
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update of status.
 func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {

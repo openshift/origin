@@ -38,6 +38,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=User, Version=InternalVersion
 	case user.SchemeGroupVersion.WithResource("groups"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.User().InternalVersion().Groups().Informer()}, nil
+	case user.SchemeGroupVersion.WithResource("identities"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.User().InternalVersion().Identities().Informer()}, nil
 	case user.SchemeGroupVersion.WithResource("users"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.User().InternalVersion().Users().Informer()}, nil
 

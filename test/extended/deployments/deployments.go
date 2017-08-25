@@ -1091,11 +1091,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			})
 
 			g.By("deleting owned RCs when deleted", func() {
-				// FIXME: Add delete option when we have new client available.
-				// This is working fine now because of finalizers on RCs but when GC gets fixed
-				// and we remove them this will probably break and will require setting deleteOptions
-				// to achieve cascade delete
-				err = oc.Client().DeploymentConfigs(namespace).Delete(dcName)
+				err = oc.Clientset().AppsV1().DeploymentConfigs(namespace).Delete(dcName, &metav1.DeleteOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = wait.PollImmediate(200*time.Millisecond, 5*time.Minute, func() (bool, error) {

@@ -26,6 +26,7 @@ import (
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/pkg/client"
+	oclientset "github.com/openshift/origin/pkg/client/clientset/clientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -190,6 +191,22 @@ func (c *CLI) Client() *client.Client {
 		FatalErr(err)
 	}
 	return osClient
+}
+
+// Clientset provides the new OpenShift clientset for the current user. If the user is not
+// set, then it provides client for the cluster admin user
+func (c *CLI) Clientset() *oclientset.Clientset {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	if err != nil {
+		FatalErr(err)
+	}
+
+	cs, err := oclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+
+	return cs
 }
 
 // AdminClient provides an OpenShift client for the cluster admin user.
