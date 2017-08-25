@@ -124,7 +124,20 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 // speak to it and a close method which provides the proxy.  The caller must
 // call the close method, usually done in AfterEach
 func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, func() error) {
-	configPath := exutil.FixturePath("..", "..", "examples", "templateservicebroker", "templateservicebroker-template.yaml")
+	{
+		configPath := exutil.FixturePath("..", "..", "install", "templateservicebroker", "rbac-template.yaml")
+		stdout, _, err := tsbOC.WithoutNamespace().Run("process").Args("-f", configPath, "-p", "NAMESPACE="+tsbOC.Namespace()).Outputs()
+		if err != nil {
+			e2e.Logf("Error processing TSB template at %s: %v \n", configPath, err)
+		}
+		err = tsbOC.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
+		if err != nil {
+			// If template tests run in parallel this could be created twice, we don't really care.
+			e2e.Logf("Error creating TSB resources: %v \n", err)
+		}
+	}
+
+	configPath := exutil.FixturePath("..", "..", "install", "templateservicebroker", "apiserver-template.yaml")
 
 	err := tsbOC.AsAdmin().Run("new-app").Args(configPath, "-p", "LOGLEVEL=4", "-p", "NAMESPACE="+tsbOC.Namespace()).Execute()
 	o.Expect(err).NotTo(o.HaveOccurred())

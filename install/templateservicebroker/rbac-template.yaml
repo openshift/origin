@@ -1,0 +1,48 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-rbac
+parameters:
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+objects:
+
+# to delegate authentication and authorization
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: auth-delegator-${NAMESPACE}
+  roleRef:
+    name: system:auth-delegator
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to have the template service broker powers
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: tsb-${NAMESPACE}
+  roleRef:
+    name: system:openshift:controller:template-service-broker
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
+
+# to read the config for terminating authentication
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${KUBE_SYSTEM}
+    name: extension-apiserver-authentication-reader-${NAMESPACE}
+  roleRef:
+    namespace: kube-system
+    name: extension-apiserver-authentication-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: apiserver
