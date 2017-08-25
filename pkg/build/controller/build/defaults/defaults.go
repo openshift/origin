@@ -100,7 +100,6 @@ func (b BuildDefaults) applyPodDefaults(pod *v1.Pod) {
 			}
 		}
 	}
-
 }
 
 func (b BuildDefaults) applyBuildDefaults(build *buildapi.Build) {
