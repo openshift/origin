@@ -51,16 +51,16 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, err
 
 	statusStore := *store
 	statusStore.UpdateStrategy = deployconfig.StatusStrategy
-
 	statusREST := &StatusREST{store: &statusStore}
-	scaleREST := &ScaleREST{registry: deployconfig.NewRegistry(deploymentConfigREST)}
+
+	scaleREST := &ScaleREST{store: store}
 
 	return deploymentConfigREST, statusREST, scaleREST, nil
 }
 
 // ScaleREST contains the REST storage for the Scale subresource of DeploymentConfigs.
 type ScaleREST struct {
-	registry deployconfig.Registry
+	store *registry.Store
 }
 
 // ScaleREST implements Patcher
@@ -73,20 +73,21 @@ func (r *ScaleREST) New() runtime.Object {
 
 // Get retrieves (computes) the Scale subresource for the given DeploymentConfig name.
 func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name, options)
+	deploymentConfig, err := r.store.Get(ctx, name, options)
 	if err != nil {
 		return nil, err
 	}
 
-	return deployapi.ScaleFromConfig(deploymentConfig), nil
+	return deployapi.ScaleFromConfig(deploymentConfig.(*deployapi.DeploymentConfig)), nil
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
 func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
-	deploymentConfig, err := r.registry.GetDeploymentConfig(ctx, name, &metav1.GetOptions{})
+	uncastObj, err := r.store.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
 	}
+	deploymentConfig := uncastObj.(*deployapi.DeploymentConfig)
 
 	old := deployapi.ScaleFromConfig(deploymentConfig)
 	obj, err := objInfo.UpdatedObject(ctx, old)
@@ -104,7 +105,7 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 	}
 
 	deploymentConfig.Spec.Replicas = scale.Spec.Replicas
-	if err := r.registry.UpdateDeploymentConfig(ctx, deploymentConfig); err != nil {
+	if _, _, err := r.store.Update(ctx, deploymentConfig.Name, rest.DefaultUpdatedObjectInfo(deploymentConfig, kapi.Scheme)); err != nil {
 		return nil, false, err
 	}
 

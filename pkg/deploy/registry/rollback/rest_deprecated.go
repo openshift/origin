@@ -10,9 +10,11 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
+	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -31,24 +33,20 @@ type GeneratorClient interface {
 	GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
 }
 
-// Client provides an implementation of Generator client
 type Client struct {
-	GRFn func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
-	RCFn func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error)
-	DCFn func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
+	GRFn                        func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
+	DeploymentConfigGetter      deployclient.DeploymentConfigsGetter
+	ReplicationControllerGetter coreclient.ReplicationControllersGetter
 }
 
-// GetDeployment returns the deploymentConfig with the provided context and name
 func (c Client) GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
-	return c.DCFn(ctx, name, options)
+	return c.DeploymentConfigGetter.DeploymentConfigs(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
-// GetDeployment returns the deployment with the provided context and name
 func (c Client) GetDeployment(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
-	return c.RCFn(ctx, name, options)
+	return c.ReplicationControllerGetter.ReplicationControllers(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
-// GenerateRollback generates a new deploymentConfig by merging a pair of deploymentConfigs
 func (c Client) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 	return c.GRFn(from, to, spec)
 }

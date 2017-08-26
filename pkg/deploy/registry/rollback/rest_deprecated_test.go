@@ -46,7 +46,7 @@ func TestCreateInvalidDepr(t *testing.T) {
 
 func TestCreateOkDepr(t *testing.T) {
 	rest := DeprecatedREST{
-		generator: Client{
+		generator: TestClient{
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return &deployapi.DeploymentConfig{}, nil
 			},
@@ -85,7 +85,7 @@ func TestCreateOkDepr(t *testing.T) {
 
 func TestCreateGeneratorErrorDepr(t *testing.T) {
 	rest := DeprecatedREST{
-		generator: Client{
+		generator: TestClient{
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				return nil, kerrors.NewInternalError(fmt.Errorf("something terrible happened"))
 			},
@@ -116,7 +116,7 @@ func TestCreateGeneratorErrorDepr(t *testing.T) {
 
 func TestCreateMissingDeploymentDepr(t *testing.T) {
 	rest := DeprecatedREST{
-		generator: Client{
+		generator: TestClient{
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
@@ -153,7 +153,7 @@ func TestCreateMissingDeploymentDepr(t *testing.T) {
 
 func TestCreateInvalidDeploymentDepr(t *testing.T) {
 	rest := DeprecatedREST{
-		generator: Client{
+		generator: TestClient{
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
@@ -193,7 +193,7 @@ func TestCreateInvalidDeploymentDepr(t *testing.T) {
 
 func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 	rest := DeprecatedREST{
-		generator: Client{
+		generator: TestClient{
 			GRFn: func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
 				t.Fatal("unexpected call to generator")
 				return nil, errors.New("something terrible happened")
@@ -229,6 +229,28 @@ func TestCreateMissingDeploymentConfigDepr(t *testing.T) {
 
 func TestNewDepr(t *testing.T) {
 	// :)
-	rest := NewDeprecatedREST(Client{}, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	rest := NewDeprecatedREST(TestClient{}, kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
 	rest.New()
+}
+
+// Client provides an implementation of Generator client
+type TestClient struct {
+	GRFn func(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error)
+	RCFn func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error)
+	DCFn func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error)
+}
+
+// GetDeployment returns the deploymentConfig with the provided context and name
+func (c TestClient) GetDeploymentConfig(ctx apirequest.Context, name string, options *metav1.GetOptions) (*deployapi.DeploymentConfig, error) {
+	return c.DCFn(ctx, name, options)
+}
+
+// GetDeployment returns the deployment with the provided context and name
+func (c TestClient) GetDeployment(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
+	return c.RCFn(ctx, name, options)
+}
+
+// GenerateRollback generates a new deploymentConfig by merging a pair of deploymentConfigs
+func (c TestClient) GenerateRollback(from, to *deployapi.DeploymentConfig, spec *deployapi.DeploymentConfigRollbackSpec) (*deployapi.DeploymentConfig, error) {
+	return c.GRFn(from, to, spec)
 }
