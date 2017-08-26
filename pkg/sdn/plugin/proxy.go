@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	osclient "github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -58,8 +59,8 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (*OsdnProxy, error) {
-	if !osapi.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
+func NewProxyPlugin(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (sdn.ProxyInterface, error) {
+	if !sdn.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
@@ -145,7 +146,7 @@ func (proxy *OsdnProxy) isNamespaceGlobal(ns string) bool {
 	proxy.idLock.Lock()
 	defer proxy.idLock.Unlock()
 
-	if proxy.ids[ns] == osapi.GlobalVNID {
+	if proxy.ids[ns] == sdn.GlobalVNID {
 		return true
 	}
 	return false

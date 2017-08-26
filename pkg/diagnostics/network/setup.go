@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	diagutil "github.com/openshift/origin/pkg/diagnostics/util"
 	"github.com/openshift/origin/pkg/oc/cli/config"
+	"github.com/openshift/origin/pkg/sdn"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
@@ -26,7 +27,7 @@ func (d *NetworkDiagnostic) TestSetup() error {
 	d.nsName2 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagNamespacePrefix))
 
 	nsList := []string{d.nsName1, d.nsName2}
-	if sdnapi.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
+	if sdn.IsOpenShiftMultitenantNetworkPlugin(d.pluginName) {
 		d.globalnsName1 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
 		nsList = append(nsList, d.globalnsName1)
 		d.globalnsName2 = names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", util.NetworkDiagGlobalNamespacePrefix))
@@ -209,7 +210,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 		return err
 	}
 
-	sdnapi.SetChangePodNetworkAnnotation(netns, sdnapi.GlobalPodNetwork, "")
+	sdn.SetChangePodNetworkAnnotation(netns, sdn.GlobalPodNetwork, "")
 
 	if _, err = d.OSClient.NetNamespaces().Update(netns); err != nil {
 		return err
@@ -221,7 +222,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 			return false, err
 		}
 
-		if _, _, err = sdnapi.GetChangePodNetworkAnnotation(updatedNetNs); err == sdnapi.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err = sdn.GetChangePodNetworkAnnotation(updatedNetNs); err == sdn.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		}
 		// Pod network change not applied yet

@@ -12,7 +12,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn"
 )
 
 const MakeGlobalProjectsNetworkCommandName = "make-projects-global"
@@ -42,7 +42,7 @@ func NewCmdMakeGlobalProjectsNetwork(commandName, fullName string, f *clientcmd.
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Make project network global",
-		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, sdnapi.MultiTenantPluginName),
+		Long:    fmt.Sprintf(makeGlobalProjectsNetworkLong, sdn.MultiTenantPluginName),
 		Example: fmt.Sprintf(makeGlobalProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {
@@ -73,7 +73,7 @@ func (m *MakeGlobalOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		if err = m.Options.UpdatePodNetwork(project.Name, sdnapi.GlobalPodNetwork, ""); err != nil {
+		if err = m.Options.UpdatePodNetwork(project.Name, sdn.GlobalPodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("Removing network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

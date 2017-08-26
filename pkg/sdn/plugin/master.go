@@ -9,6 +9,7 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	osapivalidation "github.com/openshift/origin/pkg/sdn/apis/network/validation"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -35,7 +36,7 @@ type OsdnMaster struct {
 }
 
 func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
-	if !osapi.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
+	if !sdn.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
 
@@ -120,12 +121,12 @@ func StartMaster(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclie
 	}
 
 	switch networkConfig.NetworkPluginName {
-	case osapi.MultiTenantPluginName:
+	case sdn.MultiTenantPluginName:
 		master.vnids = newMasterVNIDMap(true)
 		if err = master.VnidStartMaster(); err != nil {
 			return err
 		}
-	case osapi.NetworkPolicyPluginName:
+	case sdn.NetworkPolicyPluginName:
 		master.vnids = newMasterVNIDMap(false)
 		if err = master.VnidStartMaster(); err != nil {
 			return err

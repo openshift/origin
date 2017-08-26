@@ -12,7 +12,6 @@ import (
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 
 	"github.com/openshift/origin/pkg/diagnostics/types"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
 )
 
 type LogInterface struct {
@@ -26,8 +25,8 @@ func (l *LogInterface) LogNode(kubeClient kclientset.Interface) {
 
 	l.Run("brctl show", "bridges")
 	l.Run("docker ps -a", "docker-ps")
-	l.Run(fmt.Sprintf("ovs-ofctl -O OpenFlow13 dump-flows %s", sdnplugin.Br0), "flows")
-	l.Run(fmt.Sprintf("ovs-ofctl -O OpenFlow13 show %s", sdnplugin.Br0), "ovs-show")
+	l.Run("ovs-ofctl -O OpenFlow13 dump-flows br0", "flows")
+	l.Run("ovs-ofctl -O OpenFlow13 show br0", "ovs-show")
 	l.Run("tc qdisc show", "tc-qdisc")
 	l.Run("tc class show", "tc-class")
 	l.Run("tc filter show", "tc-filter")
