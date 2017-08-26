@@ -66,6 +66,12 @@ os::cmd::expect_success "oc adm router --images='${USE_IMAGES}'"
 os::cmd::expect_success_and_text 'oc adm router' 'service exists'
 os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
 
+# delete the router and deployment config, leaving the clusterrolebinding and service account
+os::cmd::expect_success_and_text "oc delete svc/router" 'service "router" deleted'
+os::cmd::expect_success_and_text "oc delete dc/router" 'deploymentconfig "router" deleted'
+# create a router and check for success with a warning about the existing clusterrolebinding
+os::cmd::expect_success_and_text "oc adm router" 'warning: clusterrolebindings "router-router-role" already exists'
+
 # only when using hostnetwork should we force the probes to use localhost
 os::cmd::expect_success_and_not_text "oc adm router -o yaml --host-network=false" 'host: localhost'
 os::cmd::expect_success "oc adm router -o yaml | oc delete -f -"
