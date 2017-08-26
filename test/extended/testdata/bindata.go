@@ -7813,6 +7813,10 @@ parameters:
   required: true
 objects:
 - apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: output
+- apiVersion: v1
   kind: BuildConfig
   metadata:
     name: gitauthtest
@@ -7830,6 +7834,14 @@ objects:
           name: ruby:latest
           namespace: openshift
       type: Source
+    # this test specifically does a push, to help exercise the code that sets
+    # environment variables on build pods (i.e., by having a source secret and
+    # a push secret, multiple environment variables need to be set correctly for
+    # the build to succeed).
+    output:
+      to:
+        kind: ImageStreamTag
+        name: output:latest
 `)
 
 func testExtendedTestdataTestAuthBuildYamlBytes() ([]byte, error) {

@@ -55,7 +55,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 					Name:    "docker-build",
 					Image:   bs.Image,
 					Command: []string{"openshift-docker-build"},
-					Env:     containerEnv,
+					Env:     copyEnvVarSlice(containerEnv),
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &privileged,
@@ -92,7 +92,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Name:    GitCloneContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-git-clone"},
-			Env:     containerEnv,
+			Env:     copyEnvVarSlice(containerEnv),
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
@@ -115,7 +115,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Name:    ExtractImageContentContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-extract-image-content"},
-			Env:     containerEnv,
+			Env:     copyEnvVarSlice(containerEnv),
 			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 			SecurityContext: &v1.SecurityContext{
 				Privileged: &privileged,
@@ -137,7 +137,7 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Name:    "manage-dockerfile",
 			Image:   bs.Image,
 			Command: []string{"openshift-manage-dockerfile"},
-			Env:     containerEnv,
+			Env:     copyEnvVarSlice(containerEnv),
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{

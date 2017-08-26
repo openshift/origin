@@ -161,6 +161,8 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 			t.Errorf("Expected %s:%s, got %s:%s!\n", exp[0], exp[1], e.Name, e.Value)
 		}
 	}
+
+	checkAliasing(t, actual)
 }
 
 func TestS2IBuildLongName(t *testing.T) {
