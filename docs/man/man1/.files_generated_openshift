@@ -285,6 +285,7 @@ openshift-cli-new-project.1
 openshift-cli-observe.1
 openshift-cli-options.1
 openshift-cli-patch.1
+openshift-cli-plugin.1
 openshift-cli-policy-add-role-to-group.1
 openshift-cli-policy-add-role-to-user.1
 openshift-cli-policy-can-i.1
