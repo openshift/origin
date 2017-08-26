@@ -26,7 +26,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &quotaapi.ClusterResourceQuota{} },
 		NewListFunc:              func() runtime.Object { return &quotaapi.ClusterResourceQuotaList{} },
-		PredicateFunc:            clusterresourcequota.Matcher,
 		DefaultQualifiedResource: quotaapi.Resource("clusterresourcequotas"),
 
 		CreateStrategy: clusterresourcequota.Strategy,
@@ -34,7 +33,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, error) {
 		DeleteStrategy: clusterresourcequota.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterresourcequota.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, err
 	}

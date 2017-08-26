@@ -25,7 +25,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &sdnapi.NetNamespace{} },
 		NewListFunc:              func() runtime.Object { return &sdnapi.NetNamespaceList{} },
-		PredicateFunc:            netnamespace.Matcher,
 		DefaultQualifiedResource: sdnapi.Resource("netnamespaces"),
 
 		CreateStrategy: netnamespace.Strategy,
@@ -33,7 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: netnamespace.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: netnamespace.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

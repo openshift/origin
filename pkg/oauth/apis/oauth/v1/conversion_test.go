@@ -25,11 +25,6 @@ func TestFieldSelectorConversions(t *testing.T) {
 		"clientName", "userName", "userUID",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClient",
-		// Ensure all currently returned labels are supported
-		oauthapi.OAuthClientToSelectableFields(&oauthapi.OAuthClient{}),
-	)
-
 	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClientAuthorization",
 		// Ensure all currently returned labels are supported
 		oauthapi.OAuthClientAuthorizationToSelectableFields(&oauthapi.OAuthClientAuthorization{}),

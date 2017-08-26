@@ -23,13 +23,6 @@ func OAuthAuthorizeTokenToSelectableFields(obj *OAuthAuthorizeToken) fields.Set 
 	}
 }
 
-// OAuthClientToSelectableFields returns a label set that represents the object
-func OAuthClientToSelectableFields(obj *OAuthClient) fields.Set {
-	return fields.Set{
-		"metadata.name": obj.Name,
-	}
-}
-
 // OAuthClientAuthorizationToSelectableFields returns a label set that represents the object
 func OAuthClientAuthorizationToSelectableFields(obj *OAuthClientAuthorization) fields.Set {
 	return fields.Set{

@@ -40,7 +40,7 @@
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
       "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/api",
+      "github.com/openshift/origin/pkg/api/legacy",
       "github.com/openshift/origin/pkg/api/install",
       "github.com/openshift/origin/pkg/util/namer",
       "github.com/openshift/origin/pkg/build/util",
@@ -67,10 +67,8 @@
       "vendor/k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
       "vendor/k8s.io/kubernetes/pkg/api/helper",
       "vendor/k8s.io/kubernetes/pkg/api/install",
-      "github.com/openshift/origin/pkg/api",
       "github.com/openshift/origin/pkg/deploy/apis/apps/install",
-      "github.com/openshift/origin/pkg/image/apis/image",
-      "github.com/openshift/origin/test/util/api"
+      "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
 
@@ -182,11 +180,7 @@
       "vendor/k8s.io/apimachinery",
       "vendor/github.com/gogo/protobuf"
     ],
-    "allowedImportPackages": [
-      "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/api/install",
-      "github.com/openshift/origin/test/util/api"
-    ]
+    "allowedImportPackages": []
   },
 
   {

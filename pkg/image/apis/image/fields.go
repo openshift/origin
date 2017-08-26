@@ -2,14 +2,6 @@ package image
 
 import "k8s.io/apimachinery/pkg/fields"
 
-// ImageToSelectableFields returns a label set that represents the object.
-func ImageToSelectableFields(image *Image) fields.Set {
-	return fields.Set{
-		"metadata.name":      image.Name,
-		"metadata.namespace": image.Namespace,
-	}
-}
-
 // ImageStreamToSelectableFields returns a label set that represents the object.
 func ImageStreamToSelectableFields(ir *ImageStream) fields.Set {
 	return fields.Set{
