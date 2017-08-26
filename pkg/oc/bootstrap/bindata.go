@@ -13945,6 +13945,11 @@ objects:
             name: serving-cert
           - mountPath: /var/apiserver-config
             name: apiserver-config
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
         volumes:
         - name: serving-cert
           secret:

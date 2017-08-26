@@ -24,11 +24,11 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
+var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC               = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
+		tsbOC               = exutil.NewCLI("openshift-template-service-broker", exutil.KubeConfigPath())
 		portForwardCmdClose func() error
 
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
@@ -50,7 +50,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		var err error
 
 		// should have been created before the extended test runs
-		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
+		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		processedtemplate, err = cli.AdminClient().TemplateConfigs("openshift").Create(template)
@@ -196,7 +196,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			"DATABASE_USER": []byte("test"),
 		}))
 
-		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-persistent", metav1.GetOptions{})
+		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))

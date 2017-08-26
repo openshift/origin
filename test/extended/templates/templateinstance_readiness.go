@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
@@ -20,7 +21,7 @@ import (
 )
 
 // ensure that template instantiation waits for annotated objects
-var _ = g.Describe("[templates] templateinstance readiness test", func() {
+var _ = g.Describe("[Conformance][templates] templateinstance readiness test", func() {
 	defer g.GinkgoRecover()
 
 	var (
@@ -97,6 +98,8 @@ var _ = g.Describe("[templates] templateinstance readiness test", func() {
 	}
 
 	g.BeforeEach(func() {
+		framework.SkipIfProviderIs("gce")
+
 		err := cli.Run("create").Args("-f", templatefixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
