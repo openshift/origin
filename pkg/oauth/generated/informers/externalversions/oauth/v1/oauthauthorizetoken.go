@@ -14,28 +14,28 @@ import (
 	time "time"
 )
 
-// OAuthClientInformer provides access to a shared informer and lister for
-// OAuthClients.
-type OAuthClientInformer interface {
+// OAuthAuthorizeTokenInformer provides access to a shared informer and lister for
+// OAuthAuthorizeTokens.
+type OAuthAuthorizeTokenInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1.OAuthClientLister
+	Lister() v1.OAuthAuthorizeTokenLister
 }
 
-type oAuthClientInformer struct {
+type oAuthAuthorizeTokenInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newOAuthClientInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newOAuthAuthorizeTokenInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.OauthV1().OAuthClients().List(options)
+				return client.OauthV1().OAuthAuthorizeTokens().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.OauthV1().OAuthClients().Watch(options)
+				return client.OauthV1().OAuthAuthorizeTokens().Watch(options)
 			},
 		},
-		&oauth_v1.OAuthClient{},
+		&oauth_v1.OAuthAuthorizeToken{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -43,10 +43,10 @@ func newOAuthClientInformer(client clientset.Interface, resyncPeriod time.Durati
 	return sharedIndexInformer
 }
 
-func (f *oAuthClientInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&oauth_v1.OAuthClient{}, newOAuthClientInformer)
+func (f *oAuthAuthorizeTokenInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&oauth_v1.OAuthAuthorizeToken{}, newOAuthAuthorizeTokenInformer)
 }
 
-func (f *oAuthClientInformer) Lister() v1.OAuthClientLister {
-	return v1.NewOAuthClientLister(f.Informer().GetIndexer())
+func (f *oAuthAuthorizeTokenInformer) Lister() v1.OAuthAuthorizeTokenLister {
+	return v1.NewOAuthAuthorizeTokenLister(f.Informer().GetIndexer())
 }

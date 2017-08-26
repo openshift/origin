@@ -8,8 +8,14 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
+	// OAuthAccessTokens returns a OAuthAccessTokenInformer.
+	OAuthAccessTokens() OAuthAccessTokenInformer
+	// OAuthAuthorizeTokens returns a OAuthAuthorizeTokenInformer.
+	OAuthAuthorizeTokens() OAuthAuthorizeTokenInformer
 	// OAuthClients returns a OAuthClientInformer.
 	OAuthClients() OAuthClientInformer
+	// OAuthClientAuthorizations returns a OAuthClientAuthorizationInformer.
+	OAuthClientAuthorizations() OAuthClientAuthorizationInformer
 }
 
 type version struct {
@@ -21,7 +27,22 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
+// OAuthAccessTokens returns a OAuthAccessTokenInformer.
+func (v *version) OAuthAccessTokens() OAuthAccessTokenInformer {
+	return &oAuthAccessTokenInformer{factory: v.SharedInformerFactory}
+}
+
+// OAuthAuthorizeTokens returns a OAuthAuthorizeTokenInformer.
+func (v *version) OAuthAuthorizeTokens() OAuthAuthorizeTokenInformer {
+	return &oAuthAuthorizeTokenInformer{factory: v.SharedInformerFactory}
+}
+
 // OAuthClients returns a OAuthClientInformer.
 func (v *version) OAuthClients() OAuthClientInformer {
 	return &oAuthClientInformer{factory: v.SharedInformerFactory}
+}
+
+// OAuthClientAuthorizations returns a OAuthClientAuthorizationInformer.
+func (v *version) OAuthClientAuthorizations() OAuthClientAuthorizationInformer {
+	return &oAuthClientAuthorizationInformer{factory: v.SharedInformerFactory}
 }

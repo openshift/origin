@@ -36,8 +36,14 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=Oauth, Version=V1
+	case v1.SchemeGroupVersion.WithResource("oauthaccesstokens"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Oauth().V1().OAuthAccessTokens().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("oauthauthorizetokens"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Oauth().V1().OAuthAuthorizeTokens().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("oauthclients"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Oauth().V1().OAuthClients().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("oauthclientauthorizations"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Oauth().V1().OAuthClientAuthorizations().Informer()}, nil
 
 	}
 

@@ -9,7 +9,10 @@ import (
 
 type OauthV1Interface interface {
 	RESTClient() rest.Interface
+	OAuthAccessTokensGetter
+	OAuthAuthorizeTokensGetter
 	OAuthClientsGetter
+	OAuthClientAuthorizationsGetter
 }
 
 // OauthV1Client is used to interact with features provided by the oauth.openshift.io group.
@@ -17,8 +20,20 @@ type OauthV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *OauthV1Client) OAuthClients(namespace string) OAuthClientInterface {
-	return newOAuthClients(c, namespace)
+func (c *OauthV1Client) OAuthAccessTokens() OAuthAccessTokenInterface {
+	return newOAuthAccessTokens(c)
+}
+
+func (c *OauthV1Client) OAuthAuthorizeTokens() OAuthAuthorizeTokenInterface {
+	return newOAuthAuthorizeTokens(c)
+}
+
+func (c *OauthV1Client) OAuthClients() OAuthClientInterface {
+	return newOAuthClients(c)
+}
+
+func (c *OauthV1Client) OAuthClientAuthorizations() OAuthClientAuthorizationInterface {
+	return newOAuthClientAuthorizations(c)
 }
 
 // NewForConfig creates a new OauthV1Client for the given config.
