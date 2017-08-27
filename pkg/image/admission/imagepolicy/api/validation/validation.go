@@ -28,6 +28,9 @@ func Validate(config *api.ImagePolicyConfig) field.ErrorList {
 	}
 
 	for i, rule := range config.ResolutionRules {
+		if len(rule.Policy) == 0 {
+			allErrs = append(allErrs, field.Required(field.NewPath(api.PluginName, "resolutionRules").Index(i).Child("policy"), "a policy must be specified for this resource"))
+		}
 		if len(rule.TargetResource.Resource) == 0 {
 			allErrs = append(allErrs, field.Required(field.NewPath(api.PluginName, "resolutionRules").Index(i).Child("targetResource", "resource"), "a target resource name or '*' must be provided"))
 		}
