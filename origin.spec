@@ -11,7 +11,8 @@
 # docker_version is the version of docker requires by packages
 %global docker_version 1.12
 # tuned_version is the version of tuned requires by packages
-%global tuned_version  2.3
+# tuned-2.8.0-1.el7 introduced auto-parent functionality (BZ1426654), see openshift profile
+%global tuned_version 2.8
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.6.1
 # this is the version we obsolete up to. The packaging changed for Origin
@@ -340,6 +341,12 @@ install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}
 install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
 install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
 install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
+install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/openshift{,-control-plane,-node}
+install -d -m 0755 %{buildroot}%{_sysconfdir}/tuned/
+install -m 0644 contrib/tuned/openshift/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift/tuned.conf
+install -m 0644 contrib/tuned/openshift-control-plane/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-control-plane/tuned.conf
+install -m 0644 contrib/tuned/openshift-node/tuned.conf %{buildroot}%{_prefix}/lib/tuned/openshift-node/tuned.conf
+install -m 0644 contrib/tuned/recommend/recommend.conf %{buildroot}%{_sysconfdir}/tuned/recommend.conf
 
 # Install man1 man pages
 install -d -m 0755 %{buildroot}%{_mandir}/man1
@@ -553,22 +560,10 @@ fi
 %{_prefix}/lib/tuned/%{name}-node-host
 %{_prefix}/lib/tuned/%{name}-node-guest
 %{_mandir}/man7/tuned-profiles-%{name}-node.7*
-
-%post -n tuned-profiles-%{name}-node
-recommended=`/usr/sbin/tuned-adm recommend`
-if [[ "${recommended}" =~ guest ]] ; then
-  /usr/sbin/tuned-adm profile %{name}-node-guest > /dev/null 2>&1
-else
-  /usr/sbin/tuned-adm profile %{name}-node-host > /dev/null 2>&1
-fi
-
-%preun -n tuned-profiles-%{name}-node
-# reset the tuned profile to the recommended profile
-# $1 = 0 when we're being removed > 0 during upgrades
-if [ "$1" = 0 ]; then
-  recommended=`/usr/sbin/tuned-adm recommend`
-  /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
-fi
+%{_prefix}/lib/tuned/openshift
+%{_prefix}/lib/tuned/openshift-control-plane
+%{_prefix}/lib/tuned/openshift-node
+%{_sysconfdir}/tuned/recommend.conf
 
 %files clients
 %license LICENSE
