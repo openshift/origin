@@ -15,8 +15,8 @@ import (
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -29,12 +29,10 @@ const (
 )
 
 // NewDeploymentTriggerController returns a new DeploymentTriggerController.
-func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache.SharedIndexInformer, oc osclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
+func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache.SharedIndexInformer, appsClientset appsclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
 	c := &DeploymentTriggerController{
-		dn: oc,
-
+		dn:    appsClientset.Apps(),
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
-
 		codec: codec,
 	}
 

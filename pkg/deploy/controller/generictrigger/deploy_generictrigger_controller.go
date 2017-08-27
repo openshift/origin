@@ -7,9 +7,9 @@ import (
 	kcorelister "k8s.io/kubernetes/pkg/client/listers/core/v1"
 
 	"github.com/golang/glog"
-	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 )
 
 const (
@@ -26,7 +26,7 @@ type DeploymentTriggerController struct {
 	triggerFromImages bool
 
 	// dn is used to update deployment configs.
-	dn osclient.DeploymentConfigsNamespacer
+	dn appsclient.DeploymentConfigsGetter
 
 	// queue contains deployment configs that need to be synced.
 	queue workqueue.RateLimitingInterface
