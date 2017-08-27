@@ -157,7 +157,6 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: mountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
-
 	}
 }
 
@@ -175,9 +174,9 @@ func setupSourceSecrets(pod *v1.Pod, container *v1.Container, sourceSecret *kapi
 	}...)
 }
 
-// setupSecrets mounts the secrets referenced by the SecretBuildSource
+// setupInputSecrets mounts the secrets referenced by the SecretBuildSource
 // into a builder container.
-func setupSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretBuildSource) {
+func setupInputSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretBuildSource) {
 	for _, s := range secrets {
 		mountSecretVolume(pod, container, s.Secret.Name, filepath.Join(SecretBuildSourceBaseMountPath, s.Secret.Name), "build")
 		glog.V(3).Infof("%s will be used as a build secret in %s", s.Secret.Name, SecretBuildSourceBaseMountPath)

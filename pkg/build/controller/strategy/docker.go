@@ -157,7 +157,11 @@ func (bs *DockerBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	setOwnerReference(pod, build)
 	setupDockerSocket(pod)
 	setupDockerSecrets(pod, &pod.Spec.Containers[0], build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
-	setupSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
+	// For any secrets the user wants to reference from their Assemble script or Dockerfile, mount those
+	// secrets into the main container.  The main container includes logic to copy them from the mounted
+	// location into the working directory.
+	// TODO: consider moving this into the git-clone container and doing the secret copying there instead.
+	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 
 	return pod, nil
 }

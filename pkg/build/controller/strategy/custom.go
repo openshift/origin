@@ -118,7 +118,7 @@ func (bs *CustomBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	}
 	setOwnerReference(pod, build)
 	setupSourceSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.SourceSecret)
-	setupSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
+	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	setupAdditionalSecrets(pod, &pod.Spec.Containers[0], build.Spec.Strategy.CustomStrategy.Secrets)
 	return pod, nil
 }
