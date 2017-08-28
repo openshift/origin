@@ -26,6 +26,10 @@ func (c *ServiceAccountControllerOptions) RunController(ctx ControllerContext) (
 	options.ServiceAccounts = []kapiv1.ServiceAccount{}
 
 	for _, saName := range c.ManagedNames {
+		// the upstream controller does this one, so we don't have to
+		if saName == "default" {
+			continue
+		}
 		sa := kapiv1.ServiceAccount{}
 		sa.Name = saName
 
