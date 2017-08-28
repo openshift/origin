@@ -13,6 +13,8 @@ import (
 
 	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imagefakeclient "github.com/openshift/origin/pkg/image/generated/clientset/typed/image/v1/fake"
 )
 
 // FakeOpenShift is an in-mempory reactors for fake.Client.
@@ -20,8 +22,8 @@ type FakeOpenShift struct {
 	logger context.Logger
 	mu     sync.Mutex
 
-	images       map[string]imageapi.Image
-	imageStreams map[string]imageapi.ImageStream
+	images       map[string]imageapiv1.Image
+	imageStreams map[string]imageapiv1.ImageStream
 }
 
 // NewFakeOpenShift constructs the fake OpenShift reactors.
@@ -29,28 +31,30 @@ func NewFakeOpenShift() *FakeOpenShift {
 	return &FakeOpenShift{
 		logger: context.GetLogger(context.Background()),
 
-		images:       make(map[string]imageapi.Image),
-		imageStreams: make(map[string]imageapi.ImageStream),
+		images:       make(map[string]imageapiv1.Image),
+		imageStreams: make(map[string]imageapiv1.ImageStream),
 	}
 }
 
 // NewFakeOpenShiftWithClient constructs a fake client associated with
 // the stateful fake in-memory OpenShift reactors. The fake OpenShift is
 // available for direct interaction, so you can make buggy states.
-func NewFakeOpenShiftWithClient() (*FakeOpenShift, *testclient.Fake) {
+func NewFakeOpenShiftWithClient() (*FakeOpenShift, *testclient.Fake, *imagefakeclient.FakeImageV1) {
 	fos := NewFakeOpenShift()
 	client := &testclient.Fake{}
-	fos.AddReactorsTo(client)
-	return fos, client
+
+	imageClient := &imagefakeclient.FakeImageV1{Fake: &clientgotesting.Fake{}}
+	fos.AddReactorsTo(imageClient)
+	return fos, client, imageClient
 }
 
-func (fos *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, error) {
+func (fos *FakeOpenShift) CreateImage(image *imageapiv1.Image) (*imageapiv1.Image, error) {
 	fos.mu.Lock()
 	defer fos.mu.Unlock()
 
 	_, ok := fos.images[image.Name]
 	if ok {
-		return nil, errors.NewAlreadyExists(imageapi.Resource("images"), image.Name)
+		return nil, errors.NewAlreadyExists(imageapiv1.Resource("images"), image.Name)
 	}
 
 	fos.images[image.Name] = *image
@@ -59,25 +63,24 @@ func (fos *FakeOpenShift) CreateImage(image *imageapi.Image) (*imageapi.Image, e
 	return image, nil
 }
 
-func (fos *FakeOpenShift) GetImage(name string) (*imageapi.Image, error) {
+func (fos *FakeOpenShift) GetImage(name string) (*imageapiv1.Image, error) {
 	fos.mu.Lock()
 	defer fos.mu.Unlock()
-
 	image, ok := fos.images[name]
 	if !ok {
-		return nil, errors.NewNotFound(imageapi.Resource("images"), name)
+		return nil, errors.NewNotFound(imageapiv1.Resource("images"), name)
 	}
 
 	return &image, nil
 }
 
-func (fos *FakeOpenShift) UpdateImage(image *imageapi.Image) (*imageapi.Image, error) {
+func (fos *FakeOpenShift) UpdateImage(image *imageapiv1.Image) (*imageapiv1.Image, error) {
 	fos.mu.Lock()
 	defer fos.mu.Unlock()
 
 	_, ok := fos.images[image.Name]
 	if !ok {
-		return nil, errors.NewNotFound(imageapi.Resource("images"), image.Name)
+		return nil, errors.NewNotFound(imageapiv1.Resource("images"), image.Name)
 	}
 
 	fos.images[image.Name] = *image
@@ -86,7 +89,7 @@ func (fos *FakeOpenShift) UpdateImage(image *imageapi.Image) (*imageapi.Image, e
 	return image, nil
 }
 
-func (fos *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (fos *FakeOpenShift) CreateImageStream(namespace string, is *imageapiv1.ImageStream) (*imageapiv1.ImageStream, error) {
 	fos.mu.Lock()
 	defer fos.mu.Unlock()
 
@@ -94,7 +97,7 @@ func (fos *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.Image
 
 	_, ok := fos.imageStreams[ref]
 	if ok {
-		return nil, errors.NewAlreadyExists(imageapi.Resource("imagestreams"), is.Name)
+		return nil, errors.NewAlreadyExists(imageapiv1.Resource("imagestreams"), is.Name)
 	}
 
 	is.Namespace = namespace
@@ -106,7 +109,7 @@ func (fos *FakeOpenShift) CreateImageStream(namespace string, is *imageapi.Image
 	return is, nil
 }
 
-func (fos *FakeOpenShift) UpdateImageStream(namespace string, is *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+func (fos *FakeOpenShift) UpdateImageStream(namespace string, is *imageapiv1.ImageStream) (*imageapiv1.ImageStream, error) {
 	fos.mu.Lock()
 	defer fos.mu.Unlock()
 
@@ -114,7 +117,7 @@ func (fos *FakeOpenShift) UpdateImageStream(namespace string, is *imageapi.Image
 
 	oldis, ok := fos.imageStreams[ref]
 	if !ok {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), is.Name)
+		return nil, errors.NewNotFound(imageapiv1.Resource("imagestreams"), is.Name)
 	}
 
 	is.Namespace = namespace
@@ -126,7 +129,7 @@ func (fos *FakeOpenShift) UpdateImageStream(namespace string, is *imageapi.Image
 	return is, nil
 }
 
-func (fos *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapi.ImageStream, error) {
+func (fos *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapiv1.ImageStream, error) {
 	fos.mu.Lock()
 	defer fos.mu.Unlock()
 
@@ -134,12 +137,12 @@ func (fos *FakeOpenShift) GetImageStream(namespace, repo string) (*imageapi.Imag
 
 	is, ok := fos.imageStreams[ref]
 	if !ok {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), repo)
+		return nil, errors.NewNotFound(imageapiv1.Resource("imagestreams"), repo)
 	}
 	return &is, nil
 }
 
-func (fos *FakeOpenShift) CreateImageStreamMapping(namespace string, ism *imageapi.ImageStreamMapping) (*imageapi.ImageStreamMapping, error) {
+func (fos *FakeOpenShift) CreateImageStreamMapping(namespace string, ism *imageapiv1.ImageStreamMapping) (*imageapiv1.ImageStreamMapping, error) {
 	is, err := fos.GetImageStream(namespace, ism.Name)
 	if err != nil {
 		return nil, err
@@ -150,16 +153,24 @@ func (fos *FakeOpenShift) CreateImageStreamMapping(namespace string, ism *imagea
 		return nil, err
 	}
 
-	if is.Status.Tags == nil {
-		is.Status.Tags = make(map[string]imageapi.TagEventList)
+	var tagEventList *imageapiv1.NamedTagEventList
+	for i, t := range is.Status.Tags {
+		if t.Tag == ism.Tag {
+			tagEventList = &is.Status.Tags[i]
+			break
+		}
+	}
+	if tagEventList == nil {
+		is.Status.Tags = append(is.Status.Tags, imageapiv1.NamedTagEventList{
+			Tag: ism.Tag,
+		})
+		tagEventList = &is.Status.Tags[len(is.Status.Tags)-1]
 	}
 
-	tagEventList := is.Status.Tags[ism.Tag]
-	tagEventList.Items = append(tagEventList.Items, imageapi.TagEvent{
+	tagEventList.Items = append(tagEventList.Items, imageapiv1.TagEvent{
 		DockerImageReference: ism.Image.DockerImageReference,
 		Image:                ism.Image.Name,
 	})
-	is.Status.Tags[ism.Tag] = tagEventList
 
 	_, err = fos.UpdateImageStream(namespace, is)
 	if err != nil {
@@ -169,7 +180,7 @@ func (fos *FakeOpenShift) CreateImageStreamMapping(namespace string, ism *imagea
 	return ism, nil
 }
 
-func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi.ImageStreamTag) (*imageapi.ImageStreamTag, error) {
+func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapiv1.ImageStreamTag) (*imageapiv1.ImageStreamTag, error) {
 	imageStreamName, imageTag, ok := imageapi.SplitImageStreamTag(istag.Name)
 	if !ok {
 		return nil, fmt.Errorf("%q must be of the form <stream_name>:<tag>", istag.Name)
@@ -181,7 +192,7 @@ func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi
 			return nil, err
 		}
 
-		is = &imageapi.ImageStream{
+		is = &imageapiv1.ImageStream{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      imageStreamName,
 				Namespace: namespace,
@@ -189,32 +200,45 @@ func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi
 		}
 	}
 
-	if is.Spec.Tags == nil {
-		is.Spec.Tags = make(map[string]imageapi.TagReference)
-	}
-
 	// The user wants to symlink a tag.
-	_, exists := is.Spec.Tags[imageTag]
-	if exists {
-		return nil, errors.NewAlreadyExists(imageapi.Resource("imagestreamtag"), istag.Name)
+	for _, t := range is.Spec.Tags {
+		if t.Name == imageTag {
+			return nil, errors.NewAlreadyExists(imageapiv1.Resource("imagestreamtag"), istag.Name)
+		}
 	}
-	is.Spec.Tags[imageTag] = *istag.Tag
+	is.Spec.Tags = append(is.Spec.Tags, *istag.Tag)
 
 	// TODO(dmage): use code from (pkg/image/registry/imagestream.Strategy).tagsChanged
-	if is.Status.Tags == nil {
-		is.Status.Tags = make(map[string]imageapi.TagEventList)
+	var (
+		updatedNamedList *imageapiv1.NamedTagEventList
+		position         int
+	)
+	for i, t := range is.Status.Tags {
+		if t.Tag == imageTag {
+			updatedNamedList = &t
+			position = i
+			break
+		}
 	}
-	tagEventList := is.Status.Tags[imageTag]
-	tagEventList.Items = append(
-		[]imageapi.TagEvent{{
+	if updatedNamedList != nil {
+		updatedNamedList.Items = append(updatedNamedList.Items, imageapiv1.TagEvent{
 			Created:              istag.CreationTimestamp,
 			DockerImageReference: istag.Image.DockerImageReference,
 			Image:                istag.Image.Name,
 			Generation:           istag.Generation,
-		}},
-		tagEventList.Items...,
-	)
-	is.Status.Tags[imageTag] = tagEventList
+		})
+		is.Status.Tags[position] = *updatedNamedList
+	} else {
+		is.Status.Tags = append(is.Status.Tags, imageapiv1.NamedTagEventList{
+			Tag: imageTag,
+			Items: []imageapiv1.TagEvent{{
+				Created:              istag.CreationTimestamp,
+				DockerImageReference: istag.Image.DockerImageReference,
+				Image:                istag.Image.Name,
+				Generation:           istag.Generation,
+			}},
+		})
+	}
 
 	// Check the stream creation timestamp and make sure we will not
 	// create a new image stream while deleting.
@@ -230,7 +254,7 @@ func (fos *FakeOpenShift) CreateImageStreamTag(namespace string, istag *imageapi
 	return istag, nil
 }
 
-func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*imageapi.ImageStreamImage, error) {
+func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*imageapiv1.ImageStreamImage, error) {
 	name, imageID, err := imageapi.ParseImageStreamImageName(id)
 	if err != nil {
 		return nil, errors.NewBadRequest("ImageStreamImages must be retrieved with <name>@<id>")
@@ -245,7 +269,7 @@ func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*ima
 		return nil, errors.NewNotFound(imageapi.Resource("imagestreamimage"), id)
 	}
 
-	event, err := imageapi.ResolveImageID(repo, imageID)
+	event, err := imageapiv1.ResolveImageID(repo, imageID)
 	if err != nil {
 		return nil, err
 	}
@@ -255,13 +279,13 @@ func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*ima
 	if err != nil {
 		return nil, err
 	}
-	if err := imageapi.ImageWithMetadata(image); err != nil {
+	if err := imageapiv1.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	image.DockerImageManifest = ""
 	image.DockerImageConfig = ""
 
-	isi := imageapi.ImageStreamImage{
+	isi := imageapiv1.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         namespace,
 			Name:              imageapi.MakeImageStreamImageName(name, imageID),
@@ -316,7 +340,7 @@ func (fos *FakeOpenShift) imagesHandler(action clientgotesting.Action) (bool, ru
 				return true, image, err
 			case clientgotesting.UpdateActionImpl:
 				image, err := fos.UpdateImage(
-					action.Object.(*imageapi.Image),
+					action.Object.(*imageapiv1.Image),
 				)
 				return true, image, err
 			}
@@ -334,7 +358,7 @@ func (fos *FakeOpenShift) imageStreamsHandler(action clientgotesting.Action) (bo
 			case clientgotesting.CreateActionImpl:
 				is, err := fos.CreateImageStream(
 					action.GetNamespace(),
-					action.Object.(*imageapi.ImageStream),
+					action.Object.(*imageapiv1.ImageStream),
 				)
 				return true, is, err
 			case clientgotesting.GetActionImpl:
@@ -358,7 +382,7 @@ func (fos *FakeOpenShift) imageStreamMappingsHandler(action clientgotesting.Acti
 			case clientgotesting.CreateActionImpl:
 				ism, err := fos.CreateImageStreamMapping(
 					action.GetNamespace(),
-					action.Object.(*imageapi.ImageStreamMapping),
+					action.Object.(*imageapiv1.ImageStreamMapping),
 				)
 				return true, ism, err
 			}
@@ -386,9 +410,9 @@ func (fos *FakeOpenShift) imageStreamImagesHandler(action clientgotesting.Action
 }
 
 // AddReactorsTo binds the reactors to client.
-func (fos *FakeOpenShift) AddReactorsTo(client *testclient.Fake) {
-	client.AddReactor("*", "images", fos.imagesHandler)
-	client.AddReactor("*", "imagestreams", fos.imageStreamsHandler)
-	client.AddReactor("*", "imagestreammappings", fos.imageStreamMappingsHandler)
-	client.AddReactor("*", "imagestreamimages", fos.imageStreamImagesHandler)
+func (fos *FakeOpenShift) AddReactorsTo(c *imagefakeclient.FakeImageV1) {
+	c.AddReactor("*", "images", fos.imagesHandler)
+	c.AddReactor("*", "imagestreams", fos.imageStreamsHandler)
+	c.AddReactor("*", "imagestreammappings", fos.imageStreamMappingsHandler)
+	c.AddReactor("*", "imagestreamimages", fos.imageStreamImagesHandler)
 }

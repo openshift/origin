@@ -12,16 +12,13 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	restclient "k8s.io/client-go/rest"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization/v1"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/httprequest"
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
+	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 )
 
 type deferredErrors map[string]error
@@ -51,40 +48,6 @@ const (
 	AccessControllerOptionParams = "_params"
 )
 
-// RegistryClient encapsulates getting access to the OpenShift API.
-type RegistryClient interface {
-	// Clients return the authenticated clients to use with the server.
-	Clients() (client.Interface, kcoreclient.CoreInterface, error)
-	// SafeClientConfig returns a client config without authentication info.
-	SafeClientConfig() restclient.Config
-}
-
-// registryClient implements RegistryClient
-type registryClient struct {
-	config *clientcmd.Config
-}
-
-var _ RegistryClient = &registryClient{}
-
-// NewRegistryClient creates a registry client.
-func NewRegistryClient(config *clientcmd.Config) RegistryClient {
-	return &registryClient{config: config}
-}
-
-// Client returns the authenticated client to use with the server.
-func (r *registryClient) Clients() (client.Interface, kcoreclient.CoreInterface, error) {
-	oc, kc, err := r.config.Clients()
-	if err != nil {
-		return nil, nil, err
-	}
-	return oc, kc.Core(), err
-}
-
-// SafeClientConfig returns a client config without authentication info.
-func (r *registryClient) SafeClientConfig() restclient.Config {
-	return clientcmd.AnonymousClientConfig(r.config.OpenShiftConfig())
-}
-
 func init() {
 	registryauth.Register(OpenShiftAuth, registryauth.InitFunc(newAccessController))
 }
@@ -102,10 +65,10 @@ func WithUserInfoLogger(ctx context.Context, username, userid string) context.Co
 }
 
 type AccessController struct {
-	realm      string
-	tokenRealm *url.URL
-	config     restclient.Config
-	auditLog   bool
+	realm          string
+	tokenRealm     *url.URL
+	registryClient client.RegistryClient
+	auditLog       bool
 }
 
 var _ registryauth.AccessController = &AccessController{}
@@ -170,8 +133,8 @@ func TokenRealm(options map[string]interface{}) (*url.URL, error) {
 
 // AccessControllerParams is the parameters for newAccessController
 type AccessControllerParams struct {
-	Logger           context.Logger
-	SafeClientConfig restclient.Config
+	Logger         context.Logger
+	RegistryClient client.RegistryClient
 }
 
 func newAccessController(options map[string]interface{}) (registryauth.AccessController, error) {
@@ -193,9 +156,9 @@ func newAccessController(options map[string]interface{}) (registryauth.AccessCon
 	}
 
 	ac := &AccessController{
-		realm:      realm,
-		tokenRealm: tokenRealm,
-		config:     params.SafeClientConfig,
+		realm:          realm,
+		tokenRealm:     tokenRealm,
+		registryClient: params.RegistryClient,
 	}
 
 	if audit, ok := options["audit"]; ok {
@@ -305,9 +268,7 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 		return nil, ac.wrapErr(ctx, err)
 	}
 
-	copied := ac.config
-	copied.BearerToken = bearerToken
-	osClient, err := client.New(&copied)
+	osClient, err := ac.registryClient.ClientFromToken(bearerToken)
 	if err != nil {
 		return nil, ac.wrapErr(ctx, err)
 	}
@@ -476,8 +437,8 @@ func getOpenShiftAPIToken(ctx context.Context, req *http.Request) (string, error
 	return token, nil
 }
 
-func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) (string, string, error) {
-	userInfo, err := client.Users().Get("~", metav1.GetOptions{})
+func verifyOpenShiftUser(ctx context.Context, c client.UsersInterfacer) (string, string, error) {
+	userInfo, err := c.Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("Get user failed with error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -489,17 +450,19 @@ func verifyOpenShiftUser(ctx context.Context, client client.UsersInterface) (str
 	return userInfo.GetName(), string(userInfo.GetUID()), nil
 }
 
-func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
-	sar := authorizationapi.LocalSubjectAccessReview{
-		Action: authorizationapi.Action{
-			Verb:         verb,
-			Group:        imageapi.GroupName,
-			Resource:     resource,
-			ResourceName: name,
+func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, c client.SelfSubjectAccessReviewsNamespacer) error {
+	sar := authorizationapi.SelfSubjectAccessReview{
+		Spec: authorizationapi.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      verb,
+				Group:     imageapi.GroupName,
+				Resource:  resource,
+				Name:      name,
+			},
 		},
 	}
-	response, err := client.LocalSubjectAccessReviews(namespace).Create(&sar)
-
+	response, err := c.SelfSubjectAccessReviews().Create(&sar)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -508,31 +471,33 @@ func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, 
 		return err
 	}
 
-	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
+	if !response.Status.Allowed {
+		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Status.Reason)
 		return ErrOpenShiftAccessDenied
 	}
 
 	return nil
 }
 
-func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, client client.LocalSubjectAccessReviewsNamespacer) error {
-	return verifyWithSAR(ctx, "imagestreams/layers", namespace, imageRepo, verb, client)
+func verifyImageStreamAccess(ctx context.Context, namespace, imageRepo, verb string, c client.SelfSubjectAccessReviewsNamespacer) error {
+	return verifyWithSAR(ctx, "imagestreams/layers", namespace, imageRepo, verb, c)
 }
 
-func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, client client.LocalSubjectAccessReviewsNamespacer) error {
-	return verifyWithSAR(ctx, "imagesignatures", namespace, imageRepo, "create", client)
+func verifyImageSignatureAccess(ctx context.Context, namespace, imageRepo string, c client.SelfSubjectAccessReviewsNamespacer) error {
+	return verifyWithSAR(ctx, "imagesignatures", namespace, imageRepo, "create", c)
 }
 
-func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) error {
-	sar := authorizationapi.SubjectAccessReview{
-		Action: authorizationapi.Action{
-			Verb:     "delete",
-			Group:    imageapi.GroupName,
-			Resource: "images",
+func verifyPruneAccess(ctx context.Context, c client.SelfSubjectAccessReviewsNamespacer) error {
+	sar := authorizationapi.SelfSubjectAccessReview{
+		Spec: authorizationapi.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
+				Verb:     "delete",
+				Group:    imageapi.GroupName,
+				Resource: "images",
+			},
 		},
 	}
-	response, err := client.SubjectAccessReviews().Create(&sar)
+	response, err := c.SelfSubjectAccessReviews().Create(&sar)
 	if err != nil {
 		context.GetLogger(ctx).Errorf("OpenShift client error: %s", err)
 		if kerrors.IsUnauthorized(err) || kerrors.IsForbidden(err) {
@@ -540,8 +505,8 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 		}
 		return err
 	}
-	if !response.Allowed {
-		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Reason)
+	if !response.Status.Allowed {
+		context.GetLogger(ctx).Errorf("OpenShift access denied: %s", response.Status.Reason)
 		return ErrOpenShiftAccessDenied
 	}
 	return nil

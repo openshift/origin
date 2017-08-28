@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func unmarshalManifestSchema1(content []byte, signatures [][]byte) (distribution.Manifest, error) {
@@ -51,7 +52,7 @@ type manifestSchema1Handler struct {
 
 var _ ManifestHandler = &manifestSchema1Handler{}
 
-func (h *manifestSchema1Handler) FillImageMetadata(ctx context.Context, image *imageapi.Image) error {
+func (h *manifestSchema1Handler) FillImageMetadata(ctx context.Context, image *imageapiv1.Image) error {
 	signatures, err := h.manifest.Signatures()
 	if err != nil {
 		return err
@@ -61,14 +62,18 @@ func (h *manifestSchema1Handler) FillImageMetadata(ctx context.Context, image *i
 		image.DockerImageSignatures = append(image.DockerImageSignatures, signDigest)
 	}
 
-	if err := imageapi.ImageWithMetadata(image); err != nil {
-		return err
-	}
-
 	refs := h.manifest.References()
 
+	if err := imageMetadataFromManifest(image); err != nil {
+		return fmt.Errorf("unable to fill image %s metadata: %v", image.Name, err)
+	}
+
 	blobSet := sets.NewString()
-	image.DockerImageMetadata.Size = int64(0)
+	meta, ok := image.DockerImageMetadata.Object.(*imageapi.DockerImage)
+	if !ok {
+		return fmt.Errorf("image %q does not have metadata", image.Name)
+	}
+	meta.Size = int64(0)
 
 	blobs := h.repo.Blobs(ctx)
 	for i := range image.DockerImageLayers {
@@ -91,10 +96,11 @@ func (h *manifestSchema1Handler) FillImageMetadata(ctx context.Context, image *i
 		layer.LayerSize = desc.Size
 		// count empty layer just once (empty layer may actually have non-zero size)
 		if !blobSet.Has(layer.Name) {
-			image.DockerImageMetadata.Size += desc.Size
+			meta.Size += desc.Size
 			blobSet.Insert(layer.Name)
 		}
 	}
+	image.DockerImageMetadata.Object = meta
 
 	return nil
 }
