@@ -34,6 +34,8 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	oappsapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
+	oappsapiserver "github.com/openshift/origin/pkg/deploy/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
@@ -51,7 +53,6 @@ import (
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
@@ -189,6 +190,12 @@ type legacyStorageMutator interface {
 	mutate(map[schema.GroupVersion]map[string]rest.Storage)
 }
 
+type legacyStorageMutatorFunc func(map[schema.GroupVersion]map[string]rest.Storage)
+
+func (l legacyStorageMutatorFunc) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
+	l(legacyStorage)
+}
+
 type legacyStorageMutators []legacyStorageMutator
 
 func (l legacyStorageMutators) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
@@ -205,6 +212,32 @@ type legacyStorageVersionMutator struct {
 
 func (l *legacyStorageVersionMutator) mutate(legacyStorage map[schema.GroupVersion]map[string]rest.Storage) {
 	legacyStorage[l.version] = l.storage
+}
+
+func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &oappsapiserver.AppsConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		KubeletClientConfig:       c.KubeletClientConfig,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	legacyDCRollbackMutator := oappsapiserver.LegacyLegacyDCRollbackMutator{
+		CoreAPIServerClientConfig: config.CoreAPIServerClientConfig,
+		Version:                   v1.SchemeGroupVersion,
+	}
+	return server.GenericAPIServer, legacyStorageMutators{legacyStorageMutatorFunc(legacyDCRollbackMutator.Mutate), &legacyStorageVersionMutator{version: oappsapiv1.SchemeGroupVersion, storage: storage}}, nil
 }
 
 func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
@@ -254,6 +287,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	delegateAPIServer := delegationTarget
 	var currLegacyStorageMutator legacyStorageMutator
 	var err error
+
+	delegateAPIServer, currLegacyStorageMutator, err = c.withAppsAPIServer(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
 
 	delegateAPIServer, currLegacyStorageMutator, err = c.withTemplateAPIServer(delegateAPIServer)
 	if err != nil {
@@ -321,6 +360,9 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 
 	// after the old-style groupified storage is created, modify the storage map to include the already migrated storage
 	// to be included in the legacy group
+	if _, ok := storage[v1.SchemeGroupVersion]; !ok {
+		storage[v1.SchemeGroupVersion] = map[string]rest.Storage{}
+	}
 	legacyStorageModifier.mutate(storage)
 
 	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(storage))); err != nil {
@@ -434,7 +476,6 @@ var apiGroupsVersions = []apiGroupInfo{
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{networkapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{imageapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{deployapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{oauthapiv1.SchemeGroupVersion}},
 }
