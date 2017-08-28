@@ -145,6 +145,10 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
 		}
+		clientConfig, err := f.clientAccessFactory.ClientConfig()
+		if err != nil {
+			return nil, fmt.Errorf("unable to create client config %s: %v", mapping.GroupVersionKind.Kind, err)
+		}
 
 		mappingVersion := mapping.GroupVersionKind.GroupVersion()
 		cfg, err := f.clientAccessFactory.ClientConfigForVersion(&mappingVersion)
@@ -152,7 +156,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 			return nil, fmt.Errorf("unable to load a client %s: %v", mapping.GroupVersionKind.Kind, err)
 		}
 
-		describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), oClient, kClient, cfg.Host)
+		describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), clientConfig, oClient, kClient, cfg.Host)
 		if !ok {
 			return nil, fmt.Errorf("no description has been implemented for %q", mapping.GroupVersionKind.Kind)
 		}
