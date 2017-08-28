@@ -27843,6 +27843,7 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command:
           - "/usr/bin/openshift"
           - "start"
@@ -27905,6 +27906,27 @@ objects:
     ports:
     - port: 443
       targetPort: 8443
+
+# This service account will be granted permission to call the TSB.
+# The token for this SA will be provided to the service catalog for 
+# use when calling the TSB.
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
+# This secret will be populated with a copy of the templateservicebroker-client SA's
+# auth token.  Since this secret has a static name, it can be referenced more
+# easily than the auto-generated secret for the service account.
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: templateservicebroker-client
+  type: kubernetes.io/service-account-token
 `)
 
 func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
@@ -27932,6 +27954,18 @@ parameters:
 - name: KUBE_SYSTEM
   value: kube-system
 objects:
+
+# Grant the service account permission to call the TSB
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: templateservicebroker-client
+  roleRef:
+    name: system:openshift:templateservicebroker-client
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
 
 # to delegate authentication and authorization
 - apiVersion: authorization.openshift.io/v1
@@ -27970,6 +28004,34 @@ objects:
   - kind: ServiceAccount
     namespace: ${NAMESPACE}
     name: apiserver
+
+# allow the kube service catalog's SA to read the static secret defined
+# above, which will contain the token for the SA that can call the TSB.
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
+  metadata:
+    name: templateservicebroker-auth-reader
+    namespace: ${NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - templateservicebroker-client
+    resources:
+    - secrets
+    verbs:
+    - get
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-auth-reader
+  roleRef:
+    name: templateservicebroker-auth-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 `)
 
 func installTemplateservicebrokerRbacTemplateYamlBytes() ([]byte, error) {

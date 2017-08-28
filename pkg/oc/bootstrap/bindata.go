@@ -13473,8 +13473,8 @@ metadata:
   name: service-catalog
 objects:
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: servicecatalog-serviceclass-viewer
   rules:
@@ -13487,8 +13487,8 @@ objects:
     - watch
     - get
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: servicecatalog-serviceclass-viewer-binding
   roleRef:
@@ -13506,8 +13506,8 @@ objects:
   metadata:
     name: service-catalog-apiserver
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: sar-creator
   rules:
@@ -13518,17 +13518,19 @@ objects:
     verbs:
     - create
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-sar-creator-binding
   roleRef:
     name: sar-creator
-  userNames:
-    - system:serviceaccount:kube-service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: namespace-viewer
   rules:
@@ -13541,26 +13543,30 @@ objects:
     - watch
     - get
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: kube-service-catalog
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: service-catalog-controller
   rules:
@@ -13624,17 +13630,19 @@ objects:
     - list
     - watch
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-binding
   roleRef:
     name: service-catalog-controller
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: kube-service-catalog
   
-- kind: Role
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
   metadata:
     name: endpoint-accessor
   rules:
@@ -13649,18 +13657,20 @@ objects:
     - create
     - update
 
-- kind: RoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
   metadata:
     name: endpointer-accessor-binding
   roleRef:
     name: endpoint-accessor
-    namespace: service-catalog
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+    namespace: kube-service-catalog
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 
-- kind: Role
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
   metadata:
     name: extension-apiserver-authentication-reader
     namespace: ${KUBE_SYSTEM_NAMESPACE}
@@ -13674,25 +13684,29 @@ objects:
     verbs:
     - get
 
-- kind: RoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
   metadata:
     name: extension-apiserver-authentication-reader-binding
     namespace: ${KUBE_SYSTEM_NAMESPACE}
   roleRef:
     name: extension-apiserver-authentication-reader
-    namespace: kube-system
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: system:auth-delegator-binding
   roleRef:
     name: system:auth-delegator
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
 
 - kind: Deployment
@@ -13820,7 +13834,7 @@ objects:
           - -v
           - "5"
           - --leader-election-namespace
-          - service-catalog
+          - kube-service-catalog
           - --broker-relist-interval
           - "5m"
           image: ${SERVICE_CATALOG_IMAGE}
@@ -13957,6 +13971,7 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command:
           - "/usr/bin/openshift"
           - "start"
@@ -14019,6 +14034,27 @@ objects:
     ports:
     - port: 443
       targetPort: 8443
+
+# This service account will be granted permission to call the TSB.
+# The token for this SA will be provided to the service catalog for 
+# use when calling the TSB.
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
+# This secret will be populated with a copy of the templateservicebroker-client SA's
+# auth token.  Since this secret has a static name, it can be referenced more
+# easily than the auto-generated secret for the service account.
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: templateservicebroker-client
+  type: kubernetes.io/service-account-token
 `)
 
 func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
@@ -14046,6 +14082,18 @@ parameters:
 - name: KUBE_SYSTEM
   value: kube-system
 objects:
+
+# Grant the service account permission to call the TSB
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: templateservicebroker-client
+  roleRef:
+    name: system:openshift:templateservicebroker-client
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
 
 # to delegate authentication and authorization
 - apiVersion: authorization.openshift.io/v1
@@ -14084,6 +14132,34 @@ objects:
   - kind: ServiceAccount
     namespace: ${NAMESPACE}
     name: apiserver
+
+# allow the kube service catalog's SA to read the static secret defined
+# above, which will contain the token for the SA that can call the TSB.
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
+  metadata:
+    name: templateservicebroker-auth-reader
+    namespace: ${NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - templateservicebroker-client
+    resources:
+    - secrets
+    verbs:
+    - get
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-auth-reader
+  roleRef:
+    name: templateservicebroker-auth-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 `)
 
 func installTemplateservicebrokerRbacTemplateYamlBytes() ([]byte, error) {
