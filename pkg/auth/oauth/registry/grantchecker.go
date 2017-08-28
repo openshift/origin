@@ -5,25 +5,25 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/authentication/user"
 
 	"github.com/openshift/origin/pkg/auth/api"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"
-	"k8s.io/apiserver/pkg/authentication/user"
 )
 
 type ClientAuthorizationGrantChecker struct {
-	registry oauthclientauthorization.Registry
+	client oauthclient.OAuthClientAuthorizationInterface
 }
 
-func NewClientAuthorizationGrantChecker(registry oauthclientauthorization.Registry) *ClientAuthorizationGrantChecker {
-	return &ClientAuthorizationGrantChecker{registry}
+func NewClientAuthorizationGrantChecker(client oauthclient.OAuthClientAuthorizationInterface) *ClientAuthorizationGrantChecker {
+	return &ClientAuthorizationGrantChecker{client}
 }
 
 func (c *ClientAuthorizationGrantChecker) HasAuthorizedClient(user user.Info, grant *api.Grant) (approved bool, err error) {
-	id := c.registry.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
-	authorization, err := c.registry.GetClientAuthorization(apirequest.NewContext(), id, &metav1.GetOptions{})
+	id := oauthclientauthorization.ClientAuthorizationName(user.GetName(), grant.Client.GetId())
+	authorization, err := c.client.Get(id, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		return false, nil
 	}

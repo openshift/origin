@@ -11,14 +11,14 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization"
 	"github.com/openshift/origin/pkg/oauth/scope"
 )
@@ -82,11 +82,11 @@ type Grant struct {
 	auth           authenticator.Request
 	csrf           csrf.CSRF
 	render         FormRenderer
-	clientregistry oauthclient.Getter
-	authregistry   oauthclientauthorization.Registry
+	clientregistry oauthclientregistry.Getter
+	authregistry   oauthclient.OAuthClientAuthorizationInterface
 }
 
-func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclient.Getter, authregistry oauthclientauthorization.Registry) *Grant {
+func NewGrant(csrf csrf.CSRF, auth authenticator.Request, render FormRenderer, clientregistry oauthclientregistry.Getter, authregistry oauthclient.OAuthClientAuthorizationInterface) *Grant {
 	return &Grant{
 		auth:           auth,
 		csrf:           csrf,
@@ -129,7 +129,7 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	scopes := scope.Split(q.Get(scopeParam))
 	redirectURI := q.Get(redirectURIParam)
 
-	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID, &metav1.GetOptions{})
+	client, err := l.clientregistry.Get(clientID, metav1.GetOptions{})
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -152,8 +152,8 @@ func (l *Grant) handleForm(user user.Info, w http.ResponseWriter, req *http.Requ
 	grantedScopes := []Scope{}
 	requestedScopes := []Scope{}
 
-	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
-	if clientAuth, err := l.authregistry.GetClientAuthorization(apirequest.NewContext(), clientAuthID, &metav1.GetOptions{}); err == nil {
+	clientAuthID := oauthclientauthorization.ClientAuthorizationName(user.GetName(), client.Name)
+	if clientAuth, err := l.authregistry.Get(clientAuthID, metav1.GetOptions{}); err == nil {
 		grantedScopeNames = clientAuth.Scopes
 	}
 
@@ -233,7 +233,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 	}
 
 	clientID := req.PostFormValue(clientIDParam)
-	client, err := l.clientregistry.GetClient(apirequest.NewContext(), clientID, &metav1.GetOptions{})
+	client, err := l.clientregistry.Get(clientID, metav1.GetOptions{})
 	if err != nil || client == nil {
 		l.failed("Could not find client for client_id", w, req)
 		return
@@ -244,14 +244,13 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		return
 	}
 
-	clientAuthID := l.authregistry.ClientAuthorizationName(user.GetName(), client.Name)
+	clientAuthID := oauthclientauthorization.ClientAuthorizationName(user.GetName(), client.Name)
 
-	ctx := apirequest.NewContext()
-	clientAuth, err := l.authregistry.GetClientAuthorization(ctx, clientAuthID, &metav1.GetOptions{})
+	clientAuth, err := l.authregistry.Get(clientAuthID, metav1.GetOptions{})
 	if err == nil && clientAuth != nil {
 		// Add new scopes and update
 		clientAuth.Scopes = scope.Add(clientAuth.Scopes, scope.Split(scopes))
-		if _, err = l.authregistry.UpdateClientAuthorization(ctx, clientAuth); err != nil {
+		if _, err = l.authregistry.Update(clientAuth); err != nil {
 			glog.Errorf("Unable to update authorization: %v", err)
 			l.failed("Could not update client authorization", w, req)
 			return
@@ -266,7 +265,7 @@ func (l *Grant) handleGrant(user user.Info, w http.ResponseWriter, req *http.Req
 		}
 		clientAuth.Name = clientAuthID
 
-		if _, err = l.authregistry.CreateClientAuthorization(ctx, clientAuth); err != nil {
+		if _, err = l.authregistry.Create(clientAuth); err != nil {
 			glog.Errorf("Unable to create authorization: %v", err)
 			l.failed("Could not create client authorization", w, req)
 			return

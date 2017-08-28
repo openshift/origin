@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
@@ -548,7 +547,7 @@ func TestGetClient(t *testing.T) {
 	for _, tc := range testCases {
 		delegate := &fakeDelegate{}
 		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient.Core(), tc.kubeClient.Core(), tc.osClient, delegate, oauthapi.GrantHandlerPrompt)
-		client, err := getter.GetClient(apirequest.NewContext(), tc.clientName, &metav1.GetOptions{})
+		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
 		case len(tc.expectedErr) == 0 && err != nil,
@@ -585,7 +584,7 @@ type fakeDelegate struct {
 	called bool
 }
 
-func (d *fakeDelegate) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthClient, error) {
+func (d *fakeDelegate) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error) {
 	d.called = true
 	return nil, nil
 }

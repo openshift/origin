@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apiserver/pkg/endpoints/request"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -78,7 +77,7 @@ type wasCalledClientGetter struct {
 	called bool
 }
 
-func (g *wasCalledClientGetter) GetClient(_ request.Context, _ string, _ *v1.GetOptions) (*oauth.OAuthClient, error) {
+func (g *wasCalledClientGetter) Get(_ string, _ v1.GetOptions) (*oauth.OAuthClient, error) {
 	g.called = true
 	return &oauth.OAuthClient{}, nil
 }

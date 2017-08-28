@@ -8,13 +8,11 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	"github.com/openshift/origin/pkg/oauth/scope"
 )
 
@@ -26,13 +24,13 @@ type UserConversion interface {
 }
 
 type storage struct {
-	accesstoken    oauthaccesstoken.Registry
-	authorizetoken oauthauthorizetoken.Registry
-	client         oauthclient.Getter
+	accesstoken    oauthclient.OAuthAccessTokenInterface
+	authorizetoken oauthclient.OAuthAuthorizeTokenInterface
+	client         oauthclientregistry.Getter
 	user           UserConversion
 }
 
-func New(access oauthaccesstoken.Registry, authorize oauthauthorizetoken.Registry, client oauthclient.Getter, user UserConversion) osin.Storage {
+func New(access oauthclient.OAuthAccessTokenInterface, authorize oauthclient.OAuthAuthorizeTokenInterface, client oauthclientregistry.Getter, user UserConversion) osin.Storage {
 	return &storage{
 		accesstoken:    access,
 		authorizetoken: authorize,
@@ -98,7 +96,7 @@ func (s *storage) Close() {
 
 // GetClient loads the client by id (client_id)
 func (s *storage) GetClient(id string) (osin.Client, error) {
-	c, err := s.client.GetClient(apirequest.NewContext(), id, &metav1.GetOptions{})
+	c, err := s.client.Get(id, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil, nil
@@ -114,7 +112,7 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.authorizetoken.CreateAuthorizeToken(apirequest.NewContext(), token)
+	_, err = s.authorizetoken.Create(token)
 	return err
 }
 
@@ -122,7 +120,7 @@ func (s *storage) SaveAuthorize(data *osin.AuthorizeData) error {
 // Client information MUST be loaded together.
 // Optionally can return error if expired.
 func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
-	authorize, err := s.authorizetoken.GetAuthorizeToken(apirequest.NewContext(), code, &metav1.GetOptions{})
+	authorize, err := s.authorizetoken.Get(code, metav1.GetOptions{})
 	if kerrors.IsNotFound(err) {
 		glog.V(5).Info("Authorization code not found")
 		return nil, nil
@@ -136,7 +134,7 @@ func (s *storage) LoadAuthorize(code string) (*osin.AuthorizeData, error) {
 // RemoveAuthorize revokes or deletes the authorization code.
 func (s *storage) RemoveAuthorize(code string) error {
 	// TODO: return no error if registry returns IsNotFound
-	return s.authorizetoken.DeleteAuthorizeToken(apirequest.NewContext(), code)
+	return s.authorizetoken.Delete(code, nil)
 }
 
 // SaveAccess writes AccessData.
@@ -146,7 +144,7 @@ func (s *storage) SaveAccess(data *osin.AccessData) error {
 	if err != nil {
 		return err
 	}
-	_, err = s.accesstoken.CreateAccessToken(apirequest.NewContext(), token)
+	_, err = s.accesstoken.Create(token)
 	return err
 }
 
@@ -154,7 +152,7 @@ func (s *storage) SaveAccess(data *osin.AccessData) error {
 // AuthorizeData and AccessData DON'T NEED to be loaded if not easily available.
 // Optionally can return error if expired.
 func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
-	access, err := s.accesstoken.GetAccessToken(apirequest.NewContext(), token, &metav1.GetOptions{})
+	access, err := s.accesstoken.Get(token, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +162,7 @@ func (s *storage) LoadAccess(token string) (*osin.AccessData, error) {
 // RemoveAccess revokes or deletes an AccessData.
 func (s *storage) RemoveAccess(token string) error {
 	// TODO: return no error if registry returns IsNotFound
-	return s.accesstoken.DeleteAccessToken(apirequest.NewContext(), token)
+	return s.accesstoken.Delete(token, nil)
 }
 
 // LoadRefresh retrieves refresh AccessData. Client information MUST be loaded together.
@@ -204,7 +202,7 @@ func (s *storage) convertFromAuthorizeToken(authorize *oauthapi.OAuthAuthorizeTo
 	if err != nil {
 		return nil, err
 	}
-	client, err := s.client.GetClient(apirequest.NewContext(), authorize.ClientName, &metav1.GetOptions{})
+	client, err := s.client.Get(authorize.ClientName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +250,7 @@ func (s *storage) convertFromAccessToken(access *oauthapi.OAuthAccessToken) (*os
 	if err != nil {
 		return nil, err
 	}
-	client, err := s.client.GetClient(apirequest.NewContext(), access.ClientName, &metav1.GetOptions{})
+	client, err := s.client.Get(access.ClientName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

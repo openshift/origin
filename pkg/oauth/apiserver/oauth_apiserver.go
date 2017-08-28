@@ -5,24 +5,28 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
 
 	"github.com/pborman/uuid"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
-	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
+	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
-	"github.com/openshift/origin/pkg/util/restoptions"
 )
 
 type OAuthServerConfig struct {
@@ -39,17 +43,14 @@ type OAuthServerConfig struct {
 	// OpenShiftClient is osclient with enough permission for the auth API
 	OpenShiftClient osclient.Interface
 
-	// RESTOptionsGetter provides storage and RESTOption lookup
-	RESTOptionsGetter restoptions.Getter
-
-	// EtcdBackends is a list of storage interfaces, each of which talks to a single etcd backend.
-	// These are only used to ensure newly created tokens are distributed to all backends before returning them for use.
-	// EtcdHelper should normally be used for storage functions.
-	EtcdBackends []storage.Interface
-
 	UserClient                userclient.UserResourceInterface
 	IdentityClient            userclient.IdentityInterface
 	UserIdentityMappingClient userclient.UserIdentityMappingInterface
+
+	OAuthAccessTokenClient         oauthclient.OAuthAccessTokenInterface
+	OAuthAuthorizeTokenClient      oauthclient.OAuthAuthorizeTokenInterface
+	OAuthClientClient              oauthclient.OAuthClientInterface
+	OAuthClientAuthorizationClient oauthclient.OAuthClientAuthorizationInterface
 
 	SessionAuth *session.Authenticator
 
@@ -75,15 +76,23 @@ func NewOAuthServerConfig(oauthConfig configapi.OAuthConfig, userClientConfig *r
 	if err != nil {
 		return nil, err
 	}
+	oauthClient, err := oauthclient.NewForConfig(userClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	ret := &OAuthServerConfig{
-		GenericConfig:             genericConfig,
-		Options:                   oauthConfig,
-		SessionAuth:               sessionAuth,
-		IdentityClient:            userClient.Identities(),
-		UserClient:                userClient.Users(),
-		UserIdentityMappingClient: userClient.UserIdentityMappings(),
-		HandlerWrapper:            sessionHandlerWrapper,
+		GenericConfig:                  genericConfig,
+		Options:                        oauthConfig,
+		SessionAuth:                    sessionAuth,
+		IdentityClient:                 userClient.Identities(),
+		UserClient:                     userClient.Users(),
+		UserIdentityMappingClient:      userClient.UserIdentityMappings(),
+		OAuthAccessTokenClient:         oauthClient.OAuthAccessTokens(),
+		OAuthAuthorizeTokenClient:      oauthClient.OAuthAuthorizeTokens(),
+		OAuthClientClient:              oauthClient.OAuthClients(),
+		OAuthClientAuthorizationClient: oauthClient.OAuthClientAuthorizations(),
+		HandlerWrapper:                 sessionHandlerWrapper,
 	}
 	genericConfig.BuildHandlerChainFunc = ret.buildHandlerChainForOAuth
 
@@ -184,4 +193,44 @@ func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handl
 	handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
 	handler = genericfilters.WithPanicRecovery(handler)
 	return handler
+}
+
+// TODO, this moves to the `apiserver.go` when we have it for this group
+// TODO TODO, this actually looks a lot like a controller or an add-on manager style thing.  Seems like we'd want to do this outside
+// EnsureBootstrapOAuthClients creates or updates the bootstrap oauth clients that openshift relies upon.
+func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver.PostStartHookContext) error {
+	webConsoleClient := oauthapi.OAuthClient{
+		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftWebConsoleClientID},
+		Secret:                "",
+		RespondWithChallenges: false,
+		RedirectURIs:          c.AssetPublicAddresses,
+		GrantMethod:           oauthapi.GrantHandlerAuto,
+	}
+	if err := ensureOAuthClient(webConsoleClient, c.OAuthClientClient, true, false); err != nil {
+		return err
+	}
+
+	browserClient := oauthapi.OAuthClient{
+		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
+		Secret:                uuid.New(),
+		RespondWithChallenges: false,
+		RedirectURIs:          []string{c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+		GrantMethod:           oauthapi.GrantHandlerAuto,
+	}
+	if err := ensureOAuthClient(browserClient, c.OAuthClientClient, true, true); err != nil {
+		return err
+	}
+
+	cliClient := oauthapi.OAuthClient{
+		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
+		Secret:                "",
+		RespondWithChallenges: true,
+		RedirectURIs:          []string{c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
+		GrantMethod:           oauthapi.GrantHandlerAuto,
+	}
+	if err := ensureOAuthClient(cliClient, c.OAuthClientClient, false, false); err != nil {
+		return err
+	}
+
+	return nil
 }
