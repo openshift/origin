@@ -310,6 +310,7 @@ oauthConfig:
       clientCA: ""
       clientCommonNames: null
       emailHeaders: null
+      groupHeaders: null
       headers: null
       kind: RequestHeaderIdentityProvider
       loginURL: ""
@@ -412,6 +413,7 @@ oauthConfig:
       ca: ""
       claims:
         email: null
+        groups: null
         id: null
         name: null
         preferredUsername: null
@@ -433,6 +435,7 @@ oauthConfig:
       ca: ""
       claims:
         email: null
+        groups: null
         id: null
         name: null
         preferredUsername: null

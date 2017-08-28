@@ -69,7 +69,7 @@ func (p *provisioningIdentityMapper) userForWithRetries(info authapi.UserIdentit
 		return nil, err
 	}
 
-	return p.getMapping(ctx, identity)
+	return p.getMapping(ctx, identity, info)
 }
 
 // createIdentityAndMapping creates an identity with a valid user reference for the given identity info
@@ -100,13 +100,16 @@ func (p *provisioningIdentityMapper) createIdentityAndMapping(ctx apirequest.Con
 	}
 
 	return &kuser.DefaultInfo{
-		Name:   persistedUser.Name,
-		UID:    string(persistedUser.UID),
-		Groups: persistedUser.Groups,
+		Name: persistedUser.Name,
+		UID:  string(persistedUser.UID),
+		Extra: map[string][]string{
+			userapi.ExtraIdentityNameKey:           []string{identity.Name},
+			userapi.ExtraIdentityProviderGroupsKey: info.GetProviderGroups(),
+		},
 	}, nil
 }
 
-func (p *provisioningIdentityMapper) getMapping(ctx apirequest.Context, identity *userapi.Identity) (kuser.Info, error) {
+func (p *provisioningIdentityMapper) getMapping(ctx apirequest.Context, identity *userapi.Identity, info authapi.UserIdentityInfo) (kuser.Info, error) {
 	if len(identity.User.Name) == 0 {
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
@@ -123,9 +126,12 @@ func (p *provisioningIdentityMapper) getMapping(ctx apirequest.Context, identity
 		return nil, kerrs.NewNotFound(userapi.Resource("useridentitymapping"), identity.Name)
 	}
 	return &kuser.DefaultInfo{
-		Name:   u.Name,
-		UID:    string(u.UID),
-		Groups: u.Groups,
+		Name: u.Name,
+		UID:  string(u.UID),
+		Extra: map[string][]string{
+			userapi.ExtraIdentityNameKey:           []string{identity.Name},
+			userapi.ExtraIdentityProviderGroupsKey: info.GetProviderGroups(),
+		},
 	}, nil
 }
 

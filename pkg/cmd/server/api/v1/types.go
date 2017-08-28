@@ -930,6 +930,8 @@ type RequestHeaderIdentityProvider struct {
 	NameHeaders []string `json:"nameHeaders"`
 	// EmailHeaders is the set of headers to check for the email address
 	EmailHeaders []string `json:"emailHeaders"`
+	// GroupHeaders is the set of headers to check for group names
+	GroupHeaders []string `json:"groupHeaders"`
 }
 
 // GitHubIdentityProvider provides identities for users authenticating using GitHub credentials
@@ -1026,6 +1028,10 @@ type OpenIDClaims struct {
 	// Email is the list of claims whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	Email []string `json:"email"`
+	// Groups is the list of claims whose values should be used as group memberships. Optional.
+	// If unspecified, no group memberships are consumed from the claims.
+	// Claim values must either be a string or an array of strings.
+	Groups []string `json:"groups"`
 }
 
 // GrantConfig holds the necessary configuration options for grant handlers

@@ -1022,6 +1022,8 @@ type RequestHeaderIdentityProvider struct {
 	NameHeaders []string
 	// EmailHeaders is the set of headers to check for the email address
 	EmailHeaders []string
+	// GroupHeaders is the set of headers to check for group names
+	GroupHeaders []string
 }
 
 type GitHubIdentityProvider struct {
@@ -1112,6 +1114,10 @@ type OpenIDClaims struct {
 	// Email is the list of claims whose values should be used as the email address. Optional.
 	// If unspecified, no email is set for the identity
 	Email []string
+	// Groups is the list of claims whose values should be used as group memberships. Optional.
+	// If unspecified, no group memberships are consumed from the claims.
+	// Claim values must either be a string or an array of strings.
+	Groups []string
 }
 
 type GrantConfig struct {

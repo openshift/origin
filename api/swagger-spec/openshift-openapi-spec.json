@@ -90770,6 +90770,17 @@
       "type": "integer",
       "format": "int64"
      },
+     "identityName": {
+      "description": "IdentityName is the name of the Identity API object associated with this token",
+      "type": "string"
+     },
+     "identityProviderGroups": {
+      "description": "IdentityProviderGroups are the group memberships determined by the identity provider",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
       "type": "string"
@@ -90877,6 +90888,17 @@
       "description": "ExpiresIn is the seconds from CreationTime before this token expires.",
       "type": "integer",
       "format": "int64"
+     },
+     "identityName": {
+      "description": "IdentityName is the name of the Identity API object associated with this token",
+      "type": "string"
+     },
+     "identityProviderGroups": {
+      "description": "IdentityProviderGroups are the group memberships determined by the identity provider",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
      },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",

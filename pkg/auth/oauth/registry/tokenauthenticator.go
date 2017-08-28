@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
 	kapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
@@ -52,20 +53,25 @@ func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, 
 		return nil, false, fmt.Errorf("user.UID (%s) does not match token.userUID (%s)", u.UID, token.UserUID)
 	}
 
+	// Build group membership for the user
+	groupNames := sets.NewString()
+	// 1. Groups from the identity provider associated with the token
+	groupNames.Insert(token.IdentityProviderGroups...)
+	// 2. Groups directly in the user object (deprecated)
+	groupNames.Insert(u.Groups...)
+	// 3. Group API objects the user is listed as a member in
 	groups, err := a.groupMapper.GroupsFor(u.Name)
 	if err != nil {
 		return nil, false, err
 	}
-	groupNames := []string{}
 	for _, group := range groups {
-		groupNames = append(groupNames, group.Name)
+		groupNames.Insert(group.Name)
 	}
-	groupNames = append(groupNames, u.Groups...)
 
 	return &kuser.DefaultInfo{
 		Name:   u.Name,
 		UID:    string(u.UID),
-		Groups: groupNames,
+		Groups: groupNames.List(),
 		Extra: map[string][]string{
 			authorizationapi.ScopesKey: token.Scopes,
 		},

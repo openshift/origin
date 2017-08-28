@@ -28,6 +28,8 @@ type UserIdentityInfo interface {
 	GetProviderName() string
 	// GetProviderUserName uniquely identifies this particular identity for this provider.  It is NOT guaranteed to be unique across providers
 	GetProviderUserName() string
+	// GetProviderGroups returns a list of group memberships the identity provider associates with this identity
+	GetProviderGroups() []string
 	// GetExtra is a map to allow providers to add additional fields that they understand
 	GetExtra() map[string]string
 }
@@ -56,6 +58,7 @@ type Grant struct {
 type DefaultUserIdentityInfo struct {
 	ProviderName     string
 	ProviderUserName string
+	ProviderGroups   []string
 	Extra            map[string]string
 }
 
@@ -78,6 +81,10 @@ func (i *DefaultUserIdentityInfo) GetProviderName() string {
 
 func (i *DefaultUserIdentityInfo) GetProviderUserName() string {
 	return i.ProviderUserName
+}
+
+func (i *DefaultUserIdentityInfo) GetProviderGroups() []string {
+	return i.ProviderGroups
 }
 
 func (i *DefaultUserIdentityInfo) GetExtra() map[string]string {

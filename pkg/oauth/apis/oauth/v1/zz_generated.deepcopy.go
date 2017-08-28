@@ -70,6 +70,11 @@ func DeepCopy_v1_OAuthAccessToken(in interface{}, out interface{}, c *conversion
 			*out = make([]string, len(*in))
 			copy(*out, *in)
 		}
+		if in.IdentityProviderGroups != nil {
+			in, out := &in.IdentityProviderGroups, &out.IdentityProviderGroups
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 		return nil
 	}
 }
@@ -106,6 +111,11 @@ func DeepCopy_v1_OAuthAuthorizeToken(in interface{}, out interface{}, c *convers
 		}
 		if in.Scopes != nil {
 			in, out := &in.Scopes, &out.Scopes
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.IdentityProviderGroups != nil {
+			in, out := &in.IdentityProviderGroups, &out.IdentityProviderGroups
 			*out = make([]string, len(*in))
 			copy(*out, *in)
 		}

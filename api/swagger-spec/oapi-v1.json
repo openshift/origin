@@ -26970,6 +26970,17 @@
      "refreshToken": {
       "type": "string",
       "description": "RefreshToken is the value by which this token can be renewed. Can be blank."
+     },
+     "identityName": {
+      "type": "string",
+      "description": "IdentityName is the name of the Identity API object associated with this token"
+     },
+     "identityProviderGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "IdentityProviderGroups are the group memberships determined by the identity provider"
      }
     }
    },
@@ -27056,6 +27067,17 @@
      "codeChallengeMethod": {
       "type": "string",
       "description": "CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636"
+     },
+     "identityName": {
+      "type": "string",
+      "description": "IdentityName is the name of the Identity API object associated with this token"
+     },
+     "identityProviderGroups": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      },
+      "description": "IdentityProviderGroups are the group memberships determined by the identity provider"
      }
     }
    },

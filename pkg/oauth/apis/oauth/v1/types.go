@@ -36,6 +36,12 @@ type OAuthAccessToken struct {
 
 	// RefreshToken is the value by which this token can be renewed. Can be blank.
 	RefreshToken string `json:"refreshToken,omitempty" protobuf:"bytes,9,opt,name=refreshToken"`
+
+	// IdentityName is the name of the Identity API object associated with this token
+	IdentityName string `json:"identityName,omitempty" protobuf:"bytes,10,opt,name=identityName"`
+
+	// IdentityProviderGroups are the group memberships determined by the identity provider
+	IdentityProviderGroups []string `json:"identityProviderGroups,omitempty" protobuf:"bytes,11,rep,name=identityProviderGroups"`
 }
 
 // +genclient
@@ -74,6 +80,12 @@ type OAuthAuthorizeToken struct {
 
 	// CodeChallengeMethod is the optional code_challenge_method associated with this authorization code, as described in rfc7636
 	CodeChallengeMethod string `json:"codeChallengeMethod,omitempty" protobuf:"bytes,10,opt,name=codeChallengeMethod"`
+
+	// IdentityName is the name of the Identity API object associated with this token
+	IdentityName string `json:"identityName,omitempty" protobuf:"bytes,11,opt,name=identityName"`
+
+	// IdentityProviderGroups are the group memberships determined by the identity provider
+	IdentityProviderGroups []string `json:"identityProviderGroups,omitempty" protobuf:"bytes,12,rep,name=identityProviderGroups"`
 }
 
 // +genclient

@@ -5,6 +5,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
+const (
+	ExtraIdentityNameKey           = "name.identity.openshift.io"
+	ExtraIdentityProviderGroupsKey = "groups.identity.openshift.io"
+)
+
 // Auth system gets identity name and provider
 // POST to UserIdentityMapping, get back error or a filled out UserIdentityMapping object
 
