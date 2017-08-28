@@ -7,8 +7,8 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.com/openshift/origin/pkg/client"
-	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 )
 
 // ImageStreamControllerOptions represents a configuration for the scheduled image stream
@@ -61,11 +61,11 @@ func (opts ScheduledImageStreamControllerOptions) GetRateLimiter() flowcontrol.R
 }
 
 // NewImageStreamController returns a new image stream import controller.
-func NewImageStreamController(namespacer client.ImageStreamsNamespacer, informer imageinternalversion.ImageStreamInformer) *ImageStreamController {
+func NewImageStreamController(client imageclient.Interface, informer imageinformer.ImageStreamInformer) *ImageStreamController {
 	controller := &ImageStreamController{
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
-		isNamespacer: namespacer,
+		client:       client.Image(),
 		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
 	}
@@ -80,13 +80,13 @@ func NewImageStreamController(namespacer client.ImageStreamsNamespacer, informer
 
 // NewScheduledImageStreamController returns a new scheduled image stream import
 // controller.
-func NewScheduledImageStreamController(namespacer client.ImageStreamsNamespacer, informer imageinternalversion.ImageStreamInformer, opts ScheduledImageStreamControllerOptions) *ScheduledImageStreamController {
+func NewScheduledImageStreamController(client imageclient.Interface, informer imageinformer.ImageStreamInformer, opts ScheduledImageStreamControllerOptions) *ScheduledImageStreamController {
 	bucketLimiter := flowcontrol.NewTokenBucketRateLimiter(opts.BucketsToQPS(), 1)
 
 	controller := &ScheduledImageStreamController{
 		enabled:      opts.Enabled,
 		rateLimiter:  opts.GetRateLimiter(),
-		isNamespacer: namespacer,
+		client:       client.Image(),
 		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
 	}
