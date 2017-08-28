@@ -32,7 +32,8 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 	var (
 		cli = exutil.NewCLI("templates", exutil.KubeConfigPath())
 
-		adminuser, edituser *userapi.User
+		adminuser, edituser, editbygroupuser *userapi.User
+		editgroup                            *userapi.Group
 
 		dummyservice = &kapi.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -69,6 +70,9 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 	g.BeforeEach(func() {
 		adminuser = createUser(cli, "adminuser", bootstrappolicy.AdminRoleName)
 		edituser = createUser(cli, "edituser", bootstrappolicy.EditRoleName)
+		editgroup = createGroup(cli, "editgroup", bootstrappolicy.EditRoleName)
+		editbygroupuser = createUser(cli, "editbygroupuser", "")
+		addUserToGroup(cli, editbygroupuser.Name, editgroup.Name)
 	})
 
 	g.AfterEach(func() {
@@ -97,6 +101,17 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				},
 			},
 			{
+				by:              "checking editbygroupuser can create an object in a permitted namespace",
+				user:            editbygroupuser,
+				namespace:       cli.Namespace(),
+				objects:         []runtime.Object{dummyservice},
+				expectCondition: templateapi.TemplateInstanceReady,
+				checkOK: func(namespace string) bool {
+					_, err := cli.AdminKubeClient().CoreV1().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
+					return err == nil
+				},
+			},
+			{
 				by:              "checking edituser can't create an object in a non-permitted namespace",
 				user:            edituser,
 				namespace:       "default",
@@ -108,8 +123,30 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				},
 			},
 			{
+				by:              "checking editbygroupuser can't create an object in a non-permitted namespace",
+				user:            editbygroupuser,
+				namespace:       "default",
+				objects:         []runtime.Object{dummyservice},
+				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
+				checkOK: func(namespace string) bool {
+					_, err := cli.AdminKubeClient().CoreV1().Services(namespace).Get(dummyservice.Name, metav1.GetOptions{})
+					return err != nil && kerrors.IsNotFound(err)
+				},
+			},
+			{
 				by:              "checking edituser can't create an object that requires admin",
 				user:            edituser,
+				namespace:       cli.Namespace(),
+				objects:         []runtime.Object{dummyrolebinding},
+				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
+				checkOK: func(namespace string) bool {
+					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+					return err != nil && kerrors.IsNotFound(err)
+				},
+			},
+			{
+				by:              "checking editbygroupuser can't create an object that requires admin",
+				user:            editbygroupuser,
 				namespace:       cli.Namespace(),
 				objects:         []runtime.Object{dummyrolebinding},
 				expectCondition: templateapi.TemplateInstanceInstantiateFailure,

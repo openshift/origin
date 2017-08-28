@@ -109,7 +109,10 @@ func (TemplateInstanceObject) SwaggerDoc() map[string]string {
 
 var map_TemplateInstanceRequester = map[string]string{
 	"":         "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
-	"username": "username is the username of the agent requesting a template instantiation.",
+	"username": "username uniquely identifies this user among all active users.",
+	"uid":      "uid is a unique value that identifies this user across time; if this user is deleted and another user by the same name is added, they will have different UIDs.",
+	"groups":   "groups represent the groups this user is a part of.",
+	"extra":    "extra holds additional information provided by the authenticator.",
 }
 
 func (TemplateInstanceRequester) SwaggerDoc() map[string]string {

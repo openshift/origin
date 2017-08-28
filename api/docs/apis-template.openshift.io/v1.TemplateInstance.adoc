@@ -90,7 +90,12 @@ Populated by the system. Read-only. Value must be treated as opaque by clients a
 Populated by the system. Read-only. More info: http://kubernetes.io/docs/user-guide/identifiers#uids">uid</span>:
 </div></details><details open><summary><span title="(v1.TemplateInstanceSpec) spec describes the desired state of this TemplateInstance.">spec</span>:
 </summary><details><summary>  <span title="(v1.TemplateInstanceRequester) requester holds the identity of the agent requesting the template instantiation.">requester</span>:
-</summary><div style="margin-left:13px;">    <span title="(string) username is the username of the agent requesting a template instantiation.">username</span>:
+</summary><details><summary>    <span title="(object) extra holds additional information provided by the authenticator.">extra</span>:
+</summary><div style="margin-left:13px;">      <span title="(string)">[string]</span>:
+</div></details><details><summary>    <span title="(array) groups represent the groups this user is a part of.">groups</span>:
+</summary><div style="margin-left:13px;">    - <span title="(string)">[string]</span>:
+</div></details><div style="margin-left:13px;">    <span title="(string) uid is a unique value that identifies this user across time; if this user is deleted and another user by the same name is added, they will have different UIDs.">uid</span>:
+</div><div style="margin-left:13px;">    <span title="(string) username uniquely identifies this user among all active users.">username</span>:
 </div></details><details><summary>  <span title="(v1.LocalObjectReference) secret is a reference to a Secret object containing the necessary template parameters.">secret</span>:
 </summary><div style="margin-left:13px;">    <span title="(string) Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names">name</span>:
 </div></details><details><summary>  <span title="(v1.Template) template is a full copy of the template for instantiation.">template</span>:

@@ -48,6 +48,15 @@ message BrokerTemplateInstanceSpec {
   repeated string bindingIDs = 3;
 }
 
+// ExtraValue masks the value so protobuf can generate
+// +protobuf.nullable=true
+// +protobuf.options.(gogoproto.goproto_stringer)=false
+message ExtraValue {
+  // items, if empty, will result in an empty slice
+
+  repeated string items = 1;
+}
+
 // Parameter defines a name/value variable that is to be processed during
 // the Template to Config transformation.
 message Parameter {
@@ -177,8 +186,19 @@ message TemplateInstanceObject {
 // TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
 message TemplateInstanceRequester {
-  // username is the username of the agent requesting a template instantiation.
+  // username uniquely identifies this user among all active users.
   optional string username = 1;
+
+  // uid is a unique value that identifies this user across time; if this user is
+  // deleted and another user by the same name is added, they will have
+  // different UIDs.
+  optional string uid = 2;
+
+  // groups represent the groups this user is a part of.
+  repeated string groups = 3;
+
+  // extra holds additional information provided by the authenticator.
+  map<string, ExtraValue> extra = 4;
 }
 
 // TemplateInstanceSpec describes the desired state of a TemplateInstance.

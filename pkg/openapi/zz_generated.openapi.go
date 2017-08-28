@@ -9876,13 +9876,54 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 					Properties: map[string]spec.Schema{
 						"username": {
 							SchemaProps: spec.SchemaProps{
-								Description: "username is the username of the agent requesting a template instantiation.",
+								Description: "username uniquely identifies this user among all active users.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
 						},
+						"uid": {
+							SchemaProps: spec.SchemaProps{
+								Description: "uid is a unique value that identifies this user across time; if this user is deleted and another user by the same name is added, they will have different UIDs.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"groups": {
+							SchemaProps: spec.SchemaProps{
+								Description: "groups represent the groups this user is a part of.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"extra": {
+							SchemaProps: spec.SchemaProps{
+								Description: "extra holds additional information provided by the authenticator.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type: []string{"array"},
+											Items: &spec.SchemaOrArray{
+												Schema: &spec.Schema{
+													SchemaProps: spec.SchemaProps{
+														Type:   []string{"string"},
+														Format: "",
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 					},
-					Required: []string{"username"},
 				},
 			},
 			Dependencies: []string{},

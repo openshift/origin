@@ -108,9 +108,23 @@ type TemplateInstanceSpec struct {
 // TemplateInstanceRequester holds the identity of an agent requesting a
 // template instantiation.
 type TemplateInstanceRequester struct {
-	// Username is the username of the agent requesting a template instantiation.
+	// username uniquely identifies this user among all active users.
 	Username string
+
+	// uid is a unique value that identifies this user across time; if this user is
+	// deleted and another user by the same name is added, they will have
+	// different UIDs.
+	UID string
+
+	// groups represent the groups this user is a part of.
+	Groups []string
+
+	// extra holds additional information provided by the authenticator.
+	Extra map[string]ExtraValue
 }
+
+// ExtraValue masks the value so protobuf can generate
+type ExtraValue []string
 
 // TemplateInstanceStatus describes the current state of a TemplateInstance.
 type TemplateInstanceStatus struct {

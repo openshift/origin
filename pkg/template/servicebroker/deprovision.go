@@ -5,19 +5,21 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/openservicebroker/api"
+	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 )
 
 // Deprovision is the reverse of Provision.  We clean up the TemplateInstance,
 // Secret and BrokerTemplateInstance objects (in that order); the garbage
 // collector is responsible for the removal of the objects provisioned by the
 // Template(Instance) itself.
-func (b *Broker) Deprovision(instanceID string) *api.Response {
-	// TODO: currently the spec does not allow for user information to be
-	// provided on Deprovision, so little authorization can be carried out.
-
+func (b *Broker) Deprovision(u user.Info, instanceID string) *api.Response {
 	glog.V(4).Infof("Template service broker: Deprovision: instanceID %s", instanceID)
 
 	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
@@ -28,9 +30,50 @@ func (b *Broker) Deprovision(instanceID string) *api.Response {
 		return api.InternalServerError(err)
 	}
 
-	err = b.templateclient.TemplateInstances(brokerTemplateInstance.Spec.TemplateInstance.Namespace).Delete(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.Spec.TemplateInstance.UID)))
+	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
+
+	// end users are not expected to have access to BrokerTemplateInstance
+	// objects; SAR on the TemplateInstance instead.
+
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the user name empty string checks
+	if u.GetName() != "" {
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "get",
+			Group:     templateapi.GroupName,
+			Resource:  "templateinstances",
+			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+		}); err != nil {
+			return api.Forbidden(err)
+		}
+
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "delete",
+			Group:     templateapi.GroupName,
+			Resource:  "templateinstances",
+			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+		}); err != nil {
+			return api.Forbidden(err)
+		}
+	}
+
+	err = b.templateclient.TemplateInstances(namespace).Delete(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.Spec.TemplateInstance.UID)))
 	if err != nil && !kerrors.IsNotFound(err) {
 		return api.InternalServerError(err)
+	}
+
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the user name empty string checks
+	if u.GetName() != "" {
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "delete",
+			Group:     kapi.GroupName,
+			Resource:  "secrets",
+			Name:      brokerTemplateInstance.Spec.Secret.Name,
+		}); err != nil {
+			return api.Forbidden(err)
+		}
 	}
 
 	err = b.kc.Core().Secrets(brokerTemplateInstance.Spec.Secret.Namespace).Delete(brokerTemplateInstance.Spec.Secret.Name, metav1.NewPreconditionDeleteOptions(string(brokerTemplateInstance.Spec.Secret.UID)))

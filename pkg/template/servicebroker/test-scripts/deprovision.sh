@@ -4,7 +4,8 @@
 
 curl \
   -X DELETE \
-  -H 'X-Broker-API-Version: 2.9' \
+  -H "$apiVersion" \
+  -H "X-Broker-API-Originating-Identity: Kubernetes $(echo -ne "{\"username\": \"$requesterUsername\", \"groups\": [\"system:authenticated\"]}" | base64 -w 100)" \
   -v \
   $curlargs \
   $endpoint/v2/service_instances/$instanceUUID'?accepts_incomplete=true'

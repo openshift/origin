@@ -15,6 +15,7 @@ import (
 	rbacregistry "k8s.io/kubernetes/pkg/registry/rbac"
 
 	"github.com/openshift/origin/pkg/authorization/util"
+	template "github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/template/apis/template/validation"
 )
@@ -51,10 +52,13 @@ func (templateInstanceStrategy) Canonicalize(obj runtime.Object) {
 func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	templateInstance := obj.(*templateapi.TemplateInstance)
 
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the if nil check and always
+	// Clear any user-specified info, then seed it from the context
 	if templateInstance.Spec.Requester == nil {
-		user, _ := apirequest.UserFrom(ctx)
-		templateInstance.Spec.Requester = &templateapi.TemplateInstanceRequester{
-			Username: user.GetName(),
+
+		if user, ok := apirequest.UserFrom(ctx); ok {
+			templateReq := template.ConvertUserToTemplateInstanceRequester(user)
+			templateInstance.Spec.Requester = &templateReq
 		}
 	}
 
@@ -118,6 +122,7 @@ func (s *templateInstanceStrategy) validateImpersonation(templateInstance *templ
 			Verb:      "assign",
 			Group:     templateapi.GroupName,
 			Resource:  "templateinstances",
+			Name:      templateInstance.Name,
 		}); err != nil {
 			return field.ErrorList{field.Forbidden(field.NewPath("spec.requester.username"), "you do not have permission to set username")}
 		}

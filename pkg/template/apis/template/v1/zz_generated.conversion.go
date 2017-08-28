@@ -358,6 +358,9 @@ func Convert_template_TemplateInstanceObject_To_v1_TemplateInstanceObject(in *te
 
 func autoConvert_v1_TemplateInstanceRequester_To_template_TemplateInstanceRequester(in *TemplateInstanceRequester, out *template.TemplateInstanceRequester, s conversion.Scope) error {
 	out.Username = in.Username
+	out.UID = in.UID
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	out.Extra = *(*map[string]template.ExtraValue)(unsafe.Pointer(&in.Extra))
 	return nil
 }
 
@@ -368,6 +371,9 @@ func Convert_v1_TemplateInstanceRequester_To_template_TemplateInstanceRequester(
 
 func autoConvert_template_TemplateInstanceRequester_To_v1_TemplateInstanceRequester(in *template.TemplateInstanceRequester, out *TemplateInstanceRequester, s conversion.Scope) error {
 	out.Username = in.Username
+	out.UID = in.UID
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	out.Extra = *(*map[string]ExtraValue)(unsafe.Pointer(&in.Extra))
 	return nil
 }
 
