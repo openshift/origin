@@ -22627,64 +22627,6 @@
      }
     ]
    },
-   "/apis/authorization.openshift.io/v1/namespaces/{namespace}/resourceaccessreviews": {
-    "post": {
-     "description": "create a ResourceAccessReview",
-     "consumes": [
-      "*/*"
-     ],
-     "produces": [
-      "application/json",
-      "application/yaml",
-      "application/vnd.kubernetes.protobuf"
-     ],
-     "schemes": [
-      "https"
-     ],
-     "tags": [
-      "authorizationOpenshiftIo_v1"
-     ],
-     "operationId": "createAuthorizationOpenshiftIoV1NamespacedResourceAccessReview",
-     "parameters": [
-      {
-       "name": "body",
-       "in": "body",
-       "required": true,
-       "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.authorization.apis.authorization.v1.ResourceAccessReview"
-       }
-      }
-     ],
-     "responses": {
-      "200": {
-       "description": "OK",
-       "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.authorization.apis.authorization.v1.ResourceAccessReview"
-       }
-      },
-      "401": {
-       "description": "Unauthorized"
-      }
-     }
-    },
-    "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "object name and auth scope, such as for teams and projects",
-      "name": "namespace",
-      "in": "path",
-      "required": true
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "If 'true', then the output is pretty printed.",
-      "name": "pretty",
-      "in": "query"
-     }
-    ]
-   },
    "/apis/authorization.openshift.io/v1/namespaces/{namespace}/rolebindingrestrictions": {
     "get": {
      "description": "list or watch objects of kind RoleBindingRestriction",
@@ -23791,64 +23733,6 @@
      }
     ]
    },
-   "/apis/authorization.openshift.io/v1/namespaces/{namespace}/subjectaccessreviews": {
-    "post": {
-     "description": "create a SubjectAccessReview",
-     "consumes": [
-      "*/*"
-     ],
-     "produces": [
-      "application/json",
-      "application/yaml",
-      "application/vnd.kubernetes.protobuf"
-     ],
-     "schemes": [
-      "https"
-     ],
-     "tags": [
-      "authorizationOpenshiftIo_v1"
-     ],
-     "operationId": "createAuthorizationOpenshiftIoV1NamespacedSubjectAccessReview",
-     "parameters": [
-      {
-       "name": "body",
-       "in": "body",
-       "required": true,
-       "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.authorization.apis.authorization.v1.SubjectAccessReview"
-       }
-      }
-     ],
-     "responses": {
-      "200": {
-       "description": "OK",
-       "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.authorization.apis.authorization.v1.SubjectAccessReview"
-       }
-      },
-      "401": {
-       "description": "Unauthorized"
-      }
-     }
-    },
-    "parameters": [
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "object name and auth scope, such as for teams and projects",
-      "name": "namespace",
-      "in": "path",
-      "required": true
-     },
-     {
-      "uniqueItems": true,
-      "type": "string",
-      "description": "If 'true', then the output is pretty printed.",
-      "name": "pretty",
-      "in": "query"
-     }
-    ]
-   },
    "/apis/authorization.openshift.io/v1/namespaces/{namespace}/subjectrulesreviews": {
     "post": {
      "description": "create a SubjectRulesReview",
@@ -24160,7 +24044,7 @@
      "tags": [
       "authorizationOpenshiftIo_v1"
      ],
-     "operationId": "createAuthorizationOpenshiftIoV1ResourceAccessReviewForAllNamespaces",
+     "operationId": "createAuthorizationOpenshiftIoV1ResourceAccessReview",
      "parameters": [
       {
        "name": "body",
@@ -24614,7 +24498,7 @@
      "tags": [
       "authorizationOpenshiftIo_v1"
      ],
-     "operationId": "createAuthorizationOpenshiftIoV1SubjectAccessReviewForAllNamespaces",
+     "operationId": "createAuthorizationOpenshiftIoV1SubjectAccessReview",
      "parameters": [
       {
        "name": "body",
