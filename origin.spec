@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4995da1026daa0896296cdfe50df5effdba8a4fe
+%global commit 4d03099038f5a67c0ec6ddf87f1b71430763b585
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.116.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4995da1
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.117.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4d03099
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.117.0%{?dist}
+Release:        0.118.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -644,6 +644,69 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Aug 28 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.118.0
+- use oauth client instead of registry (deads@redhat.com)
+- move all of templateservicebroker under a single package (deads@redhat.com)
+- remove more special cases from the controller init path (deads@redhat.com)
+- registry: switch registry to use external clientset (mfojtik@redhat.com)
+- Use groups/extra information for authorization in template service broker
+  (gmontero@redhat.com)
+- Capture the time for build-rpm-release (ccoleman@redhat.com)
+- Collect controller metrics on the masters (ccoleman@redhat.com)
+- update extended test README (jminter@redhat.com)
+- refactor extended test TSB startup (jminter@redhat.com)
+- additional template instance controller readiness checking testing
+  (jminter@redhat.com)
+- don't use persistent templates for templateservicebroker (jminter@redhat.com)
+- add all template tests to Conformance (jminter@redhat.com)
+- Mark `oc deploy` deprecated and hide from help (ccoleman@redhat.com)
+- code cleanup from code review/walkthrough (bparees@redhat.com)
+- Refactor template controller to follow the same setup patterns
+  (maszulik@redhat.com)
+- Switch imagecontrollers to use clientsets (maszulik@redhat.com)
+- add legacy field selector for names (deads@redhat.com)
+- Remove release image definitions from this repo (skuznets@redhat.com)
+- Generate clients for ImageStreamImport (maszulik@redhat.com)
+- registry: use k8s authorization (mfojtik@redhat.com)
+- image: provide versioned helpers (mfojtik@redhat.com)
+- registry: add client based in external clientset (mfojtik@redhat.com)
+- bump next build timeout further (bparees@redhat.com)
+- End-to-end router tests are just unit tests (ccoleman@redhat.com)
+- Additional debugging for project test flake (ccoleman@redhat.com)
+- Wait longer in TestGCDefaults for heavily loaded servers
+  (ccoleman@redhat.com)
+- mktemp is not LCD bash (ccoleman@redhat.com)
+- When starting server in integration tests, assign random ports
+  (ccoleman@redhat.com)
+- It should be possible to customize the Kubelet port (ccoleman@redhat.com)
+- Allow unix domain sockets to be passed to etcd start (ccoleman@redhat.com)
+- Test runner for parallel integration (ccoleman@redhat.com)
+- provide a tag when pulling images so we only pull a single image
+  (bparees@redhat.com)
+- add generated clients (deads@redhat.com)
+- add missing oauth client tags (deads@redhat.com)
+- remove dead oauth code (deads@redhat.com)
+- allow secrets with "." characters to be used in builds (jminter@redhat.com)
+- don't alias Env slices in build controller strategy (jminter@redhat.com)
+- stop special casing the pv controller in controller init (deads@redhat.com)
+- Make service e2e tests retry to avoid flakes (danw@redhat.com)
+- UPSTREAM: <carry>: allow PV controller recycler template override
+  (deads@redhat.com)
+- GetBootstrapSecurityContextConstraints: change return type to a slice of
+  pointers. (vsemushi@redhat.com)
+- Add a router cmd test to exercise ignoreError() locally (mrogers@redhat.com)
+- remove deploymentconfig registry (deads@redhat.com)
+- Merge pkg/sdn/plugin/pod_linux.go into pod.go, drop pod_unsupported.go
+  (danw@redhat.com)
+- Don't build pkg/sdn/plugin on non-Linux (danw@redhat.com)
+- Deployment extended test can fail due to cancel (ccoleman@redhat.com)
+- Move OpenShift-internal SDN APIs out of pkg/sdn/apis/network/
+  (danw@redhat.com)
+- Update completions and docs (ffranz@redhat.com)
+- More oc plugin tests (ffranz@redhat.com)
+- Enable plugins in oc (ffranz@redhat.com)
+- UPSTREAM: 47267: flag support in kubectl plugins (ffranz@redhat.com)
+
 * Fri Aug 25 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.117.0
 - Treat the missing binary message as an info not warning (skuznets@redhat.com)
 - default oc set image to --source=docker (bparees@redhat.com)
