@@ -10,6 +10,7 @@ const (
 )
 
 // +genclient
+// +genclient:nonNamespaced
 
 type ClusterNetwork struct {
 	metav1.TypeMeta
@@ -26,6 +27,9 @@ type ClusterNetworkList struct {
 	metav1.ListMeta
 	Items []ClusterNetwork
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 // HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
@@ -44,6 +48,9 @@ type HostSubnetList struct {
 	metav1.ListMeta
 	Items []HostSubnet
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 // NetNamespace holds the network id against its name
 type NetNamespace struct {
@@ -85,6 +92,8 @@ type EgressNetworkPolicyRule struct {
 type EgressNetworkPolicySpec struct {
 	Egress []EgressNetworkPolicyRule
 }
+
+// +genclient
 
 // EgressNetworkPolicy describes the current egress network policy
 type EgressNetworkPolicy struct {
