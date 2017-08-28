@@ -1035,6 +1035,15 @@ type DockerStrategyOptions struct {
 	// Args contains any build arguments that are to be passed to Docker.  See
 	// https://docs.docker.com/engine/reference/builder/#/arg for more details
 	BuildArgs []kapi.EnvVar `json:"buildArgs,omitempty" protobuf:"bytes,1,rep,name=buildArgs"`
+
+	// noCache overrides the docker-strategy noCache option in the build config
+	NoCache *bool `json:"noCache,omitempty" protobuf:"varint,2,opt,name=noCache"`
+}
+
+// SourceStrategyOptions contains extra strategy options for Source builds
+type SourceStrategyOptions struct {
+	// incremental overrides the source-strategy incremental option in the build config
+	Incremental *bool `json:"incremental,omitempty" protobuf:"varint,1,opt,name=incremental"`
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
@@ -1069,6 +1078,9 @@ type BuildRequest struct {
 
 	// DockerStrategyOptions contains additional docker-strategy specific options for the build
 	DockerStrategyOptions *DockerStrategyOptions `json:"dockerStrategyOptions,omitempty" protobuf:"bytes,9,opt,name=dockerStrategyOptions"`
+
+	// SourceStrategyOptions contains additional source-strategy specific options for the build
+	SourceStrategyOptions *SourceStrategyOptions `json:"sourceStrategyOptions,omitempty" protobuf:"bytes,10,opt,name=sourceStrategyOptions"`
 }
 
 // BinaryBuildRequestOptions are the options required to fully speficy a binary build request
