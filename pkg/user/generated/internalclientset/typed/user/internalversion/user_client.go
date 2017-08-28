@@ -18,8 +18,8 @@ type UserClient struct {
 	restClient rest.Interface
 }
 
-func (c *UserClient) Groups(namespace string) GroupInterface {
-	return newGroups(c, namespace)
+func (c *UserClient) Groups() GroupInterface {
+	return newGroups(c)
 }
 
 func (c *UserClient) Identities() IdentityInterface {

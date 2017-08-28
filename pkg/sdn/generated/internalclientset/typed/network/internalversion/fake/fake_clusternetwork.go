@@ -13,7 +13,6 @@ import (
 // FakeClusterNetworks implements ClusterNetworkInterface
 type FakeClusterNetworks struct {
 	Fake *FakeNetwork
-	ns   string
 }
 
 var clusternetworksResource = schema.GroupVersionResource{Group: "network.openshift.io", Version: "", Resource: "clusternetworks"}
@@ -23,8 +22,7 @@ var clusternetworksKind = schema.GroupVersionKind{Group: "network.openshift.io",
 // Get takes name of the clusterNetwork, and returns the corresponding clusterNetwork object, and an error if there is any.
 func (c *FakeClusterNetworks) Get(name string, options v1.GetOptions) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(clusternetworksResource, c.ns, name), &network.ClusterNetwork{})
-
+		Invokes(testing.NewRootGetAction(clusternetworksResource, name), &network.ClusterNetwork{})
 	if obj == nil {
 		return nil, err
 	}
@@ -34,8 +32,7 @@ func (c *FakeClusterNetworks) Get(name string, options v1.GetOptions) (result *n
 // List takes label and field selectors, and returns the list of ClusterNetworks that match those selectors.
 func (c *FakeClusterNetworks) List(opts v1.ListOptions) (result *network.ClusterNetworkList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(clusternetworksResource, clusternetworksKind, c.ns, opts), &network.ClusterNetworkList{})
-
+		Invokes(testing.NewRootListAction(clusternetworksResource, clusternetworksKind, opts), &network.ClusterNetworkList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -56,15 +53,13 @@ func (c *FakeClusterNetworks) List(opts v1.ListOptions) (result *network.Cluster
 // Watch returns a watch.Interface that watches the requested clusterNetworks.
 func (c *FakeClusterNetworks) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(clusternetworksResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(clusternetworksResource, opts))
 }
 
 // Create takes the representation of a clusterNetwork and creates it.  Returns the server's representation of the clusterNetwork, and an error, if there is any.
 func (c *FakeClusterNetworks) Create(clusterNetwork *network.ClusterNetwork) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(clusternetworksResource, c.ns, clusterNetwork), &network.ClusterNetwork{})
-
+		Invokes(testing.NewRootCreateAction(clusternetworksResource, clusterNetwork), &network.ClusterNetwork{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,8 +69,7 @@ func (c *FakeClusterNetworks) Create(clusterNetwork *network.ClusterNetwork) (re
 // Update takes the representation of a clusterNetwork and updates it. Returns the server's representation of the clusterNetwork, and an error, if there is any.
 func (c *FakeClusterNetworks) Update(clusterNetwork *network.ClusterNetwork) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(clusternetworksResource, c.ns, clusterNetwork), &network.ClusterNetwork{})
-
+		Invokes(testing.NewRootUpdateAction(clusternetworksResource, clusterNetwork), &network.ClusterNetwork{})
 	if obj == nil {
 		return nil, err
 	}
@@ -85,14 +79,13 @@ func (c *FakeClusterNetworks) Update(clusterNetwork *network.ClusterNetwork) (re
 // Delete takes name of the clusterNetwork and deletes it. Returns an error if one occurs.
 func (c *FakeClusterNetworks) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(clusternetworksResource, c.ns, name), &network.ClusterNetwork{})
-
+		Invokes(testing.NewRootDeleteAction(clusternetworksResource, name), &network.ClusterNetwork{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeClusterNetworks) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(clusternetworksResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(clusternetworksResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &network.ClusterNetworkList{})
 	return err
@@ -101,8 +94,7 @@ func (c *FakeClusterNetworks) DeleteCollection(options *v1.DeleteOptions, listOp
 // Patch applies the patch and returns the patched clusterNetwork.
 func (c *FakeClusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *network.ClusterNetwork, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(clusternetworksResource, c.ns, name, data, subresources...), &network.ClusterNetwork{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(clusternetworksResource, name, data, subresources...), &network.ClusterNetwork{})
 	if obj == nil {
 		return nil, err
 	}

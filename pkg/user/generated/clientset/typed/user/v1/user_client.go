@@ -9,6 +9,7 @@ import (
 
 type UserV1Interface interface {
 	RESTClient() rest.Interface
+	GroupsGetter
 	IdentitiesGetter
 	UsersGetter
 	UserIdentityMappingsGetter
@@ -17,6 +18,10 @@ type UserV1Interface interface {
 // UserV1Client is used to interact with features provided by the user.openshift.io group.
 type UserV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *UserV1Client) Groups() GroupInterface {
+	return newGroups(c)
 }
 
 func (c *UserV1Client) Identities() IdentityInterface {

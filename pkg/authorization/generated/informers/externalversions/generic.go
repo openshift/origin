@@ -52,6 +52,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().Roles().Informer()}, nil
 	case v1.SchemeGroupVersion.WithResource("rolebindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().RoleBindings().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("rolebindingrestrictions"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Authorization().V1().RoleBindingRestrictions().Informer()}, nil
 
 	}
 

@@ -10,6 +10,12 @@ import (
 type Interface interface {
 	// ClusterNetworks returns a ClusterNetworkInformer.
 	ClusterNetworks() ClusterNetworkInformer
+	// EgressNetworkPolicies returns a EgressNetworkPolicyInformer.
+	EgressNetworkPolicies() EgressNetworkPolicyInformer
+	// HostSubnets returns a HostSubnetInformer.
+	HostSubnets() HostSubnetInformer
+	// NetNamespaces returns a NetNamespaceInformer.
+	NetNamespaces() NetNamespaceInformer
 }
 
 type version struct {
@@ -24,4 +30,19 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 // ClusterNetworks returns a ClusterNetworkInformer.
 func (v *version) ClusterNetworks() ClusterNetworkInformer {
 	return &clusterNetworkInformer{factory: v.SharedInformerFactory}
+}
+
+// EgressNetworkPolicies returns a EgressNetworkPolicyInformer.
+func (v *version) EgressNetworkPolicies() EgressNetworkPolicyInformer {
+	return &egressNetworkPolicyInformer{factory: v.SharedInformerFactory}
+}
+
+// HostSubnets returns a HostSubnetInformer.
+func (v *version) HostSubnets() HostSubnetInformer {
+	return &hostSubnetInformer{factory: v.SharedInformerFactory}
+}
+
+// NetNamespaces returns a NetNamespaceInformer.
+func (v *version) NetNamespaces() NetNamespaceInformer {
+	return &netNamespaceInformer{factory: v.SharedInformerFactory}
 }

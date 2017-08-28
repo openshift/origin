@@ -2,6 +2,10 @@
 
 package v1
 
+// GroupListerExpansion allows custom methods to be added to
+// GroupLister.
+type GroupListerExpansion interface{}
+
 // IdentityListerExpansion allows custom methods to be added to
 // IdentityLister.
 type IdentityListerExpansion interface{}

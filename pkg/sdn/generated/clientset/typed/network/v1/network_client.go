@@ -10,6 +10,9 @@ import (
 type NetworkV1Interface interface {
 	RESTClient() rest.Interface
 	ClusterNetworksGetter
+	EgressNetworkPoliciesGetter
+	HostSubnetsGetter
+	NetNamespacesGetter
 }
 
 // NetworkV1Client is used to interact with features provided by the network.openshift.io group.
@@ -17,8 +20,20 @@ type NetworkV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *NetworkV1Client) ClusterNetworks(namespace string) ClusterNetworkInterface {
-	return newClusterNetworks(c, namespace)
+func (c *NetworkV1Client) ClusterNetworks() ClusterNetworkInterface {
+	return newClusterNetworks(c)
+}
+
+func (c *NetworkV1Client) EgressNetworkPolicies(namespace string) EgressNetworkPolicyInterface {
+	return newEgressNetworkPolicies(c, namespace)
+}
+
+func (c *NetworkV1Client) HostSubnets() HostSubnetInterface {
+	return newHostSubnets(c)
+}
+
+func (c *NetworkV1Client) NetNamespaces() NetNamespaceInterface {
+	return newNetNamespaces(c)
 }
 
 // NewForConfig creates a new NetworkV1Client for the given config.

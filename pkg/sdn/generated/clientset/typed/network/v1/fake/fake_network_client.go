@@ -10,8 +10,20 @@ type FakeNetworkV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeNetworkV1) ClusterNetworks(namespace string) v1.ClusterNetworkInterface {
-	return &FakeClusterNetworks{c, namespace}
+func (c *FakeNetworkV1) ClusterNetworks() v1.ClusterNetworkInterface {
+	return &FakeClusterNetworks{c}
+}
+
+func (c *FakeNetworkV1) EgressNetworkPolicies(namespace string) v1.EgressNetworkPolicyInterface {
+	return &FakeEgressNetworkPolicies{c, namespace}
+}
+
+func (c *FakeNetworkV1) HostSubnets() v1.HostSubnetInterface {
+	return &FakeHostSubnets{c}
+}
+
+func (c *FakeNetworkV1) NetNamespaces() v1.NetNamespaceInterface {
+	return &FakeNetNamespaces{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

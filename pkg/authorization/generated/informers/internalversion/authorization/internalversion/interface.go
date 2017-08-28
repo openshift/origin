@@ -24,6 +24,8 @@ type Interface interface {
 	Roles() RoleInformer
 	// RoleBindings returns a RoleBindingInformer.
 	RoleBindings() RoleBindingInformer
+	// RoleBindingRestrictions returns a RoleBindingRestrictionInformer.
+	RoleBindingRestrictions() RoleBindingRestrictionInformer
 }
 
 type version struct {
@@ -73,4 +75,9 @@ func (v *version) Roles() RoleInformer {
 // RoleBindings returns a RoleBindingInformer.
 func (v *version) RoleBindings() RoleBindingInformer {
 	return &roleBindingInformer{factory: v.SharedInformerFactory}
+}
+
+// RoleBindingRestrictions returns a RoleBindingRestrictionInformer.
+func (v *version) RoleBindingRestrictions() RoleBindingRestrictionInformer {
+	return &roleBindingRestrictionInformer{factory: v.SharedInformerFactory}
 }

@@ -7,12 +7,17 @@ import (
 
 type QuotaInterface interface {
 	RESTClient() rest.Interface
+	AppliedClusterResourceQuotasGetter
 	ClusterResourceQuotasGetter
 }
 
 // QuotaClient is used to interact with features provided by the quota.openshift.io group.
 type QuotaClient struct {
 	restClient rest.Interface
+}
+
+func (c *QuotaClient) AppliedClusterResourceQuotas(namespace string) AppliedClusterResourceQuotaInterface {
+	return newAppliedClusterResourceQuotas(c, namespace)
 }
 
 func (c *QuotaClient) ClusterResourceQuotas() ClusterResourceQuotaInterface {
