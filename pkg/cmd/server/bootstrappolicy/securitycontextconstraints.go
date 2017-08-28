@@ -48,7 +48,7 @@ const (
 // GetBootstrapSecurityContextConstraints returns the slice of default SecurityContextConstraints
 // for system bootstrapping.  This method takes additional users and groups that should be added
 // to the strategies.  Use GetBoostrapSCCAccess to produce the default set of mappings.
-func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string][]string, sccNameToAdditionalUsers map[string][]string) []securityapi.SecurityContextConstraints {
+func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string][]string, sccNameToAdditionalUsers map[string][]string) []*securityapi.SecurityContextConstraints {
 	// define priorities here and reference them below so it is easy to see, at a glance
 	// what we're setting
 	var (
@@ -57,7 +57,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 		securityContextConstraintsAnyUIDPriority = int32(10)
 	)
 
-	constraints := []securityapi.SecurityContextConstraints{
+	constraints := []*securityapi.SecurityContextConstraints{
 		// SecurityContextConstraintPrivileged allows all access for every field
 		{
 			ObjectMeta: metav1.ObjectMeta{

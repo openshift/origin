@@ -107,7 +107,6 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 			Message: "Build and Deploy Commands:",
 			Commands: []*cobra.Command{
 				rollout.NewCmdRollout(fullName, f, out, errout),
-				cmd.NewCmdDeploy(fullName, f, out),
 				cmd.NewCmdRollback(fullName, f, out),
 				cmd.NewCmdNewBuild(cmd.NewBuildRecommendedCommandName, fullName, f, in, out, errout),
 				cmd.NewCmdStartBuild(fullName, f, in, out, errout),
@@ -181,6 +180,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 
 	filters := []string{
 		"options",
+		"deploy",
 		// These commands are deprecated and should not appear in help
 		moved(fullName, "set env", cmds, set.NewCmdEnv(fullName, f, in, out, errout)),
 		moved(fullName, "set volume", cmds, set.NewCmdVolume(fullName, f, out, errout)),
@@ -200,10 +200,12 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	experimental.AddCommand()
 	cmds.AddCommand(experimental)
 
+	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, in, out, errout))
 	if name == fullName {
 		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{PrintClientFeatures: true}))
 	}
 	cmds.AddCommand(cmd.NewCmdOptions(out))
+	cmds.AddCommand(cmd.NewCmdDeploy(fullName, f, out))
 
 	if cmds.Flag("namespace") != nil {
 		if cmds.Flag("namespace").Annotations == nil {

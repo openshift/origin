@@ -5,7 +5,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn"
 )
 
 func TestMasterVNIDMap(t *testing.T) {
@@ -34,27 +34,27 @@ func TestMasterVNIDMap(t *testing.T) {
 	checkCurrentVNIDs(t, vmap, 4, 3)
 
 	// update vnids
-	_, err = vmap.updateNetID("alpha", osapi.JoinPodNetwork, "bravo")
+	_, err = vmap.updateNetID("alpha", sdn.JoinPodNetwork, "bravo")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("alpha", osapi.JoinPodNetwork, "bogus")
+	_, err = vmap.updateNetID("alpha", sdn.JoinPodNetwork, "bogus")
 	checkErr(t, err)
-	_, err = vmap.updateNetID("bogus", osapi.JoinPodNetwork, "alpha")
+	_, err = vmap.updateNetID("bogus", sdn.JoinPodNetwork, "alpha")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 2)
 
-	_, err = vmap.updateNetID("alpha", osapi.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("alpha", sdn.GlobalPodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("charlie", osapi.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("charlie", sdn.GlobalPodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bogus", osapi.GlobalPodNetwork, "")
+	_, err = vmap.updateNetID("bogus", sdn.GlobalPodNetwork, "")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 1)
 
-	_, err = vmap.updateNetID("alpha", osapi.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("alpha", sdn.IsolatePodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bravo", osapi.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("bravo", sdn.IsolatePodNetwork, "")
 	checkNoErr(t, err)
-	_, err = vmap.updateNetID("bogus", osapi.IsolatePodNetwork, "")
+	_, err = vmap.updateNetID("bogus", sdn.IsolatePodNetwork, "")
 	checkErr(t, err)
 	checkCurrentVNIDs(t, vmap, 4, 2)
 
@@ -85,12 +85,12 @@ func checkCurrentVNIDs(t *testing.T, vmap *masterVNIDMap, expectedMapCount, expe
 	}
 
 	// Check bitmap allocator
-	expected_free := int(osapi.MaxVNID-osapi.MinVNID) + 1 - expectedAllocatorCount
+	expected_free := int(sdn.MaxVNID-sdn.MinVNID) + 1 - expectedAllocatorCount
 	if vmap.netIDManager.Free() != expected_free {
 		t.Fatalf("Allocator mismatch: %d vs %d", vmap.netIDManager.Free(), expected_free)
 	}
 	for _, id := range vmap.ids {
-		if id == osapi.GlobalVNID {
+		if id == sdn.GlobalVNID {
 			continue
 		}
 		if !vmap.netIDManager.Has(id) {

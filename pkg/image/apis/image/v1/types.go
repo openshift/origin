@@ -387,6 +387,9 @@ type DockerImageReference struct {
 	ID string `protobuf:"bytes,5,opt,name=iD"`
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // The image stream import resource provides an easy way for a user to find and import Docker images
 // from other Docker registries into the server. Individual images or an entire image repository may
 // be imported, and users may choose to see the results of the import prior to tagging the resulting

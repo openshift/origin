@@ -93,6 +93,9 @@ func RunEtcd(etcdServerConfig *configapi.EtcdConfig) {
 func addressToURLs(addr string, isTLS bool) []string {
 	addrs := strings.Split(addr, ",")
 	for i := range addrs {
+		if strings.HasPrefix(addrs[i], "unix://") || strings.HasPrefix(addrs[i], "unixs://") {
+			continue
+		}
 		if isTLS {
 			addrs[i] = "https://" + addrs[i]
 		} else {

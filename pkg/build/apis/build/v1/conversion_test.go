@@ -23,13 +23,6 @@ func TestFieldSelectorConversions(t *testing.T) {
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"name", "status", "podName",
 	)
-
-	testutil.CheckFieldLabelConversions(t, "v1", "BuildConfig",
-		// Ensure all currently returned labels are supported
-		newer.BuildConfigToSelectableFields(&newer.BuildConfig{}),
-		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"name",
-	)
 }
 
 func TestBinaryBuildRequestOptions(t *testing.T) {

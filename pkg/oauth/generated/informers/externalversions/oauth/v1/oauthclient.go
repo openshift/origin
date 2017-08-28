@@ -29,10 +29,10 @@ func newOAuthClientInformer(client clientset.Interface, resyncPeriod time.Durati
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.OauthV1().OAuthClients(meta_v1.NamespaceAll).List(options)
+				return client.OauthV1().OAuthClients().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.OauthV1().OAuthClients(meta_v1.NamespaceAll).Watch(options)
+				return client.OauthV1().OAuthClients().Watch(options)
 			},
 		},
 		&oauth_v1.OAuthClient{},

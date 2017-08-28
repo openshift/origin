@@ -14,11 +14,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server"
+	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
-func imageStreamHasManifestDigest(is *imageapi.ImageStream, dgst digest.Digest) bool {
+func imageStreamHasManifestDigest(is *imageapiv1.ImageStream, dgst digest.Digest) bool {
 	for _, tagEventList := range is.Status.Tags {
 		for _, tagEvent := range tagEventList.Items {
 			if tagEvent.Image == string(dgst) {
@@ -41,7 +42,7 @@ type Summary struct {
 //
 // TODO(dmage): remove layer links to a blob if the blob is removed or it doesn't belong to the ImageStream.
 // TODO(dmage): keep young blobs (docker/distribution#2297).
-func Prune(ctx context.Context, storageDriver driver.StorageDriver, registry distribution.Namespace, registryClient server.RegistryClient, dryRun bool) (Summary, error) {
+func Prune(ctx context.Context, storageDriver driver.StorageDriver, registry distribution.Namespace, registryClient client.RegistryClient, dryRun bool) (Summary, error) {
 	logger := context.GetLogger(ctx)
 
 	repositoryEnumerator, ok := registry.(distribution.RepositoryEnumerator)
@@ -49,7 +50,7 @@ func Prune(ctx context.Context, storageDriver driver.StorageDriver, registry dis
 		return Summary{}, fmt.Errorf("unable to convert Namespace to RepositoryEnumerator")
 	}
 
-	oc, _, err := registryClient.Clients()
+	oc, err := registryClient.Client()
 	if err != nil {
 		return Summary{}, fmt.Errorf("error getting clients: %v", err)
 	}
@@ -64,9 +65,15 @@ func Prune(ctx context.Context, storageDriver driver.StorageDriver, registry dis
 		// Keep the manifest.
 		inuse[image.Name] = image.DockerImageReference
 
+		if err := imageapiv1.ImageWithMetadata(&image); err != nil {
+			return Summary{}, fmt.Errorf("error getting image metadata: %v", err)
+		}
 		// Keep the config for a schema 2 manifest.
 		if image.DockerImageManifestMediaType == schema2.MediaTypeManifest {
-			inuse[image.DockerImageMetadata.ID] = image.DockerImageReference
+			meta, ok := image.DockerImageMetadata.Object.(*imageapi.DockerImage)
+			if ok {
+				inuse[meta.ID] = image.DockerImageReference
+			}
 		}
 
 		// Keep image layers.

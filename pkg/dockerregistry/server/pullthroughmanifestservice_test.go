@@ -16,8 +16,10 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
+	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func createTestRegistryServer(t *testing.T, ctx context.Context) *httptest.Server {
@@ -91,7 +93,7 @@ func TestPullthroughManifests(t *testing.T) {
 	image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", serverURL.Host, namespace, repo, image.Name)
 	image.DockerImageManifest = ""
 
-	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, repo, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -134,7 +136,7 @@ func TestPullthroughManifests(t *testing.T) {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
 		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
 			enablePullThrough: true,
 		})
 
@@ -310,9 +312,9 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 
 				registrytest.AddUntaggedImage(t, fos, image)
 				registrytest.AddImageStream(t, fos, namespace, repo, nil)
-				registrytest.AddImageStreamTag(t, fos, ms1img, namespace, repo, &imageapi.TagReference{
+				registrytest.AddImageStreamTag(t, fos, ms1img, namespace, repo, &imageapiv1.TagReference{
 					Name:         "schema1",
-					ImportPolicy: imageapi.TagImportPolicy{Insecure: true},
+					ImportPolicy: imageapiv1.TagImportPolicy{Insecure: true},
 				})
 			},
 			expectedManifest: ms1manifest,
@@ -336,11 +338,11 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 				registrytest.AddImageStream(t, fos, namespace, repo, map[string]string{
 					imageapi.InsecureRepositoryAnnotation: "true",
 				})
-				registrytest.AddImageStreamTag(t, fos, image, namespace, repo, &imageapi.TagReference{
+				registrytest.AddImageStreamTag(t, fos, image, namespace, repo, &imageapiv1.TagReference{
 					Name: "schema2",
 					// the value doesn't override is annotation because we cannot determine whether the
 					// value is explicit or just the default
-					ImportPolicy: imageapi.TagImportPolicy{Insecure: false},
+					ImportPolicy: imageapiv1.TagImportPolicy{Insecure: false},
 				})
 			},
 			expectedManifest: ms2manifest,
@@ -349,7 +351,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 			},
 		},
 	} {
-		fos, client := registrytest.NewFakeOpenShiftWithClient()
+		fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		tc.fakeOpenShiftInit(fos)
 
@@ -357,7 +359,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            client,
+			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
 			enablePullThrough: true,
 		})
 		ctx = withRepository(ctx, repo)
@@ -457,7 +459,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 	image2 := *img
 	image2.DockerImageReference = dockerImageReference(server2, "foo/bar")
 
-	fos, client := registrytest.NewFakeOpenShiftWithClient()
+	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, repo1, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -491,7 +493,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, tc.repoName, testRepositoryOptions{
-			client:            client,
+			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
 			enablePullThrough: true,
 		})
 

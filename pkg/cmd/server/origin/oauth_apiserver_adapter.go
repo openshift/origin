@@ -54,7 +54,6 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 	oauthServerConfig.GenericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(servingConfig.MinTLSVersion)
 	oauthServerConfig.GenericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(servingConfig.CipherSuites)
 
-	oauthServerConfig.RESTOptionsGetter = masterConfig.RESTOptionsGetter
 	// TODO pass a privileged client config through during construction.  It is NOT a loopback client.
 	oauthServerConfig.OpenShiftClient = masterConfig.PrivilegedLoopbackOpenShiftClient
 	oauthServerConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetInternal

@@ -14,6 +14,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
+	"github.com/openshift/origin/pkg/sdn"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -49,7 +50,7 @@ func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) 
 		}
 		return "", false, err
 	}
-	return cn.PluginName, sdnapi.IsOpenShiftNetworkPlugin(cn.PluginName), nil
+	return cn.PluginName, sdn.IsOpenShiftNetworkPlugin(cn.PluginName), nil
 }
 
 func GetNodes(kubeClient kclientset.Interface) ([]kapi.Node, error) {
@@ -154,7 +155,7 @@ func GetGlobalAndNonGlobalPods(pods []kapi.Pod, vnidMap map[string]uint32) ([]ka
 	globalPods := []kapi.Pod{}
 	nonGlobalPods := []kapi.Pod{}
 	for _, pod := range pods {
-		if vnidMap[pod.Namespace] == sdnapi.GlobalVNID {
+		if vnidMap[pod.Namespace] == sdn.GlobalVNID {
 			globalPods = append(globalPods, pod)
 		} else {
 			nonGlobalPods = append(nonGlobalPods, pod)
@@ -172,7 +173,7 @@ func ExpectedConnectionStatus(ns1, ns2 string, vnidMap map[string]uint32) bool {
 	} // else multitenant
 
 	// Check if one of the pods belongs to global network
-	if vnidMap[ns1] == sdnapi.GlobalVNID || vnidMap[ns2] == sdnapi.GlobalVNID {
+	if vnidMap[ns1] == sdn.GlobalVNID || vnidMap[ns2] == sdn.GlobalVNID {
 		return true
 	}
 

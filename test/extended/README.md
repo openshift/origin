@@ -12,15 +12,15 @@ From the top-level origin directory, run
 
 Where \<some_script\>.sh is one of the bucket scripts such as "core.sh".
 
-You can further narrow the set of tests being run by passing
-`--ginkgo.focus='regex'` where 'regex' is a regular expression matching the
+You can further narrow the set of tests being run by setting the environment
+variable `FOCUS='regex'` where 'regex' is a regular expression matching the
 description of the test you want to run.  For example one of the s2i tests
 (s2i_incremental.go) defines:
 
 	var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 
-So you can write a focus regex that includes this test by passing
-`--ginkgo.focus='\[builds\]'` or `--ginkgo.focus='incremental s2i'`.
+So you can write a focus regex that includes this test by setting
+`FOCUS='\[builds\]'` or `FOCUS='incremental s2i'`.
 
 Prerequisites
 -------------
@@ -53,18 +53,18 @@ $ export KUBECONFIG=${KUBECONFIG-$HOME/.kube/config}
 Then, for example:
 ```console
 $ make build-extended-test
-$ TEST_ONLY=1 test/extended/core.sh --ginkgo.focus='\[builds\]'
+$ FOCUS='\[builds\]' TEST_ONLY=1 test/extended/core.sh
 ```
 
 By default the Kubernetes test framework will remove the project associated with
 your test spec when it completes, regardless of whether it fails or not.
-Origin's wrapper scripts may also do clean-up.  This can be inconvenient when
-debugging.  To stop this behaviour, set the `SKIP_TEARDOWN` environment variable
-and add the argument `--delete-namespace=false`:
+Origin's wrapper scripts may also do clean-up.  Running tests in parallel can
+also hinder debugging.  To stop these behaviours, set the `SKIP_TEARDOWN`
+environment variable, set `DELETE_NAMESPACE=false`, and set `PARALLEL_NODES=1`:
 
 ```console
 $ make build-extended-test
-$ SKIP_TEARDOWN=1 TEST_ONLY=1 test/extended/core.sh --delete-namespace=false --ginkgo.focus='\[builds\]'
+$ FOCUS='\[builds\]' TEST_ONLY=1 SKIP_TEARDOWN=1 DELETE_NAMESPACE=false PARALLEL_NODES=1 test/extended/core.sh
 ```
 
 Test labels

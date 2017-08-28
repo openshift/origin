@@ -33,6 +33,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
 )
@@ -60,13 +61,13 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(config *rest.Config, oc client.Interface, kc kclientsetinternal.Interface, templateclient internalversiontemplate.TemplateInterface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(config *rest.Config, oc client.Interface, kc kclientsetinternal.Interface, templateclient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
 		restmapper:       client.DefaultMultiRESTMapper(),
 		config:           config,
 		oc:               oc,
 		kc:               kc,
-		templateclient:   templateclient,
+		templateclient:   templateclient.Template(),
 		lister:           informer.Lister(),
 		informer:         informer.Informer(),
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TemplateInstanceController"),
@@ -155,7 +156,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 	}
 
 	if !templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
-		ready, err := c.checkReadiness(templateInstance)
+		ready, err := c.checkReadiness(templateInstance, time.Now())
 		if err != nil {
 			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
@@ -205,8 +206,8 @@ func (c *TemplateInstanceController) sync(key string) error {
 	return nil
 }
 
-func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance) (bool, error) {
-	if time.Now().After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
+func (c *TemplateInstanceController) checkReadiness(templateInstance *templateapi.TemplateInstance, now time.Time) (bool, error) {
+	if now.After(templateInstance.CreationTimestamp.Add(readinessTimeout)) {
 		return false, fmt.Errorf("Timeout")
 	}
 
@@ -348,7 +349,17 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		return fmt.Errorf("spec.requester.username not set")
 	}
 
-	u := &user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}
+	extra := map[string][]string{}
+	for k, v := range templateInstance.Spec.Requester.Extra {
+		extra[k] = []string(v)
+	}
+
+	u := &user.DefaultInfo{
+		Name:   templateInstance.Spec.Requester.Username,
+		UID:    templateInstance.Spec.Requester.UID,
+		Groups: templateInstance.Spec.Requester.Groups,
+		Extra:  extra,
+	}
 
 	var secret *kapi.Secret
 	if templateInstance.Spec.Secret != nil {

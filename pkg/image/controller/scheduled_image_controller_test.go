@@ -7,10 +7,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -39,9 +38,9 @@ func TestScheduledImport(t *testing.T) {
 		},
 	}
 
-	imageInformers := imageinformer.NewSharedInformerFactory(imageinternal.NewSimpleClientset(), 0)
+	imageInformers := imageinformer.NewSharedInformerFactory(imageclient.NewSimpleClientset(), 0)
 	isInformer := imageInformers.Image().InternalVersion().ImageStreams()
-	fake := testclient.NewSimpleFake()
+	fake := imageclient.NewSimpleClientset()
 	sched := NewScheduledImageStreamController(fake, isInformer, ScheduledImageStreamControllerOptions{
 		Enabled:           true,
 		Resync:            1 * time.Second,

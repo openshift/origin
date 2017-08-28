@@ -42,7 +42,7 @@ func TestBootstrappedConstraints(t *testing.T) {
 		}
 
 		for _, expectedVolume := range expectedVolumes {
-			if !sccutil.SCCAllowsFSType(&constraint, expectedVolume) {
+			if !sccutil.SCCAllowsFSType(constraint, expectedVolume) {
 				t.Errorf("%s does not support %v which is required for all default SCCs", constraint.Name, expectedVolume)
 			}
 		}

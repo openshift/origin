@@ -186,7 +186,7 @@ function os::test::junit::internal::generate_report() {
     os::util::ensure::built_binary_exists 'junitreport'
 
     local report_file
-    report_file="$( mktemp --tmpdir="${ARTIFACT_DIR}" "${report_type}_report_XXXXX" --suffix ".xml" )"
+    report_file="$( mktemp "${ARTIFACT_DIR}/${report_type}_report_XXXXX" ).xml"
     os::log::info "jUnit XML report placed at $( os::util::repository_relative_path ${report_file} )"
     junitreport --type "${report_type}"             \
                 --suites nested                     \

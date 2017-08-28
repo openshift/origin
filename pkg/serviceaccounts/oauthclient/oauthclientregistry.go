@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	apiserverserviceaccount "k8s.io/apiserver/pkg/authentication/serviceaccount"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -186,14 +185,28 @@ func (uri *redirectURI) merge(m *model) {
 
 var _ oauthclient.Getter = &saOAuthClientAdapter{}
 
-func NewServiceAccountOAuthClientGetter(saClient kcoreclient.ServiceAccountsGetter, secretClient kcoreclient.SecretsGetter, routeClient osclient.RoutesNamespacer, delegate oauthclient.Getter, grantMethod oauthapi.GrantHandlerType) oauthclient.Getter {
-	return &saOAuthClientAdapter{saClient: saClient, secretClient: secretClient, routeClient: routeClient, delegate: delegate, grantMethod: grantMethod, decoder: kapi.Codecs.UniversalDecoder()}
+func NewServiceAccountOAuthClientGetter(
+	saClient kcoreclient.ServiceAccountsGetter,
+	secretClient kcoreclient.SecretsGetter,
+	routeClient osclient.RoutesNamespacer,
+	delegate oauthclient.Getter,
+	grantMethod oauthapi.GrantHandlerType,
+) oauthclient.Getter {
+
+	return &saOAuthClientAdapter{
+		saClient:     saClient,
+		secretClient: secretClient,
+		routeClient:  routeClient,
+		delegate:     delegate,
+		grantMethod:  grantMethod,
+		decoder:      kapi.Codecs.UniversalDecoder(),
+	}
 }
 
-func (a *saOAuthClientAdapter) GetClient(ctx apirequest.Context, name string, options *metav1.GetOptions) (*oauthapi.OAuthClient, error) {
+func (a *saOAuthClientAdapter) Get(name string, options metav1.GetOptions) (*oauthapi.OAuthClient, error) {
 	saNamespace, saName, err := apiserverserviceaccount.SplitUsername(name)
 	if err != nil {
-		return a.delegate.GetClient(ctx, name, options)
+		return a.delegate.Get(name, options)
 	}
 
 	sa, err := a.saClient.ServiceAccounts(saNamespace).Get(saName, metav1.GetOptions{})

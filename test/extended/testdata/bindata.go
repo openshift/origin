@@ -7813,6 +7813,10 @@ parameters:
   required: true
 objects:
 - apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: output
+- apiVersion: v1
   kind: BuildConfig
   metadata:
     name: gitauthtest
@@ -7830,6 +7834,14 @@ objects:
           name: ruby:latest
           namespace: openshift
       type: Source
+    # this test specifically does a push, to help exercise the code that sets
+    # environment variables on build pods (i.e., by having a source secret and
+    # a push secret, multiple environment variables need to be set correctly for
+    # the build to succeed).
+    output:
+      to:
+        kind: ImageStreamTag
+        name: output:latest
 `)
 
 func testExtendedTestdataTestAuthBuildYamlBytes() ([]byte, error) {
@@ -24590,6 +24602,36 @@ objects:
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
 
+      # Scrape config for controllers.
+      #
+      # Each master node exposes a /metrics endpoint on :8444 that contains operational metrics for
+      # the controllers.
+      #
+      # TODO: move this to a pure endpoints based metrics gatherer when controllers are exposed via
+      #       endpoints.
+      - job_name: 'kubernetes-controllers'
+
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        # Keep only the default/kubernetes service endpoints for the https port, and then
+        # set the port to 8444. This is the default configuration for the controllers on OpenShift
+        # masters.
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+        - source_labels: [__address__]
+          action: replace
+          target_label: __address__
+          regex: (.+)(?::\d+)
+          replacement: $1:8444
+
       # Scrape config for cAdvisor.
       #
       # Beginning in Kube 1.7, each node exposes a /metrics/cadvisor endpoint that
@@ -27795,6 +27837,11 @@ objects:
             name: serving-cert
           - mountPath: /var/apiserver-config
             name: apiserver-config
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
         volumes:
         - name: serving-cert
           secret:

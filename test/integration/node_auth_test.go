@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -52,6 +53,15 @@ func TestNodeAuth(t *testing.T) {
 
 	// Client configs for lesser users
 	masterKubeletClientConfig := configapi.GetKubeletClientConfig(*masterConfig)
+	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	nodePortInt, err := strconv.ParseInt(nodePort, 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	masterKubeletClientConfig.Port = uint(nodePortInt)
 
 	anonymousConfig := clientcmd.AnonymousClientConfig(adminConfig)
 
@@ -107,15 +117,6 @@ func TestNodeAuth(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := testutil.WaitForClusterPolicyUpdate(sa1Client, "get", kapi.Resource("nodes/metrics"), true); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	_, nodePort, err := net.SplitHostPort(nodeConfig.ServingInfo.BindAddress)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	nodePortInt, err := strconv.ParseInt(nodePort, 0, 0)
-	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -238,7 +239,7 @@ func TestNodeAuth(t *testing.T) {
 		}
 
 		for _, r := range requests {
-			req, err := http.NewRequest(r.Method, "https://"+nodeConfig.NodeName+":10250"+r.Path, nil)
+			req, err := http.NewRequest(r.Method, fmt.Sprintf("https://%s:%d", nodeConfig.NodeName, nodePortInt)+r.Path, nil)
 			if err != nil {
 				t.Errorf("%s: %s: unexpected error: %v", k, r.Path, err)
 				continue

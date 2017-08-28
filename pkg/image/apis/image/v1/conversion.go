@@ -280,12 +280,6 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		return err
 	}
 
-	if err := scheme.AddFieldLabelConversionFunc("v1", "Image",
-		oapi.GetFieldLabelConversionFunc(newer.ImageToSelectableFields(&newer.Image{}), nil),
-	); err != nil {
-		return err
-	}
-
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ImageStream",
 		oapi.GetFieldLabelConversionFunc(newer.ImageStreamToSelectableFields(&newer.ImageStream{}), map[string]string{"name": "metadata.name"}),
 	); err != nil {

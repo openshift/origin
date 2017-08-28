@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
@@ -93,7 +94,11 @@ func setupDockerSocket(pod *v1.Pod) {
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPath, volumeSuffix string) {
-	volumeName := namer.GetName(secretName, volumeSuffix, kvalidation.DNS1123SubdomainMaxLength)
+	volumeName := namer.GetName(secretName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
+
+	// coerce from RFC1123 subdomain to RFC1123 label.
+	volumeName = strings.Replace(volumeName, ".", "-", -1)
+
 	volumeExists := false
 	for _, v := range pod.Spec.Volumes {
 		if v.Name == volumeName {
@@ -152,7 +157,6 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: mountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)
-
 	}
 }
 
@@ -170,9 +174,9 @@ func setupSourceSecrets(pod *v1.Pod, container *v1.Container, sourceSecret *kapi
 	}...)
 }
 
-// setupSecrets mounts the secrets referenced by the SecretBuildSource
+// setupInputSecrets mounts the secrets referenced by the SecretBuildSource
 // into a builder container.
-func setupSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretBuildSource) {
+func setupInputSecrets(pod *v1.Pod, container *v1.Container, secrets []buildapi.SecretBuildSource) {
 	for _, s := range secrets {
 		mountSecretVolume(pod, container, s.Secret.Name, filepath.Join(SecretBuildSourceBaseMountPath, s.Secret.Name), "build")
 		glog.V(3).Infof("%s will be used as a build secret in %s", s.Secret.Name, SecretBuildSourceBaseMountPath)
@@ -264,4 +268,11 @@ func setOwnerReference(pod *v1.Pod, build *buildapi.Build) {
 			Controller: &t,
 		},
 	}
+}
+
+// copyEnvVarSlice returns a copy of an []v1.EnvVar
+func copyEnvVarSlice(in []v1.EnvVar) []v1.EnvVar {
+	out := make([]v1.EnvVar, len(in))
+	copy(out, in)
+	return out
 }

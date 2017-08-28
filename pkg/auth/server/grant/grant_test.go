@@ -10,14 +10,16 @@ import (
 	"strings"
 	"testing"
 
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/authentication/user"
+	clienttesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	oapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	"github.com/openshift/origin/pkg/oauth/registry/test"
+	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
+	oauthclientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 )
 
 type testAuth struct {
@@ -37,41 +39,49 @@ func badAuth(err error) *testAuth {
 	return &testAuth{Success: false, User: nil, Err: err}
 }
 
-func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) *test.ClientRegistry {
+func emptyClientRegistry() oauthclientregistry.Getter {
+	return oauthfake.NewSimpleClientset().Oauth().OAuthClients()
+}
+
+func goodClientRegistry(clientID string, redirectURIs []string, literalScopes []string) oauthclientregistry.Getter {
 	client := &oapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: clientID}, Secret: "mysecret", RedirectURIs: redirectURIs}
 	client.Name = clientID
 	if len(literalScopes) > 0 {
 		client.ScopeRestrictions = []oapi.ScopeRestriction{{ExactValues: literalScopes}}
 	}
+	fakeOAuthClient := oauthfake.NewSimpleClientset(client)
 
-	return &test.ClientRegistry{Client: client}
+	return fakeOAuthClient.Oauth().OAuthClients()
 }
-func badClientRegistry(err error) *test.ClientRegistry {
-	return &test.ClientRegistry{Err: err}
+func badClientRegistry(err error) oauthclientregistry.Getter {
+	fakeOAuthClient := oauthfake.NewSimpleClientset()
+	fakeOAuthClient.PrependReactor("get", "oauthclients", func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+		return true, nil, err
+	})
+	return fakeOAuthClient.Oauth().OAuthClients()
 }
 
-func emptyAuthRegistry() *test.ClientAuthorizationRegistry {
-	return &test.ClientAuthorizationRegistry{
-		GetErr: kapierrors.NewNotFound(oapi.Resource("oauthclientauthorizations"), "foo"),
-	}
+func emptyAuthRegistry() *oauthfake.Clientset {
+	return oauthfake.NewSimpleClientset()
 }
-func existingAuthRegistry(scopes []string) *test.ClientAuthorizationRegistry {
-	auth := oapi.OAuthClientAuthorization{
+
+func existingAuthRegistry(scopes []string) *oauthfake.Clientset {
+	auth := &oapi.OAuthClientAuthorization{
 		UserName:   "existingUserName",
 		UserUID:    "existingUserUID",
 		ClientName: "existingClientName",
 		Scopes:     scopes,
 	}
-	auth.Name = "existingID"
-	return &test.ClientAuthorizationRegistry{ClientAuthorization: &auth}
+	auth.Name = "username:myclient"
+	return oauthfake.NewSimpleClientset(auth)
 }
 
 func TestGrant(t *testing.T) {
 	testCases := map[string]struct {
 		CSRF           csrf.CSRF
 		Auth           *testAuth
-		ClientRegistry *test.ClientRegistry
-		AuthRegistry   *test.ClientAuthorizationRegistry
+		ClientRegistry oauthclientregistry.Getter
+		AuthRegistry   *oauthfake.Clientset
 
 		Path       string
 		PostValues url.Values
@@ -124,36 +134,44 @@ func TestGrant(t *testing.T) {
 		},
 
 		"Unauthenticated with redirect": {
-			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: badAuth(nil),
-			Path: "/grant?then=/authorize",
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
+			Auth:           badAuth(nil),
+			ClientRegistry: emptyClientRegistry(),
+			AuthRegistry:   emptyAuthRegistry(),
+			Path:           "/grant?then=/authorize",
 
 			ExpectStatusCode: 302,
 			ExpectRedirect:   "/authorize",
 		},
 
 		"Unauthenticated without redirect": {
-			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: badAuth(nil),
-			Path: "/grant",
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
+			Auth:           badAuth(nil),
+			ClientRegistry: emptyClientRegistry(),
+			AuthRegistry:   emptyAuthRegistry(),
+			Path:           "/grant",
 
 			ExpectStatusCode: 200,
 			ExpectContains:   []string{"reauthenticate"},
 		},
 
 		"Auth error with redirect": {
-			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: badAuth(errors.New("Auth error")),
-			Path: "/grant?then=/authorize",
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
+			Auth:           badAuth(errors.New("Auth error")),
+			ClientRegistry: emptyClientRegistry(),
+			AuthRegistry:   emptyAuthRegistry(),
+			Path:           "/grant?then=/authorize",
 
 			ExpectStatusCode: 302,
 			ExpectRedirect:   "/authorize",
 		},
 
 		"Auth error without redirect": {
-			CSRF: &csrf.FakeCSRF{Token: "test"},
-			Auth: badAuth(errors.New("Auth error")),
-			Path: "/grant",
+			CSRF:           &csrf.FakeCSRF{Token: "test"},
+			Auth:           badAuth(errors.New("Auth error")),
+			ClientRegistry: emptyClientRegistry(),
+			AuthRegistry:   emptyAuthRegistry(),
+			Path:           "/grant",
 
 			ExpectStatusCode: 200,
 			ExpectContains:   []string{"reauthenticate"},
@@ -376,7 +394,7 @@ func TestGrant(t *testing.T) {
 	}
 
 	for k, testCase := range testCases {
-		server := httptest.NewServer(NewGrant(testCase.CSRF, testCase.Auth, DefaultFormRenderer, testCase.ClientRegistry, testCase.AuthRegistry))
+		server := httptest.NewServer(NewGrant(testCase.CSRF, testCase.Auth, DefaultFormRenderer, testCase.ClientRegistry, testCase.AuthRegistry.Oauth().OAuthClientAuthorizations()))
 
 		var resp *http.Response
 		if testCase.PostValues != nil {
@@ -402,24 +420,38 @@ func TestGrant(t *testing.T) {
 		}
 
 		if len(testCase.ExpectCreatedAuthScopes) > 0 {
-			auth := testCase.AuthRegistry.CreatedAuthorization
-			if auth == nil {
+			found := false
+			for _, action := range testCase.AuthRegistry.Actions() {
+				if action.Matches("create", "oauthclientauthorizations") {
+					found = true
+					auth := action.(clienttesting.CreateAction).GetObject().(*oapi.OAuthClientAuthorization)
+					if !reflect.DeepEqual(testCase.ExpectCreatedAuthScopes, auth.Scopes) {
+						t.Errorf("%s: expected created scopes %v, got %v", k, testCase.ExpectCreatedAuthScopes, auth.Scopes)
+						break
+					}
+				}
+			}
+			if !found {
 				t.Errorf("%s: expected created auth, got nil", k)
 				continue
-			}
-			if !reflect.DeepEqual(testCase.ExpectCreatedAuthScopes, auth.Scopes) {
-				t.Errorf("%s: expected created scopes %v, got %v", k, testCase.ExpectCreatedAuthScopes, auth.Scopes)
 			}
 		}
 
 		if len(testCase.ExpectUpdatedAuthScopes) > 0 {
-			auth := testCase.AuthRegistry.UpdatedAuthorization
-			if auth == nil {
+			found := false
+			for _, action := range testCase.AuthRegistry.Actions() {
+				if action.Matches("update", "oauthclientauthorizations") {
+					found = true
+					auth := action.(clienttesting.UpdateAction).GetObject().(*oapi.OAuthClientAuthorization)
+					if !reflect.DeepEqual(testCase.ExpectUpdatedAuthScopes, auth.Scopes) {
+						t.Errorf("%s: expected updated scopes %v, got %v", k, testCase.ExpectUpdatedAuthScopes, auth.Scopes)
+						break
+					}
+				}
+			}
+			if !found {
 				t.Errorf("%s: expected updated auth, got nil", k)
 				continue
-			}
-			if !reflect.DeepEqual(testCase.ExpectUpdatedAuthScopes, auth.Scopes) {
-				t.Errorf("%s: expected updated scopes %v, got %v", k, testCase.ExpectUpdatedAuthScopes, auth.Scopes)
 			}
 		}
 

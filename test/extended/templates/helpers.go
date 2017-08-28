@@ -1,36 +1,30 @@
 package templates
 
 import (
+	"bufio"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/pkg/apis/extensions"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-	kexternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
-	intframework "k8s.io/kubernetes/test/integration/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	osbclient "github.com/openshift/origin/pkg/openservicebroker/client"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
-)
-
-const (
-	tsbNS   = "openshift-template-service-broker"
-	tsbHost = "apiserver." + tsbNS + ".svc"
 )
 
 func createUser(cli *exutil.CLI, name, role string) *userapi.User {
@@ -64,6 +58,51 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 	return user
 }
 
+func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
+	group, err := cli.AdminClient().Groups().Create(&userapi.Group{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if role != "" {
+		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: fmt.Sprintf("%s-%s-binding", name, role),
+			},
+			RoleRef: kapi.ObjectReference{
+				Name: role,
+			},
+			Subjects: []kapi.ObjectReference{
+				{
+					Kind: authorizationapi.GroupKind,
+					Name: name,
+				},
+			},
+		})
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+
+	return group
+}
+
+func addUserToGroup(cli *exutil.CLI, username, groupname string) {
+	group, err := cli.AdminClient().Groups().Get(groupname, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	if group != nil {
+		group.Users = append(group.Users, username)
+		_, err = cli.AdminClient().Groups().Update(group)
+		o.Expect(err).NotTo(o.HaveOccurred())
+	}
+}
+
+func deleteGroup(cli *exutil.CLI, group *userapi.Group) {
+	err := cli.AdminClient().Groups().Delete(group.Name)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
 func deleteUser(cli *exutil.CLI, user *userapi.User) {
 	err := cli.AdminClient().Users().Delete(user.Name)
 	o.Expect(err).NotTo(o.HaveOccurred())
@@ -79,109 +118,64 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 	}
 }
 
-// EnsureTSB makes sure the TSB is present where expected and returns a client to speak to it and
-// and a close method which provides the proxy.  The caller must call the close method, usually done in AfterEach
+// EnsureTSB makes sure a TSB is present where expected and returns a client to
+// speak to it and a close method which provides the proxy.  The caller must
+// call the close method, usually done in AfterEach
 func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, func() error) {
-	exists := true
-	if _, err := tsbOC.AdminKubeClient().Extensions().DaemonSets(tsbNS).Get("apiserver", metav1.GetOptions{}); err != nil {
-		if !kerrors.IsNotFound(err) {
-			o.Expect(err).NotTo(o.HaveOccurred())
-		}
-		exists = false
-	}
+	configPath := exutil.FixturePath("..", "..", "examples", "templateservicebroker", "templateservicebroker-template.yaml")
 
-	if !exists {
-		e2e.Logf("Installing TSB onto the cluster for testing")
-		_, _, err := tsbOC.AsAdmin().WithoutNamespace().Run("create", "namespace").Args(tsbNS).Outputs()
-		// If template tests run in parallel this could be created twice, we don't really care.
+	err := tsbOC.AsAdmin().Run("new-app").Args(configPath, "-p", "LOGLEVEL=4", "-p", "NAMESPACE="+tsbOC.Namespace()).Execute()
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	var pod *kapiv1.Pod
+	err = wait.Poll(e2e.Poll, 10*time.Minute, func() (bool, error) {
+		pods, err := tsbOC.KubeClient().CoreV1().Pods(tsbOC.Namespace()).List(metav1.ListOptions{})
 		if err != nil {
-			e2e.Logf("Error creating TSB namespace %s: %v \n", tsbNS, err)
+			return false, err
 		}
-		configPath := exutil.FixturePath("..", "..", "examples", "templateservicebroker", "templateservicebroker-template.yaml")
-		stdout, _, err := tsbOC.WithoutNamespace().Run("process").Args("-f", configPath).Outputs()
-		if err != nil {
-			e2e.Logf("Error processing TSB template at %s: %v \n", configPath, err)
+		pod = nil
+		for _, p := range pods.Items {
+			if strings.HasPrefix(p.Name, "apiserver-") {
+				pod = &p
+				break
+			}
 		}
-		err = tsbOC.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
-		if err != nil {
-			// If template tests run in parallel this could be created twice, we don't really care.
-			e2e.Logf("Error creating TSB resources: %v \n", err)
+		if pod == nil {
+			return false, nil
 		}
-	}
-	err := WaitForDaemonSetStatus(tsbOC.AdminKubeClient(), &extensions.DaemonSet{ObjectMeta: metav1.ObjectMeta{Name: "apiserver", Namespace: tsbNS}})
+		for _, c := range pod.Status.Conditions {
+			if c.Type == kapiv1.PodReady && c.Status == kapiv1.ConditionTrue {
+				return true, nil
+			}
+		}
+		return false, nil
+	})
 	o.Expect(err).NotTo(o.HaveOccurred())
 
 	// we're trying to test the TSB, not the service.  We're outside all the normal networks.  Run a portforward to a particular
 	// pod and test that
-	pods, err := tsbOC.AdminKubeClient().Core().Pods(tsbNS).List(metav1.ListOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred())
-	var pod *kapiv1.Pod
-	for i := range pods.Items {
-		currPod := pods.Items[i]
-		for _, cond := range currPod.Status.Conditions {
-			if cond.Type == kapiv1.PodReady && cond.Status == kapiv1.ConditionTrue {
-				pod = &currPod
-				break
-			} else {
-				out, _ := json.Marshal(currPod.Status)
-				e2e.Logf("%v %v", currPod.Name, string(out))
-			}
-		}
-	}
-	if pod == nil {
-		e2e.Failf("no ready pod found")
-	}
-	port, err := intframework.FindFreeLocalPort()
-	o.Expect(err).NotTo(o.HaveOccurred())
-	portForwardCmd, _, _, err := tsbOC.AsAdmin().WithoutNamespace().Run("port-forward").Args("-n="+tsbNS, pod.Name, fmt.Sprintf("%d:8443", port)).Background()
+	portForwardCmd, stdout, err := tsbOC.Run("port-forward").Args(pod.Name, ":8443").BackgroundRC()
 	o.Expect(err).NotTo(o.HaveOccurred())
 
-	svc, err := tsbOC.AdminKubeClient().Core().Services(tsbNS).Get("apiserver", metav1.GetOptions{})
+	// read in the local address the port-forwarder is listening on
+	br := bufio.NewReader(stdout)
+	portline, err := br.ReadString('\n')
 	o.Expect(err).NotTo(o.HaveOccurred())
-	tsbclient := osbclient.NewClient(&http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}, fmt.Sprintf("https://localhost:%d%s", port, templateapi.ServiceBrokerRoot))
 
-	// wait to get back healthy from the tsb
-	healthResponse := ""
-	err = wait.Poll(e2e.Poll, 2*time.Minute, func() (bool, error) {
-		resp, err := tsbclient.Client().Get("https://" + svc.Spec.ClusterIP + "/healthz")
-		if err != nil {
-			return false, err
-		}
-		defer resp.Body.Close()
-		content, _ := ioutil.ReadAll(resp.Body)
-		healthResponse = string(content)
-		if resp.StatusCode == http.StatusOK {
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		o.Expect(fmt.Errorf("error waiting for the TSB to be healthy: %v: %v", healthResponse, err)).NotTo(o.HaveOccurred())
-	}
+	s := regexp.MustCompile(`Forwarding from (.*) ->`).FindStringSubmatch(portline)
+	o.Expect(s).To(o.HaveLen(2))
+
+	go io.Copy(ioutil.Discard, br)
+
+	tsbclient := osbclient.NewClient(&http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}, "https://"+s[1]+templateapi.ServiceBrokerRoot)
 
 	return tsbclient, func() error {
-		err := portForwardCmd.Process.Kill()
-		portForwardOutput, _ := portForwardCmd.CombinedOutput()
-		e2e.Logf("PortForward output:\n%v", string(portForwardOutput))
-		return err
+		return portForwardCmd.Process.Kill()
 	}
-}
-
-// Waits for the daemonset to have at least one ready pod
-func WaitForDaemonSetStatus(c kexternalclientset.Interface, d *extensions.DaemonSet) error {
-	err := wait.Poll(e2e.Poll, 5*time.Minute, func() (bool, error) {
-		var err error
-		ds, err := c.Extensions().DaemonSets(d.Namespace).Get(d.Name, metav1.GetOptions{})
-		if err != nil {
-			return false, err
-		}
-		if ds.Status.NumberReady > 0 {
-			return true, nil
-		}
-		return false, nil
-	})
-	if err != nil {
-		return fmt.Errorf("error waiting for ds %q status to match expectation: %v", d.Name, err)
-	}
-	return nil
 }

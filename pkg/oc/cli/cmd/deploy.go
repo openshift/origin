@@ -120,6 +120,7 @@ func NewCmdDeploy(fullName string, f *clientcmd.Factory, out io.Writer) *cobra.C
 			}
 		},
 	}
+	cmd.Deprecated = "Use the `rollout latest` and `rollout cancel` commands instead."
 
 	cmd.Flags().BoolVar(&options.deployLatest, "latest", false, "If true, start a new deployment now.")
 	cmd.Flags().MarkDeprecated("latest", fmt.Sprintf("use '%s rollout latest' instead", fullName))

@@ -11,6 +11,7 @@ type ImageInterface interface {
 	ImageSignaturesGetter
 	ImageStreamsGetter
 	ImageStreamImagesGetter
+	ImageStreamImportsGetter
 	ImageStreamMappingsGetter
 	ImageStreamTagsGetter
 }
@@ -34,6 +35,10 @@ func (c *ImageClient) ImageStreams(namespace string) ImageStreamInterface {
 
 func (c *ImageClient) ImageStreamImages(namespace string) ImageStreamImageInterface {
 	return newImageStreamImages(c, namespace)
+}
+
+func (c *ImageClient) ImageStreamImports(namespace string) ImageStreamImportInterface {
+	return newImageStreamImports(c, namespace)
 }
 
 func (c *ImageClient) ImageStreamMappings(namespace string) ImageStreamMappingInterface {

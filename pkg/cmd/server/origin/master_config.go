@@ -71,8 +71,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
-	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota"
@@ -283,11 +282,15 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
+	oauthClient, err := oauthclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	apiClientCAs, err := configapi.GetAPIClientCertCAPool(options)
 	if err != nil {
 		return nil, err
 	}
-	authenticator, err := newAuthenticator(options, restOptsGetter, serviceAccountTokenGetter, userClient.Users(), apiClientCAs, usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()))
+	authenticator, err := newAuthenticator(options, oauthClient.OAuthAccessTokens(), serviceAccountTokenGetter, userClient.Users(), apiClientCAs, usercache.NewGroupCache(informers.GetUserInformers().User().InternalVersion().Groups()))
 	if err != nil {
 		return nil, err
 	}
@@ -671,7 +674,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	return admission.NewChainHandler(plugins...), nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptions.Getter, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Request{}
 
@@ -696,10 +699,7 @@ func newAuthenticator(config configapi.MasterConfig, restOptionsGetter restoptio
 
 	// OAuth token
 	if config.OAuthConfig != nil {
-		oauthTokenAuthenticator, err := getEtcdTokenAuthenticator(restOptionsGetter, userGetter, groupMapper)
-		if err != nil {
-			return nil, fmt.Errorf("Error building OAuth token authenticator: %v", err)
-		}
+		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper)
 		oauthTokenRequestAuthenticators := []authenticator.Request{
 			bearertoken.New(oauthTokenAuthenticator),
 			websocket.NewProtocolAuthenticator(oauthTokenAuthenticator),
@@ -796,17 +796,6 @@ func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestCon
 
 	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, projectRequestInfoResolver)
 	return authorizationAttributeBuilder
-}
-
-func getEtcdTokenAuthenticator(optsGetter restoptions.Getter, userGetter userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper) (authenticator.Token, error) {
-	// this never does a create for access tokens, so we don't need to be able to validate scopes against the client
-	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, nil)
-	if err != nil {
-		return nil, err
-	}
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-
-	return authnregistry.NewTokenAuthenticator(accessTokenRegistry, userGetter, groupMapper), nil
 }
 
 // KubeClientsetInternal returns the kubernetes client object

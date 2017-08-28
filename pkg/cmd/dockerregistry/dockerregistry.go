@@ -47,6 +47,7 @@ import (
 	"github.com/openshift/origin/pkg/dockerregistry/server"
 	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
+	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
 	"github.com/openshift/origin/pkg/dockerregistry/server/prune"
@@ -94,7 +95,7 @@ func ExecutePruner(configFile io.Reader, dryRun bool) {
 	}
 	log.WithFields(versionFields()).Info(startPrune)
 
-	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
+	registryClient := client.NewRegistryClient(clientcmd.NewConfig().BindToFile())
 
 	storageDriver, err := factory.Create(config.Storage.Type(), config.Storage.Parameters())
 	if err != nil {
@@ -153,7 +154,7 @@ func Execute(configFile io.Reader) {
 		log.Fatalf("error configuring logger: %v", err)
 	}
 
-	registryClient := server.NewRegistryClient(clientcmd.NewConfig().BindToFile())
+	registryClient := client.NewRegistryClient(clientcmd.NewConfig().BindToFile())
 	ctx = server.WithRegistryClient(ctx, registryClient)
 
 	readLimiter := newLimiter(extraConfig.Requests.Read)
@@ -171,8 +172,8 @@ func Execute(configFile io.Reader) {
 			dockerConfig.Auth[server.OpenShiftAuth] = make(configuration.Parameters)
 		}
 		dockerConfig.Auth[server.OpenShiftAuth][server.AccessControllerOptionParams] = server.AccessControllerParams{
-			Logger:           context.GetLogger(ctx),
-			SafeClientConfig: registryClient.SafeClientConfig(),
+			Logger:         context.GetLogger(ctx),
+			RegistryClient: registryClient,
 		}
 	}
 

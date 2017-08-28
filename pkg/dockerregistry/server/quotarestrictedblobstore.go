@@ -20,8 +20,8 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
 
@@ -134,7 +134,7 @@ func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional dis
 }
 
 // getLimitRangeList returns list of limit ranges for repo.
-func getLimitRangeList(ctx context.Context, limitClient kcoreclient.LimitRangesGetter, namespace string) (*kapi.LimitRangeList, error) {
+func getLimitRangeList(ctx context.Context, limitClient client.LimitRangesGetter, namespace string) (*kapi.LimitRangeList, error) {
 	if quotaEnforcing.limitRanges != nil {
 		obj, exists, _ := quotaEnforcing.limitRanges.get(namespace)
 		if exists {
@@ -167,7 +167,7 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 		return nil
 	}
 
-	lrs, err := getLimitRangeList(ctx, repo.limitClient, repo.namespace)
+	lrs, err := getLimitRangeList(ctx, repo.registryOSClient, repo.namespace)
 	if err != nil {
 		return err
 	}

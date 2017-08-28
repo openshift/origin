@@ -10,12 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func TestIdentifyCandidateRepositories(t *testing.T) {
 	for _, tc := range []struct {
 		name                 string
-		is                   *imageapi.ImageStream
+		is                   *imageapiv1.ImageStream
 		localRegistry        string
 		primary              bool
 		expectedRepositories []string
@@ -23,17 +24,18 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 	}{
 		{
 			name:          "empty image stream",
-			is:            &imageapi.ImageStream{},
+			is:            &imageapiv1.ImageStream{},
 			localRegistry: "localhost:5000",
 		},
 
 		{
 			name: "secure image stream with one image",
-			is: &imageapi.ImageStream{
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"tag": {
-							Items: []imageapi.TagEvent{{DockerImageReference: "docker.io/busybox"}},
+			is: &imageapiv1.ImageStream{
+				Status: imageapiv1.ImageStreamStatus{
+					Tags: []imageapiv1.NamedTagEventList{
+						{
+							Tag:   "tag",
+							Items: []imageapiv1.TagEvent{{DockerImageReference: "docker.io/busybox"}},
 						},
 					},
 				},
@@ -48,22 +50,27 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 
 		{
 			name: "secure image stream with one insecure image",
-			is: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"insecure": {ImportPolicy: imageapi.TagImportPolicy{Insecure: true}},
+			is: &imageapiv1.ImageStream{
+				Spec: imageapiv1.ImageStreamSpec{
+					Tags: []imageapiv1.TagReference{
+						{
+							Name:         "insecure",
+							ImportPolicy: imageapiv1.TagImportPolicy{Insecure: true},
+						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"secure": {
-							Items: []imageapi.TagEvent{
+				Status: imageapiv1.ImageStreamStatus{
+					Tags: []imageapiv1.NamedTagEventList{
+						{
+							Tag: "secure",
+							Items: []imageapiv1.TagEvent{
 								{DockerImageReference: "example.org/user/app:tag"},
 								{DockerImageReference: "secure.example.org/user/app"},
 							},
 						},
-						"insecure": {
-							Items: []imageapi.TagEvent{
+						{
+							Tag: "insecure",
+							Items: []imageapiv1.TagEvent{
 								{DockerImageReference: "registry.example.org/user/app"},
 								{DockerImageReference: "other.org/user/app"},
 							},
@@ -82,24 +89,31 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 
 		{
 			name: "search secondary results in insecure image stream",
-			is: &imageapi.ImageStream{
+			is: &imageapiv1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"insecure": {ImportPolicy: imageapi.TagImportPolicy{Insecure: false}},
+				Spec: imageapiv1.ImageStreamSpec{
+					Tags: []imageapiv1.TagReference{
+						{
+							Name:         "insecure",
+							ImportPolicy: imageapiv1.TagImportPolicy{Insecure: false},
+						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"secure": {
-							Items: []imageapi.TagEvent{
+				Status: imageapiv1.ImageStreamStatus{
+					Tags: []imageapiv1.NamedTagEventList{
+						{
+							Tag: "secure",
+							Items: []imageapiv1.TagEvent{
 								{DockerImageReference: "example.org/user/app:tag"},
 								{DockerImageReference: "example.org/app:tag2"},
 							},
 						},
-						"insecure": {Items: []imageapi.TagEvent{{DockerImageReference: "registry.example.org/user/app"}}},
+						{
+							Tag:   "insecure",
+							Items: []imageapiv1.TagEvent{{DockerImageReference: "registry.example.org/user/app"}},
+						},
 					},
 				},
 			},
@@ -113,19 +127,28 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 
 		{
 			name: "empty secondary search",
-			is: &imageapi.ImageStream{
+			is: &imageapiv1.ImageStream{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{imageapi.InsecureRepositoryAnnotation: "true"},
 				},
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"insecure": {ImportPolicy: imageapi.TagImportPolicy{Insecure: false}},
+				Spec: imageapiv1.ImageStreamSpec{
+					Tags: []imageapiv1.TagReference{
+						{
+							Name:         "insecure",
+							ImportPolicy: imageapiv1.TagImportPolicy{Insecure: false},
+						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"secure":   {Items: []imageapi.TagEvent{{DockerImageReference: "example.org/user/app:tag"}}},
-						"insecure": {Items: []imageapi.TagEvent{{DockerImageReference: "registry.example.org/user/app"}}},
+				Status: imageapiv1.ImageStreamStatus{
+					Tags: []imageapiv1.NamedTagEventList{
+						{
+							Tag:   "secure",
+							Items: []imageapiv1.TagEvent{{DockerImageReference: "example.org/user/app:tag"}},
+						},
+						{
+							Tag:   "insecure",
+							Items: []imageapiv1.TagEvent{{DockerImageReference: "registry.example.org/user/app"}},
+						},
 					},
 				},
 			},
@@ -135,19 +158,22 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 
 		{
 			name: "insecure flag propagates to the whole registry",
-			is: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"insecure": {ImportPolicy: imageapi.TagImportPolicy{Insecure: true}},
+			is: &imageapiv1.ImageStream{
+				Spec: imageapiv1.ImageStreamSpec{
+					Tags: []imageapiv1.TagReference{
+						{
+							Name:         "insecure",
+							ImportPolicy: imageapiv1.TagImportPolicy{Insecure: true},
+						},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"secure":   {Items: []imageapi.TagEvent{{DockerImageReference: "a.b/c"}}},
-						"insecure": {Items: []imageapi.TagEvent{{DockerImageReference: "a.b/app"}}},
-						"foo":      {Items: []imageapi.TagEvent{{DockerImageReference: "a.b/c/foo"}}},
-						"bar":      {Items: []imageapi.TagEvent{{DockerImageReference: "other.b/bar"}}},
-						"gas":      {Items: []imageapi.TagEvent{{DockerImageReference: "a.a/app"}}},
+				Status: imageapiv1.ImageStreamStatus{
+					Tags: []imageapiv1.NamedTagEventList{
+						{Tag: "secure", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b/c"}}},
+						{Tag: "insecure", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b/app"}}},
+						{Tag: "foo", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b/c/foo"}}},
+						{Tag: "bar", Items: []imageapiv1.TagEvent{{DockerImageReference: "other.b/bar"}}},
+						{Tag: "gas", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.a/app"}}},
 					},
 				},
 			},
@@ -165,19 +191,19 @@ func TestIdentifyCandidateRepositories(t *testing.T) {
 
 		{
 			name: "duplicate entries",
-			is: &imageapi.ImageStream{
-				Spec: imageapi.ImageStreamSpec{
-					Tags: map[string]imageapi.TagReference{
-						"insecure": {ImportPolicy: imageapi.TagImportPolicy{Insecure: true}},
+			is: &imageapiv1.ImageStream{
+				Spec: imageapiv1.ImageStreamSpec{
+					Tags: []imageapiv1.TagReference{
+						{Name: "insecure", ImportPolicy: imageapiv1.TagImportPolicy{Insecure: true}},
 					},
 				},
-				Status: imageapi.ImageStreamStatus{
-					Tags: map[string]imageapi.TagEventList{
-						"secure":   {Items: []imageapi.TagEvent{{DockerImageReference: "a.b/foo"}}},
-						"insecure": {Items: []imageapi.TagEvent{{DockerImageReference: "a.b/app:latest"}}},
-						"foo":      {Items: []imageapi.TagEvent{{DockerImageReference: "a.b/app"}}},
-						"bar":      {Items: []imageapi.TagEvent{{DockerImageReference: "a.b.c/app"}}},
-						"gas":      {Items: []imageapi.TagEvent{{DockerImageReference: "a.b.c/app"}}},
+				Status: imageapiv1.ImageStreamStatus{
+					Tags: []imageapiv1.NamedTagEventList{
+						{Tag: "secure", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b/foo"}}},
+						{Tag: "insecure", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b/app:latest"}}},
+						{Tag: "foo", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b/app"}}},
+						{Tag: "bar", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b.c/app"}}},
+						{Tag: "gas", Items: []imageapiv1.TagEvent{{DockerImageReference: "a.b.c/app"}}},
 					},
 				},
 			},

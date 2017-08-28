@@ -13,7 +13,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/sdn"
 )
 
 const JoinProjectsNetworkCommandName = "join-projects"
@@ -45,7 +45,7 @@ func NewCmdJoinProjectsNetwork(commandName, fullName string, f *clientcmd.Factor
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Join project network",
-		Long:    fmt.Sprintf(joinProjectsNetworkLong, sdnapi.MultiTenantPluginName),
+		Long:    fmt.Sprintf(joinProjectsNetworkLong, sdn.MultiTenantPluginName),
 		Example: fmt.Sprintf(joinProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {
@@ -91,7 +91,7 @@ func (j *JoinOptions) Run() error {
 	errList := []error{}
 	for _, project := range projects {
 		if project.Name != j.joinProjectName {
-			if err = j.Options.UpdatePodNetwork(project.Name, sdnapi.JoinPodNetwork, j.joinProjectName); err != nil {
+			if err = j.Options.UpdatePodNetwork(project.Name, sdn.JoinPodNetwork, j.joinProjectName); err != nil {
 				errList = append(errList, fmt.Errorf("Project %q failed to join %q, error: %v", project.Name, j.joinProjectName, err))
 			}
 		}

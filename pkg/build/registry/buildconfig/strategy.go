@@ -1,16 +1,11 @@
 package buildconfig
 
 import (
-	"fmt"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kstorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -123,24 +118,6 @@ func (s legacyStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obj
 // DefaultGarbageCollectionPolicy for legacy buildconfigs will orphan dependents.
 func (s legacyStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.OrphanDependents
-}
-
-// GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	buildConfig, ok := obj.(*buildapi.BuildConfig)
-	if !ok {
-		return nil, nil, false, fmt.Errorf("not a BuildConfig")
-	}
-	return labels.Set(buildConfig.ObjectMeta.Labels), buildapi.BuildConfigToSelectableFields(buildConfig), buildConfig.Initializers != nil, nil
-}
-
-// Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
-	return kstorage.SelectionPredicate{
-		Label:    label,
-		Field:    field,
-		GetAttrs: GetAttrs,
-	}
 }
 
 // CheckGracefulDelete allows a build config to be gracefully deleted.

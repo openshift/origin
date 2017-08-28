@@ -286,7 +286,7 @@ func TestProjectWatch(t *testing.T) {
 	}
 	select {
 	case event := <-fromNowWatch.ResultChan():
-		t.Fatalf("unexpected event %v", event)
+		t.Fatalf("unexpected event %s %#v", event.Type, event.Object)
 
 	case <-time.After(3 * time.Second):
 	}

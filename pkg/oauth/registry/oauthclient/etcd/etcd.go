@@ -25,7 +25,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthClient{} },
 		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthClientList{} },
-		PredicateFunc:            oauthclient.Matcher,
 		DefaultQualifiedResource: oauthapi.Resource("oauthclients"),
 
 		CreateStrategy: oauthclient.Strategy,
@@ -33,7 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: oauthclient.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthclient.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

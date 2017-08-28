@@ -80,7 +80,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 					Name:    "sti-build",
 					Image:   bs.Image,
 					Command: []string{"openshift-sti-build"},
-					Env:     containerEnv,
+					Env:     copyEnvVarSlice(containerEnv),
 					// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 					SecurityContext: &v1.SecurityContext{
 						Privileged: &privileged,
@@ -114,7 +114,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Name:    GitCloneContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-git-clone"},
-			Env:     containerEnv,
+			Env:     copyEnvVarSlice(containerEnv),
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
@@ -137,7 +137,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Name:    ExtractImageContentContainer,
 			Image:   bs.Image,
 			Command: []string{"openshift-extract-image-content"},
-			Env:     containerEnv,
+			Env:     copyEnvVarSlice(containerEnv),
 			// TODO: run unprivileged https://github.com/openshift/origin/issues/662
 			SecurityContext: &v1.SecurityContext{
 				Privileged: &privileged,
@@ -159,7 +159,7 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 			Name:    "manage-dockerfile",
 			Image:   bs.Image,
 			Command: []string{"openshift-manage-dockerfile"},
-			Env:     containerEnv,
+			Env:     copyEnvVarSlice(containerEnv),
 			TerminationMessagePolicy: v1.TerminationMessageFallbackToLogsOnError,
 			VolumeMounts: []v1.VolumeMount{
 				{
@@ -179,7 +179,11 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 	setOwnerReference(pod, build)
 	setupDockerSocket(pod)
 	setupDockerSecrets(pod, &pod.Spec.Containers[0], build.Spec.Output.PushSecret, strategy.PullSecret, build.Spec.Source.Images)
-	setupSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
+	// For any secrets the user wants to reference from their Assemble script or Dockerfile, mount those
+	// secrets into the main container.  The main container includes logic to copy them from the mounted
+	// location into the working directory.
+	// TODO: consider moving this into the git-clone container and doing the secret copying there instead.
+	setupInputSecrets(pod, &pod.Spec.Containers[0], build.Spec.Source.Secrets)
 	return pod, nil
 }
 

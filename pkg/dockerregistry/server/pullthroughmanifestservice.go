@@ -6,6 +6,7 @@ import (
 	"github.com/docker/distribution/digest"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 // pullthroughManifestService wraps a distribution.ManifestService
@@ -92,7 +93,7 @@ func (m *pullthroughManifestService) getRemoteRepositoryClient(ctx context.Conte
 			return nil, err // this is impossible
 		}
 		// if the client pulled by digest, find the corresponding tag in the image stream
-		tag, _ = imageapi.LatestImageTagEvent(is, dgst.String())
+		tag, _ = imageapiv1.LatestImageTagEvent(is, dgst.String())
 	}
 	insecure := pullInsecureByDefault(m.repo.imageStreamGetter.get, tag)
 

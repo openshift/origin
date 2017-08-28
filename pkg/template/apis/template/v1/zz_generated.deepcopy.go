@@ -203,6 +203,22 @@ func DeepCopy_v1_TemplateInstanceRequester(in interface{}, out interface{}, c *c
 		in := in.(*TemplateInstanceRequester)
 		out := out.(*TemplateInstanceRequester)
 		*out = *in
+		if in.Groups != nil {
+			in, out := &in.Groups, &out.Groups
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
+		if in.Extra != nil {
+			in, out := &in.Extra, &out.Extra
+			*out = make(map[string]ExtraValue)
+			for key, val := range *in {
+				if newVal, err := c.DeepCopy(&val); err != nil {
+					return err
+				} else {
+					(*out)[key] = *newVal.(*ExtraValue)
+				}
+			}
+		}
 		return nil
 	}
 }
@@ -224,7 +240,9 @@ func DeepCopy_v1_TemplateInstanceSpec(in interface{}, out interface{}, c *conver
 		if in.Requester != nil {
 			in, out := &in.Requester, &out.Requester
 			*out = new(TemplateInstanceRequester)
-			**out = **in
+			if err := DeepCopy_v1_TemplateInstanceRequester(*in, *out, c); err != nil {
+				return err
+			}
 		}
 		return nil
 	}

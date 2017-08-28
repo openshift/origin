@@ -23,6 +23,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	"github.com/openshift/origin/pkg/sdn"
 	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
@@ -89,7 +90,7 @@ func (p *ProjectOptions) Validate() error {
 		} else {
 			errList = append(errList, errors.New("Failed to fetch current network plugin info"))
 		}
-	} else if !sdnapi.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
+	} else if !sdn.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
 		errList = append(errList, fmt.Errorf("Using plugin: %q, managing pod network is only supported for openshift multitenant network plugin", clusterNetwork.PluginName))
 	}
 
@@ -149,7 +150,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	return projectList, nil
 }
 
-func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetworkAction, args string) error {
+func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdn.PodNetworkAction, args string) error {
 	// Get corresponding NetNamespace for given namespace
 	netns, err := p.Oclient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 	if err != nil {
@@ -157,7 +158,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetwor
 	}
 
 	// Apply pod network change intent
-	sdnapi.SetChangePodNetworkAnnotation(netns, action, args)
+	sdn.SetChangePodNetworkAnnotation(netns, action, args)
 
 	// Update NetNamespace object
 	_, err = p.Oclient.NetNamespaces().Update(netns)
@@ -177,7 +178,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdnapi.PodNetwor
 			return false, err
 		}
 
-		if _, _, err = sdnapi.GetChangePodNetworkAnnotation(updatedNetNs); err == sdnapi.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err = sdn.GetChangePodNetworkAnnotation(updatedNetNs); err == sdn.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		}
 		// Pod network change not applied yet

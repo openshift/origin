@@ -10,25 +10,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
-	"github.com/openshift/origin/pkg/openservicebroker/client"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
+var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end test", func() {
 	defer g.GinkgoRecover()
 
 	var (
-		tsbOC               = exutil.NewCLI(tsbNS, exutil.KubeConfigPath())
+		tsbOC               = exutil.NewCLI("openshift-template-service-broker", exutil.KubeConfigPath())
 		portForwardCmdClose func() error
 
 		cli                = exutil.NewCLI("templates", exutil.KubeConfigPath())
@@ -41,16 +42,18 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		brokercli          client.Client
 		service            *api.Service
 		plan               *api.Plan
+		cliUser            user.Info
 	)
 
 	g.BeforeEach(func() {
 		framework.SkipIfProviderIs("gce")
 		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
+		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
 		var err error
 
 		// should have been created before the extended test runs
-		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-persistent", metav1.GetOptions{})
+		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		processedtemplate, err = cli.AdminClient().TemplateConfigs("openshift").Create(template)
@@ -83,6 +86,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
+
 	})
 
 	g.AfterEach(func() {
@@ -119,21 +123,18 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 	provision := func() {
 		g.By("provisioning a service")
 		// confirm our private template can't be provisioned
-		_, err := brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
+		_, err := brokercli.Provision(context.Background(), cliUser, instanceID, &api.ProvisionRequest{
 			ServiceID: string(privatetemplate.UID),
 			PlanID:    plan.ID,
 			Context: api.KubernetesContext{
 				Platform:  api.ContextPlatformKubernetes,
 				Namespace: cli.Namespace(),
 			},
-			Parameters: map[string]string{
-				templateapi.RequesterUsernameParameterKey: cli.Username(),
-			},
 		})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(err.Error()).To(o.ContainSubstring("not found"))
 
-		_, err = brokercli.Provision(context.Background(), instanceID, &api.ProvisionRequest{
+		_, err = brokercli.Provision(context.Background(), cliUser, instanceID, &api.ProvisionRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
 			Context: api.KubernetesContext{
@@ -141,8 +142,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 				Namespace: cli.Namespace(),
 			},
 			Parameters: map[string]string{
-				templateapi.RequesterUsernameParameterKey: cli.Username(),
-				"DATABASE_USER":                           "test",
+				"DATABASE_USER": "test",
 			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -176,6 +176,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			},
 			Requester: &templateapi.TemplateInstanceRequester{
 				Username: cli.Username(),
+				Groups:   []string{"system:authenticated"},
 			},
 		}))
 
@@ -196,7 +197,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 			"DATABASE_USER": []byte("test"),
 		}))
 
-		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-persistent", metav1.GetOptions{})
+		examplesecret, err := cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(examplesecret.Labels[templateapi.TemplateInstanceLabel]).To(o.Equal(instanceID))
@@ -290,12 +291,9 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		bind, err := brokercli.Bind(context.Background(), instanceID, bindingID, &api.BindRequest{
+		bind, err := brokercli.Bind(context.Background(), cliUser, instanceID, bindingID, &api.BindRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
-			Parameters: map[string]string{
-				templateapi.RequesterUsernameParameterKey: cli.Username(),
-			},
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -327,7 +325,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 	unbind := func() {
 		g.By("unbinding from a service")
-		err := brokercli.Unbind(context.Background(), instanceID, bindingID)
+		err := brokercli.Unbind(context.Background(), cliUser, instanceID, bindingID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
@@ -337,7 +335,7 @@ var _ = g.Describe("[templates] templateservicebroker end-to-end test", func() {
 
 	deprovision := func() {
 		g.By("deprovisioning a service")
-		err := brokercli.Deprovision(context.Background(), instanceID)
+		err := brokercli.Deprovision(context.Background(), cliUser, instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		_, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})

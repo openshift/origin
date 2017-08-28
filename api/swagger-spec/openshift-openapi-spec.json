@@ -92957,12 +92957,30 @@
    },
    "com.github.openshift.origin.pkg.template.apis.template.v1.TemplateInstanceRequester": {
     "description": "TemplateInstanceRequester holds the identity of an agent requesting a template instantiation.",
-    "required": [
-     "username"
-    ],
     "properties": {
+     "extra": {
+      "description": "extra holds additional information provided by the authenticator.",
+      "type": "object",
+      "additionalProperties": {
+       "type": "array",
+       "items": {
+        "type": "string"
+       }
+      }
+     },
+     "groups": {
+      "description": "groups represent the groups this user is a part of.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "uid": {
+      "description": "uid is a unique value that identifies this user across time; if this user is deleted and another user by the same name is added, they will have different UIDs.",
+      "type": "string"
+     },
      "username": {
-      "description": "username is the username of the agent requesting a template instantiation.",
+      "description": "username uniquely identifies this user among all active users.",
       "type": "string"
      }
     }

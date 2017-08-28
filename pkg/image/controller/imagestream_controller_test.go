@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
-	client "github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
@@ -230,13 +230,13 @@ func TestHandleImageStream(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		fake := &client.Fake{}
+		fake := imageclient.NewSimpleClientset()
 		other, err := kapi.Scheme.DeepCopy(test.stream)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if err := handleImageStream(test.stream, fake, nil); err != nil {
+		if err := handleImageStream(test.stream, fake.Image(), nil); err != nil {
 			t.Errorf("%d: unexpected error: %v", i, err)
 		}
 		if test.run {

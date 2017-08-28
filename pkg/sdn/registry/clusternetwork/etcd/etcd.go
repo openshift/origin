@@ -25,7 +25,6 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &sdnapi.ClusterNetwork{} },
 		NewListFunc:              func() runtime.Object { return &sdnapi.ClusterNetworkList{} },
-		PredicateFunc:            clusternetwork.Matcher,
 		DefaultQualifiedResource: sdnapi.Resource("clusternetworks"),
 
 		CreateStrategy: clusternetwork.Strategy,
@@ -33,7 +32,7 @@ func NewREST(optsGetter restoptions.Getter) (*REST, error) {
 		DeleteStrategy: clusternetwork.Strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusternetwork.GetAttrs}
+	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

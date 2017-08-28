@@ -552,7 +552,7 @@ func (pm *VolumePluginMgr) FindAttachablePluginByName(name string) (AttachableVo
 //     before failing.  Recommended.  Default is 60 seconds.
 //
 // See HostPath and NFS for working recycler examples
-func NewPersistentVolumeRecyclerPodTemplate() *v1.Pod {
+func newPersistentVolumeRecyclerPodTemplate() *v1.Pod {
 	timeout := int64(60)
 	pod := &v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{

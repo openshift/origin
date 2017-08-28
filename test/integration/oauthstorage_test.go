@@ -10,18 +10,12 @@ import (
 	"golang.org/x/oauth2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	accesstokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
-	authorizetokenregistry "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken"
-	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
-	clientregistry "github.com/openshift/origin/pkg/oauth/registry/oauthclient"
-	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oauth/server/osinserver"
 	registrystorage "github.com/openshift/origin/pkg/oauth/server/osinserver/registrystorage"
+	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
@@ -58,31 +52,22 @@ func TestOAuthStorage(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterOptions)
 
-	optsGetter, err := originrest.StorageOptions(*masterOptions)
+	clusterAdminKubeConfig, err := testserver.StartConfiguredMasterAPI(masterOptions)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
 
-	clientStorage, err := clientetcd.NewREST(optsGetter)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
-	clientRegistry := clientregistry.NewRegistry(clientStorage)
-
-	accessTokenStorage, err := accesstokenetcd.NewREST(optsGetter, clientRegistry)
+	oauthClient, err := oauthclient.NewForConfig(clusterAdminClientConfig)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatal(err)
 	}
-	accessTokenRegistry := accesstokenregistry.NewRegistry(accessTokenStorage)
-
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(optsGetter, clientRegistry)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	authorizeTokenRegistry := authorizetokenregistry.NewRegistry(authorizeTokenStorage)
 
 	user := &testUser{UserName: "test", UserUID: "1"}
-	storage := registrystorage.New(accessTokenRegistry, authorizeTokenRegistry, clientRegistry, user)
+	storage := registrystorage.New(oauthClient.OAuthAccessTokens(), oauthClient.OAuthAuthorizeTokens(), oauthClient.OAuthClients(), user)
 
 	oauthServer := osinserver.New(
 		osinserver.NewDefaultServerConfig(),
@@ -105,10 +90,6 @@ func TestOAuthStorage(t *testing.T) {
 	server := httptest.NewServer(mux)
 	defer server.Close()
 
-	if _, err := testserver.StartConfiguredMasterAPI(masterOptions); err != nil {
-		t.Fatal(err)
-	}
-
 	ch := make(chan *osincli.AccessData, 1)
 	var oaclient *osincli.Client
 	var authReq *osincli.AuthorizeRequest
@@ -125,7 +106,7 @@ func TestOAuthStorage(t *testing.T) {
 		ch <- token
 	}))
 
-	clientRegistry.CreateClient(apirequest.NewContext(), &oauthapi.OAuthClient{
+	oauthClient.OAuthClients().Create(&oauthapi.OAuthClient{
 		ObjectMeta:        metav1.ObjectMeta{Name: "test"},
 		Secret:            "secret",
 		AdditionalSecrets: []string{"secret1"},
@@ -188,7 +169,7 @@ func TestOAuthStorage(t *testing.T) {
 		t.Errorf("unexpected access token: %#v", token)
 	}
 
-	actualToken, err := accessTokenRegistry.GetAccessToken(apirequest.NewContext(), token.AccessToken, &metav1.GetOptions{})
+	actualToken, err := oauthClient.OAuthAccessTokens().Get(token.AccessToken, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

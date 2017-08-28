@@ -51,9 +51,9 @@ var (
 	// startLock protects access to the start vars
 	startLock sync.Mutex
 	// startedMaster is true if the master has already been started in process
-	startedMaster = false
+	startedMaster bool
 	// startedNode is true if the node has already been started in process
-	startedNode = false
+	startedNode bool
 )
 
 // guardMaster prevents multiple master processes from being started at once
@@ -131,6 +131,9 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 	nodeArgs.ConfigDir.Default(path.Join(basedir, "openshift.local.config", nodeArgs.NodeName))
 	nodeArgs.MasterCertDir = masterArgs.ConfigDir.Value()
 
+	// give the nodeArgs a separate listen argument
+	nodeArgs.ListenArg = start.NewDefaultListenArg()
+
 	if !useDefaultPort {
 		// don't wait for nodes to come up
 		masterAddr := os.Getenv("OS_MASTER_ADDR")
@@ -141,9 +144,14 @@ func setupStartOptions(startEtcd, useDefaultPort bool) (*start.MasterArgs, *star
 				masterAddr = addr
 			}
 		}
-		fmt.Printf("masterAddr: %#v\n", masterAddr)
 		masterArgs.MasterAddr.Set(masterAddr)
 		listenArg.ListenAddr.Set(masterAddr)
+
+		nodeAddr, err := FindAvailableBindAddress(10000, 29999)
+		if err != nil {
+			glog.Fatalf("couldn't find free port for node: %v", err)
+		}
+		nodeArgs.ListenArg.ListenAddr.Set(nodeAddr)
 	}
 
 	if !startEtcd {
@@ -182,6 +190,22 @@ func DefaultMasterOptionsWithTweaks(startEtcd, useDefaultPort bool) (*configapi.
 	masterConfig, err := startOptions.MasterArgs.BuildSerializeableMasterConfig()
 	if err != nil {
 		return nil, err
+	}
+
+	if masterConfig.EtcdConfig != nil {
+		addr, err := FindAvailableBindAddress(10000, 29999)
+		if err != nil {
+			return nil, fmt.Errorf("can't setup etcd address: %v", err)
+		}
+		peerAddr, err := FindAvailableBindAddress(10000, 29999)
+		if err != nil {
+			return nil, fmt.Errorf("can't setup etcd address: %v", err)
+		}
+		masterConfig.EtcdConfig.Address = addr
+		masterConfig.EtcdConfig.ServingInfo.BindAddress = masterConfig.EtcdConfig.Address
+		masterConfig.EtcdConfig.PeerAddress = peerAddr
+		masterConfig.EtcdConfig.PeerServingInfo.BindAddress = masterConfig.EtcdConfig.PeerAddress
+		masterConfig.EtcdClientInfo.URLs = []string{"https://" + masterConfig.EtcdConfig.Address}
 	}
 
 	masterConfig.DisableOpenAPI = true
@@ -282,7 +306,6 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	if err := CreateMasterCerts(startOptions.MasterOptions.MasterArgs); err != nil {
 		return nil, nil, nil, err
 	}
-
 	if err := CreateNodeCerts(startOptions.NodeArgs, startOptions.MasterOptions.MasterArgs.MasterAddr.String()); err != nil {
 		return nil, nil, nil, err
 	}
@@ -294,6 +317,22 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 
 	masterConfig.DisableOpenAPI = true
 
+	if masterConfig.EtcdConfig != nil {
+		addr, err := FindAvailableBindAddress(10000, 29999)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("can't setup etcd address: %v", err)
+		}
+		peerAddr, err := FindAvailableBindAddress(10000, 29999)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("can't setup etcd address: %v", err)
+		}
+		masterConfig.EtcdConfig.Address = addr
+		masterConfig.EtcdConfig.ServingInfo.BindAddress = masterConfig.EtcdConfig.Address
+		masterConfig.EtcdConfig.PeerAddress = peerAddr
+		masterConfig.EtcdConfig.PeerServingInfo.BindAddress = masterConfig.EtcdConfig.PeerAddress
+		masterConfig.EtcdClientInfo.URLs = []string{"https://" + masterConfig.EtcdConfig.Address}
+	}
+
 	if fn := startOptions.MasterOptions.MasterArgs.OverrideConfig; fn != nil {
 		if err := fn(masterConfig); err != nil {
 			return nil, nil, nil, err
@@ -304,6 +343,7 @@ func DefaultAllInOneOptions() (*configapi.MasterConfig, *configapi.NodeConfig, *
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
 	nodeConfig.DockerConfig.DockerShimSocket = path.Join(util.GetBaseDir(), "dockershim.sock")
 	nodeConfig.DockerConfig.DockershimRootDirectory = path.Join(util.GetBaseDir(), "dockershim")
 

@@ -5,6 +5,7 @@ package v1
 import (
 	v1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -13,8 +14,8 @@ import (
 type OAuthClientLister interface {
 	// List lists all OAuthClients in the indexer.
 	List(selector labels.Selector) (ret []*v1.OAuthClient, err error)
-	// OAuthClients returns an object that can list and get OAuthClients.
-	OAuthClients(namespace string) OAuthClientNamespaceLister
+	// Get retrieves the OAuthClient from the index for a given name.
+	Get(name string) (*v1.OAuthClient, error)
 	OAuthClientListerExpansion
 }
 
@@ -36,38 +37,10 @@ func (s *oAuthClientLister) List(selector labels.Selector) (ret []*v1.OAuthClien
 	return ret, err
 }
 
-// OAuthClients returns an object that can list and get OAuthClients.
-func (s *oAuthClientLister) OAuthClients(namespace string) OAuthClientNamespaceLister {
-	return oAuthClientNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// OAuthClientNamespaceLister helps list and get OAuthClients.
-type OAuthClientNamespaceLister interface {
-	// List lists all OAuthClients in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*v1.OAuthClient, err error)
-	// Get retrieves the OAuthClient from the indexer for a given namespace and name.
-	Get(name string) (*v1.OAuthClient, error)
-	OAuthClientNamespaceListerExpansion
-}
-
-// oAuthClientNamespaceLister implements the OAuthClientNamespaceLister
-// interface.
-type oAuthClientNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all OAuthClients in the indexer for a given namespace.
-func (s oAuthClientNamespaceLister) List(selector labels.Selector) (ret []*v1.OAuthClient, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1.OAuthClient))
-	})
-	return ret, err
-}
-
-// Get retrieves the OAuthClient from the indexer for a given namespace and name.
-func (s oAuthClientNamespaceLister) Get(name string) (*v1.OAuthClient, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the OAuthClient from the index for a given name.
+func (s *oAuthClientLister) Get(name string) (*v1.OAuthClient, error) {
+	key := &v1.OAuthClient{ObjectMeta: meta_v1.ObjectMeta{Name: name}}
+	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}

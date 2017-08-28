@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
@@ -11,7 +12,7 @@ func NewSingleTenantPlugin() osdnPolicy {
 }
 
 func (sp *singleTenantPlugin) Name() string {
-	return osapi.SingleTenantPluginName
+	return sdn.SingleTenantPluginName
 }
 
 func (sp *singleTenantPlugin) Start(node *OsdnNode) error {

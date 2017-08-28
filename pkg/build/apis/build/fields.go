@@ -12,12 +12,3 @@ func BuildToSelectableFields(build *Build) fields.Set {
 		"podName":            GetBuildPodName(build),
 	}
 }
-
-// BuildConfigToSelectableFields returns a label set that represents the object
-// changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
-func BuildConfigToSelectableFields(buildConfig *BuildConfig) fields.Set {
-	return fields.Set{
-		"metadata.name":      buildConfig.Name,
-		"metadata.namespace": buildConfig.Namespace,
-	}
-}

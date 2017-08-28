@@ -20,11 +20,9 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.KubeControllerContext.Options.MinResyncPeriod.Duration)
 	saName := "resourcequota-controller"
 
-	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(
-		ctx.ExternalKubeInformers,
+	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
 		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
-		ctx.ClientBuilder.ClientOrDie(saName),
 	)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{

@@ -22,8 +22,10 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/diff"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 type ManifestSchemaVersion int
@@ -316,7 +318,7 @@ func AssertManifestsEqual(t *testing.T, description string, ma distribution.Mani
 
 // NewImageManifest creates a new Image object for the given manifest string. Note that the manifest must
 // contain signatures if it is of schema 1.
-func NewImageForManifest(repoName string, rawManifest string, manifestConfig string, managedByOpenShift bool) (*imageapi.Image, error) {
+func NewImageForManifest(repoName string, rawManifest string, manifestConfig string, managedByOpenShift bool) (*imageapiv1.Image, error) {
 	var versioned manifest.Versioned
 	if err := json.Unmarshal([]byte(rawManifest), &versioned); err != nil {
 		return nil, err
@@ -332,7 +334,7 @@ func NewImageForManifest(repoName string, rawManifest string, manifestConfig str
 		annotations[imageapi.ManagedByOpenShiftAnnotation] = "true"
 	}
 
-	img := &imageapi.Image{
+	img := imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        desc.Digest.String(),
 			Annotations: annotations,
@@ -341,10 +343,17 @@ func NewImageForManifest(repoName string, rawManifest string, manifestConfig str
 		DockerImageManifest:  rawManifest,
 		DockerImageConfig:    manifestConfig,
 	}
+	if err := imageapi.ImageWithMetadata(&img); err != nil {
+		return nil, err
+	}
+	newImage := imageapiv1.Image{}
+	if err := kapi.Scheme.Converter().Convert(&img, &newImage, 0, nil); err != nil {
+		return nil, err
+	}
 
-	if err := imageapi.ImageWithMetadata(img); err != nil {
+	if err := imageapiv1.ImageWithMetadata(&newImage); err != nil {
 		return nil, fmt.Errorf("failed to fill image with metadata: %v", err)
 	}
 
-	return img, nil
+	return &newImage, nil
 }

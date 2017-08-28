@@ -15,6 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/retry"
 
+	"github.com/openshift/origin/pkg/sdn"
 	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
@@ -252,7 +253,7 @@ func (master *OsdnMaster) watchSubnets() {
 				var hsAnnotations map[string]string
 				if vnid, ok := hs.Annotations[osapi.FixedVNIDHostAnnotation]; ok {
 					vnidInt, err := strconv.Atoi(vnid)
-					if err == nil && vnidInt >= 0 && uint32(vnidInt) <= osapi.MaxVNID {
+					if err == nil && vnidInt >= 0 && uint32(vnidInt) <= sdn.MaxVNID {
 						hsAnnotations = make(map[string]string)
 						hsAnnotations[osapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
 					} else {

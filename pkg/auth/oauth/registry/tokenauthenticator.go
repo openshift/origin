@@ -5,24 +5,24 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
-	kapirequest "k8s.io/apiserver/pkg/endpoints/request"
+
+	"github.com/openshift/origin/pkg/auth/userregistry/identitymapper"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 type TokenAuthenticator struct {
-	tokens      oauthaccesstoken.Registry
+	tokens      oauthclient.OAuthAccessTokenInterface
 	users       userclient.UserResourceInterface
 	groupMapper identitymapper.UserToGroupMapper
 }
 
 var ErrExpired = errors.New("Token is expired")
 
-func NewTokenAuthenticator(tokens oauthaccesstoken.Registry, users userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper) *TokenAuthenticator {
+func NewTokenAuthenticator(tokens oauthclient.OAuthAccessTokenInterface, users userclient.UserResourceInterface, groupMapper identitymapper.UserToGroupMapper) *TokenAuthenticator {
 	return &TokenAuthenticator{
 		tokens:      tokens,
 		users:       users,
@@ -31,9 +31,7 @@ func NewTokenAuthenticator(tokens oauthaccesstoken.Registry, users userclient.Us
 }
 
 func (a *TokenAuthenticator) AuthenticateToken(value string) (kuser.Info, bool, error) {
-	ctx := kapirequest.NewContext()
-
-	token, err := a.tokens.GetAccessToken(ctx, value, &metav1.GetOptions{})
+	token, err := a.tokens.Get(value, metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
 	}

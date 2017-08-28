@@ -1,17 +1,13 @@
 package deployconfig
 
 import (
-	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kstorage "k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -161,22 +157,4 @@ func (statusStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.
 // ValidateUpdate is the default update validation for an end user updating status.
 func (statusStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateDeploymentConfigStatusUpdate(obj.(*deployapi.DeploymentConfig), old.(*deployapi.DeploymentConfig))
-}
-
-// GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	deploymentConfig, ok := obj.(*deployapi.DeploymentConfig)
-	if !ok {
-		return nil, nil, false, fmt.Errorf("not a DeploymentConfig")
-	}
-	return labels.Set(deploymentConfig.ObjectMeta.Labels), deployapi.DeploymentConfigToSelectableFields(deploymentConfig), deploymentConfig.Initializers != nil, nil
-}
-
-// Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
-	return kstorage.SelectionPredicate{
-		Label:    label,
-		Field:    field,
-		GetAttrs: GetAttrs,
-	}
 }
