@@ -55,6 +55,16 @@ func (a *Addr) String() string {
 	return a.URL.String()
 }
 
+// HostPort returns the host and port joined together. If no port is set :0 will
+// be appended.
+func (a *Addr) HostPort(defaultPort int) string {
+	port := a.Port
+	if port == 0 {
+		port = defaultPort
+	}
+	return net.JoinHostPort(a.Host, strconv.Itoa(port))
+}
+
 // Set attempts to set a string value to an address
 func (a *Addr) Set(value string) error {
 	scheme := a.DefaultScheme

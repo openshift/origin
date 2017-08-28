@@ -175,7 +175,7 @@ test-unit:
 # Example:
 #   make test-integration
 test-integration:
-	KUBE_COVER=" " KUBE_RACE=" " hack/test-integration.sh
+	hack/test-integration.sh
 .PHONY: test-integration
 
 # Run command tests. Uses whatever binaries are currently built.
@@ -191,8 +191,8 @@ test-cmd: build
 #
 # Example:
 #   make test-end-to-end
-test-end-to-end: build
-	KUBE_COVER=" " KUBE_RACE=" " OS_TEST_PACKAGE=test/end-to-end hack/test-integration.sh
+test-end-to-end:
+	COVERAGE_SPEC=' ' DETECT_RACES='false' TIMEOUT='10m' hack/test-go.sh ./test/end-to-end
 	hack/test-end-to-end.sh
 .PHONY: test-end-to-end
 

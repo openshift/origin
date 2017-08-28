@@ -83,7 +83,7 @@ func TestGCDefaults(t *testing.T) {
 
 	// the /oapi endpoints should orphan by default
 	// wait for a bit and make sure that the build is still there
-	time.Sleep(2 * time.Second)
+	time.Sleep(6 * time.Second)
 	childConfigMap, err = kubeClient.Core().ConfigMaps(ns).Get(childConfigMap.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Error(err)
