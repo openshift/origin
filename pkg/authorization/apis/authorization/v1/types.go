@@ -149,6 +149,9 @@ type NamedRoleBinding struct {
 	RoleBinding RoleBinding `json:"roleBinding" protobuf:"bytes,2,opt,name=roleBinding"`
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
 type SelfSubjectRulesReview struct {
 	metav1.TypeMeta `json:",inline"`
@@ -167,6 +170,9 @@ type SelfSubjectRulesReviewSpec struct {
 	// +k8s:conversion-gen=false
 	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,1,rep,name=scopes"`
 }
+
+// +genclient
+// +genclient:onlyVerbs=create
 
 // SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace
 type SubjectRulesReview struct {
@@ -217,6 +223,10 @@ type ResourceAccessReviewResponse struct {
 	EvaluationError string `json:"evalutionError" protobuf:"bytes,4,opt,name=evalutionError"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=create
+
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
 // action specified by spec
 type ResourceAccessReview struct {
@@ -251,6 +261,10 @@ func (t OptionalScopes) String() string {
 	return fmt.Sprintf("%v", []string(t))
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=create
+
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
 	metav1.TypeMeta `json:",inline"`
@@ -269,6 +283,9 @@ type SubjectAccessReview struct {
 	Scopes OptionalScopes `json:"scopes" protobuf:"bytes,4,rep,name=scopes"`
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
 type LocalResourceAccessReview struct {
 	metav1.TypeMeta `json:",inline"`
@@ -276,6 +293,9 @@ type LocalResourceAccessReview struct {
 	// Action describes the action being tested.  The Namespace element is FORCED to the current namespace.
 	Action `json:",inline" protobuf:"bytes,1,opt,name=Action"`
 }
+
+// +genclient
+// +genclient:onlyVerbs=create
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
@@ -501,6 +521,8 @@ type ClusterRoleList struct {
 	// Items is a list of ClusterRoles
 	Items []ClusterRole `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
 
 // RoleBindingRestriction is an object that can be matched against a subject
 // (user, group, or service account) to determine whether rolebindings on that
