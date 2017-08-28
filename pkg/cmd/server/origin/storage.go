@@ -29,12 +29,6 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/generic"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/build/webhook/gitlab"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	oappsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
-	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
-	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
-	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
-	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -76,7 +70,6 @@ import (
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
 	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota/etcd"
 
-	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrole"
 	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
 	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
@@ -103,10 +96,6 @@ import (
 // TODO this function needs to be broken apart with each API group owning their own storage, probably with two method
 // per API group to give us legacy and current storage
 func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string]rest.Storage, error) {
-	// TODO sort out who is using this and why.  it was hardcoded before the migration and I suspect that it is being used
-	// to serialize out objects into annotations.
-	externalVersionCodec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
-
 	//TODO/REBASE use something other than c.KubeClientsetInternal
 	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientExternal.CoreV1().Nodes(), *c.KubeletClientConfig)
 	if err != nil {
@@ -133,20 +122,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	}
 
 	buildConfigStorage, err := buildconfigetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
-	deployConfigStorage, deployConfigStatusStorage, deployConfigScaleStorage, err := deployconfigetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-
-	dcInstantiateStorage := deployconfiginstantiate.NewREST(
-		*deployConfigStorage.Store,
-		c.DeprecatedOpenshiftClient,
-		c.KubeClientInternal,
-		externalVersionCodec,
-		c.GenericConfig.AdmissionControl,
-	)
-
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
@@ -325,26 +300,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
-	originAppsClient, err := oappsclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	coreClient, err := kclientset.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	deployRollbackClient := deployrollback.Client{
-		GRFn: deployrollback.NewRollbackGenerator().GenerateRollback,
-		DeploymentConfigGetter:      originAppsClient.Apps(),
-		ReplicationControllerGetter: coreClient.Core(),
-	}
-	deployConfigRollbackStorage := deployrollback.NewREST(c.DeprecatedOpenshiftClient, c.KubeClientInternal, externalVersionCodec)
-	storage := map[schema.GroupVersion]map[string]rest.Storage{
-		v1.SchemeGroupVersion: {
-			// TODO: Deprecate these
-			"deploymentConfigRollbacks": deployrollback.NewDeprecatedREST(deployRollbackClient, externalVersionCodec),
-		},
-	}
+	storage := map[schema.GroupVersion]map[string]rest.Storage{}
 
 	storage[quotaapiv1.SchemeGroupVersion] = map[string]rest.Storage{
 		"clusterResourceQuotas":        clusterResourceQuotaStorage,
@@ -396,15 +352,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	storage[projectapiv1.SchemeGroupVersion] = map[string]rest.Storage{
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
-	}
-
-	storage[deployapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"deploymentConfigs":             deployConfigStorage,
-		"deploymentConfigs/scale":       deployConfigScaleStorage,
-		"deploymentConfigs/status":      deployConfigStatusStorage,
-		"deploymentConfigs/rollback":    deployConfigRollbackStorage,
-		"deploymentConfigs/log":         deploylogregistry.NewREST(c.DeprecatedOpenshiftClient, c.KubeClientInternal.Core(), c.KubeClientInternal.Core(), nodeConnectionInfoGetter),
-		"deploymentConfigs/instantiate": dcInstantiateStorage,
 	}
 
 	storage[imageapiv1.SchemeGroupVersion] = map[string]rest.Storage{
