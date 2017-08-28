@@ -5,7 +5,7 @@ After=docker.target network.target
 
 [Service]
 ExecStartPre=/usr/local/bin/openshift-generate-master-config.sh
-ExecStart=/usr/local/bin/openshift start master --loglevel=5 \
+ExecStart=/usr/local/bin/openshift start master --loglevel=4 \
   --config=/data/openshift.local.config/master/master-config.yaml
 WorkingDirectory=/data
 Restart=on-failure
