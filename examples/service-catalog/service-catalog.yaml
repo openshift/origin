@@ -4,8 +4,8 @@ metadata:
   name: service-catalog
 objects:
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: servicecatalog-serviceclass-viewer
   rules:
@@ -18,8 +18,8 @@ objects:
     - watch
     - get
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: servicecatalog-serviceclass-viewer-binding
   roleRef:
@@ -37,8 +37,8 @@ objects:
   metadata:
     name: service-catalog-apiserver
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: sar-creator
   rules:
@@ -49,17 +49,19 @@ objects:
     verbs:
     - create
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-sar-creator-binding
   roleRef:
     name: sar-creator
-  userNames:
-    - system:serviceaccount:kube-service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: namespace-viewer
   rules:
@@ -72,26 +74,30 @@ objects:
     - watch
     - get
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: kube-service-catalog
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: service-catalog-controller
   rules:
@@ -155,17 +161,19 @@ objects:
     - list
     - watch
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-binding
   roleRef:
     name: service-catalog-controller
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: kube-service-catalog
   
-- kind: Role
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
   metadata:
     name: endpoint-accessor
   rules:
@@ -180,18 +188,20 @@ objects:
     - create
     - update
 
-- kind: RoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
   metadata:
     name: endpointer-accessor-binding
   roleRef:
     name: endpoint-accessor
-    namespace: service-catalog
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+    namespace: kube-service-catalog
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 
-- kind: Role
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
   metadata:
     name: extension-apiserver-authentication-reader
     namespace: ${KUBE_SYSTEM_NAMESPACE}
@@ -205,25 +215,29 @@ objects:
     verbs:
     - get
 
-- kind: RoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
   metadata:
     name: extension-apiserver-authentication-reader-binding
     namespace: ${KUBE_SYSTEM_NAMESPACE}
   roleRef:
     name: extension-apiserver-authentication-reader
-    namespace: kube-system
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: system:auth-delegator-binding
   roleRef:
     name: system:auth-delegator
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
 
 - kind: Deployment
@@ -351,7 +365,7 @@ objects:
           - -v
           - "5"
           - --leader-election-namespace
-          - service-catalog
+          - kube-service-catalog
           - --broker-relist-interval
           - "5m"
           image: ${SERVICE_CATALOG_IMAGE}

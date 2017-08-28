@@ -1,7 +1,6 @@
 package openshift
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -9,23 +8,21 @@ import (
 
 	"github.com/golang/glog"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
 	aggregatorapi "k8s.io/kube-aggregator/pkg/apis/apiregistration"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/internalclientset/typed/apiregistration/internalversion"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	authzapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
 const (
-	catalogNamespace        = "service-catalog"
+	catalogNamespace        = "kube-service-catalog"
 	catalogService          = "service-catalog"
 	catalogTemplate         = "service-catalog"
 	ServiceCatalogServiceIP = "172.30.1.2"
@@ -38,7 +35,6 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	// Grant all users with the edit role, the ability to manage service catalog instance/binding resources.
 	scRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("instances", "bindings").Rule()
 	podpresetRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").Rule()
 	if err != nil {
@@ -50,6 +46,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError("could not get cluster edit role for patching").WithCause(err).WithDetails(h.OriginLog())
 	}
 
+	// Grant all users with the edit role, the ability to manage podpresets and service catalog instances/bindings
 	editRole.Rules = append(editRole.Rules, scRule, podpresetRule)
 	_, err = osClient.ClusterRoles().Update(editRole)
 	if err != nil {
@@ -61,23 +58,16 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return errors.NewError("could not get cluster admin role for patching").WithCause(err).WithDetails(h.OriginLog())
 	}
 
+	// Grant all users with the admin role, the ability to manage podpresets and service catalog instances/bindings
 	adminRole.Rules = append(adminRole.Rules, scRule, podpresetRule)
 	_, err = osClient.ClusterRoles().Update(adminRole)
 	if err != nil {
 		return errors.NewError("could not update the cluster admin role to add service catalog resource permissions").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	_, err = kubeClient.Core().Namespaces().Get(catalogNamespace, metav1.GetOptions{})
-	if err == nil {
-		// If there's no error, the catalog namespace already exists and we won't initialize it
-		return nil
-	}
-
-	// Create catalog namespace
-	out := &bytes.Buffer{}
-	err = CreateProject(f, catalogNamespace, "", "", "oc", out)
-	if err != nil {
-		return errors.NewError("cannot create service catalog project").WithCause(err).WithDetails(out.String())
+	// create the namespace if needed.  This is a reserved namespace, so you can't do it with the create project request
+	if _, err := kubeClient.Core().Namespaces().Create(&kapi.Namespace{ObjectMeta: metav1.ObjectMeta{Name: catalogNamespace}}); err != nil && !kapierrors.IsAlreadyExists(err) {
+		return errors.NewError("cannot create service catalog project").WithCause(err)
 	}
 
 	// Instantiate service catalog
@@ -99,7 +89,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	}
 
 	// Wait for the apiserver endpoint to become available
-	err = wait.Poll(5*time.Second, 600*time.Second, func() (bool, error) {
+	err = wait.Poll(1*time.Second, 600*time.Second, func() (bool, error) {
 		glog.V(2).Infof("polling for service catalog api server endpoint availability")
 		deployment, err := kubeClient.Extensions().Deployments(catalogNamespace).Get("apiserver", metav1.GetOptions{})
 		if err != nil {
@@ -140,7 +130,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 			VersionPriority:      20,
 			Service: &aggregatorapi.ServiceReference{
 				Name:      "apiserver",
-				Namespace: "service-catalog",
+				Namespace: catalogNamespace,
 			},
 		},
 	}
@@ -149,52 +139,6 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	_, err = aggregatorclient.APIServices().Create(sc)
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to register service catalog with api aggregator: %v", err))
-	}
-
-	// Register the template broker with the service catalog
-	glog.V(2).Infof("registering the template broker with the service catalog")
-	pool := dynamic.NewDynamicClientPool(clientConfig)
-	dclient, err := pool.ClientForGroupVersionResource(schema.GroupVersionResource{
-		Group:    "servicecatalog.k8s.io",
-		Version:  "v1alpha1",
-		Resource: "broker",
-	})
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to create a broker resource client: %v", err))
-	}
-
-	brokerResource := &metav1.APIResource{
-		Name:       "brokers",
-		Namespaced: false,
-		Kind:       "Broker",
-		Verbs:      []string{"create"},
-	}
-	brokerClient := dclient.Resource(brokerResource, "")
-
-	broker := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "servicecatalog.k8s.io/v1alpha1",
-			"kind":       "Broker",
-			"metadata": map[string]interface{}{
-				"name": "template-broker",
-			},
-			"spec": map[string]interface{}{
-				"url": "https://apiserver.openshift-template-service-broker.svc:443/brokers/template.openshift.io",
-			},
-		},
-	}
-
-	err = wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		_, err = brokerClient.Create(broker)
-
-		if err != nil {
-			glog.V(2).Infof("retrying registration after error %v", err)
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to register broker with service catalog: %v", err))
 	}
 
 	return nil
