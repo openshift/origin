@@ -21,8 +21,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	osbclient "github.com/openshift/origin/pkg/openservicebroker/client"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	exutil "github.com/openshift/origin/test/extended/util"
 )

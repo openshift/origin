@@ -18,7 +18,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateinternalclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	templateservicebroker "github.com/openshift/origin/pkg/template/servicebroker"
+	templateservicebroker "github.com/openshift/origin/pkg/templateservicebroker/servicebroker"
 )
 
 // TODO: this file breaks the layering of pkg/openservicebroker and

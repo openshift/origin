@@ -13,13 +13,13 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
 	extrouteclientset "github.com/openshift/origin/pkg/route/generated/clientset/typed/route/v1"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
 // Broker represents the template service broker.  It implements

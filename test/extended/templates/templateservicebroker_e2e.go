@@ -17,11 +17,11 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
-	"github.com/openshift/origin/pkg/openservicebroker/client"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

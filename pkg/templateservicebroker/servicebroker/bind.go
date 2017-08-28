@@ -3,12 +3,13 @@ package servicebroker
 import (
 	"bytes"
 	"encoding/base64"
-
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/golang/glog"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -21,11 +22,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 

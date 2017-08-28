@@ -5,9 +5,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
-	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
 // ValidateProvisionRequest ensures that a ProvisionRequest is valid, beyond

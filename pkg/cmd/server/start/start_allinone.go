@@ -28,7 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	tsbcmd "github.com/openshift/origin/pkg/openservicebroker/cmd/server"
+	tsbcmd "github.com/openshift/origin/pkg/templateservicebroker/cmd/server"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

@@ -3,16 +3,17 @@ package servicebroker
 import (
 	"net/http"
 
+	"github.com/golang/glog"
+
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
 // Deprovision is the reverse of Provision.  We clean up the TemplateInstance,

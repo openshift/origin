@@ -11,9 +11,11 @@ import (
 	"testing"
 
 	restful "github.com/emicklei/go-restful"
-	"github.com/openshift/origin/pkg/openservicebroker/api"
-	"github.com/openshift/origin/pkg/openservicebroker/client"
+
 	"k8s.io/apiserver/pkg/authentication/user"
+
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 )
 
 const validUUID = "decd59a9-1dd2-453e-942e-2deba96bfa96"
