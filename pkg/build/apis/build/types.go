@@ -1208,6 +1208,15 @@ type DockerStrategyOptions struct {
 	// Args contains any build arguments that are to be passed to Docker.  See
 	// https://docs.docker.com/engine/reference/builder/#/arg for more details
 	BuildArgs []kapi.EnvVar
+
+	// NoCache overrides the docker-strategy noCache option in the build config
+	NoCache *bool
+}
+
+// SourceStrategyOptions contains extra strategy options for Source builds
+type SourceStrategyOptions struct {
+	// Incremental overrides the source-strategy incremental option in the build config
+	Incremental *bool
 }
 
 // BuildRequest is the resource used to pass parameters to build generator
@@ -1243,6 +1252,9 @@ type BuildRequest struct {
 
 	// DockerStrategyOptions contains additional docker-strategy specific options for the build
 	DockerStrategyOptions *DockerStrategyOptions
+
+	// SourceStrategyOptions contains additional source-strategy specific options for the build
+	SourceStrategyOptions *SourceStrategyOptions
 }
 
 type BinaryBuildRequestOptions struct {

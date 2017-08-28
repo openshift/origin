@@ -118,6 +118,40 @@ os::cmd::expect_success_and_text "oc describe build ${frombuild}" 'centos/ruby-2
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-dir=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-file=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
 os::cmd::expect_failure_and_text "oc start-build ruby-sample-build-invalid-tag --from-repo=. --from-build=${started}" "Cannot use '--from-build' flag with binary builds"
+# --incremental flag should override Spec.Strategy.SourceStrategy.Incremental
+os::cmd::expect_success 'oc create -f test/extended/testdata/test-s2i-build.json'
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
+build_name="$(oc start-build -o=name --incremental test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"sourceStrategy\":{\"incremental\": true}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+build_name="$(oc start-build -o=name --incremental=false test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"sourceStrategy\":{\"incremental\": false}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'Incremental Build'
+build_name="$(oc start-build -o=name --incremental test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'Incremental Build'
+os::cmd::expect_success 'oc delete all --selector="name=test"'
+# --no-cache flag should override Spec.Strategy.SourceStrategy.NoCache
+os::cmd::expect_success 'oc create -f test/extended/testdata/test-docker-build.json'
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
+build_name="$(oc start-build -o=name --no-cache test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"noCache\": true}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+build_name="$(oc start-build -o=name --no-cache=false test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_success "oc patch bc/test -p '{\"spec\":{\"strategy\":{\"dockerStrategy\":{\"noCache\": false}}}}'"
+build_name="$(oc start-build -o=name test)"
+os::cmd::expect_success_and_not_text "oc describe ${build_name}" 'No Cache'
+build_name="$(oc start-build -o=name --no-cache test)"
+os::cmd::expect_success_and_text "oc describe ${build_name}" 'No Cache'
+os::cmd::expect_success 'oc delete all --selector="name=test"'
 echo "start-build: ok"
 os::test::junit::declare_suite_end
 

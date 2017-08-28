@@ -2827,12 +2827,18 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions"),
 							},
 						},
+						"sourceStrategyOptions": {
+							SchemaProps: spec.SchemaProps{
+								Description: "SourceStrategyOptions contains additional source-strategy specific options for the build",
+								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.SourceStrategyOptions"),
+							},
+						},
 					},
 					Required: []string{"triggeredBy"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause", "github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kubernetes/pkg/api/v1.EnvVar", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+				"github.com/openshift/origin/pkg/build/apis/build/v1.BinaryBuildSource", "github.com/openshift/origin/pkg/build/apis/build/v1.BuildTriggerCause", "github.com/openshift/origin/pkg/build/apis/build/v1.DockerStrategyOptions", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceRevision", "github.com/openshift/origin/pkg/build/apis/build/v1.SourceStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "k8s.io/kubernetes/pkg/api/v1.EnvVar", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
 		},
 		"github.com/openshift/origin/pkg/build/apis/build/v1.BuildSource": {
 			Schema: spec.Schema{
@@ -3538,6 +3544,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"noCache": {
+							SchemaProps: spec.SchemaProps{
+								Description: "noCache overrides the docker-strategy noCache option in the build config",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
 					},
 				},
 			},
@@ -4194,6 +4207,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{
 				"github.com/openshift/origin/pkg/build/apis/build/v1.GitSourceRevision"},
+		},
+		"github.com/openshift/origin/pkg/build/apis/build/v1.SourceStrategyOptions": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "SourceStrategyOptions contains extra strategy options for Source builds",
+					Properties: map[string]spec.Schema{
+						"incremental": {
+							SchemaProps: spec.SchemaProps{
+								Description: "incremental overrides the source-strategy incremental option in the build config",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"github.com/openshift/origin/pkg/build/apis/build/v1.StageInfo": {
 			Schema: spec.Schema{
