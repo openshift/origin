@@ -177,8 +177,7 @@ func (o *ReconcileSCCOptions) ChangedSCCs() ([]*securityapi.SecurityContextConst
 	groups, users := bootstrappolicy.GetBoostrapSCCAccess(o.InfraNamespace)
 	bootstrapSCCs := bootstrappolicy.GetBootstrapSecurityContextConstraints(groups, users)
 
-	for i := range bootstrapSCCs {
-		expectedSCC := &bootstrapSCCs[i]
+	for _, expectedSCC := range bootstrapSCCs {
 		actualSCC, err := o.SCCClient.Get(expectedSCC.Name, metav1.GetOptions{})
 		// if not found it needs to be created
 		if kapierrors.IsNotFound(err) {
