@@ -6,10 +6,10 @@
 #
 # The standard name for this image is openshift/origin-pod
 #
-FROM centos:centos7
+FROM registry.centos.org/centos/centos:7
 
 ## Install origin repo
-RUN INSTALL_PKGS="centos-release-openshift-origin" && \
+RUN INSTALL_PKGS="centos-release-openshift-origin15" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     yum clean all
