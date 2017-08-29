@@ -104,6 +104,11 @@ function os::build::environment::cleanup() {
   if [[ -z "${OS_BUILD_ENV_LEAVE_CONTAINER:-}" ]]; then
     os::log::debug "Removing container ${container}"
     docker rm "${container}" > /dev/null
+
+    if [[ -z "${OS_BUILD_ENV_REUSE_TMP_VOLUME:-}" ]]; then
+      os::log::debug "Removing tmp volume"
+      os::build::environment::remove_volume "${OS_BUILD_ENV_TMP_VOLUME}"
+    fi
   fi
 }
 readonly -f os::build::environment::cleanup
