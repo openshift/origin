@@ -401,6 +401,17 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 		}
 	}
 
+	for i, param := range template.Parameters {
+		switch {
+		case param.Name == "NAMESPACE" && param.Value == "":
+			template.Parameters[i].Value = templateInstance.Namespace
+			template.Parameters[i].Generate = ""
+		case param.Name == "OPENSHIFT_USERNAME" && param.Value == "":
+			template.Parameters[i].Value = templateInstance.Spec.Requester.Username
+			template.Parameters[i].Generate = ""
+		}
+	}
+
 	if err := util.Authorize(c.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
 		Namespace: templateInstance.Namespace,
 		Verb:      "create",
