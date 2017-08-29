@@ -152,6 +152,7 @@ type ImageStreamList struct {
 }
 
 // +genclient
+// +genclient:method=Secrets,verb=list,subresource=secrets,result=k8s.io/kubernetes/pkg/api/v1.Secret
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a Docker image
