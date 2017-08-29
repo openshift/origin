@@ -464,7 +464,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	}
 
 	var healthzResponse string
-	err = wait.Poll(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+	err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
 		var healthy bool
 		healthy, healthzResponse, err = IsServerHealthy(*masterURL)
 		if err != nil {
