@@ -168,6 +168,11 @@ func SetDefaults_NodeConfig(obj *NodeConfig) {
 		v := true
 		obj.EnableUnidling = &v
 	}
+
+	// Use Docker as default container runtime
+	if len(obj.ContainerRuntime) == 0 {
+		obj.ContainerRuntime = ContainerRuntimeDocker
+	}
 }
 func SetDefaults_EtcdStorageConfig(obj *EtcdStorageConfig) {
 	if len(obj.KubernetesStorageVersion) == 0 {
