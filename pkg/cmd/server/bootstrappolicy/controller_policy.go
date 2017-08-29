@@ -17,24 +17,25 @@ import (
 const saRolePrefix = "system:openshift:controller:"
 
 const (
-	InfraOriginNamespaceServiceAccountName                      = "origin-namespace-controller"
-	InfraServiceAccountControllerServiceAccountName             = "serviceaccount-controller"
-	InfraServiceAccountPullSecretsControllerServiceAccountName  = "serviceaccount-pull-secrets-controller"
-	InfraServiceAccountTokensControllerServiceAccountName       = "serviceaccount-tokens-controller"
-	InfraServiceServingCertServiceAccountName                   = "service-serving-cert-controller"
-	InfraBuildControllerServiceAccountName                      = "build-controller"
-	InfraBuildConfigChangeControllerServiceAccountName          = "build-config-change-controller"
-	InfraDeploymentConfigControllerServiceAccountName           = "deploymentconfig-controller"
-	InfraDeploymentTriggerControllerServiceAccountName          = "deployment-trigger-controller"
-	InfraDeployerControllerServiceAccountName                   = "deployer-controller"
-	InfraImageTriggerControllerServiceAccountName               = "image-trigger-controller"
-	InfraImageImportControllerServiceAccountName                = "image-import-controller"
-	InfraSDNControllerServiceAccountName                        = "sdn-controller"
-	InfraClusterQuotaReconciliationControllerServiceAccountName = "cluster-quota-reconciliation-controller"
-	InfraUnidlingControllerServiceAccountName                   = "unidling-controller"
-	InfraServiceIngressIPControllerServiceAccountName           = "service-ingress-ip-controller"
-	InfraPersistentVolumeRecyclerControllerServiceAccountName   = "pv-recycler-controller"
-	InfraResourceQuotaControllerServiceAccountName              = "resourcequota-controller"
+	InfraOriginNamespaceServiceAccountName                       = "origin-namespace-controller"
+	InfraServiceAccountControllerServiceAccountName              = "serviceaccount-controller"
+	InfraServiceAccountPullSecretsControllerServiceAccountName   = "serviceaccount-pull-secrets-controller"
+	InfraServiceAccountStableSecretsControllerServiceAccountName = "serviceaccount-stable-secrets-controller"
+	InfraServiceAccountTokensControllerServiceAccountName        = "serviceaccount-tokens-controller"
+	InfraServiceServingCertServiceAccountName                    = "service-serving-cert-controller"
+	InfraBuildControllerServiceAccountName                       = "build-controller"
+	InfraBuildConfigChangeControllerServiceAccountName           = "build-config-change-controller"
+	InfraDeploymentConfigControllerServiceAccountName            = "deploymentconfig-controller"
+	InfraDeploymentTriggerControllerServiceAccountName           = "deployment-trigger-controller"
+	InfraDeployerControllerServiceAccountName                    = "deployer-controller"
+	InfraImageTriggerControllerServiceAccountName                = "image-trigger-controller"
+	InfraImageImportControllerServiceAccountName                 = "image-import-controller"
+	InfraSDNControllerServiceAccountName                         = "sdn-controller"
+	InfraClusterQuotaReconciliationControllerServiceAccountName  = "cluster-quota-reconciliation-controller"
+	InfraUnidlingControllerServiceAccountName                    = "unidling-controller"
+	InfraServiceIngressIPControllerServiceAccountName            = "service-ingress-ip-controller"
+	InfraPersistentVolumeRecyclerControllerServiceAccountName    = "pv-recycler-controller"
+	InfraResourceQuotaControllerServiceAccountName               = "resourcequota-controller"
 
 	// template instance controller watches for TemplateInstance object creation
 	// and instantiates templates as a result.
@@ -194,6 +195,16 @@ func init() {
 			rbac.NewRule("get", "list", "watch", "create", "update").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("services").RuleOrDie(),
+			eventsRule(),
+		},
+	})
+
+	// serviceaccount-stable-secrets-controller
+	addControllerRole(rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraServiceAccountStableSecretsControllerServiceAccountName},
+		Rules: []rbac.PolicyRule{
+			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("serviceaccounts").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "create", "update", "patch", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 			eventsRule(),
 		},
 	})

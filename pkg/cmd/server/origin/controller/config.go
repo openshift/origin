@@ -65,6 +65,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 
 	ret["openshift.io/serviceaccount"] = c.ServiceAccountControllerOptions.RunController
 
+	ret["openshift.io/serviceaccount-stable-secrets"] = RunServiceAccountStableSecretsController
 	ret["openshift.io/serviceaccount-pull-secrets"] = RunServiceAccountPullSecretsController
 	ret["openshift.io/origin-namespace"] = RunOriginNamespaceController
 	ret["openshift.io/service-serving-cert"] = c.ServiceServingCertsControllerOptions.RunController

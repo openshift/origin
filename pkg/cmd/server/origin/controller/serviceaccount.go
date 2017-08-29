@@ -110,3 +110,16 @@ func RunServiceAccountPullSecretsController(ctx ControllerContext) (bool, error)
 
 	return true, nil
 }
+
+func RunServiceAccountStableSecretsController(ctx ControllerContext) (bool, error) {
+	kc := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraServiceAccountStableSecretsControllerServiceAccountName)
+
+	controller := serviceaccountcontrollers.NewStableSATokenSecretController(
+		ctx.ExternalKubeInformers.Core().V1().ServiceAccounts(),
+		ctx.ExternalKubeInformers.Core().V1().Secrets(),
+		kc,
+	)
+	go controller.Run(5, ctx.Stop)
+
+	return true, nil
+}
