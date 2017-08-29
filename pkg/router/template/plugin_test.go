@@ -174,11 +174,13 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 // AddRoute adds a ServiceAliasConfig and associated ServiceUnits for the route
 func (r *TestRouter) AddRoute(route *routeapi.Route) {
 	routeKey := r.routeKey(route)
+	serviceUnitNames, serviceEndpoints := getServiceUnits(r.numberOfEndpoints, route)
 
 	config := ServiceAliasConfig{
 		Host:             route.Spec.Host,
 		Path:             route.Spec.Path,
-		ServiceUnitNames: getServiceUnits(r.numberOfEndpoints, route),
+		ServiceUnitNames: serviceUnitNames,
+		ServiceEndpoints: serviceEndpoints,
 	}
 
 	for key := range config.ServiceUnitNames {

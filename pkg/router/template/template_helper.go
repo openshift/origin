@@ -170,13 +170,55 @@ func endpointsForAlias(alias ServiceAliasConfig, svc ServiceUnit) []Endpoint {
 	return endpoints
 }
 
+// Returns weight for the endpoint.
+// svcWeight - total service weight
+// serviceEndpoints - number of endpoints in service
+// idx - which endpoint is being calculated
+//
+// svcWeight is distributed among the number of serviceEndpoints.
+// Each endpoint gets a fraction of the service's weight, and the
+// sum of the endpoint weights is the service weight.
+// Because the serviceEndpoints may not divide evenly into svcWeight
+// one endpoint may get less than its share.
+// Also, since the minimum weight is 1, there may be more than
+// svcWeight serviceEndpoints so the extra endpoints will get 0 weight.
+func calcWeight(svcWeight, serviceEndpoints int32, idx int) int32 {
+
+	var idx32 int32 = int32(idx)
+
+	// When the service has 0 endpoints, weight is 0
+	if serviceEndpoints == 0 {
+		return 0
+	}
+
+	// Weight for each endpoint. The minimum is 1.
+	weightPerEndpoint := (svcWeight + serviceEndpoints - 1) / serviceEndpoints
+	if weightPerEndpoint == 0 {
+		weightPerEndpoint = 1
+	}
+
+	// When all of the service weight is assigned, this endpoint gets 0
+	// This can happen when weightPerEndpoint was set to 1.
+	if weightPerEndpoint*idx32 > svcWeight {
+		return 0
+	}
+
+	// This endpoint will get the rest of the available service weight
+	if weightPerEndpoint*(idx32+1) > svcWeight {
+		return svcWeight - (weightPerEndpoint * idx32)
+	}
+
+	return weightPerEndpoint
+}
+
 var helperFunctions = template.FuncMap{
 	"endpointsForAlias":        endpointsForAlias,        //returns the list of valid endpoints
 	"processEndpointsForAlias": processEndpointsForAlias, //returns the list of valid endpoints after processing them
-	"env":          env,          //tries to get an environment variable, returns the first non-empty default value or "" on failure
-	"matchPattern": matchPattern, //anchors provided regular expression and evaluates against given string
-	"isInteger":    isInteger,    //determines if a given variable is an integer
-	"matchValues":  matchValues,  //compares a given string to a list of allowed strings
+	"calcWeight":               calcWeight,               //returns the weight for the endpoint
+	"env":                      env,                      //tries to get an environment variable, if not present returns the optional second argument or "".
+	"matchPattern":             matchPattern,             //anchors provided regular expression and evaluates against given string
+	"isInteger":                isInteger,                //determines if a given variable is an integer
+	"matchValues":              matchValues,              //compares a given string to a list of allowed strings. Returns true if found.
 
 	"genSubdomainWildcardRegexp": genSubdomainWildcardRegexp, //generates a regular expression matching the subdomain for hosts (and paths) with a wildcard policy
 	"generateRouteRegexp":        generateRouteRegexp,        //generates a regular expression matching the route hosts (and paths)

@@ -53,6 +53,7 @@ type templateRouter struct {
 	reloadCallbacks  []func()
 	state            map[string]ServiceAliasConfig
 	serviceUnits     map[string]ServiceUnit
+	serviceEndpoints map[string]int
 	certManager      certificateManager
 	// defaultCertificate is a concatenated certificate(s), their keys, and their CAs that should be used by the underlying
 	// implementation as the default certificate if no certificate is resolved by the normal matching mechanisms.  This is
@@ -131,6 +132,8 @@ type templateData struct {
 	State map[string](ServiceAliasConfig)
 	// the service lookup
 	ServiceUnits map[string]ServiceUnit
+	// number of service endpoints
+	ServiceEndpoints map[string]int
 	// full path and file name to the default certificate
 	DefaultCertificate string
 	// full path and file name to the default destination certificate
@@ -401,6 +404,7 @@ func (r *templateRouter) writeConfig() error {
 			WorkingDir:           r.dir,
 			State:                r.state,
 			ServiceUnits:         r.serviceUnits,
+			ServiceEndpoints:     r.serviceEndpoints,
 			DefaultCertificate:   r.defaultCertificatePath,
 			DefaultDestinationCA: r.defaultDestinationCAPath,
 			PeerEndpoints:        r.peerEndpoints,
@@ -551,7 +555,7 @@ func (r *templateRouter) routeKey(route *routeapi.Route) string {
 	name := controller.GetSafeRouteName(route.Name)
 
 	// Namespace can contain dashes, so ${namespace}-${name} is not
-	// unique, use an underscore instead - ${namespace}:${name} akin
+	// unique, use a colon instead - ${namespace}:${name} akin
 	// to the way domain keys/service records use it ala
 	// _$service.$proto.$name.
 	// Note here that colon (:) is not a valid DNS character and
@@ -570,7 +574,7 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 	wildcard := r.allowWildcardRoutes && wantsWildcardSupport
 
 	// Get the service units and count the active ones (with a non-zero weight)
-	serviceUnits := getServiceUnits(r.numberOfEndpoints, route)
+	serviceUnits, serviceEndpoints := getServiceUnits(r.numberOfEndpoints, route)
 	activeServiceUnits := 0
 	for _, weight := range serviceUnits {
 		if weight > 0 {
@@ -586,6 +590,7 @@ func (r *templateRouter) createServiceAliasConfig(route *routeapi.Route, routeKe
 		IsWildcard:         wildcard,
 		Annotations:        route.Annotations,
 		ServiceUnitNames:   serviceUnits,
+		ServiceEndpoints:   serviceEndpoints,
 		ActiveServiceUnits: activeServiceUnits,
 	}
 
@@ -865,17 +870,30 @@ func generateDestCertKey(config *ServiceAliasConfig) string {
 
 type endpointsCounter func(key string) int32
 
-// getServiceUnits returns a map of service keys to their weights.
-// The requests are loadbalanced among the services referenced by the route.
+// getServiceUnits returns a map of service keys to their weights
+// and a map of service keys to number of endpoints in the service.
+//
+// The requests are load balanced among the services referenced by the route.
 // The weight (0-256, default 1) sets the relative proportions each
-// service gets (weight/sum_of_weights fraction of the requests).
+// service gets (weight/sum_of_weights) fraction of the requests.
 // When the weight is 0 no traffic goes to the service. If they are
 // all 0 the request is returned with 503 response.
-// For each service, the requests are distributed among the endpoints.
-// Each endpoint gets weight/numberOfEndpoints portion of the requests.
+// For each service, the requests are distributed among the service's
+// endpoints.
+//
+// The service weight is distributed among the endpoints. Since the
+// minimum weight is 1 it is possible that there are too many endpoints
+// for the service weight. E.g, service weight 5 and 9 endpoints.
+// In this case 5 endpoints will get 1 and 4 will get 0. Otherwise,
+// each endpoint gets weight/numberOfEndpoints portion of the requests
+// until the weight is fully distributed.
+// When the numberOfEndpoints doesn't divide into weight, the last endpoint
+// gets the remainder.
+//
 // The above assumes roundRobin scheduling.
-func getServiceUnits(counter endpointsCounter, route *routeapi.Route) map[string]int32 {
+func getServiceUnits(counter endpointsCounter, route *routeapi.Route) (map[string]int32, map[string]int32) {
 	serviceUnits := make(map[string]int32)
+	serviceEndpoints := make(map[string]int32)
 	key := fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
 
 	// find the maximum weight
@@ -901,37 +919,24 @@ func getServiceUnits(counter endpointsCounter, route *routeapi.Route) map[string
 	// "A" has 2 endpoints: each gets weight 120 (of the available 240)
 	// "B" has 4 endpoints: each gets weight 30  (of the available 120)
 
-	// serviceUnits[key] is the weigth for each endpoint in the service
-	// the sum of the weights of the endpoints is the scaled service weight.
+	// serviceUnits[key] is the weigth for the service
 
-	var numEp int32 = counter(key)
-	if numEp < 1 {
-		numEp = 1
-	}
+	serviceEndpoints[key] = counter(key)
 	if route.Spec.To.Weight == nil {
-		serviceUnits[key] = scaleWeight / numEp
+		serviceUnits[key] = scaleWeight
 	} else {
-		serviceUnits[key] = (*route.Spec.To.Weight * scaleWeight) / numEp
-		if *route.Spec.To.Weight > 0 && serviceUnits[key] < 1 {
-			serviceUnits[key] = 1
-		}
+		serviceUnits[key] = (*route.Spec.To.Weight * scaleWeight)
 	}
 	for _, svc := range route.Spec.AlternateBackends {
 		key = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
-		numEp = counter(key)
-		if numEp < 1 {
-			numEp = 1
-		}
+		serviceEndpoints[key] = counter(key)
 		if svc.Weight == nil {
-			serviceUnits[key] = scaleWeight / numEp
+			serviceUnits[key] = scaleWeight
 		} else {
-			serviceUnits[key] = (*svc.Weight * scaleWeight) / numEp
-			if *svc.Weight > 0 && serviceUnits[key] < 1 {
-				serviceUnits[key] = 1
-			}
+			serviceUnits[key] = (*svc.Weight * scaleWeight)
 		}
 	}
-	return serviceUnits
+	return serviceUnits, serviceEndpoints
 }
 
 // configsAreEqual determines whether the given service alias configs can be considered equal.
@@ -953,5 +958,6 @@ func configsAreEqual(config1, config2 *ServiceAliasConfig) bool {
 		config1.IsWildcard == config2.IsWildcard &&
 		config1.VerifyServiceHostname == config2.VerifyServiceHostname &&
 		reflect.DeepEqual(config1.Annotations, config2.Annotations) &&
-		reflect.DeepEqual(config1.ServiceUnitNames, config2.ServiceUnitNames)
+		reflect.DeepEqual(config1.ServiceUnitNames, config2.ServiceUnitNames) &&
+		reflect.DeepEqual(config1.ServiceEndpoints, config2.ServiceEndpoints)
 }

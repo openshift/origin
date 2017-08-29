@@ -297,3 +297,71 @@ func TestMatchPattern(t *testing.T) {
 		}
 	}
 }
+
+func TestCalcWeight(t *testing.T) {
+	testCases := []struct {
+		name   string
+		weight int32
+		eps    int32
+		idx    int
+		result int32
+	}{
+		// Test various situations
+		{
+			name: "weight 100 over 2 eps, idx 0",
+			weight: 100,
+			eps:	2,
+			idx:	0,
+			result: 50,
+		},
+		{
+			name: "weight 100 over 2 eps, idx 1",
+			weight: 100,
+			eps:	2,
+			idx:	1,
+			result: 50,
+		},
+		{
+			name: "weight 1 over 2 eps, idx 0",
+			weight: 1,
+			eps:	2,
+			idx:	0,
+			result: 1,
+		},
+		{
+			name: "weight 1 over 2 eps, idx 1",
+			weight: 1,
+			eps:	2,
+			idx:	1,
+			result: 0,
+		},
+		{
+			name: "weight 17 over 2 eps, idx 0",
+			weight: 17,
+			eps:	2,
+			idx:	0,
+			result: 9,
+		},
+		{
+			name: "weight 17 over 2 eps, idx 1",
+			weight: 17,
+			eps:	2,
+			idx:	1,
+			result: 8,
+		},
+		{
+			name: "no endpoints",
+			weight: 100,
+			eps:	0,
+			idx:	0,
+			result: 0,
+		},
+	}
+
+	for _, tt := range testCases {
+		weight := calcWeight(tt.weight, tt.eps, tt.idx)
+		if weight != tt.result {
+			t.Errorf("%s: weight %d, %d endpoints at index %d expected %d but got %d", tt.name, tt.weight, tt.eps, tt.idx, tt.result, weight)
+		}
+	}
+}
