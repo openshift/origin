@@ -6,7 +6,7 @@
 #
 FROM registry.centos.org/centos/centos:7
 
-RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar centos-release-openshift-origin15 \
+RUN INSTALL_PKGS="which git tar wget hostname sysvinit-tools util-linux bsdtar epel-release centos-release-openshift-origin15 \
       socat ethtool device-mapper iptables tree findutils nmap-ncat e2fsprogs xfsprogs lsof device-mapper-persistent-data ceph-common" && \
     yum install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
