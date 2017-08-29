@@ -395,7 +395,13 @@ func Run(f cmdutil.Factory, opts *RunOptions, cmdIn io.Reader, cmdOut, cmdErr io
 
 	outputFormat := cmdutil.GetFlagString(cmd, "output")
 	if outputFormat != "" || cmdutil.GetDryRunFlag(cmd) {
-		return f.PrintObject(cmd, false, mapper, obj, cmdOut)
+		// convert to internal version before passing to the printer
+		internalObj, err := mapping.ConvertToVersion(obj, schema.GroupVersion{Group: mapping.GroupVersionKind.Group, Version: runtime.APIVersionInternal})
+		if err != nil {
+			return err
+		}
+
+		return f.PrintObject(cmd, false, mapper, internalObj, cmdOut)
 	}
 	cmdutil.PrintSuccess(mapper, false, cmdOut, mapping.Resource, args[0], cmdutil.GetDryRunFlag(cmd), "created")
 	return nil
