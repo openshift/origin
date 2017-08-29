@@ -1,11 +1,10 @@
 package controller
 
 import (
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"k8s.io/kubernetes/pkg/api/v1"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/volume"
-
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
 
 // newPersistentVolumeRecyclerPodTemplate provides a function which makes our recycler pod template for use in the kube-controller-manager
