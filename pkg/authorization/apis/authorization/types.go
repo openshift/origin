@@ -40,9 +40,9 @@ const (
 )
 
 // DiscoveryRule is a rule that allows a client to discover the API resources available on this server
-var DiscoveryRule = PolicyRule{
-	Verbs: sets.NewString("get"),
-	NonResourceURLs: sets.NewString(
+var DiscoveryRule = rbac.PolicyRule{
+	Verbs: []string{"get"},
+	NonResourceURLs: []string{
 		// Server version checking
 		"/version", "/version/*",
 
@@ -56,14 +56,7 @@ var DiscoveryRule = PolicyRule{
 
 		// we intentionally allow all to here
 		"/",
-	),
-}
-
-// The Kubernetes Rbac version
-// TODO make this the authoritative rule
-var RbacDiscoveryRule = rbac.PolicyRule{
-	Verbs:           DiscoveryRule.Verbs.List(),
-	NonResourceURLs: DiscoveryRule.NonResourceURLs.List(),
+	},
 }
 
 // PolicyRule holds information that describes a policy rule, but does not contain information

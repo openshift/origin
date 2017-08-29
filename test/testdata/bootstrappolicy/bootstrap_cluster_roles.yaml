@@ -1699,22 +1699,22 @@ items:
     verbs:
     - get
   - nonResourceURLs:
-    - /
-    - /.well-known
-    - /.well-known/*
+    - /version
+    - /version/*
     - /api
     - /api/*
     - /apis
     - /apis/*
     - /oapi
     - /oapi/*
-    - /osapi
-    - /osapi/
-    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
-    - /version
-    - /version/*
+    - /swagger.json
+    - /osapi
+    - /osapi/
+    - /.well-known
+    - /.well-known/*
+    - /
     verbs:
     - get
 - apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -2356,22 +2356,22 @@ items:
     name: system:discovery
   rules:
   - nonResourceURLs:
-    - /
-    - /.well-known
-    - /.well-known/*
+    - /version
+    - /version/*
     - /api
     - /api/*
     - /apis
     - /apis/*
     - /oapi
     - /oapi/*
-    - /osapi
-    - /osapi/
-    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
-    - /version
-    - /version/*
+    - /swagger.json
+    - /osapi
+    - /osapi/
+    - /.well-known
+    - /.well-known/*
+    - /
     verbs:
     - get
 - apiVersion: rbac.authorization.k8s.io/v1beta1
