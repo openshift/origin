@@ -13,6 +13,7 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 type uniqueItem struct {
@@ -28,7 +29,7 @@ type ScheduledImageStreamController struct {
 	client imageclient.ImageInterface
 
 	// lister can list/get image streams from a shared informer's cache
-	lister imageStreamLister
+	lister imageinformer.ImageStreamLister
 	// listerSynced makes sure the is store is synced before reconciling streams
 	listerSynced cache.InformerSynced
 

@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/discovery"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -376,14 +375,4 @@ func DefaultOpenShiftUserAgent() string {
 	seg := strings.SplitN(version, "-", 2)
 	version = seg[0]
 	return fmt.Sprintf("%s/%s (%s/%s) openshift/%s", path.Base(os.Args[0]), version, runtime.GOOS, runtime.GOARCH, commit)
-}
-
-// IsStatusErrorKind returns true if this error describes the provided kind.
-func IsStatusErrorKind(err error, kind string) bool {
-	if s, ok := err.(errors.APIStatus); ok {
-		if details := s.Status().Details; details != nil {
-			return kind == details.Kind
-		}
-	}
-	return false
 }
