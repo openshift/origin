@@ -15,10 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
-	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -539,116 +537,6 @@ func TestHookExecutor_makeHookPodRestart(t *testing.T) {
 
 	if e, a := kapi.RestartPolicyOnFailure, pod.Spec.RestartPolicy; e != a {
 		t.Errorf("expected pod restart policy %s, got %s", e, a)
-	}
-}
-
-func TestAcceptAvailablePods_scenarios(t *testing.T) {
-	scenarios := []struct {
-		name string
-		// any pods which are previously accepted
-		acceptedPods []string
-		// the current pods which will be in the store; pod name -> ready
-		currentPods map[string]bool
-		// whether or not the scenario should result in acceptance
-		accepted bool
-	}{
-		{
-			name:         "all ready, none previously accepted",
-			accepted:     true,
-			acceptedPods: []string{},
-			currentPods: map[string]bool{
-				"pod-1": true,
-				"pod-2": true,
-			},
-		},
-		{
-			name:         "some ready, none previously accepted",
-			accepted:     false,
-			acceptedPods: []string{},
-			currentPods: map[string]bool{
-				"pod-1": false,
-				"pod-2": true,
-			},
-		},
-		{
-			name:         "previously accepted has become unready, new are ready",
-			accepted:     true,
-			acceptedPods: []string{"pod-1"},
-			currentPods: map[string]bool{
-				// this pod should be ignored because it was previously accepted
-				"pod-1": false,
-				"pod-2": true,
-			},
-		},
-		{
-			name:         "previously accepted all ready, new is unready",
-			accepted:     false,
-			acceptedPods: []string{"pod-1"},
-			currentPods: map[string]bool{
-				"pod-1": true,
-				"pod-2": false,
-			},
-		},
-	}
-	for _, s := range scenarios {
-		t.Logf("running scenario: %s", s.name)
-
-		// Populate the store with real pods with the desired ready condition.
-		store := cache.NewStore(cache.MetaNamespaceKeyFunc)
-		for podName, ready := range s.currentPods {
-			status := kapi.ConditionTrue
-			if !ready {
-				status = kapi.ConditionFalse
-			}
-			pod := &kapi.Pod{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: podName,
-				},
-				Status: kapi.PodStatus{
-					Conditions: []kapi.PodCondition{
-						{
-							Type:   kapi.PodReady,
-							Status: status,
-						},
-					},
-				},
-			}
-			store.Add(pod)
-		}
-
-		// Set up accepted pods for the scenario.
-		acceptedPods := sets.NewString()
-		for _, podName := range s.acceptedPods {
-			acceptedPods.Insert(podName)
-		}
-
-		acceptorLogs := &bytes.Buffer{}
-		acceptor := &acceptAvailablePods{
-			out:      acceptorLogs,
-			timeout:  10 * time.Millisecond,
-			interval: 1 * time.Millisecond,
-			getRcPodStore: func(deployment *kapi.ReplicationController) (cache.Store, chan struct{}) {
-				return store, make(chan struct{})
-			},
-			acceptedPods: acceptedPods,
-		}
-
-		deployment, _ := deployutil.MakeDeployment(deploytest.OkDeploymentConfig(1), kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
-		deployment.Spec.Replicas = 1
-
-		acceptor.out = &bytes.Buffer{}
-		err := acceptor.Accept(deployment)
-
-		if s.accepted {
-			if err != nil {
-				t.Fatalf("unexpected error: %s", err)
-			}
-		} else {
-			if err == nil {
-				t.Fatalf("expected an error")
-			}
-			t.Logf("got expected error: %s", err)
-		}
 	}
 }
 
