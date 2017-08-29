@@ -9,6 +9,9 @@ import (
 )
 
 // +genclient
+// +genclient:method=Instantiate,verb=create,subresource=instantiate,input=DeploymentRequest
+// +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
+// +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
 
 // Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
 // A single deployment configuration is usually analogous to a single micro-service. Can support many different
