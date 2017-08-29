@@ -47,6 +47,36 @@ type ProjectRequest struct {
 	Description string
 }
 
+// +genclient
+// +genclient:nonNamespaced
+
+// ProjectReservation prevents the creation of a project via the ProjectRequest endpoint.
+// The name matches the namespace name that is reserved.
+type ProjectReservation struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+
+	Spec ProjectReservationSpec
+}
+
+// ProjectReservationSpec provides metadata about the reservation
+type ProjectReservationSpec struct {
+	// ReservedFor is the username this name is reserved for.  It is optional and not forced
+	// to any particular value.
+	ReservedFor string
+	// Reason is a human readable indication of why the project is reserved.
+	Reason string
+}
+
+// ProjectReservationList is a list of ProjectReservation objects.
+type ProjectReservationList struct {
+	metav1.TypeMeta
+	// Standard object's metadata.
+	metav1.ListMeta
+	// Items is the list of projectreservations
+	Items []ProjectReservation
+}
+
 // These constants represent annotations keys affixed to projects
 const (
 	// ProjectNodeSelector is an annotation that holds the node selector;

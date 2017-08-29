@@ -58,6 +58,33 @@ message ProjectRequest {
   optional string description = 3;
 }
 
+// ProjectReservation prevents the creation of a project via the ProjectRequest endpoint.
+// The name matches the namespace name that is reserved.
+message ProjectReservation {
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  optional ProjectReservationSpec spec = 2;
+}
+
+// ProjectReservationList is a list of ProjectReservation objects.
+message ProjectReservationList {
+  // Standard object's metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ListMeta metadata = 1;
+
+  // Items is the list of projectreservations
+  repeated ProjectReservation items = 2;
+}
+
+// ProjectReservationSpec provides metadata about the reservation
+message ProjectReservationSpec {
+  // ReservedFor is the username this name is reserved for.  It is optional and not forced
+  // to any particular value.
+  optional string reservedFor = 1;
+
+  // Reason is a human readable indication of why the project is reserved.
+  optional string reason = 2;
+}
+
 // ProjectSpec describes the attributes on a Project
 message ProjectSpec {
   // Finalizers is an opaque list of values that must be empty to permanently remove object from storage
