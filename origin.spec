@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 501709a385a20f8cfb55e824a9b01cbf9ea9be03
+%global commit e50e7e9ad52d627f242779687fbda977d7310037
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.118.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=501709a
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.119.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e50e7e9
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.119.0%{?dist}
+Release:        0.120.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -644,6 +644,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Aug 29 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.120.0
+- bump(github.com/openshift/origin-web-console):
+  04d694f69cc8b78b54a52e8025fba93df5a71280 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  72f8452a5382842c1b14b1a80ef391a2df7df502 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  9e9fa0f60b1e399f2da431281d1ec9050759cad3 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  89e0cd3183a4c8cbe941371d22d375dd1666ded1 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d105f641f57b67ce7b09a44bc303c599f5a6909d (eparis+openshiftbot@redhat.com)
+- move build storage where it is owned (deads@redhat.com)
+- resolve `groups "impersonategroup" already exists` error (jminter@redhat.com)
+
 * Tue Aug 29 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.119.0
 - bump(github.com/openshift/origin-web-console):
   a1ccb4527e0f6c29c27e30eece813dc1c7e44eae (eparis+openshiftbot@redhat.com)
