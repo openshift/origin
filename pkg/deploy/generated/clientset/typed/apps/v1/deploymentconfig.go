@@ -7,6 +7,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
+	v1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 )
 
 // DeploymentConfigsGetter has a method to return a DeploymentConfigInterface.
@@ -26,6 +27,10 @@ type DeploymentConfigInterface interface {
 	List(opts meta_v1.ListOptions) (*v1.DeploymentConfigList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.DeploymentConfig, err error)
+	Instantiate(deploymentConfigName string, deploymentRequest *v1.DeploymentRequest) (*v1.DeploymentConfig, error)
+	GetScale(deploymentConfigName string, options meta_v1.GetOptions) (*v1beta1.Scale, error)
+	UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (*v1beta1.Scale, error)
+
 	DeploymentConfigExpansion
 }
 
@@ -150,6 +155,48 @@ func (c *deploymentConfigs) Patch(name string, pt types.PatchType, data []byte, 
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
+		Do().
+		Into(result)
+	return
+}
+
+// Instantiate takes the representation of a deploymentRequest and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
+func (c *deploymentConfigs) Instantiate(deploymentConfigName string, deploymentRequest *v1.DeploymentRequest) (result *v1.DeploymentConfig, err error) {
+	result = &v1.DeploymentConfig{}
+	err = c.client.Post().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(deploymentConfigName).
+		SubResource("instantiate").
+		Body(deploymentRequest).
+		Do().
+		Into(result)
+	return
+}
+
+// GetScale takes name of the deploymentConfig, and returns the corresponding v1beta1.Scale object, and an error if there is any.
+func (c *deploymentConfigs) GetScale(deploymentConfigName string, options meta_v1.GetOptions) (result *v1beta1.Scale, err error) {
+	result = &v1beta1.Scale{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(deploymentConfigName).
+		SubResource("scale").
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateScale takes the top resource name and the representation of a scale and updates it. Returns the server's representation of the scale, and an error, if there is any.
+func (c *deploymentConfigs) UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (result *v1beta1.Scale, err error) {
+	result = &v1beta1.Scale{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(deploymentConfigName).
+		SubResource("scale").
+		Body(scale).
 		Do().
 		Into(result)
 	return
