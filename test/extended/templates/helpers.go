@@ -59,6 +59,8 @@ func createUser(cli *exutil.CLI, name, role string) *userapi.User {
 }
 
 func createGroup(cli *exutil.CLI, name, role string) *userapi.Group {
+	name = cli.Namespace() + "-" + name
+
 	group, err := cli.AdminClient().Groups().Create(&userapi.Group{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,

@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/origin/pkg/api/v1"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -240,6 +241,32 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, legacyStorageMutators{legacyStorageMutatorFunc(legacyDCRollbackMutator.Mutate), &legacyStorageVersionMutator{version: oappsapiv1.SchemeGroupVersion, storage: storage}}, nil
 }
 
+func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	if !c.EnableBuilds {
+		return delegateAPIServer, legacyStorageMutatorFunc(func(map[schema.GroupVersion]map[string]rest.Storage) {}), nil
+	}
+
+	config := &buildapiserver.BuildServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		KubeletClientConfig:       c.KubeletClientConfig,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: buildapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
 func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	config := &templateapiserver.TemplateConfig{
 		GenericConfig:       c.GenericConfig,
@@ -289,6 +316,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	var err error
 
 	delegateAPIServer, currLegacyStorageMutator, err = c.withAppsAPIServer(delegateAPIServer)
+	if err != nil {
+		return nil, err
+	}
+	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
+
+	delegateAPIServer, currLegacyStorageMutator, err = c.withBuildAPIServer(delegateAPIServer)
 	if err != nil {
 		return nil, err
 	}
@@ -471,7 +504,6 @@ type apiGroupInfo struct {
 var apiGroupsVersions = []apiGroupInfo{
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{securityapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{projectapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{buildapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{quotaapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{networkapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},

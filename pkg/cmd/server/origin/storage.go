@@ -6,32 +6,14 @@ import (
 
 	"github.com/golang/glog"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
-	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	buildetcd "github.com/openshift/origin/pkg/build/registry/build/etcd"
-	buildconfigregistry "github.com/openshift/origin/pkg/build/registry/buildconfig"
-	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
-	buildlogregistry "github.com/openshift/origin/pkg/build/registry/buildlog"
-	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
-	"github.com/openshift/origin/pkg/build/webhook/generic"
-	"github.com/openshift/origin/pkg/build/webhook/github"
-	"github.com/openshift/origin/pkg/build/webhook/gitlab"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -63,9 +45,6 @@ import (
 	netnamespaceetcd "github.com/openshift/origin/pkg/sdn/registry/netnamespace/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 
-	"github.com/openshift/origin/pkg/build/registry/buildclone"
-	"github.com/openshift/origin/pkg/build/registry/buildconfiginstantiate"
-
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
 	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota/etcd"
@@ -96,12 +75,6 @@ import (
 // TODO this function needs to be broken apart with each API group owning their own storage, probably with two method
 // per API group to give us legacy and current storage
 func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string]rest.Storage, error) {
-	//TODO/REBASE use something other than c.KubeClientsetInternal
-	nodeConnectionInfoGetter, err := kubeletclient.NewNodeConnectionInfoGetter(c.KubeClientExternal.CoreV1().Nodes(), *c.KubeletClientConfig)
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure the node connection info getter: %v", err)
-	}
-
 	// TODO: allow the system CAs and the local CAs to be joined together.
 	importTransport, err := restclient.TransportFor(&restclient.Config{})
 	if err != nil {
@@ -116,12 +89,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
 
-	buildStorage, buildDetailsStorage, err := buildetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
-	buildConfigStorage, err := buildconfigetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
@@ -214,26 +181,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
-	buildClient, err := buildclientset.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	imageClient, err := imageclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	buildGenerator := &buildgenerator.BuildGenerator{
-		Client: buildgenerator.Client{
-			Builds:            buildClient.Build(),
-			BuildConfigs:      buildClient.Build(),
-			ImageStreams:      imageClient.Image(),
-			ImageStreamImages: imageClient.Image(),
-			ImageStreamTags:   imageClient.Image(),
-		},
-		ServiceAccounts: c.KubeClientInternal.Core(),
-		Secrets:         c.KubeClientInternal.Core(),
-	}
-
 	projectStorage := projectproxy.NewREST(c.KubeClientInternal.Core().Namespaces(), c.ProjectAuthorizationCache, c.ProjectAuthorizationCache, c.ProjectCache)
 
 	namespace, templateName, err := configapi.ParseNamespaceAndName(c.ProjectRequestTemplate)
@@ -248,20 +195,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.DeprecatedOpenshiftClient,
 		c.GenericConfig.LoopbackClientConfig,
 		c.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
-	)
-
-	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
-		buildClient.Build(),
-		// We use the buildapiv1 schemegroup to encode the Build that gets
-		// returned. As such, we need to make sure that the GroupVersion we use
-		// is the same API version that the storage is going to be used for.
-		buildapiv1.SchemeGroupVersion,
-		map[string]webhook.Plugin{
-			"generic":   generic.New(),
-			"github":    github.New(),
-			"gitlab":    gitlab.New(),
-			"bitbucket": bitbucket.New(),
-		},
 	)
 
 	clientStorage, err := clientetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
@@ -374,33 +307,5 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"routes/status": routeStatusStorage,
 	}
 
-	if c.EnableBuilds {
-		storage[buildapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-			"builds":         buildStorage,
-			"builds/clone":   buildclone.NewStorage(buildGenerator),
-			"builds/log":     buildlogregistry.NewREST(buildStorage, buildStorage, c.KubeClientInternal.Core(), nodeConnectionInfoGetter),
-			"builds/details": buildDetailsStorage,
-
-			"buildConfigs":                   buildConfigStorage,
-			"buildConfigs/webhooks":          buildConfigWebHooks,
-			"buildConfigs/instantiate":       buildconfiginstantiate.NewStorage(buildGenerator),
-			"buildConfigs/instantiatebinary": buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, c.KubeClientInternal.Core(), nodeConnectionInfoGetter),
-		}
-	}
-
 	return storage, nil
-}
-
-// TODO, this shoudl be removed
-type clientDeploymentInterface struct {
-	KubeClient kclientset.Interface
-}
-
-// GetDeployment returns the deployment with the provided context and name
-func (c clientDeploymentInterface) GetDeployment(ctx apirequest.Context, name string, options *metav1.GetOptions) (*kapi.ReplicationController, error) {
-	opts := metav1.GetOptions{}
-	if options != nil {
-		opts = *options
-	}
-	return c.KubeClient.Core().ReplicationControllers(apirequest.NamespaceValue(ctx)).Get(name, opts)
 }
