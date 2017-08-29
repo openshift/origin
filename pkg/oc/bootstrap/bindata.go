@@ -13087,6 +13087,7 @@ objects:
           args:
           - -provider=openshift
           - -https-address=:8443
+          - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9090
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
@@ -13129,7 +13130,7 @@ objects:
           args:
           - -provider=openshift
           - -https-address=:9443
-          - -http-address=:4190
+          - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9099
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
