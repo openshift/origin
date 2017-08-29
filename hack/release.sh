@@ -15,15 +15,27 @@ elif [[ "$( git rev-parse "${tag}" )" != "$( git rev-parse HEAD )" ]]; then
 fi
 commit="$( git rev-parse ${tag} )"
 
+export OS_GIT_COMMIT="${commit}" 
 export OS_GIT_TREE_STATE=clean
 export OS_BUILD_ENV_PRESERVE=_output/local/releases 
 
 # Build images and push to the hub
-if [[ -z "${1-}" || "${1-}" == "images" ]]; then
+if [[ -z "${1-}" || "${1-}" == "base" ]]; then
   # Ensure that the build is using the latest release image
   docker pull "${OS_BUILD_ENV_IMAGE}"
   hack/build-base-images.sh
-  hack/env OS_GIT_COMMIT="${commit}" make build-images
+fi
+
+# Build images and push to the hub
+if [[ -z "${1-}" || "${1-}" == "rpms" ]]; then
+  # Ensure that the build is using the latest release image
+  hack/env make build-rpms
+fi
+
+# Build images and push to the hub
+if [[ -z "${1-}" || "${1-}" == "images" ]]; then
+  # Ensure that the build is using the latest release image
+  hack/env make build-images -o build-rpms
   OS_PUSH_ALWAYS=1 OS_PUSH_TAG="${tag}" OS_TAG="" OS_PUSH_LOCAL="1" hack/push-release.sh
 fi
 
