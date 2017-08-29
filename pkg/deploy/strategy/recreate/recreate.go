@@ -91,7 +91,7 @@ func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient client
 		eventClient: client.Core(),
 		podClient:   client.Core(),
 		getUpdateAcceptor: func(timeout time.Duration, minReadySeconds int32) strat.UpdateAcceptor {
-			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout, acceptorInterval, minReadySeconds)
+			return stratsupport.NewAcceptAvailablePods(out, client.Core(), timeout)
 		},
 		scaler:       scaler,
 		decoder:      decoder,
