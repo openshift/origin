@@ -201,7 +201,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		},
 		Webhook: componentconfig.KubeletWebhookAuthentication{
 			Enabled:  true,
-			CacheTTL: metav1.Duration{authnTTL},
+			CacheTTL: metav1.Duration{Duration: authnTTL},
 		},
 		Anonymous: componentconfig.KubeletAnonymousAuthentication{
 			Enabled: true,
@@ -214,8 +214,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.Authorization = componentconfig.KubeletAuthorization{
 		Mode: componentconfig.KubeletAuthorizationModeWebhook,
 		Webhook: componentconfig.KubeletWebhookAuthorization{
-			CacheAuthorizedTTL:   metav1.Duration{authzTTL},
-			CacheUnauthorizedTTL: metav1.Duration{authzTTL},
+			CacheAuthorizedTTL:   metav1.Duration{Duration: authzTTL},
+			CacheUnauthorizedTTL: metav1.Duration{Duration: authzTTL},
 		},
 	}
 
