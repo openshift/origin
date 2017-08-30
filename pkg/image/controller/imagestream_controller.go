@@ -16,21 +16,12 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	oclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
 var ErrNotImportable = errors.New("requested image cannot be imported")
-
-// imageStreamLister is the subset interface required off an ImageStream client to
-// implement this controller.
-// TODO: replace with generated informer interfaces
-type imageStreamLister interface {
-	// ImageStreams returns an object that can get ImageStreams.
-	ImageStreams(namespace string) imageinformer.ImageStreamNamespaceLister
-}
 
 // Notifier provides information about when the controller makes a decision
 type Notifier interface {
@@ -46,7 +37,7 @@ type ImageStreamController struct {
 	queue workqueue.RateLimitingInterface
 
 	// lister can list/get image streams from a shared informer's cache
-	lister imageStreamLister
+	lister imageinformer.ImageStreamLister
 	// listerSynced makes sure the is store is synced before reconciling streams
 	listerSynced cache.InformerSynced
 
@@ -262,7 +253,7 @@ func handleImageStream(stream *imageapi.ImageStream, client imageclient.ImageInt
 	}
 	result, err := client.ImageStreamImports(stream.Namespace).Create(isi)
 	if err != nil {
-		if apierrs.IsNotFound(err) && oclient.IsStatusErrorKind(err, "imageStream") {
+		if apierrs.IsNotFound(err) && isStatusErrorKind(err, "imageStream") {
 			return ErrNotImportable
 		}
 		glog.V(4).Infof("Import stream %s/%s partial=%t error: %v", stream.Namespace, stream.Name, partial, err)
@@ -270,4 +261,14 @@ func handleImageStream(stream *imageapi.ImageStream, client imageclient.ImageInt
 		glog.V(5).Infof("Import stream %s/%s partial=%t import: %#v", stream.Namespace, stream.Name, partial, result.Status.Import)
 	}
 	return err
+}
+
+// isStatusErrorKind returns true if this error describes the provided kind.
+func isStatusErrorKind(err error, kind string) bool {
+	if s, ok := err.(apierrs.APIStatus); ok {
+		if details := s.Status().Details; details != nil {
+			return kind == details.Kind
+		}
+	}
+	return false
 }
