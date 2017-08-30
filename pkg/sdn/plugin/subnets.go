@@ -108,6 +108,17 @@ func (master *OsdnMaster) deleteNode(nodeName string) error {
 	}
 
 	log.Infof("Deleted HostSubnet %s", hostSubnetToString(sub))
+
+	_, sn, err := net.ParseCIDR(sub.Subnet)
+	if err != nil {
+		return fmt.Errorf("error parsing network address %q: %v", sub.Subnet, err)
+	} else {
+		err := master.subnetAllocator.ReleaseNetwork(sn)
+		if err != nil {
+			return fmt.Errorf("Failed to release subnet %q: %v", sub.Subnet, err)
+		}
+	}
+
 	return nil
 }
 
