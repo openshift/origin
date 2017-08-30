@@ -29,10 +29,10 @@ func newClusterNetworkInformer(client clientset.Interface, resyncPeriod time.Dur
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options meta_v1.ListOptions) (runtime.Object, error) {
-				return client.NetworkV1().ClusterNetworks(meta_v1.NamespaceAll).List(options)
+				return client.NetworkV1().ClusterNetworks().List(options)
 			},
 			WatchFunc: func(options meta_v1.ListOptions) (watch.Interface, error) {
-				return client.NetworkV1().ClusterNetworks(meta_v1.NamespaceAll).Watch(options)
+				return client.NetworkV1().ClusterNetworks().Watch(options)
 			},
 		},
 		&network_v1.ClusterNetwork{},

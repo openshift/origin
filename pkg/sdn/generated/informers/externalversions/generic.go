@@ -38,6 +38,12 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=Network, Version=V1
 	case v1.SchemeGroupVersion.WithResource("clusternetworks"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1().ClusterNetworks().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("egressnetworkpolicies"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1().EgressNetworkPolicies().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("hostsubnets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1().HostSubnets().Informer()}, nil
+	case v1.SchemeGroupVersion.WithResource("netnamespaces"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Network().V1().NetNamespaces().Informer()}, nil
 
 	}
 

@@ -26,6 +26,14 @@ func (c *FakeAuthorization) ClusterRoleBindings() internalversion.ClusterRoleBin
 	return &FakeClusterRoleBindings{c}
 }
 
+func (c *FakeAuthorization) LocalResourceAccessReviews(namespace string) internalversion.LocalResourceAccessReviewInterface {
+	return &FakeLocalResourceAccessReviews{c, namespace}
+}
+
+func (c *FakeAuthorization) LocalSubjectAccessReviews(namespace string) internalversion.LocalSubjectAccessReviewInterface {
+	return &FakeLocalSubjectAccessReviews{c, namespace}
+}
+
 func (c *FakeAuthorization) Policies(namespace string) internalversion.PolicyInterface {
 	return &FakePolicies{c, namespace}
 }
@@ -34,12 +42,32 @@ func (c *FakeAuthorization) PolicyBindings(namespace string) internalversion.Pol
 	return &FakePolicyBindings{c, namespace}
 }
 
+func (c *FakeAuthorization) ResourceAccessReviews() internalversion.ResourceAccessReviewInterface {
+	return &FakeResourceAccessReviews{c}
+}
+
 func (c *FakeAuthorization) Roles(namespace string) internalversion.RoleInterface {
 	return &FakeRoles{c, namespace}
 }
 
 func (c *FakeAuthorization) RoleBindings(namespace string) internalversion.RoleBindingInterface {
 	return &FakeRoleBindings{c, namespace}
+}
+
+func (c *FakeAuthorization) RoleBindingRestrictions(namespace string) internalversion.RoleBindingRestrictionInterface {
+	return &FakeRoleBindingRestrictions{c, namespace}
+}
+
+func (c *FakeAuthorization) SelfSubjectRulesReviews(namespace string) internalversion.SelfSubjectRulesReviewInterface {
+	return &FakeSelfSubjectRulesReviews{c, namespace}
+}
+
+func (c *FakeAuthorization) SubjectAccessReviews() internalversion.SubjectAccessReviewInterface {
+	return &FakeSubjectAccessReviews{c}
+}
+
+func (c *FakeAuthorization) SubjectRulesReviews(namespace string) internalversion.SubjectRulesReviewInterface {
+	return &FakeSubjectRulesReviews{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

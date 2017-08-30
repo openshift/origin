@@ -10,8 +10,8 @@ type FakeUser struct {
 	*testing.Fake
 }
 
-func (c *FakeUser) Groups(namespace string) internalversion.GroupInterface {
-	return &FakeGroups{c, namespace}
+func (c *FakeUser) Groups() internalversion.GroupInterface {
+	return &FakeGroups{c}
 }
 
 func (c *FakeUser) Identities() internalversion.IdentityInterface {

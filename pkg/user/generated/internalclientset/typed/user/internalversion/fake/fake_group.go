@@ -13,7 +13,6 @@ import (
 // FakeGroups implements GroupInterface
 type FakeGroups struct {
 	Fake *FakeUser
-	ns   string
 }
 
 var groupsResource = schema.GroupVersionResource{Group: "user.openshift.io", Version: "", Resource: "groups"}
@@ -23,8 +22,7 @@ var groupsKind = schema.GroupVersionKind{Group: "user.openshift.io", Version: ""
 // Get takes name of the group, and returns the corresponding group object, and an error if there is any.
 func (c *FakeGroups) Get(name string, options v1.GetOptions) (result *user.Group, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(groupsResource, c.ns, name), &user.Group{})
-
+		Invokes(testing.NewRootGetAction(groupsResource, name), &user.Group{})
 	if obj == nil {
 		return nil, err
 	}
@@ -34,8 +32,7 @@ func (c *FakeGroups) Get(name string, options v1.GetOptions) (result *user.Group
 // List takes label and field selectors, and returns the list of Groups that match those selectors.
 func (c *FakeGroups) List(opts v1.ListOptions) (result *user.GroupList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(groupsResource, groupsKind, c.ns, opts), &user.GroupList{})
-
+		Invokes(testing.NewRootListAction(groupsResource, groupsKind, opts), &user.GroupList{})
 	if obj == nil {
 		return nil, err
 	}
@@ -56,15 +53,13 @@ func (c *FakeGroups) List(opts v1.ListOptions) (result *user.GroupList, err erro
 // Watch returns a watch.Interface that watches the requested groups.
 func (c *FakeGroups) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
-		InvokesWatch(testing.NewWatchAction(groupsResource, c.ns, opts))
-
+		InvokesWatch(testing.NewRootWatchAction(groupsResource, opts))
 }
 
 // Create takes the representation of a group and creates it.  Returns the server's representation of the group, and an error, if there is any.
 func (c *FakeGroups) Create(group *user.Group) (result *user.Group, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(groupsResource, c.ns, group), &user.Group{})
-
+		Invokes(testing.NewRootCreateAction(groupsResource, group), &user.Group{})
 	if obj == nil {
 		return nil, err
 	}
@@ -74,8 +69,7 @@ func (c *FakeGroups) Create(group *user.Group) (result *user.Group, err error) {
 // Update takes the representation of a group and updates it. Returns the server's representation of the group, and an error, if there is any.
 func (c *FakeGroups) Update(group *user.Group) (result *user.Group, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(groupsResource, c.ns, group), &user.Group{})
-
+		Invokes(testing.NewRootUpdateAction(groupsResource, group), &user.Group{})
 	if obj == nil {
 		return nil, err
 	}
@@ -85,14 +79,13 @@ func (c *FakeGroups) Update(group *user.Group) (result *user.Group, err error) {
 // Delete takes name of the group and deletes it. Returns an error if one occurs.
 func (c *FakeGroups) Delete(name string, options *v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(groupsResource, c.ns, name), &user.Group{})
-
+		Invokes(testing.NewRootDeleteAction(groupsResource, name), &user.Group{})
 	return err
 }
 
 // DeleteCollection deletes a collection of objects.
 func (c *FakeGroups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(groupsResource, c.ns, listOptions)
+	action := testing.NewRootDeleteCollectionAction(groupsResource, listOptions)
 
 	_, err := c.Fake.Invokes(action, &user.GroupList{})
 	return err
@@ -101,8 +94,7 @@ func (c *FakeGroups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.
 // Patch applies the patch and returns the patched group.
 func (c *FakeGroups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *user.Group, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(groupsResource, c.ns, name, data, subresources...), &user.Group{})
-
+		Invokes(testing.NewRootPatchSubresourceAction(groupsResource, name, data, subresources...), &user.Group{})
 	if obj == nil {
 		return nil, err
 	}

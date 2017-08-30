@@ -102,6 +102,9 @@ func (t OptionalNames) String() string {
 	return fmt.Sprintf("%v", []string(t))
 }
 
+// +genclient
+// +genclient:nonNamespaced
+
 // Group represents a referenceable set of Users
 type Group struct {
 	metav1.TypeMeta `json:",inline"`

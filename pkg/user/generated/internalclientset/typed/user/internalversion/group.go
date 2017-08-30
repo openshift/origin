@@ -12,7 +12,7 @@ import (
 // GroupsGetter has a method to return a GroupInterface.
 // A group's client should implement this interface.
 type GroupsGetter interface {
-	Groups(namespace string) GroupInterface
+	Groups() GroupInterface
 }
 
 // GroupInterface has methods to work with Group resources.
@@ -31,14 +31,12 @@ type GroupInterface interface {
 // groups implements GroupInterface
 type groups struct {
 	client rest.Interface
-	ns     string
 }
 
 // newGroups returns a Groups
-func newGroups(c *UserClient, namespace string) *groups {
+func newGroups(c *UserClient) *groups {
 	return &groups{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -46,7 +44,6 @@ func newGroups(c *UserClient, namespace string) *groups {
 func (c *groups) Get(name string, options v1.GetOptions) (result *user.Group, err error) {
 	result = &user.Group{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("groups").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -59,7 +56,6 @@ func (c *groups) Get(name string, options v1.GetOptions) (result *user.Group, er
 func (c *groups) List(opts v1.ListOptions) (result *user.GroupList, err error) {
 	result = &user.GroupList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("groups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -71,7 +67,6 @@ func (c *groups) List(opts v1.ListOptions) (result *user.GroupList, err error) {
 func (c *groups) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("groups").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -81,7 +76,6 @@ func (c *groups) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *groups) Create(group *user.Group) (result *user.Group, err error) {
 	result = &user.Group{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("groups").
 		Body(group).
 		Do().
@@ -93,7 +87,6 @@ func (c *groups) Create(group *user.Group) (result *user.Group, err error) {
 func (c *groups) Update(group *user.Group) (result *user.Group, err error) {
 	result = &user.Group{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("groups").
 		Name(group.Name).
 		Body(group).
@@ -105,7 +98,6 @@ func (c *groups) Update(group *user.Group) (result *user.Group, err error) {
 // Delete takes name of the group and deletes it. Returns an error if one occurs.
 func (c *groups) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("groups").
 		Name(name).
 		Body(options).
@@ -116,7 +108,6 @@ func (c *groups) Delete(name string, options *v1.DeleteOptions) error {
 // DeleteCollection deletes a collection of objects.
 func (c *groups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("groups").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -128,7 +119,6 @@ func (c *groups) DeleteCollection(options *v1.DeleteOptions, listOptions v1.List
 func (c *groups) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *user.Group, err error) {
 	result = &user.Group{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("groups").
 		SubResource(subresources...).
 		Name(name).

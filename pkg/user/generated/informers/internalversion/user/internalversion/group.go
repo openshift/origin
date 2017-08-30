@@ -29,10 +29,10 @@ func newGroupInformer(client internalclientset.Interface, resyncPeriod time.Dura
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.User().Groups(v1.NamespaceAll).List(options)
+				return client.User().Groups().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.User().Groups(v1.NamespaceAll).Watch(options)
+				return client.User().Groups().Watch(options)
 			},
 		},
 		&user.Group{},

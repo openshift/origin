@@ -49,3 +49,11 @@ type RoleBindingListerExpansion interface{}
 // RoleBindingNamespaceListerExpansion allows custom methods to be added to
 // RoleBindingNamespaceLister.
 type RoleBindingNamespaceListerExpansion interface{}
+
+// RoleBindingRestrictionListerExpansion allows custom methods to be added to
+// RoleBindingRestrictionLister.
+type RoleBindingRestrictionListerExpansion interface{}
+
+// RoleBindingRestrictionNamespaceListerExpansion allows custom methods to be added to
+// RoleBindingRestrictionNamespaceLister.
+type RoleBindingRestrictionNamespaceListerExpansion interface{}

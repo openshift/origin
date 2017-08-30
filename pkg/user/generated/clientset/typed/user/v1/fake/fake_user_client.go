@@ -10,6 +10,10 @@ type FakeUserV1 struct {
 	*testing.Fake
 }
 
+func (c *FakeUserV1) Groups() v1.GroupInterface {
+	return &FakeGroups{c}
+}
+
 func (c *FakeUserV1) Identities() v1.IdentityInterface {
 	return &FakeIdentities{c}
 }

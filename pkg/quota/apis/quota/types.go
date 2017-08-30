@@ -70,6 +70,9 @@ type ClusterResourceQuotaList struct {
 	Items []ClusterResourceQuota
 }
 
+// +genclient
+// +genclient:onlyVerbs=get,list
+
 // AppliedClusterResourceQuota mirrors ClusterResourceQuota at a project scope, for projection
 // into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to
 // his project and their associated usage.

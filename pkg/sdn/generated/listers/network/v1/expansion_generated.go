@@ -6,6 +6,18 @@ package v1
 // ClusterNetworkLister.
 type ClusterNetworkListerExpansion interface{}
 
-// ClusterNetworkNamespaceListerExpansion allows custom methods to be added to
-// ClusterNetworkNamespaceLister.
-type ClusterNetworkNamespaceListerExpansion interface{}
+// EgressNetworkPolicyListerExpansion allows custom methods to be added to
+// EgressNetworkPolicyLister.
+type EgressNetworkPolicyListerExpansion interface{}
+
+// EgressNetworkPolicyNamespaceListerExpansion allows custom methods to be added to
+// EgressNetworkPolicyNamespaceLister.
+type EgressNetworkPolicyNamespaceListerExpansion interface{}
+
+// HostSubnetListerExpansion allows custom methods to be added to
+// HostSubnetLister.
+type HostSubnetListerExpansion interface{}
+
+// NetNamespaceListerExpansion allows custom methods to be added to
+// NetNamespaceLister.
+type NetNamespaceListerExpansion interface{}
