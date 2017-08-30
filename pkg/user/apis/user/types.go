@@ -67,6 +67,7 @@ type UserIdentityMapping struct {
 }
 
 // +genclient
+// +genclient:nonNamespaced
 
 // Group represents a referenceable set of Users
 type Group struct {

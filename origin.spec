@@ -108,7 +108,6 @@ Obsoletes:      openshift-master < %{package_refector_version}
 
 %package tests
 Summary: %{product_name} Test Suite
-Requires:       %{name} = %{version}-%{release}
 
 %description tests
 %{summary}
@@ -160,7 +159,6 @@ BuildRequires:  goversioninfo
 
 %package dockerregistry
 Summary:        Docker Registry v2 for %{product_name}
-Requires:       %{name} = %{version}-%{release}
 
 %description dockerregistry
 %{summary}
@@ -187,20 +185,17 @@ Obsoletes:        openshift-sdn-ovs < %{package_refector_version}
 
 %package federation-services
 Summary:        %{produce_name} Federation Services
-Requires:       %{name} = %{version}-%{release}
 
 %description federation-services
 
 %package service-catalog
 Summary:        %{product_name} Service Catalog
-Requires:       %{name} = %{version}-%{release}
 
 %description service-catalog
 %{summary}
 
 %package cluster-capacity
 Summary:        %{product_name} Cluster Capacity Analysis Tool
-Requires:       %{name} = %{version}-%{release}
 
 %description cluster-capacity
 %{summary}

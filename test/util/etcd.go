@@ -24,7 +24,7 @@ func init() {
 	capabilities.SetForTests(capabilities.Capabilities{
 		AllowPrivileged: true,
 	})
-	flag.Set("v", "5")
+	flag.Set("v", "4")
 	if len(os.Getenv("OS_TEST_VERBOSE_ETCD")) > 0 {
 		capnslog.SetGlobalLogLevel(capnslog.DEBUG)
 		capnslog.SetFormatter(capnslog.NewGlogFormatter(os.Stderr))

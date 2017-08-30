@@ -159,6 +159,9 @@ type PolicyBinding struct {
 	RoleBindings RoleBindingsByName
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // SelfSubjectRulesReview is a resource you can create to determine which actions you can perform in a namespace
 type SelfSubjectRulesReview struct {
 	metav1.TypeMeta
@@ -178,6 +181,9 @@ type SelfSubjectRulesReviewSpec struct {
 	// +k8s:conversion-gen=false
 	Scopes []string
 }
+
+// +genclient
+// +genclient:onlyVerbs=create
 
 // SubjectRulesReview is a resource you can create to determine which actions another user can perform in a namespace
 type SubjectRulesReview struct {
@@ -228,6 +234,10 @@ type ResourceAccessReviewResponse struct {
 	EvaluationError string
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=create
+
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
 // action specified by spec
 type ResourceAccessReview struct {
@@ -253,6 +263,10 @@ type SubjectAccessReviewResponse struct {
 	EvaluationError string
 }
 
+// +genclient
+// +genclient:nonNamespaced
+// +genclient:onlyVerbs=create
+
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
 type SubjectAccessReview struct {
 	metav1.TypeMeta
@@ -271,6 +285,9 @@ type SubjectAccessReview struct {
 	Scopes []string
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
+
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
 type LocalResourceAccessReview struct {
 	metav1.TypeMeta
@@ -278,6 +295,9 @@ type LocalResourceAccessReview struct {
 	// Action describes the action being tested
 	Action
 }
+
+// +genclient
+// +genclient:onlyVerbs=create
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
 type LocalSubjectAccessReview struct {
@@ -471,6 +491,8 @@ type ClusterRoleList struct {
 	// Items is a list of ClusterRoles
 	Items []ClusterRole
 }
+
+// +genclient
 
 // RoleBindingRestriction is an object that can be matched against a subject
 // (user, group, or service account) to determine whether rolebindings on that

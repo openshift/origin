@@ -5,6 +5,7 @@ package internalversion
 import (
 	user "github.com/openshift/origin/pkg/user/apis/user"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"
 )
@@ -13,8 +14,8 @@ import (
 type GroupLister interface {
 	// List lists all Groups in the indexer.
 	List(selector labels.Selector) (ret []*user.Group, err error)
-	// Groups returns an object that can list and get Groups.
-	Groups(namespace string) GroupNamespaceLister
+	// Get retrieves the Group from the index for a given name.
+	Get(name string) (*user.Group, error)
 	GroupListerExpansion
 }
 
@@ -36,38 +37,10 @@ func (s *groupLister) List(selector labels.Selector) (ret []*user.Group, err err
 	return ret, err
 }
 
-// Groups returns an object that can list and get Groups.
-func (s *groupLister) Groups(namespace string) GroupNamespaceLister {
-	return groupNamespaceLister{indexer: s.indexer, namespace: namespace}
-}
-
-// GroupNamespaceLister helps list and get Groups.
-type GroupNamespaceLister interface {
-	// List lists all Groups in the indexer for a given namespace.
-	List(selector labels.Selector) (ret []*user.Group, err error)
-	// Get retrieves the Group from the indexer for a given namespace and name.
-	Get(name string) (*user.Group, error)
-	GroupNamespaceListerExpansion
-}
-
-// groupNamespaceLister implements the GroupNamespaceLister
-// interface.
-type groupNamespaceLister struct {
-	indexer   cache.Indexer
-	namespace string
-}
-
-// List lists all Groups in the indexer for a given namespace.
-func (s groupNamespaceLister) List(selector labels.Selector) (ret []*user.Group, err error) {
-	err = cache.ListAllByNamespace(s.indexer, s.namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*user.Group))
-	})
-	return ret, err
-}
-
-// Get retrieves the Group from the indexer for a given namespace and name.
-func (s groupNamespaceLister) Get(name string) (*user.Group, error) {
-	obj, exists, err := s.indexer.GetByKey(s.namespace + "/" + name)
+// Get retrieves the Group from the index for a given name.
+func (s *groupLister) Get(name string) (*user.Group, error) {
+	key := &user.Group{ObjectMeta: v1.ObjectMeta{Name: name}}
+	obj, exists, err := s.indexer.Get(key)
 	if err != nil {
 		return nil, err
 	}

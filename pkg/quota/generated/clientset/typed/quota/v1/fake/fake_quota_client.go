@@ -10,6 +10,10 @@ type FakeQuotaV1 struct {
 	*testing.Fake
 }
 
+func (c *FakeQuotaV1) AppliedClusterResourceQuotas(namespace string) v1.AppliedClusterResourceQuotaInterface {
+	return &FakeAppliedClusterResourceQuotas{c, namespace}
+}
+
 func (c *FakeQuotaV1) ClusterResourceQuotas() v1.ClusterResourceQuotaInterface {
 	return &FakeClusterResourceQuotas{c}
 }

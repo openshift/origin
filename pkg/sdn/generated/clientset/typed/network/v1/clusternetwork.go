@@ -12,7 +12,7 @@ import (
 // ClusterNetworksGetter has a method to return a ClusterNetworkInterface.
 // A group's client should implement this interface.
 type ClusterNetworksGetter interface {
-	ClusterNetworks(namespace string) ClusterNetworkInterface
+	ClusterNetworks() ClusterNetworkInterface
 }
 
 // ClusterNetworkInterface has methods to work with ClusterNetwork resources.
@@ -31,14 +31,12 @@ type ClusterNetworkInterface interface {
 // clusterNetworks implements ClusterNetworkInterface
 type clusterNetworks struct {
 	client rest.Interface
-	ns     string
 }
 
 // newClusterNetworks returns a ClusterNetworks
-func newClusterNetworks(c *NetworkV1Client, namespace string) *clusterNetworks {
+func newClusterNetworks(c *NetworkV1Client) *clusterNetworks {
 	return &clusterNetworks{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -46,7 +44,6 @@ func newClusterNetworks(c *NetworkV1Client, namespace string) *clusterNetworks {
 func (c *clusterNetworks) Get(name string, options meta_v1.GetOptions) (result *v1.ClusterNetwork, err error) {
 	result = &v1.ClusterNetwork{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -59,7 +56,6 @@ func (c *clusterNetworks) Get(name string, options meta_v1.GetOptions) (result *
 func (c *clusterNetworks) List(opts meta_v1.ListOptions) (result *v1.ClusterNetworkList, err error) {
 	result = &v1.ClusterNetworkList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
@@ -71,7 +67,6 @@ func (c *clusterNetworks) List(opts meta_v1.ListOptions) (result *v1.ClusterNetw
 func (c *clusterNetworks) Watch(opts meta_v1.ListOptions) (watch.Interface, error) {
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Watch()
@@ -81,7 +76,6 @@ func (c *clusterNetworks) Watch(opts meta_v1.ListOptions) (watch.Interface, erro
 func (c *clusterNetworks) Create(clusterNetwork *v1.ClusterNetwork) (result *v1.ClusterNetwork, err error) {
 	result = &v1.ClusterNetwork{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		Body(clusterNetwork).
 		Do().
@@ -93,7 +87,6 @@ func (c *clusterNetworks) Create(clusterNetwork *v1.ClusterNetwork) (result *v1.
 func (c *clusterNetworks) Update(clusterNetwork *v1.ClusterNetwork) (result *v1.ClusterNetwork, err error) {
 	result = &v1.ClusterNetwork{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		Name(clusterNetwork.Name).
 		Body(clusterNetwork).
@@ -105,7 +98,6 @@ func (c *clusterNetworks) Update(clusterNetwork *v1.ClusterNetwork) (result *v1.
 // Delete takes name of the clusterNetwork and deletes it. Returns an error if one occurs.
 func (c *clusterNetworks) Delete(name string, options *meta_v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		Name(name).
 		Body(options).
@@ -116,7 +108,6 @@ func (c *clusterNetworks) Delete(name string, options *meta_v1.DeleteOptions) er
 // DeleteCollection deletes a collection of objects.
 func (c *clusterNetworks) DeleteCollection(options *meta_v1.DeleteOptions, listOptions meta_v1.ListOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Body(options).
@@ -128,7 +119,6 @@ func (c *clusterNetworks) DeleteCollection(options *meta_v1.DeleteOptions, listO
 func (c *clusterNetworks) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.ClusterNetwork, err error) {
 	result = &v1.ClusterNetwork{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("clusternetworks").
 		SubResource(subresources...).
 		Name(name).

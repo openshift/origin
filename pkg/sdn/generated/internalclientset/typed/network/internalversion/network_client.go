@@ -8,6 +8,9 @@ import (
 type NetworkInterface interface {
 	RESTClient() rest.Interface
 	ClusterNetworksGetter
+	EgressNetworkPoliciesGetter
+	HostSubnetsGetter
+	NetNamespacesGetter
 }
 
 // NetworkClient is used to interact with features provided by the network.openshift.io group.
@@ -15,8 +18,20 @@ type NetworkClient struct {
 	restClient rest.Interface
 }
 
-func (c *NetworkClient) ClusterNetworks(namespace string) ClusterNetworkInterface {
-	return newClusterNetworks(c, namespace)
+func (c *NetworkClient) ClusterNetworks() ClusterNetworkInterface {
+	return newClusterNetworks(c)
+}
+
+func (c *NetworkClient) EgressNetworkPolicies(namespace string) EgressNetworkPolicyInterface {
+	return newEgressNetworkPolicies(c, namespace)
+}
+
+func (c *NetworkClient) HostSubnets() HostSubnetInterface {
+	return newHostSubnets(c)
+}
+
+func (c *NetworkClient) NetNamespaces() NetNamespaceInterface {
+	return newNetNamespaces(c)
 }
 
 // NewForConfig creates a new NetworkClient for the given config.

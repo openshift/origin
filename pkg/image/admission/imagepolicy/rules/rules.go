@@ -23,10 +23,10 @@ type RegistryMatcher interface {
 	Matches(name string) bool
 }
 
-type RegistryNameMatcher imageapi.DefaultRegistryFunc
+type RegistryNameMatcher func() (string, bool)
 
 func (m RegistryNameMatcher) Matches(name string) bool {
-	current, ok := imageapi.DefaultRegistryFunc(m)()
+	current, ok := m()
 	if !ok {
 		return false
 	}

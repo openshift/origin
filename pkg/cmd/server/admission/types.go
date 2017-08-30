@@ -9,7 +9,6 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
@@ -79,7 +78,7 @@ type WantsSecurityInformer interface {
 // WantsDefaultRegistryFunc should be implemented by admission plugins that need to know the default registry
 // address.
 type WantsDefaultRegistryFunc interface {
-	SetDefaultRegistryFunc(imageapi.DefaultRegistryFunc)
+	SetDefaultRegistryFunc(func() (string, bool))
 	admission.Validator
 }
 

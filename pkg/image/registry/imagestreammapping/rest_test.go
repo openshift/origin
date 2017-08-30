@@ -38,7 +38,7 @@ import (
 
 const testDefaultRegistryURL = "defaultregistry:5000"
 
-var testDefaultRegistry = imageapi.DefaultRegistryFunc(func() (string, bool) { return testDefaultRegistryURL, true })
+var testDefaultRegistry = func() (string, bool) { return testDefaultRegistryURL, true }
 
 type fakeSubjectAccessReviewRegistry struct {
 }
@@ -57,7 +57,8 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), testDefaultRegistry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
+	registry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
+	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +66,7 @@ func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatus, internalStorage)
 
-	storage := NewREST(imageRegistry, imageStreamRegistry, testDefaultRegistry)
+	storage := NewREST(imageRegistry, imageStreamRegistry, registry)
 
 	return etcdClient, server, storage
 }
@@ -588,8 +589,9 @@ func TestTrackingTags(t *testing.T) {
 // TestCreateRetryUnrecoverable ensures that an attempt to create a mapping
 // using failing registry update calls will return an error.
 func TestCreateRetryUnrecoverable(t *testing.T) {
+	registry := imageapi.DefaultRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)
 	rest := &REST{
-		strategy: NewStrategy(testDefaultRegistry),
+		strategy: NewStrategy(registry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx apirequest.Context, image *imageapi.Image) error {
 				return nil
@@ -621,9 +623,10 @@ func TestCreateRetryUnrecoverable(t *testing.T) {
 // that result in resource conflicts that do NOT include tag diffs causes the
 // create to be retried successfully.
 func TestCreateRetryConflictNoTagDiff(t *testing.T) {
+	registry := imageapi.DefaultRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)
 	firstUpdate := true
 	rest := &REST{
-		strategy: NewStrategy(testDefaultRegistry),
+		strategy: NewStrategy(registry),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx apirequest.Context, image *imageapi.Image) error {
 				return nil
@@ -666,7 +669,7 @@ func TestCreateRetryConflictTagDiff(t *testing.T) {
 	firstGet := true
 	firstUpdate := true
 	rest := &REST{
-		strategy: NewStrategy(testDefaultRegistry),
+		strategy: NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, "", testDefaultRegistryURL)),
 		imageRegistry: &fakeImageRegistry{
 			createImage: func(ctx apirequest.Context, image *imageapi.Image) error {
 				return nil

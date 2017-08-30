@@ -9,6 +9,7 @@ const (
 )
 
 // +genclient
+// +genclient:nonNamespaced
 
 // ClusterNetwork describes the cluster network. There is normally only one object of this type,
 // named "default", which is created by the SDN network plugin based on the master configuration
@@ -37,6 +38,9 @@ type ClusterNetworkList struct {
 	Items []ClusterNetwork `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +genclient
+// +genclient:nonNamespaced
+
 // HostSubnet describes the container subnet network on a node. The HostSubnet object must have the
 // same name as the Node object it corresponds to.
 type HostSubnet struct {
@@ -60,6 +64,9 @@ type HostSubnetList struct {
 	// Items is the list of host subnets
 	Items []HostSubnet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +genclient
+// +genclient:nonNamespaced
 
 // NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant
 // plugin, every Namespace will have a corresponding NetNamespace object with the same name.
@@ -113,6 +120,8 @@ type EgressNetworkPolicySpec struct {
 	// egress contains the list of egress policy rules
 	Egress []EgressNetworkPolicyRule `json:"egress" protobuf:"bytes,1,rep,name=egress"`
 }
+
+// +genclient
 
 // EgressNetworkPolicy describes the current egress network policy for a Namespace. When using
 // the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address

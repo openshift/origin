@@ -15,15 +15,15 @@ import (
 // strategy implements behavior for ImageStreamImports.
 type strategy struct {
 	runtime.ObjectTyper
-	allowedRegistries *serverapi.AllowedRegistries
-	registryFn        imageapi.DefaultRegistryFunc
+	allowedRegistries     *serverapi.AllowedRegistries
+	registryHostRetriever imageapi.RegistryHostnameRetriever
 }
 
-func NewStrategy(registries *serverapi.AllowedRegistries, registryFn imageapi.DefaultRegistryFunc) *strategy {
+func NewStrategy(registries *serverapi.AllowedRegistries, registry imageapi.RegistryHostnameRetriever) *strategy {
 	return &strategy{
-		ObjectTyper:       kapi.Scheme,
-		allowedRegistries: registries,
-		registryFn:        registryFn,
+		ObjectTyper:           kapi.Scheme,
+		allowedRegistries:     registries,
+		registryHostRetriever: registry,
 	}
 }
 
@@ -44,9 +44,7 @@ func (s *strategy) ValidateAllowedRegistries(isi *imageapi.ImageStreamImport) fi
 		return errs
 	}
 	allowedRegistries := *s.allowedRegistries
-	// FIXME: The registryFn won't return the registry location until the registry service
-	// is created. This should be switched to use registry DNS instead of lazy-loading.
-	if localRegistry, ok := s.registryFn(); ok {
+	if localRegistry, ok := s.registryHostRetriever.InternalRegistryHostname(); ok {
 		allowedRegistries = append([]configapi.RegistryLocation{{DomainName: localRegistry}}, allowedRegistries...)
 	}
 	validate := func(path *field.Path, name string, insecure bool) field.ErrorList {

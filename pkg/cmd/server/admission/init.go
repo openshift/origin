@@ -28,7 +28,7 @@ type PluginInitializer struct {
 	Informers                    kinternalinformers.SharedInformerFactory
 	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
 	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
-	DefaultRegistryFn            imageapi.DefaultRegistryFunc
+	RegistryHostnameRetriever    imageapi.RegistryHostnameRetriever
 	SecurityInformers            securityinformer.SharedInformerFactory
 	UserInformers                userinformer.SharedInformerFactory
 }
@@ -70,7 +70,7 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 		wantsSecurityInformer.SetSecurityInformers(i.SecurityInformers)
 	}
 	if wantsDefaultRegistryFunc, ok := plugin.(WantsDefaultRegistryFunc); ok {
-		wantsDefaultRegistryFunc.SetDefaultRegistryFunc(i.DefaultRegistryFn)
+		wantsDefaultRegistryFunc.SetDefaultRegistryFunc(i.RegistryHostnameRetriever.InternalRegistryHostname)
 	}
 	if wantsUserInformer, ok := plugin.(WantsUserInformer); ok {
 		wantsUserInformer.SetUserInformer(i.UserInformers)

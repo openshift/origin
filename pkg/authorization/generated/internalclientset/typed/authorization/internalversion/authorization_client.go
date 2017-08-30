@@ -11,10 +11,17 @@ type AuthorizationInterface interface {
 	ClusterPolicyBindingsGetter
 	ClusterRolesGetter
 	ClusterRoleBindingsGetter
+	LocalResourceAccessReviewsGetter
+	LocalSubjectAccessReviewsGetter
 	PoliciesGetter
 	PolicyBindingsGetter
+	ResourceAccessReviewsGetter
 	RolesGetter
 	RoleBindingsGetter
+	RoleBindingRestrictionsGetter
+	SelfSubjectRulesReviewsGetter
+	SubjectAccessReviewsGetter
+	SubjectRulesReviewsGetter
 }
 
 // AuthorizationClient is used to interact with features provided by the authorization.openshift.io group.
@@ -38,6 +45,14 @@ func (c *AuthorizationClient) ClusterRoleBindings() ClusterRoleBindingInterface 
 	return newClusterRoleBindings(c)
 }
 
+func (c *AuthorizationClient) LocalResourceAccessReviews(namespace string) LocalResourceAccessReviewInterface {
+	return newLocalResourceAccessReviews(c, namespace)
+}
+
+func (c *AuthorizationClient) LocalSubjectAccessReviews(namespace string) LocalSubjectAccessReviewInterface {
+	return newLocalSubjectAccessReviews(c, namespace)
+}
+
 func (c *AuthorizationClient) Policies(namespace string) PolicyInterface {
 	return newPolicies(c, namespace)
 }
@@ -46,12 +61,32 @@ func (c *AuthorizationClient) PolicyBindings(namespace string) PolicyBindingInte
 	return newPolicyBindings(c, namespace)
 }
 
+func (c *AuthorizationClient) ResourceAccessReviews() ResourceAccessReviewInterface {
+	return newResourceAccessReviews(c)
+}
+
 func (c *AuthorizationClient) Roles(namespace string) RoleInterface {
 	return newRoles(c, namespace)
 }
 
 func (c *AuthorizationClient) RoleBindings(namespace string) RoleBindingInterface {
 	return newRoleBindings(c, namespace)
+}
+
+func (c *AuthorizationClient) RoleBindingRestrictions(namespace string) RoleBindingRestrictionInterface {
+	return newRoleBindingRestrictions(c, namespace)
+}
+
+func (c *AuthorizationClient) SelfSubjectRulesReviews(namespace string) SelfSubjectRulesReviewInterface {
+	return newSelfSubjectRulesReviews(c, namespace)
+}
+
+func (c *AuthorizationClient) SubjectAccessReviews() SubjectAccessReviewInterface {
+	return newSubjectAccessReviews(c)
+}
+
+func (c *AuthorizationClient) SubjectRulesReviews(namespace string) SubjectRulesReviewInterface {
+	return newSubjectRulesReviews(c, namespace)
 }
 
 // NewForConfig creates a new AuthorizationClient for the given config.
