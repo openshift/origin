@@ -19,6 +19,4 @@ os::log::info ""
 os::log::info "Running serial tests"
 TEST_REPORT_FILE_NAME=core_serial os::test::extended::run -- -suite "serial.conformance.openshift.io" -test.timeout 2h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
-os::test::extended::merge_junit
-
 exit $exitstatus
