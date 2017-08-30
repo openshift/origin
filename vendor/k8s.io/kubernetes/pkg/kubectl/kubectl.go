@@ -140,31 +140,31 @@ var ResourcesShortcutStatic = []ResourceShortcuts{
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "extensions", Resource: "psp"},
-		LongForm:  schema.GroupResource{Group: "extensions", Resource: "podSecurityPolicies"},
+		LongForm:  schema.GroupResource{Group: "extensions", Resource: "podsecuritypolicies"},
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "apps.openshift.io", Resource: "dc"},
-		LongForm:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentConfigs"},
+		LongForm:  schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"},
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "build.openshift.io", Resource: "bc"},
-		LongForm:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildConfigs"},
+		LongForm:  schema.GroupResource{Group: "build.openshift.io", Resource: "buildconfigs"},
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "image.openshift.io", Resource: "is"},
-		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imageStreams"},
+		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imagestreams"},
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "image.openshift.io", Resource: "istag"},
-		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imageStreamTags"},
+		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imagestreamtags"},
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "image.openshift.io", Resource: "isimage"},
-		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imageStreamImages"},
+		LongForm:  schema.GroupResource{Group: "image.openshift.io", Resource: "imagestreamimages"},
 	},
 	{
 		ShortForm: schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterquota"},
-		LongForm:  schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterResourceQuota"},
+		LongForm:  schema.GroupResource{Group: "quota.openshift.io", Resource: "clusterresourcequota"},
 	},
 }
 
