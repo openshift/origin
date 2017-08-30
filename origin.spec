@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit e50e7e9ad52d627f242779687fbda977d7310037
+%global commit 4d3f3e10149893a119343f379eb2c7c66c42c4a7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.119.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e50e7e9
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.120.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4d3f3e1
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.120.0%{?dist}
+Release:        0.121.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -639,6 +639,24 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Aug 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.121.0
+- Handle final image (ccoleman@redhat.com)
+- Break release into pieces, build images in parallel (ccoleman@redhat.com)
+- add tags for client generation (deads@redhat.com)
+- generated code (deads@redhat.com)
+- Added test cases for router FilterNamespaces() (rpenta@redhat.com)
+- Remove endpoints and route key format assumptions in the template plugin and
+  router code (rpenta@redhat.com)
+- Fix filter namespaces in template router (rpenta@redhat.com)
+- Remove unnecessary requires from dependent packages (ccoleman@redhat.com)
+- bump integration test TO to 45 min per recent results (gmontero@redhat.com)
+- Remove unnecessary imageStreamLister interface (maszulik@redhat.com)
+- setup docker pull secrets in image extraction init container
+  (bparees@redhat.com)
+- Bump integration test loglevel down to 4 (ccoleman@redhat.com)
+- registry: report publicDockerImageRepository to image stream if configured
+  (mfojtik@redhat.com)
+
 * Tue Aug 29 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.120.0
 - bump(github.com/openshift/origin-web-console):
   04d694f69cc8b78b54a52e8025fba93df5a71280 (eparis+openshiftbot@redhat.com)
