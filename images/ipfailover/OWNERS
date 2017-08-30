@@ -4,8 +4,14 @@ reviewers:
   - tdawson
   - pweil-
   - kargakis
+  - knobunc
 approvers:
   - smarterclayton
   - tdawson
   - pweil-
   - kargakis
+  - knobunc
+  - danwinship
+  - rajatchopra
+  - pravisankar
+  - dcbw
