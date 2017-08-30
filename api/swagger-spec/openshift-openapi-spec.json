@@ -44719,7 +44719,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetworkList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetworkList"
        }
       },
       "401": {
@@ -44756,7 +44756,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       }
      ],
@@ -44764,7 +44764,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -44905,7 +44905,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -44942,7 +44942,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       }
      ],
@@ -44950,7 +44950,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -45063,7 +45063,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -45163,7 +45163,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyList"
        }
       },
       "401": {
@@ -45200,7 +45200,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       }
      ],
@@ -45208,7 +45208,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -45300,7 +45300,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnetList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnetList"
        }
       },
       "401": {
@@ -45337,7 +45337,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       }
      ],
@@ -45345,7 +45345,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -45486,7 +45486,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -45523,7 +45523,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       }
      ],
@@ -45531,7 +45531,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -45644,7 +45644,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -45744,7 +45744,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyList"
        }
       },
       "401": {
@@ -45781,7 +45781,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       }
      ],
@@ -45789,7 +45789,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -45938,7 +45938,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -45975,7 +45975,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       }
      ],
@@ -45983,7 +45983,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -46096,7 +46096,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -46204,7 +46204,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespaceList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespaceList"
        }
       },
       "401": {
@@ -46241,7 +46241,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       }
      ],
@@ -46249,7 +46249,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -46390,7 +46390,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -46427,7 +46427,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       }
      ],
@@ -46435,7 +46435,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -46548,7 +46548,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -65928,7 +65928,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetworkList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetworkList"
        }
       },
       "401": {
@@ -65965,7 +65965,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       }
      ],
@@ -65973,7 +65973,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -66114,7 +66114,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -66151,7 +66151,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       }
      ],
@@ -66159,7 +66159,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -66272,7 +66272,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
        }
       },
       "401": {
@@ -67853,7 +67853,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyList"
        }
       },
       "401": {
@@ -67890,7 +67890,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       }
      ],
@@ -67898,7 +67898,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -68434,7 +68434,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnetList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnetList"
        }
       },
       "401": {
@@ -68471,7 +68471,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       }
      ],
@@ -68479,7 +68479,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -68620,7 +68620,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -68657,7 +68657,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       }
      ],
@@ -68665,7 +68665,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -68778,7 +68778,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
        }
       },
       "401": {
@@ -73126,7 +73126,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyList"
        }
       },
       "401": {
@@ -73163,7 +73163,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       }
      ],
@@ -73171,7 +73171,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -73320,7 +73320,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -73357,7 +73357,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       }
      ],
@@ -73365,7 +73365,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -73478,7 +73478,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
        }
       },
       "401": {
@@ -77729,7 +77729,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespaceList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespaceList"
        }
       },
       "401": {
@@ -77766,7 +77766,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       }
      ],
@@ -77774,7 +77774,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -77915,7 +77915,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -77952,7 +77952,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       }
      ],
@@ -77960,7 +77960,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -78073,7 +78073,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
        }
       },
       "401": {
@@ -90722,6 +90722,382 @@
      }
     }
    },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork": {
+    "description": "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
+    "required": [
+     "network",
+     "hostsubnetlength",
+     "serviceNetwork"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "hostsubnetlength": {
+      "description": "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
+      "type": "integer",
+      "format": "int64"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     },
+     "network": {
+      "description": "Network is a CIDR string specifying the global overlay network's L3 space",
+      "type": "string"
+     },
+     "pluginName": {
+      "description": "PluginName is the name of the network plugin being used",
+      "type": "string"
+     },
+     "serviceNetwork": {
+      "description": "ServiceNetwork is the CIDR range that Service IP addresses are allocated from",
+      "type": "string"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "ClusterNetwork"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "ClusterNetwork"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetworkList": {
+    "description": "ClusterNetworkList is a collection of ClusterNetworks",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "items": {
+      "description": "Items is the list of cluster networks",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "ClusterNetworkList"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "ClusterNetworkList"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy": {
+    "description": "EgressNetworkPolicy describes the current egress network policy for a Namespace. When using the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy is present) then the traffic will be allowed by default.",
+    "required": [
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "metadata for EgressNetworkPolicy",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     },
+     "spec": {
+      "description": "spec is the specification of the current egress network policy",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicySpec"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "EgressNetworkPolicy"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "EgressNetworkPolicy"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyList": {
+    "description": "EgressNetworkPolicyList is a collection of EgressNetworkPolicy",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "items": {
+      "description": "items is the list of policies",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicy"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "metadata for EgressNetworkPolicyList",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "EgressNetworkPolicyList"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "EgressNetworkPolicyList"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyPeer": {
+    "description": "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
+    "properties": {
+     "cidrSelector": {
+      "description": "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset",
+      "type": "string"
+     },
+     "dnsName": {
+      "description": "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyRule": {
+    "description": "EgressNetworkPolicyRule contains a single egress network policy rule",
+    "required": [
+     "type",
+     "to"
+    ],
+    "properties": {
+     "to": {
+      "description": "to is the target that traffic is allowed/denied to",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyPeer"
+     },
+     "type": {
+      "description": "type marks this as an \"Allow\" or \"Deny\" rule",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicySpec": {
+    "description": "EgressNetworkPolicySpec provides a list of policies on outgoing network traffic",
+    "required": [
+     "egress"
+    ],
+    "properties": {
+     "egress": {
+      "description": "egress contains the list of egress policy rules",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.EgressNetworkPolicyRule"
+      }
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet": {
+    "description": "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
+    "required": [
+     "host",
+     "hostIP",
+     "subnet"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "host": {
+      "description": "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
+      "type": "string"
+     },
+     "hostIP": {
+      "description": "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     },
+     "subnet": {
+      "description": "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
+      "type": "string"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "HostSubnet"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "HostSubnet"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnetList": {
+    "description": "HostSubnetList is a collection of HostSubnets",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "items": {
+      "description": "Items is the list of host subnets",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.HostSubnet"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "HostSubnetList"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "HostSubnetList"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace": {
+    "description": "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
+    "required": [
+     "netname",
+     "netid"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     },
+     "netid": {
+      "description": "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "netname": {
+      "description": "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
+      "type": "string"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "NetNamespace"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "NetNamespace"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespaceList": {
+    "description": "NetNamespaceList is a collection of NetNamespaces",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "items": {
+      "description": "Items is the list of net namespaces",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.NetNamespace"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "NetNamespaceList"
+     },
+     {
+      "group": "network.openshift.io",
+      "version": "v1",
+      "kind": "NetNamespaceList"
+     }
+    ]
+   },
    "com.github.openshift.origin.pkg.oauth.apis.oauth.v1.ClusterRoleScopeRestriction": {
     "description": "ClusterRoleScopeRestriction describes restrictions on cluster role scopes",
     "required": [
@@ -91793,382 +92169,6 @@
       "type": "string"
      }
     }
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork": {
-    "description": "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
-    "required": [
-     "network",
-     "hostsubnetlength",
-     "serviceNetwork"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "hostsubnetlength": {
-      "description": "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
-      "type": "integer",
-      "format": "int64"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-     },
-     "network": {
-      "description": "Network is a CIDR string specifying the global overlay network's L3 space",
-      "type": "string"
-     },
-     "pluginName": {
-      "description": "PluginName is the name of the network plugin being used",
-      "type": "string"
-     },
-     "serviceNetwork": {
-      "description": "ServiceNetwork is the CIDR range that Service IP addresses are allocated from",
-      "type": "string"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "ClusterNetwork"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "ClusterNetwork"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetworkList": {
-    "description": "ClusterNetworkList is a collection of ClusterNetworks",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "items": {
-      "description": "Items is the list of cluster networks",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.ClusterNetwork"
-      }
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "ClusterNetworkList"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "ClusterNetworkList"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy": {
-    "description": "EgressNetworkPolicy describes the current egress network policy for a Namespace. When using the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy is present) then the traffic will be allowed by default.",
-    "required": [
-     "spec"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "metadata for EgressNetworkPolicy",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-     },
-     "spec": {
-      "description": "spec is the specification of the current egress network policy",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicySpec"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "EgressNetworkPolicy"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "EgressNetworkPolicy"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyList": {
-    "description": "EgressNetworkPolicyList is a collection of EgressNetworkPolicy",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "items": {
-      "description": "items is the list of policies",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicy"
-      }
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "metadata for EgressNetworkPolicyList",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "EgressNetworkPolicyList"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "EgressNetworkPolicyList"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyPeer": {
-    "description": "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
-    "properties": {
-     "cidrSelector": {
-      "description": "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset",
-      "type": "string"
-     },
-     "dnsName": {
-      "description": "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyRule": {
-    "description": "EgressNetworkPolicyRule contains a single egress network policy rule",
-    "required": [
-     "type",
-     "to"
-    ],
-    "properties": {
-     "to": {
-      "description": "to is the target that traffic is allowed/denied to",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyPeer"
-     },
-     "type": {
-      "description": "type marks this as an \"Allow\" or \"Deny\" rule",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicySpec": {
-    "description": "EgressNetworkPolicySpec provides a list of policies on outgoing network traffic",
-    "required": [
-     "egress"
-    ],
-    "properties": {
-     "egress": {
-      "description": "egress contains the list of egress policy rules",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.EgressNetworkPolicyRule"
-      }
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet": {
-    "description": "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
-    "required": [
-     "host",
-     "hostIP",
-     "subnet"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "host": {
-      "description": "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
-      "type": "string"
-     },
-     "hostIP": {
-      "description": "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
-      "type": "string"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-     },
-     "subnet": {
-      "description": "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
-      "type": "string"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "HostSubnet"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "HostSubnet"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnetList": {
-    "description": "HostSubnetList is a collection of HostSubnets",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "items": {
-      "description": "Items is the list of host subnets",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.HostSubnet"
-      }
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "HostSubnetList"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "HostSubnetList"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace": {
-    "description": "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
-    "required": [
-     "netname",
-     "netid"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-     },
-     "netid": {
-      "description": "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
-      "type": "integer",
-      "format": "int64"
-     },
-     "netname": {
-      "description": "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
-      "type": "string"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "NetNamespace"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "NetNamespace"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespaceList": {
-    "description": "NetNamespaceList is a collection of NetNamespaces",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "items": {
-      "description": "Items is the list of net namespaces",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.sdn.apis.network.v1.NetNamespace"
-      }
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "NetNamespaceList"
-     },
-     {
-      "group": "network.openshift.io",
-      "version": "v1",
-      "kind": "NetNamespaceList"
-     }
-    ]
    },
    "com.github.openshift.origin.pkg.security.apis.security.v1.FSGroupStrategyOptions": {
     "description": "FSGroupStrategyOptions defines the strategy type and options used to create the strategy.",
