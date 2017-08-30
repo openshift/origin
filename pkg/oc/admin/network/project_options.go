@@ -22,9 +22,9 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
-	"github.com/openshift/origin/pkg/sdn"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 )
 
 type ProjectOptions struct {
@@ -83,14 +83,14 @@ func (p *ProjectOptions) Validate() error {
 		errList = append(errList, errors.New("must provide --selector=<project_selector> or projects"))
 	}
 
-	clusterNetwork, err := p.Oclient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault, metav1.GetOptions{})
+	clusterNetwork, err := p.Oclient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		if kapierrors.IsNotFound(err) {
 			errList = append(errList, errors.New("Managing pod network is only supported for openshift multitenant network plugin"))
 		} else {
 			errList = append(errList, errors.New("Failed to fetch current network plugin info"))
 		}
-	} else if !sdn.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
+	} else if !network.IsOpenShiftMultitenantNetworkPlugin(clusterNetwork.PluginName) {
 		errList = append(errList, fmt.Errorf("Using plugin: %q, managing pod network is only supported for openshift multitenant network plugin", clusterNetwork.PluginName))
 	}
 
@@ -150,7 +150,7 @@ func (p *ProjectOptions) GetProjects() ([]*projectapi.Project, error) {
 	return projectList, nil
 }
 
-func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdn.PodNetworkAction, args string) error {
+func (p *ProjectOptions) UpdatePodNetwork(nsName string, action network.PodNetworkAction, args string) error {
 	// Get corresponding NetNamespace for given namespace
 	netns, err := p.Oclient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 	if err != nil {
@@ -158,7 +158,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdn.PodNetworkAc
 	}
 
 	// Apply pod network change intent
-	sdn.SetChangePodNetworkAnnotation(netns, action, args)
+	network.SetChangePodNetworkAnnotation(netns, action, args)
 
 	// Update NetNamespace object
 	_, err = p.Oclient.NetNamespaces().Update(netns)
@@ -178,7 +178,7 @@ func (p *ProjectOptions) UpdatePodNetwork(nsName string, action sdn.PodNetworkAc
 			return false, err
 		}
 
-		if _, _, err = sdn.GetChangePodNetworkAnnotation(updatedNetNs); err == sdn.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err = network.GetChangePodNetworkAnnotation(updatedNetNs); err == network.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		}
 		// Pod network change not applied yet

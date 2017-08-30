@@ -11,19 +11,19 @@ import (
 	restclient "k8s.io/client-go/rest"
 
 	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/sdn"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func createProject(osClient *osclient.Client, clientConfig *restclient.Config, name string) (*sdnapi.NetNamespace, error) {
+func createProject(osClient *osclient.Client, clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
 	_, err := testserver.CreateNewProject(osClient, *clientConfig, name, name)
 	if err != nil {
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
 	}
 
-	var netns *sdnapi.NetNamespace
+	var netns *networkapi.NetNamespace
 	err = utilwait.Poll(time.Second/2, 30*time.Second, func() (bool, error) {
 		netns, err = osClient.NetNamespaces().Get(name, metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
@@ -39,8 +39,8 @@ func createProject(osClient *osclient.Client, clientConfig *restclient.Config, n
 	return netns, nil
 }
 
-func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, action sdn.PodNetworkAction, args string) (*sdnapi.NetNamespace, error) {
-	sdn.SetChangePodNetworkAnnotation(netns, action, args)
+func updateNetNamespace(osClient *osclient.Client, netns *networkapi.NetNamespace, action network.PodNetworkAction, args string) (*networkapi.NetNamespace, error) {
+	network.SetChangePodNetworkAnnotation(netns, action, args)
 	_, err := osClient.NetNamespaces().Update(netns)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func updateNetNamespace(osClient *osclient.Client, netns *sdnapi.NetNamespace, a
 			return false, err
 		}
 
-		if _, _, err := sdn.GetChangePodNetworkAnnotation(netns); err == sdn.ErrorPodNetworkAnnotationNotFound {
+		if _, _, err := network.GetChangePodNetworkAnnotation(netns); err == network.ErrorPodNetworkAnnotationNotFound {
 			return true, nil
 		} else {
 			return false, nil
@@ -71,7 +71,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.NetworkConfig.NetworkPluginName = sdn.MultiTenantPluginName
+	masterConfig.NetworkConfig.NetworkPluginName = network.MultiTenantPluginName
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
@@ -105,7 +105,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected unique NetIDs, got %d, %d, %d", origNetns1.NetID, origNetns2.NetID, origNetns3.NetID)
 	}
 
-	newNetns2, err := updateNetNamespace(osClient, origNetns2, sdn.JoinPodNetwork, "one")
+	newNetns2, err := updateNetNamespace(osClient, origNetns2, network.JoinPodNetwork, "one")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}
@@ -120,7 +120,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected netns1 (%d) to be unchanged (%d)", newNetns1.NetID, origNetns1.NetID)
 	}
 
-	newNetns1, err = updateNetNamespace(osClient, origNetns1, sdn.GlobalPodNetwork, "")
+	newNetns1, err = updateNetNamespace(osClient, origNetns1, network.GlobalPodNetwork, "")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}
@@ -135,7 +135,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected netns2 (%d) to be unchanged (%d)", newNetns2.NetID, origNetns1.NetID)
 	}
 
-	newNetns1, err = updateNetNamespace(osClient, newNetns1, sdn.IsolatePodNetwork, "")
+	newNetns1, err = updateNetNamespace(osClient, newNetns1, network.IsolatePodNetwork, "")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}

@@ -8307,7 +8307,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetwork": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
@@ -8367,7 +8367,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetworkList": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "ClusterNetworkList is a collection of ClusterNetworks",
@@ -8399,7 +8399,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetwork"),
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork"),
 										},
 									},
 								},
@@ -8410,9 +8410,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetwork", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicy": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicy describes the current egress network policy for a Namespace. When using the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy is present) then the traffic will be allowed by default.",
@@ -8440,7 +8440,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						"spec": {
 							SchemaProps: spec.SchemaProps{
 								Description: "spec is the specification of the current egress network policy",
-								Ref:         ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicySpec"),
+								Ref:         ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec"),
 							},
 						},
 					},
@@ -8448,9 +8448,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyList": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicyList is a collection of EgressNetworkPolicy",
@@ -8482,7 +8482,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicy"),
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy"),
 										},
 									},
 								},
@@ -8493,9 +8493,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyPeer": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
@@ -8519,7 +8519,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyRule": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicyRule contains a single egress network policy rule",
@@ -8534,7 +8534,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						"to": {
 							SchemaProps: spec.SchemaProps{
 								Description: "to is the target that traffic is allowed/denied to",
-								Ref:         ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyPeer"),
+								Ref:         ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer"),
 							},
 						},
 					},
@@ -8542,9 +8542,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyPeer"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicySpec": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "EgressNetworkPolicySpec provides a list of policies on outgoing network traffic",
@@ -8556,7 +8556,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyRule"),
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule"),
 										},
 									},
 								},
@@ -8567,9 +8567,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyRule"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnet": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
@@ -8622,7 +8622,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnetList": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnetList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "HostSubnetList is a collection of HostSubnets",
@@ -8654,7 +8654,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnet"),
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet"),
 										},
 									},
 								},
@@ -8665,9 +8665,9 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespace": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
@@ -8713,7 +8713,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			Dependencies: []string{
 				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespaceList": {
+		"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespaceList": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
 					Description: "NetNamespaceList is a collection of NetNamespaces",
@@ -8745,7 +8745,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Items: &spec.SchemaOrArray{
 									Schema: &spec.Schema{
 										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespace"),
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace"),
 										},
 									},
 								},
@@ -8756,7 +8756,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespace", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
 		"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions": {
 			Schema: spec.Schema{

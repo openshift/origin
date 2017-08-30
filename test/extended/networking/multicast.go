@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	osapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -48,7 +48,7 @@ func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
 	}
-	netns.Annotations[osapi.MulticastEnabledAnnotation] = "true"
+	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
 	_, err = client.NetNamespaces().Update(netns)
 	expectNoError(err)
 }

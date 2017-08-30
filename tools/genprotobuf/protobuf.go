@@ -52,7 +52,7 @@ func init() {
 		`github.com/openshift/origin/pkg/project/apis/project/v1`,
 		`github.com/openshift/origin/pkg/quota/apis/quota/v1`,
 		`github.com/openshift/origin/pkg/route/apis/route/v1`,
-		`github.com/openshift/origin/pkg/sdn/apis/network/v1`,
+		`github.com/openshift/origin/pkg/network/apis/network/v1`,
 		`github.com/openshift/origin/pkg/security/apis/security/v1`,
 		`github.com/openshift/origin/pkg/template/apis/template/v1`,
 		`github.com/openshift/origin/pkg/user/apis/user/v1`,

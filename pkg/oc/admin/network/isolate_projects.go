@@ -11,7 +11,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/sdn"
+	"github.com/openshift/origin/pkg/network"
 )
 
 const IsolateProjectsNetworkCommandName = "isolate-projects"
@@ -41,7 +41,7 @@ func NewCmdIsolateProjectsNetwork(commandName, fullName string, f *clientcmd.Fac
 	cmd := &cobra.Command{
 		Use:     commandName,
 		Short:   "Isolate project network",
-		Long:    fmt.Sprintf(isolateProjectsNetworkLong, sdn.MultiTenantPluginName),
+		Long:    fmt.Sprintf(isolateProjectsNetworkLong, network.MultiTenantPluginName),
 		Example: fmt.Sprintf(isolateProjectsNetworkExample, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			if err := opts.Complete(f, c, args, out); err != nil {
@@ -72,7 +72,7 @@ func (i *IsolateOptions) Run() error {
 
 	errList := []error{}
 	for _, project := range projects {
-		if err = i.Options.UpdatePodNetwork(project.Name, sdn.IsolatePodNetwork, ""); err != nil {
+		if err = i.Options.UpdatePodNetwork(project.Name, network.IsolatePodNetwork, ""); err != nil {
 			errList = append(errList, fmt.Errorf("Network isolation for project %q failed, error: %v", project.Name, err))
 		}
 	}

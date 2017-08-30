@@ -21,9 +21,9 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 
 	// install all APIs
@@ -130,7 +130,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			"test-service-with-finalizer":         &kapi.Service{},
 			"test-buildcli":                       &kapi.List{},
 			"test-buildcli-beta2":                 &kapi.List{},
-			"test-egress-network-policy":          &sdnapi.EgressNetworkPolicy{},
+			"test-egress-network-policy":          &networkapi.EgressNetworkPolicy{},
 		},
 		"../test/templates/testdata": {
 			"crunchydata-pod": nil, // Explicitly fails validation, but should pass transformation

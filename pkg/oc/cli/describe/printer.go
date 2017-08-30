@@ -21,11 +21,11 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -1003,13 +1003,13 @@ func printGroupList(list *userapi.GroupList, w io.Writer, opts kprinters.PrintOp
 	return nil
 }
 
-func printHostSubnet(h *sdnapi.HostSubnet, w io.Writer, opts kprinters.PrintOptions) error {
+func printHostSubnet(h *networkapi.HostSubnet, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, h.Name, opts.WithKind)
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, h.Host, h.HostIP, h.Subnet)
 	return err
 }
 
-func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer, opts kprinters.PrintOptions) error {
+func printHostSubnetList(list *networkapi.HostSubnetList, w io.Writer, opts kprinters.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printHostSubnet(&item, w, opts); err != nil {
 			return err
@@ -1018,13 +1018,13 @@ func printHostSubnetList(list *sdnapi.HostSubnetList, w io.Writer, opts kprinter
 	return nil
 }
 
-func printNetNamespace(h *sdnapi.NetNamespace, w io.Writer, opts kprinters.PrintOptions) error {
+func printNetNamespace(h *networkapi.NetNamespace, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, h.NetName, opts.WithKind)
 	_, err := fmt.Fprintf(w, "%s\t%d\n", name, h.NetID)
 	return err
 }
 
-func printNetNamespaceList(list *sdnapi.NetNamespaceList, w io.Writer, opts kprinters.PrintOptions) error {
+func printNetNamespaceList(list *networkapi.NetNamespaceList, w io.Writer, opts kprinters.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printNetNamespace(&item, w, opts); err != nil {
 			return err
@@ -1033,13 +1033,13 @@ func printNetNamespaceList(list *sdnapi.NetNamespaceList, w io.Writer, opts kpri
 	return nil
 }
 
-func printClusterNetwork(n *sdnapi.ClusterNetwork, w io.Writer, opts kprinters.PrintOptions) error {
+func printClusterNetwork(n *networkapi.ClusterNetwork, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, n.Name, opts.WithKind)
 	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 	return err
 }
 
-func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, opts kprinters.PrintOptions) error {
+func printClusterNetworkList(list *networkapi.ClusterNetworkList, w io.Writer, opts kprinters.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printClusterNetwork(&item, w, opts); err != nil {
 			return err
@@ -1048,7 +1048,7 @@ func printClusterNetworkList(list *sdnapi.ClusterNetworkList, w io.Writer, opts 
 	return nil
 }
 
-func printEgressNetworkPolicy(n *sdnapi.EgressNetworkPolicy, w io.Writer, opts kprinters.PrintOptions) error {
+func printEgressNetworkPolicy(n *networkapi.EgressNetworkPolicy, w io.Writer, opts kprinters.PrintOptions) error {
 	if opts.WithNamespace {
 		if _, err := fmt.Fprintf(w, "%s\t", n.Namespace); err != nil {
 			return err
@@ -1060,7 +1060,7 @@ func printEgressNetworkPolicy(n *sdnapi.EgressNetworkPolicy, w io.Writer, opts k
 	return nil
 }
 
-func printEgressNetworkPolicyList(list *sdnapi.EgressNetworkPolicyList, w io.Writer, opts kprinters.PrintOptions) error {
+func printEgressNetworkPolicyList(list *networkapi.EgressNetworkPolicyList, w io.Writer, opts kprinters.PrintOptions) error {
 	for _, item := range list.Items {
 		if err := printEgressNetworkPolicy(&item, w, opts); err != nil {
 			return err
