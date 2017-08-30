@@ -34,11 +34,11 @@ type REST struct {
 var _ rest.Creater = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, defaultRegistry imageapi.DefaultRegistry) *REST {
+func NewREST(imageRegistry image.Registry, imageStreamRegistry imagestream.Registry, registry imageapi.RegistryHostnameRetriever) *REST {
 	return &REST{
 		imageRegistry:       imageRegistry,
 		imageStreamRegistry: imageStreamRegistry,
-		strategy:            NewStrategy(defaultRegistry),
+		strategy:            NewStrategy(registry),
 	}
 }
 

@@ -118,9 +118,9 @@ type MasterConfig struct {
 	// of both the origin config AND the kube config, so this spot makes more sense.
 	KubeAdmissionControl admission.Interface
 
-	// RegistryNameFn retrieves the name of the integrated registry, or false if no such registry
+	// RegistryHostnameRetriever retrieves the name of the integrated registry, or false if no such registry
 	// is available.
-	RegistryNameFn imageapi.DefaultRegistryFunc
+	RegistryHostnameRetriever imageapi.RegistryHostnameRetriever
 
 	KubeletClientConfig *kubeletclient.KubeletClientConfig
 
@@ -264,7 +264,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		Informers:                    informers.GetInternalKubeInformers(),
 		ClusterResourceQuotaInformer: informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
-		DefaultRegistryFn:            imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+		RegistryHostnameRetriever:    imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 		SecurityInformers:            informers.GetSecurityInformers(),
 		UserInformers:                informers.GetUserInformers(),
 	}
@@ -319,7 +319,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		AdmissionControl:     originAdmission,
 		KubeAdmissionControl: kubeAdmission,
 
-		RegistryNameFn: imageapi.DefaultRegistryFunc(defaultRegistryFunc),
+		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 
 		KubeletClientConfig: kubeletClientConfig,
 

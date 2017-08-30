@@ -27,8 +27,8 @@ const (
 )
 
 var (
-	testDefaultRegistry = imageapi.DefaultRegistryFunc(func() (string, bool) { return "test", true })
-	noDefaultRegistry   = imageapi.DefaultRegistryFunc(func() (string, bool) { return "", false })
+	testDefaultRegistry = func() (string, bool) { return "test", true }
+	noDefaultRegistry   = func() (string, bool) { return "", false }
 )
 
 type fakeSubjectAccessReviewRegistry struct {
@@ -48,7 +48,8 @@ func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apireque
 
 func newStorage(t *testing.T) (*REST, *StatusREST, *InternalREST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
-	imageStorage, statusStorage, internalStorage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), noDefaultRegistry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
+	registry := imageapi.DefaultRegistryHostnameRetriever(noDefaultRegistry, "", "")
+	imageStorage, statusStorage, internalStorage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -34,22 +34,22 @@ type ResourceGetter interface {
 type Strategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
-	defaultRegistry   imageapi.DefaultRegistry
-	tagVerifier       *TagVerifier
-	limitVerifier     imageadmission.LimitVerifier
-	imageStreamGetter ResourceGetter
+	registryHostnameRetriever imageapi.RegistryHostnameRetriever
+	tagVerifier               *TagVerifier
+	limitVerifier             imageadmission.LimitVerifier
+	imageStreamGetter         ResourceGetter
 }
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(defaultRegistry imageapi.DefaultRegistry, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
+func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
 	return Strategy{
-		ObjectTyper:       kapi.Scheme,
-		NameGenerator:     names.SimpleNameGenerator,
-		defaultRegistry:   defaultRegistry,
-		tagVerifier:       &TagVerifier{subjectAccessReviewClient},
-		limitVerifier:     limitVerifier,
-		imageStreamGetter: imageStreamGetter,
+		ObjectTyper:               kapi.Scheme,
+		NameGenerator:             names.SimpleNameGenerator,
+		registryHostnameRetriever: registryHostname,
+		tagVerifier:               &TagVerifier{subjectAccessReviewClient},
+		limitVerifier:             limitVerifier,
+		imageStreamGetter:         imageStreamGetter,
 	}
 }
 
@@ -117,7 +117,7 @@ func (Strategy) AllowUnconditionalUpdate() bool {
 // if a default registry exists, the value returned is of the form
 // <default registry>/<namespace>/<stream name>.
 func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream) string {
-	registry, ok := s.defaultRegistry.DefaultRegistry()
+	registry, ok := s.registryHostnameRetriever.InternalRegistryHostname()
 	if !ok {
 		return stream.Spec.DockerImageRepository
 	}
@@ -127,6 +127,23 @@ func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream) string {
 	}
 	ref := imageapi.DockerImageReference{
 		Registry:  registry,
+		Namespace: stream.Namespace,
+		Name:      stream.Name,
+	}
+	return ref.String()
+}
+
+// publicDockerImageRepository determines the public location of given image
+// stream. If the ExternalRegistryHostname is set in the master config, the
+// value of this property is used as a hostname part for the docker image
+// reference.
+func (s Strategy) publicDockerImageRepository(stream *imageapi.ImageStream) string {
+	externalHostname, ok := s.registryHostnameRetriever.ExternalRegistryHostname()
+	if !ok {
+		return ""
+	}
+	ref := imageapi.DockerImageReference{
+		Registry:  externalHostname,
 		Namespace: stream.Namespace,
 		Name:      stream.Name,
 	}
@@ -164,7 +181,7 @@ func parseFromReference(stream *imageapi.ImageStream, from *kapi.ObjectReference
 // tagsChanged updates stream.Status.Tags based on the old and new image stream.
 // if the old stream is nil, all tags are considered additions.
 func (s Strategy) tagsChanged(old, stream *imageapi.ImageStream) field.ErrorList {
-	internalRegistry, hasInternalRegistry := s.defaultRegistry.DefaultRegistry()
+	internalRegistry, hasInternalRegistry := s.registryHostnameRetriever.InternalRegistryHostname()
 
 	var errs field.ErrorList
 
@@ -522,10 +539,12 @@ func (s Strategy) Decorate(obj runtime.Object) error {
 	switch t := obj.(type) {
 	case *imageapi.ImageStream:
 		t.Status.DockerImageRepository = s.dockerImageRepository(t)
+		t.Status.PublicDockerImageRepository = s.publicDockerImageRepository(t)
 	case *imageapi.ImageStreamList:
 		for i := range t.Items {
 			is := &t.Items[i]
 			is.Status.DockerImageRepository = s.dockerImageRepository(is)
+			is.Status.PublicDockerImageRepository = s.publicDockerImageRepository(is)
 		}
 	default:
 		return kerrors.NewBadRequest(fmt.Sprintf("not an ImageStream nor ImageStreamList: %v", obj))

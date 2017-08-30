@@ -25,7 +25,7 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, defaultRegistry imageapi.DefaultRegistry, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
@@ -39,7 +39,7 @@ func NewREST(optsGetter restoptions.Getter, defaultRegistry imageapi.DefaultRegi
 		subjectAccessReviewRegistry: subjectAccessReviewRegistry,
 	}
 	// strategy must be able to load image streams across namespaces during tag verification
-	strategy := imagestream.NewStrategy(defaultRegistry, subjectAccessReviewRegistry, limitVerifier, rest)
+	strategy := imagestream.NewStrategy(registryHostname, subjectAccessReviewRegistry, limitVerifier, rest)
 
 	store.CreateStrategy = strategy
 	store.UpdateStrategy = strategy
