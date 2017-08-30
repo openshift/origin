@@ -68,7 +68,7 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 	scale.Spec.Replicas = int32(newSize)
 	updated, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale)
 	if err != nil {
-		resourceVersion := "Unknown"
+		resourceVersion := ""
 		dc, dcErr := scaler.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if dcErr == nil {
 			resourceVersion = dc.ResourceVersion
