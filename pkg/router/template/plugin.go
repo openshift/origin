@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"text/template"
 	"time"
 
@@ -17,6 +18,11 @@ import (
 
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
+)
+
+const (
+	// endpointsKeySeparator is used to uniquely generate key/ID for endpoints
+	endpointsKeySeparator = "/"
 )
 
 // TemplatePlugin implements the router.Plugin interface to provide
@@ -197,14 +203,28 @@ func (p *TemplatePlugin) Commit() error {
 
 // endpointsKey returns the internal router key to use for the given Endpoints.
 func endpointsKey(endpoints *kapi.Endpoints) string {
-	return fmt.Sprintf("%s/%s", endpoints.Namespace, endpoints.Name)
+	return endpointsKeyFromParts(endpoints.Namespace, endpoints.Name)
+}
+
+func endpointsKeyFromParts(namespace, name string) string {
+	return fmt.Sprintf("%s%s%s", namespace, endpointsKeySeparator, name)
+}
+
+func getPartsFromEndpointsKey(key string) (string, string) {
+	tokens := strings.SplitN(key, endpointsKeySeparator, 2)
+	if len(tokens) != 2 {
+		glog.Errorf("Expected separator %q not found in endpoints key %q", endpointsKeySeparator, key)
+	}
+	namespace := tokens[0]
+	name := tokens[1]
+	return namespace, name
 }
 
 // peerServiceKey may be used by the underlying router when handling endpoints to identify
 // endpoints that belong to its peers.  THIS MUST FOLLOW THE KEY STRATEGY OF endpointsKey.  It
 // receives a NamespacedName that is created from the service that is added by the oadm command
 func peerEndpointsKey(namespacedName ktypes.NamespacedName) string {
-	return fmt.Sprintf("%s/%s", namespacedName.Namespace, namespacedName.Name)
+	return endpointsKeyFromParts(namespacedName.Namespace, namespacedName.Name)
 }
 
 // createRouterEndpoints creates openshift router endpoints based on k8s endpoints
