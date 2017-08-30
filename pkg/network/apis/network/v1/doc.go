@@ -1,5 +1,5 @@
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.com/openshift/origin/pkg/sdn/apis/network
+// +k8s:conversion-gen=github.com/openshift/origin/pkg/network/apis/network
 // +k8s:defaulter-gen=TypeMeta
 // +k8s:openapi-gen=true
 
