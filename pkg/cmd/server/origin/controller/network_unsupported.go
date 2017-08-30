@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/network"
 )
 
 type SDNControllerConfig struct {
@@ -13,5 +14,9 @@ type SDNControllerConfig struct {
 }
 
 func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error) {
+	if !network.IsOpenShiftNetworkPlugin(c.NetworkConfig.NetworkPluginName) {
+		return false, nil
+	}
+
 	return false, fmt.Errorf("SDN not supported on this platform")
 }
