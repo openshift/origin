@@ -522,6 +522,19 @@ func failureTrap(oc *exutil.CLI, name string, failed bool) {
 			e2e.Logf("--- pod %s logs\n%s---\n", pod.Name, out)
 		}
 	}
+
+	for _, pod := range pods {
+		if _, ok := pod.Labels[deployapi.DeployerPodForDeploymentLabel]; ok {
+			continue
+		}
+
+		out, err := oc.Run("get").Args("pod/"+pod.Name, "-o", "yaml").Output()
+		if err != nil {
+			e2e.Logf("Error getting pod %s: %v", pod.Name, err)
+			return
+		}
+		e2e.Logf("\n%s\n", out)
+	}
 }
 
 func failureTrapForDetachedRCs(oc *exutil.CLI, dcName string, failed bool) {

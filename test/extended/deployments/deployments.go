@@ -927,6 +927,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(rc1.Status.AvailableReplicas).To(o.BeZero())
+			// We need to log here to have a timestamp to compare with master logs if something goes wrong
+			e2e.Logf("All replicas are ready.")
 
 			g.By("verifying that the deployment is still running")
 			if deployutil.IsTerminatedDeployment(rc1) {
@@ -947,6 +949,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 					}
 					return false, nil
 				})
+			// We need to log here to have a timestamp to compare with master logs if something goes wrong
+			e2e.Logf("Finished waiting for deployment.")
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(rc1.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
 			// Deployment status can't be updated yet but should be right after
