@@ -88,7 +88,7 @@ func RecordStageAndStepInfo(stages []StageInfo, stageName StageName, stepName St
 		if stageVal.Name == stageName {
 			for _, step := range stages[stageKey].Steps {
 				if step.Name == stepName {
-					glog.Warningf("error recording build timing information, step %v already exists in stage %v", stepName, stageName)
+					glog.V(4).Infof("error recording build timing information, step %v already exists in stage %v", stepName, stageName)
 				}
 			}
 			stages[stageKey].DurationMilliseconds = endTime.Time.Sub(stages[stageKey].StartTime.Time).Nanoseconds() / int64(time.Millisecond)
