@@ -302,16 +302,7 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// try to add Valerie to a non-existent role, looping until it is done.
-	// If a Not Found error is raised, simply retry as this is likely due to
-	// the role cache taking time to react
-	if err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-		err := addValerie.AddRole()
-		if err != nil && kapierror.IsNotFound(err) {
-			return false, nil
-		}
-		return (err == nil), err
-	}); err != nil {
+	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
