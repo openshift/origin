@@ -104,9 +104,11 @@ type ScaleError struct {
 }
 
 func (c ScaleError) Error() string {
-	return fmt.Sprintf(
-		"Scaling the resource failed with: %v; Current resource version %s",
-		c.ActualError, c.ResourceVersion)
+	msg := fmt.Sprintf("Scaling the resource failed with: %v", c.ActualError)
+	if len(c.ResourceVersion) > 0 {
+		msg += fmt.Sprintf("; Current resource version %s", c.ResourceVersion)
+	}
+	return msg
 }
 
 // RetryParams encapsulates the retry parameters used by kubectl's scaler.
