@@ -8,11 +8,12 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/sdn"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
+	sdnnode "github.com/openshift/origin/pkg/sdn/node"
+	sdnproxy "github.com/openshift/origin/pkg/sdn/proxy"
 )
 
 func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Client, kubeClient kclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (sdn.NodeInterface, sdn.ProxyInterface, error) {
-	node, err := sdnplugin.NewNodePlugin(&sdnplugin.OsdnNodeConfig{
+	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
 		Hostname:           options.NodeName,
 		SelfIP:             options.NodeIP,
@@ -28,7 +29,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Clien
 		return nil, nil, err
 	}
 
-	proxy, err := sdnplugin.NewProxyPlugin(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
+	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
 	if err != nil {
 		return nil, nil, err
 	}

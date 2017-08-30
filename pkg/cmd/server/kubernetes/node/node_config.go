@@ -79,8 +79,8 @@ type NodeConfig struct {
 	// DNSConfig controls the DNS configuration.
 	DNSServer *dns.Server
 
-	// SDNPlugin is an optional SDN plugin
-	SDNPlugin sdn.NodeInterface
+	// SDNNode is an optional SDN node interface
+	SDNNode sdn.NodeInterface
 	// SDNProxy is an optional service endpoints filterer
 	SDNProxy sdn.ProxyInterface
 }
@@ -234,10 +234,10 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod.Duration)
 
 	// Initialize SDN before building kubelet config so it can modify option
-	var sdnPlugin sdn.NodeInterface
+	var sdnNode sdn.NodeInterface
 	var sdnProxy sdn.ProxyInterface
 	if sdn.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
-		sdnPlugin, sdnProxy, err = NewSDNInterfaces(options, originClient, kubeClient, internalKubeInformers, proxyconfig)
+		sdnNode, sdnProxy, err = NewSDNInterfaces(options, originClient, kubeClient, internalKubeInformers, proxyconfig)
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
 		}
@@ -312,8 +312,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		ProxyConfig:    proxyconfig,
 		EnableUnidling: options.EnableUnidling,
 
-		SDNPlugin: sdnPlugin,
-		SDNProxy:  sdnProxy,
+		SDNNode:  sdnNode,
+		SDNProxy: sdnProxy,
 	}
 
 	if enableDNS {
