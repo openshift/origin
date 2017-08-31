@@ -472,6 +472,9 @@ func (m *Master) Start() error {
 		go func() {
 			controllerPlug.WaitForStart()
 
+			// continuously run the scheduler while we have the primary lease
+			go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
+
 			controllerContext, err := getControllerContext(*m.config, kubeControllerManagerConfig, cloudProvider, informers, utilwait.NeverStop)
 			if err != nil {
 				glog.Fatal(err)
