@@ -243,8 +243,9 @@
 // examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql.json
-// examples/templateservicebroker/apiserver-config.yaml
-// examples/templateservicebroker/templateservicebroker-template.yaml
+// install/templateservicebroker/apiserver-config.yaml
+// install/templateservicebroker/apiserver-template.yaml
+// install/templateservicebroker/rbac-template.yaml
 // DO NOT EDIT!
 
 package testdata
@@ -27760,37 +27761,35 @@ func examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
+var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
 - openshift`)
 
-func examplesTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
-	return _examplesTemplateservicebrokerApiserverConfigYaml, nil
+func installTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverConfigYaml, nil
 }
 
-func examplesTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
-	bytes, err := examplesTemplateservicebrokerApiserverConfigYamlBytes()
+func installTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+var _installTemplateservicebrokerApiserverTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: template-service-broker
+  name: template-service-broker-apiserver
 parameters:
 - name: IMAGE
   value: openshift/origin:latest
 - name: NAMESPACE
   value: openshift-template-service-broker
-- name: KUBE_SYSTEM
-  value: kube-system
 - name: LOGLEVEL
   value: "0"
 - name: API_SERVER_CONFIG
@@ -27882,6 +27881,33 @@ objects:
     ports:
     - port: 443
       targetPort: 8443
+`)
+
+func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverTemplateYaml, nil
+}
+
+func installTemplateservicebrokerApiserverTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installTemplateservicebrokerRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-rbac
+parameters:
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+objects:
 
 # to delegate authentication and authorization
 - apiVersion: authorization.openshift.io/v1
@@ -27922,17 +27948,17 @@ objects:
     name: apiserver
 `)
 
-func examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
-	return _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
+func installTemplateservicebrokerRbacTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerRbacTemplateYaml, nil
 }
 
-func examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
-	bytes, err := examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
+func installTemplateservicebrokerRbacTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerRbacTemplateYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/rbac-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28232,8 +28258,9 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
-	"examples/templateservicebroker/apiserver-config.yaml": examplesTemplateservicebrokerApiserverConfigYaml,
-	"examples/templateservicebroker/templateservicebroker-template.yaml": examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml,
+	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
+	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
+	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -28337,9 +28364,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"github-webhook-example.json": &bintree{examplesSampleAppGithubWebhookExampleJson, map[string]*bintree{}},
 			"pullimages.sh": &bintree{examplesSampleAppPullimagesSh, map[string]*bintree{}},
 		}},
+	}},
+	"install": &bintree{nil, map[string]*bintree{
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
-			"apiserver-config.yaml": &bintree{examplesTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
-			"templateservicebroker-template.yaml": &bintree{examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
+			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
+			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
+			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},
 	"test": &bintree{nil, map[string]*bintree{

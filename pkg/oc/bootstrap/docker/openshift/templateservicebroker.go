@@ -17,9 +17,11 @@ import (
 )
 
 const (
-	tsbNamespace        = "openshift-template-service-broker"
-	tsbTemplateName     = "template-service-broker"
-	tsbTemplateLocation = "examples/templateservicebroker/templateservicebroker-template.yaml"
+	tsbNamespace                 = "openshift-template-service-broker"
+	tsbRBACTemplateName          = "template-service-broker-rbac"
+	tsbAPIServerTemplateName     = "template-service-broker-apiserver"
+	tsbRBACTemplateLocation      = "install/templateservicebroker/rbac-template.yaml"
+	tsbAPIServerTemplateLocation = "install/templateservicebroker/apiserver-template.yaml"
 )
 
 // InstallServiceCatalog checks whether the template service broker is installed and installs it if not already installed
@@ -35,8 +37,15 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	}
 
 	// create the template in the tsbNamespace to make it easy to instantiate
-	if err := ImportObjects(f, tsbNamespace, tsbTemplateLocation); err != nil {
+	if err := ImportObjects(f, tsbNamespace, tsbRBACTemplateLocation); err != nil {
+		return errors.NewError("cannot create template service broker permissions template").WithCause(err)
+	}
+	if err := ImportObjects(f, tsbNamespace, tsbAPIServerTemplateLocation); err != nil {
 		return errors.NewError("cannot create template service broker template").WithCause(err)
+	}
+
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), tsbNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
+		return errors.NewError("cannot instantiate template service broker permissions").WithCause(err)
 	}
 
 	// create the actual resources required
@@ -44,11 +53,11 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	imageTemplate.Format = imageFormat
 	imageTemplate.Latest = false
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), tsbNamespace, tsbTemplateName, tsbNamespace, map[string]string{
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), tsbNamespace, tsbAPIServerTemplateName, tsbNamespace, map[string]string{
 		"IMAGE":    imageTemplate.ExpandOrDie(""),
 		"LOGLEVEL": fmt.Sprint(serverLogLevel),
 	}, true); err != nil {
-		return errors.NewError("cannot instantiate logger accounts").WithCause(err)
+		return errors.NewError("cannot instantiate template service broker resources").WithCause(err)
 	}
 
 	// Wait for the apiserver endpoint to become available
