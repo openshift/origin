@@ -169,26 +169,30 @@ func (r *TestRouter) DeleteEndpoints(id string) {
 	}
 }
 
+func (r *TestRouter) calculateServiceWeights(serviceUnits map[string]int32) map[string]int32 {
+	var serviceWeights = make(map[string]int32)
+	for key := range serviceUnits {
+		serviceWeights[key] = serviceUnits[key]
+	}
+	return serviceWeights
+}
+
 // AddRoute adds a ServiceAliasConfig and associated ServiceUnits for the route
 func (r *TestRouter) AddRoute(route *routeapi.Route) {
 	routeKey := getKey(route)
 
 	config := ServiceAliasConfig{
-		Host:             route.Spec.Host,
-		Path:             route.Spec.Path,
-		ServiceUnitNames: getServiceUnits(r.numberOfEndpoints, route),
+		Host:         route.Spec.Host,
+		Path:         route.Spec.Path,
+		ServiceUnits: getServiceUnits(route),
 	}
+	config.ServiceUnitNames = r.calculateServiceWeights(config.ServiceUnits)
 
-	for key := range config.ServiceUnitNames {
+	for key := range config.ServiceUnits {
 		r.CreateServiceUnit(key)
 	}
 
 	r.State[routeKey] = config
-}
-
-func (r *TestRouter) numberOfEndpoints(key string) int32 {
-	su, _ := r.FindServiceUnit(key)
-	return int32(len(su.EndpointTable))
 }
 
 // RemoveRoute removes the service alias config for Route
