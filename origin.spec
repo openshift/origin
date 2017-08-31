@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit ed6cc4cb6e16b6291fb741ff2b3e6cdeaaab28e0
+%global commit 8848f85ca27fc92ead68b21f8852ef02cb87cf05
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.121.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=ed6cc4c
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.122.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=8848f85
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.122.0%{?dist}
+Release:        0.123.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -639,6 +639,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Aug 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.123.0
+- bump(github.com/libopenstorage/openstorage):
+  a53f5e5662367da02b95470980c5dbaadfe96c99 (aditya@portworx.com)
+- UPSTREAM: revert: dcb5eef2d8a6d14816d8d1f767f0d0016b84dcdf: "UPSTREAM:
+  <drop>: hack out portworx to avoid double proto registration"
+  (aditya@portworx.com)
+- Enable Portworx Volumes. (aditya@portworx.com)
+- Split up SDN master/node/proxy/CNI code (danw@redhat.com)
+- Split master/node code from subnets.go into separate files (danw@redhat.com)
+- Split out pkg/sdn/common with code shared between node/master
+  (danw@redhat.com)
+- respect request context deadline when iterating on build logs
+  (bparees@redhat.com)
+
 * Wed Aug 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.122.0
 - 
 
