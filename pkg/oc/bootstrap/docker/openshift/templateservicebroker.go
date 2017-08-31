@@ -8,7 +8,10 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -34,25 +37,21 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 		return errors.NewError("cannot create template service broker project").WithCause(err)
 	}
 
-	// create the template in the tsbNamespace to make it easy to instantiate
-	if err := ImportObjects(f, tsbNamespace, tsbTemplateLocation); err != nil {
-		return errors.NewError("cannot create template service broker template").WithCause(err)
-	}
-
 	// create the actual resources required
 	imageTemplate := variable.NewDefaultImageTemplate()
 	imageTemplate.Format = imageFormat
 	imageTemplate.Latest = false
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), tsbNamespace, tsbTemplateName, tsbNamespace, map[string]string{
-		"IMAGE":    imageTemplate.ExpandOrDie(""),
-		"LOGLEVEL": fmt.Sprint(serverLogLevel),
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), OpenshiftInfraNamespace, tsbTemplateName, tsbNamespace, map[string]string{
+		"IMAGE":     imageTemplate.ExpandOrDie(""),
+		"LOGLEVEL":  fmt.Sprint(serverLogLevel),
+		"NAMESPACE": tsbNamespace,
 	}, true); err != nil {
 		return errors.NewError("cannot instantiate logger accounts").WithCause(err)
 	}
 
 	// Wait for the apiserver endpoint to become available
-	err = wait.Poll(5*time.Second, 600*time.Second, func() (bool, error) {
+	err = wait.Poll(1*time.Second, 10*time.Minute, func() (bool, error) {
 		glog.V(2).Infof("polling for template service broker api server endpoint availability")
 		ds, err := kubeClient.Extensions().DaemonSets(tsbNamespace).Get("apiserver", metav1.GetOptions{})
 		if err != nil {
@@ -65,6 +64,66 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	})
 	if err != nil {
 		return errors.NewError(fmt.Sprintf("failed to start the template service broker apiserver: %v", err))
+	}
+
+	// Register the template broker with the service catalog
+	glog.V(2).Infof("registering the template broker with the service catalog")
+	clientConfig, err := f.OpenShiftClientConfig().ClientConfig()
+	if err != nil {
+		return errors.NewError(fmt.Sprintf("failed to retrieve client config: %v", err))
+	}
+	pool := dynamic.NewDynamicClientPool(clientConfig)
+	dclient, err := pool.ClientForGroupVersionResource(schema.GroupVersionResource{
+		Group:    "servicecatalog.k8s.io",
+		Version:  "v1alpha1",
+		Resource: "broker",
+	})
+	if err != nil {
+		return errors.NewError(fmt.Sprintf("failed to create a broker resource client: %v", err))
+	}
+
+	brokerResource := &metav1.APIResource{
+		Name:       "brokers",
+		Namespaced: false,
+		Kind:       "Broker",
+		Verbs:      []string{"create"},
+	}
+	brokerClient := dclient.Resource(brokerResource, "")
+
+	broker := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "servicecatalog.k8s.io/v1alpha1",
+			"kind":       "Broker",
+			"metadata": map[string]interface{}{
+				"name": "template-broker",
+			},
+			"spec": map[string]interface{}{
+				"url": "https://apiserver.openshift-template-service-broker.svc:443/brokers/template.openshift.io",
+				"insecureSkipTLSVerify": true,
+				"authInfo": map[string]interface{}{
+					"bearer": map[string]interface{}{
+						"secretRef": map[string]interface{}{
+							"kind":      "Secret",
+							"name":      "templateservicebroker-client",
+							"namespace": tsbNamespace,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
+		_, err = brokerClient.Create(broker)
+
+		if err != nil {
+			glog.V(2).Infof("retrying registration after error %v", err)
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		return errors.NewError(fmt.Sprintf("failed to register broker with service catalog: %v", err))
 	}
 
 	return nil
