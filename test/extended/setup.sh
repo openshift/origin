@@ -248,6 +248,8 @@ function os::test::extended::merge_junit () {
 	fi
 	local output
 	output="$( mktemp )"
+	# this file isn't junit output and screws up junit merge.
+	rm /data/src/github.com/openshift/origin/_output/scripts/core/artifacts/build-job-clone.xml || true
 	"$( os::util::find::built_binary junitmerge )" "${TEST_REPORT_DIR}"/*.xml > "${output}"
 	rm "${TEST_REPORT_DIR}"/*.xml
 	mv "${output}" "${TEST_REPORT_DIR}/junit.xml"
