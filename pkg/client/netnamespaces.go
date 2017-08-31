@@ -5,7 +5,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 // NetNamespaceInterface has methods to work with NetNamespace resources
@@ -15,10 +15,10 @@ type NetNamespacesInterface interface {
 
 // NetNamespaceInterface exposes methods on NetNamespace resources.
 type NetNamespaceInterface interface {
-	List(opts metav1.ListOptions) (*sdnapi.NetNamespaceList, error)
-	Get(name string, options metav1.GetOptions) (*sdnapi.NetNamespace, error)
-	Create(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
-	Update(sub *sdnapi.NetNamespace) (*sdnapi.NetNamespace, error)
+	List(opts metav1.ListOptions) (*networkapi.NetNamespaceList, error)
+	Get(name string, options metav1.GetOptions) (*networkapi.NetNamespace, error)
+	Create(sub *networkapi.NetNamespace) (*networkapi.NetNamespace, error)
+	Update(sub *networkapi.NetNamespace) (*networkapi.NetNamespace, error)
 	Delete(name string) error
 	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
@@ -36,8 +36,8 @@ func newNetNamespace(c *Client) *netNamespace {
 }
 
 // List returns a list of NetNamespaces that match the label and field selectors.
-func (c *netNamespace) List(opts metav1.ListOptions) (result *sdnapi.NetNamespaceList, err error) {
-	result = &sdnapi.NetNamespaceList{}
+func (c *netNamespace) List(opts metav1.ListOptions) (result *networkapi.NetNamespaceList, err error) {
+	result = &networkapi.NetNamespaceList{}
 	err = c.r.Get().
 		Resource("netNamespaces").
 		VersionedParams(&opts, kapi.ParameterCodec).
@@ -47,22 +47,22 @@ func (c *netNamespace) List(opts metav1.ListOptions) (result *sdnapi.NetNamespac
 }
 
 // Get returns information about a particular NetNamespace or an error
-func (c *netNamespace) Get(netname string, options metav1.GetOptions) (result *sdnapi.NetNamespace, err error) {
-	result = &sdnapi.NetNamespace{}
+func (c *netNamespace) Get(netname string, options metav1.GetOptions) (result *networkapi.NetNamespace, err error) {
+	result = &networkapi.NetNamespace{}
 	err = c.r.Get().Resource("netNamespaces").Name(netname).Do().Into(result)
 	return
 }
 
 // Create creates a new NetNamespace. Returns the server's representation of the NetNamespace and error if one occurs.
-func (c *netNamespace) Create(netNamespace *sdnapi.NetNamespace) (result *sdnapi.NetNamespace, err error) {
-	result = &sdnapi.NetNamespace{}
+func (c *netNamespace) Create(netNamespace *networkapi.NetNamespace) (result *networkapi.NetNamespace, err error) {
+	result = &networkapi.NetNamespace{}
 	err = c.r.Post().Resource("netNamespaces").Body(netNamespace).Do().Into(result)
 	return
 }
 
 // Update updates the NetNamespace. Returns the server's representation of the NetNamespace and error if one occurs.
-func (c *netNamespace) Update(netNamespace *sdnapi.NetNamespace) (result *sdnapi.NetNamespace, err error) {
-	result = &sdnapi.NetNamespace{}
+func (c *netNamespace) Update(netNamespace *networkapi.NetNamespace) (result *networkapi.NetNamespace, err error) {
+	result = &networkapi.NetNamespace{}
 	err = c.r.Put().Resource("netNamespaces").Name(netNamespace.Name).Body(netNamespace).Do().Into(result)
 	return
 }

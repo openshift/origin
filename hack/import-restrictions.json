@@ -173,8 +173,8 @@
 
   {
     "checkedPackages": [
-      "github.com/openshift/origin/pkg/sdn/apis/network",
-      "github.com/openshift/origin/pkg/sdn/apis/network/v1"
+      "github.com/openshift/origin/pkg/network/apis/network",
+      "github.com/openshift/origin/pkg/network/apis/network/v1"
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",

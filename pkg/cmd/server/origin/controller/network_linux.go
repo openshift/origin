@@ -8,7 +8,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	sdnmaster "github.com/openshift/origin/pkg/sdn/master"
+	sdnmaster "github.com/openshift/origin/pkg/network/master"
 )
 
 type SDNControllerConfig struct {

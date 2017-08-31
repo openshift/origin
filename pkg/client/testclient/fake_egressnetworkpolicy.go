@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
 
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 // FakeEgressNetworkPolicy implements EgressNetworkPolicyInterface. Meant to be embedded into a struct to get a default
@@ -19,44 +19,44 @@ type FakeEgressNetworkPolicy struct {
 var egressNetworkPoliciesResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "egressnetworkpolicies"}
 var egressNetworkPoliciesKind = schema.GroupVersionKind{Group: "", Version: "", Kind: "EgressNetworkPolicy"}
 
-func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*sdnapi.EgressNetworkPolicy, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
+func (c *FakeEgressNetworkPolicy) Get(name string, options metav1.GetOptions) (*networkapi.EgressNetworkPolicy, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewGetAction(egressNetworkPoliciesResource, c.Namespace, name), &networkapi.EgressNetworkPolicy{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*sdnapi.EgressNetworkPolicy), err
+	return obj.(*networkapi.EgressNetworkPolicy), err
 }
 
-func (c *FakeEgressNetworkPolicy) List(opts metav1.ListOptions) (*sdnapi.EgressNetworkPolicyList, error) {
-	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, egressNetworkPoliciesKind, c.Namespace, opts), &sdnapi.EgressNetworkPolicyList{})
+func (c *FakeEgressNetworkPolicy) List(opts metav1.ListOptions) (*networkapi.EgressNetworkPolicyList, error) {
+	obj, err := c.Fake.Invokes(clientgotesting.NewListAction(egressNetworkPoliciesResource, egressNetworkPoliciesKind, c.Namespace, opts), &networkapi.EgressNetworkPolicyList{})
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*sdnapi.EgressNetworkPolicyList), err
+	return obj.(*networkapi.EgressNetworkPolicyList), err
 }
 
-func (c *FakeEgressNetworkPolicy) Create(inObj *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error) {
+func (c *FakeEgressNetworkPolicy) Create(inObj *networkapi.EgressNetworkPolicy) (*networkapi.EgressNetworkPolicy, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewCreateAction(egressNetworkPoliciesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*sdnapi.EgressNetworkPolicy), err
+	return obj.(*networkapi.EgressNetworkPolicy), err
 }
 
-func (c *FakeEgressNetworkPolicy) Update(inObj *sdnapi.EgressNetworkPolicy) (*sdnapi.EgressNetworkPolicy, error) {
+func (c *FakeEgressNetworkPolicy) Update(inObj *networkapi.EgressNetworkPolicy) (*networkapi.EgressNetworkPolicy, error) {
 	obj, err := c.Fake.Invokes(clientgotesting.NewUpdateAction(egressNetworkPoliciesResource, c.Namespace, inObj), inObj)
 	if obj == nil {
 		return nil, err
 	}
 
-	return obj.(*sdnapi.EgressNetworkPolicy), err
+	return obj.(*networkapi.EgressNetworkPolicy), err
 }
 
 func (c *FakeEgressNetworkPolicy) Delete(name string) error {
-	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(egressNetworkPoliciesResource, c.Namespace, name), &sdnapi.EgressNetworkPolicy{})
+	_, err := c.Fake.Invokes(clientgotesting.NewDeleteAction(egressNetworkPoliciesResource, c.Namespace, name), &networkapi.EgressNetworkPolicy{})
 	return err
 }
 

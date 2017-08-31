@@ -6754,6 +6754,457 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"network": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Network is a CIDR string specifying the global overlay network's L3 space",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"hostsubnetlength": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"serviceNetwork": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ServiceNetwork is the CIDR range that Service IP addresses are allocated from",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"pluginName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "PluginName is the name of the network plugin being used",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"network", "hostsubnetlength", "serviceNetwork"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ClusterNetworkList is a collection of ClusterNetworks",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Items is the list of cluster networks",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetwork", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "EgressNetworkPolicy describes the current egress network policy for a Namespace. When using the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy is present) then the traffic will be allowed by default.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "metadata for EgressNetworkPolicy",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Description: "spec is the specification of the current egress network policy",
+								Ref:         ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec"),
+							},
+						},
+					},
+					Required: []string{"spec"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "EgressNetworkPolicyList is a collection of EgressNetworkPolicy",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "metadata for EgressNetworkPolicyList",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "items is the list of policies",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
+					Properties: map[string]spec.Schema{
+						"cidrSelector": {
+							SchemaProps: spec.SchemaProps{
+								Description: "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"dnsName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "EgressNetworkPolicyRule contains a single egress network policy rule",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "type marks this as an \"Allow\" or \"Deny\" rule",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"to": {
+							SchemaProps: spec.SchemaProps{
+								Description: "to is the target that traffic is allowed/denied to",
+								Ref:         ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer"),
+							},
+						},
+					},
+					Required: []string{"type", "to"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyPeer"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicySpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "EgressNetworkPolicySpec provides a list of policies on outgoing network traffic",
+					Properties: map[string]spec.Schema{
+						"egress": {
+							SchemaProps: spec.SchemaProps{
+								Description: "egress contains the list of egress policy rules",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"egress"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.EgressNetworkPolicyRule"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"host": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"hostIP": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"subnet": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"host", "hostIP", "subnet"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnetList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "HostSubnetList is a collection of HostSubnets",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Items is the list of host subnets",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.HostSubnet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"netname": {
+							SchemaProps: spec.SchemaProps{
+								Description: "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"netid": {
+							SchemaProps: spec.SchemaProps{
+								Description: "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+					},
+					Required: []string{"netname", "netid"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespaceList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "NetNamespaceList is a collection of NetNamespaces",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Items is the list of net namespaces",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/network/apis/network/v1.NetNamespace", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
 		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1.ClusterRoleScopeRestriction": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -8306,457 +8757,6 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 				},
 			},
 			Dependencies: []string{},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetwork": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-							},
-						},
-						"network": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Network is a CIDR string specifying the global overlay network's L3 space",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"hostsubnetlength": {
-							SchemaProps: spec.SchemaProps{
-								Description: "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"serviceNetwork": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ServiceNetwork is the CIDR range that Service IP addresses are allocated from",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"pluginName": {
-							SchemaProps: spec.SchemaProps{
-								Description: "PluginName is the name of the network plugin being used",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"network", "hostsubnetlength", "serviceNetwork"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetworkList": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "ClusterNetworkList is a collection of ClusterNetworks",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-							},
-						},
-						"items": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Items is the list of cluster networks",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetwork"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"items"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.ClusterNetwork", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicy": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "EgressNetworkPolicy describes the current egress network policy for a Namespace. When using the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address outside the cluster will be checked against each EgressNetworkPolicyRule in the pod's namespace's EgressNetworkPolicy, in order. If no rule matches (or no EgressNetworkPolicy is present) then the traffic will be allowed by default.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "metadata for EgressNetworkPolicy",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-							},
-						},
-						"spec": {
-							SchemaProps: spec.SchemaProps{
-								Description: "spec is the specification of the current egress network policy",
-								Ref:         ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicySpec"),
-							},
-						},
-					},
-					Required: []string{"spec"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicySpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyList": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "EgressNetworkPolicyList is a collection of EgressNetworkPolicy",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "metadata for EgressNetworkPolicyList",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-							},
-						},
-						"items": {
-							SchemaProps: spec.SchemaProps{
-								Description: "items is the list of policies",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicy"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"items"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyPeer": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "EgressNetworkPolicyPeer specifies a target to apply egress network policy to",
-					Properties: map[string]spec.Schema{
-						"cidrSelector": {
-							SchemaProps: spec.SchemaProps{
-								Description: "cidrSelector is the CIDR range to allow/deny traffic to. If this is set, dnsName must be unset",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"dnsName": {
-							SchemaProps: spec.SchemaProps{
-								Description: "dnsName is the domain name to allow/deny traffic to. If this is set, cidrSelector must be unset",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyRule": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "EgressNetworkPolicyRule contains a single egress network policy rule",
-					Properties: map[string]spec.Schema{
-						"type": {
-							SchemaProps: spec.SchemaProps{
-								Description: "type marks this as an \"Allow\" or \"Deny\" rule",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"to": {
-							SchemaProps: spec.SchemaProps{
-								Description: "to is the target that traffic is allowed/denied to",
-								Ref:         ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyPeer"),
-							},
-						},
-					},
-					Required: []string{"type", "to"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyPeer"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicySpec": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "EgressNetworkPolicySpec provides a list of policies on outgoing network traffic",
-					Properties: map[string]spec.Schema{
-						"egress": {
-							SchemaProps: spec.SchemaProps{
-								Description: "egress contains the list of egress policy rules",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyRule"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"egress"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.EgressNetworkPolicyRule"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnet": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-							},
-						},
-						"host": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"hostIP": {
-							SchemaProps: spec.SchemaProps{
-								Description: "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"subnet": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"host", "hostIP", "subnet"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnetList": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "HostSubnetList is a collection of HostSubnets",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-							},
-						},
-						"items": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Items is the list of host subnets",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnet"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"items"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.HostSubnet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespace": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-							},
-						},
-						"netname": {
-							SchemaProps: spec.SchemaProps{
-								Description: "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"netid": {
-							SchemaProps: spec.SchemaProps{
-								Description: "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-					},
-					Required: []string{"netname", "netid"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-		},
-		"github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespaceList": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "NetNamespaceList is a collection of NetNamespaces",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-							},
-						},
-						"items": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Items is the list of net namespaces",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespace"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"items"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/sdn/apis/network/v1.NetNamespace", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 		},
 		"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions": {
 			Schema: spec.Schema{

@@ -33,13 +33,13 @@ import (
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
-	onetworkclient "github.com/openshift/origin/pkg/sdn/generated/internalclientset/typed/network/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -97,10 +97,10 @@ func describerMap(clientConfig *rest.Config, c *client.Client, kclient kclientse
 		userapi.Kind("UserIdentityMapping"):             &UserIdentityMappingDescriber{userClient},
 		quotaapi.Kind("ClusterResourceQuota"):           &ClusterQuotaDescriber{quotaClient},
 		quotaapi.Kind("AppliedClusterResourceQuota"):    &AppliedClusterQuotaDescriber{quotaClient},
-		sdnapi.Kind("ClusterNetwork"):                   &ClusterNetworkDescriber{onetworkClient},
-		sdnapi.Kind("HostSubnet"):                       &HostSubnetDescriber{onetworkClient},
-		sdnapi.Kind("NetNamespace"):                     &NetNamespaceDescriber{onetworkClient},
-		sdnapi.Kind("EgressNetworkPolicy"):              &EgressNetworkPolicyDescriber{onetworkClient},
+		networkapi.Kind("ClusterNetwork"):               &ClusterNetworkDescriber{onetworkClient},
+		networkapi.Kind("HostSubnet"):                   &HostSubnetDescriber{onetworkClient},
+		networkapi.Kind("NetNamespace"):                 &NetNamespaceDescriber{onetworkClient},
+		networkapi.Kind("EgressNetworkPolicy"):          &EgressNetworkPolicyDescriber{onetworkClient},
 		securityapi.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{kclient},
 	}
 

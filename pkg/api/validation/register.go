@@ -5,11 +5,11 @@ import (
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
 	deployvalidation "github.com/openshift/origin/pkg/deploy/apis/apps/validation"
 	imagevalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
+	sdnvalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
 	projectvalidation "github.com/openshift/origin/pkg/project/apis/project/validation"
 	quotavalidation "github.com/openshift/origin/pkg/quota/apis/quota/validation"
 	routevalidation "github.com/openshift/origin/pkg/route/apis/route/validation"
-	sdnvalidation "github.com/openshift/origin/pkg/sdn/apis/network/validation"
 	securityvalidation "github.com/openshift/origin/pkg/security/apis/security/validation"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
@@ -19,11 +19,11 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -86,10 +86,10 @@ func registerAll() {
 
 	Validator.MustRegister(&routeapi.Route{}, routevalidation.ValidateRoute, routevalidation.ValidateRouteUpdate)
 
-	Validator.MustRegister(&sdnapi.ClusterNetwork{}, sdnvalidation.ValidateClusterNetwork, sdnvalidation.ValidateClusterNetworkUpdate)
-	Validator.MustRegister(&sdnapi.HostSubnet{}, sdnvalidation.ValidateHostSubnet, sdnvalidation.ValidateHostSubnetUpdate)
-	Validator.MustRegister(&sdnapi.NetNamespace{}, sdnvalidation.ValidateNetNamespace, sdnvalidation.ValidateNetNamespaceUpdate)
-	Validator.MustRegister(&sdnapi.EgressNetworkPolicy{}, sdnvalidation.ValidateEgressNetworkPolicy, sdnvalidation.ValidateEgressNetworkPolicyUpdate)
+	Validator.MustRegister(&networkapi.ClusterNetwork{}, sdnvalidation.ValidateClusterNetwork, sdnvalidation.ValidateClusterNetworkUpdate)
+	Validator.MustRegister(&networkapi.HostSubnet{}, sdnvalidation.ValidateHostSubnet, sdnvalidation.ValidateHostSubnetUpdate)
+	Validator.MustRegister(&networkapi.NetNamespace{}, sdnvalidation.ValidateNetNamespace, sdnvalidation.ValidateNetNamespaceUpdate)
+	Validator.MustRegister(&networkapi.EgressNetworkPolicy{}, sdnvalidation.ValidateEgressNetworkPolicy, sdnvalidation.ValidateEgressNetworkPolicyUpdate)
 
 	Validator.MustRegister(&templateapi.Template{}, templatevalidation.ValidateTemplate, templatevalidation.ValidateTemplateUpdate)
 	Validator.MustRegister(&templateapi.TemplateInstance{}, templatevalidation.ValidateTemplateInstance, templatevalidation.ValidateTemplateInstanceUpdate)
