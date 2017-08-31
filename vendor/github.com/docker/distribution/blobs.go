@@ -198,7 +198,9 @@ type CreateOptions struct {
 	Mount struct {
 		ShouldMount bool
 		From        reference.Canonical
-		Stat        *Descriptor
+		// Stat allows to pass precalculated descriptor to link and return.
+		// Blob access check will be skipped if set.
+		Stat *Descriptor
 	}
 }
 
