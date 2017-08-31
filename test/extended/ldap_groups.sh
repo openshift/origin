@@ -105,6 +105,7 @@ schema=('rfc2307' 'ad' 'augmented-ad')
 for (( i=0; i<${#schema[@]}; i++ )); do
 	current_schema=${schema[$i]}
 	os::log::info "Testing schema: ${current_schema}"
+	os::test::junit::declare_suite_start "extended/ldap-groups/${current_schema}"
 
 	WORKINGDIR=${BASETMPDIR}/${current_schema}
 	mkdir ${WORKINGDIR}
@@ -209,6 +210,14 @@ for (( i=0; i<${#schema[@]}; i++ )); do
     oc adm groups sync --sync-config=sync-config-dn-everywhere.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync_dn_everywhere.yaml
 
+	echo -e "\tTEST: Sync based on OpenShift groups respecting OpenShift mappings and whitelist file"
+	os::cmd::expect_success_and_text 'oc adm groups sync --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
+	os::cmd::expect_success_and_text 'oc adm groups sync --type=openshift --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
+	os::cmd::expect_success_and_text 'oc delete groups --all' 'deleted'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name} | wc -l' '0'
+
 
 	# PRUNING
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server, change LDAP UID, then prune OpenShift groups"
@@ -217,11 +226,25 @@ for (( i=0; i<${#schema[@]}; i++ )); do
 	oc adm groups prune --sync-config=sync-config.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync_prune.yaml
 
+	echo -e "\tTEST: Sync all LDAP groups from LDAP server using whitelist file, then prune OpenShift groups using the same whitelist file"
+	os::cmd::expect_success_and_text 'oc adm groups sync --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
+	os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm | wc -l' '0'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup secondgroup thirdgroup'
+	os::cmd::expect_success_and_text 'oc patch group secondgroup -p "{\"metadata\":{\"annotations\":{\"openshift.io/ldap.uid\":\"cn=garbage\"}}}"' 'group "secondgroup" patched'
+	os::cmd::expect_success_and_text 'oc adm groups prune --whitelist=ldapgroupuids.txt --sync-config=sync-config-user-defined.yaml --confirm' 'group/secondgroup'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name}' 'firstgroup thirdgroup'
+	os::cmd::expect_success_and_text 'oc delete groups --all' 'deleted'
+	os::cmd::expect_success_and_text 'oc get group -o jsonpath={.items[*].metadata.name} | wc -l' '0'
+
+
 	# PAGING
 	echo -e "\tTEST: Sync all LDAP groups from LDAP server using paged queries"
 	oc adm groups sync --sync-config=sync-config-paging.yaml --confirm
 	compare_and_cleanup valid_all_ldap_sync.yaml
 
+
+	os::test::junit::declare_suite_end
     popd > /dev/null
 done
 
