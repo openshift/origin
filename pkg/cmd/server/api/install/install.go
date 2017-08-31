@@ -21,8 +21,6 @@ import (
 	_ "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api/install"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/cmd/server/api"
-
 var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
