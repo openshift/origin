@@ -39,8 +39,6 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
-			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
 			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "cakephp-mysql-example", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -62,7 +60,7 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			assertPageCountIs(1)
 			assertPageCountIs(2)
 
-			g.By("modifying the source code with disabled hot deploy")
+			g.By("modifying the source code with hot deploy enabled")
 			err = RunInPodContainer(oc, dcLabel, modifyCommand)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			g.By("checking page count after modifying the source code")
