@@ -1,4 +1,4 @@
-package controller
+package start
 
 import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"

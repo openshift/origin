@@ -7,7 +7,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	clientgoclientset "k8s.io/client-go/kubernetes"
-	kubecontroller "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
@@ -18,7 +17,9 @@ type HorizontalPodAutoscalerControllerConfig struct {
 	HeapsterNamespace string
 }
 
-func (c *HorizontalPodAutoscalerControllerConfig) RunController(ctx kubecontroller.ControllerContext) (bool, error) {
+func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx ControllerContext) (bool, error) {
+	ctx := originCtx.KubeControllerContext
+
 	hpaClientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraHorizontalPodAutoscalerControllerServiceAccountName)
 
 	hpaClient, err := kubeclientset.NewForConfig(hpaClientConfig)

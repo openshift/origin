@@ -27,6 +27,7 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
+	kubecontroller "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
@@ -34,6 +35,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/master"
+	"k8s.io/kubernetes/pkg/volume"
 	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
@@ -46,7 +48,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
-	kubecontrollers "github.com/openshift/origin/pkg/cmd/server/kubernetes/master/controller"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
@@ -406,11 +407,13 @@ func (m *Master) Start() error {
 			return err
 		}
 
-		// you can't double run healthz, so only do this next bit if we aren't starting the API
+		imageTemplate := variable.NewDefaultImageTemplate()
+		imageTemplate.Format = m.config.ImageConfig.Format
+		imageTemplate.Latest = m.config.ImageConfig.Latest
+		volume.NewPersistentVolumeRecyclerPodTemplate = newPersistentVolumeRecyclerPodTemplate(imageTemplate.ExpandOrDie("recycler"))
+
 		if !m.api {
-			imageTemplate := variable.NewDefaultImageTemplate()
-			imageTemplate.Format = m.config.ImageConfig.Format
-			imageTemplate.Latest = m.config.ImageConfig.Latest
+			// you can't double run healthz, so only do this next bit if we aren't starting the API
 
 			glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 			if len(m.config.DisabledFeatures) > 0 {
@@ -655,10 +658,6 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 	if err != nil {
 		return err
 	}
-	kubeControllerConfig, err := kubecontrollers.BuildKubeControllerConfig(options)
-	if err != nil {
-		return err
-	}
 
 	// We need to start the serviceaccount-tokens controller first as it provides token
 	// generation for other controllers.
@@ -703,10 +702,8 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 
 	allocationController.RunSecurityAllocationController()
 
-	kubernetesControllerInitializers, err := kubeControllerConfig.GetControllerInitializers()
-	if err != nil {
-		return err
-	}
+	// set the upstream default until it is configurable
+	kubernetesControllerInitializers := kubecontroller.NewControllerInitializers()
 	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
 	if err != nil {
 		return err
@@ -757,6 +754,8 @@ func getExcludedControllers(options configapi.MasterConfig) sets.String {
 		"ttl",
 		"bootstrapsigner",
 		"tokencleaner",
+		// remove the HPA controller until it is generic
+		"horizontalpodautoscaling",
 	)
 	if !configapi.IsBuildEnabled(&options) {
 		excludedControllers.Insert("openshift.io/build")
