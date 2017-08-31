@@ -186,6 +186,12 @@ func (r *REST) Get(ctx apirequest.Context, name string, opts runtime.Object) (ru
 		// until they have all run, unless we see one of them fail.
 		// If we aren't following the logs, we will run through all the init containers exactly once.
 		for waitForInitContainers {
+			select {
+			case <-ctx.Done():
+				glog.V(4).Infof("timed out while iterating on build init containers for build pod %s/%s", build.Namespace, buildPodName)
+				return
+			default:
+			}
 			glog.V(4).Infof("iterating through build init containers for build pod %s/%s", build.Namespace, buildPodName)
 
 			// assume we are not going to need to iterate again until proven otherwise

@@ -301,12 +301,12 @@ func SetFakeContainerManagerInterfaceForIntegrationTest() {
 	defaultContainerManagerInterface = cm.NewStubContainerManager()
 }
 
-// RunPlugin starts the local SDN plugin, if enabled in configuration.
-func (c *NodeConfig) RunPlugin() {
-	if c.SDNPlugin == nil {
+// RunSDN starts the SDN, if the OpenShift SDN network plugin is enabled in configuration.
+func (c *NodeConfig) RunSDN() {
+	if c.SDNNode == nil {
 		return
 	}
-	if err := c.SDNPlugin.Start(); err != nil {
+	if err := c.SDNNode.Start(); err != nil {
 		glog.Fatalf("error: SDN node startup failed: %v", err)
 	}
 }

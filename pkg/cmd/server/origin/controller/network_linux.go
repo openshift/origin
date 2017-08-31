@@ -8,7 +8,7 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	sdnplugin "github.com/openshift/origin/pkg/sdn/plugin"
+	sdnmaster "github.com/openshift/origin/pkg/sdn/master"
 )
 
 type SDNControllerConfig struct {
@@ -29,7 +29,7 @@ func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error)
 	if err != nil {
 		return false, err
 	}
-	err = sdnplugin.StartMaster(
+	err = sdnmaster.Start(
 		c.NetworkConfig,
 		osClient,
 		kClient,
