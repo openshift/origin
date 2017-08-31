@@ -175,6 +175,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 
 	buildClient := buildclient.NewOSClientBuildClient(params.OpenshiftClient)
 	buildLister := params.BuildInformer.Lister()
+	clientBuildLister := buildclient.NewOSClientBuildLister(params.OpenshiftClient)
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
 		buildPatcher:      buildClient,
@@ -201,7 +202,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		imageStreamQueue: newResourceTriggerQueue(),
 
 		recorder:    eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-controller"}),
-		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
+		runPolicies: policy.GetAllRunPolicies(clientBuildLister, buildClient),
 	}
 
 	c.podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
