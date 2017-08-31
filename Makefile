@@ -24,6 +24,21 @@ export OS_BUILD_IMAGE_ARGS
 # assume the user wants jUnit output and will turn it off if they don't.
 JUNIT_REPORT ?= true
 
+# Build the base images for the current host architecture
+# Example:
+#   make build-base-images
+build-base-images:
+	hack/build-base-images.sh
+.PHONY: build-base-images
+
+# Build the base images for all supported architectures
+# Example:
+#   make build-base-images-cross
+build-base-images-cross: export OS_BUILD_ARCHES=$(shell bash -c 'source hack/lib/init.sh; echo $${OS_BUILD_SUPPORTED_ARCHES[@]}')
+build-base-images-cross:
+	hack/build-base-images.sh
+.PHONY: build-base-images-cross
+
 # Build code.
 #
 # Args:
@@ -291,7 +306,7 @@ build-rpms-redistributable:
 .PHONY: build-rpms-redistributable
 
 # Build images from the official RPMs
-# 
+#
 # Args:
 #
 # Example:
