@@ -36,41 +36,7 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 	)
 
 	g.BeforeEach(func() {
-		ns = oc.KubeFramework().Namespace.Name
-		host = "prometheus.kube-system.svc"
-		statsPort = 443
-		mustCreate := false
-		if _, err := oc.AdminKubeClient().Extensions().Deployments("kube-system").Get("prometheus", metav1.GetOptions{}); err != nil {
-			if !kapierrs.IsNotFound(err) {
-				o.Expect(err).NotTo(o.HaveOccurred())
-			}
-			mustCreate = true
-		}
-
-		if mustCreate {
-			e2e.Logf("Installing Prometheus onto the cluster for testing")
-			configPath := exutil.FixturePath("..", "..", "examples", "prometheus", "prometheus.yaml")
-			stdout, _, err := oc.WithoutNamespace().Run("process").Args("-f", configPath).Outputs()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-			e2e.WaitForDeploymentStatus(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
-		}
-
-		waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
-		secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
-		o.Expect(err).NotTo(o.HaveOccurred())
-		for _, secret := range secrets.Items {
-			if secret.Type != v1.SecretTypeServiceAccountToken {
-				continue
-			}
-			if !strings.HasPrefix(secret.Name, "prometheus-") {
-				continue
-			}
-			bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
-			break
-		}
-		o.Expect(bearerToken).ToNot(o.BeEmpty())
+		ns, host, bearerToken, statsPort = bringUpPrometheusFromTemplate(oc)
 	})
 
 	g.Describe("when installed to the cluster", func() {
@@ -313,4 +279,44 @@ func waitForServiceAccountInNamespace(c clientset.Interface, ns, serviceAccountN
 	}
 	_, err = watch.Until(timeout, w, conditions.ServiceAccountHasSecrets)
 	return err
+}
+
+func bringUpPrometheusFromTemplate(oc *exutil.CLI) (ns, host, bearerToken string, statsPort int) {
+	ns = oc.KubeFramework().Namespace.Name
+	host = "prometheus.kube-system.svc"
+	statsPort = 443
+	mustCreate := false
+	if _, err := oc.AdminKubeClient().Extensions().Deployments("kube-system").Get("prometheus", metav1.GetOptions{}); err != nil {
+		if !kapierrs.IsNotFound(err) {
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+		mustCreate = true
+	}
+
+	if mustCreate {
+		e2e.Logf("Installing Prometheus onto the cluster for testing")
+		configPath := exutil.FixturePath("..", "..", "examples", "prometheus", "prometheus.yaml")
+		stdout, _, err := oc.WithoutNamespace().Run("process").Args("-f", configPath).Outputs()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		err = oc.WithoutNamespace().AsAdmin().Run("create").Args("-f", "-").InputString(stdout).Execute()
+		o.Expect(err).NotTo(o.HaveOccurred())
+		e2e.WaitForDeploymentStatus(oc.AdminKubeClient(), &extensions.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "prometheus", Namespace: "kube-system"}})
+	}
+
+	waitForServiceAccountInNamespace(oc.AdminKubeClient(), "kube-system", "prometheus", 2*time.Minute)
+	secrets, err := oc.AdminKubeClient().Core().Secrets("kube-system").List(metav1.ListOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+	for _, secret := range secrets.Items {
+		if secret.Type != v1.SecretTypeServiceAccountToken {
+			continue
+		}
+		if !strings.HasPrefix(secret.Name, "prometheus-") {
+			continue
+		}
+		bearerToken = string(secret.Data[v1.ServiceAccountTokenKey])
+		break
+	}
+	o.Expect(bearerToken).ToNot(o.BeEmpty())
+
+	return
 }

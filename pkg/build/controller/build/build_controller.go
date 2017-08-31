@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -240,6 +241,8 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	for i := 0; i < workers; i++ {
 		go wait.Until(bc.worker, time.Second, stopCh)
 	}
+
+	metrics.IntializeMetricsCollector(bc.buildLister)
 
 	<-stopCh
 	glog.Infof("Shutting down build controller")
