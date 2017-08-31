@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 )
 
@@ -90,10 +91,11 @@ type ImportImageOptions struct {
 	CommandName string
 
 	// helpers
-	out      io.Writer
-	errout   io.Writer
-	osClient client.Interface
-	isClient client.ImageStreamInterface
+	out         io.Writer
+	errout      io.Writer
+	osClient    client.Interface
+	isClient    client.ImageStreamInterface
+	imageClient imageclient.ImageInterface
 }
 
 // Complete turns a partially defined ImportImageOptions into a solvent structure
@@ -126,6 +128,16 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	o.isClient = osClient.ImageStreams(namespace)
 	o.out = out
 	o.errout = errout
+
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	imageClient, err := imageclient.NewForConfig(clientConfig)
+	if err != nil {
+		return err
+	}
+	o.imageClient = imageClient
 
 	return nil
 }
@@ -258,7 +270,7 @@ func (o *ImportImageOptions) Run() error {
 
 	fmt.Fprint(o.out, "The import completed successfully.\n\n")
 
-	d := describe.ImageStreamDescriber{Interface: o.osClient}
+	d := describe.ImageStreamDescriber{ImageClient: o.imageClient}
 	info, err := d.Describe(updatedStream.Namespace, updatedStream.Name, kprinters.DescriberSettings{})
 	if err != nil {
 		return err
