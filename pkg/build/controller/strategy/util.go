@@ -133,7 +133,7 @@ func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPa
 func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSecret *kapi.LocalObjectReference, imageSources []buildapi.ImageSource) {
 	if pushSecret != nil {
 		mountSecretVolume(pod, container, pushSecret.Name, DockerPushSecretMountPath, "push")
-		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []v1.EnvVar{
+		container.Env = append(container.Env, []v1.EnvVar{
 			{Name: dockercfg.PushAuthType, Value: DockerPushSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker push in %s", DockerPushSecretMountPath, pod.Name)
@@ -141,7 +141,7 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 
 	if pullSecret != nil {
 		mountSecretVolume(pod, container, pullSecret.Name, DockerPullSecretMountPath, "pull")
-		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []v1.EnvVar{
+		container.Env = append(container.Env, []v1.EnvVar{
 			{Name: dockercfg.PullAuthType, Value: DockerPullSecretMountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", DockerPullSecretMountPath, pod.Name)
@@ -153,7 +153,7 @@ func setupDockerSecrets(pod *v1.Pod, container *v1.Container, pushSecret, pullSe
 		}
 		mountPath := filepath.Join(SourceImagePullSecretMountPath, strconv.Itoa(i))
 		mountSecretVolume(pod, container, imageSource.PullSecret.Name, mountPath, fmt.Sprintf("%s%d", "source-image", i))
-		pod.Spec.Containers[0].Env = append(pod.Spec.Containers[0].Env, []v1.EnvVar{
+		container.Env = append(container.Env, []v1.EnvVar{
 			{Name: fmt.Sprintf("%s%d", dockercfg.PullSourceAuthType, i), Value: mountPath},
 		}...)
 		glog.V(3).Infof("%s will be used for docker pull in %s", mountPath, pod.Name)

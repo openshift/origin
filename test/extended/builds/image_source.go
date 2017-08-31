@@ -36,8 +36,12 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			err := oc.Run("create").Args("-f", buildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("starting building the private input image")
+			br, err := exutil.StartBuildAndWait(oc, "inputimage")
+			br.AssertSuccess()
+
 			g.By("starting the source strategy build")
-			br, err := exutil.StartBuildAndWait(oc, "imagesourcebuild")
+			br, err = exutil.StartBuildAndWait(oc, "imagesourcebuild")
 			br.AssertSuccess()
 
 			g.By("expecting the pod to deploy successfully")
@@ -59,8 +63,12 @@ var _ = g.Describe("[builds][Slow] build can have Docker image source", func() {
 			err := oc.Run("create").Args("-f", buildFixture).Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("starting building the private input image")
+			br, err := exutil.StartBuildAndWait(oc, "inputimage")
+			br.AssertSuccess()
+
 			g.By("starting the docker strategy build")
-			br, err := exutil.StartBuildAndWait(oc, "imagedockerbuild")
+			br, err = exutil.StartBuildAndWait(oc, "imagedockerbuild")
 			br.AssertSuccess()
 
 			g.By("expect the pod to deploy successfully")

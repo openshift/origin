@@ -9915,6 +9915,25 @@ items:
   kind: BuildConfig
   metadata:
     labels:
+      build: inputimage
+    name: inputimage
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: inputimage:latest
+    source:
+      dockerfile: "FROM foo"
+    strategy:
+      dockerStrategy:
+        from: 
+          kind: ImageStreamTag
+          name: ruby:2.3
+          namespace: openshift
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
       build: imagesourcebuild
     name: imagesourcebuild
   spec:
@@ -9928,8 +9947,7 @@ items:
       images:
       - from:
           kind: ImageStreamTag
-          name: ruby:2.3
-          namespace: openshift
+          name: inputimage:latest
         paths:
         - destinationDir: injected/dir
           sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
@@ -9957,13 +9975,19 @@ items:
       images:
       - from:
           kind: ImageStreamTag
-          name: ruby:2.3
-          namespace: openshift
+          name: inputimage:latest
         paths:
         - destinationDir: injected/dir
           sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
     strategy:
-      dockerStrategy: {}
+      dockerStrategy:
+        forcePull: true
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: inputimage
+  spec: {}
 - apiVersion: v1
   kind: ImageStream
   metadata:
