@@ -4,8 +4,6 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
-	"k8s.io/kubernetes/test/e2e/framework"
-
 	deployutil "github.com/openshift/origin/test/extended/deployments"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -39,7 +37,6 @@ var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 	})
 
 	g.It("should succeed with a --name of 58 characters", func() {
-		framework.SkipIfProviderIs("gce")
 		g.By("calling oc new-app")
 		err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a58).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -57,7 +54,6 @@ var _ = g.Describe("[builds][Conformance] oc new-app", func() {
 	})
 
 	g.It("should fail with a --name longer than 58 characters", func() {
-		framework.SkipIfProviderIs("gce")
 		g.By("calling oc new-app")
 		out, err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a59).Output()
 		o.Expect(err).To(o.HaveOccurred())
