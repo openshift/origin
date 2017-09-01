@@ -220,6 +220,16 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 	failUnsafeSysctlFooPod := defaultPod()
 	failUnsafeSysctlFooPod.Annotations[api.UnsafeSysctlsPodAnnotationKey] = "foo=1"
 
+	failHostDirPod := defaultPod()
+	failHostDirPod.Spec.Volumes = []api.Volume{
+		{
+			Name: "bad volume",
+			VolumeSource: api.VolumeSource{
+				HostPath: &api.HostPathVolumeSource{},
+			},
+		},
+	}
+
 	errorCases := map[string]struct {
 		pod           *api.Pod
 		scc           *securityapi.SecurityContextConstraints
@@ -300,6 +310,11 @@ func TestValidatePodSecurityContextFailures(t *testing.T) {
 			scc:           failOtherSysctlsAllowedSCC,
 			expectedError: "sysctl \"foo\" is not allowed",
 		},
+		"failHostDirSCC": {
+			pod:           failHostDirPod,
+			scc:           defaultSCC(),
+			expectedError: "hostPath volumes are not allowed to be used",
+		},
 	}
 	for k, v := range errorCases {
 		provider, err := NewSimpleProvider(v.scc)
@@ -351,16 +366,6 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 		Add: []api.Capability{"foo"},
 	}
 
-	failHostDirPod := defaultPod()
-	failHostDirPod.Spec.Volumes = []api.Volume{
-		{
-			Name: "bad volume",
-			VolumeSource: api.VolumeSource{
-				HostPath: &api.HostPathVolumeSource{},
-			},
-		},
-	}
-
 	failHostPortPod := defaultPod()
 	failHostPortPod.Spec.Containers[0].Ports = []api.ContainerPort{{HostPort: 1}}
 
@@ -405,11 +410,6 @@ func TestValidateContainerSecurityContextFailures(t *testing.T) {
 			pod:           failCapsPod,
 			scc:           defaultSCC(),
 			expectedError: "capability may not be added",
-		},
-		"failHostDirSCC": {
-			pod:           failHostDirPod,
-			scc:           defaultSCC(),
-			expectedError: "hostPath volumes are not allowed to be used",
 		},
 		"failHostPortSCC": {
 			pod:           failHostPortPod,
@@ -926,7 +926,7 @@ func TestValidateAllowedVolumes(t *testing.T) {
 		}
 
 		// expect a denial for this SCC and test the error message to ensure it's related to the volumesource
-		errs := provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		errs := provider.ValidatePodSecurityContext(pod, field.NewPath(""))
 		if len(errs) != 1 {
 			t.Errorf("expected exactly 1 error for %s but got %v", fieldVal.Name, errs)
 		} else {
@@ -937,14 +937,14 @@ func TestValidateAllowedVolumes(t *testing.T) {
 
 		// now add the fstype directly to the scc and it should validate
 		scc.Volumes = []securityapi.FSType{fsType}
-		errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		errs = provider.ValidatePodSecurityContext(pod, field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("directly allowing volume expected no errors for %s but got %v", fieldVal.Name, errs)
 		}
 
 		// now change the scc to allow any volumes and the pod should still validate
 		scc.Volumes = []securityapi.FSType{securityapi.FSTypeAll}
-		errs = provider.ValidateContainerSecurityContext(pod, &pod.Spec.Containers[0], field.NewPath(""))
+		errs = provider.ValidatePodSecurityContext(pod, field.NewPath(""))
 		if len(errs) != 0 {
 			t.Errorf("wildcard volume expected no errors for %s but got %v", fieldVal.Name, errs)
 		}

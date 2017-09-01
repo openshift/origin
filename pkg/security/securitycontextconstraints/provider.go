@@ -269,6 +269,23 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 
 	allErrs = append(allErrs, s.sysctlsStrategy.Validate(pod)...)
 
+	if len(pod.Spec.Volumes) > 0 && !sccutil.SCCAllowsAllVolumes(s.scc) {
+		allowedVolumes := sccutil.FSTypeToStringSet(s.scc.Volumes)
+		for i, v := range pod.Spec.Volumes {
+			fsType, err := sccutil.GetVolumeFSType(v)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "volumes").Index(i), string(fsType), err.Error()))
+				continue
+			}
+
+			if !allowedVolumes.Has(string(fsType)) {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "volumes").Index(i), string(fsType),
+					fmt.Sprintf("%s volumes are not allowed to be used", string(fsType))))
+			}
+		}
+	}
+
 	return allErrs
 }
 
@@ -291,23 +308,6 @@ func (s *simpleProvider) ValidateContainerSecurityContext(pod *api.Pod, containe
 	}
 
 	allErrs = append(allErrs, s.capabilitiesStrategy.Validate(pod, container)...)
-
-	if len(pod.Spec.Volumes) > 0 && !sccutil.SCCAllowsAllVolumes(s.scc) {
-		allowedVolumes := sccutil.FSTypeToStringSet(s.scc.Volumes)
-		for i, v := range pod.Spec.Volumes {
-			fsType, err := sccutil.GetVolumeFSType(v)
-			if err != nil {
-				allErrs = append(allErrs, field.Invalid(fldPath.Child("volumes").Index(i), string(fsType), err.Error()))
-				continue
-			}
-
-			if !allowedVolumes.Has(string(fsType)) {
-				allErrs = append(allErrs, field.Invalid(
-					fldPath.Child("volumes").Index(i), string(fsType),
-					fmt.Sprintf("%s volumes are not allowed to be used", string(fsType))))
-			}
-		}
-	}
 
 	if !s.scc.AllowHostNetwork && pod.Spec.SecurityContext.HostNetwork {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("hostNetwork"), pod.Spec.SecurityContext.HostNetwork, "Host network is not allowed to be used"))
