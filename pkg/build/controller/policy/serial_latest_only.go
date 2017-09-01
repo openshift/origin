@@ -45,11 +45,6 @@ func (s *SerialLatestOnlyPolicy) IsRunnable(build *buildapi.Build) (bool, error)
 	return len(nextBuilds) == 1 && nextBuilds[0].Name == build.Name, err
 }
 
-// IsRunnable implements the Scheduler interface.
-func (s *SerialLatestOnlyPolicy) OnComplete(build *buildapi.Build) error {
-	return handleComplete(s.BuildLister, s.BuildUpdater, build)
-}
-
 // Handles returns true for the build run serial latest only policy
 func (s *SerialLatestOnlyPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
 	return policy == buildapi.BuildRunPolicySerialLatestOnly
