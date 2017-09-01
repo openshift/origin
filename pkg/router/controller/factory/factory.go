@@ -85,7 +85,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		field:     factory.Fields,
 		label:     factory.Labels,
 	}
-	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+	cache.NewReflector(&cache.ListWatch{ListFunc: rLW.List, WatchFunc: rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointsEventQueue := oscache.NewEventQueue(routerKeyFn)
 	cache.NewReflector(&endpointsLW{
@@ -223,7 +223,7 @@ func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByH
 		field:     factory.Fields,
 		label:     factory.Labels,
 	}
-	cache.NewReflector(&cache.ListWatch{rLW.List, rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
+	cache.NewReflector(&cache.ListWatch{ListFunc: rLW.List, WatchFunc: rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointStore := cache.NewStore(keyFn)
 	endpointsEventQueue := oscache.NewEventQueueForStore(keyFn, endpointStore)
