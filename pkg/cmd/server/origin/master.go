@@ -290,6 +290,7 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 			handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
 			handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
 			// audit handler must comes before the impersonationFilter to read the original user
+			var auditPolicyChecker auditpolicy.Checker
 			if c.Options.AuditConfig.Enabled {
 				var writer io.Writer
 				if len(c.Options.AuditConfig.AuditFilePath) > 0 {
@@ -304,14 +305,18 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 					writer = cmdutil.NewGLogWriterV(0)
 				}
 				c.AuditBackend = auditlog.NewBackend(writer)
-				auditPolicyChecker := auditpolicy.NewChecker(&auditinternal.Policy{
+				auditPolicyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
 					// This is for backwards compatibility maintaining the old visibility, ie. just
 					// raw overview of the requests comming in.
 					Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
 				})
 				handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
 			}
-			handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper)
+			var failedHandler http.Handler = apifilters.Unauthorized(false)
+			if c.Options.AuditConfig.Enabled {
+				failedHandler = apifilters.WithFailedAuthenticationAudit(failedHandler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker)
+			}
+			handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper, failedHandler)
 			handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
 			handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
 			// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
