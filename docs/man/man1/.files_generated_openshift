@@ -201,6 +201,7 @@ openshift-cli-apply-view-last-applied.1
 openshift-cli-apply.1
 openshift-cli-attach.1
 openshift-cli-auth-can-i.1
+openshift-cli-auth-reconcile.1
 openshift-cli-auth.1
 openshift-cli-autoscale.1
 openshift-cli-build-logs.1
@@ -384,6 +385,7 @@ openshift-kube-apply-view-last-applied.1
 openshift-kube-apply.1
 openshift-kube-attach.1
 openshift-kube-auth-can-i.1
+openshift-kube-auth-reconcile.1
 openshift-kube-auth.1
 openshift-kube-autoscale.1
 openshift-kube-certificate-approve.1
