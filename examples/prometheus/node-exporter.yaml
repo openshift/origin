@@ -1,0 +1,79 @@
+# node-exporter is an optional component that collects host level metrics from the nodes 
+# in the cluster. This group of resources will require the 'hostaccess' level of privilege, which
+# should only be granted to namespaces that administrators can access.
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus-node-exporter
+  # You must grant hostaccess via: oadm policy add-scc-to-user -z prometheus-node-exporter hostaccess
+  # in order for the node-exporter to access the host network and mount /proc and /sys from the host
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/scrape: "true"
+    labels:
+      app: prometheus-node-exporter
+    name: prometheus-node-exporter
+  spec:
+    clusterIP: None
+    ports:
+    - name: scrape
+      port: 9100
+      protocol: TCP
+      targetPort: 9100
+    selector:
+      app: prometheus-node-exporter
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    name: prometheus-node-exporter
+    labels:
+      app: prometheus-node-exporter
+      role: monitoring
+  spec:
+    updateStrategy:
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: prometheus-node-exporter
+          role: monitoring
+        name: prometheus-exporter
+      spec:
+        serviceAccountName: prometheus-node-exporter
+        hostNetwork: true
+        hostPID: true
+        containers:
+        - image: openshift/prometheus-node-exporter:v0.14.0
+          args:
+          - "--collector.procfs=/host/proc"
+          - "--collector.sysfs=/host/sys"
+          name: node-exporter
+          ports:
+          - containerPort: 9100
+            name: scrape
+          resources:
+            requests:
+              memory: 30Mi
+              cpu: 100m
+            limits:
+              memory: 50Mi
+              cpu: 200m
+          volumeMounts:
+          - name: proc
+            readOnly:  true
+            mountPath: /host/proc
+          - name: sys
+            readOnly: true
+            mountPath: /host/sys
+        volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys
