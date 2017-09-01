@@ -1042,7 +1042,7 @@ func (c *ClientStartConfig) ShouldInstallTemplateServiceBroker() bool {
 	}
 
 	// the TSB, which requires 3.7
-	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
+	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
 	if serverVersion.LT(openshiftVersion37) {
 		return false
 	}
