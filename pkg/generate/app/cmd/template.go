@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
@@ -38,15 +39,33 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 	}
 
 	// ensure the template objects are decoded
-	// TODO: in the future, this should be more automatic
-	// TODO: this should use the UniversalDecoder() once we deprecate legacy group. Until
-	// then we have to maintain the backward compatibility with old servers so this will
-	// force to decode the list as legacy/core API.
 	if errs := runtime.DecodeList(result.Objects, kapi.Codecs.LegacyCodec(latest.Version)); len(errs) > 0 {
 		err = errors.NewAggregate(errs)
 		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}
 
+	// use universal / unstructured decoder on any objects
+	// that failed to be decoded through the legacy codec.
+	decoded := []runtime.Object{}
+	needToDecode := []runtime.Object{}
+	if len(result.Objects) > 0 {
+		for _, obj := range result.Objects {
+			if _, ok := obj.(*runtime.Unknown); ok {
+				needToDecode = append(needToDecode, obj)
+				continue
+			}
+
+			decoded = append(decoded, obj)
+		}
+	}
+	if len(needToDecode) > 0 {
+		if errs := runtime.DecodeList(needToDecode, kapi.Codecs.UniversalDecoder(), unstructured.UnstructuredJSONScheme); len(errs) > 0 {
+			err = errors.NewAggregate(errs)
+			return nil, fmt.Errorf("error processing template %q: %v", name, err)
+		}
+	}
+
+	result.Objects = append(decoded, needToDecode...)
 	return result, nil
 }
 
