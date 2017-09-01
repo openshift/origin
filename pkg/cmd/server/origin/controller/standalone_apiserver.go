@@ -19,7 +19,6 @@ import (
 	authzwebhook "k8s.io/apiserver/plugin/pkg/authorizer/webhook"
 	clientgoclientset "k8s.io/client-go/kubernetes"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverauthenticator "github.com/openshift/origin/pkg/cmd/server/authenticator"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -57,11 +56,10 @@ func RunControllerServer(servingInfo configapi.HTTPServingInfo, kubeExternal cli
 	requestInfoResolver := apiserver.NewRequestInfoResolver(&apiserver.Config{})
 	// the request context mapper for controllers is always separate
 	requestContextMapper := apirequest.NewRequestContextMapper()
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, requestInfoResolver)
 
 	// we use direct bypass to allow readiness and health to work regardless of the master health
 	authz := serverhandlers.NewBypassAuthorizer(remoteAuthz, "/healthz", "/healthz/ready")
-	handler := serverhandlers.AuthorizationFilter(mux, authz, authorizationAttributeBuilder, requestContextMapper)
+	handler := apifilters.WithAuthorization(mux, requestContextMapper, authz)
 	handler = apifilters.WithAuthentication(handler, requestContextMapper, authn, apifilters.Unauthorized(false))
 	handler = apiserverfilters.WithPanicRecovery(handler)
 	handler = apifilters.WithRequestInfo(handler, requestInfoResolver, requestContextMapper)
