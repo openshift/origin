@@ -954,8 +954,13 @@ func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.W
 
 func printUser(user *userapi.User, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, user.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, user.UID, user.FullName, strings.Join(user.Identities, ", "))
-	return err
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, user.UID, user.FullName, strings.Join(user.Identities, ", ")); err != nil {
+		return err
+	}
+	if err := appendItemLabels(user.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
+		return err
+	}
+	return nil
 }
 
 func printUserList(list *userapi.UserList, w io.Writer, opts kprinters.PrintOptions) error {
