@@ -36,6 +36,7 @@ import (
 	clientv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/integer"
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -447,32 +448,56 @@ func (rm *ReplicationManager) manageReplicas(filteredPods []*v1.Pod, rc *v1.Repl
 		errCh := make(chan error, diff)
 		rm.expectations.ExpectCreations(rcKey, diff)
 		var wg sync.WaitGroup
-		wg.Add(diff)
 		glog.V(2).Infof("Too few %q/%q replicas, need %d, creating %d", rc.Namespace, rc.Name, *(rc.Spec.Replicas), diff)
-		for i := 0; i < diff; i++ {
-			go func() {
-				defer wg.Done()
-				var err error
-				boolPtr := func(b bool) *bool { return &b }
-				controllerRef := &metav1.OwnerReference{
-					APIVersion:         controllerKind.GroupVersion().String(),
-					Kind:               controllerKind.Kind,
-					Name:               rc.Name,
-					UID:                rc.UID,
-					BlockOwnerDeletion: boolPtr(true),
-					Controller:         boolPtr(true),
-				}
-				err = rm.podControl.CreatePodsWithControllerRef(rc.Namespace, rc.Spec.Template, rc, controllerRef)
-				if err != nil {
+		// Batch the pod creates. Batch sizes start at SlowStartInitialBatchSize
+		// and double with each successful iteration in a kind of "slow start".
+		// This handles attempts to start large numbers of pods that would
+		// likely all fail with the same error. For example a project with a
+		// low quota that attempts to create a large number of pods will be
+		// prevented from spamming the API service with the pod create requests
+		// after one of its pods fails.  Conveniently, this also prevents the
+		// event spam that those failures would generate.
+		for batchSize := integer.IntMin(diff, controller.SlowStartInitialBatchSize); diff > 0; batchSize = integer.IntMin(2*batchSize, diff) {
+			errorCount := len(errCh)
+			wg.Add(batchSize)
+			for i := 0; i < batchSize; i++ {
+				go func() {
+					defer wg.Done()
+					var err error
+					boolPtr := func(b bool) *bool { return &b }
+					controllerRef := &metav1.OwnerReference{
+						APIVersion:         controllerKind.GroupVersion().String(),
+						Kind:               controllerKind.Kind,
+						Name:               rc.Name,
+						UID:                rc.UID,
+						BlockOwnerDeletion: boolPtr(true),
+						Controller:         boolPtr(true),
+					}
+					err = rm.podControl.CreatePodsWithControllerRef(rc.Namespace, rc.Spec.Template, rc, controllerRef)
+					if err != nil {
+						// Decrement the expected number of creates because the informer won't observe this pod
+						glog.V(2).Infof("Failed creation, decrementing expectations for controller %q/%q", rc.Namespace, rc.Name)
+						rm.expectations.CreationObserved(rcKey)
+						errCh <- err
+						utilruntime.HandleError(err)
+					}
+				}()
+			}
+			wg.Wait()
+			// any skipped pods that we never attempted to start shouldn't be expected.
+			skippedPods := diff - batchSize
+			if errorCount < len(errCh) && skippedPods > 0 {
+				glog.V(2).Infof("Slow-start failure. Skipping creation of %d pods, decrementing expectations for controller %q/%q", skippedPods, rc.Namespace, rc.Name)
+				for i := 0; i < skippedPods; i++ {
 					// Decrement the expected number of creates because the informer won't observe this pod
-					glog.V(2).Infof("Failed creation, decrementing expectations for controller %q/%q", rc.Namespace, rc.Name)
 					rm.expectations.CreationObserved(rcKey)
-					errCh <- err
-					utilruntime.HandleError(err)
 				}
-			}()
+				// The skipped pods will be retried later. The next controller resync will
+				// retry the slow start process.
+				break
+			}
+			diff -= batchSize
 		}
-		wg.Wait()
 
 		select {
 		case err := <-errCh:
