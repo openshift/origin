@@ -311,7 +311,7 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 				})
 				handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
 			}
-			handler = serverhandlers.AuthenticationHandlerFilter(handler, c.Authenticator, genericConfig.RequestContextMapper)
+			handler = apifilters.WithAuthentication(handler, c.RequestContextMapper, c.Authenticator, apifilters.Unauthorized(false))
 			handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
 			handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
 			// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
