@@ -10,11 +10,11 @@ import (
 )
 
 // AuthenticationHandlerFilter creates a filter object that will enforce authentication directly
-func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper apirequest.RequestContextMapper) http.Handler {
+func AuthenticationHandlerFilter(handler http.Handler, authenticator authenticator.Request, contextMapper apirequest.RequestContextMapper, failed http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		user, ok, err := authenticator.AuthenticateRequest(req)
 		if err != nil || !ok {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			failed.ServeHTTP(w, req)
 			return
 		}
 
