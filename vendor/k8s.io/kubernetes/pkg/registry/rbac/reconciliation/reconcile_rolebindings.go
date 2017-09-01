@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -34,6 +35,7 @@ type RoleBindingModifier interface {
 }
 
 type RoleBinding interface {
+	GetObject() runtime.Object
 	GetNamespace() string
 	GetName() string
 	GetUID() types.UID

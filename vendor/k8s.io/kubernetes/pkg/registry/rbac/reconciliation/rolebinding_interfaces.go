@@ -19,6 +19,7 @@ package reconciliation
 import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
@@ -28,6 +29,10 @@ import (
 
 type RoleBindingAdapter struct {
 	RoleBinding *rbac.RoleBinding
+}
+
+func (o RoleBindingAdapter) GetObject() runtime.Object {
+	return o.RoleBinding
 }
 
 func (o RoleBindingAdapter) GetNamespace() string {
