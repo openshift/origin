@@ -15,6 +15,7 @@ import (
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -405,8 +406,10 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	imageClientset := imageclient.NewForConfigOrDie(testutil.GetClusterAdminClientConfigOrDie(clusterAdminKubeConfig))
+
 	// can tag to a stream that exists
-	exec := stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec := stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -444,7 +447,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can execute a second time the same tag and it should work
-	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{
@@ -476,7 +479,7 @@ func TestImageStreamTagLifecycleHook(t *testing.T) {
 	}
 
 	// can lifecycle tag a new image stream
-	exec = stratsupport.NewHookExecutor(nil, clusterAdminClient, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
+	exec = stratsupport.NewHookExecutor(nil, imageClientset, clusterAdminKubeClientset.Core(), os.Stdout, kapi.Codecs.UniversalDecoder())
 	err = exec.Execute(
 		&deployapi.LifecycleHook{
 			TagImages: []deployapi.TagImageHook{

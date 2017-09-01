@@ -11,13 +11,13 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 var codec = kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
@@ -68,7 +68,7 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		stream := deploytest.OkStreamForConfig(config)
 		config.Spec.Triggers[0].ImageChangeParams.LastTriggeredImage = "someotherresolveddockerimagereference"
 
-		fake := &testclient.Fake{}
+		fake := &imagefake.Clientset{}
 		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if !test.expected {
 				t.Errorf("unexpected imagestream call")
@@ -79,7 +79,7 @@ func TestProcess_changeForNonAutomaticTag(t *testing.T) {
 		image := config.Spec.Template.Spec.Containers[0].Image
 
 		// Force equals to false; we shouldn't update the config anyway
-		err := processTriggers(config, fake, test.force, test.excludes)
+		err := processTriggers(config, fake.Image(), test.force, test.excludes)
 		if err == nil && test.expectedErr {
 			t.Errorf("%s: expected an error", test.name)
 			continue
@@ -105,7 +105,7 @@ func TestProcess_changeForUnregisteredTag(t *testing.T) {
 	// The image has been resolved at least once before.
 	config.Spec.Triggers[0].ImageChangeParams.From.Name = imageapi.JoinImageStreamTag(stream.Name, "unrelatedtag")
 
-	fake := &testclient.Fake{}
+	fake := &imagefake.Clientset{}
 	fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, stream, nil
 	})
@@ -113,14 +113,14 @@ func TestProcess_changeForUnregisteredTag(t *testing.T) {
 	image := config.Spec.Template.Spec.Containers[0].Image
 
 	// verify no-op; should be the same for force=true and force=false
-	if err := processTriggers(config, fake, false, nil); err != nil {
+	if err := processTriggers(config, fake.Image(), false, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if image != config.Spec.Template.Spec.Containers[0].Image {
 		t.Fatalf("unexpected image update: %#v", config.Spec.Template.Spec.Containers[0].Image)
 	}
 
-	if err := processTriggers(config, fake, true, nil); err != nil {
+	if err := processTriggers(config, fake.Image(), true, nil); err != nil {
 		t.Fatalf("unexpected error when forced: %v", err)
 	}
 	if image != config.Spec.Template.Spec.Containers[0].Image {
@@ -237,7 +237,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 		test := tests[i]
 		t.Logf("running test %q", test.name)
 
-		fake := &testclient.Fake{}
+		fake := &imagefake.Clientset{}
 		fake.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			if test.notFound {
 				name := action.(clientgotesting.GetAction).GetName()
@@ -261,7 +261,7 @@ func TestProcess_matchScenarios(t *testing.T) {
 		}
 		image := config.Spec.Template.Spec.Containers[0].Image
 
-		err := processTriggers(config, fake, false, nil)
+		err := processTriggers(config, fake.Image(), false, nil)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			continue

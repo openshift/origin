@@ -18,9 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	appsfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 
 	// install all APIs
@@ -97,7 +97,7 @@ func (*fakeConnectionInfoGetter) GetConnectionInfo(nodeName types.NodeName) (*ku
 func mockREST(version, desired int64, status deployapi.DeploymentStatus) *REST {
 	// Fake deploymentConfig
 	config := deploytest.OkDeploymentConfig(version)
-	fakeDn := testclient.NewSimpleFake(config)
+	fakeDn := appsfake.NewSimpleClientset(config)
 	fakeDn.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
 	})
@@ -105,7 +105,7 @@ func mockREST(version, desired int64, status deployapi.DeploymentStatus) *REST {
 	// Used for testing validation errors prior to getting replication controllers.
 	if desired > version {
 		return &REST{
-			dn:       fakeDn,
+			dn:       fakeDn.Apps(),
 			connInfo: &fakeConnectionInfoGetter{},
 			timeout:  defaultTimeout,
 		}
@@ -160,7 +160,7 @@ func mockREST(version, desired int64, status deployapi.DeploymentStatus) *REST {
 	}
 
 	return &REST{
-		dn:       fakeDn,
+		dn:       fakeDn.Apps(),
 		rn:       fakeRn.Core(),
 		pn:       fakePn.Core(),
 		connInfo: &fakeConnectionInfoGetter{},

@@ -17,13 +17,14 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	appsapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
+	appsclientinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	oappsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	deployconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	deploylogregistry "github.com/openshift/origin/pkg/deploy/registry/deploylog"
 	deployconfiginstantiate "github.com/openshift/origin/pkg/deploy/registry/instantiate"
 	deployrollback "github.com/openshift/origin/pkg/deploy/registry/rollback"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 )
 
 // AppsConfig is a non-serializeable config for running an apps.openshift.io apiserver
@@ -102,7 +103,12 @@ func (c *AppsConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	// TODO sort out who is using this and why.  it was hardcoded before the migration and I suspect that it is being used
 	// to serialize out objects into annotations.
 	externalVersionCodec := kapi.Codecs.LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
-	deprecatedOpenshiftClient, err := osclient.New(c.GenericConfig.LoopbackClientConfig)
+	openshiftInternalAppsClient, err := appsclientinternal.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	// This client is using the core api server client config, since the apps server doesn't host images
+	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(c.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -125,19 +131,19 @@ func (c *AppsConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 	dcInstantiateStorage := deployconfiginstantiate.NewREST(
 		*deployConfigStorage.Store,
-		deprecatedOpenshiftClient,
+		openshiftInternalImageClient,
 		kubeInternalClient,
 		externalVersionCodec,
 		c.GenericConfig.AdmissionControl,
 	)
-	deployConfigRollbackStorage := deployrollback.NewREST(deprecatedOpenshiftClient, kubeInternalClient, externalVersionCodec)
+	deployConfigRollbackStorage := deployrollback.NewREST(openshiftInternalAppsClient, kubeInternalClient, externalVersionCodec)
 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["deploymentConfigs"] = deployConfigStorage
 	v1Storage["deploymentConfigs/scale"] = deployConfigScaleStorage
 	v1Storage["deploymentConfigs/status"] = deployConfigStatusStorage
 	v1Storage["deploymentConfigs/rollback"] = deployConfigRollbackStorage
-	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(deprecatedOpenshiftClient, kubeInternalClient.Core(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
+	v1Storage["deploymentConfigs/log"] = deploylogregistry.NewREST(openshiftInternalAppsClient, kubeInternalClient.Core(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
 	v1Storage["deploymentConfigs/instantiate"] = dcInstantiateStorage
 	return v1Storage, nil
 }

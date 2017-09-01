@@ -19,11 +19,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	strategyutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/util"
 	namer "github.com/openshift/origin/pkg/util/namer"
 )
@@ -44,7 +44,7 @@ type hookExecutor struct {
 	// pods provides client to pods
 	pods kcoreclient.PodsGetter
 	// tags allows setting image stream tags
-	tags client.ImageStreamTagsNamespacer
+	tags imageclient.ImageStreamTagsGetter
 	// out is where hook pod logs should be written to.
 	out io.Writer
 	// decoder is used for encoding/decoding.
@@ -56,7 +56,7 @@ type hookExecutor struct {
 }
 
 // NewHookExecutor makes a HookExecutor from a client.
-func NewHookExecutor(pods kcoreclient.PodsGetter, tags client.ImageStreamTagsNamespacer, events kcoreclient.EventsGetter, out io.Writer, decoder runtime.Decoder) HookExecutor {
+func NewHookExecutor(pods kcoreclient.PodsGetter, tags imageclient.ImageStreamTagsGetter, events kcoreclient.EventsGetter, out io.Writer, decoder runtime.Decoder) HookExecutor {
 	executor := &hookExecutor{
 		tags:    tags,
 		pods:    pods,

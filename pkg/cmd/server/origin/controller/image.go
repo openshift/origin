@@ -152,7 +152,7 @@ type ImageImportControllerConfig struct {
 func (c *ImageImportControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
 	controller := imagecontroller.NewImageStreamController(
-		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,
 	)
 	go controller.Run(5, ctx.Stop)
@@ -162,7 +162,7 @@ func (c *ImageImportControllerConfig) RunController(ctx ControllerContext) (bool
 	}
 
 	scheduledController := imagecontroller.NewScheduledImageStreamController(
-		ctx.ClientBuilder.OpenshiftImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
 		informer,
 		imagecontroller.ScheduledImageStreamControllerOptions{
 			Resync: time.Duration(c.ScheduledImageImportMinimumIntervalSeconds) * time.Second,

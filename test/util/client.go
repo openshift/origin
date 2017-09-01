@@ -64,6 +64,16 @@ func GetClusterAdminClientConfig(adminKubeConfigFile string) (*restclient.Config
 	return conf, nil
 }
 
+// GetClusterAdminClientConfigOrDie returns a REST config for the cluster admin
+// user or panic.
+func GetClusterAdminClientConfigOrDie(adminKubeConfigFile string) *restclient.Config {
+	conf, err := GetClusterAdminClientConfig(adminKubeConfigFile)
+	if err != nil {
+		panic(err)
+	}
+	return conf
+}
+
 func GetClientForUser(clientConfig restclient.Config, username string) (*client.Client, kclientset.Interface, *restclient.Config, error) {
 	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
 	if err != nil {

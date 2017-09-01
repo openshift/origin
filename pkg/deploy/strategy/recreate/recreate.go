@@ -20,12 +20,12 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // RecreateDeploymentStrategy is a simple strategy appropriate as a default.
@@ -51,7 +51,7 @@ type RecreateDeploymentStrategy struct {
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
 	// tagClient is used to tag images
-	tagClient client.ImageStreamTagsNamespacer
+	tagClient imageclient.ImageStreamTagsGetter
 	// codec is used to decode DeploymentConfigs contained in deployments.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
@@ -74,7 +74,7 @@ const (
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
-func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
+func NewRecreateDeploymentStrategy(client kclientset.Interface, tagClient imageclient.ImageStreamTagsGetter, events record.EventSink, decoder runtime.Decoder, out, errOut io.Writer, until string) *RecreateDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}

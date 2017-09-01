@@ -12,11 +12,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
+	appsfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -57,7 +57,7 @@ func TestCreateInvalid(t *testing.T) {
 }
 
 func TestCreateOk(t *testing.T) {
-	oc := &testclient.Fake{}
+	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
@@ -88,7 +88,7 @@ func TestCreateOk(t *testing.T) {
 }
 
 func TestCreateRollbackToLatest(t *testing.T) {
-	oc := &testclient.Fake{}
+	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
@@ -109,7 +109,7 @@ func TestCreateRollbackToLatest(t *testing.T) {
 }
 
 func TestCreateGeneratorError(t *testing.T) {
-	oc := &testclient.Fake{}
+	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
@@ -121,7 +121,7 @@ func TestCreateGeneratorError(t *testing.T) {
 
 	rest := REST{
 		generator: &terribleGenerator{},
-		dn:        oc,
+		dn:        oc.Apps(),
 		rn:        kc.Core(),
 		codec:     kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion),
 	}
@@ -139,7 +139,7 @@ func TestCreateGeneratorError(t *testing.T) {
 }
 
 func TestCreateMissingDeployment(t *testing.T) {
-	oc := &testclient.Fake{}
+	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
@@ -166,7 +166,7 @@ func TestCreateMissingDeployment(t *testing.T) {
 }
 
 func TestCreateInvalidDeployment(t *testing.T) {
-	oc := &testclient.Fake{}
+	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, deploytest.OkDeploymentConfig(2), nil
 	})
@@ -195,7 +195,7 @@ func TestCreateInvalidDeployment(t *testing.T) {
 }
 
 func TestCreateMissingDeploymentConfig(t *testing.T) {
-	oc := &testclient.Fake{}
+	oc := &appsfake.Clientset{}
 	oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		dc := deploytest.OkDeploymentConfig(2)
 		return true, nil, kerrors.NewNotFound(deployapi.Resource("deploymentConfig"), dc.Name)

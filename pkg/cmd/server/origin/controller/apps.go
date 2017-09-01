@@ -51,15 +51,11 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 	if err != nil {
 		return true, err
 	}
-	deprecatedOcDcClient, err := ctx.ClientBuilder.DeprecatedOpenshiftClient(saName)
-	if err != nil {
-		return true, err
-	}
 
 	go deployconfigcontroller.NewDeploymentConfigController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
 		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
-		deprecatedOcDcClient,
+		ctx.ClientBuilder.OpenshiftInternalAppsClientOrDie(saName),
 		kubeClient,
 		c.Codec,
 	).Run(5, ctx.Stop)
@@ -70,16 +66,11 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext) (bool, error) {
 	saName := bootstrappolicy.InfraDeploymentTriggerControllerServiceAccountName
 
-	deprecatedOcTriggerClient, err := ctx.ClientBuilder.DeprecatedOpenshiftClient(saName)
-	if err != nil {
-		return true, err
-	}
-
 	go triggercontroller.NewDeploymentTriggerController(
 		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
 		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers().Informer(),
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer(),
-		deprecatedOcTriggerClient,
+		ctx.ClientBuilder.OpenshiftInternalAppsClientOrDie(saName),
 		c.Codec,
 	).Run(5, ctx.Stop)
 

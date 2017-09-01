@@ -12,12 +12,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	testapi "github.com/openshift/origin/pkg/deploy/apis/apps/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
+	appsfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 var (
@@ -25,10 +26,10 @@ var (
 	dcInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).List(options)
+				return (appsfake.NewSimpleClientset()).Apps().DeploymentConfigs(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return (&testclient.Fake{}).DeploymentConfigs(metav1.NamespaceAll).Watch(options)
+				return (appsfake.NewSimpleClientset()).Apps().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&deployapi.DeploymentConfig{},
@@ -51,10 +52,10 @@ var (
 	streamInformer = cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).List(options)
+				return (imagefake.NewSimpleClientset()).Image().ImageStreams(metav1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-				return (&testclient.Fake{}).ImageStreams(metav1.NamespaceAll).Watch(options)
+				return (imagefake.NewSimpleClientset()).Image().ImageStreams(metav1.NamespaceAll).Watch(options)
 			},
 		},
 		&imageapi.ImageStream{},
@@ -66,7 +67,7 @@ var (
 // TestHandle_noTriggers ensures that a change to a config with no
 // triggers doesn't result in a config instantiation.
 func TestHandle_noTriggers(t *testing.T) {
-	fake := &testclient.Fake{}
+	fake := &appsfake.Clientset{}
 
 	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
@@ -83,7 +84,7 @@ func TestHandle_noTriggers(t *testing.T) {
 
 // TestHandle_pausedConfig ensures that a paused config will not be instantiated.
 func TestHandle_pausedConfig(t *testing.T) {
-	fake := &testclient.Fake{}
+	fake := &appsfake.Clientset{}
 
 	controller := NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer, fake, codec)
 
@@ -103,9 +104,11 @@ func TestHandle_pausedConfig(t *testing.T) {
 func TestHandle_configChangeTrigger(t *testing.T) {
 	updated := false
 
-	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updated = true
+	fake := &appsfake.Clientset{}
+	fake.AddReactor("create", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() == "instantiate" {
+			updated = true
+		}
 		return true, nil, nil
 	})
 
@@ -127,9 +130,11 @@ func TestHandle_configChangeTrigger(t *testing.T) {
 func TestHandle_imageChangeTrigger(t *testing.T) {
 	updated := false
 
-	fake := &testclient.Fake{}
-	fake.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
-		updated = true
+	fake := &appsfake.Clientset{}
+	fake.AddReactor("create", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		if action.GetSubresource() == "instantiate" {
+			updated = true
+		}
 		return true, nil, nil
 	})
 

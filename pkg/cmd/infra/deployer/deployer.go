@@ -18,13 +18,13 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/strategy"
 	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
 	"github.com/openshift/origin/pkg/deploy/strategy/rolling"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 )
 
@@ -107,17 +107,17 @@ func (cfg *config) RunDeployer() error {
 	if err != nil {
 		return err
 	}
-	oc, err := client.New(kcfg)
+	openshiftInternalImageClient, err := imageclientinternal.NewForConfig(kcfg)
 	if err != nil {
 		return err
 	}
 
-	deployer := NewDeployer(kc, oc, cfg.Out, cfg.ErrOut, cfg.Until)
+	deployer := NewDeployer(kc, openshiftInternalImageClient, cfg.Out, cfg.ErrOut, cfg.Until)
 	return deployer.Deploy(cfg.Namespace, cfg.rcName)
 }
 
 // NewDeployer makes a new Deployer from a kube client.
-func NewDeployer(client kclientset.Interface, oclient client.Interface, out, errOut io.Writer, until string) *Deployer {
+func NewDeployer(client kclientset.Interface, images imageclientinternal.Interface, out, errOut io.Writer, until string) *Deployer {
 	scaler, _ := kubectl.ScalerFor(kapi.Kind("ReplicationController"), client)
 	return &Deployer{
 		out:    out,
@@ -133,10 +133,10 @@ func NewDeployer(client kclientset.Interface, oclient client.Interface, out, err
 		strategyFor: func(config *deployapi.DeploymentConfig) (strategy.DeploymentStrategy, error) {
 			switch config.Spec.Strategy.Type {
 			case deployapi.DeploymentStrategyTypeRecreate:
-				return recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
+				return recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until), nil
 			case deployapi.DeploymentStrategyTypeRolling:
-				recreate := recreate.NewRecreateDeploymentStrategy(client, oclient, &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
-				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, oclient, &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
+				recreate := recreate.NewRecreateDeploymentStrategy(client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), out, errOut, until)
+				return rolling.NewRollingDeploymentStrategy(config.Namespace, client, images.Image(), &kv1core.EventSinkImpl{Interface: kv1core.New(client.Core().RESTClient()).Events("")}, kapi.Codecs.UniversalDecoder(), recreate, out, errOut, until), nil
 			default:
 				return nil, fmt.Errorf("unsupported strategy type: %s", config.Spec.Strategy.Type)
 			}
