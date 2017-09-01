@@ -160,6 +160,7 @@ var map_BuildRequest = map[string]string{
 	"env":                   "env contains additional environment variables you want to pass into a builder container.",
 	"triggeredBy":           "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers.",
 	"dockerStrategyOptions": "DockerStrategyOptions contains additional docker-strategy specific options for the build",
+	"sourceStrategyOptions": "SourceStrategyOptions contains additional source-strategy specific options for the build",
 }
 
 func (BuildRequest) SwaggerDoc() map[string]string {
@@ -331,6 +332,7 @@ func (DockerBuildStrategy) SwaggerDoc() map[string]string {
 var map_DockerStrategyOptions = map[string]string{
 	"":          "DockerStrategyOptions contains extra strategy options for Docker builds",
 	"buildArgs": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details",
+	"noCache":   "noCache overrides the docker-strategy noCache option in the build config",
 }
 
 func (DockerStrategyOptions) SwaggerDoc() map[string]string {
@@ -534,6 +536,15 @@ var map_SourceRevision = map[string]string{
 
 func (SourceRevision) SwaggerDoc() map[string]string {
 	return map_SourceRevision
+}
+
+var map_SourceStrategyOptions = map[string]string{
+	"":            "SourceStrategyOptions contains extra strategy options for Source builds",
+	"incremental": "incremental overrides the source-strategy incremental option in the build config",
+}
+
+func (SourceStrategyOptions) SwaggerDoc() map[string]string {
+	return map_SourceStrategyOptions
 }
 
 var map_StageInfo = map[string]string{

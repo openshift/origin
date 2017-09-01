@@ -274,17 +274,33 @@ func (g *BuildGenerator) instantiate(ctx apirequest.Context, request *buildapi.B
 		buildutil.UpdateBuildEnv(newBuild, request.Env)
 	}
 
-	// Update the Docker build args
+	// Update the Docker strategy options
 	if request.DockerStrategyOptions != nil {
 		dockerOpts := request.DockerStrategyOptions
+
+		// Update the Docker build args
 		if dockerOpts.BuildArgs != nil && len(dockerOpts.BuildArgs) > 0 {
 			if newBuild.Spec.Strategy.DockerStrategy == nil {
 				return nil, errors.NewBadRequest(fmt.Sprintf("Cannot specify build args on %s/%s, not a Docker build.", bc.Namespace, bc.ObjectMeta.Name))
 			}
 			newBuild.Spec.Strategy.DockerStrategy.BuildArgs = updateBuildArgs(&newBuild.Spec.Strategy.DockerStrategy.BuildArgs, dockerOpts.BuildArgs)
 		}
+
+		// Update the Docker noCache option
+		if dockerOpts.NoCache != nil {
+			newBuild.Spec.Strategy.DockerStrategy.NoCache = *dockerOpts.NoCache
+		}
 	}
 
+	// Update the Source strategy options
+	if request.SourceStrategyOptions != nil {
+		sourceOpts := request.SourceStrategyOptions
+
+		// Update the Source incremental option
+		if sourceOpts.Incremental != nil {
+			newBuild.Spec.Strategy.SourceStrategy.Incremental = sourceOpts.Incremental
+		}
+	}
 	glog.V(4).Infof("Build %s/%s has been generated from %s/%s BuildConfig", newBuild.Namespace, newBuild.ObjectMeta.Name, bc.Namespace, bc.ObjectMeta.Name)
 
 	// need to update the BuildConfig because LastVersion and possibly

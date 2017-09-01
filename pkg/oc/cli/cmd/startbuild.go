@@ -105,6 +105,8 @@ func NewCmdStartBuild(fullName string, f *clientcmd.Factory, in io.Reader, out, 
 
 	cmd.Flags().BoolVarP(&o.Follow, "follow", "F", o.Follow, "Start a build and watch its logs until it completes or fails")
 	cmd.Flags().BoolVarP(&o.WaitForComplete, "wait", "w", o.WaitForComplete, "Wait for a build to complete and exit with a non-zero return code if the build fails")
+	cmd.Flags().BoolVar(&o.Incremental, "incremental", o.Incremental, "Overrides the incremental setting in a source-strategy build, ignored if not specified")
+	cmd.Flags().BoolVar(&o.NoCache, "no-cache", o.NoCache, "Overrides the noCache setting in a docker-strategy build, ignored if not specified")
 
 	cmd.Flags().StringVar(&o.FromFile, "from-file", o.FromFile, "A file to use as the binary input for the build; example a pom.xml or Dockerfile. Will be the only file in the build source.")
 	cmd.Flags().StringVar(&o.FromDir, "from-dir", o.FromDir, "A directory to archive and use as the binary input for a build.")
@@ -140,9 +142,13 @@ type StartBuildOptions struct {
 	Env  []string
 	Args []string
 
-	Follow          bool
-	WaitForComplete bool
-	LogLevel        string
+	Follow              bool
+	WaitForComplete     bool
+	IncrementalOverride bool
+	Incremental         bool
+	NoCacheOverride     bool
+	NoCache             bool
+	LogLevel            string
 
 	GitRepository  string
 	GitPostReceive string
@@ -166,6 +172,9 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 	o.Git = git.NewRepository()
 	o.ClientConfig = f.OpenShiftClientConfig()
 	o.Mapper, _ = f.Object()
+
+	o.IncrementalOverride = cmd.Flags().Lookup("incremental").Changed
+	o.NoCacheOverride = cmd.Flags().Lookup("no-cache").Changed
 
 	fromCount := 0
 	if len(o.FromDir) > 0 {
@@ -316,14 +325,22 @@ func (o *StartBuildOptions) Run() error {
 		ObjectMeta: metav1.ObjectMeta{Name: o.Name},
 	}
 
+	request.SourceStrategyOptions = &buildapi.SourceStrategyOptions{}
+	if o.IncrementalOverride {
+		request.SourceStrategyOptions.Incremental = &o.Incremental
+	}
+
 	if len(o.EnvVar) > 0 {
 		request.Env = o.EnvVar
 	}
 
+	request.DockerStrategyOptions = &buildapi.DockerStrategyOptions{}
 	if len(o.BuildArgs) > 0 {
-		request.DockerStrategyOptions = &buildapi.DockerStrategyOptions{
-			BuildArgs: o.BuildArgs,
-		}
+		request.DockerStrategyOptions.BuildArgs = o.BuildArgs
+	}
+
+	if o.NoCacheOverride {
+		request.DockerStrategyOptions.NoCache = &o.NoCache
 	}
 
 	if len(o.Commit) > 0 {
