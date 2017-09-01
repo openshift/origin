@@ -43,7 +43,7 @@ const (
 )
 
 func TestInstantiate(t *testing.T) {
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	_, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -51,7 +51,7 @@ func TestInstantiate(t *testing.T) {
 }
 
 func TestInstantiateBinary(t *testing.T) {
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	build, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{Binary: &buildapi.BinaryBuildSource{}})
 	if err != nil {
 		t.Errorf("Unexpected error %v", err)
@@ -161,48 +161,48 @@ func TestInstantiateDeletingError(t *testing.T) {
 // that has a binary source value, the resulting build does not have a binary source value
 // (because the request did not include one)
 func TestInstantiateBinaryRemoved(t *testing.T) {
-	generator := mockBuildGenerator()
-	client := generator.Client.(*TestingClient)
 	var b *buildapi.Build
-	client.GetBuildConfigFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-		bc := &buildapi.BuildConfig{
-			ObjectMeta: metav1.ObjectMeta{
-				Annotations: map[string]string{},
-			},
-			Spec: buildapi.BuildConfigSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
-						Binary: &buildapi.BinaryBuildSource{},
+	generator := mockBuildGenerator(&TestingClient{
+		GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			bc := &buildapi.BuildConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{},
+				},
+				Spec: buildapi.BuildConfigSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
 					},
 				},
-			},
-		}
-		return bc, nil
-	}
-	client.CreateBuildFunc = func(ctx apirequest.Context, build *buildapi.Build) error {
-		b = build
-		return nil
-	}
-	client.GetBuildFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
-		if b != nil {
-			return b, nil
-		}
-		build := &buildapi.Build{
-			Spec: buildapi.BuildSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: buildapi.BuildSource{
-						Binary: &buildapi.BinaryBuildSource{},
+			}
+			return bc, nil
+		},
+		CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
+			b = build
+			return nil
+		},
+		GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
+			if b != nil {
+				return b, nil
+			}
+			build := &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: buildapi.BuildSource{
+							Binary: &buildapi.BinaryBuildSource{},
+						},
 					},
 				},
-			},
-			Status: buildapi.BuildStatus{
-				Config: &kapi.ObjectReference{
-					Name: "buildconfig",
+				Status: buildapi.BuildStatus{
+					Config: &kapi.ObjectReference{
+						Name: "buildconfig",
+					},
 				},
-			},
-		}
-		return build, nil
-	}
+			}
+			return build, nil
+		},
+	})
 
 	build, err := generator.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
@@ -369,28 +369,23 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 				Triggers: tc.triggers,
 			},
 		}
-		generator := mockBuildGenerator()
-
-		client := generator.Client.(*TestingClient)
-		client.GetImageStreamTagFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
-			return &imageapi.ImageStreamTag{
-				Image: imageapi.Image{
-					ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
-					DockerImageReference: "ref@" + name,
-				},
-			}, nil
-		}
-		client.GetBuildConfigFunc =
-			func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+		generator := mockBuildGenerator(&TestingClient{
+			GetImageStreamTagFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
+				return &imageapi.ImageStreamTag{
+					Image: imageapi.Image{
+						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
+						DockerImageReference: "ref@" + name,
+					},
+				}, nil
+			},
+			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return bc, nil
-			}
-		client.UpdateBuildConfigFunc =
-			func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
+			},
+			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
 				bc = buildConfig
 				return nil
-			}
-		client.GetImageStreamFunc =
-			func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+			},
+			GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
 				return &imageapi.ImageStream{
 					ObjectMeta: metav1.ObjectMeta{Name: name},
 					Status: imageapi.ImageStreamStatus{
@@ -420,7 +415,8 @@ func TestInstantiateWithImageTrigger(t *testing.T) {
 						},
 					},
 				}, nil
-			}
+			},
+		})
 
 		req := &buildapi.BuildRequest{
 			TriggeredByImage: &kapi.ObjectReference{
@@ -533,9 +529,9 @@ func TestInstantiateWithBuildRequestEnvs(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		generator := mockBuildGenerator()
-		client := generator.Client.(*TestingClient)
-		client.GetBuildConfigFunc = tc.bcfunc
+		generator := mockBuildGenerator(&TestingClient{
+			GetBuildConfigFunc: tc.bcfunc,
+		})
 		build, err := generator.Instantiate(apirequest.NewDefaultContext(), &tc.req)
 		if err != nil {
 			t.Errorf("unexpected error %v", err)
@@ -581,13 +577,13 @@ func TestInstantiateWithBuildRequestEnvs(t *testing.T) {
 }
 
 func TestInstantiateWithLastVersion(t *testing.T) {
-	g := mockBuildGenerator()
-	c := g.Client.(*TestingClient)
-	c.GetBuildConfigFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-		bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
-		bc.Status.LastVersion = 1
-		return bc, nil
-	}
+	g := mockBuildGenerator(&TestingClient{
+		GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
+			bc.Status.LastVersion = 1
+			return bc, nil
+		},
+	})
 
 	// Version not specified
 	_, err := g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
@@ -611,11 +607,11 @@ func TestInstantiateWithLastVersion(t *testing.T) {
 }
 
 func TestInstantiateWithMissingImageStream(t *testing.T) {
-	g := mockBuildGenerator()
-	c := g.Client.(*TestingClient)
-	c.GetImageStreamFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
-		return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), "testRepo")
-	}
+	g := mockBuildGenerator(&TestingClient{
+		GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+			return nil, errors.NewNotFound(imageapi.Resource("imagestreams"), "testRepo")
+		},
+	})
 
 	_, err := g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	se, ok := err.(*errors.StatusError)
@@ -634,13 +630,13 @@ func TestInstantiateWithMissingImageStream(t *testing.T) {
 }
 
 func TestInstantiateWithLabelsAndAnnotations(t *testing.T) {
-	g := mockBuildGenerator()
-	c := g.Client.(*TestingClient)
-	c.GetBuildConfigFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-		bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
-		bc.Status.LastVersion = 1
-		return bc, nil
-	}
+	g := mockBuildGenerator(&TestingClient{
+		GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			bc := mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput())
+			bc.Status.LastVersion = 1
+			return bc, nil
+		},
+	})
 
 	req := &buildapi.BuildRequest{
 		ObjectMeta: metav1.ObjectMeta{
@@ -870,7 +866,7 @@ func TestCreateBuildNamespaceError(t *testing.T) {
 			Name: "test-build",
 		},
 	}
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 
 	_, err := generator.createBuild(apirequest.NewContext(), build)
 	if err == nil || !strings.Contains(err.Error(), "Build.Namespace") {
@@ -931,7 +927,7 @@ func TestGenerateBuildFromConfig(t *testing.T) {
 			Commit: "abcd",
 		},
 	}
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 
 	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
 	if err != nil {
@@ -1384,7 +1380,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	strategy := mockCustomStrategyForDockerImage(originalImage, &metav1.GetOptions{})
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
@@ -1418,7 +1414,7 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 	strategy := mockCustomStrategyForDockerImage(originalImage, &metav1.GetOptions{})
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
@@ -1437,7 +1433,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	strategy := mockCustomStrategyForImageRepository()
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
@@ -1465,7 +1461,7 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	strategy := mockCustomStrategyForImageRepository()
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
@@ -1493,7 +1489,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 	strategy := mockCustomStrategyForImageRepository()
 	output := mocks.MockOutput()
 	bc := mocks.MockBuildConfig(source, strategy, output)
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, nil, nil)
 	if err != nil {
 		t.Fatalf("Unexpected error %v", err)
@@ -1594,7 +1590,7 @@ func TestResolveImageStreamRef(t *testing.T) {
 		expectedSuccess   bool
 		expectedDockerRef string
 	}
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 
 	tests := []resolveTest{
 		{
@@ -1733,75 +1729,98 @@ func mockBuild(source buildapi.BuildSource, strategy buildapi.BuildStrategy, out
 	}
 }
 
-func mockBuildGenerator() *BuildGenerator {
+func mockBuildGenerator(tc *TestingClient) *BuildGenerator {
 	fakeSecrets := []runtime.Object{}
 	for _, s := range mocks.MockBuilderSecrets() {
 		fakeSecrets = append(fakeSecrets, s)
 	}
+
 	var b *buildapi.Build
-	return &BuildGenerator{
-		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
-		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
-		Client: &TestingClient{
-			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
-			},
-			UpdateBuildConfigFunc: func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
-				return nil
-			},
-			CreateBuildFunc: func(ctx apirequest.Context, build *buildapi.Build) error {
-				b = build
-				return nil
-			},
-			GetBuildFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
-				if b == nil {
-					return &buildapi.Build{}, nil
-				}
-				return b, nil
-			},
-			GetImageStreamFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
-				if name != imageRepoName {
-					return &imageapi.ImageStream{}, nil
-				}
-				return &imageapi.ImageStream{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      imageRepoName,
-						Namespace: imageRepoNamespace,
-					},
-					Status: imageapi.ImageStreamStatus{
-						DockerImageRepository: "repo/namespace/image",
-						Tags: map[string]imageapi.TagEventList{
-							tagName: {
-								Items: []imageapi.TagEvent{
-									{DockerImageReference: dockerReference},
-								},
+
+	if tc.GetBuildConfigFunc == nil {
+		tc.GetBuildConfigFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil
+		}
+	}
+
+	if tc.UpdateBuildConfigFunc == nil {
+		tc.UpdateBuildConfigFunc = func(ctx apirequest.Context, buildConfig *buildapi.BuildConfig) error {
+			return nil
+		}
+	}
+
+	if tc.CreateBuildFunc == nil {
+		tc.CreateBuildFunc = func(ctx apirequest.Context, build *buildapi.Build) error {
+			b = build
+			return nil
+		}
+	}
+
+	if tc.GetBuildFunc == nil {
+		tc.GetBuildFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.Build, error) {
+			if b == nil {
+				return &buildapi.Build{}, nil
+			}
+			return b, nil
+		}
+	}
+
+	if tc.GetImageStreamFunc == nil {
+		tc.GetImageStreamFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStream, error) {
+			if name != imageRepoName {
+				return &imageapi.ImageStream{}, nil
+			}
+			return &imageapi.ImageStream{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      imageRepoName,
+					Namespace: imageRepoNamespace,
+				},
+				Status: imageapi.ImageStreamStatus{
+					DockerImageRepository: "repo/namespace/image",
+					Tags: map[string]imageapi.TagEventList{
+						tagName: {
+							Items: []imageapi.TagEvent{
+								{DockerImageReference: dockerReference},
 							},
-							imageapi.DefaultImageTag: {
-								Items: []imageapi.TagEvent{
-									{DockerImageReference: latestDockerReference, Image: "myid"},
-								},
+						},
+						imageapi.DefaultImageTag: {
+							Items: []imageapi.TagEvent{
+								{DockerImageReference: latestDockerReference, Image: "myid"},
 							},
 						},
 					},
-				}, nil
-			},
-			GetImageStreamTagFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
-				return &imageapi.ImageStreamTag{
-					Image: imageapi.Image{
-						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
-						DockerImageReference: latestDockerReference,
-					},
-				}, nil
-			},
-			GetImageStreamImageFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
-				return &imageapi.ImageStreamImage{
-					Image: imageapi.Image{
-						ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":@id"},
-						DockerImageReference: latestDockerReference,
-					},
-				}, nil
-			},
-		}}
+				},
+			}, nil
+		}
+	}
+
+	if tc.GetImageStreamTagFunc == nil {
+		tc.GetImageStreamTagFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamTag, error) {
+			return &imageapi.ImageStreamTag{
+				Image: imageapi.Image{
+					ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":" + newTag},
+					DockerImageReference: latestDockerReference,
+				},
+			}, nil
+		}
+	}
+
+	if tc.GetImageStreamImageFunc == nil {
+		tc.GetImageStreamImageFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*imageapi.ImageStreamImage, error) {
+			return &imageapi.ImageStreamImage{
+				Image: imageapi.Image{
+					ObjectMeta:           metav1.ObjectMeta{Name: imageRepoName + ":@id"},
+					DockerImageReference: latestDockerReference,
+				},
+			}, nil
+		}
+	}
+
+	return &BuildGenerator{
+		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
+		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
+		Client:          tc,
+	}
 }
 
 func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
@@ -1823,7 +1842,7 @@ func TestGenerateBuildFromConfigWithSecrets(t *testing.T) {
 		// Setup the BuildGenerator
 		strategy := mockDockerStrategyForDockerImage(imageName, &metav1.GetOptions{})
 		output := mockOutputWithImageName(imageName, &metav1.GetOptions{})
-		generator := mockBuildGenerator()
+		generator := mockBuildGenerator(&TestingClient{})
 		bc := mocks.MockBuildConfig(source, strategy, output)
 		build, err := generator.generateBuildFromConfig(apirequest.NewContext(), bc, revision, nil)
 
@@ -1851,7 +1870,7 @@ func TestInstantiateBuildTriggerCauseConfigChange(t *testing.T) {
 			},
 		),
 	}
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
@@ -1886,7 +1905,7 @@ func TestInstantiateBuildTriggerCauseImageChange(t *testing.T) {
 		),
 	}
 
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
@@ -1934,7 +1953,7 @@ func TestInstantiateBuildTriggerCauseGenericWebHook(t *testing.T) {
 		),
 	}
 
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
@@ -1979,7 +1998,7 @@ func TestInstantiateBuildTriggerCauseGitHubWebHook(t *testing.T) {
 		),
 	}
 
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
@@ -2026,7 +2045,7 @@ func TestInstantiateBuildTriggerCauseGitLabWebHook(t *testing.T) {
 		),
 	}
 
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
@@ -2073,7 +2092,7 @@ func TestInstantiateBuildTriggerCauseBitbucketWebHook(t *testing.T) {
 		),
 	}
 
-	generator := mockBuildGenerator()
+	generator := mockBuildGenerator(&TestingClient{})
 	buildObject, err := generator.Instantiate(apirequest.NewDefaultContext(), buildRequest)
 	if err != nil {
 		t.Errorf("Expected error to be nil, got %v", err)
@@ -2092,28 +2111,28 @@ func TestInstantiateBuildTriggerCauseBitbucketWebHook(t *testing.T) {
 }
 
 func TestOverrideDockerStrategyNoCacheOption(t *testing.T) {
-	g := mockBuildGenerator()
-	client := g.Client.(*TestingClient)
-	client.GetBuildConfigFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-		return &buildapi.BuildConfig{
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: buildapi.BuildConfigSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: mocks.MockSource(),
-					Strategy: buildapi.BuildStrategy{
-						DockerStrategy: &buildapi.DockerBuildStrategy{
-							NoCache: true,
+	g := mockBuildGenerator(&TestingClient{
+		GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			return &buildapi.BuildConfig{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: buildapi.BuildConfigSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: mocks.MockSource(),
+						Strategy: buildapi.BuildStrategy{
+							DockerStrategy: &buildapi.DockerBuildStrategy{
+								NoCache: true,
+							},
 						},
-					},
-					Revision: &buildapi.SourceRevision{
-						Git: &buildapi.GitSourceRevision{
-							Commit: "1234",
+						Revision: &buildapi.SourceRevision{
+							Git: &buildapi.GitSourceRevision{
+								Commit: "1234",
+							},
 						},
 					},
 				},
-			},
-		}, nil
-	}
+			}, nil
+		},
+	})
 
 	build, err := g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
@@ -2127,33 +2146,33 @@ func TestOverrideDockerStrategyNoCacheOption(t *testing.T) {
 func TestOverrideSourceStrategyIncrementalOption(t *testing.T) {
 	myTrue := true
 
-	g := mockBuildGenerator()
-	client := g.Client.(*TestingClient)
-	client.GetBuildConfigFunc = func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
-		return &buildapi.BuildConfig{
-			ObjectMeta: metav1.ObjectMeta{},
-			Spec: buildapi.BuildConfigSpec{
-				CommonSpec: buildapi.CommonSpec{
-					Source: mocks.MockSource(),
-					Strategy: buildapi.BuildStrategy{
-						SourceStrategy: &buildapi.SourceBuildStrategy{
-							Incremental: &myTrue,
-							From: kapi.ObjectReference{
-								Kind:      "ImageStreamTag",
-								Name:      "testRepo:test",
-								Namespace: "testns",
+	g := mockBuildGenerator(&TestingClient{
+		GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
+			return &buildapi.BuildConfig{
+				ObjectMeta: metav1.ObjectMeta{},
+				Spec: buildapi.BuildConfigSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Source: mocks.MockSource(),
+						Strategy: buildapi.BuildStrategy{
+							SourceStrategy: &buildapi.SourceBuildStrategy{
+								Incremental: &myTrue,
+								From: kapi.ObjectReference{
+									Kind:      "ImageStreamTag",
+									Name:      "testRepo:test",
+									Namespace: "testns",
+								},
+							},
+						},
+						Revision: &buildapi.SourceRevision{
+							Git: &buildapi.GitSourceRevision{
+								Commit: "1234",
 							},
 						},
 					},
-					Revision: &buildapi.SourceRevision{
-						Git: &buildapi.GitSourceRevision{
-							Commit: "1234",
-						},
-					},
 				},
-			},
-		}, nil
-	}
+			}, nil
+		},
+	})
 
 	build, err := g.Instantiate(apirequest.NewDefaultContext(), &buildapi.BuildRequest{})
 	if err != nil {
