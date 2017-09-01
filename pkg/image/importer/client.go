@@ -152,7 +152,14 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	versions := auth.APIVersions(resp, "Docker-Distribution-API-Version")
 	if len(versions) == 0 {
 		glog.V(5).Infof("Registry responded to v2 Docker endpoint, but has no header for Docker Distribution %s: %d, %#v", req.URL, resp.StatusCode, resp.Header)
-		return nil, &ErrNotV2Registry{Registry: registry.String()}
+		switch {
+		case resp.StatusCode >= 200 && resp.StatusCode < 300:
+			// v2
+		case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
+			// v2
+		default:
+			return nil, &ErrNotV2Registry{Registry: registry.String()}
+		}
 	}
 
 	r.context.Challenges.AddResponse(resp)
