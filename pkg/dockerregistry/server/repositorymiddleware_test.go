@@ -297,7 +297,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			ctx = withDeferredErrors(ctx, tc.deferredErrors)
 		}
 
-		fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		for _, is := range tc.imageStreams {
 			_, err = fos.CreateImageStream(is.Namespace, &is)
@@ -313,7 +313,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			}
 		}
 
-		reg, err := newTestRegistry(ctx, registryclient.NewFakeRegistryAPIClient(client, nil, imageClient), driver, defaultBlobRepositoryCacheTTL, tc.pullthrough, true)
+		reg, err := newTestRegistry(ctx, registryclient.NewFakeRegistryAPIClient(nil, imageClient), driver, defaultBlobRepositoryCacheTTL, tc.pullthrough, true)
 		if err != nil {
 			t.Errorf("[%s] unexpected error: %v", tc.name, err)
 			continue
@@ -375,11 +375,11 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, "nm", "is", nil)
 	registrytest.AddImage(t, fos, testImage, "nm", "is", "latest")
 
-	reg, err := newTestRegistry(ctx, registryclient.NewFakeRegistryAPIClient(client, nil, imageClient), driver, blobRepoCacheTTL, false, false)
+	reg, err := newTestRegistry(ctx, registryclient.NewFakeRegistryAPIClient(nil, imageClient), driver, blobRepoCacheTTL, false, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

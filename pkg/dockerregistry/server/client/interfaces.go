@@ -3,6 +3,7 @@ package client
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -103,8 +104,10 @@ type ImageStreamTagInterface interface {
 	Delete(name string, options *metav1.DeleteOptions) error
 }
 
+var _ ImageStreamSecretInterface = imageclientv1.ImageStreamInterface(nil)
+
 type ImageStreamSecretInterface interface {
-	Secrets(name string, options metav1.ListOptions) (*kapi.SecretList, error)
+	Secrets(name string, options metav1.ListOptions) (*kapiv1.SecretList, error)
 }
 
 var _ LimitRangeInterface = kcoreclient.LimitRangeInterface(nil)

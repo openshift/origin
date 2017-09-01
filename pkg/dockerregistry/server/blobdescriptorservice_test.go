@@ -48,12 +48,12 @@ func TestBlobDescriptorServiceIsApplied(t *testing.T) {
 	// to make other unit tests working
 	defer m.changeUnsetRepository(false)
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, "user", "app", "latest")
 
 	ctx := context.Background()
 	ctx = WithConfiguration(ctx, &srvconfig.Configuration{})
-	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(client, imageClient))
+	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(imageClient))
 	app := handlers.NewApp(ctx, &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{

@@ -46,7 +46,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, repoName, testImage.Name)
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, name, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -137,7 +137,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepository(t, namespace, name, testRepositoryOptions{
-			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
 		ptbs := &pullthroughBlobStore{
@@ -278,7 +278,7 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	}
 	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, repoName, testImage.Name)
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, name, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -288,7 +288,7 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 
 	ctx := WithTestPassthroughToUpstream(context.Background(), false)
 	repo := newTestRepository(t, namespace, name, testRepositoryOptions{
-		client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+		client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 		enablePullThrough: true,
 	})
 	ptbs := &pullthroughBlobStore{
@@ -598,7 +598,7 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 			expectedBytesServed:   int64(m1img.DockerImageLayers[0].LayerSize),
 		},
 	} {
-		fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		tc.fakeOpenShiftInit(fos)
 
@@ -607,7 +607,7 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 
 		repo := newTestRepository(t, namespace, repo1, testRepositoryOptions{
-			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
 
