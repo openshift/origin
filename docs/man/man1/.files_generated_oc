@@ -103,6 +103,7 @@ oc-apply-view-last-applied.1
 oc-apply.1
 oc-attach.1
 oc-auth-can-i.1
+oc-auth-reconcile.1
 oc-auth.1
 oc-autoscale.1
 oc-build-logs.1
