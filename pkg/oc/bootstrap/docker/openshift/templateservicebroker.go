@@ -1,18 +1,19 @@
 package openshift
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"path/filepath"
 	"time"
 
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -20,12 +21,13 @@ import (
 )
 
 const (
-	tsbNamespace             = "openshift-template-service-broker"
-	tsbRBACTemplateName      = "template-service-broker-rbac"
-	tsbAPIServerTemplateName = "template-service-broker-apiserver"
+	tsbNamespace                = "openshift-template-service-broker"
+	tsbRBACTemplateName         = "template-service-broker-rbac"
+	tsbAPIServerTemplateName    = "template-service-broker-apiserver"
+	tsbRegistrationTemplateName = "template-service-broker-registration"
 )
 
-// InstallServiceCatalog checks whether the template service broker is installed and installs it if not already installed
+// InstallTemplateServiceBroker checks whether the template service broker is installed and installs it if not already installed
 func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat string, serverLogLevel int) error {
 	osClient, kubeClient, err := f.Clients()
 	if err != nil {
@@ -37,7 +39,7 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 		return errors.NewError("cannot create template service broker project").WithCause(err)
 	}
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), OpenshiftInfraNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
 		return errors.NewError("cannot instantiate template service broker permissions").WithCause(err)
 	}
 
@@ -46,7 +48,7 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	imageTemplate.Format = imageFormat
 	imageTemplate.Latest = false
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, map[string]string{
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, map[string]string{
 		"IMAGE":     imageTemplate.ExpandOrDie(""),
 		"LOGLEVEL":  fmt.Sprint(serverLogLevel),
 		"NAMESPACE": tsbNamespace,
@@ -70,64 +72,37 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 		return errors.NewError(fmt.Sprintf("failed to start the template service broker apiserver: %v", err))
 	}
 
+	return nil
+}
+
+// RegisterTemplateServiceBroker registers the TSB with the SC by creating the broker resource
+func (h *Helper) RegisterTemplateServiceBroker(f *clientcmd.Factory, configDir string) error {
+	osClient, _, err := f.Clients()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
+
 	// Register the template broker with the service catalog
 	glog.V(2).Infof("registering the template broker with the service catalog")
-	clientConfig, err := f.OpenShiftClientConfig().ClientConfig()
+
+	// dynamic mapper is needed to support the broker resource which isn't part of the api.
+	dynamicMapper, dynamicTyper, err := f.UnstructuredObject()
+	dmapper := &resource.Mapper{
+		RESTMapper:   dynamicMapper,
+		ObjectTyper:  dynamicTyper,
+		ClientMapper: resource.ClientMapperFunc(f.UnstructuredClientForMapping),
+	}
+
+	serviceCABytes, err := ioutil.ReadFile(filepath.Join(configDir, "master", "service-signer.crt"))
+	serviceCAString := base64.StdEncoding.EncodeToString(serviceCABytes)
 	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to retrieve client config: %v", err))
+		return errors.NewError("unable to read service signer cert").WithCause(err)
 	}
-	pool := dynamic.NewDynamicClientPool(clientConfig)
-	dclient, err := pool.ClientForGroupVersionResource(schema.GroupVersionResource{
-		Group:    "servicecatalog.k8s.io",
-		Version:  "v1alpha1",
-		Resource: "broker",
-	})
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to create a broker resource client: %v", err))
-	}
-
-	brokerResource := &metav1.APIResource{
-		Name:       "brokers",
-		Namespaced: false,
-		Kind:       "Broker",
-		Verbs:      []string{"create"},
-	}
-	brokerClient := dclient.Resource(brokerResource, "")
-
-	broker := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"apiVersion": "servicecatalog.k8s.io/v1alpha1",
-			"kind":       "Broker",
-			"metadata": map[string]interface{}{
-				"name": "template-broker",
-			},
-			"spec": map[string]interface{}{
-				"url": "https://apiserver.openshift-template-service-broker.svc:443/brokers/template.openshift.io",
-				"insecureSkipTLSVerify": true,
-				"authInfo": map[string]interface{}{
-					"bearer": map[string]interface{}{
-						"secretRef": map[string]interface{}{
-							"kind":      "Secret",
-							"name":      "templateservicebroker-client",
-							"namespace": tsbNamespace,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	err = wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
-		_, err = brokerClient.Create(broker)
-
-		if err != nil {
-			glog.V(2).Infof("retrying registration after error %v", err)
-			return false, nil
-		}
-		return true, nil
-	})
-	if err != nil {
-		return errors.NewError(fmt.Sprintf("failed to register broker with service catalog: %v", err))
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), dmapper, OpenshiftInfraNamespace, tsbRegistrationTemplateName, tsbNamespace, map[string]string{
+		"TSB_NAMESPACE": tsbNamespace,
+		"CA_BUNDLE":     serviceCAString,
+	}, true); err != nil {
+		return errors.NewError("cannot register the template service broker").WithCause(err)
 	}
 
 	return nil

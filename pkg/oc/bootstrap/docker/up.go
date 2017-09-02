@@ -118,10 +118,11 @@ var (
 	// internalTemplateLocations are templates that will be registered in an internal namespace
 	// instead of the openshift namespace.
 	internalTemplateLocations = map[string]string{
-		"logging":                           "examples/logging/logging-deployer.yaml",
-		"service catalog":                   "examples/service-catalog/service-catalog.yaml",
-		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
-		"template service broker rbac":      "install/templateservicebroker/rbac-template.yaml",
+		"logging":                              "examples/logging/logging-deployer.yaml",
+		"service catalog":                      "examples/service-catalog/service-catalog.yaml",
+		"template service broker apiserver":    "install/templateservicebroker/apiserver-template.yaml",
+		"template service broker rbac":         "install/templateservicebroker/rbac-template.yaml",
+		"template service broker registration": "install/service-catalog-broker-resources/template-service-broker-registration.yaml",
 	}
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
@@ -418,6 +419,12 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 	// Install template service broker if our version is high enough
 	c.addTask(conditionalTask("Installing template service broker", c.InstallTemplateServiceBroker, func() bool {
 		return c.ShouldInstallServiceCatalog && c.ShouldInstallTemplateServiceBroker() && c.ShouldInitializeData()
+	}))
+
+	// Register the TSB w/ the SC if requested.  This is done even when reusing a config because
+	// the TSB registration is not persisted.
+	c.addTask(conditionalTask("Registering template service broker with service catalog", c.RegisterTemplateServiceBroker, func() bool {
+		return c.ShouldInstallServiceCatalog && c.ShouldInstallTemplateServiceBroker()
 	}))
 
 	// Login with an initial default user
@@ -1062,6 +1069,15 @@ func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 	// TODO we want to use this eventually, but until we have our own image for TSB, we have to hardcode this origin
 	//return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.imageFormat())
 	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.Image, c.ServerLogLevel)
+}
+
+// RegisterTemplateServiceBroker will register the tsb with the service catalog
+func (c *ClientStartConfig) RegisterTemplateServiceBroker(out io.Writer) error {
+	f, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	return c.OpenShiftHelper().RegisterTemplateServiceBroker(f, c.LocalConfigDir)
 }
 
 // Login logs into the new server and sets up a default user and project
