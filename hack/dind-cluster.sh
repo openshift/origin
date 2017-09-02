@@ -435,17 +435,22 @@ function get-network-plugin() {
   local ovn_plugin="ovn"
   local default_plugin="${multitenant_plugin}"
 
-  if [[ "${plugin}" != "${subnet_plugin}" &&
-          "${plugin}" != "${multitenant_plugin}" &&
-          "${plugin}" != "${networkpolicy_plugin}" &&
-          "${plugin}" != "${ovn_plugin}" &&
-          "${plugin}" != "cni" ]]; then
-    if [[ -n "${plugin}" ]]; then
-      >&2 echo "Invalid network plugin: ${plugin}"
-    fi
-    plugin="${default_plugin}"
+  if [[ "${plugin}" = "subnet" || "${plugin}" = "${subnet_plugin}" ]]; then
+    echo "${subnet_plugin}"
+  elif [[ "${plugin}" = "multitenant" || "${plugin}" = "${multitenant_plugin}" ]]; then
+    echo "${multitenant_plugin}"
+  elif [[ "${plugin}" = "networkpolicy" || "${plugin}" = "${networkpolicy_plugin}" ]]; then
+    echo "${networkpolicy_plugin}"
+  elif [[ "${plugin}" = "ovn" ]]; then
+    echo "${ovn_plugin}"
+  elif [[ "${plugin}" = "cni" ]]; then
+    echo "cni"
+  elif [[ -n "${plugin}" ]]; then
+    >&2 echo "Invalid network plugin: ${plugin}"
+    exit 1
+  else
+    echo "${default_plugin}"
   fi
-  echo "${plugin}"
 }
 
 function get-docker-ip() {
