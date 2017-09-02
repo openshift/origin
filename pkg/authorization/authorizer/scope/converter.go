@@ -443,7 +443,7 @@ func removeEscalatingResources(in rbac.PolicyRule) rbac.PolicyRule {
 	var ruleCopy *rbac.PolicyRule
 
 	for _, resource := range escalatingScopeResources {
-		if !(has(getAPIGroupLegacy(in), resource.Group) && has(in.Resources, resource.Resource)) {
+		if !(has(in.APIGroups, resource.Group) && has(in.Resources, resource.Resource)) {
 			continue
 		}
 
@@ -462,14 +462,6 @@ func removeEscalatingResources(in rbac.PolicyRule) rbac.PolicyRule {
 	}
 
 	return in
-}
-
-func getAPIGroupLegacy(rule rbac.PolicyRule) []string {
-	if len(rule.APIGroups) == 0 {
-		// this was done for backwards compatibility in the authorizer
-		return []string{""}
-	}
-	return rule.APIGroups
 }
 
 func ValidateScopeRestrictions(client *oauthapi.OAuthClient, scopes ...string) error {
