@@ -122,9 +122,6 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 		// then it can be transitioned to Failed by this controller.
 		if deployutil.IsDeploymentCancelled(deployment) {
 			nextStatus = deployapi.DeploymentStatusPending
-			if err := c.cleanupDeployerPods(deployment); err != nil {
-				return err
-			}
 			break
 		}
 
@@ -209,11 +206,7 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			// found. Eventually the deletion of the deployer pod should cause
 			// a requeue of this deployment and then it can be transitioned to
 			// Failed.
-			if deployutil.IsDeploymentCancelled(deployment) {
-				if err := c.cleanupDeployerPods(deployment); err != nil {
-					return err
-				}
-			} else {
+			if !deployutil.IsDeploymentCancelled(deployment) {
 				// Set an ownerRef for the deployment lifecycle pods so they are cleaned up when the
 				// replication controller is deleted.
 				if err := c.setDeployerPodsOwnerRef(deployment); err != nil {
@@ -225,21 +218,12 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 	case deployapi.DeploymentStatusFailed:
 		// Try to cleanup once more a cancelled deployment in case hook pods
 		// were created just after we issued the first cleanup request.
-		if deployutil.IsDeploymentCancelled(deployment) {
-			if err := c.cleanupDeployerPods(deployment); err != nil {
-				return err
-			}
-		} else {
+		if !deployutil.IsDeploymentCancelled(deployment) {
 			// Set an ownerRef for the deployment lifecycle pods so they are cleaned up when the
 			// replication controller is deleted.
 			if err := c.setDeployerPodsOwnerRef(deployment); err != nil {
 				return err
 			}
-		}
-
-	case deployapi.DeploymentStatusComplete:
-		if err := c.cleanupDeployerPods(deployment); err != nil {
-			return err
 		}
 	}
 
@@ -487,28 +471,6 @@ func (c *DeploymentController) setDeployerPodsOwnerRef(deployment *v1.Replicatio
 		}
 	}
 	return kutilerrors.NewAggregate(errors)
-}
-
-func (c *DeploymentController) cleanupDeployerPods(deployment *v1.ReplicationController) error {
-	deployerList, err := c.getDeployerPods(deployment)
-	if err != nil {
-		return fmt.Errorf("couldn't fetch deployer pods for %q: %v", deployutil.LabelForDeploymentV1(deployment), err)
-	}
-
-	cleanedAll := true
-	for _, deployerPod := range deployerList {
-		if err := c.pn.Pods(deployerPod.Namespace).Delete(deployerPod.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
-			// if the pod deletion failed, then log the error and continue
-			// we will try to delete any remaining deployer pods and return an error later
-			utilruntime.HandleError(fmt.Errorf("couldn't delete completed deployer pod %q for %q: %v", deployerPod.Name, deployutil.LabelForDeploymentV1(deployment), err))
-			cleanedAll = false
-		}
-	}
-
-	if !cleanedAll {
-		return actionableError(fmt.Sprintf("couldn't clean up all deployer pods for %q", deployutil.LabelForDeploymentV1(deployment)))
-	}
-	return nil
 }
 
 func (c *DeploymentController) emitDeploymentEvent(deployment *v1.ReplicationController, eventType, title, message string) {
