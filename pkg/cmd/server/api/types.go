@@ -461,10 +461,29 @@ type AggregatorConfig struct {
 	ProxyClientInfo CertInfo
 }
 
+type LogFormatType string
+
+type WebHookModeType string
+
+const (
+	// LogFormatLegacy saves event in 1-line text format.
+	LogFormatLegacy LogFormatType = "legacy"
+	// LogFormatJson saves event in structured json format.
+	LogFormatJson LogFormatType = "json"
+
+	// WebHookModeBatch indicates that the webhook should buffer audit events
+	// internally, sending batch updates either once a certain number of
+	// events have been received or a certain amount of time has passed.
+	WebHookModeBatch WebHookModeType = "batch"
+	// WebHookModeBlocking causes the webhook to block on every attempt to process
+	// a set of events. This causes requests to the API server to wait for a
+	// round trip to the external audit service before sending a response.
+	WebHookModeBlocking WebHookModeType = "blocking"
+)
+
 // AuditConfig holds configuration for the audit capabilities
 type AuditConfig struct {
 	// If this flag is set, audit log will be printed in the logs.
-	// The logs contains, method, user and a requested URL.
 	Enabled bool
 	// All requests coming to the apiserver will be logged to this file.
 	AuditFilePath string
@@ -474,6 +493,21 @@ type AuditConfig struct {
 	MaximumRetainedFiles int
 	// Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.
 	MaximumFileSizeMegabytes int
+
+	// PolicyFile is a path to the file that defines the audit policy configuration.
+	PolicyFile string
+	// PolicyConfiguration is an embedded policy configuration object to be used
+	// as the audit policy configuration. If present, it will be used instead of
+	// the path to the policy file.
+	PolicyConfiguration runtime.Object
+
+	// Format of saved audits (legacy or json).
+	LogFormat LogFormatType
+
+	// Path to a .kubeconfig formatted file that defines the audit webhook configuration.
+	WebHookKubeConfig string
+	// Strategy for sending audit events (block or batch).
+	WebHookMode WebHookModeType
 }
 
 // JenkinsPipelineConfig holds configuration for the Jenkins pipeline strategy

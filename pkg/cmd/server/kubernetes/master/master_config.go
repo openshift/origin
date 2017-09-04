@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	auditinternal "k8s.io/apiserver/pkg/apis/audit"
+	"k8s.io/apiserver/pkg/audit"
 	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
@@ -45,6 +46,7 @@ import (
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
+	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -177,12 +179,11 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 			args["feature-gates"] = []string{existing[0] + ",AdvancedAuditing=true"}
 		} else {
 			args["feature-gates"] = []string{"AdvancedAuditing=true"}
-
 		}
 	}
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
-	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
+	if err := cmdflags.Resolve(args, server.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
 	}
 
@@ -526,12 +527,38 @@ func buildKubeApiserverConfig(
 			// backwards compatible writer to regular log
 			writer = cmdutil.NewGLogWriterV(0)
 		}
-		genericConfig.AuditBackend = auditlog.NewBackend(writer)
+		genericConfig.AuditBackend = auditlog.NewBackend(writer, auditlog.FormatLegacy)
 		genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
 			// This is for backwards compatibility maintaining the old visibility, ie. just
 			// raw overview of the requests comming in.
 			Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
 		})
+
+		// when a policy file is defined we enable the advanced auditing
+		if masterConfig.AuditConfig.PolicyConfiguration != nil || len(masterConfig.AuditConfig.PolicyFile) > 0 {
+			// policy configuration
+			if masterConfig.AuditConfig.PolicyConfiguration == nil {
+				p, _ := auditpolicy.LoadPolicyFromFile(masterConfig.AuditConfig.PolicyFile)
+				genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(p)
+			} else if len(masterConfig.AuditConfig.PolicyFile) > 0 {
+				p := masterConfig.AuditConfig.PolicyConfiguration.(*auditinternal.Policy)
+				genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(p)
+			}
+
+			// log configuration, only when file path was provided
+			if len(masterConfig.AuditConfig.AuditFilePath) > 0 {
+				genericConfig.AuditBackend = auditlog.NewBackend(writer, string(masterConfig.AuditConfig.LogFormat))
+			}
+
+			// webhook configuration, only when config file was provided
+			if len(masterConfig.AuditConfig.WebHookKubeConfig) > 0 {
+				webhook, err := auditwebhook.NewBackend(masterConfig.AuditConfig.WebHookKubeConfig, string(masterConfig.AuditConfig.WebHookMode))
+				if err != nil {
+					glog.Fatalf("Audit webhook initialization failed: %v", err)
+				}
+				genericConfig.AuditBackend = audit.Union(genericConfig.AuditBackend, webhook)
+			}
+		}
 	}
 
 	kubeApiserverConfig := &master.Config{

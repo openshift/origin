@@ -14,6 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kuval "k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	auditinternal "k8s.io/apiserver/pkg/apis/audit"
+	auditvalidation "k8s.io/apiserver/pkg/apis/audit/validation"
+	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
+	"k8s.io/client-go/tools/clientcmd"
 	apiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kcmoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
@@ -238,6 +242,9 @@ func ValidateAggregatorConfig(config api.AggregatorConfig, fldPath *field.Path) 
 
 func ValidateAuditConfig(config api.AuditConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
+	if !config.Enabled {
+		return validationResults
+	}
 
 	if len(config.AuditFilePath) == 0 {
 		// for backwards compatibility reasons we can't error this out
@@ -251,6 +258,61 @@ func ValidateAuditConfig(config api.AuditConfig, fldPath *field.Path) Validation
 	}
 	if config.MaximumFileSizeMegabytes < 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("maximumFileSizeMegabytes"), config.MaximumFileSizeMegabytes, "must be greater than or equal to 0"))
+	}
+
+	// setting policy file will turn the advanced auditing on
+	if config.PolicyConfiguration != nil && len(config.PolicyFile) > 0 {
+		validationResults.AddErrors(field.Forbidden(fldPath.Child("policyFile"), "both policyFile and policyConfiguration cannot be specified"))
+	}
+	if config.PolicyConfiguration != nil || len(config.PolicyFile) > 0 {
+		if config.PolicyConfiguration == nil {
+			policy, err := auditpolicy.LoadPolicyFromFile(config.PolicyFile)
+			if err != nil {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("policyFile"), config.PolicyFile, err.Error()))
+			}
+			if policy == nil || len(policy.Rules) == 0 {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("policyFile"), config.PolicyFile, "a policy file with 0 policies is not valid"))
+			}
+		} else {
+			policyConfiguration, ok := config.PolicyConfiguration.(*auditinternal.Policy)
+			if !ok {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, "must be of type audit/v1alpha1.Policy"))
+			} else {
+				if err := auditvalidation.ValidatePolicy(policyConfiguration); err != nil {
+					validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyConfiguration, err.ToAggregate().Error()))
+				}
+				if len(policyConfiguration.Rules) == 0 {
+					validationResults.AddErrors(field.Invalid(fldPath.Child("policyConfiguration"), config.PolicyFile, "a policy configuration with 0 policies is not valid"))
+				}
+			}
+		}
+
+		if len(config.AuditFilePath) == 0 {
+			validationResults.AddErrors(field.Required(fldPath.Child("auditFilePath"), "advanced audit requires a separate log file"))
+		}
+		switch config.LogFormat {
+		case api.LogFormatLegacy, api.LogFormatJson:
+			// ok
+		default:
+			validationResults.AddErrors(field.NotSupported(fldPath.Child("logFormat"), config.LogFormat, []string{string(api.LogFormatLegacy), string(api.LogFormatJson)}))
+		}
+
+		if len(config.WebHookKubeConfig) > 0 {
+			switch config.WebHookMode {
+			case api.WebHookModeBatch, api.WebHookModeBlocking:
+				// ok
+			default:
+				validationResults.AddErrors(field.NotSupported(fldPath.Child("webHookMode"), config.WebHookMode, []string{string(api.WebHookModeBatch), string(api.WebHookModeBlocking)}))
+			}
+			loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+			loadingRules.ExplicitPath = config.WebHookKubeConfig
+			loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+			if _, err := loader.ClientConfig(); err != nil {
+				validationResults.AddErrors(field.Invalid(fldPath.Child("webHookKubeConfig"), config.WebHookKubeConfig, err.Error()))
+			}
+		} else if len(config.WebHookMode) > 0 {
+			validationResults.AddErrors(field.Required(fldPath.Child("webHookKubeConfig"), "must be specified when webHookMode is set"))
+		}
 	}
 
 	return validationResults

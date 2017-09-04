@@ -119,6 +119,9 @@ func TestAPIServerDefaults(t *testing.T) {
 			HTTPTimeout: time.Duration(5) * time.Second,
 		},
 		Audit: &apiserveroptions.AuditOptions{
+			LogOptions: apiserveroptions.AuditLogOptions{
+				Format: "legacy",
+			},
 			WebhookOptions: apiserveroptions.AuditWebhookOptions{
 				Mode: "batch",
 			},

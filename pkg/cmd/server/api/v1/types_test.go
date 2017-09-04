@@ -117,9 +117,14 @@ assetConfig:
 auditConfig:
   auditFilePath: ""
   enabled: false
+  logFormat: ""
   maximumFileRetentionDays: 0
   maximumFileSizeMegabytes: 0
   maximumRetainedFiles: 0
+  policyConfiguration: null
+  policyFile: ""
+  webHookKubeConfig: ""
+  webHookMode: ""
 authConfig:
   requestHeader: null
 controllerConfig:
