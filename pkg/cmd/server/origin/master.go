@@ -35,7 +35,6 @@ import (
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
-	"github.com/openshift/origin/pkg/user/cache"
 )
 
 const (
@@ -288,7 +287,7 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 			// these are all equivalent to the kube handler chain
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			handler = apifilters.WithAuthorization(handler, c.RequestContextMapper, c.Authorizer)
-			handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
+			handler = apifilters.WithImpersonation(handler, c.RequestContextMapper, c.Authorizer)
 			// audit handler must comes before the impersonationFilter to read the original user
 			if c.Options.AuditConfig.Enabled {
 				var writer io.Writer
@@ -324,6 +323,7 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			// these handlers are all before the normal kube chain
+			handler = serverhandlers.TranslateLegacyScopeImpersonation(handler)
 			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 			if c.WebConsoleEnabled() {

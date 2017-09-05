@@ -50,6 +50,7 @@ var rolesToHide = sets.NewString(
 	"system:persistent-volume-provisioner",
 	"system:registry",
 	"system:router",
+	"system:scope-impersonation",
 	"system:sdn-manager",
 	"system:sdn-reader",
 	"system:webhook",
