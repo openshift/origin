@@ -48,11 +48,14 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	imageTemplate.Format = imageFormat
 	imageTemplate.Latest = false
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, map[string]string{
+	params := map[string]string{
 		"IMAGE":     imageTemplate.ExpandOrDie(""),
 		"LOGLEVEL":  fmt.Sprint(serverLogLevel),
 		"NAMESPACE": tsbNamespace,
-	}, true); err != nil {
+	}
+	glog.V(2).Infof("instantiating template service broker template with parameters %v", params)
+
+	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, params, true); err != nil {
 		return errors.NewError("cannot instantiate template service broker resources").WithCause(err)
 	}
 
