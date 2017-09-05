@@ -10,19 +10,11 @@ import (
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
-	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
-	accesstokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthaccesstoken/etcd"
-	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
-	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
-	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
-	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
@@ -107,36 +99,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
 	)
 
-	clientStorage, err := clientetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
-	// If OAuth is disabled, set the strategy to Deny
-	saAccountGrantMethod := oauthapi.GrantHandlerDeny
-	if len(c.ServiceAccountMethod) > 0 {
-		// Otherwise, take the value provided in master-config.yaml
-		saAccountGrantMethod = oauthapi.GrantHandlerType(c.ServiceAccountMethod)
-	}
-
-	oauthClient, err := oauthclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClientInternal.Core(), c.KubeClientInternal.Core(), c.DeprecatedOpenshiftClient, oauthClient.OAuthClients(), saAccountGrantMethod)
-	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.GenericConfig.RESTOptionsGetter, combinedOAuthClientGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	accessTokenStorage, err := accesstokenetcd.NewREST(c.GenericConfig.RESTOptionsGetter, combinedOAuthClientGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	clientAuthorizationStorage, err := clientauthetcd.NewREST(c.GenericConfig.RESTOptionsGetter, combinedOAuthClientGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
 	clusterResourceQuotaStorage, clusterResourceQuotaStatusStorage, err := clusterresourcequotaetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -156,13 +118,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 			c.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas().Lister(),
 			c.KubeInternalInformers.Core().InternalVersion().Namespaces().Lister(),
 		),
-	}
-
-	storage[oauthapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"oAuthAuthorizeTokens":      authorizeTokenStorage,
-		"oAuthAccessTokens":         accessTokenStorage,
-		"oAuthClients":              clientStorage,
-		"oAuthClientAuthorizations": clientAuthorizationStorage,
 	}
 
 	storage[authzapiv1.SchemeGroupVersion] = map[string]rest.Storage{

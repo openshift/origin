@@ -41,6 +41,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
+	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -103,6 +104,7 @@ type OpenshiftAPIConfig struct {
 
 	EnableBuilds bool
 
+	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
 
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
@@ -316,6 +318,28 @@ func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserve
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: networkapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &oauthapiserver.OAuthAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		ServiceAccountMethod:      c.ServiceAccountMethod,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: oauthapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
 func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	config := &templateapiserver.TemplateConfig{
 		GenericConfig:       c.GenericConfig,
@@ -377,6 +401,7 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withBuildAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withImageAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withNetworkAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withOAuthAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withTemplateAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withUserAPIServer)
 
@@ -548,7 +573,6 @@ var apiGroupsVersions = []apiGroupInfo{
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{quotaapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{oauthapiv1.SchemeGroupVersion}},
 }
 
 // isPreferredGroupVersion returns true if the given GroupVersion is preferred version in
