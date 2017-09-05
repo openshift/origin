@@ -100,6 +100,7 @@ type AppConfig struct {
 	SkipGeneration bool
 
 	AllowSecretUse              bool
+	SourceSecret                string
 	AllowNonNumericExposedPorts bool
 	SecretAccessor              app.SecretAccessor
 
@@ -879,6 +880,15 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		for _, obj := range objects {
 			if bc, ok := obj.(*buildapi.BuildConfig); ok {
 				name = bc.Name
+				break
+			}
+		}
+	}
+	if len(c.SourceSecret) > 0 {
+		for _, obj := range objects {
+			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+				glog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
+				bc.Spec.Source.SourceSecret = &kapi.LocalObjectReference{Name: c.SourceSecret}
 				break
 			}
 		}

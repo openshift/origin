@@ -90,6 +90,9 @@ var (
 	  # Create an application from a remote repository and specify a context directory
 	  %[1]s %[2]s https://github.com/youruser/yourgitrepo --context-dir=src/build
 
+	  # Create an application from a remote private repository and specify which existing secret to use
+	  %[1]s %[2]s https://github.com/youruser/yourgitrepo --source-secret=yoursecret
+
 	  # Create an application based on a template file, explicitly setting a parameter value
 	  %[1]s %[2]s --file=./example/myapp/template.json --param=MYSQL_USER=admin
 
@@ -254,6 +257,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 	cmd.Flags().BoolVar(&config.AllowMissingImages, "allow-missing-images", false, "If true, indicates that referenced Docker images that cannot be found locally or in a registry should still be used.")
 	cmd.Flags().BoolVar(&config.AllowMissingImageStreamTags, "allow-missing-imagestream-tags", false, "If true, indicates that image stream tags that don't exist should still be used.")
 	cmd.Flags().BoolVar(&config.AllowSecretUse, "grant-install-rights", false, "If true, a component that requires access to your account may use your token to install software into your project. Only grant images you trust the right to run with your token.")
+	cmd.Flags().StringVar(&config.SourceSecret, "source-secret", "", "The name of an existing secret that should be used for cloning a private git repository.")
 	cmd.Flags().BoolVar(&config.SkipGeneration, "no-install", false, "Do not attempt to run images that describe themselves as being installable")
 
 	o.Action.BindForOutput(cmd.Flags(), "template")
