@@ -20,11 +20,11 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
 	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
+	appsfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -347,7 +347,7 @@ func TestHandleScenarios(t *testing.T) {
 			toStore = append(toStore, deployment)
 		}
 
-		oc := &testclient.Fake{}
+		oc := &appsfake.Clientset{}
 		oc.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			dc := action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 			updatedConfig = dc
@@ -369,10 +369,10 @@ func TestHandleScenarios(t *testing.T) {
 		dcInformer := cache.NewSharedIndexInformer(
 			&cache.ListWatch{
 				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-					return oc.DeploymentConfigs(metav1.NamespaceAll).List(options)
+					return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).List(options)
 				},
 				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-					return oc.DeploymentConfigs(metav1.NamespaceAll).Watch(options)
+					return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
 				},
 			},
 			&deployapi.DeploymentConfig{},

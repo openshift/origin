@@ -125,7 +125,7 @@ func (c *FakeDeploymentConfigs) Patch(name string, pt types.PatchType, data []by
 // Instantiate takes the representation of a deploymentRequest and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
 func (c *FakeDeploymentConfigs) Instantiate(deploymentConfigName string, deploymentRequest *apps.DeploymentRequest) (result *apps.DeploymentConfig, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateSubresourceAction(deploymentconfigsResource, deploymentConfigName, "instantiate", c.ns, deploymentRequest), &apps.DeploymentRequest{})
+		Invokes(testing.NewCreateSubresourceAction(deploymentconfigsResource, deploymentConfigName, "instantiate", c.ns, deploymentRequest), &apps.DeploymentConfig{})
 
 	if obj == nil {
 		return nil, err

@@ -13,8 +13,9 @@ import (
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
+	appsclientinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
-	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
@@ -50,12 +51,20 @@ type ControllerClientBuilder interface {
 	controller.ControllerClientBuilder
 	KubeInternalClient(name string) (kclientsetinternal.Interface, error)
 	KubeInternalClientOrDie(name string) kclientsetinternal.Interface
+
+	// Legacy OpenShift client (pkg/client)
 	DeprecatedOpenshiftClient(name string) (osclient.Interface, error)
 	DeprecatedOpenshiftClientOrDie(name string) osclient.Interface
-	OpenshiftTemplateClient(name string) (templateclient.Interface, error)
-	OpenshiftTemplateClientOrDie(name string) templateclient.Interface
-	OpenshiftImageClient(name string) (imageclient.Interface, error)
-	OpenshiftImageClientOrDie(name string) imageclient.Interface
+
+	// OpenShift clients based on generated internal clientsets
+	OpenshiftInternalTemplateClient(name string) (templateclient.Interface, error)
+	OpenshiftInternalTemplateClientOrDie(name string) templateclient.Interface
+
+	OpenshiftInternalImageClient(name string) (imageclientinternal.Interface, error)
+	OpenshiftInternalImageClientOrDie(name string) imageclientinternal.Interface
+
+	OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error)
+	OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -99,7 +108,10 @@ func (b OpenshiftControllerClientBuilder) DeprecatedOpenshiftClientOrDie(name st
 	return client
 }
 
-func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (templateclient.Interface, error) {
+// OpenshiftInternalTemplateClient provides a REST client for the template API.
+// If the client cannot be created because of configuration error, this function
+// will return an error.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalTemplateClient(name string) (templateclient.Interface, error) {
 	clientConfig, err := b.Config(name)
 	if err != nil {
 		return nil, err
@@ -107,24 +119,55 @@ func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClient(name string) (
 	return templateclient.NewForConfig(clientConfig)
 }
 
-func (b OpenshiftControllerClientBuilder) OpenshiftTemplateClientOrDie(name string) templateclient.Interface {
-	client, err := b.OpenshiftTemplateClient(name)
+// OpenshiftInternalTemplateClientOrDie provides a REST client for the template API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalTemplateClientOrDie(name string) templateclient.Interface {
+	client, err := b.OpenshiftInternalTemplateClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}
 	return client
 }
 
-func (b OpenshiftControllerClientBuilder) OpenshiftImageClient(name string) (imageclient.Interface, error) {
+// OpenshiftInternalImageClient provides a REST client for the image API.
+// If the client cannot be created because of configuration error, this function
+// will error.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalImageClient(name string) (imageclientinternal.Interface, error) {
 	clientConfig, err := b.Config(name)
 	if err != nil {
 		return nil, err
 	}
-	return imageclient.NewForConfig(clientConfig)
+	return imageclientinternal.NewForConfig(clientConfig)
 }
 
-func (b OpenshiftControllerClientBuilder) OpenshiftImageClientOrDie(name string) imageclient.Interface {
-	client, err := b.OpenshiftImageClient(name)
+// OpenshiftInternalImageClientOrDie provides a REST client for the image API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalImageClientOrDie(name string) imageclientinternal.Interface {
+	client, err := b.OpenshiftInternalImageClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
+}
+
+// OpenshiftInternalAppsClient provides a REST client for the apps API.
+// If the client cannot be created because of configuration error, this function
+// will error.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return appsclientinternal.NewForConfig(clientConfig)
+}
+
+// OpenshiftInternalAppsClientOrDie provides a REST client for the apps API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface {
+	client, err := b.OpenshiftInternalAppsClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

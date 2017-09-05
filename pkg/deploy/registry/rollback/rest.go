@@ -12,16 +12,17 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
+	appsclientinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	apps "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 // REST provides a rollback generation endpoint. Only the Create method is implemented.
 type REST struct {
 	generator RollbackGenerator
-	dn        client.DeploymentConfigsNamespacer
+	dn        apps.DeploymentConfigsGetter
 	rn        kcoreclient.ReplicationControllersGetter
 	codec     runtime.Codec
 }
@@ -29,10 +30,10 @@ type REST struct {
 var _ rest.Creater = &REST{}
 
 // NewREST safely creates a new REST.
-func NewREST(oc client.Interface, kc kclientset.Interface, codec runtime.Codec) *REST {
+func NewREST(appsclient appsclientinternal.Interface, kc kclientset.Interface, codec runtime.Codec) *REST {
 	return &REST{
 		generator: NewRollbackGenerator(),
-		dn:        oc,
+		dn:        appsclient.Apps(),
 		rn:        kc.Core(),
 		codec:     codec,
 	}

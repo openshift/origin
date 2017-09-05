@@ -18,12 +18,12 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	strat "github.com/openshift/origin/pkg/deploy/strategy"
 	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
 	stratutil "github.com/openshift/origin/pkg/deploy/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 const (
@@ -64,7 +64,7 @@ type RollingDeploymentStrategy struct {
 	// eventClient is a client to access events
 	eventClient kcoreclient.EventsGetter
 	// tags is a client used to perform tag actions
-	tags client.ImageStreamTagsNamespacer
+	tags imageclient.ImageStreamTagsGetter
 	// rollingUpdate knows how to perform a rolling update.
 	rollingUpdate func(config *kubectl.RollingUpdaterConfig) error
 	// decoder is used to access the encoded config on a deployment.
@@ -90,7 +90,7 @@ type acceptingDeploymentStrategy interface {
 }
 
 // NewRollingDeploymentStrategy makes a new RollingDeploymentStrategy.
-func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags client.ImageStreamTagsNamespacer, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
+func NewRollingDeploymentStrategy(namespace string, client kclientset.Interface, tags imageclient.ImageStreamTagsGetter, events record.EventSink, decoder runtime.Decoder, initialStrategy acceptingDeploymentStrategy, out, errOut io.Writer, until string) *RollingDeploymentStrategy {
 	if out == nil {
 		out = ioutil.Discard
 	}

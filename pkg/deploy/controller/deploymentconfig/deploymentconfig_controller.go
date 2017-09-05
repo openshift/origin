@@ -21,9 +21,9 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -56,7 +56,7 @@ func (e fatalError) Error() string {
 // running deployments.
 type DeploymentConfigController struct {
 	// dn provides access to deploymentconfigs.
-	dn osclient.DeploymentConfigsNamespacer
+	dn appsclient.DeploymentConfigsGetter
 	// rn provides access to replication controllers.
 	rn kcoreclient.ReplicationControllersGetter
 

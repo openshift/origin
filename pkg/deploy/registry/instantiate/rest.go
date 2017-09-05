@@ -20,16 +20,18 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	images "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
-func NewREST(store registry.Store, oc client.Interface, kc kclientset.Interface, decoder runtime.Decoder, admission admission.Interface) *REST {
+// NewREST provides new REST storage for the apps API group.
+func NewREST(store registry.Store, imagesclient imageclientinternal.Interface, kc kclientset.Interface, decoder runtime.Decoder, admission admission.Interface) *REST {
 	store.UpdateStrategy = Strategy
-	return &REST{store: &store, isn: oc, rn: kc.Core(), decoder: decoder, admit: admission}
+	return &REST{store: &store, is: imagesclient.Image(), rn: kc.Core(), decoder: decoder, admit: admission}
 }
 
 // REST implements the Creater interface.
@@ -37,7 +39,7 @@ var _ = rest.Creater(&REST{})
 
 type REST struct {
 	store   *registry.Store
-	isn     client.ImageStreamsNamespacer
+	is      images.ImageStreamsGetter
 	rn      kcoreclient.ReplicationControllersGetter
 	decoder runtime.Decoder
 	admit   admission.Interface
@@ -69,7 +71,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		// We need to process the deployment config before we can determine if it is possible to trigger
 		// a deployment.
 		if req.Latest {
-			if err := processTriggers(config, r.isn, req.Force, req.ExcludeTriggers); err != nil {
+			if err := processTriggers(config, r.is, req.Force, req.ExcludeTriggers); err != nil {
 				return err
 			}
 		}
@@ -116,7 +118,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 // processTriggers will go over all deployment triggers that require processing and update
 // the deployment config accordingly. This contains the work that the image change controller
 // had been doing up to the point we got the /instantiate endpoint.
-func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreamsNamespacer, force bool, exclude []deployapi.DeploymentTriggerType) error {
+func processTriggers(config *deployapi.DeploymentConfig, is images.ImageStreamsGetter, force bool, exclude []deployapi.DeploymentTriggerType) error {
 	errs := []error{}
 
 	// Process any image change triggers.
@@ -139,7 +141,7 @@ func processTriggers(config *deployapi.DeploymentConfig, isn client.ImageStreams
 
 		// Tag references are already validated
 		name, tag, _ := imageapi.SplitImageStreamTag(params.From.Name)
-		stream, err := isn.ImageStreams(params.From.Namespace).Get(name, metav1.GetOptions{})
+		stream, err := is.ImageStreams(params.From.Namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
 				errs = append(errs, err)

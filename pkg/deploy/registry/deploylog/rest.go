@@ -22,9 +22,9 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/deploy/apis/apps/validation"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/deploy/registry"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
@@ -53,7 +53,7 @@ func (g *podGetter) Get(ctx apirequest.Context, name string, options *metav1.Get
 
 // REST is an implementation of RESTStorage for the api server.
 type REST struct {
-	dn       client.DeploymentConfigsNamespacer
+	dn       appsclient.DeploymentConfigsGetter
 	rn       kcoreclient.ReplicationControllersGetter
 	pn       kcoreclient.PodsGetter
 	connInfo kubeletclient.ConnectionInfoGetter
@@ -68,7 +68,7 @@ var _ = rest.GetterWithOptions(&REST{})
 // one for deployments (replication controllers) and one for pods to get the necessary
 // attributes to assemble the URL to which the request shall be redirected in order to
 // get the deployment logs.
-func NewREST(dn client.DeploymentConfigsNamespacer, rn kcoreclient.ReplicationControllersGetter, pn kcoreclient.PodsGetter, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
+func NewREST(dn appsclient.DeploymentConfigsGetter, rn kcoreclient.ReplicationControllersGetter, pn kcoreclient.PodsGetter, connectionInfo kubeletclient.ConnectionInfoGetter) *REST {
 	return &REST{
 		dn:       dn,
 		rn:       rn,
