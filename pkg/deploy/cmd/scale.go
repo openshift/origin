@@ -68,7 +68,12 @@ func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, precon
 	scale.Spec.Replicas = int32(newSize)
 	updated, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale)
 	if err != nil {
-		return "", kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: "Unknown", ActualError: err}
+		resourceVersion := ""
+		dc, dcErr := scaler.dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		if dcErr == nil {
+			resourceVersion = dc.ResourceVersion
+		}
+		return "", kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: resourceVersion, ActualError: err}
 	}
 	return updated.ResourceVersion, nil
 }
