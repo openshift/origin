@@ -2,31 +2,14 @@ package origin
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/registry/rest"
-	restclient "k8s.io/client-go/rest"
-	"k8s.io/client-go/util/flowcontrol"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
-	"github.com/openshift/origin/pkg/image/importer"
-	imageimporter "github.com/openshift/origin/pkg/image/importer"
-	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
-	"github.com/openshift/origin/pkg/image/registry/image"
-	imageetcd "github.com/openshift/origin/pkg/image/registry/image/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagesecret"
-	"github.com/openshift/origin/pkg/image/registry/imagesignature"
-	"github.com/openshift/origin/pkg/image/registry/imagestream"
-	imagestreametcd "github.com/openshift/origin/pkg/image/registry/imagestream/etcd"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamimage"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamimport"
-	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
-	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
@@ -40,7 +23,6 @@ import (
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
@@ -72,20 +54,6 @@ import (
 // TODO this function needs to be broken apart with each API group owning their own storage, probably with two method
 // per API group to give us legacy and current storage
 func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string]rest.Storage, error) {
-	// TODO: allow the system CAs and the local CAs to be joined together.
-	importTransport, err := restclient.TransportFor(&restclient.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
-	}
-	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{
-		TLSClientConfig: restclient.TLSClientConfig{
-			Insecure: true,
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
-	}
-
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
 	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
 	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorizer)
@@ -113,48 +81,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		oscc.NewDefaultSCCMatcher(c.SecurityInformers.Security().InternalVersion().SecurityContextConstraints().Lister()),
 		c.KubeClientInternal,
 	)
-
-	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
-	imageStorage, err := imageetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	imageRegistry := image.NewRegistry(imageStorage)
-	imageSignatureStorage := imagesignature.NewREST(c.DeprecatedOpenshiftClient.Images())
-	imageStreamSecretsStorage := imagesecret.NewREST(c.KubeClientInternal.Core())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.LimitVerifier)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	imageStreamRegistry := imagestream.NewRegistry(imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage)
-	imageStreamMappingStorage := imagestreammapping.NewREST(imageRegistry, imageStreamRegistry, c.RegistryHostnameRetriever)
-	imageStreamTagStorage := imagestreamtag.NewREST(imageRegistry, imageStreamRegistry)
-	importerCache, err := imageimporter.NewImageStreamLayerCache(imageimporter.DefaultImageStreamLayerCacheSize)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	importerFn := func(r importer.RepositoryRetriever) imageimporter.Interface {
-		return imageimporter.NewImageStreamImporter(r, c.MaxImagesBulkImportedPerRepository, flowcontrol.NewTokenBucketRateLimiter(2.0, 3), &importerCache)
-	}
-	importerDockerClientFn := func() dockerregistry.Client {
-		return dockerregistry.NewClient(20*time.Second, false)
-	}
-	imageStreamImportStorage := imagestreamimport.NewREST(
-		importerFn,
-		imageStreamRegistry,
-		internalImageStreamStorage,
-		imageStorage,
-		c.DeprecatedOpenshiftClient,
-		importTransport,
-		insecureImportTransport,
-		importerDockerClientFn,
-		c.AllowedRegistriesForImport,
-		c.RegistryHostnameRetriever,
-		c.DeprecatedOpenshiftClient.SubjectAccessReviews())
-	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 
 	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
@@ -265,18 +191,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	storage[projectapiv1.SchemeGroupVersion] = map[string]rest.Storage{
 		"projects":        projectStorage,
 		"projectRequests": projectRequestStorage,
-	}
-
-	storage[imageapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"images":               imageStorage,
-		"imagesignatures":      imageSignatureStorage,
-		"imageStreams/secrets": imageStreamSecretsStorage,
-		"imageStreams":         imageStreamStorage,
-		"imageStreams/status":  imageStreamStatusStorage,
-		"imageStreamImports":   imageStreamImportStorage,
-		"imageStreamImages":    imageStreamImageStorage,
-		"imageStreamMappings":  imageStreamMappingStorage,
-		"imageStreamTags":      imageStreamTagStorage,
 	}
 
 	storage[routeapiv1.SchemeGroupVersion] = map[string]rest.Storage{
