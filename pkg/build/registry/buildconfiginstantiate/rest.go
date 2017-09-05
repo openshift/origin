@@ -25,6 +25,7 @@ import (
 	"k8s.io/kubernetes/pkg/registry/core/pod"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildstrategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	"github.com/openshift/origin/pkg/build/generator"
 	"github.com/openshift/origin/pkg/build/registry"
@@ -72,6 +73,17 @@ func (s *InstantiateREST) Create(ctx apirequest.Context, obj runtime.Object, _ b
 	return s.generator.Instantiate(ctx, request)
 }
 
+func (s *InstantiateREST) ProducesObject(verb string) interface{} {
+	// for documentation purposes
+	return buildapiv1.Build{}
+}
+
+func (s *InstantiateREST) ProducesMIMETypes(verb string) []string {
+	return nil // no additional mime types
+}
+
+var _ rest.StorageMetadata = &InstantiateREST{}
+
 func NewBinaryStorage(generator *generator.BuildGenerator, watcher rest.Watcher, podClient kcoreclient.PodsGetter, info kubeletclient.ConnectionInfoGetter) *BinaryInstantiateREST {
 	return &BinaryInstantiateREST{
 		Generator:      generator,
@@ -93,7 +105,7 @@ type BinaryInstantiateREST struct {
 var _ rest.Connecter = &BinaryInstantiateREST{}
 
 // New creates a new build generation request
-func (s *BinaryInstantiateREST) New() runtime.Object {
+func (r *BinaryInstantiateREST) New() runtime.Object {
 	return &buildapi.BinaryBuildRequestOptions{}
 }
 
@@ -117,6 +129,17 @@ func (r *BinaryInstantiateREST) NewConnectOptions() (runtime.Object, bool, strin
 func (r *BinaryInstantiateREST) ConnectMethods() []string {
 	return []string{"POST"}
 }
+
+func (r *BinaryInstantiateREST) ProducesObject(verb string) interface{} {
+	// for documentation purposes
+	return buildapiv1.Build{}
+}
+
+func (r *BinaryInstantiateREST) ProducesMIMETypes(verb string) []string {
+	return nil // no additional mime types
+}
+
+var _ rest.StorageMetadata = &BinaryInstantiateREST{}
 
 // binaryInstantiateHandler responds to upload requests
 type binaryInstantiateHandler struct {
