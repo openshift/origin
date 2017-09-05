@@ -418,13 +418,13 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Install template service broker if our version is high enough
 	c.addTask(conditionalTask("Installing template service broker", c.InstallTemplateServiceBroker, func() bool {
-		return c.ShouldInstallServiceCatalog && c.ShouldInstallTemplateServiceBroker() && c.ShouldInitializeData()
+		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
 	}))
 
 	// Register the TSB w/ the SC if requested.  This is done even when reusing a config because
 	// the TSB registration is not persisted.
 	c.addTask(conditionalTask("Registering template service broker with service catalog", c.RegisterTemplateServiceBroker, func() bool {
-		return c.ShouldInstallServiceCatalog && c.ShouldInstallTemplateServiceBroker()
+		return c.ShouldInstallServiceCatalog
 	}))
 
 	// Login with an initial default user
@@ -1023,7 +1023,7 @@ func (c *ClientStartConfig) CheckServiceCatalogPrereqVersion(out io.Writer) erro
 	}
 
 	// service catalog requires the TSB, which requires 3.7
-	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
+	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
 	if serverVersion.LT(openshiftVersion37) {
 		return errors.NewError("Enabling the service catalog requires a server at least %v, this server is version %v", openshiftVersion37, serverVersion)
 	}
@@ -1043,19 +1043,6 @@ func (c *ClientStartConfig) InstallServiceCatalog(out io.Writer) error {
 	return c.OpenShiftHelper().InstallServiceCatalog(f, c.LocalConfigDir, publicMaster, openshift.CatalogHost(c.RoutingSuffix, c.ServerIP), c.imageFormat())
 }
 
-func (c *ClientStartConfig) ShouldInstallTemplateServiceBroker() bool {
-	if c.ImageVersion == "latest" {
-		return true
-	}
-
-	// the TSB, which requires 3.7
-	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
-	if serverVersion.LT(openshiftVersion37) {
-		return false
-	}
-	return true
-}
-
 // InstallTemplateServiceBroker will start the installation of template service broker
 func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 	f, err := c.Factory()
@@ -1068,7 +1055,7 @@ func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 	}
 	// TODO we want to use this eventually, but until we have our own image for TSB, we have to hardcode this origin
 	//return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.imageFormat())
-	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.Image, c.ServerLogLevel)
+	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, fmt.Sprintf("%s:%s", c.Image, c.ImageVersion), c.ServerLogLevel)
 }
 
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
