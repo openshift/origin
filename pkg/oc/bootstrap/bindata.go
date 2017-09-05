@@ -34,8 +34,9 @@
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
-// examples/templateservicebroker/apiserver-config.yaml
-// examples/templateservicebroker/templateservicebroker-template.yaml
+// install/templateservicebroker/apiserver-config.yaml
+// install/templateservicebroker/apiserver-template.yaml
+// install/templateservicebroker/rbac-template.yaml
 // pkg/image/admission/imagepolicy/api/v1/default-policy.yaml
 // DO NOT EDIT!
 
@@ -13087,6 +13088,7 @@ objects:
           args:
           - -provider=openshift
           - -https-address=:8443
+          - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9090
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
@@ -13129,7 +13131,7 @@ objects:
           args:
           - -provider=openshift
           - -https-address=:9443
-          - -http-address=:4190
+          - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9099
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
@@ -13472,8 +13474,8 @@ metadata:
   name: service-catalog
 objects:
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: servicecatalog-serviceclass-viewer
   rules:
@@ -13486,8 +13488,8 @@ objects:
     - watch
     - get
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: servicecatalog-serviceclass-viewer-binding
   roleRef:
@@ -13505,8 +13507,8 @@ objects:
   metadata:
     name: service-catalog-apiserver
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: sar-creator
   rules:
@@ -13517,17 +13519,19 @@ objects:
     verbs:
     - create
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-sar-creator-binding
   roleRef:
     name: sar-creator
-  userNames:
-    - system:serviceaccount:kube-service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: namespace-viewer
   rules:
@@ -13540,26 +13544,30 @@ objects:
     - watch
     - get
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-namespace-viewer-binding
   roleRef:
     name: namespace-viewer
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: kube-service-catalog
 
-- kind: ClusterRole
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRole
   metadata:
     name: service-catalog-controller
   rules:
@@ -13623,17 +13631,19 @@ objects:
     - list
     - watch
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: service-catalog-controller-binding
   roleRef:
     name: service-catalog-controller
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-controller
+    namespace: kube-service-catalog
   
-- kind: Role
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
   metadata:
     name: endpoint-accessor
   rules:
@@ -13648,18 +13658,20 @@ objects:
     - create
     - update
 
-- kind: RoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
   metadata:
     name: endpointer-accessor-binding
   roleRef:
     name: endpoint-accessor
-    namespace: service-catalog
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-controller
+    namespace: kube-service-catalog
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 
-- kind: Role
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
   metadata:
     name: extension-apiserver-authentication-reader
     namespace: ${KUBE_SYSTEM_NAMESPACE}
@@ -13673,25 +13685,29 @@ objects:
     verbs:
     - get
 
-- kind: RoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
   metadata:
     name: extension-apiserver-authentication-reader-binding
     namespace: ${KUBE_SYSTEM_NAMESPACE}
   roleRef:
     name: extension-apiserver-authentication-reader
-    namespace: kube-system
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+    namespace: ${KUBE_SYSTEM_NAMESPACE}
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
-- kind: ClusterRoleBinding
-  apiVersion: v1
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
   metadata:
     name: system:auth-delegator-binding
   roleRef:
     name: system:auth-delegator
-  userNames:
-    - system:serviceaccount:service-catalog:service-catalog-apiserver
+  subjects:
+  - kind: ServiceAccount
+    name: service-catalog-apiserver
+    namespace: kube-service-catalog
 
 
 - kind: Deployment
@@ -13819,7 +13835,7 @@ objects:
           - -v
           - "5"
           - --leader-election-namespace
-          - service-catalog
+          - kube-service-catalog
           - --broker-relist-interval
           - "5m"
           image: ${SERVICE_CATALOG_IMAGE}
@@ -13898,37 +13914,35 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
-var _examplesTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
+var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
 - openshift`)
 
-func examplesTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
-	return _examplesTemplateservicebrokerApiserverConfigYaml, nil
+func installTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverConfigYaml, nil
 }
 
-func examplesTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
-	bytes, err := examplesTemplateservicebrokerApiserverConfigYamlBytes()
+func installTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+var _installTemplateservicebrokerApiserverTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: template-service-broker
+  name: template-service-broker-apiserver
 parameters:
 - name: IMAGE
   value: openshift/origin:latest
 - name: NAMESPACE
   value: openshift-template-service-broker
-- name: KUBE_SYSTEM
-  value: kube-system
 - name: LOGLEVEL
   value: "0"
 - name: API_SERVER_CONFIG
@@ -13958,6 +13972,7 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command:
           - "/usr/bin/openshift"
           - "start"
@@ -14021,6 +14036,66 @@ objects:
     - port: 443
       targetPort: 8443
 
+# This service account will be granted permission to call the TSB.
+# The token for this SA will be provided to the service catalog for 
+# use when calling the TSB.
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
+# This secret will be populated with a copy of the templateservicebroker-client SA's
+# auth token.  Since this secret has a static name, it can be referenced more
+# easily than the auto-generated secret for the service account.
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: templateservicebroker-client
+  type: kubernetes.io/service-account-token
+`)
+
+func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverTemplateYaml, nil
+}
+
+func installTemplateservicebrokerApiserverTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installTemplateservicebrokerRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-rbac
+parameters:
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+objects:
+
+# Grant the service account permission to call the TSB
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: templateservicebroker-client
+  roleRef:
+    name: system:openshift:templateservicebroker-client
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
 # to delegate authentication and authorization
 - apiVersion: authorization.openshift.io/v1
   kind: ClusterRoleBinding
@@ -14058,19 +14133,47 @@ objects:
   - kind: ServiceAccount
     namespace: ${NAMESPACE}
     name: apiserver
+
+# allow the kube service catalog's SA to read the static secret defined
+# above, which will contain the token for the SA that can call the TSB.
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
+  metadata:
+    name: templateservicebroker-auth-reader
+    namespace: ${NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - templateservicebroker-client
+    resources:
+    - secrets
+    verbs:
+    - get
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-auth-reader
+  roleRef:
+    name: templateservicebroker-auth-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 `)
 
-func examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
-	return _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
+func installTemplateservicebrokerRbacTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerRbacTemplateYaml, nil
 }
 
-func examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
-	bytes, err := examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
+func installTemplateservicebrokerRbacTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerRbacTemplateYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/rbac-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -14197,8 +14300,9 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
-	"examples/templateservicebroker/apiserver-config.yaml": examplesTemplateservicebrokerApiserverConfigYaml,
-	"examples/templateservicebroker/templateservicebroker-template.yaml": examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml,
+	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
+	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
+	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
 	"pkg/image/admission/imagepolicy/api/v1/default-policy.yaml": pkgImageAdmissionImagepolicyApiV1DefaultPolicyYaml,
 }
 
@@ -14295,9 +14399,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		"service-catalog": &bintree{nil, map[string]*bintree{
 			"service-catalog.yaml": &bintree{examplesServiceCatalogServiceCatalogYaml, map[string]*bintree{}},
 		}},
+	}},
+	"install": &bintree{nil, map[string]*bintree{
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
-			"apiserver-config.yaml": &bintree{examplesTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
-			"templateservicebroker-template.yaml": &bintree{examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
+			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
+			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
+			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},
 	"pkg": &bintree{nil, map[string]*bintree{

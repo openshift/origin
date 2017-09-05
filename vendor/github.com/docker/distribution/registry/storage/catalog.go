@@ -29,10 +29,6 @@ func (reg *registry) Repositories(ctx context.Context, repos []string, last stri
 		return 0, err
 	}
 
-	// errFinishedWalk signals an early exit to the walk when the current query
-	// is satisfied.
-	errFinishedWalk := errors.New("finished walk")
-
 	err = Walk(ctx, reg.blobStore.driver, root, func(fileInfo driver.FileInfo) error {
 		err := handleRepository(fileInfo, root, last, func(repoPath string) error {
 			foundRepos = append(foundRepos, repoPath)
@@ -91,6 +87,10 @@ func lessPath(a, b string) bool {
 // compareReplaceInline modifies runtime.cmpstring to replace old with new
 // during a byte-wise comparison.
 func compareReplaceInline(s1, s2 string, old, new byte) int {
+	// TODO(stevvooe): We are missing an optimization when the s1 and s2 have
+	// the exact same slice header. It will make the code unsafe but can
+	// provide some extra performance.
+
 	l := len(s1)
 	if len(s2) < l {
 		l = len(s2)

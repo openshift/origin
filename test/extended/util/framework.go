@@ -1149,6 +1149,8 @@ func FixturePath(elem ...string) string {
 		panic("must specify path")
 	case len(elem) > 3 && elem[0] == ".." && elem[1] == ".." && elem[2] == "examples":
 		elem = elem[2:]
+	case len(elem) > 3 && elem[0] == ".." && elem[1] == ".." && elem[2] == "install":
+		elem = elem[2:]
 	case len(elem) > 3 && elem[0] == ".." && elem[1] == "integration":
 		elem = append([]string{"test"}, elem[1:]...)
 	case elem[0] == "testdata":

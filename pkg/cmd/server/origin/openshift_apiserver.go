@@ -55,11 +55,11 @@ import (
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	networkapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
 	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
-	networkapiv1 "github.com/openshift/origin/pkg/sdn/apis/network/v1"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
@@ -582,7 +582,7 @@ func (c *OpenshiftAPIConfig) ensureOpenShiftInfraNamespace(context genericapiser
 	// Ensure we have the bootstrap SA for Nodes
 	_, err = c.KubeClientInternal.Core().ServiceAccounts(ns).Create(&kapi.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.InfraNodeBootstrapServiceAccountName}})
 	if err != nil && !kapierror.IsAlreadyExists(err) {
-		glog.Errorf("Error creating service account %s/%s: %v", namespace, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
+		glog.Errorf("Error creating service account %s/%s: %v", ns, bootstrappolicy.InfraNodeBootstrapServiceAccountName, err)
 	}
 
 	EnsureNamespaceServiceAccountRoleBindings(c.KubeClientInternal, c.DeprecatedOpenshiftClient, namespace)

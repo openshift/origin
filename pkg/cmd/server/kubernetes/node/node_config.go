@@ -41,8 +41,8 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/dns"
-	"github.com/openshift/origin/pkg/sdn"
-	sdnapi "github.com/openshift/origin/pkg/sdn/apis/network"
+	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 )
 
 // NodeConfig represents the required parameters to start the OpenShift node
@@ -80,9 +80,9 @@ type NodeConfig struct {
 	DNSServer *dns.Server
 
 	// SDNNode is an optional SDN node interface
-	SDNNode sdn.NodeInterface
+	SDNNode network.NodeInterface
 	// SDNProxy is an optional service endpoints filterer
-	SDNProxy sdn.ProxyInterface
+	SDNProxy network.ProxyInterface
 }
 
 func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enableDNS bool) (*NodeConfig, error) {
@@ -177,7 +177,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
 	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
 
-	if sdn.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
+	if network.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn
 		server.HairpinMode = componentconfig.HairpinNone
 	}
@@ -201,7 +201,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 		},
 		Webhook: componentconfig.KubeletWebhookAuthentication{
 			Enabled:  true,
-			CacheTTL: metav1.Duration{authnTTL},
+			CacheTTL: metav1.Duration{Duration: authnTTL},
 		},
 		Anonymous: componentconfig.KubeletAnonymousAuthentication{
 			Enabled: true,
@@ -214,8 +214,8 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.Authorization = componentconfig.KubeletAuthorization{
 		Mode: componentconfig.KubeletAuthorizationModeWebhook,
 		Webhook: componentconfig.KubeletWebhookAuthorization{
-			CacheAuthorizedTTL:   metav1.Duration{authzTTL},
-			CacheUnauthorizedTTL: metav1.Duration{authzTTL},
+			CacheAuthorizedTTL:   metav1.Duration{Duration: authzTTL},
+			CacheUnauthorizedTTL: metav1.Duration{Duration: authzTTL},
 		},
 	}
 
@@ -234,9 +234,9 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(kubeClient, proxyconfig.ConfigSyncPeriod.Duration)
 
 	// Initialize SDN before building kubelet config so it can modify option
-	var sdnNode sdn.NodeInterface
-	var sdnProxy sdn.ProxyInterface
-	if sdn.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
+	var sdnNode network.NodeInterface
+	var sdnProxy network.ProxyInterface
+	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		sdnNode, sdnProxy, err = NewSDNInterfaces(options, originClient, kubeClient, internalKubeInformers, proxyconfig)
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
@@ -434,13 +434,13 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubePr
 }
 
 func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
-	if sdn.IsOpenShiftNetworkPlugin(pluginName) {
+	if network.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
-		clusterNetwork, err := originClient.ClusterNetwork().Get(sdnapi.ClusterNetworkDefault, metav1.GetOptions{})
+		clusterNetwork, err := originClient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
 		} else if err != nil {
-			return fmt.Errorf("cannot fetch %q cluster network: %v", sdnapi.ClusterNetworkDefault, err)
+			return fmt.Errorf("cannot fetch %q cluster network: %v", networkapi.ClusterNetworkDefault, err)
 		}
 
 		if clusterNetwork.PluginName != strings.ToLower(pluginName) {

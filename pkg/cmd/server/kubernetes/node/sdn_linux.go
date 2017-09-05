@@ -7,12 +7,12 @@ import (
 
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/sdn"
-	sdnnode "github.com/openshift/origin/pkg/sdn/node"
-	sdnproxy "github.com/openshift/origin/pkg/sdn/proxy"
+	"github.com/openshift/origin/pkg/network"
+	sdnnode "github.com/openshift/origin/pkg/network/node"
+	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 )
 
-func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Client, kubeClient kclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (sdn.NodeInterface, sdn.ProxyInterface, error) {
+func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Client, kubeClient kclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
 		Hostname:           options.NodeName,

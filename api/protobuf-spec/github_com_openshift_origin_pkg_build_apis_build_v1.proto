@@ -326,6 +326,9 @@ message BuildRequest {
 
   // DockerStrategyOptions contains additional docker-strategy specific options for the build
   optional DockerStrategyOptions dockerStrategyOptions = 9;
+
+  // SourceStrategyOptions contains additional source-strategy specific options for the build
+  optional SourceStrategyOptions sourceStrategyOptions = 10;
 }
 
 // BuildSource is the SCM used for the build.
@@ -650,6 +653,9 @@ message DockerStrategyOptions {
   // Args contains any build arguments that are to be passed to Docker.  See
   // https://docs.docker.com/engine/reference/builder/#/arg for more details
   repeated k8s.io.kubernetes.pkg.api.v1.EnvVar buildArgs = 1;
+
+  // noCache overrides the docker-strategy noCache option in the build config
+  optional bool noCache = 2;
 }
 
 // GenericWebHookCause holds information about a generic WebHook that
@@ -916,6 +922,12 @@ message SourceRevision {
 
   // Git contains information about git-based build source
   optional GitSourceRevision git = 2;
+}
+
+// SourceStrategyOptions contains extra strategy options for Source builds
+message SourceStrategyOptions {
+  // incremental overrides the source-strategy incremental option in the build config
+  optional bool incremental = 1;
 }
 
 // StageInfo contains details about a build stage.

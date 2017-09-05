@@ -7,6 +7,7 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	rest "k8s.io/client-go/rest"
+	api "k8s.io/kubernetes/pkg/api"
 )
 
 // ImageStreamsGetter has a method to return a ImageStreamInterface.
@@ -26,6 +27,8 @@ type ImageStreamInterface interface {
 	List(opts v1.ListOptions) (*image.ImageStreamList, error)
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *image.ImageStream, err error)
+	Secrets(imageStreamName string, opts v1.ListOptions) (*api.SecretList, error)
+
 	ImageStreamExpansion
 }
 
@@ -150,6 +153,20 @@ func (c *imageStreams) Patch(name string, pt types.PatchType, data []byte, subre
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
+		Do().
+		Into(result)
+	return
+}
+
+// Secrets takes image.ImageStream name, label and field selectors, and returns the list of Secrets that match those selectors.
+func (c *imageStreams) Secrets(imageStreamName string, opts v1.ListOptions) (result *api.SecretList, err error) {
+	result = &api.SecretList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("imagestreams").
+		Name(imageStreamName).
+		SubResource("secrets").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Do().
 		Into(result)
 	return

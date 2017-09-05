@@ -221,35 +221,7 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Name:      "test",
 					Namespace: "test",
 				},
-				Spec: templateapi.TemplateInstanceSpec{},
-			},
-			expectedErrorType: field.ErrorTypeRequired,
-		},
-		{
-			templateInstance: templateapi.TemplateInstance{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
 				Spec: templateapi.TemplateInstanceSpec{
-					Template: templateapi.Template{},
-				},
-			},
-			expectedErrorType: field.ErrorTypeRequired,
-		},
-		{
-			templateInstance: templateapi.TemplateInstance{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
-				Spec: templateapi.TemplateInstanceSpec{
-					Template: templateapi.Template{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test",
-							Namespace: "test",
-						},
-					},
 					Requester: &templateapi.TemplateInstanceRequester{
 						Username: "test",
 					},
@@ -264,10 +236,6 @@ func TestValidateTemplateInstance(t *testing.T) {
 				},
 				Spec: templateapi.TemplateInstanceSpec{
 					Template: templateapi.Template{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test",
-							Namespace: "test",
-						},
 						Parameters: []templateapi.Parameter{
 							{
 								Name: "b@d",
@@ -288,12 +256,6 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Namespace: "test",
 				},
 				Spec: templateapi.TemplateInstanceSpec{
-					Template: templateapi.Template{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test",
-							Namespace: "test",
-						},
-					},
 					Secret: &kapi.LocalObjectReference{
 						Name: "b@d",
 					},
@@ -311,12 +273,6 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Namespace: "test",
 				},
 				Spec: templateapi.TemplateInstanceSpec{
-					Template: templateapi.Template{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test",
-							Namespace: "test",
-						},
-					},
 					Secret: &kapi.LocalObjectReference{},
 					Requester: &templateapi.TemplateInstanceRequester{
 						Username: "test",
@@ -332,31 +288,6 @@ func TestValidateTemplateInstance(t *testing.T) {
 					Namespace: "test",
 				},
 				Spec: templateapi.TemplateInstanceSpec{
-					Template: templateapi.Template{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test",
-							Namespace: "test",
-						},
-					},
-					Requester: &templateapi.TemplateInstanceRequester{
-						Username: "test",
-					},
-				},
-			},
-		},
-		{
-			templateInstance: templateapi.TemplateInstance{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "test",
-				},
-				Spec: templateapi.TemplateInstanceSpec{
-					Template: templateapi.Template{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test",
-							Namespace: "test",
-						},
-					},
 					Secret: &kapi.LocalObjectReference{
 						Name: "test",
 					},

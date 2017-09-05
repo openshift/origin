@@ -370,7 +370,8 @@ else
   if [[ -n "${JUNIT_REPORT:-}" ]]; then
     export JUNIT_REPORT_OUTPUT="${LOG_DIR}/raw_test_output.log"
     # the Ginkgo tests also generate jUnit but expect different envars
-    export TEST_REPORT_DIR="${ARTIFACT_DIR}"
+    export TEST_REPORT_DIR="${ARTIFACT_DIR}/junit"
+    mkdir -p $TEST_REPORT_DIR
   fi
 
   os::log::system::start

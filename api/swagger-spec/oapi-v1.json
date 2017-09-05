@@ -22367,6 +22367,10 @@
      "dockerStrategyOptions": {
       "$ref": "v1.DockerStrategyOptions",
       "description": "DockerStrategyOptions contains additional docker-strategy specific options for the build"
+     },
+     "sourceStrategyOptions": {
+      "$ref": "v1.SourceStrategyOptions",
+      "description": "SourceStrategyOptions contains additional source-strategy specific options for the build"
      }
     }
    },
@@ -22480,6 +22484,20 @@
        "$ref": "v1.EnvVar"
       },
       "description": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details"
+     },
+     "noCache": {
+      "type": "boolean",
+      "description": "noCache overrides the docker-strategy noCache option in the build config"
+     }
+    }
+   },
+   "v1.SourceStrategyOptions": {
+    "id": "v1.SourceStrategyOptions",
+    "description": "SourceStrategyOptions contains extra strategy options for Source builds",
+    "properties": {
+     "incremental": {
+      "type": "boolean",
+      "description": "incremental overrides the source-strategy incremental option in the build config"
      }
     }
    },

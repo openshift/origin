@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/docker/distribution"
@@ -13,7 +14,9 @@ import (
 func TestVerifyManifestForeignLayer(t *testing.T) {
 	ctx := context.Background()
 	inmemoryDriver := inmemory.New()
-	registry := createRegistry(t, inmemoryDriver)
+	registry := createRegistry(t, inmemoryDriver,
+		ManifestURLsAllowRegexp(regexp.MustCompile("^https?://foo")),
+		ManifestURLsDenyRegexp(regexp.MustCompile("^https?://foo/nope")))
 	repo := makeRepository(t, registry, "test")
 	manifestService := makeManifestService(t, repo)
 
@@ -54,9 +57,10 @@ func TestVerifyManifestForeignLayer(t *testing.T) {
 			errMissingURL,
 		},
 		{
+			// regular layers may have foreign urls
 			layer,
 			[]string{"http://foo/bar"},
-			errUnexpectedURL,
+			nil,
 		},
 		{
 			foreignLayer,
@@ -76,6 +80,21 @@ func TestVerifyManifestForeignLayer(t *testing.T) {
 		{
 			foreignLayer,
 			[]string{"https://foo/bar", ""},
+			errInvalidURL,
+		},
+		{
+			foreignLayer,
+			[]string{"", "https://foo/bar"},
+			errInvalidURL,
+		},
+		{
+			foreignLayer,
+			[]string{"http://nope/bar"},
+			errInvalidURL,
+		},
+		{
+			foreignLayer,
+			[]string{"http://foo/nope"},
 			errInvalidURL,
 		},
 		{

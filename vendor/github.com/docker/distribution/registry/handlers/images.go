@@ -15,14 +15,16 @@ import (
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/auth"
 	"github.com/gorilla/handlers"
 )
 
 // These constants determine which architecture and OS to choose from a
 // manifest list when downconverting it to a schema1 manifest.
 const (
-	defaultArch = "amd64"
-	defaultOS   = "linux"
+	defaultArch         = "amd64"
+	defaultOS           = "linux"
+	maxManifestBodySize = 4 << 20
 )
 
 // imageManifestDispatcher takes the request context and builds the
@@ -205,7 +207,7 @@ func (imh *imageManifestHandler) convertSchema2Manifest(schema2Manifest *schema2
 	}
 
 	builder := schema1.NewConfigManifestBuilder(imh.Repository.Blobs(imh), imh.Context.App.trustKey, ref, configJSON)
-	for _, d := range schema2Manifest.References() {
+	for _, d := range schema2Manifest.Layers {
 		if err := builder.AppendReference(d); err != nil {
 			imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err))
 			return nil, err
@@ -240,8 +242,9 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	}
 
 	var jsonBuf bytes.Buffer
-	if err := copyFullPayload(w, r, &jsonBuf, imh, "image manifest PUT", &imh.Errors); err != nil {
+	if err := copyFullPayload(w, r, &jsonBuf, maxManifestBodySize, imh, "image manifest PUT"); err != nil {
 		// copyFullPayload reports the error if necessary
+		imh.Errors = append(imh.Errors, v2.ErrorCodeManifestInvalid.WithDetail(err.Error()))
 		return
 	}
 
@@ -269,6 +272,12 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	if imh.Tag != "" {
 		options = append(options, distribution.WithTag(imh.Tag))
 	}
+
+	if err := imh.applyResourcePolicy(manifest); err != nil {
+		imh.Errors = append(imh.Errors, err)
+		return
+	}
+
 	_, err = manifests.Put(imh, manifest, options...)
 	if err != nil {
 		// TODO(stevvooe): These error handling switches really need to be
@@ -337,6 +346,73 @@ func (imh *imageManifestHandler) PutImageManifest(w http.ResponseWriter, r *http
 	w.Header().Set("Location", location)
 	w.Header().Set("Docker-Content-Digest", imh.Digest.String())
 	w.WriteHeader(http.StatusCreated)
+}
+
+// applyResourcePolicy checks whether the resource class matches what has
+// been authorized and allowed by the policy configuration.
+func (imh *imageManifestHandler) applyResourcePolicy(manifest distribution.Manifest) error {
+	allowedClasses := imh.App.Config.Policy.Repository.Classes
+	if len(allowedClasses) == 0 {
+		return nil
+	}
+
+	var class string
+	switch m := manifest.(type) {
+	case *schema1.SignedManifest:
+		class = "image"
+	case *schema2.DeserializedManifest:
+		switch m.Config.MediaType {
+		case schema2.MediaTypeConfig:
+			class = "image"
+		case schema2.MediaTypePluginConfig:
+			class = "plugin"
+		default:
+			message := fmt.Sprintf("unknown manifest class for %s", m.Config.MediaType)
+			return errcode.ErrorCodeDenied.WithMessage(message)
+		}
+	}
+
+	if class == "" {
+		return nil
+	}
+
+	// Check to see if class is allowed in registry
+	var allowedClass bool
+	for _, c := range allowedClasses {
+		if class == c {
+			allowedClass = true
+			break
+		}
+	}
+	if !allowedClass {
+		message := fmt.Sprintf("registry does not allow %s manifest", class)
+		return errcode.ErrorCodeDenied.WithMessage(message)
+	}
+
+	resources := auth.AuthorizedResources(imh)
+	n := imh.Repository.Named().Name()
+
+	var foundResource bool
+	for _, r := range resources {
+		if r.Name == n {
+			if r.Class == "" {
+				r.Class = "image"
+			}
+			if r.Class == class {
+				return nil
+			}
+			foundResource = true
+		}
+	}
+
+	// resource was found but no matching class was found
+	if foundResource {
+		message := fmt.Sprintf("repository not authorized for %s manifest", class)
+		return errcode.ErrorCodeDenied.WithMessage(message)
+	}
+
+	return nil
+
 }
 
 // DeleteImageManifest removes the manifest with the given digest from the registry.

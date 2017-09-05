@@ -22,6 +22,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/client"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 type Runner interface {
@@ -53,7 +54,8 @@ type IgnoreErrorFunc func(e error) bool
 
 // Bulk provides helpers for iterating over a list of items
 type Bulk struct {
-	Mapper Mapper
+	Mapper        Mapper
+	DynamicMapper Mapper
 
 	// PreferredSerializationOrder take a list of GVKs to decide how to serialize out the individual list items
 	// It allows partial values, so you specify just groups or versions as a for instance
@@ -80,7 +82,13 @@ func (b *Bulk) Run(list *kapi.List, namespace string) []error {
 
 	errs := []error{}
 	for i, item := range list.Items {
-		info, err := b.Mapper.InfoForObject(item, b.getPreferredSerializationOrder())
+		var info *resource.Info
+		var err error
+		if _, ok := item.(*unstructured.Unstructured); ok {
+			info, err = b.DynamicMapper.InfoForObject(item, b.getPreferredSerializationOrder())
+		} else {
+			info, err = b.Mapper.InfoForObject(item, b.getPreferredSerializationOrder())
+		}
 		if err != nil {
 			errs = append(errs, err)
 			if after(info, err) {

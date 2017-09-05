@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"runtime"
+	"strings"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -211,6 +213,39 @@ func NewApp(ctx context.Context, config *configuration.Configuration) *App {
 		options = append(options, storage.EnableRedirect)
 	}
 
+	// configure validation
+	if config.Validation.Enabled {
+		if len(config.Validation.Manifests.URLs.Allow) == 0 && len(config.Validation.Manifests.URLs.Deny) == 0 {
+			// If Allow and Deny are empty, allow nothing.
+			options = append(options, storage.ManifestURLsAllowRegexp(regexp.MustCompile("^$")))
+		} else {
+			if len(config.Validation.Manifests.URLs.Allow) > 0 {
+				for i, s := range config.Validation.Manifests.URLs.Allow {
+					// Validate via compilation.
+					if _, err := regexp.Compile(s); err != nil {
+						panic(fmt.Sprintf("validation.manifests.urls.allow: %s", err))
+					}
+					// Wrap with non-capturing group.
+					config.Validation.Manifests.URLs.Allow[i] = fmt.Sprintf("(?:%s)", s)
+				}
+				re := regexp.MustCompile(strings.Join(config.Validation.Manifests.URLs.Allow, "|"))
+				options = append(options, storage.ManifestURLsAllowRegexp(re))
+			}
+			if len(config.Validation.Manifests.URLs.Deny) > 0 {
+				for i, s := range config.Validation.Manifests.URLs.Deny {
+					// Validate via compilation.
+					if _, err := regexp.Compile(s); err != nil {
+						panic(fmt.Sprintf("validation.manifests.urls.deny: %s", err))
+					}
+					// Wrap with non-capturing group.
+					config.Validation.Manifests.URLs.Deny[i] = fmt.Sprintf("(?:%s)", s)
+				}
+				re := regexp.MustCompile(strings.Join(config.Validation.Manifests.URLs.Deny, "|"))
+				options = append(options, storage.ManifestURLsDenyRegexp(re))
+			}
+		}
+	}
+
 	// configure storage caches
 	if cc, ok := config.Storage["cache"]; ok {
 		v, ok := cc["blobdescriptor"]
@@ -306,7 +341,7 @@ func (app *App) RegisterHealthChecks(healthRegistries ...*health.Registry) {
 		}
 
 		storageDriverCheck := func() error {
-			_, err := app.driver.List(app, "/") // "/" should always exist
+			_, err := app.driver.Stat(app, "/") // "/" should always exist
 			return err                          // any error will be treated as failure
 		}
 
@@ -412,10 +447,11 @@ func (app *App) configureEvents(configuration *configuration.Configuration) {
 
 		ctxu.GetLogger(app).Infof("configuring endpoint %v (%v), timeout=%s, headers=%v", endpoint.Name, endpoint.URL, endpoint.Timeout, endpoint.Headers)
 		endpoint := notifications.NewEndpoint(endpoint.Name, endpoint.URL, notifications.EndpointConfig{
-			Timeout:   endpoint.Timeout,
-			Threshold: endpoint.Threshold,
-			Backoff:   endpoint.Backoff,
-			Headers:   endpoint.Headers,
+			Timeout:           endpoint.Timeout,
+			Threshold:         endpoint.Threshold,
+			Backoff:           endpoint.Backoff,
+			Headers:           endpoint.Headers,
+			IgnoredMediaTypes: endpoint.IgnoredMediaTypes,
 		})
 
 		sinks = append(sinks, endpoint)
@@ -445,6 +481,8 @@ func (app *App) configureEvents(configuration *configuration.Configuration) {
 	}
 }
 
+type redisStartAtKey struct{}
+
 func (app *App) configureRedis(configuration *configuration.Configuration) {
 	if configuration.Redis.Addr == "" {
 		ctxu.GetLogger(app).Infof("redis not configured")
@@ -454,11 +492,11 @@ func (app *App) configureRedis(configuration *configuration.Configuration) {
 	pool := &redis.Pool{
 		Dial: func() (redis.Conn, error) {
 			// TODO(stevvooe): Yet another use case for contextual timing.
-			ctx := context.WithValue(app, "redis.connect.startedat", time.Now())
+			ctx := context.WithValue(app, redisStartAtKey{}, time.Now())
 
 			done := func(err error) {
 				logger := ctxu.GetLoggerWithField(ctx, "redis.connect.duration",
-					ctxu.Since(ctx, "redis.connect.startedat"))
+					ctxu.Since(ctx, redisStartAtKey{}))
 				if err != nil {
 					logger.Errorf("redis: error connecting: %v", err)
 				} else {
@@ -691,6 +729,18 @@ func (app *App) dispatcher(dispatch dispatchFunc, nameRequired nameRequiredFunc,
 	})
 }
 
+type errCodeKey struct{}
+
+func (errCodeKey) String() string { return "err.code" }
+
+type errMessageKey struct{}
+
+func (errMessageKey) String() string { return "err.message" }
+
+type errDetailKey struct{}
+
+func (errDetailKey) String() string { return "err.detail" }
+
 func (app *App) logError(context context.Context, errors errcode.Errors) {
 	for _, e1 := range errors {
 		var c ctxu.Context
@@ -698,23 +748,23 @@ func (app *App) logError(context context.Context, errors errcode.Errors) {
 		switch e1.(type) {
 		case errcode.Error:
 			e, _ := e1.(errcode.Error)
-			c = ctxu.WithValue(context, "err.code", e.Code)
-			c = ctxu.WithValue(c, "err.message", e.Code.Message())
-			c = ctxu.WithValue(c, "err.detail", e.Detail)
+			c = ctxu.WithValue(context, errCodeKey{}, e.Code)
+			c = ctxu.WithValue(c, errMessageKey{}, e.Code.Message())
+			c = ctxu.WithValue(c, errDetailKey{}, e.Detail)
 		case errcode.ErrorCode:
 			e, _ := e1.(errcode.ErrorCode)
-			c = ctxu.WithValue(context, "err.code", e)
-			c = ctxu.WithValue(c, "err.message", e.Message())
+			c = ctxu.WithValue(context, errCodeKey{}, e)
+			c = ctxu.WithValue(c, errMessageKey{}, e.Message())
 		default:
 			// just normal go 'error'
-			c = ctxu.WithValue(context, "err.code", errcode.ErrorCodeUnknown)
-			c = ctxu.WithValue(c, "err.message", e1.Error())
+			c = ctxu.WithValue(context, errCodeKey{}, errcode.ErrorCodeUnknown)
+			c = ctxu.WithValue(c, errMessageKey{}, e1.Error())
 		}
 
 		c = ctxu.WithLogger(c, ctxu.GetLogger(c,
-			"err.code",
-			"err.message",
-			"err.detail"))
+			errCodeKey{},
+			errMessageKey{},
+			errDetailKey{}))
 		ctxu.GetResponseLogger(c).Errorf("response completed with error")
 	}
 }

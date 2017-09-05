@@ -8,7 +8,8 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	sdnmaster "github.com/openshift/origin/pkg/sdn/master"
+	"github.com/openshift/origin/pkg/network"
+	sdnmaster "github.com/openshift/origin/pkg/network/master"
 )
 
 type SDNControllerConfig struct {
@@ -16,6 +17,10 @@ type SDNControllerConfig struct {
 }
 
 func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error) {
+	if !network.IsOpenShiftNetworkPlugin(c.NetworkConfig.NetworkPluginName) {
+		return false, nil
+	}
+
 	// TODO: Switch SDN to use client.Interface
 	clientConfig, err := ctx.ClientBuilder.Config(bootstrappolicy.InfraSDNControllerServiceAccountName)
 	if err != nil {

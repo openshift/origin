@@ -21,13 +21,14 @@ type image struct {
 	layers         map[digest.Digest]io.ReadSeeker
 }
 
-func createRegistry(t *testing.T, driver driver.StorageDriver) distribution.Namespace {
+func createRegistry(t *testing.T, driver driver.StorageDriver, options ...RegistryOption) distribution.Namespace {
 	ctx := context.Background()
 	k, err := libtrust.GenerateECP256PrivateKey()
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry, err := NewRegistry(ctx, driver, EnableDelete, Schema1SigningKey(k))
+	options = append([]RegistryOption{EnableDelete, Schema1SigningKey(k)}, options...)
+	registry, err := NewRegistry(ctx, driver, options...)
 	if err != nil {
 		t.Fatalf("Failed to construct namespace")
 	}
@@ -144,7 +145,7 @@ func TestNoDeletionNoEffect(t *testing.T) {
 	ctx := context.Background()
 	inmemoryDriver := inmemory.New()
 
-	registry := createRegistry(t, inmemory.New())
+	registry := createRegistry(t, inmemoryDriver)
 	repo := makeRepository(t, registry, "palailogos")
 	manifestService, err := repo.Manifests(ctx)
 

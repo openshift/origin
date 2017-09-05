@@ -118,8 +118,10 @@ var (
 	// internalTemplateLocations are templates that will be registered in an internal namespace
 	// instead of the openshift namespace.
 	internalTemplateLocations = map[string]string{
-		"logging":         "examples/logging/logging-deployer.yaml",
-		"service catalog": "examples/service-catalog/service-catalog.yaml",
+		"logging":                           "examples/logging/logging-deployer.yaml",
+		"service catalog":                   "examples/service-catalog/service-catalog.yaml",
+		"template service broker apiserver": "install/templateservicebroker/apiserver-template.yaml",
+		"template service broker rbac":      "install/templateservicebroker/rbac-template.yaml",
 	}
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
@@ -408,14 +410,14 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 		return c.ShouldInstallLogging && c.ShouldInitializeData()
 	}))
 
-	// Install template service broker if our version is high enough
-	c.addTask(conditionalTask("Installing template service broker", c.InstallTemplateServiceBroker, func() bool {
-		return c.ShouldInstallTemplateServiceBroker()
-	}))
-
 	// Install service catalog
 	c.addTask(conditionalTask("Installing service catalog", c.InstallServiceCatalog, func() bool {
 		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
+	}))
+
+	// Install template service broker if our version is high enough
+	c.addTask(conditionalTask("Installing template service broker", c.InstallTemplateServiceBroker, func() bool {
+		return c.ShouldInstallServiceCatalog && c.ShouldInstallTemplateServiceBroker() && c.ShouldInitializeData()
 	}))
 
 	// Login with an initial default user
@@ -434,10 +436,6 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Display server information
 	c.addTask(simpleTask("Server Information", c.ServerInfo))
-
-	c.addTask(conditionalTask("Service Catalog Instructions", c.ServiceCatalogInstructions, func() bool {
-		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
-	}))
 
 	return nil
 }
@@ -491,9 +489,6 @@ func (c *ClientStartConfig) Start(out io.Writer) error {
 	}
 	if !bool(glog.V(1)) {
 		c.ServerInfo(out)
-		if c.ShouldInstallServiceCatalog {
-			c.ServiceCatalogInstructions(out)
-		}
 	}
 	return nil
 }
@@ -1047,7 +1042,7 @@ func (c *ClientStartConfig) ShouldInstallTemplateServiceBroker() bool {
 	}
 
 	// the TSB, which requires 3.7
-	serverVersion, _ := c.OpenShiftHelper().ServerPrereleaseVersion()
+	serverVersion, _ := c.OpenShiftHelper().ServerVersion()
 	if serverVersion.LT(openshiftVersion37) {
 		return false
 	}
@@ -1120,28 +1115,6 @@ func (c *ClientStartConfig) ServerInfo(out io.Writer) error {
 	msg += c.checkProxySettings()
 
 	fmt.Fprintf(out, msg)
-	return nil
-}
-
-// ServiceCatalogInstructions displays information for enabling access to
-// the template service broker after starting with the service catalog enabled.
-func (c *ClientStartConfig) ServiceCatalogInstructions(out io.Writer) error {
-	msg :=
-		"In order to enable access to the Template Service Broker for use with the " +
-			"Service Catalog, you must first grant unauthenticated access to the " +
-			"template service broker api.\n\n" +
-			"WARNING: Enabling this access allows anyone who can see your cluster api " +
-			"server to provision templates within your cluster, impersonating any user " +
-			"in the cluster (including administrators).  This can be used to gain full " +
-			"administrative access to your cluster.  Do not allow this access unless " +
-			"you fully understand the implications.  To enable unauthenticated access " +
-			"to the template service broker api, run the following command as cluster " +
-			"admin:\n\n" +
-			"oc adm policy add-cluster-role-to-group system:openshift:templateservicebroker-client system:unauthenticated system:authenticated\n\n" +
-			"WARNING: Running the above command allows unauthenticated users to access " +
-			"and potentially exploit your cluster.\n\n"
-	fmt.Fprintf(out, msg)
-
 	return nil
 }
 

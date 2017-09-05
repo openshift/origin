@@ -243,8 +243,9 @@
 // examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml
 // examples/jenkins/pipeline/samplepipeline.yaml
 // examples/quickstarts/cakephp-mysql.json
-// examples/templateservicebroker/apiserver-config.yaml
-// examples/templateservicebroker/templateservicebroker-template.yaml
+// install/templateservicebroker/apiserver-config.yaml
+// install/templateservicebroker/apiserver-template.yaml
+// install/templateservicebroker/rbac-template.yaml
 // DO NOT EDIT!
 
 package testdata
@@ -9914,6 +9915,25 @@ items:
   kind: BuildConfig
   metadata:
     labels:
+      build: inputimage
+    name: inputimage
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: inputimage:latest
+    source:
+      dockerfile: "FROM foo"
+    strategy:
+      dockerStrategy:
+        from: 
+          kind: ImageStreamTag
+          name: ruby:2.3
+          namespace: openshift
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    labels:
       build: imagesourcebuild
     name: imagesourcebuild
   spec:
@@ -9927,8 +9947,7 @@ items:
       images:
       - from:
           kind: ImageStreamTag
-          name: ruby:2.3
-          namespace: openshift
+          name: inputimage:latest
         paths:
         - destinationDir: injected/dir
           sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
@@ -9956,13 +9975,19 @@ items:
       images:
       - from:
           kind: ImageStreamTag
-          name: ruby:2.3
-          namespace: openshift
+          name: inputimage:latest
         paths:
         - destinationDir: injected/dir
           sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
     strategy:
-      dockerStrategy: {}
+      dockerStrategy:
+        forcePull: true
+
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: inputimage
+  spec: {}
 - apiVersion: v1
   kind: ImageStream
   metadata:
@@ -24417,6 +24442,7 @@ objects:
           args:
           - -provider=openshift
           - -https-address=:8443
+          - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9090
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
@@ -24459,7 +24485,7 @@ objects:
           args:
           - -provider=openshift
           - -https-address=:9443
-          - -http-address=:4190
+          - -http-address=
           - -email-domain=*
           - -upstream=http://localhost:9099
           - -client-id=system:serviceaccount:${NAMESPACE}:prometheus
@@ -27760,37 +27786,35 @@ func examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson() (*asset, error) {
 	return a, nil
 }
 
-var _examplesTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
+var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
 - openshift`)
 
-func examplesTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
-	return _examplesTemplateservicebrokerApiserverConfigYaml, nil
+func installTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverConfigYaml, nil
 }
 
-func examplesTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
-	bytes, err := examplesTemplateservicebrokerApiserverConfigYamlBytes()
+func installTemplateservicebrokerApiserverConfigYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverConfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-config.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
 
-var _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+var _installTemplateservicebrokerApiserverTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: template-service-broker
+  name: template-service-broker-apiserver
 parameters:
 - name: IMAGE
   value: openshift/origin:latest
 - name: NAMESPACE
   value: openshift-template-service-broker
-- name: KUBE_SYSTEM
-  value: kube-system
 - name: LOGLEVEL
   value: "0"
 - name: API_SERVER_CONFIG
@@ -27820,6 +27844,7 @@ objects:
         containers:
         - name: c
           image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
           command:
           - "/usr/bin/openshift"
           - "start"
@@ -27883,6 +27908,66 @@ objects:
     - port: 443
       targetPort: 8443
 
+# This service account will be granted permission to call the TSB.
+# The token for this SA will be provided to the service catalog for 
+# use when calling the TSB.
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
+# This secret will be populated with a copy of the templateservicebroker-client SA's
+# auth token.  Since this secret has a static name, it can be referenced more
+# easily than the auto-generated secret for the service account.
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+    annotations:
+      kubernetes.io/service-account.name: templateservicebroker-client
+  type: kubernetes.io/service-account-token
+`)
+
+func installTemplateservicebrokerApiserverTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerApiserverTemplateYaml, nil
+}
+
+func installTemplateservicebrokerApiserverTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerApiserverTemplateYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/templateservicebroker/apiserver-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _installTemplateservicebrokerRbacTemplateYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-rbac
+parameters:
+- name: NAMESPACE
+  value: openshift-template-service-broker
+- name: KUBE_SYSTEM
+  value: kube-system
+objects:
+
+# Grant the service account permission to call the TSB
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: templateservicebroker-client
+  roleRef:
+    name: system:openshift:templateservicebroker-client
+  subjects:
+  - kind: ServiceAccount
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-client
+
 # to delegate authentication and authorization
 - apiVersion: authorization.openshift.io/v1
   kind: ClusterRoleBinding
@@ -27920,19 +28005,47 @@ objects:
   - kind: ServiceAccount
     namespace: ${NAMESPACE}
     name: apiserver
+
+# allow the kube service catalog's SA to read the static secret defined
+# above, which will contain the token for the SA that can call the TSB.
+- apiVersion: authorization.openshift.io/v1
+  kind: Role
+  metadata:
+    name: templateservicebroker-auth-reader
+    namespace: ${NAMESPACE}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - templateservicebroker-client
+    resources:
+    - secrets
+    verbs:
+    - get
+- apiVersion: authorization.openshift.io/v1
+  kind: RoleBinding
+  metadata:
+    namespace: ${NAMESPACE}
+    name: templateservicebroker-auth-reader
+  roleRef:
+    name: templateservicebroker-auth-reader
+  subjects:
+  - kind: ServiceAccount
+    namespace: kube-service-catalog
+    name: service-catalog-controller
 `)
 
-func examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes() ([]byte, error) {
-	return _examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, nil
+func installTemplateservicebrokerRbacTemplateYamlBytes() ([]byte, error) {
+	return _installTemplateservicebrokerRbacTemplateYaml, nil
 }
 
-func examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml() (*asset, error) {
-	bytes, err := examplesTemplateservicebrokerTemplateservicebrokerTemplateYamlBytes()
+func installTemplateservicebrokerRbacTemplateYaml() (*asset, error) {
+	bytes, err := installTemplateservicebrokerRbacTemplateYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "examples/templateservicebroker/templateservicebroker-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "install/templateservicebroker/rbac-template.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28232,8 +28345,9 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/jenkins/pipeline/openshift-client-plugin-pipeline.yaml": examplesJenkinsPipelineOpenshiftClientPluginPipelineYaml,
 	"examples/jenkins/pipeline/samplepipeline.yaml": examplesJenkinsPipelineSamplepipelineYaml,
 	"examples/quickstarts/cakephp-mysql.json/cakephp-mysql.json": examplesQuickstartsCakephpMysqlJsonCakephpMysqlJson,
-	"examples/templateservicebroker/apiserver-config.yaml": examplesTemplateservicebrokerApiserverConfigYaml,
-	"examples/templateservicebroker/templateservicebroker-template.yaml": examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml,
+	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
+	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
+	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
 }
 
 // AssetDir returns the file names below a certain
@@ -28337,9 +28451,12 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"github-webhook-example.json": &bintree{examplesSampleAppGithubWebhookExampleJson, map[string]*bintree{}},
 			"pullimages.sh": &bintree{examplesSampleAppPullimagesSh, map[string]*bintree{}},
 		}},
+	}},
+	"install": &bintree{nil, map[string]*bintree{
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
-			"apiserver-config.yaml": &bintree{examplesTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
-			"templateservicebroker-template.yaml": &bintree{examplesTemplateservicebrokerTemplateservicebrokerTemplateYaml, map[string]*bintree{}},
+			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
+			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
+			"rbac-template.yaml": &bintree{installTemplateservicebrokerRbacTemplateYaml, map[string]*bintree{}},
 		}},
 	}},
 	"test": &bintree{nil, map[string]*bintree{

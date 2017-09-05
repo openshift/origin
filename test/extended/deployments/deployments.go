@@ -907,6 +907,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 			// FIXME: remove when tests are migrated to the new client
 			// (the old one incorrectly translates nil into an empty array)
 			dc.Spec.Triggers = append(dc.Spec.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
+			// This is the last place we can safely say that the time was taken before replicas became ready
+			startTime := time.Now()
 			dc, err = oc.Client().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -927,6 +929,8 @@ var _ = g.Describe("deploymentconfigs", func() {
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(rc1.Status.AvailableReplicas).To(o.BeZero())
+			// We need to log here to have a timestamp to compare with master logs if something goes wrong
+			e2e.Logf("All replicas are ready.")
 
 			g.By("verifying that the deployment is still running")
 			if deployutil.IsTerminatedDeployment(rc1) {
@@ -935,7 +939,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 
 			g.By("waiting for the deployment to finish")
 			rc1, err = waitForRCModification(oc, namespace, rc1.Name,
-				deploymentChangeTimeout+time.Duration(dc.Spec.MinReadySeconds)*time.Second,
+				deploymentRunTimeout+time.Duration(dc.Spec.MinReadySeconds)*time.Second,
 				rc1.GetResourceVersion(), func(rc *kapiv1.ReplicationController) (bool, error) {
 					if rc.Status.AvailableReplicas == dc.Spec.Replicas {
 						return true, nil
@@ -947,7 +951,11 @@ var _ = g.Describe("deploymentconfigs", func() {
 					}
 					return false, nil
 				})
+			// We need to log here to have a timestamp to compare with master logs if something goes wrong
+			e2e.Logf("Finished waiting for deployment.")
 			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(time.Since(startTime)).To(o.BeNumerically(">=", time.Duration(dc.Spec.MinReadySeconds)*time.Second),
+				"Deployment shall not finish before MinReadySeconds elapse.")
 			o.Expect(rc1.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
 			// Deployment status can't be updated yet but should be right after
 			o.Expect(deployutil.DeploymentStatusFor(rc1)).To(o.Equal(deployapi.DeploymentStatusRunning))

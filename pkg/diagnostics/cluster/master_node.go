@@ -16,7 +16,7 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 
-	"github.com/openshift/origin/pkg/sdn"
+	"github.com/openshift/origin/pkg/network"
 )
 
 const masterNotRunningAsANode = `Unable to find a node matching the cluster server IP.
@@ -62,7 +62,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 			return false, types.DiagnosticError{ID: "DClu3008",
 				LogMessage: fmt.Sprintf("Master config provided but unable to parse: %s", masterErr), Cause: masterErr}
 		}
-		if !sdn.IsOpenShiftNetworkPlugin(masterCfg.NetworkConfig.NetworkPluginName) {
+		if !network.IsOpenShiftNetworkPlugin(masterCfg.NetworkConfig.NetworkPluginName) {
 			return false, errors.New(fmt.Sprintf("Network plugin does not require master to also run node: %s", masterCfg.NetworkConfig.NetworkPluginName))
 		}
 	}

@@ -1,5 +1,63 @@
 [
   {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/templateservicebroker",
+      "github.com/openshift/origin/pkg/cmd/server/start"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/templateservicebroker"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/build/builder",
+      "github.com/openshift/origin/pkg/cmd/infra/builder",
+      "github.com/openshift/origin/pkg/oc/cli/secrets",
+      "github.com/openshift/origin/pkg/build/controller/strategy"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/build/builder"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg"
+    ],
+    "ignoredSubTrees": [
+      "github.com/openshift/origin/pkg/dockerregistry",
+      "github.com/openshift/origin/pkg/cmd/dockerregistry",
+      "github.com/openshift/origin/pkg/cmd/server/origin",
+      "github.com/openshift/origin/pkg/generate/app",
+      "github.com/openshift/origin/pkg/image/importer",
+      "github.com/openshift/origin/pkg/image/registry/imagestreamimport"
+    ],
+    "forbiddenImportPackageRoots": [
+      "github.com/openshift/origin/pkg/dockerregistry"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor",
+      ""
+    ]
+  },
+
+  {
     "checkedPackages": [
       "github.com/openshift/origin/pkg/authorization/apis/authorization",
       "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
@@ -173,8 +231,8 @@
 
   {
     "checkedPackages": [
-      "github.com/openshift/origin/pkg/sdn/apis/network",
-      "github.com/openshift/origin/pkg/sdn/apis/network/v1"
+      "github.com/openshift/origin/pkg/network/apis/network",
+      "github.com/openshift/origin/pkg/network/apis/network/v1"
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",

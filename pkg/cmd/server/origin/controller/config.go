@@ -58,6 +58,8 @@ type OpenshiftControllerConfig struct {
 	IngressIPControllerConfig IngressIPControllerConfig
 
 	ClusterQuotaReconciliationControllerConfig ClusterQuotaReconciliationControllerConfig
+
+	HorizontalPodAutoscalerControllerConfig HorizontalPodAutoscalerControllerConfig
 }
 
 func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]InitFunc, error) {
@@ -87,6 +89,10 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 
 	ret["openshift.io/resourcequota"] = RunResourceQuotaManager
 	ret["openshift.io/cluster-quota-reconciliation"] = c.ClusterQuotaReconciliationControllerConfig.RunController
+
+	// overrides the Kube HPA controller config, so that we can point it at an HTTPS Heapster
+	// in openshift-infra, and pass it a scale client that knows how to scale DCs
+	ret["openshift.io/horizontalpodautoscaling"] = c.HorizontalPodAutoscalerControllerConfig.RunController
 
 	return ret, nil
 }
@@ -216,6 +222,11 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 	ret.ClusterQuotaReconciliationControllerConfig = ClusterQuotaReconciliationControllerConfig{
 		DefaultResyncPeriod:            5 * time.Minute,
 		DefaultReplenishmentSyncPeriod: 12 * time.Hour,
+	}
+
+	// TODO this goes away with a truly generic autoscaler
+	ret.HorizontalPodAutoscalerControllerConfig = HorizontalPodAutoscalerControllerConfig{
+		HeapsterNamespace: options.PolicyConfig.OpenShiftInfrastructureNamespace,
 	}
 
 	return ret, nil

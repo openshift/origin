@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	metrics "github.com/openshift/origin/pkg/build/metrics/prometheus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -174,6 +175,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 
 	buildClient := buildclient.NewOSClientBuildClient(params.OpenshiftClient)
 	buildLister := params.BuildInformer.Lister()
+	clientBuildLister := buildclient.NewOSClientBuildLister(params.OpenshiftClient)
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
 		buildPatcher:      buildClient,
@@ -200,7 +202,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		imageStreamQueue: newResourceTriggerQueue(),
 
 		recorder:    eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-controller"}),
-		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
+		runPolicies: policy.GetAllRunPolicies(clientBuildLister, buildClient),
 	}
 
 	c.podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -240,6 +242,8 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	for i := 0; i < workers; i++ {
 		go wait.Until(bc.worker, time.Second, stopCh)
 	}
+
+	metrics.IntializeMetricsCollector(bc.buildLister)
 
 	<-stopCh
 	glog.Infof("Shutting down build controller")

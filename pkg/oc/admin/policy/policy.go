@@ -118,6 +118,7 @@ func getUniqueName(basename string, existingNames *sets.String) string {
 type RoleBindingAccessor interface {
 	GetExistingRoleBindingsForRole(roleNamespace, role string) ([]*authorizationapi.RoleBinding, error)
 	GetExistingRoleBindingNames() (*sets.String, error)
+	GetRoleBinding(name string) (*authorizationapi.RoleBinding, error)
 	UpdateRoleBinding(binding *authorizationapi.RoleBinding) error
 	CreateRoleBinding(binding *authorizationapi.RoleBinding) error
 }
@@ -163,6 +164,10 @@ func (a LocalRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String, e
 	}
 
 	return ret, nil
+}
+
+func (a LocalRoleBindingAccessor) GetRoleBinding(name string) (*authorizationapi.RoleBinding, error) {
+	return a.Client.RoleBindings(a.BindingNamespace).Get(name, metav1.GetOptions{})
 }
 
 func (a LocalRoleBindingAccessor) UpdateRoleBinding(binding *authorizationapi.RoleBinding) error {
@@ -222,6 +227,15 @@ func (a ClusterRoleBindingAccessor) GetExistingRoleBindingNames() (*sets.String,
 	}
 
 	return ret, nil
+}
+
+func (a ClusterRoleBindingAccessor) GetRoleBinding(name string) (*authorizationapi.RoleBinding, error) {
+	clusterRole, err := a.Client.ClusterRoleBindings().Get(name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	roleBinding := authorizationapi.ToRoleBinding(clusterRole)
+	return roleBinding, nil
 }
 
 func (a ClusterRoleBindingAccessor) UpdateRoleBinding(binding *authorizationapi.RoleBinding) error {
