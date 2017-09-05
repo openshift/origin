@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
-func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string, ignoreExistsErrors bool) error {
+func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, dmapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string, ignoreExistsErrors bool) error {
 	template, err := client.Templates(templateNamespace).Get(templateName, metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve template %q from namespace %q", templateName, templateNamespace).WithCause(err)
@@ -29,6 +29,7 @@ func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, templ
 		Mapper: mapper,
 		Op:     configcmd.Create,
 	}
+	bulk.DynamicMapper = dmapper
 	itemsToCreate := &kapi.List{
 		Items: result.Objects,
 	}

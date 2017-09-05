@@ -34,6 +34,7 @@
 // examples/heapster/heapster-standalone.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
+// install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
@@ -13914,6 +13915,48 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-registration
+parameters:
+- name: TSB_NAMESPACE
+  value: openshift-template-service-broker
+- name: CA_BUNDLE
+  required: true
+objects:
+# register the tsb with the service catalog
+- apiVersion: servicecatalog.k8s.io/v1alpha1
+  kind: Broker
+  metadata:
+    name: template-service-broker
+  spec:
+    url: https://apiserver.${TSB_NAMESPACE}.svc:443/brokers/template.openshift.io
+    insecureSkipTLSVerify: false
+    caBundle: ${CA_BUNDLE}
+    authInfo: 
+      bearer: 
+        secretRef:
+          kind:      Secret
+          name:      templateservicebroker-client
+          namespace: ${TSB_NAMESPACE}
+`)
+
+func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYamlBytes() ([]byte, error) {
+	return _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, nil
+}
+
+func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml() (*asset, error) {
+	bytes, err := installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-catalog-broker-resources/template-service-broker-registration.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
@@ -14300,6 +14343,7 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
@@ -14401,6 +14445,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
+		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
+			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
+		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},
