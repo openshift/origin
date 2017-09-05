@@ -6,6 +6,8 @@
 package signature
 
 import (
+	"context"
+
 	"github.com/Sirupsen/logrus"
 	"github.com/containers/image/types"
 	"github.com/pkg/errors"
@@ -188,7 +190,8 @@ func (pc *PolicyContext) GetSignaturesWithAcceptedAuthor(image types.UnparsedIma
 	reqs := pc.requirementsForImageRef(image.Reference())
 
 	// FIXME: rename Signatures to UnverifiedSignatures
-	unverifiedSignatures, err := image.Signatures()
+	// FIXME: pass context.Context
+	unverifiedSignatures, err := image.Signatures(context.TODO())
 	if err != nil {
 		return nil, err
 	}

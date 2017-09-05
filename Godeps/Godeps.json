@@ -592,31 +592,39 @@
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/reference",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/image",
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/manifest",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/pkg/strslice",
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/signature",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/transports",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/types",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/version",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/storage/pkg/homedir",
