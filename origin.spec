@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 8848f85ca27fc92ead68b21f8852ef02cb87cf05
+%global commit c88148e12105ffedacb18e93b1c66072f4b1b0bb
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.122.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=8848f85
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.123.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c88148e
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.123.0%{?dist}
+Release:        0.124.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -639,6 +639,90 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Sep 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.124.0
+- Remove build docker volumes if OS_BUILD_ENV_CLEAN_BUILD_VOLUME is set.
+  (jchaloup@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  59d0df1a953242fbc846a2ca7c8b588e62d437d5 (eparis+openshiftbot@redhat.com)
+- Allow openshift start master to work on non-linux platforms
+  (jliggitt@redhat.com)
+- use upstream authentication filter (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4be379341fba646c034a4ce08b5cc0c75123e7a4 (eparis+openshiftbot@redhat.com)
+- UPSTREAM: 51148: Enable finalizers independent of GC enablement
+  (deads@redhat.com)
+- generated (deads@redhat.com)
+- UPSTREAM: 51636: add reconcile command to kubectl auth (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  74e3a084c5287100ccabcb9a28c4a40252b262f1 (eparis+openshiftbot@redhat.com)
+- Use forwarded Host header without any changes (obulatov@redhat.com)
+- bump(k8s.io/kubernetes): 80709908fd80e48ea9a619e23892747856969487
+  (deads@redhat.com)
+- use unique filenames for junit output (bparees@redhat.com)
+- The Docker-Distribution-API-Version header is optional (ccoleman@redhat.com)
+- Use contemporary Bash helpers in hack/verify-generated-swagger-spec.sh
+  (skuznets@redhat.com)
+- stop overwriting the HPA controller and just write our own (deads@redhat.com)
+- set junit output dir to its own dir (bparees@redhat.com)
+- include token in tsb registration (bparees@redhat.com)
+- allow any 3.7 to have the TSB (deads@redhat.com)
+- UPSTREAM: 51705: Address panic in TestCancelAndReadd (mkhan@redhat.com)
+- Adding --incremental and --no-cache to start-build (cdaley@redhat.com)
+- prevent references from openshift master to other binaries (deads@redhat.com)
+- Revert "skip build tests on GCE because new images are needed there"
+  (bparees@redhat.com)
+- image: add image stream secrets client (mfojtik@redhat.com)
+- apps: add Instantiate, GetScale and UpdateScale client method for deployment
+  config (mfojtik@redhat.com)
+- UPSTREAM: 51638: allow to generate extended methods in client-go
+  (mfojtik@redhat.com)
+- Regenerate files (danw@redhat.com)
+- Rename pkg/sdn to pkg/network, for consistency with its API (danw@redhat.com)
+- ensure new endpoint is registered before testing it (bparees@redhat.com)
+- default to legacy decoder; fallback to universal / unstructured add dynamic
+  mapper for unstructured objects (jvallejo@redhat.com)
+- Revert "skip tsb tests on GCE until new images are published"
+  (bparees@redhat.com)
+- append user labels when --show-labels given (jvallejo@redhat.com)
+- Make Deployment's MinReadySeconds test more tollerant to infra
+  (tnozicka@gmail.com)
+- Add debugging info to Deployment's extended tests (tnozicka@gmail.com)
+- build controller: use client lister to get builds for policy
+  (cewong@redhat.com)
+- upping loglevel for warning from stage and step info (cdaley@redhat.com)
+- Added networking members to the images OWNERS (bbennett@redhat.com)
+- cleanup some legacy client usage (deads@redhat.com)
+- add test case for private image source inputs (bparees@redhat.com)
+- UPSTREAM: 51473: Fix cAdvisor prometheus metrics (ccoleman@redhat.com)
+- hack/env: remove tmp volume if not user specified (jdetiber@redhat.com)
+- move the TSB templates to an install location (deads@redhat.com)
+- Fix go vet errors (mkhan@redhat.com)
+- Wait longer for healthz during integration tests (mkhan@redhat.com)
+- run controller by wiring up to a command (deads@redhat.com)
+- UPSTREAM: 51535: allow disabling the scheduler port (deads@redhat.com)
+- UPSTREAM: 51534: update scheduler to return structured errors instead of
+  process exit (deads@redhat.com)
+- Prevent oauth-proxy from listening on http port in prometheus deployment
+  (zgalor@redhat.com)
+- don't require template name/namespace to be set on nested template within
+  templateinstance (jminter@redhat.com)
+- add build prometheus metrics (gmontero@redhat.com)
+- Remove EPEL from our base images (skuznets@redhat.com)
+- Validate pod's volumes only once and also fix field path in the error
+  message. (vsemushi@redhat.com)
+- Remove getAPIGroupLegacy() from scope conversion (mrogers@redhat.com)
+- Update completions (mrogers@redhat.com)
+- Add --rolebinding-name to policy commands (mrogers@redhat.com)
+- Fix imports (obulatov@redhat.com)
+- UPSTREAM: docker/distribution: 2299: Fix signalling Wait in regulator.enter
+  (obulatov@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: custom routes/auth
+  (agoldste@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: add README.md to
+  docker/distribution/vendor (obulatov@redhat.com)
+- bump(github.com/docker/distribution):
+  48294d928ced5dd9b378f7fd7c6f5da3ff3f2c89 (obulatov@redhat.com)
+
 * Wed Aug 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.123.0
 - bump(github.com/libopenstorage/openstorage):
   a53f5e5662367da02b95470980c5dbaadfe96c99 (aditya@portworx.com)
