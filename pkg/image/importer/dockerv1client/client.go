@@ -1,4 +1,4 @@
-package dockerregistry
+package dockerv1client
 
 import (
 	"crypto/tls"

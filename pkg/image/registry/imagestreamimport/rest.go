@@ -22,10 +22,10 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"github.com/openshift/origin/pkg/image/importer"
+	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
@@ -35,7 +35,7 @@ type ImporterFunc func(r importer.RepositoryRetriever) importer.Interface
 
 // ImporterDockerRegistryFunc returns an instance of a docker client that should be used per invocation of import,
 // may be nil if no legacy import capability is required.
-type ImporterDockerRegistryFunc func() dockerregistry.Client
+type ImporterDockerRegistryFunc func() dockerv1client.Client
 
 // REST implements the RESTStorage interface for ImageStreamImport
 type REST struct {

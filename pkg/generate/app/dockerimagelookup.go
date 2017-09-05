@@ -13,8 +13,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 // DockerClient is the local interface for the docker client
