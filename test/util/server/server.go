@@ -466,7 +466,7 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	var healthzResponse string
 	err = wait.Poll(time.Second, time.Minute, func() (bool, error) {
 		var healthy bool
-		healthy, healthzResponse, err = IsServerHealthy(*masterURL)
+		healthy, healthzResponse, err = IsServerHealthy(*masterURL, masterConfig.OAuthConfig != nil)
 		if err != nil {
 			return false, err
 		}
@@ -482,14 +482,24 @@ func StartConfiguredMasterWithOptions(masterConfig *configapi.MasterConfig, test
 	return adminKubeConfigFile, nil
 }
 
-func IsServerHealthy(url url.URL) (bool, string, error) {
+func IsServerHealthy(url url.URL, checkOAuth bool) (bool, string, error) {
+	healthy, healthzResponse, err := isServerPathHealthy(url, "/healthz", http.StatusOK)
+	if err != nil || !healthy || !checkOAuth {
+		return healthy, healthzResponse, err
+	}
+	// As a special case, check this endpoint as well since the OAuth server is not part of the /healthz check
+	// Whenever the OAuth server gets split out, it would have its own /healthz and post start hooks to handle this
+	return isServerPathHealthy(url, "/oauth/token/request", http.StatusFound)
+}
+
+func isServerPathHealthy(url url.URL, path string, code int) (bool, string, error) {
 	transport := knet.SetTransportDefaults(&http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
 		},
 	})
 
-	url.Path = "/healthz"
+	url.Path = path
 	req, err := http.NewRequest("GET", url.String(), nil)
 	req.Header.Set("Accept", "text/html")
 	resp, err := transport.RoundTrip(req)
@@ -499,7 +509,7 @@ func IsServerHealthy(url url.URL) (bool, string, error) {
 	defer resp.Body.Close()
 	content, _ := ioutil.ReadAll(resp.Body)
 
-	return resp.StatusCode == http.StatusOK, string(content), nil
+	return resp.StatusCode == code, string(content), nil
 }
 
 // StartTestMaster starts up a test master and returns back the startOptions so you can get clients and certs
