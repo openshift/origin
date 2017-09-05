@@ -8,8 +8,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -19,13 +19,12 @@ import (
 // REST implements a RESTStorage for image streams against etcd.
 type REST struct {
 	*registry.Store
-	subjectAccessReviewRegistry subjectaccessreview.Registry
 }
 
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
+func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {
 	store := registry.Store{
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
@@ -36,7 +35,6 @@ func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHo
 
 	rest := &REST{
 		Store: &store,
-		subjectAccessReviewRegistry: subjectAccessReviewRegistry,
 	}
 	// strategy must be able to load image streams across namespaces during tag verification
 	strategy := imagestream.NewStrategy(registryHostname, subjectAccessReviewRegistry, limitVerifier, rest)
