@@ -26,11 +26,6 @@ import (
 	"github.com/openshift/origin/pkg/image/registry/imagestreamimport"
 	"github.com/openshift/origin/pkg/image/registry/imagestreammapping"
 	"github.com/openshift/origin/pkg/image/registry/imagestreamtag"
-	networkapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
-	clusternetworketcd "github.com/openshift/origin/pkg/network/registry/clusternetwork/etcd"
-	egressnetworkpolicyetcd "github.com/openshift/origin/pkg/network/registry/egressnetworkpolicy/etcd"
-	hostsubnetetcd "github.com/openshift/origin/pkg/network/registry/hostsubnet/etcd"
-	netnamespaceetcd "github.com/openshift/origin/pkg/network/registry/netnamespace/etcd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
@@ -87,27 +82,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	})
 	if err != nil {
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-
-	hostSubnetStorage, err := hostsubnetetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	netNamespaceStorage, err := netnamespaceetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	clusterNetworkStorage, err := clusternetworketcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
-	egressNetworkPolicyStorage, err := egressnetworkpolicyetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 
 	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
@@ -246,13 +220,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 			c.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas().Lister(),
 			c.KubeInternalInformers.Core().InternalVersion().Namespaces().Lister(),
 		),
-	}
-
-	storage[networkapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"hostSubnets":           hostSubnetStorage,
-		"netNamespaces":         netNamespaceStorage,
-		"clusterNetworks":       clusterNetworkStorage,
-		"egressNetworkPolicies": egressNetworkPolicyStorage,
 	}
 
 	storage[oauthapiv1.SchemeGroupVersion] = map[string]rest.Storage{
