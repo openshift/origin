@@ -13,20 +13,18 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
-func NewDeploymentConfigHistoryViewer(oc client.Interface, kc kclientset.Interface) kubectl.HistoryViewer {
-	return &DeploymentConfigHistoryViewer{dn: oc, rn: kc.Core()}
+func NewDeploymentConfigHistoryViewer(kc kclientset.Interface) kubectl.HistoryViewer {
+	return &DeploymentConfigHistoryViewer{rn: kc.Core()}
 }
 
 // DeploymentConfigHistoryViewer is an implementation of the kubectl HistoryViewer interface
 // for deployment configs.
 type DeploymentConfigHistoryViewer struct {
 	rn kcoreclient.ReplicationControllersGetter
-	dn client.DeploymentConfigsNamespacer
 }
 
 var _ kubectl.HistoryViewer = &DeploymentConfigHistoryViewer{}

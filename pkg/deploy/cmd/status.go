@@ -7,19 +7,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
+
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	appsinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 )
 
-func NewDeploymentConfigStatusViewer(oc client.Interface) kubectl.StatusViewer {
-	return &DeploymentConfigStatusViewer{dn: oc}
+func NewDeploymentConfigStatusViewer(appsClient appsclient.Interface) kubectl.StatusViewer {
+	return &DeploymentConfigStatusViewer{dn: appsClient.Apps()}
 }
 
 // DeploymentConfigStatusViewer is an implementation of the kubectl StatusViewer interface
 // for deployment configs.
 type DeploymentConfigStatusViewer struct {
-	dn client.DeploymentConfigsNamespacer
+	dn appsinternal.DeploymentConfigsGetter
 }
 
 var _ kubectl.StatusViewer = &DeploymentConfigStatusViewer{}

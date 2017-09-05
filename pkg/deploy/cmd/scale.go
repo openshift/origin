@@ -10,19 +10,20 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	appsinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
 // NewDeploymentConfigScaler returns a new scaler for deploymentConfigs
-func NewDeploymentConfigScaler(oc client.Interface, kc kclientset.Interface) kubectl.Scaler {
-	return &DeploymentConfigScaler{rcClient: kc.Core(), dcClient: oc, clientInterface: kc}
+func NewDeploymentConfigScaler(appsClient appsclient.Interface, kc kclientset.Interface) kubectl.Scaler {
+	return &DeploymentConfigScaler{rcClient: kc.Core(), dcClient: appsClient.Apps(), clientInterface: kc}
 }
 
 // DeploymentConfigScaler is a wrapper for the kubectl Scaler client
 type DeploymentConfigScaler struct {
 	rcClient kcoreclient.ReplicationControllersGetter
-	dcClient client.DeploymentConfigsNamespacer
+	dcClient appsinternal.DeploymentConfigsGetter
 
 	clientInterface kclientset.Interface
 }
@@ -61,12 +62,12 @@ func (scaler *DeploymentConfigScaler) Scale(namespace, name string, newSize uint
 // ScaleSimple does a simple one-shot attempt at scaling - not useful on its
 // own, but a necessary building block for Scale.
 func (scaler *DeploymentConfigScaler) ScaleSimple(namespace, name string, preconditions *kubectl.ScalePrecondition, newSize uint) (string, error) {
-	scale, err := scaler.dcClient.DeploymentConfigs(namespace).GetScale(name)
+	scale, err := scaler.dcClient.DeploymentConfigs(namespace).GetScale(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
 	scale.Spec.Replicas = int32(newSize)
-	updated, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(scale)
+	updated, err := scaler.dcClient.DeploymentConfigs(namespace).UpdateScale(name, scale)
 	if err != nil {
 		return "", kubectl.ScaleError{FailureType: kubectl.ScaleUpdateFailure, ResourceVersion: "Unknown", ActualError: err}
 	}

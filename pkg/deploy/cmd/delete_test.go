@@ -13,10 +13,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	appsfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -35,7 +35,7 @@ func mkdeploymentlist(versions ...int64) *kapi.ReplicationControllerList {
 
 func TestStop(t *testing.T) {
 	var (
-		deploymentConfigsResource      = schema.GroupVersionResource{Resource: "deploymentconfigs"}
+		deploymentConfigsResource      = schema.GroupVersionResource{Group: "apps.openshift.io", Resource: "deploymentconfigs"}
 		replicationControllersResource = schema.GroupVersionResource{Resource: "replicationcontrollers"}
 		replicationControllerKind      = schema.GroupVersionKind{Kind: "ReplicationController"}
 	)
@@ -58,7 +58,7 @@ func TestStop(t *testing.T) {
 		testName  string
 		namespace string
 		name      string
-		oc        *testclient.Fake
+		oc        *appsfake.Clientset
 		kc        *fake.Clientset
 		expected  []clientgotesting.Action
 		kexpected []clientgotesting.Action
@@ -68,7 +68,7 @@ func TestStop(t *testing.T) {
 			testName:  "simple stop",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(fakeDC["simple-stop"]),
+			oc:        appsfake.NewSimpleClientset(fakeDC["simple-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -91,7 +91,7 @@ func TestStop(t *testing.T) {
 			testName:  "legacy simple stop",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(fakeDC["legacy-simple-stop"]),
+			oc:        appsfake.NewSimpleClientset(fakeDC["legacy-simple-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -114,7 +114,7 @@ func TestStop(t *testing.T) {
 			testName:  "stop multiple controllers",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(fakeDC["multi-stop"]),
+			oc:        appsfake.NewSimpleClientset(fakeDC["multi-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1, 2, 3, 4, 5)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -161,7 +161,7 @@ func TestStop(t *testing.T) {
 			testName:  "legacy stop multiple controllers",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(fakeDC["legacy-multi-stop"]),
+			oc:        appsfake.NewSimpleClientset(fakeDC["legacy-multi-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1, 2, 3, 4, 5)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -208,7 +208,7 @@ func TestStop(t *testing.T) {
 			testName:  "no config, some deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(),
+			oc:        appsfake.NewSimpleClientset(),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1)),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -228,7 +228,7 @@ func TestStop(t *testing.T) {
 			testName:  "no config, no deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(),
+			oc:        appsfake.NewSimpleClientset(),
 			kc:        fake.NewSimpleClientset(&kapi.ReplicationControllerList{}),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -242,7 +242,7 @@ func TestStop(t *testing.T) {
 			testName:  "config, no deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(fakeDC["no-deployments"]),
+			oc:        appsfake.NewSimpleClientset(fakeDC["no-deployments"]),
 			kc:        fake.NewSimpleClientset(&kapi.ReplicationControllerList{}),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -259,7 +259,7 @@ func TestStop(t *testing.T) {
 			testName:  "legacy config, no deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        testclient.NewSimpleFake(fakeDC["legacy-no-deployments"]),
+			oc:        appsfake.NewSimpleClientset(fakeDC["legacy-no-deployments"]),
 			kc:        fake.NewSimpleClientset(&kapi.ReplicationControllerList{}),
 			expected: []clientgotesting.Action{
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
@@ -275,7 +275,7 @@ func TestStop(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		reaper := &DeploymentConfigReaper{oc: test.oc, kc: test.kc, pollInterval: time.Millisecond, timeout: time.Millisecond}
+		reaper := &DeploymentConfigReaper{appsClient: test.oc, kc: test.kc, pollInterval: time.Millisecond, timeout: time.Millisecond}
 		err := reaper.Stop(test.namespace, test.name, 1*time.Second, nil)
 
 		if !test.err && err != nil {
