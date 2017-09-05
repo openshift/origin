@@ -153,7 +153,7 @@ os::cmd::expect_success 'oc project cache'
 e2e_user_token="$(oc whoami -t)"
 
 os::log::info "Docker login as e2e-user to ${DOCKER_REGISTRY}"
-os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} ${DOCKER_REGISTRY}"
 os::log::info "Docker login successful"
 
 os::log::info "Tagging and pushing ruby-22-centos7 to ${DOCKER_REGISTRY}/cache/ruby-22-centos7:latest"
@@ -299,7 +299,7 @@ os::cmd::expect_success 'oc login -u pusher -p pass'
 pusher_token="$(oc whoami -t)"
 
 os::log::info "Docker login as pusher to ${DOCKER_REGISTRY}"
-os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} -e pusher@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "docker login -u e2e-user -p ${pusher_token} ${DOCKER_REGISTRY}"
 os::log::info "Docker login successful"
 
 os::log::info "Anonymous registry access"
@@ -309,9 +309,9 @@ os::cmd::expect_success 'docker pull busybox'
 os::cmd::expect_success "docker tag busybox ${DOCKER_REGISTRY}/missing/image:tag"
 os::cmd::expect_success "docker logout ${DOCKER_REGISTRY}"
 # unauthorized pulls return "not found" errors to anonymous users, regardless of backing data
-os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/missing/image:tag" "not found|unauthorized"
-os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull" "not found|unauthorized"
-os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id" "not found|unauthorized"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/missing/image:tag </dev/null" "not found|unauthorized|Cannot perform an interactive login"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull </dev/null" "not found|unauthorized|Cannot perform an interactive login"
+os::cmd::expect_failure_and_text "docker pull ${DOCKER_REGISTRY}/custom/cross:namespace-pull-id </dev/null" "not found|unauthorized|Cannot perform an interactive login"
 # test anonymous pulls
 os::cmd::expect_success 'oc policy add-role-to-user system:image-puller system:anonymous -n custom'
 os::cmd::try_until_text 'oc policy who-can get imagestreams/layers -n custom' 'system:anonymous'
@@ -329,7 +329,7 @@ os::cmd::expect_success "docker push ${DOCKER_REGISTRY}/custom/cross:namespace-p
 os::log::info "Anonymous registry access successful"
 
 # log back into docker as e2e-user again
-os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} -e e2e-user@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "docker login -u e2e-user -p ${e2e_user_token} ${DOCKER_REGISTRY}"
 
 os::cmd::expect_success "oc new-project crossmount"
 os::cmd::expect_success "oc create imagestream repo"
@@ -564,7 +564,7 @@ os::cmd::try_until_text 'oc get events -n node-selector' 'pod-with-node-name.+Ma
 # Image pruning
 os::log::info "Validating image pruning"
 # builder service account should have the power to create new image streams: prune in this case
-os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) -e builder@openshift.com ${DOCKER_REGISTRY}"
+os::cmd::expect_success "docker login -u e2e-user -p $(oc sa get-token builder -n cache) ${DOCKER_REGISTRY}"
 os::cmd::expect_success 'docker pull busybox'
 GCR_PAUSE_IMAGE="gcr.io/google_containers/pause:3.0"
 os::cmd::expect_success "docker pull ${GCR_PAUSE_IMAGE}"
@@ -626,7 +626,7 @@ os::cmd::expect_success "oc login -u schema2-user -p pass"
 os::cmd::expect_success "oc project schema2"
 # tagging remote docker.io/busybox image
 os::cmd::expect_success "docker tag busybox '${DOCKER_REGISTRY}/schema2/busybox'"
-os::cmd::expect_success "docker login -u e2e-user -p '${schema2_user_token}' -e e2e-user@openshift.com '${DOCKER_REGISTRY}'"
+os::cmd::expect_success "docker login -u e2e-user -p '${schema2_user_token}' '${DOCKER_REGISTRY}'"
 os::cmd::expect_success "docker push '${DOCKER_REGISTRY}/schema2/busybox'"
 # image accepted as schema 2
 os::cmd::expect_success_and_text "oc get -o jsonpath='{.image.dockerImageManifestMediaType}' istag busybox:latest" 'application/vnd\.docker\.distribution\.manifest\.v2\+json'
