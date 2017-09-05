@@ -512,10 +512,25 @@ func (r *templateRouter) writeConfig() error {
 		r.state[k] = cfg
 	}
 
+	data, err := ioutil.ReadFile("/proc/sys/net/ipv4/neigh/default/gc_thresh3")
+	if err != nil {
+		glog.Warningf("Error reading ARP neighbour information: %s", err)
+	}
+	arpcache, err := strconv.Atoi(string(data[:len(data)-1]))
+	if err != nil {
+		glog.Warningf("Error: %s", err)
+	}
+	arpthreshold := float64(arpcache) * 0.9
+
 	for path, template := range r.templates {
 		file, err := os.Create(path)
 		if err != nil {
 			return fmt.Errorf("error creating config file %s: %v", path, err)
+		}
+
+		items := len(r.serviceUnits)
+		if items > int(arpthreshold) {
+			glog.Warningf("Number of endpoints: %d is exceeding size of ARP neighbour cache threshold: %d", items, int(arpthreshold))
 		}
 
 		data := templateData{
