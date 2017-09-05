@@ -126,7 +126,7 @@ func TestForBuild(t *testing.T) {
 	}
 }
 
-func TestHandleCompleteSerial(t *testing.T) {
+func TestGetNextConfigBuildSerial(t *testing.T) {
 	builds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicySerial),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicySerial),
@@ -135,25 +135,26 @@ func TestHandleCompleteSerial(t *testing.T) {
 
 	client := newTestClient(builds)
 
-	if err := handleComplete(client.Lister(), client, &builds[0]); err != nil {
+	resultBuilds, isRunning, err := GetNextConfigBuild(client.Lister(), "namespace", "bc")
+	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	resultBuilds, err := client.List("test", metav1.ListOptions{})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	if isRunning {
+		t.Errorf("expected no running builds")
 	}
 
-	if _, ok := resultBuilds.Items[1].Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
-		t.Errorf("build-2 should have Annotation %s set to trigger it", buildapi.BuildAcceptedAnnotation)
+	if len(resultBuilds) != 1 {
+		t.Errorf("expecting single result build, got %d", len(resultBuilds))
+		return
 	}
 
-	if _, ok := resultBuilds.Items[2].Annotations[buildapi.BuildAcceptedAnnotation]; ok {
-		t.Errorf("build-3 should not have Annotation %s set", buildapi.BuildAcceptedAnnotation)
+	if resultBuilds[0].Name != "build-2" {
+		t.Errorf("expected result build to be build-2, got %s", resultBuilds[0].Name)
 	}
 }
 
-func TestHandleCompleteParallel(t *testing.T) {
+func TestGetNextConfigBuildParallel(t *testing.T) {
 	builds := []buildapi.Build{
 		addBuild("build-1", "sample-bc", buildapi.BuildPhaseComplete, buildapi.BuildRunPolicyParallel),
 		addBuild("build-2", "sample-bc", buildapi.BuildPhaseNew, buildapi.BuildRunPolicyParallel),
@@ -162,20 +163,33 @@ func TestHandleCompleteParallel(t *testing.T) {
 
 	client := newTestClient(builds)
 
-	if err := handleComplete(client.Lister(), client, &builds[0]); err != nil {
+	resultBuilds, running, err := GetNextConfigBuild(client.Lister(), "namespace", "bc")
+	if err != nil {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	resultBuilds, err := client.List("test", metav1.ListOptions{})
-	if err != nil {
-		t.Errorf("unexpected error: %v", err)
+	if running {
+		t.Errorf("expected no running builds")
 	}
 
-	if _, ok := resultBuilds.Items[1].Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
-		t.Errorf("build-2 should have Annotation %s set to trigger it", buildapi.BuildAcceptedAnnotation)
+	if len(resultBuilds) != 2 {
+		t.Errorf("expecting 2 result builds, got %d", len(resultBuilds))
+		return
 	}
 
-	if _, ok := resultBuilds.Items[2].Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
-		t.Errorf("build-3 should have Annotation %s set to trigger it", buildapi.BuildAcceptedAnnotation)
+	includesBuild2 := false
+	includesBuild3 := false
+
+	for _, build := range resultBuilds {
+		if build.Name == "build-2" {
+			includesBuild2 = true
+		}
+		if build.Name == "build-3" {
+			includesBuild3 = true
+		}
+	}
+
+	if !includesBuild2 || !includesBuild3 {
+		t.Errorf("build-2 and build-3 should be included in the result, got %#v", resultBuilds)
 	}
 }

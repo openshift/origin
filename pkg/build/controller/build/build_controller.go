@@ -126,8 +126,9 @@ type BuildController struct {
 	podClient         kexternalcoreclient.PodsGetter
 	kubeClient        kclientset.Interface
 
-	queue            workqueue.RateLimitingInterface
+	buildQueue       workqueue.RateLimitingInterface
 	imageStreamQueue *resourceTriggerQueue
+	buildConfigQueue workqueue.RateLimitingInterface
 
 	buildStore       buildlister.BuildLister
 	secretStore      v1lister.SecretLister
@@ -175,7 +176,6 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 
 	buildClient := buildclient.NewOSClientBuildClient(params.OpenshiftClient)
 	buildLister := params.BuildInformer.Lister()
-	clientBuildLister := buildclient.NewOSClientBuildLister(params.OpenshiftClient)
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{
 		buildPatcher:      buildClient,
@@ -198,11 +198,12 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 		buildDefaults:  params.BuildDefaults,
 		buildOverrides: params.BuildOverrides,
 
-		queue:            workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		buildQueue:       workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		imageStreamQueue: newResourceTriggerQueue(),
+		buildConfigQueue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 
 		recorder:    eventBroadcaster.NewRecorder(kapi.Scheme, clientv1.EventSource{Component: "build-controller"}),
-		runPolicies: policy.GetAllRunPolicies(clientBuildLister, buildClient),
+		runPolicies: policy.GetAllRunPolicies(buildLister, buildClient),
 	}
 
 	c.podInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -229,7 +230,8 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 // Run begins watching and syncing.
 func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
-	defer bc.queue.ShutDown()
+	defer bc.buildQueue.ShutDown()
+	defer bc.buildConfigQueue.ShutDown()
 
 	// Wait for the controller stores to sync before starting any work in this controller.
 	if !cache.WaitForCacheSync(stopCh, bc.buildStoreSynced, bc.podStoreSynced, bc.secretStoreSynced, bc.imageStreamStoreSynced) {
@@ -240,7 +242,11 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	glog.Infof("Starting build controller")
 
 	for i := 0; i < workers; i++ {
-		go wait.Until(bc.worker, time.Second, stopCh)
+		go wait.Until(bc.buildWorker, time.Second, stopCh)
+	}
+
+	for i := 0; i < workers; i++ {
+		go wait.Until(bc.buildConfigWorker, time.Second, stopCh)
 	}
 
 	metrics.IntializeMetricsCollector(bc.buildLister)
@@ -249,26 +255,26 @@ func (bc *BuildController) Run(workers int, stopCh <-chan struct{}) {
 	glog.Infof("Shutting down build controller")
 }
 
-func (bc *BuildController) worker() {
+func (bc *BuildController) buildWorker() {
 	for {
-		if quit := bc.work(); quit {
+		if quit := bc.buildWork(); quit {
 			return
 		}
 	}
 }
 
-// work gets the next build from the queue and invokes handleBuild on it
-func (bc *BuildController) work() bool {
-	key, quit := bc.queue.Get()
+// buildWork gets the next build from the buildQueue and invokes handleBuild on it
+func (bc *BuildController) buildWork() bool {
+	key, quit := bc.buildQueue.Get()
 	if quit {
 		return true
 	}
 
-	defer bc.queue.Done(key)
+	defer bc.buildQueue.Done(key)
 
 	build, err := bc.getBuildByKey(key.(string))
 	if err != nil {
-		bc.handleError(err, key)
+		bc.handleBuildError(err, key)
 		return false
 	}
 	if build == nil {
@@ -276,9 +282,43 @@ func (bc *BuildController) work() bool {
 	}
 
 	err = bc.handleBuild(build)
-
-	bc.handleError(err, key)
+	bc.handleBuildError(err, key)
 	return false
+}
+
+func (bc *BuildController) buildConfigWorker() {
+	for {
+		if quit := bc.buildConfigWork(); quit {
+			return
+		}
+	}
+}
+
+// buildConfigWork gets the next build config from the buildConfigQueue and invokes handleBuildConfig on it
+func (bc *BuildController) buildConfigWork() bool {
+	key, quit := bc.buildConfigQueue.Get()
+	if quit {
+		return true
+	}
+	defer bc.buildConfigQueue.Done(key)
+
+	namespace, name, err := parseBuildConfigKey(key.(string))
+	if err != nil {
+		utilruntime.HandleError(err)
+		return false
+	}
+
+	err = bc.handleBuildConfig(namespace, name)
+	bc.handleBuildConfigError(err, key)
+	return false
+}
+
+func parseBuildConfigKey(key string) (string, string, error) {
+	parts := strings.SplitN(key, "/", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid build config key: %s", key)
+	}
+	return parts[0], parts[1], nil
 }
 
 // handleBuild retrieves the build's corresponding pod and calls the appropriate
@@ -956,8 +996,42 @@ func (bc *BuildController) updateBuild(build *buildapi.Build, update *buildUpdat
 			bc.recorder.Eventf(patchedBuild, kapi.EventTypeNormal, buildapi.BuildFailedEventReason, fmt.Sprintf(buildapi.BuildFailedEventMessage, patchedBuild.Namespace, patchedBuild.Name))
 		}
 		if buildutil.IsTerminalPhase(*update.phase) {
-			common.HandleBuildCompletion(patchedBuild, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter, bc.runPolicies)
+			bc.handleBuildCompletion(patchedBuild)
 		}
+	}
+	return nil
+}
+
+func (bc *BuildController) handleBuildCompletion(build *buildapi.Build) {
+	bcName := buildutil.ConfigNameForBuild(build)
+	bc.enqueueBuildConfig(build.Namespace, bcName)
+	if err := common.HandleBuildPruning(bcName, build.Namespace, bc.buildLister, bc.buildConfigGetter, bc.buildDeleter); err != nil {
+		utilruntime.HandleError(fmt.Errorf("failed to prune old builds %s/%s: %v", build.Namespace, build.Name, err))
+	}
+}
+
+func (bc *BuildController) enqueueBuildConfig(ns, name string) {
+	key := resourceName(ns, name)
+	bc.buildConfigQueue.Add(key)
+}
+
+func (bc *BuildController) handleBuildConfig(bcNamespace string, bcName string) error {
+	glog.V(4).Infof("Handing build config %s/%s", bcNamespace, bcName)
+	nextBuilds, hasRunningBuilds, err := policy.GetNextConfigBuild(bc.buildLister, bcNamespace, bcName)
+	if err != nil {
+		glog.V(2).Infof("Error getting next builds for %s/%s: %v", bcNamespace, bcName, err)
+		return err
+	}
+	glog.V(5).Infof("Build config %s/%s: has %d next builds, is running builds: %v", bcNamespace, bcName, len(nextBuilds), hasRunningBuilds)
+	if len(nextBuilds) == 0 && hasRunningBuilds {
+		glog.V(4).Infof("Build config %s/%s has running builds, will retry", bcNamespace, bcName)
+		return fmt.Errorf("build config %s/%s has running builds and cannot run more builds", bcNamespace, bcName)
+	}
+
+	// Enqueue any builds to build next
+	for _, build := range nextBuilds {
+		glog.V(5).Infof("Queueing next build for build config %s/%s: %s", bcNamespace, bcName, build.Name)
+		bc.enqueueBuild(build)
 	}
 	return nil
 }
@@ -1059,16 +1133,16 @@ func (bc *BuildController) buildUpdated(old, cur interface{}) {
 	bc.enqueueBuild(build)
 }
 
-// enqueueBuild adds the given build to the queue.
+// enqueueBuild adds the given build to the buildQueue.
 func (bc *BuildController) enqueueBuild(build *buildapi.Build) {
 	key := resourceName(build.Namespace, build.Name)
-	bc.queue.Add(key)
+	bc.buildQueue.Add(key)
 }
 
 // enqueueBuildForPod adds the build corresponding to the given pod to the controller
-// queue. If a build is not found for the pod, then an error is logged.
+// buildQueue. If a build is not found for the pod, then an error is logged.
 func (bc *BuildController) enqueueBuildForPod(pod *v1.Pod) {
-	bc.queue.Add(resourceName(pod.Namespace, buildutil.GetBuildName(pod)))
+	bc.buildQueue.Add(resourceName(pod.Namespace, buildutil.GetBuildName(pod)))
 }
 
 // imageStreamAdded queues any builds that have registered themselves for this image stream.
@@ -1077,7 +1151,7 @@ func (bc *BuildController) enqueueBuildForPod(pod *v1.Pod) {
 func (bc *BuildController) imageStreamAdded(obj interface{}) {
 	stream := obj.(*imageapi.ImageStream)
 	for _, buildKey := range bc.imageStreamQueue.Pop(resourceName(stream.Namespace, stream.Name)) {
-		bc.queue.Add(buildKey)
+		bc.buildQueue.Add(buildKey)
 	}
 }
 
@@ -1086,29 +1160,48 @@ func (bc *BuildController) imageStreamUpdated(old, cur interface{}) {
 	bc.imageStreamAdded(cur)
 }
 
-// handleError is called by the main work loop to check the return of calling handleBuild.
-// If an error occurred, then the key is re-added to the queue unless it has been retried too many
+// handleBuildError is called by the main work loop to check the return of calling handleBuild.
+// If an error occurred, then the key is re-added to the buildQueue unless it has been retried too many
 // times.
-func (bc *BuildController) handleError(err error, key interface{}) {
+func (bc *BuildController) handleBuildError(err error, key interface{}) {
 	if err == nil {
-		bc.queue.Forget(key)
+		bc.buildQueue.Forget(key)
 		return
 	}
 
 	if strategy.IsFatal(err) {
 		glog.V(2).Infof("Will not retry fatal error for key %v: %v", key, err)
-		bc.queue.Forget(key)
+		bc.buildQueue.Forget(key)
 		return
 	}
 
-	if bc.queue.NumRequeues(key) < maxRetries {
+	if bc.buildQueue.NumRequeues(key) < maxRetries {
 		glog.V(4).Infof("Retrying key %v: %v", key, err)
-		bc.queue.AddRateLimited(key)
+		bc.buildQueue.AddRateLimited(key)
 		return
 	}
 
 	glog.V(2).Infof("Giving up retrying %v: %v", key, err)
-	bc.queue.Forget(key)
+	bc.buildQueue.Forget(key)
+}
+
+// handleBuildConfigError is called by the buildConfig work loop to check the return of calling handleBuildConfig.
+// If an error occurred, then the key is re-added to the buildConfigQueue unless it has been retried too many
+// times.
+func (bc *BuildController) handleBuildConfigError(err error, key interface{}) {
+	if err == nil {
+		bc.buildConfigQueue.Forget(key)
+		return
+	}
+
+	if bc.buildConfigQueue.NumRequeues(key) < maxRetries {
+		glog.V(4).Infof("Retrying key %v: %v", key, err)
+		bc.buildConfigQueue.AddRateLimited(key)
+		return
+	}
+
+	glog.V(2).Infof("Giving up retrying %v: %v", key, err)
+	bc.buildConfigQueue.Forget(key)
 }
 
 // isBuildPod returns true if the given pod is a build pod
