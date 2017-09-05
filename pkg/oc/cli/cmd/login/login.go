@@ -117,6 +117,11 @@ func (o *LoginOptions) Complete(f *osclientcmd.Factory, cmd *cobra.Command, args
 		o.CommandName = "oc"
 	}
 
+	context := kcmdutil.GetFlagString(cmd, "context")
+	if len(context) > 0 {
+		o.StartingKubeConfig.CurrentContext = context
+	}
+
 	parsedDefaultClusterURL, err := url.Parse(defaultClusterURL)
 	if err != nil {
 		return err
