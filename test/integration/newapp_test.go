@@ -33,7 +33,6 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	client "github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/app/cmd"
@@ -43,6 +42,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	clicmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 

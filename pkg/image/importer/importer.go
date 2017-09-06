@@ -22,8 +22,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/util/flowcontrol"
 
-	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 // Add a dockerregistry.Client to the passed context with this key to support v1 Docker registry importing
@@ -577,7 +577,7 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 		applyErrorToRepository(repository, err)
 		return
 	}
-	client, ok := value.(dockerregistry.Client)
+	client, ok := value.(dockerv1client.Client)
 	if !ok {
 		err := kapierrors.NewForbidden(imageapi.Resource(""), "", fmt.Errorf("registry %q does not support the v2 Registry API", repository.Registry.Host))
 		err.ErrStatus.Reason = "NotV2Registry"
