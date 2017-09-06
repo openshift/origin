@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/util/flowcontrol"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"github.com/openshift/origin/pkg/image/importer"
@@ -45,17 +44,6 @@ import (
 	appliedclusterresourcequotaregistry "github.com/openshift/origin/pkg/quota/registry/appliedclusterresourcequota"
 	clusterresourcequotaetcd "github.com/openshift/origin/pkg/quota/registry/clusterresourcequota/etcd"
 
-	"github.com/openshift/origin/pkg/authorization/registry/clusterrole"
-	"github.com/openshift/origin/pkg/authorization/registry/clusterrolebinding"
-	"github.com/openshift/origin/pkg/authorization/registry/localresourceaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/localsubjectaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/resourceaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/role"
-	"github.com/openshift/origin/pkg/authorization/registry/rolebinding"
-	rolebindingrestrictionetcd "github.com/openshift/origin/pkg/authorization/registry/rolebindingrestriction/etcd"
-	"github.com/openshift/origin/pkg/authorization/registry/selfsubjectrulesreview"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectrulesreview"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	"github.com/openshift/origin/pkg/security/registry/podsecuritypolicyreview"
@@ -85,15 +73,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
 
-	selfSubjectRulesReviewStorage := selfsubjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
-	subjectRulesReviewStorage := subjectrulesreview.NewREST(c.RuleResolver, c.KubeInternalInformers.Rbac().InternalVersion().ClusterRoles().Lister())
-	subjectAccessReviewStorage := subjectaccessreview.NewREST(c.GenericConfig.Authorizer)
-	subjectAccessReviewRegistry := subjectaccessreview.NewRegistry(subjectAccessReviewStorage)
-	localSubjectAccessReviewStorage := localsubjectaccessreview.NewREST(subjectAccessReviewRegistry)
-	resourceAccessReviewStorage := resourceaccessreview.NewREST(c.GenericConfig.Authorizer, c.SubjectLocator)
-	resourceAccessReviewRegistry := resourceaccessreview.NewRegistry(resourceAccessReviewStorage)
-	localResourceAccessReviewStorage := localresourceaccessreview.NewREST(resourceAccessReviewRegistry)
-
 	sccStorage := c.SCCStorage
 	// TODO allow this when we're sure that its storing correctly and we want to allow starting up without embedding kube
 	if false && sccStorage == nil {
@@ -113,6 +92,10 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.KubeClientInternal,
 	)
 
+	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	imageStorage, err := imageetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -120,7 +103,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(c.DeprecatedOpenshiftClient.Images())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.KubeClientInternal.Core())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever, subjectAccessReviewRegistry, c.LimitVerifier)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.LimitVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
@@ -151,10 +134,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.DeprecatedOpenshiftClient.SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 
-	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RouteAllocator, authorizationClient.SubjectAccessReviews())
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -210,10 +189,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
-	roleBindingRestrictionStorage, err := rolebindingrestrictionetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
-	if err != nil {
-		return nil, fmt.Errorf("error building REST storage: %v", err)
-	}
 
 	storage := map[schema.GroupVersion]map[string]rest.Storage{}
 
@@ -232,22 +207,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		"oAuthAccessTokens":         accessTokenStorage,
 		"oAuthClients":              clientStorage,
 		"oAuthClientAuthorizations": clientAuthorizationStorage,
-	}
-
-	storage[authzapiv1.SchemeGroupVersion] = map[string]rest.Storage{
-		"resourceAccessReviews":      resourceAccessReviewStorage,
-		"subjectAccessReviews":       subjectAccessReviewStorage,
-		"localSubjectAccessReviews":  localSubjectAccessReviewStorage,
-		"localResourceAccessReviews": localResourceAccessReviewStorage,
-		"selfSubjectRulesReviews":    selfSubjectRulesReviewStorage,
-		"subjectRulesReviews":        subjectRulesReviewStorage,
-
-		"roles":               role.NewREST(c.KubeClientInternal.Rbac().RESTClient()),
-		"roleBindings":        rolebinding.NewREST(c.KubeClientInternal.Rbac().RESTClient()),
-		"clusterRoles":        clusterrole.NewREST(c.KubeClientInternal.Rbac().RESTClient()),
-		"clusterRoleBindings": clusterrolebinding.NewREST(c.KubeClientInternal.Rbac().RESTClient()),
-
-		"roleBindingRestrictions": roleBindingRestrictionStorage,
 	}
 
 	storage[securityapiv1.SchemeGroupVersion] = map[string]rest.Storage{
