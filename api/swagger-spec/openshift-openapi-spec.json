@@ -92187,6 +92187,15 @@
      }
     }
    },
+   "com.github.openshift.origin.pkg.security.apis.security.v1.AllowedFlexVolume": {
+    "description": "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
+    "properties": {
+     "driver": {
+      "description": "Driver is the name of the Flexvolume driver.",
+      "type": "string"
+     }
+    }
+   },
    "com.github.openshift.origin.pkg.security.apis.security.v1.FSGroupStrategyOptions": {
     "description": "FSGroupStrategyOptions defines the strategy type and options used to create the strategy.",
     "properties": {
@@ -92459,6 +92468,7 @@
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
      "volumes",
+     "allowedFlexVolumes",
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
@@ -92495,6 +92505,13 @@
       "type": "array",
       "items": {
        "type": "string"
+      }
+     },
+     "allowedFlexVolumes": {
+      "description": "AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the \"Volumes\" field.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.security.apis.security.v1.AllowedFlexVolume"
       }
      },
      "apiVersion": {

@@ -22769,6 +22769,7 @@
      "allowedCapabilities",
      "allowHostDirVolumePlugin",
      "volumes",
+     "allowedFlexVolumes",
      "allowHostNetwork",
      "allowHostPorts",
      "allowHostPID",
@@ -22828,6 +22829,13 @@
        "$ref": "v1.FSType"
       },
       "description": "Volumes is a white list of allowed volume plugins.  FSType corresponds directly with the field names of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use \"*\". To allow no volumes, set to [\"none\"]."
+     },
+     "allowedFlexVolumes": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.AllowedFlexVolume"
+      },
+      "description": "AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the \"Volumes\" field."
      },
      "allowHostNetwork": {
       "type": "boolean",
@@ -22891,6 +22899,16 @@
    "v1.FSType": {
     "id": "v1.FSType",
     "properties": {}
+   },
+   "v1.AllowedFlexVolume": {
+    "id": "v1.AllowedFlexVolume",
+    "description": "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
+    "properties": {
+     "driver": {
+      "type": "string",
+      "description": "Driver is the name of the Flexvolume driver."
+     }
+    }
    },
    "v1.SELinuxContextStrategyOptions": {
     "id": "v1.SELinuxContextStrategyOptions",

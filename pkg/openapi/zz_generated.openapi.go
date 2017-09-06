@@ -8788,6 +8788,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
+		"github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
+					Properties: map[string]spec.Schema{
+						"driver": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Driver is the name of the Flexvolume driver.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
 		"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -9265,6 +9282,19 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"allowedFlexVolumes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the \"Volumes\" field.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume"),
+										},
+									},
+								},
+							},
+						},
 						"allowHostNetwork": {
 							SchemaProps: spec.SchemaProps{
 								Description: "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.",
@@ -9367,11 +9397,11 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"priority", "allowPrivilegedContainer", "defaultAddCapabilities", "requiredDropCapabilities", "allowedCapabilities", "allowHostDirVolumePlugin", "volumes", "allowHostNetwork", "allowHostPorts", "allowHostPID", "allowHostIPC", "readOnlyRootFilesystem"},
+					Required: []string{"priority", "allowPrivilegedContainer", "defaultAddCapabilities", "requiredDropCapabilities", "allowedCapabilities", "allowHostDirVolumePlugin", "volumes", "allowedFlexVolumes", "allowHostNetwork", "allowHostPorts", "allowHostPID", "allowHostIPC", "readOnlyRootFilesystem"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume", "github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
 		"github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraintsList": {
 			Schema: spec.Schema{

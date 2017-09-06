@@ -1835,6 +1835,7 @@ func describeSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 		fmt.Fprintf(out, "  Allowed Capabilities:\t%s\n", capsToString(scc.AllowedCapabilities))
 		fmt.Fprintf(out, "  Allowed Seccomp Profiles:\t%s\n", stringOrNone(strings.Join(scc.SeccompProfiles, ",")))
 		fmt.Fprintf(out, "  Allowed Volume Types:\t%s\n", fsTypeToString(scc.Volumes))
+		fmt.Fprintf(out, "  Allowed Flexvolumes:\t%s\n", flexVolumesToString(scc.AllowedFlexVolumes))
 		fmt.Fprintf(out, "  Allow Host Network:\t%t\n", scc.AllowHostNetwork)
 		fmt.Fprintf(out, "  Allow Host Ports:\t%t\n", scc.AllowHostPorts)
 		fmt.Fprintf(out, "  Allow Host PID:\t%t\n", scc.AllowHostPID)
@@ -1884,10 +1885,14 @@ func describeSecurityContextConstraints(scc *securityapi.SecurityContextConstrai
 }
 
 func stringOrNone(s string) string {
+	return stringOrDefaultValue(s, "<none>")
+}
+
+func stringOrDefaultValue(s, defaultValue string) string {
 	if len(s) > 0 {
 		return s
 	}
-	return "<none>"
+	return defaultValue
 }
 
 func fsTypeToString(volumes []securityapi.FSType) string {
@@ -1896,6 +1901,14 @@ func fsTypeToString(volumes []securityapi.FSType) string {
 		strVolumes = append(strVolumes, string(v))
 	}
 	return stringOrNone(strings.Join(strVolumes, ","))
+}
+
+func flexVolumesToString(flexVolumes []securityapi.AllowedFlexVolume) string {
+	volumes := []string{}
+	for _, flexVolume := range flexVolumes {
+		volumes = append(volumes, "driver="+flexVolume.Driver)
+	}
+	return stringOrDefaultValue(strings.Join(volumes, ","), "<all>")
 }
 
 func idRangeToString(ranges []securityapi.IDRange) string {

@@ -14,6 +14,12 @@ import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 // Package-wide variables from generator "generated".
 option go_package = "v1";
 
+// AllowedFlexVolume represents a single Flexvolume that is allowed to be used.
+message AllowedFlexVolume {
+  // Driver is the name of the Flexvolume driver.
+  optional string driver = 1;
+}
+
 // FSGroupStrategyOptions defines the strategy type and options used to create the strategy.
 message FSGroupStrategyOptions {
   // Type is the strategy that will dictate what FSGroup is used in the SecurityContext.
@@ -185,6 +191,11 @@ message SecurityContextConstraints {
   // of a VolumeSource (azureFile, configMap, emptyDir).  To allow all volumes you may use "*".
   // To allow no volumes, set to ["none"].
   repeated string volumes = 8;
+
+  // AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all
+  // Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes
+  // is allowed in the "Volumes" field.
+  repeated AllowedFlexVolume allowedFlexVolumes = 21;
 
   // AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.
   optional bool allowHostNetwork = 9;
