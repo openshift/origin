@@ -10,8 +10,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -31,9 +31,13 @@ type testSAR struct {
 	sar   *authorizationapi.SubjectAccessReview
 }
 
-func (t *testSAR) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (t *testSAR) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReview, error) {
 	t.sar = subjectAccessReview
-	return &authorizationapi.SubjectAccessReviewResponse{Allowed: t.allow}, t.err
+	return &authorizationapi.SubjectAccessReview{
+		Status: authorizationapi.SubjectAccessReviewStatus{
+			Allowed: t.allow,
+		},
+	}, t.err
 }
 
 func TestEmptyHostDefaulting(t *testing.T) {

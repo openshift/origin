@@ -10,6 +10,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"github.com/openshift/origin/pkg/dockerregistry"
@@ -150,7 +151,11 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.DeprecatedOpenshiftClient.SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 
-	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RouteAllocator, subjectAccessReviewRegistry)
+	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RouteAllocator, authorizationClient.SubjectAccessReviews())
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}

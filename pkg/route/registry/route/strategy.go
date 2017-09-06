@@ -12,8 +12,10 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"
@@ -24,8 +26,10 @@ const HostGeneratedAnnotationKey = "openshift.io/host.generated"
 
 // Registry is an interface for performing subject access reviews
 type SubjectAccessReviewInterface interface {
-	CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error)
+	Create(sar *authorizationapi.SubjectAccessReview) (result *authorizationapi.SubjectAccessReview, err error)
 }
+
+var _ SubjectAccessReviewInterface = authorizationclient.SubjectAccessReviewInterface(nil)
 
 type routeStrategy struct {
 	runtime.ObjectTyper
@@ -79,15 +83,18 @@ func (s routeStrategy) allocateHost(ctx apirequest.Context, route *routeapi.Rout
 		if !ok {
 			return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), fmt.Errorf("unable to verify host field can be set"))}
 		}
-		res, err := s.sarClient.CreateSubjectAccessReview(
-			ctx,
-			authorizationapi.AddUserToSAR(
+		res, err := s.sarClient.Create(
+			authorizationutil.AddUserToSAR(
 				user,
 				&authorizationapi.SubjectAccessReview{
-					Action: authorizationapi.Action{
-						Verb:     "create",
-						Group:    routeapi.GroupName,
-						Resource: "routes/custom-host",
+					Spec: authorizationapi.SubjectAccessReviewSpec{
+						ResourceAttributes: &authorizationapi.ResourceAttributes{
+							Namespace:   apirequest.NamespaceValue(ctx),
+							Verb:        "create",
+							Group:       routeapi.GroupName,
+							Resource:    "routes",
+							Subresource: "custom-host",
+						},
 					},
 				},
 			),
@@ -95,7 +102,7 @@ func (s routeStrategy) allocateHost(ctx apirequest.Context, route *routeapi.Rout
 		if err != nil {
 			return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}
 		}
-		if !res.Allowed {
+		if !res.Status.Allowed {
 			if hostSet {
 				return field.ErrorList{field.Forbidden(field.NewPath("spec", "host"), "you do not have permission to set the host field of the route")}
 			}
@@ -187,15 +194,18 @@ func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *
 	if !ok {
 		return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), fmt.Errorf("unable to verify host field can be changed"))}
 	}
-	res, err := s.sarClient.CreateSubjectAccessReview(
-		ctx,
-		authorizationapi.AddUserToSAR(
+	res, err := s.sarClient.Create(
+		authorizationutil.AddUserToSAR(
 			user,
 			&authorizationapi.SubjectAccessReview{
-				Action: authorizationapi.Action{
-					Verb:     "update",
-					Group:    "route.openshift.io",
-					Resource: "routes/custom-host",
+				Spec: authorizationapi.SubjectAccessReviewSpec{
+					ResourceAttributes: &authorizationapi.ResourceAttributes{
+						Namespace:   apirequest.NamespaceValue(ctx),
+						Verb:        "update",
+						Group:       routeapi.GroupName,
+						Resource:    "routes",
+						Subresource: "custom-host",
+					},
 				},
 			},
 		),
@@ -203,7 +213,7 @@ func (s routeStrategy) validateHostUpdate(ctx apirequest.Context, route, older *
 	if err != nil {
 		return field.ErrorList{field.InternalError(field.NewPath("spec", "host"), err)}
 	}
-	if !res.Allowed {
+	if !res.Status.Allowed {
 		if hostChanged {
 			return kvalidation.ValidateImmutableField(route.Spec.Host, older.Spec.Host, field.NewPath("spec", "host"))
 		}
