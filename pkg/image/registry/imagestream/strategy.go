@@ -18,9 +18,10 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
@@ -42,7 +43,7 @@ type Strategy struct {
 
 // NewStrategy is the default logic that applies when creating and updating
 // ImageStream objects via the REST API.
-func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewClient subjectaccessreview.Registry, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
+func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier, imageStreamGetter ResourceGetter) Strategy {
 	return Strategy{
 		ObjectTyper:               kapi.Scheme,
 		NameGenerator:             names.SimpleNameGenerator,
@@ -431,7 +432,7 @@ func updateObservedGenerationForStatusUpdate(stream, oldStream *imageapi.ImageSt
 }
 
 type TagVerifier struct {
-	subjectAccessReviewClient subjectaccessreview.Registry
+	subjectAccessReviewClient authorizationclient.SubjectAccessReviewInterface
 }
 
 func (v *TagVerifier) Verify(old, stream *imageapi.ImageStream, user user.Info) field.ErrorList {
@@ -462,21 +463,24 @@ func (v *TagVerifier) Verify(old, stream *imageapi.ImageStream, user user.Info) 
 		}
 
 		// Make sure this user can pull the specified image before allowing them to tag it into another imagestream
-		subjectAccessReview := authorizationapi.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{
-				Verb:         "get",
-				Group:        imageapi.LegacyGroupName,
-				Resource:     "imagestreams/layers",
-				ResourceName: streamName,
+		subjectAccessReview := authorizationutil.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
+			Spec: authorizationapi.SubjectAccessReviewSpec{
+				ResourceAttributes: &authorizationapi.ResourceAttributes{
+					Namespace:   tagRef.From.Namespace,
+					Verb:        "get",
+					Group:       imageapi.GroupName,
+					Resource:    "imagestreams",
+					Subresource: "layers",
+					Name:        streamName,
+				},
 			},
 		})
-		ctx := apirequest.WithNamespace(apirequest.WithUser(apirequest.NewContext(), user), tagRef.From.Namespace)
 		glog.V(4).Infof("Performing SubjectAccessReview for user=%s, groups=%v to %s/%s", user.GetName(), user.GetGroups(), tagRef.From.Namespace, streamName)
-		resp, err := v.subjectAccessReviewClient.CreateSubjectAccessReview(ctx, subjectAccessReview)
-		if err != nil || resp == nil || (resp != nil && !resp.Allowed) {
+		resp, err := v.subjectAccessReviewClient.Create(subjectAccessReview)
+		if err != nil || resp == nil || (resp != nil && !resp.Status.Allowed) {
 			message := fmt.Sprintf("%s/%s", tagRef.From.Namespace, streamName)
 			if resp != nil {
-				message = message + fmt.Sprintf(": %q %q", resp.Reason, resp.EvaluationError)
+				message = message + fmt.Sprintf(": %q %q", resp.Status.Reason, resp.Status.EvaluationError)
 			}
 			if err != nil {
 				message = message + fmt.Sprintf("- %v", err)

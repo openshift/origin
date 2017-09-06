@@ -29,6 +29,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
+	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
@@ -39,7 +40,9 @@ import (
 	oappsapiserver "github.com/openshift/origin/pkg/deploy/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
 	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
+	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
@@ -53,7 +56,7 @@ import (
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
 	"github.com/openshift/origin/pkg/version"
 
-	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	networkapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
@@ -84,7 +87,9 @@ type OpenshiftAPIConfig struct {
 	// these are all required to build our storage
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator authorizer.SubjectLocator
-	LimitVerifier  imageadmission.LimitVerifier
+
+	// for Images
+	LimitVerifier imageadmission.LimitVerifier
 	// RegistryHostnameRetriever retrieves the internal and external hostname of
 	// the integrated registry, or false if no such registry is available.
 	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
@@ -100,6 +105,7 @@ type OpenshiftAPIConfig struct {
 
 	EnableBuilds bool
 
+	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
 
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
@@ -242,6 +248,30 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, legacyStorageMutators{legacyStorageMutatorFunc(legacyDCRollbackMutator.Mutate), &legacyStorageVersionMutator{version: oappsapiv1.SchemeGroupVersion, storage: storage}}, nil
 }
 
+func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &authorizationapiserver.AuthorizationAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		KubeInternalInformers:     c.KubeInternalInformers,
+		RuleResolver:              c.RuleResolver,
+		SubjectLocator:            c.SubjectLocator,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: authorizationapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
 func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	if !c.EnableBuilds {
 		return delegateAPIServer, legacyStorageMutatorFunc(func(map[schema.GroupVersion]map[string]rest.Storage) {}), nil
@@ -268,6 +298,31 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: buildapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &imageapiserver.ImageAPIServerConfig{
+		GenericConfig:                      c.GenericConfig,
+		CoreAPIServerClientConfig:          c.GenericConfig.LoopbackClientConfig,
+		LimitVerifier:                      c.LimitVerifier,
+		RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
+		AllowedRegistriesForImport:         c.AllowedRegistriesForImport,
+		MaxImagesBulkImportedPerRepository: c.MaxImagesBulkImportedPerRepository,
+		Codecs:   kapi.Codecs,
+		Registry: kapi.Registry,
+		Scheme:   kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: imageapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
 func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	config := &networkapiserver.NetworkAPIServerConfig{
 		GenericConfig: c.GenericConfig,
@@ -286,6 +341,28 @@ func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserve
 	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
 
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: networkapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &oauthapiserver.OAuthAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		ServiceAccountMethod:      c.ServiceAccountMethod,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: oauthapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
 func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
@@ -346,8 +423,11 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 	legacyStorageModifier := legacyStorageMutators{}
 
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAppsAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAuthorizationAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withBuildAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withImageAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withNetworkAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withOAuthAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withTemplateAPIServer)
 	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withUserAPIServer)
 
@@ -518,9 +598,6 @@ var apiGroupsVersions = []apiGroupInfo{
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{projectapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{quotaapiv1.SchemeGroupVersion}},
 	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{imageapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{oauthapiv1.SchemeGroupVersion}},
 }
 
 // isPreferredGroupVersion returns true if the given GroupVersion is preferred version in

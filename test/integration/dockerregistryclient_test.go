@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/origin/pkg/dockerregistry"
+	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
 
 const (
