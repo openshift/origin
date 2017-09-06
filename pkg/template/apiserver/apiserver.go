@@ -1,15 +1,16 @@
 package apiserver
 
 import (
+	"sync"
+
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
-	authorizationinternalversion "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
-
-	"sync"
+	restclient "k8s.io/client-go/rest"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance/etcd"
@@ -21,8 +22,7 @@ import (
 type TemplateConfig struct {
 	GenericConfig *genericapiserver.Config
 
-	// AuthorizationClient is used to run SAR checks.  It should point to the master.
-	AuthorizationClient authorizationinternalversion.AuthorizationInterface
+	CoreAPIServerClientConfig *restclient.Config
 
 	// TODO these should all become local eventually
 	Scheme   *runtime.Scheme
@@ -90,11 +90,16 @@ func (c *TemplateConfig) V1RESTStorage() (map[string]rest.Storage, error) {
 }
 
 func (c *TemplateConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
+	authorizationClient, err := authorizationclient.NewForConfig(c.CoreAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	templateStorage, err := templateetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, err
 	}
-	templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.AuthorizationClient)
+	templateInstanceStorage, templateInstanceStatusStorage, err := templateinstanceetcd.NewREST(c.GenericConfig.RESTOptionsGetter, authorizationClient)
 	if err != nil {
 		return nil, err
 	}
