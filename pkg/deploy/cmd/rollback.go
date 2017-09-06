@@ -8,18 +8,19 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	appsinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 )
 
-func NewDeploymentConfigRollbacker(oc client.Interface) kubectl.Rollbacker {
-	return &DeploymentConfigRollbacker{dn: oc}
+func NewDeploymentConfigRollbacker(appsClient appsclient.Interface) kubectl.Rollbacker {
+	return &DeploymentConfigRollbacker{dn: appsClient.Apps()}
 }
 
 // DeploymentConfigRollbacker is an implementation of the kubectl Rollbacker interface
 // for deployment configs.
 type DeploymentConfigRollbacker struct {
-	dn client.DeploymentConfigsNamespacer
+	dn appsinternal.DeploymentConfigsGetter
 }
 
 var _ kubectl.Rollbacker = &DeploymentConfigRollbacker{}
@@ -44,7 +45,7 @@ func (r *DeploymentConfigRollbacker) Rollback(obj runtime.Object, updatedAnnotat
 		},
 	}
 
-	rolledback, err := r.dn.DeploymentConfigs(config.Namespace).Rollback(rollback)
+	rolledback, err := r.dn.DeploymentConfigs(config.Namespace).Rollback(config.Name, rollback)
 	if err != nil {
 		return "", err
 	}

@@ -133,6 +133,17 @@ func (c *FakeDeploymentConfigs) Instantiate(deploymentConfigName string, deploym
 	return obj.(*apps_v1.DeploymentConfig), err
 }
 
+// Rollback takes the representation of a deploymentConfigRollback and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
+func (c *FakeDeploymentConfigs) Rollback(deploymentConfigName string, deploymentConfigRollback *apps_v1.DeploymentConfigRollback) (result *apps_v1.DeploymentConfig, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateSubresourceAction(deploymentconfigsResource, deploymentConfigName, "rollback", c.ns, deploymentConfigRollback), &apps_v1.DeploymentConfig{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*apps_v1.DeploymentConfig), err
+}
+
 // GetScale takes name of the deploymentConfig, and returns the corresponding deploymentConfig object, and an error if there is any.
 func (c *FakeDeploymentConfigs) GetScale(deploymentConfigName string, options v1.GetOptions) (result *v1beta1.Scale, err error) {
 	obj, err := c.Fake.

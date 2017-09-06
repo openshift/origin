@@ -28,6 +28,7 @@ type DeploymentConfigInterface interface {
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *apps.DeploymentConfig, err error)
 	Instantiate(deploymentConfigName string, deploymentRequest *apps.DeploymentRequest) (*apps.DeploymentConfig, error)
+	Rollback(deploymentConfigName string, deploymentConfigRollback *apps.DeploymentConfigRollback) (*apps.DeploymentConfig, error)
 	GetScale(deploymentConfigName string, options v1.GetOptions) (*v1beta1.Scale, error)
 	UpdateScale(deploymentConfigName string, scale *v1beta1.Scale) (*v1beta1.Scale, error)
 
@@ -169,6 +170,20 @@ func (c *deploymentConfigs) Instantiate(deploymentConfigName string, deploymentR
 		Name(deploymentConfigName).
 		SubResource("instantiate").
 		Body(deploymentRequest).
+		Do().
+		Into(result)
+	return
+}
+
+// Rollback takes the representation of a deploymentConfigRollback and creates it.  Returns the server's representation of the deploymentConfig, and an error, if there is any.
+func (c *deploymentConfigs) Rollback(deploymentConfigName string, deploymentConfigRollback *apps.DeploymentConfigRollback) (result *apps.DeploymentConfig, err error) {
+	result = &apps.DeploymentConfig{}
+	err = c.client.Post().
+		Namespace(c.ns).
+		Resource("deploymentconfigs").
+		Name(deploymentConfigName).
+		SubResource("rollback").
+		Body(deploymentConfigRollback).
 		Do().
 		Into(result)
 	return

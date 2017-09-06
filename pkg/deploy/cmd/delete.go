@@ -9,30 +9,52 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl"
 	kutil "k8s.io/kubernetes/pkg/util"
 
-	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	appsinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/deploy/util"
 )
 
 // NewDeploymentConfigReaper returns a new reaper for deploymentConfigs
-func NewDeploymentConfigReaper(oc client.Interface, kc kclientset.Interface) kubectl.Reaper {
-	return &DeploymentConfigReaper{oc: oc, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
+func NewDeploymentConfigReaper(appsClient appsclient.Interface, kc kclientset.Interface) kubectl.Reaper {
+	return &DeploymentConfigReaper{appsClient: appsClient, kc: kc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
 }
 
 // DeploymentConfigReaper implements the Reaper interface for deploymentConfigs
 type DeploymentConfigReaper struct {
-	oc                    client.Interface
+	appsClient            appsclient.Interface
 	kc                    kclientset.Interface
 	pollInterval, timeout time.Duration
+}
+
+type updateConfigFunc func(d *deployapi.DeploymentConfig)
+
+// updateConfigWithRetries will try to update a deployment config and ignore any update conflicts.
+func updateConfigWithRetries(dn appsinternal.DeploymentConfigsGetter, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
+	var config *deployapi.DeploymentConfig
+
+	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var err error
+		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		// Apply the update, then attempt to push it to the apiserver.
+		applyUpdate(config)
+		config, err = dn.DeploymentConfigs(namespace).Update(config)
+		return err
+	})
+	return config, resultErr
 }
 
 // pause marks the deployment configuration as paused to avoid triggering new
 // deployments.
 func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return client.UpdateConfigWithRetries(reaper.oc, namespace, name, func(d *deployapi.DeploymentConfig) {
+	return updateConfigWithRetries(reaper.appsClient.Apps(), namespace, name, func(d *deployapi.DeploymentConfig) {
 		d.Spec.RevisionHistoryLimit = kutil.Int32Ptr(0)
 		d.Spec.Replicas = 0
 		d.Spec.Paused = true
@@ -58,7 +80,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 	// Determine if the deployment config controller noticed the pause.
 	if !configNotFound {
 		if err := wait.Poll(1*time.Second, 1*time.Minute, func() (bool, error) {
-			dc, err := reaper.oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+			dc, err := reaper.appsClient.Apps().DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 			if err != nil {
 				return false, err
 			}
@@ -72,7 +94,7 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		// old API that does not support pausing. In that case, we delete the
 		// deployment config to stay backward compatible.
 		if !isPaused {
-			if err := reaper.oc.DeploymentConfigs(namespace).Delete(name); err != nil {
+			if err := reaper.appsClient.Apps().DeploymentConfigs(namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
 				return err
 			}
 			// Setting this to true avoid deleting the config at the end.
@@ -133,5 +155,5 @@ func (reaper *DeploymentConfigReaper) Stop(namespace, name string, timeout time.
 		return nil
 	}
 
-	return reaper.oc.DeploymentConfigs(namespace).Delete(name)
+	return reaper.appsClient.Apps().DeploymentConfigs(namespace).Delete(name, &metav1.DeleteOptions{})
 }

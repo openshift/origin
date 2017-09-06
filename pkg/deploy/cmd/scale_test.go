@@ -11,10 +11,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
+	appsfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
@@ -41,7 +41,7 @@ func TestScale(t *testing.T) {
 
 	for _, test := range tests {
 		t.Logf("evaluating test %q", test.name)
-		oc := &testclient.Fake{}
+		oc := &appsfake.Clientset{}
 		kc := &fake.Clientset{}
 		scaler := NewDeploymentConfigScaler(oc, kc)
 
@@ -55,9 +55,15 @@ func TestScale(t *testing.T) {
 		}
 
 		oc.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			if action.GetSubresource() == "scale" {
+				return true, &extensions.Scale{Spec: extensions.ScaleSpec{}}, nil
+			}
 			return true, config, nil
 		})
-		oc.AddReactor("update", "deploymentconfigs/scale", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		oc.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			if action.GetSubresource() != "scale" {
+				return true, nil, nil
+			}
 			// Simulate the asynchronous update of the RC replicas based on the
 			// scale replica count.
 			scale := action.(clientgotesting.UpdateAction).GetObject().(*extensions.Scale)

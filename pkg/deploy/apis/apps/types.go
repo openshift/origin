@@ -124,6 +124,7 @@ const (
 
 // +genclient
 // +genclient:method=Instantiate,verb=create,subresource=instantiate,input=DeploymentRequest
+// +genclient:method=Rollback,verb=create,subresource=rollback,input=DeploymentConfigRollback
 // +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
 // +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
 
