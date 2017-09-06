@@ -31,7 +31,7 @@ func testDeserializeSerialize(t *testing.T, orig []byte, safemsg testSerializer,
 func (msg *IfInfomsg) write(b []byte) {
 	native := NativeEndian()
 	b[0] = msg.Family
-	b[1] = msg.X__ifi_pad
+	// pad byte is skipped because it is not exported on linux/s390x
 	native.PutUint16(b[2:4], msg.Type)
 	native.PutUint32(b[4:8], uint32(msg.Index))
 	native.PutUint32(b[8:12], msg.Flags)
@@ -54,6 +54,8 @@ func deserializeIfInfomsgSafe(b []byte) *IfInfomsg {
 func TestIfInfomsgDeserializeSerialize(t *testing.T) {
 	var orig = make([]byte, syscall.SizeofIfInfomsg)
 	rand.Read(orig)
+	// zero out the pad byte
+	orig[1] = 0
 	safemsg := deserializeIfInfomsgSafe(orig)
 	msg := DeserializeIfInfomsg(orig)
 	testDeserializeSerialize(t, orig, safemsg, msg)

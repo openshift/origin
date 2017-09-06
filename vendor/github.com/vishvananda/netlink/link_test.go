@@ -1,10 +1,16 @@
+// +build linux
+
 package netlink
 
 import (
 	"bytes"
 	"net"
+	"os"
+	"syscall"
 	"testing"
+	"time"
 
+	"github.com/vishvananda/netlink/nl"
 	"github.com/vishvananda/netns"
 )
 
@@ -18,7 +24,6 @@ func testLinkAddDel(t *testing.T, link Link) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	num := len(links)
 
 	if err := LinkAdd(link); err != nil {
 		t.Fatal(err)
@@ -43,16 +48,6 @@ func testLinkAddDel(t *testing.T, link Link) {
 		}
 	}
 
-	if rBase.ParentIndex == 0 && base.ParentIndex != 0 {
-		t.Fatal("Created link doesn't have a Parent but it should")
-	} else if rBase.ParentIndex != 0 && base.ParentIndex == 0 {
-		t.Fatal("Created link has a Parent but it shouldn't")
-	} else if rBase.ParentIndex != 0 && base.ParentIndex != 0 {
-		if rBase.ParentIndex != base.ParentIndex {
-			t.Fatal("Link.ParentIndex doesn't match")
-		}
-	}
-
 	if veth, ok := result.(*Veth); ok {
 		if rBase.TxQLen != base.TxQLen {
 			t.Fatalf("qlen is %d, should be %d", rBase.TxQLen, base.TxQLen)
@@ -61,17 +56,30 @@ func testLinkAddDel(t *testing.T, link Link) {
 			t.Fatalf("MTU is %d, should be %d", rBase.MTU, base.MTU)
 		}
 
-		if veth.PeerName != "" {
-			var peer *Veth
-			other, err := LinkByName(veth.PeerName)
-			if err != nil {
-				t.Fatalf("Peer %s not created", veth.PeerName)
+		if original, ok := link.(*Veth); ok {
+			if original.PeerName != "" {
+				var peer *Veth
+				other, err := LinkByName(original.PeerName)
+				if err != nil {
+					t.Fatalf("Peer %s not created", veth.PeerName)
+				}
+				if peer, ok = other.(*Veth); !ok {
+					t.Fatalf("Peer %s is incorrect type", veth.PeerName)
+				}
+				if peer.TxQLen != testTxQLen {
+					t.Fatalf("TxQLen of peer is %d, should be %d", peer.TxQLen, testTxQLen)
+				}
 			}
-			if peer, ok = other.(*Veth); !ok {
-				t.Fatalf("Peer %s is incorrect type", veth.PeerName)
-			}
-			if peer.TxQLen != testTxQLen {
-				t.Fatalf("TxQLen of peer is %d, should be %d", peer.TxQLen, testTxQLen)
+		}
+	} else {
+		// recent kernels set the parent index for veths in the response
+		if rBase.ParentIndex == 0 && base.ParentIndex != 0 {
+			t.Fatalf("Created link doesn't have parent %d but it should", base.ParentIndex)
+		} else if rBase.ParentIndex != 0 && base.ParentIndex == 0 {
+			t.Fatalf("Created link has parent %d but it shouldn't", rBase.ParentIndex)
+		} else if rBase.ParentIndex != 0 && base.ParentIndex != 0 {
+			if rBase.ParentIndex != base.ParentIndex {
+				t.Fatalf("Link.ParentIndex doesn't match %d != %d", rBase.ParentIndex, base.ParentIndex)
 			}
 		}
 	}
@@ -104,6 +112,77 @@ func testLinkAddDel(t *testing.T, link Link) {
 		}
 	}
 
+	if macv, ok := link.(*Macvtap); ok {
+		other, ok := result.(*Macvtap)
+		if !ok {
+			t.Fatal("Result of create is not a macvtap")
+		}
+		if macv.Mode != other.Mode {
+			t.Fatalf("Got unexpected mode: %d, expected: %d", other.Mode, macv.Mode)
+		}
+	}
+
+	if _, ok := link.(*Vti); ok {
+		_, ok := result.(*Vti)
+		if !ok {
+			t.Fatal("Result of create is not a vti")
+		}
+	}
+
+	if bond, ok := link.(*Bond); ok {
+		other, ok := result.(*Bond)
+		if !ok {
+			t.Fatal("Result of create is not a bond")
+		}
+		if bond.Mode != other.Mode {
+			t.Fatalf("Got unexpected mode: %d, expected: %d", other.Mode, bond.Mode)
+		}
+		// Mode specific checks
+		if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+			t.Log("Kernel in travis is too old for this check")
+		} else {
+			switch mode := bondModeToString[bond.Mode]; mode {
+			case "802.3ad":
+				if bond.AdSelect != other.AdSelect {
+					t.Fatalf("Got unexpected AdSelect: %d, expected: %d", other.AdSelect, bond.AdSelect)
+				}
+				if bond.AdActorSysPrio != other.AdActorSysPrio {
+					t.Fatalf("Got unexpected AdActorSysPrio: %d, expected: %d", other.AdActorSysPrio, bond.AdActorSysPrio)
+				}
+				if bond.AdUserPortKey != other.AdUserPortKey {
+					t.Fatalf("Got unexpected AdUserPortKey: %d, expected: %d", other.AdUserPortKey, bond.AdUserPortKey)
+				}
+				if bytes.Compare(bond.AdActorSystem, other.AdActorSystem) != 0 {
+					t.Fatalf("Got unexpected AdActorSystem: %d, expected: %d", other.AdActorSystem, bond.AdActorSystem)
+				}
+			case "balance-tlb":
+				if bond.TlbDynamicLb != other.TlbDynamicLb {
+					t.Fatalf("Got unexpected TlbDynamicLb: %d, expected: %d", other.TlbDynamicLb, bond.TlbDynamicLb)
+				}
+			}
+		}
+	}
+
+	if _, ok := link.(*Iptun); ok {
+		_, ok := result.(*Iptun)
+		if !ok {
+			t.Fatal("Result of create is not a iptun")
+		}
+	}
+
+	if _, ok := link.(*Gretap); ok {
+		_, ok := result.(*Gretap)
+		if !ok {
+			t.Fatal("Result of create is not a Gretap")
+		}
+	}
+	if _, ok := link.(*Gretun); ok {
+		_, ok := result.(*Gretun)
+		if !ok {
+			t.Fatal("Result of create is not a Gretun")
+		}
+	}
+
 	if err = LinkDel(link); err != nil {
 		t.Fatal(err)
 	}
@@ -113,8 +192,10 @@ func testLinkAddDel(t *testing.T, link Link) {
 		t.Fatal(err)
 	}
 
-	if len(links) != num {
-		t.Fatal("Link not removed properly")
+	for _, l := range links {
+		if l.Attrs().Name == link.Attrs().Name {
+			t.Fatal("Link not removed properly")
+		}
 	}
 }
 
@@ -152,6 +233,9 @@ func compareVxlan(t *testing.T, expected, actual *Vxlan) {
 	}
 	if actual.GBP != expected.GBP {
 		t.Fatal("Vxlan.GBP doesn't match")
+	}
+	if actual.FlowBased != expected.FlowBased {
+		t.Fatal("Vxlan.FlowBased doesn't match")
 	}
 	if expected.NoAge {
 		if !actual.NoAge {
@@ -194,7 +278,54 @@ func TestLinkAddDelBridge(t *testing.T) {
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 
-	testLinkAddDel(t, &Bridge{LinkAttrs{Name: "foo", MTU: 1400}})
+	testLinkAddDel(t, &Bridge{LinkAttrs: LinkAttrs{Name: "foo", MTU: 1400}})
+}
+
+func TestLinkAddDelGretap(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	testLinkAddDel(t, &Gretap{
+		LinkAttrs: LinkAttrs{Name: "foo"},
+		IKey:      0x101,
+		OKey:      0x101,
+		PMtuDisc:  1,
+		Local:     net.IPv4(127, 0, 0, 1),
+		Remote:    net.IPv4(127, 0, 0, 1)})
+}
+
+func TestLinkAddDelGretun(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	testLinkAddDel(t, &Gretun{
+		LinkAttrs: LinkAttrs{Name: "foo"},
+		Local:     net.IPv4(127, 0, 0, 1),
+		Remote:    net.IPv4(127, 0, 0, 1)})
+}
+
+func TestLinkAddDelGretunPointToMultiPoint(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	testLinkAddDel(t, &Gretun{
+		LinkAttrs: LinkAttrs{Name: "foo"},
+		Local:     net.IPv4(127, 0, 0, 1),
+		IKey:      1234,
+		OKey:      1234})
+}
+
+func TestLinkAddDelGretapFlowBased(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Kernel in travis is too old for this test")
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	testLinkAddDel(t, &Gretap{
+		LinkAttrs: LinkAttrs{Name: "foo"},
+		FlowBased: true})
 }
 
 func TestLinkAddDelVlan(t *testing.T) {
@@ -227,6 +358,16 @@ func TestLinkAddDelMacvlan(t *testing.T) {
 		Mode:      MACVLAN_MODE_PRIVATE,
 	})
 
+	testLinkAddDel(t, &Macvlan{
+		LinkAttrs: LinkAttrs{Name: "bar", ParentIndex: parent.Attrs().Index},
+		Mode:      MACVLAN_MODE_BRIDGE,
+	})
+
+	testLinkAddDel(t, &Macvlan{
+		LinkAttrs: LinkAttrs{Name: "bar", ParentIndex: parent.Attrs().Index},
+		Mode:      MACVLAN_MODE_VEPA,
+	})
+
 	if err := LinkDel(parent); err != nil {
 		t.Fatal(err)
 	}
@@ -248,6 +389,20 @@ func TestLinkAddDelMacvtap(t *testing.T) {
 		},
 	})
 
+	testLinkAddDel(t, &Macvtap{
+		Macvlan: Macvlan{
+			LinkAttrs: LinkAttrs{Name: "bar", ParentIndex: parent.Attrs().Index},
+			Mode:      MACVLAN_MODE_BRIDGE,
+		},
+	})
+
+	testLinkAddDel(t, &Macvtap{
+		Macvlan: Macvlan{
+			LinkAttrs: LinkAttrs{Name: "bar", ParentIndex: parent.Attrs().Index},
+			Mode:      MACVLAN_MODE_VEPA,
+		},
+	})
+
 	if err := LinkDel(parent); err != nil {
 		t.Fatal(err)
 	}
@@ -257,7 +412,29 @@ func TestLinkAddDelVeth(t *testing.T) {
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 
-	testLinkAddDel(t, &Veth{LinkAttrs{Name: "foo", TxQLen: testTxQLen, MTU: 1400}, "bar"})
+	veth := &Veth{LinkAttrs: LinkAttrs{Name: "foo", TxQLen: testTxQLen, MTU: 1400}, PeerName: "bar"}
+	testLinkAddDel(t, veth)
+}
+
+func TestLinkAddDelBond(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	modes := []string{"802.3ad", "balance-tlb"}
+	for _, mode := range modes {
+		bond := NewLinkBond(LinkAttrs{Name: "foo"})
+		bond.Mode = StringToBondModeMap[mode]
+		switch mode {
+		case "802.3ad":
+			bond.AdSelect = BondAdSelect(BOND_AD_SELECT_BANDWIDTH)
+			bond.AdActorSysPrio = 1
+			bond.AdUserPortKey = 1
+			bond.AdActorSystem, _ = net.ParseMAC("06:aa:bb:cc:dd:ee")
+		case "balance-tlb":
+			bond.TlbDynamicLb = 1
+		}
+		testLinkAddDel(t, bond)
+	}
 }
 
 func TestLinkAddVethWithDefaultTxQLen(t *testing.T) {
@@ -357,7 +534,7 @@ func TestLinkAddDelBridgeMaster(t *testing.T) {
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 
-	master := &Bridge{LinkAttrs{Name: "foo"}}
+	master := &Bridge{LinkAttrs: LinkAttrs{Name: "foo"}}
 	if err := LinkAdd(master); err != nil {
 		t.Fatal(err)
 	}
@@ -372,12 +549,12 @@ func TestLinkSetUnsetResetMaster(t *testing.T) {
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 
-	master := &Bridge{LinkAttrs{Name: "foo"}}
+	master := &Bridge{LinkAttrs: LinkAttrs{Name: "foo"}}
 	if err := LinkAdd(master); err != nil {
 		t.Fatal(err)
 	}
 
-	newmaster := &Bridge{LinkAttrs{Name: "bar"}}
+	newmaster := &Bridge{LinkAttrs: LinkAttrs{Name: "bar"}}
 	if err := LinkAdd(newmaster); err != nil {
 		t.Fatal(err)
 	}
@@ -385,6 +562,12 @@ func TestLinkSetUnsetResetMaster(t *testing.T) {
 	slave := &Dummy{LinkAttrs{Name: "baz"}}
 	if err := LinkAdd(slave); err != nil {
 		t.Fatal(err)
+	}
+
+	nonexistsmaster := &Bridge{LinkAttrs: LinkAttrs{Name: "foobar"}}
+
+	if err := LinkSetMaster(slave, nonexistsmaster); err == nil {
+		t.Fatal("error expected")
 	}
 
 	if err := LinkSetMaster(slave, master); err != nil {
@@ -413,7 +596,7 @@ func TestLinkSetUnsetResetMaster(t *testing.T) {
 		t.Fatal("Master not reset properly")
 	}
 
-	if err := LinkSetMaster(slave, nil); err != nil {
+	if err := LinkSetNoMaster(slave); err != nil {
 		t.Fatal(err)
 	}
 
@@ -528,7 +711,62 @@ func TestLinkAddDelVxlan(t *testing.T) {
 	}
 }
 
+func TestLinkAddDelVxlanGbp(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Kernel in travis is too old for this test")
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	parent := &Dummy{
+		LinkAttrs{Name: "foo"},
+	}
+	if err := LinkAdd(parent); err != nil {
+		t.Fatal(err)
+	}
+
+	vxlan := Vxlan{
+		LinkAttrs: LinkAttrs{
+			Name: "bar",
+		},
+		VxlanId:      10,
+		VtepDevIndex: parent.Index,
+		Learning:     true,
+		L2miss:       true,
+		L3miss:       true,
+		GBP:          true,
+	}
+
+	testLinkAddDel(t, &vxlan)
+	if err := LinkDel(parent); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLinkAddDelVxlanFlowBased(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Kernel in travis is too old for this test")
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	vxlan := Vxlan{
+		LinkAttrs: LinkAttrs{
+			Name: "foo",
+		},
+		Learning:  false,
+		FlowBased: true,
+	}
+
+	testLinkAddDel(t, &vxlan)
+}
+
 func TestLinkAddDelIPVlanL2(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Kernel in travis is too old for this test")
+	}
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 	parent := &Dummy{LinkAttrs{Name: "foo"}}
@@ -548,6 +786,9 @@ func TestLinkAddDelIPVlanL2(t *testing.T) {
 }
 
 func TestLinkAddDelIPVlanL3(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Kernel in travis is too old for this test")
+	}
 	tearDown := setUpNetlinkTest(t)
 	defer tearDown()
 	parent := &Dummy{LinkAttrs{Name: "foo"}}
@@ -650,6 +891,20 @@ func TestLinkSet(t *testing.T) {
 		t.Fatal("MTU not changed!")
 	}
 
+	err = LinkSetTxQLen(link, 500)
+	if err != nil {
+		t.Fatalf("Could not set txqlen: %v", err)
+	}
+
+	link, err = LinkByName("bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if link.Attrs().TxQLen != 500 {
+		t.Fatal("txqlen not changed!")
+	}
+
 	addr, err := net.ParseMAC("00:12:34:56:78:AB")
 	if err != nil {
 		t.Fatal(err)
@@ -667,5 +922,508 @@ func TestLinkSet(t *testing.T) {
 
 	if !bytes.Equal(link.Attrs().HardwareAddr, addr) {
 		t.Fatalf("hardware address not changed!")
+	}
+
+	err = LinkSetAlias(link, "barAlias")
+	if err != nil {
+		t.Fatalf("Could not set alias: %v", err)
+	}
+
+	link, err = LinkByName("bar")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if link.Attrs().Alias != "barAlias" {
+		t.Fatalf("alias not changed!")
+	}
+
+	link, err = LinkByAlias("barAlias")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLinkSetARP(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	iface := &Veth{LinkAttrs: LinkAttrs{Name: "foo", TxQLen: testTxQLen, MTU: 1500}, PeerName: "banana"}
+	if err := LinkAdd(iface); err != nil {
+		t.Fatal(err)
+	}
+
+	link, err := LinkByName("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = LinkSetARPOff(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link, err = LinkByName("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if link.Attrs().RawFlags&syscall.IFF_NOARP != uint32(syscall.IFF_NOARP) {
+		t.Fatalf("NOARP was not set!")
+	}
+
+	err = LinkSetARPOn(link)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	link, err = LinkByName("foo")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if link.Attrs().RawFlags&syscall.IFF_NOARP != 0 {
+		t.Fatalf("NOARP is still set!")
+	}
+}
+
+func expectLinkUpdate(ch <-chan LinkUpdate, ifaceName string, up bool) bool {
+	for {
+		timeout := time.After(time.Minute)
+		select {
+		case update := <-ch:
+			if ifaceName == update.Link.Attrs().Name && (update.IfInfomsg.Flags&syscall.IFF_UP != 0) == up {
+				return true
+			}
+		case <-timeout:
+			return false
+		}
+	}
+}
+
+func TestLinkSubscribe(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	ch := make(chan LinkUpdate)
+	done := make(chan struct{})
+	defer close(done)
+	if err := LinkSubscribe(ch, done); err != nil {
+		t.Fatal(err)
+	}
+
+	link := &Veth{LinkAttrs{Name: "foo", TxQLen: testTxQLen, MTU: 1400}, "bar"}
+	if err := LinkAdd(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "foo", false) {
+		t.Fatal("Add update not received as expected")
+	}
+
+	if err := LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "foo", true) {
+		t.Fatal("Link Up update not received as expected")
+	}
+
+	if err := LinkDel(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "foo", false) {
+		t.Fatal("Del update not received as expected")
+	}
+}
+
+func TestLinkSubscribeAt(t *testing.T) {
+	skipUnlessRoot(t)
+
+	// Create an handle on a custom netns
+	newNs, err := netns.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer newNs.Close()
+
+	nh, err := NewHandleAt(newNs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer nh.Delete()
+
+	// Subscribe for Link events on the custom netns
+	ch := make(chan LinkUpdate)
+	done := make(chan struct{})
+	defer close(done)
+	if err := LinkSubscribeAt(newNs, ch, done); err != nil {
+		t.Fatal(err)
+	}
+
+	link := &Veth{LinkAttrs{Name: "test", TxQLen: testTxQLen, MTU: 1400}, "bar"}
+	if err := nh.LinkAdd(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "test", false) {
+		t.Fatal("Add update not received as expected")
+	}
+
+	if err := nh.LinkSetUp(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "test", true) {
+		t.Fatal("Link Up update not received as expected")
+	}
+
+	if err := nh.LinkDel(link); err != nil {
+		t.Fatal(err)
+	}
+
+	if !expectLinkUpdate(ch, "test", false) {
+		t.Fatal("Del update not received as expected")
+	}
+}
+
+func TestLinkStats(t *testing.T) {
+	defer setUpNetlinkTest(t)()
+
+	// Create a veth pair and verify the cross-stats once both
+	// ends are brought up and some ICMPv6 packets are exchanged
+	v0 := "v0"
+	v1 := "v1"
+
+	vethLink := &Veth{LinkAttrs: LinkAttrs{Name: v0}, PeerName: v1}
+	if err := LinkAdd(vethLink); err != nil {
+		t.Fatal(err)
+	}
+
+	veth0, err := LinkByName(v0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := LinkSetUp(veth0); err != nil {
+		t.Fatal(err)
+	}
+
+	veth1, err := LinkByName(v1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := LinkSetUp(veth1); err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(2 * time.Second)
+
+	// verify statistics
+	veth0, err = LinkByName(v0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	veth1, err = LinkByName(v1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	v0Stats := veth0.Attrs().Statistics
+	v1Stats := veth1.Attrs().Statistics
+	if v0Stats.RxPackets != v1Stats.TxPackets || v0Stats.TxPackets != v1Stats.RxPackets ||
+		v0Stats.RxBytes != v1Stats.TxBytes || v0Stats.TxBytes != v1Stats.RxBytes {
+		t.Fatalf("veth ends counters differ:\n%v\n%v", v0Stats, v1Stats)
+	}
+}
+
+func TestLinkXdp(t *testing.T) {
+	links, err := LinkList()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var testXdpLink Link
+	for _, link := range links {
+		if link.Attrs().Xdp != nil && !link.Attrs().Xdp.Attached {
+			testXdpLink = link
+			break
+		}
+	}
+	if testXdpLink == nil {
+		t.Skipf("No link supporting XDP found")
+	}
+	fd, err := loadSimpleBpf(BPF_PROG_TYPE_XDP, 2 /*XDP_PASS*/)
+	if err != nil {
+		t.Skipf("Loading bpf program failed: %s", err)
+	}
+	if err := LinkSetXdpFd(testXdpLink, fd); err != nil {
+		t.Fatal(err)
+	}
+	if err := LinkSetXdpFdWithFlags(testXdpLink, fd, nl.XDP_FLAGS_UPDATE_IF_NOEXIST); err != syscall.EBUSY {
+		t.Fatal(err)
+	}
+	if err := LinkSetXdpFd(testXdpLink, -1); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLinkAddDelIptun(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	testLinkAddDel(t, &Iptun{
+		LinkAttrs: LinkAttrs{Name: "iptunfoo"},
+		PMtuDisc:  1,
+		Local:     net.IPv4(127, 0, 0, 1),
+		Remote:    net.IPv4(127, 0, 0, 1)})
+}
+
+func TestLinkAddDelVti(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	testLinkAddDel(t, &Vti{
+		LinkAttrs: LinkAttrs{Name: "vtifoo"},
+		IKey:      0x101,
+		OKey:      0x101,
+		Local:     net.IPv4(127, 0, 0, 1),
+		Remote:    net.IPv4(127, 0, 0, 1)})
+}
+
+func TestBridgeCreationWithMulticastSnooping(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Travis CI worker Linux kernel version (3.13) is too old for this test")
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	bridgeWithDefaultMcastSnoopName := "foo"
+	bridgeWithDefaultMcastSnoop := &Bridge{LinkAttrs: LinkAttrs{Name: bridgeWithDefaultMcastSnoopName}}
+	if err := LinkAdd(bridgeWithDefaultMcastSnoop); err != nil {
+		t.Fatal(err)
+	}
+	expectMcastSnooping(t, bridgeWithDefaultMcastSnoopName, true)
+	if err := LinkDel(bridgeWithDefaultMcastSnoop); err != nil {
+		t.Fatal(err)
+	}
+
+	mcastSnoop := true
+	bridgeWithMcastSnoopOnName := "bar"
+	bridgeWithMcastSnoopOn := &Bridge{LinkAttrs: LinkAttrs{Name: bridgeWithMcastSnoopOnName}, MulticastSnooping: &mcastSnoop}
+	if err := LinkAdd(bridgeWithMcastSnoopOn); err != nil {
+		t.Fatal(err)
+	}
+	expectMcastSnooping(t, bridgeWithMcastSnoopOnName, true)
+	if err := LinkDel(bridgeWithMcastSnoopOn); err != nil {
+		t.Fatal(err)
+	}
+
+	mcastSnoop = false
+	bridgeWithMcastSnoopOffName := "foobar"
+	bridgeWithMcastSnoopOff := &Bridge{LinkAttrs: LinkAttrs{Name: bridgeWithMcastSnoopOffName}, MulticastSnooping: &mcastSnoop}
+	if err := LinkAdd(bridgeWithMcastSnoopOff); err != nil {
+		t.Fatal(err)
+	}
+	expectMcastSnooping(t, bridgeWithMcastSnoopOffName, false)
+	if err := LinkDel(bridgeWithMcastSnoopOff); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBridgeSetMcastSnoop(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Travis CI worker Linux kernel version (3.13) is too old for this test")
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	bridgeName := "foo"
+	bridge := &Bridge{LinkAttrs: LinkAttrs{Name: bridgeName}}
+	if err := LinkAdd(bridge); err != nil {
+		t.Fatal(err)
+	}
+	expectMcastSnooping(t, bridgeName, true)
+
+	if err := BridgeSetMcastSnoop(bridge, false); err != nil {
+		t.Fatal(err)
+	}
+	expectMcastSnooping(t, bridgeName, false)
+
+	if err := BridgeSetMcastSnoop(bridge, true); err != nil {
+		t.Fatal(err)
+	}
+	expectMcastSnooping(t, bridgeName, true)
+
+	if err := LinkDel(bridge); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func expectMcastSnooping(t *testing.T, linkName string, expected bool) {
+	bridge, err := LinkByName(linkName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if actual := *bridge.(*Bridge).MulticastSnooping; actual != expected {
+		t.Fatalf("expected %t got %t", expected, actual)
+	}
+}
+
+func TestBridgeCreationWithHelloTime(t *testing.T) {
+	if os.Getenv("TRAVIS_BUILD_DIR") != "" {
+		t.Skipf("Travis CI worker Linux kernel version (3.13) is too old for this test")
+	}
+
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	bridgeWithSpecifiedHelloTimeName := "foo"
+	helloTime := uint32(300)
+	bridgeWithSpecifiedHelloTime := &Bridge{LinkAttrs: LinkAttrs{Name: bridgeWithSpecifiedHelloTimeName}, HelloTime: &helloTime}
+	if err := LinkAdd(bridgeWithSpecifiedHelloTime); err != nil {
+		t.Fatal(err)
+	}
+
+	retrievedBridge, err := LinkByName(bridgeWithSpecifiedHelloTimeName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actualHelloTime := *retrievedBridge.(*Bridge).HelloTime
+	if actualHelloTime != helloTime {
+		t.Fatalf("expected %d got %d", helloTime, actualHelloTime)
+	}
+	if err := LinkDel(bridgeWithSpecifiedHelloTime); err != nil {
+		t.Fatal(err)
+	}
+
+	bridgeWithDefaultHelloTimeName := "bar"
+	bridgeWithDefaultHelloTime := &Bridge{LinkAttrs: LinkAttrs{Name: bridgeWithDefaultHelloTimeName}}
+	if err := LinkAdd(bridgeWithDefaultHelloTime); err != nil {
+		t.Fatal(err)
+	}
+
+	retrievedBridge, err = LinkByName(bridgeWithDefaultHelloTimeName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actualHelloTime = *retrievedBridge.(*Bridge).HelloTime
+	if actualHelloTime != 200 {
+		t.Fatalf("expected %d got %d", 200, actualHelloTime)
+	}
+	if err := LinkDel(bridgeWithDefaultHelloTime); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLinkSubscribeWithProtinfo(t *testing.T) {
+	tearDown := setUpNetlinkTest(t)
+	defer tearDown()
+
+	master := &Bridge{LinkAttrs: LinkAttrs{Name: "foo"}}
+	if err := LinkAdd(master); err != nil {
+		t.Fatal(err)
+	}
+
+	slave := &Veth{
+		LinkAttrs: LinkAttrs{
+			Name:        "bar",
+			TxQLen:      testTxQLen,
+			MTU:         1400,
+			MasterIndex: master.Attrs().Index,
+		},
+		PeerName: "bar-peer",
+	}
+	if err := LinkAdd(slave); err != nil {
+		t.Fatal(err)
+	}
+
+	ch := make(chan LinkUpdate)
+	done := make(chan struct{})
+	defer close(done)
+	if err := LinkSubscribe(ch, done); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := LinkSetHairpin(slave, true); err != nil {
+		t.Fatal(err)
+	}
+
+	select {
+	case update := <-ch:
+		if !(update.Attrs().Name == "bar" && update.Attrs().Protinfo != nil &&
+			update.Attrs().Protinfo.Hairpin) {
+			t.Fatal("Hairpin update not received as expected")
+		}
+	case <-time.After(time.Minute):
+		t.Fatal("Hairpin update timed out")
+	}
+
+	if err := LinkDel(slave); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := LinkDel(master); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func testGTPLink(t *testing.T) *GTP {
+	conn1, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   net.ParseIP("0.0.0.0"),
+		Port: 3386,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	conn2, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   net.ParseIP("0.0.0.0"),
+		Port: 2152,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fd1, _ := conn1.File()
+	fd2, _ := conn2.File()
+	return &GTP{
+		LinkAttrs: LinkAttrs{
+			Name: "gtp0",
+		},
+		FD0: int(fd1.Fd()),
+		FD1: int(fd2.Fd()),
+	}
+}
+
+func TestLinkAddDelGTP(t *testing.T) {
+	tearDown := setUpNetlinkTestWithKModule(t, "gtp")
+	defer tearDown()
+	gtp := testGTPLink(t)
+	testLinkAddDel(t, gtp)
+}
+
+func TestLinkByNameWhenLinkIsNotFound(t *testing.T) {
+	_, err := LinkByName("iammissing")
+	if err == nil {
+		t.Fatal("Link not expected to found")
+	}
+
+	_, ok := err.(LinkNotFoundError)
+	if !ok {
+		t.Errorf("Error returned expected to of LinkNotFoundError type: %v", err)
+	}
+}
+
+func TestLinkByAliasWhenLinkIsNotFound(t *testing.T) {
+	_, err := LinkByAlias("iammissing")
+	if err == nil {
+		t.Fatal("Link not expected to found")
+	}
+
+	_, ok := err.(LinkNotFoundError)
+	if !ok {
+		t.Errorf("Error returned expected to of LinkNotFoundError type: %v", err)
 	}
 }

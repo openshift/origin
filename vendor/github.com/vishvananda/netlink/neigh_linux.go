@@ -67,35 +67,68 @@ func (msg *Ndmsg) Len() int {
 // NeighAdd will add an IP to MAC mapping to the ARP table
 // Equivalent to: `ip neigh add ....`
 func NeighAdd(neigh *Neigh) error {
-	return neighAdd(neigh, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL)
+	return pkgHandle.NeighAdd(neigh)
 }
 
-// NeighAdd will add or replace an IP to MAC mapping to the ARP table
+// NeighAdd will add an IP to MAC mapping to the ARP table
+// Equivalent to: `ip neigh add ....`
+func (h *Handle) NeighAdd(neigh *Neigh) error {
+	return h.neighAdd(neigh, syscall.NLM_F_CREATE|syscall.NLM_F_EXCL)
+}
+
+// NeighSet will add or replace an IP to MAC mapping to the ARP table
 // Equivalent to: `ip neigh replace....`
 func NeighSet(neigh *Neigh) error {
-	return neighAdd(neigh, syscall.NLM_F_CREATE)
+	return pkgHandle.NeighSet(neigh)
+}
+
+// NeighSet will add or replace an IP to MAC mapping to the ARP table
+// Equivalent to: `ip neigh replace....`
+func (h *Handle) NeighSet(neigh *Neigh) error {
+	return h.neighAdd(neigh, syscall.NLM_F_CREATE|syscall.NLM_F_REPLACE)
 }
 
 // NeighAppend will append an entry to FDB
 // Equivalent to: `bridge fdb append...`
 func NeighAppend(neigh *Neigh) error {
-	return neighAdd(neigh, syscall.NLM_F_CREATE|syscall.NLM_F_APPEND)
+	return pkgHandle.NeighAppend(neigh)
 }
 
+// NeighAppend will append an entry to FDB
+// Equivalent to: `bridge fdb append...`
+func (h *Handle) NeighAppend(neigh *Neigh) error {
+	return h.neighAdd(neigh, syscall.NLM_F_CREATE|syscall.NLM_F_APPEND)
+}
+
+// NeighAppend will append an entry to FDB
+// Equivalent to: `bridge fdb append...`
 func neighAdd(neigh *Neigh, mode int) error {
-	req := nl.NewNetlinkRequest(syscall.RTM_NEWNEIGH, mode|syscall.NLM_F_ACK)
+	return pkgHandle.neighAdd(neigh, mode)
+}
+
+// NeighAppend will append an entry to FDB
+// Equivalent to: `bridge fdb append...`
+func (h *Handle) neighAdd(neigh *Neigh, mode int) error {
+	req := h.newNetlinkRequest(syscall.RTM_NEWNEIGH, mode|syscall.NLM_F_ACK)
 	return neighHandle(neigh, req)
 }
 
 // NeighDel will delete an IP address from a link device.
 // Equivalent to: `ip addr del $addr dev $link`
 func NeighDel(neigh *Neigh) error {
-	req := nl.NewNetlinkRequest(syscall.RTM_DELNEIGH, syscall.NLM_F_ACK)
+	return pkgHandle.NeighDel(neigh)
+}
+
+// NeighDel will delete an IP address from a link device.
+// Equivalent to: `ip addr del $addr dev $link`
+func (h *Handle) NeighDel(neigh *Neigh) error {
+	req := h.newNetlinkRequest(syscall.RTM_DELNEIGH, syscall.NLM_F_ACK)
 	return neighHandle(neigh, req)
 }
 
 func neighHandle(neigh *Neigh, req *nl.NetlinkRequest) error {
 	var family int
+
 	if neigh.Family > 0 {
 		family = neigh.Family
 	} else {
@@ -119,8 +152,13 @@ func neighHandle(neigh *Neigh, req *nl.NetlinkRequest) error {
 	dstData := nl.NewRtAttr(NDA_DST, ipData)
 	req.AddData(dstData)
 
-	hwData := nl.NewRtAttr(NDA_LLADDR, []byte(neigh.HardwareAddr))
-	req.AddData(hwData)
+	if neigh.LLIPAddr != nil {
+		llIPData := nl.NewRtAttr(NDA_LLADDR, neigh.LLIPAddr.To4())
+		req.AddData(llIPData)
+	} else if neigh.Flags != NTF_PROXY || neigh.HardwareAddr != nil {
+		hwData := nl.NewRtAttr(NDA_LLADDR, []byte(neigh.HardwareAddr))
+		req.AddData(hwData)
+	}
 
 	_, err := req.Execute(syscall.NETLINK_ROUTE, 0)
 	return err
@@ -130,9 +168,36 @@ func neighHandle(neigh *Neigh, req *nl.NetlinkRequest) error {
 // Equivalent to: `ip neighbor show`.
 // The list can be filtered by link and ip family.
 func NeighList(linkIndex, family int) ([]Neigh, error) {
-	req := nl.NewNetlinkRequest(syscall.RTM_GETNEIGH, syscall.NLM_F_DUMP)
+	return pkgHandle.NeighList(linkIndex, family)
+}
+
+// NeighProxyList gets a list of neighbor proxies in the system.
+// Equivalent to: `ip neighbor show proxy`.
+// The list can be filtered by link and ip family.
+func NeighProxyList(linkIndex, family int) ([]Neigh, error) {
+	return pkgHandle.NeighProxyList(linkIndex, family)
+}
+
+// NeighList gets a list of IP-MAC mappings in the system (ARP table).
+// Equivalent to: `ip neighbor show`.
+// The list can be filtered by link and ip family.
+func (h *Handle) NeighList(linkIndex, family int) ([]Neigh, error) {
+	return h.neighList(linkIndex, family, 0)
+}
+
+// NeighProxyList gets a list of neighbor proxies in the system.
+// Equivalent to: `ip neighbor show proxy`.
+// The list can be filtered by link, ip family.
+func (h *Handle) NeighProxyList(linkIndex, family int) ([]Neigh, error) {
+	return h.neighList(linkIndex, family, NTF_PROXY)
+}
+
+func (h *Handle) neighList(linkIndex, family, flags int) ([]Neigh, error) {
+	req := h.newNetlinkRequest(syscall.RTM_GETNEIGH, syscall.NLM_F_DUMP)
 	msg := Ndmsg{
 		Family: uint8(family),
+		Index:  uint32(linkIndex),
+		Flags:  uint8(flags),
 	}
 	req.AddData(&msg)
 
@@ -176,12 +241,33 @@ func NeighDeserialize(m []byte) (*Neigh, error) {
 		return nil, err
 	}
 
+	// This should be cached for perfomance
+	// once per table dump
+	link, err := LinkByIndex(neigh.LinkIndex)
+	if err != nil {
+		return nil, err
+	}
+	encapType := link.Attrs().EncapType
+
 	for _, attr := range attrs {
 		switch attr.Attr.Type {
 		case NDA_DST:
 			neigh.IP = net.IP(attr.Value)
 		case NDA_LLADDR:
-			neigh.HardwareAddr = net.HardwareAddr(attr.Value)
+			// BUG: Is this a bug in the netlink library?
+			// #define RTA_LENGTH(len) (RTA_ALIGN(sizeof(struct rtattr)) + (len))
+			// #define RTA_PAYLOAD(rta) ((int)((rta)->rta_len) - RTA_LENGTH(0))
+			attrLen := attr.Attr.Len - syscall.SizeofRtAttr
+			if attrLen == 4 && (encapType == "ipip" ||
+				encapType == "sit" ||
+				encapType == "gre") {
+				neigh.LLIPAddr = net.IP(attr.Value)
+			} else if attrLen == 16 &&
+				encapType == "tunnel6" {
+				neigh.IP = net.IP(attr.Value)
+			} else {
+				neigh.HardwareAddr = net.HardwareAddr(attr.Value)
+			}
 		}
 	}
 
