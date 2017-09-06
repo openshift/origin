@@ -77,7 +77,7 @@ func (p *HybridProxier) OnServiceAdd(service *api.Service) {
 		glog.V(6).Infof("hybrid proxy: add svc %s in unidling proxy", service.Name)
 		p.unidlingServiceHandler.OnServiceAdd(service)
 	} else {
-		glog.V(1).Infof("hybrid proxy: add svc %s in main proxy", service.Name)
+		glog.V(6).Infof("hybrid proxy: add svc %s in main proxy", service.Name)
 		p.mainServicesHandler.OnServiceAdd(service)
 	}
 }
@@ -112,10 +112,10 @@ func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 	defer p.usingUserspaceLock.Unlock()
 
 	if isUsingUserspace, ok := p.usingUserspace[svcName]; ok && isUsingUserspace {
-		glog.V(1).Infof("hybrid proxy: del svc %s in unidling proxy", service.Name)
+		glog.V(6).Infof("hybrid proxy: del svc %s in unidling proxy", service.Name)
 		p.unidlingServiceHandler.OnServiceDelete(service)
 	} else {
-		glog.V(1).Infof("hybrid proxy: del svc %s in main proxy", service.Name)
+		glog.V(6).Infof("hybrid proxy: del svc %s in main proxy", service.Name)
 		p.mainServicesHandler.OnServiceDelete(service)
 	}
 }
@@ -123,7 +123,7 @@ func (p *HybridProxier) OnServiceDelete(service *api.Service) {
 func (p *HybridProxier) OnServiceSynced() {
 	p.unidlingServiceHandler.OnServiceSynced()
 	p.mainServicesHandler.OnServiceSynced()
-	glog.V(1).Infof("hybrid proxy: services synced")
+	glog.V(6).Infof("hybrid proxy: services synced")
 }
 
 // shouldEndpointsUseUserspace checks to see if the given endpoints have the correct
@@ -154,11 +154,11 @@ func (p *HybridProxier) switchService(name types.NamespacedName) {
 	}
 
 	if p.usingUserspace[name] {
-		glog.V(1).Infof("hybrid proxy: switching svc %s to unidling proxy", svc.Name)
+		glog.V(6).Infof("hybrid proxy: switching svc %s to unidling proxy", svc.Name)
 		p.unidlingServiceHandler.OnServiceAdd(svc)
 		p.mainServicesHandler.OnServiceDelete(svc)
 	} else {
-		glog.V(1).Infof("hybrid proxy: switching svc %s to main proxy", svc.Name)
+		glog.V(6).Infof("hybrid proxy: switching svc %s to main proxy", svc.Name)
 		p.mainServicesHandler.OnServiceAdd(svc)
 		p.unidlingServiceHandler.OnServiceDelete(svc)
 	}
@@ -167,7 +167,7 @@ func (p *HybridProxier) switchService(name types.NamespacedName) {
 func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
-	glog.V(1).Infof("hybrid proxy: (always) add ep %s in unidling proxy", endpoints.Name)
+	glog.V(6).Infof("hybrid proxy: (always) add ep %s in unidling proxy", endpoints.Name)
 	p.unidlingEndpointsHandler.OnEndpointsAdd(endpoints)
 
 	p.usingUserspaceLock.Lock()
@@ -182,7 +182,7 @@ func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 	p.usingUserspace[svcName] = p.shouldEndpointsUseUserspace(endpoints)
 
 	if !p.usingUserspace[svcName] {
-		glog.V(1).Infof("hybrid proxy: add ep %s in main proxy", endpoints.Name)
+		glog.V(6).Infof("hybrid proxy: add ep %s in main proxy", endpoints.Name)
 		p.mainEndpointsHandler.OnEndpointsAdd(endpoints)
 	}
 
@@ -196,7 +196,7 @@ func (p *HybridProxier) OnEndpointsAdd(endpoints *api.Endpoints) {
 func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
-	glog.V(1).Infof("hybrid proxy: (always) update ep %s in unidling proxy", endpoints.Name)
+	glog.V(6).Infof("hybrid proxy: (always) update ep %s in unidling proxy", endpoints.Name)
 	p.unidlingEndpointsHandler.OnEndpointsUpdate(oldEndpoints, endpoints)
 
 	p.usingUserspaceLock.Lock()
@@ -218,16 +218,16 @@ func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints
 	isSwitch := wasUsingUserspace != p.usingUserspace[svcName]
 
 	if !isSwitch && !p.usingUserspace[svcName] {
-		glog.V(1).Infof("hybrid proxy: update ep %s in main proxy", endpoints.Name)
+		glog.V(6).Infof("hybrid proxy: update ep %s in main proxy", endpoints.Name)
 		p.mainEndpointsHandler.OnEndpointsUpdate(oldEndpoints, endpoints)
 		return
 	}
 
 	if p.usingUserspace[svcName] {
-		glog.V(1).Infof("hybrid proxy: del ep %s in main proxy", endpoints.Name)
+		glog.V(6).Infof("hybrid proxy: del ep %s in main proxy", endpoints.Name)
 		p.mainEndpointsHandler.OnEndpointsDelete(oldEndpoints)
 	} else {
-		glog.V(1).Infof("hybrid proxy: add ep %s in main proxy", endpoints.Name)
+		glog.V(6).Infof("hybrid proxy: add ep %s in main proxy", endpoints.Name)
 		p.mainEndpointsHandler.OnEndpointsAdd(endpoints)
 	}
 
@@ -237,7 +237,7 @@ func (p *HybridProxier) OnEndpointsUpdate(oldEndpoints, endpoints *api.Endpoints
 func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 	// we track all endpoints in the unidling endpoints handler so that we can succesfully
 	// detect when a service become unidling
-	glog.V(1).Infof("hybrid proxy: (always) del ep %s in unidling proxy", endpoints.Name)
+	glog.V(6).Infof("hybrid proxy: (always) del ep %s in unidling proxy", endpoints.Name)
 	p.unidlingEndpointsHandler.OnEndpointsDelete(endpoints)
 
 	p.usingUserspaceLock.Lock()
@@ -256,7 +256,7 @@ func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 	}
 
 	if !usingUserspace {
-		glog.V(1).Infof("hybrid proxy: del ep %s in main proxy", endpoints.Name)
+		glog.V(6).Infof("hybrid proxy: del ep %s in main proxy", endpoints.Name)
 		p.mainEndpointsHandler.OnEndpointsDelete(endpoints)
 	}
 
@@ -266,14 +266,14 @@ func (p *HybridProxier) OnEndpointsDelete(endpoints *api.Endpoints) {
 func (p *HybridProxier) OnEndpointsSynced() {
 	p.unidlingEndpointsHandler.OnEndpointsSynced()
 	p.mainEndpointsHandler.OnEndpointsSynced()
-	glog.V(1).Infof("hybrid proxy: endpoints synced")
+	glog.V(6).Infof("hybrid proxy: endpoints synced")
 }
 
 // Sync is called to immediately synchronize the proxier state to iptables
 func (p *HybridProxier) Sync() {
 	p.mainProxy.Sync()
 	p.unidlingProxy.Sync()
-	glog.V(5).Infof("hybrid proxy: proxies synced")
+	glog.V(6).Infof("hybrid proxy: proxies synced")
 }
 
 // SyncLoop runs periodic work.  This is expected to run as a goroutine or as the main loop of the app.  It does not return.
