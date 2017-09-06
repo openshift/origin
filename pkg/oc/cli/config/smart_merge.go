@@ -164,8 +164,35 @@ func MergeConfig(startingConfig, addition clientcmdapi.Config) (*clientcmdapi.Co
 		ret.AuthInfos[requestedKey] = value
 	}
 
+	resolvedCurrentContext := addition.CurrentContext
+
 	requestedContextNamesToActualContextNames := map[string]string{}
 	for requestedKey, newContext := range addition.Contexts {
+		// only add the new context if there is no existing context
+		// with the same authInfo and cluster info - regardless of context name.
+		ctxInfoExists := false
+		for existingCtxName, existingContext := range startingConfig.Contexts {
+			if existingContext.AuthInfo == newContext.AuthInfo &&
+				existingContext.Cluster == newContext.Cluster {
+				// if we are skipping the currentContext of the config we are adding on top of
+				// the existing config, update the resolvedCurrentContext to the name of the
+				// existing context that shares the same authInfo and clusterName as the newContext.
+				if requestedKey == addition.CurrentContext {
+					resolvedCurrentContext = existingCtxName
+				}
+
+				// copy existing namespace and extensions from what would have been the new context
+				existingContext.Namespace = newContext.Namespace
+				existingContext.Extensions = newContext.Extensions
+
+				ctxInfoExists = true
+				break
+			}
+		}
+		if ctxInfoExists {
+			continue
+		}
+
 		actualContext := clientcmdapi.NewContext()
 		actualContext.AuthInfo = newContext.AuthInfo
 		actualContext.Cluster = newContext.Cluster
@@ -186,7 +213,7 @@ func MergeConfig(startingConfig, addition clientcmdapi.Config) (*clientcmdapi.Co
 		if newCurrentContext, exists := requestedContextNamesToActualContextNames[addition.CurrentContext]; exists {
 			ret.CurrentContext = newCurrentContext
 		} else {
-			ret.CurrentContext = addition.CurrentContext
+			ret.CurrentContext = resolvedCurrentContext
 		}
 	}
 
