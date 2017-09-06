@@ -59,9 +59,11 @@ import (
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api"
+	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
@@ -449,6 +451,7 @@ func buildKubeApiserverConfig(
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestContextMapper = requestContextMapper
+	genericConfig.RequestInfoResolver = openshiftRequestInfoResolver(genericConfig.RequestContextMapper)
 	genericConfig.OpenAPIConfig = defaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
@@ -780,4 +783,19 @@ func readCAorNil(file string) ([]byte, error) {
 
 func newMasterLeases(storage storage.Interface, masterEndpointReconcileTTL int) election.Leases {
 	return election.NewLeases(storage, "/masterleases/", uint64(masterEndpointReconcileTTL))
+}
+
+func openshiftRequestInfoResolver(requestContextMapper apirequest.RequestContextMapper) apirequest.RequestInfoResolver {
+	// Default API request info factory
+	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+	browserSafeRequestInfoResolver := oauthorizer.NewBrowserSafeRequestInfoResolver(
+		requestContextMapper,
+		sets.NewString(bootstrappolicy.AuthenticatedGroup),
+		requestInfoFactory,
+	)
+	personalSARRequestInfoResolver := oauthorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
+	projectRequestInfoResolver := oauthorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
+
+	return projectRequestInfoResolver
 }

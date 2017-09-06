@@ -9,7 +9,7 @@ import (
 
 type browserSafeRequestInfoResolver struct {
 	// infoFactory is used to determine info for the request
-	infoFactory RequestInfoFactory
+	infoFactory apirequest.RequestInfoResolver
 
 	// contextMapper is used to look up the context corresponding to a request
 	// to obtain the user associated with the request
@@ -19,7 +19,7 @@ type browserSafeRequestInfoResolver struct {
 	authenticatedGroups sets.String
 }
 
-func NewBrowserSafeRequestInfoResolver(contextMapper apirequest.RequestContextMapper, authenticatedGroups sets.String, infoFactory RequestInfoFactory) RequestInfoFactory {
+func NewBrowserSafeRequestInfoResolver(contextMapper apirequest.RequestContextMapper, authenticatedGroups sets.String, infoFactory apirequest.RequestInfoResolver) apirequest.RequestInfoResolver {
 	return &browserSafeRequestInfoResolver{
 		contextMapper:       contextMapper,
 		authenticatedGroups: authenticatedGroups,

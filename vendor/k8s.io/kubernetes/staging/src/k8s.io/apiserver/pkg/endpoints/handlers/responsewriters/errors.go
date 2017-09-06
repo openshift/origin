@@ -44,9 +44,9 @@ func Forbidden(attributes authorizer.Attributes, w http.ResponseWriter, req *htt
 	w.WriteHeader(http.StatusForbidden)
 
 	if len(reason) == 0 {
-		fmt.Fprintf(w, "%s", msg)
+		fmt.Fprintf(w, "%s.", msg)
 	} else {
-		fmt.Fprintf(w, "%s: %q", msg, reason)
+		fmt.Fprintf(w, "%s: %s", msg, reason)
 	}
 }
 
@@ -57,7 +57,7 @@ func forbiddenMessage(attributes authorizer.Attributes) string {
 	}
 
 	if !attributes.IsResourceRequest() {
-		return fmt.Sprintf("User %q cannot %s path %q.", username, attributes.GetVerb(), attributes.GetPath())
+		return fmt.Sprintf("User %q cannot %s path %q", username, attributes.GetVerb(), attributes.GetPath())
 	}
 
 	resource := attributes.GetResource()
@@ -69,10 +69,10 @@ func forbiddenMessage(attributes authorizer.Attributes) string {
 	}
 
 	if ns := attributes.GetNamespace(); len(ns) > 0 {
-		return fmt.Sprintf("User %q cannot %s %s in the namespace %q.", username, attributes.GetVerb(), resource, ns)
+		return fmt.Sprintf("User %q cannot %s %s in the namespace %q", username, attributes.GetVerb(), resource, ns)
 	}
 
-	return fmt.Sprintf("User %q cannot %s %s at the cluster scope.", username, attributes.GetVerb(), resource)
+	return fmt.Sprintf("User %q cannot %s %s at the cluster scope", username, attributes.GetVerb(), resource)
 }
 
 // InternalError renders a simple internal error

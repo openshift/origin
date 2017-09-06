@@ -100,9 +100,6 @@ type MasterConfig struct {
 	Authorizer     kauthorizer.Authorizer
 	SubjectLocator authorizer.SubjectLocator
 
-	// TODO(sttts): replace AuthorizationAttributeBuilder with apiserverfilters.NewRequestAttributeGetter
-	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
-
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
@@ -300,11 +297,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:                  ruleResolver,
-		Authenticator:                 authenticator,
-		Authorizer:                    authorizer,
-		SubjectLocator:                subjectLocator,
-		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
+		RuleResolver:   ruleResolver,
+		Authenticator:  authenticator,
+		Authorizer:     authorizer,
+		SubjectLocator: subjectLocator,
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
@@ -780,22 +776,6 @@ func newAuthorizer(kubeAuthorizer kauthorizer.Authorizer, kubeSubjectLocator rba
 		scopeLimitedAuthorizer)
 
 	return authorizer, subjectLocator
-}
-
-func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	// Default API request info factory
-	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
-	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-	browserSafeRequestInfoResolver := authorizer.NewBrowserSafeRequestInfoResolver(
-		requestContextMapper,
-		sets.NewString(bootstrappolicy.AuthenticatedGroup),
-		requestInfoFactory,
-	)
-	personalSARRequestInfoResolver := authorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
-	projectRequestInfoResolver := authorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
-
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, projectRequestInfoResolver)
-	return authorizationAttributeBuilder
 }
 
 // KubeClientsetInternal returns the kubernetes client object

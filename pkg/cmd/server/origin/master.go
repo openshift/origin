@@ -287,7 +287,7 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 
 			// these are all equivalent to the kube handler chain
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
+			handler = apifilters.WithAuthorization(handler, c.RequestContextMapper, c.Authorizer)
 			handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
 			// audit handler must comes before the impersonationFilter to read the original user
 			if c.Options.AuditConfig.Enabled {
@@ -318,7 +318,7 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 			// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
 			// NOTE: read vs. write is implemented in Kube 1.6+
 			handler = apiserverfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
-			handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
+			handler = apifilters.WithRequestInfo(handler, genericConfig.RequestInfoResolver, genericConfig.RequestContextMapper)
 			handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
 			handler = apiserverfilters.WithPanicRecovery(handler)
 			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

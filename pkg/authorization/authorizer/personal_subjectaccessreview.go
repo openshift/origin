@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/endpoints/request"
+	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -15,10 +16,10 @@ import (
 
 type personalSARRequestInfoResolver struct {
 	// infoFactory is used to determine info for the request
-	infoFactory RequestInfoFactory
+	infoFactory apirequest.RequestInfoResolver
 }
 
-func NewPersonalSARRequestInfoResolver(infoFactory RequestInfoFactory) RequestInfoFactory {
+func NewPersonalSARRequestInfoResolver(infoFactory apirequest.RequestInfoResolver) apirequest.RequestInfoResolver {
 	return &personalSARRequestInfoResolver{
 		infoFactory: infoFactory,
 	}

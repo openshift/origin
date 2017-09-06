@@ -1174,8 +1174,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `User "harold" cannot create localsubjectaccessreviews in project "mallet-project"`,
-		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in project "mallet-project"`,
+		err:               `User "harold" cannot create localsubjectaccessreviews in the namespace "mallet-project"`,
+		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project mallet-project",
@@ -1183,8 +1183,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in project "mallet-project"`,
-		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in project "mallet-project"`,
+		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in the namespace "mallet-project"`,
+		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
 	}.run(t)
 	// ensure message does not leak whether the namespace exists or not
 	subjectAccessReviewTest{
@@ -1193,8 +1193,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `User "harold" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
-		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in project "nonexistent-project"`,
+		err:               `User "harold" cannot create localsubjectaccessreviews in the namespace "nonexistent-project"`,
+		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project nonexistent-project",
@@ -1202,8 +1202,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
-		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in project "nonexistent-project"`,
+		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in the namespace "nonexistent-project"`,
+		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{

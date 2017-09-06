@@ -69,7 +69,7 @@ os::cmd::expect_success_and_text "oc get user/~ --token='${allescalatingpowersto
 os::cmd::expect_success "oc get secrets --token='${allescalatingpowerstoken}' -n '${project}'"
 # scopes allow it, but authorization doesn't
 os::cmd::try_until_failure "oc get secrets --token='${allescalatingpowerstoken}' -n default"
-os::cmd::expect_failure_and_text "oc get secrets --token='${allescalatingpowerstoken}' -n default" 'cannot list secrets in project'
+os::cmd::expect_failure_and_text "oc get secrets --token='${allescalatingpowerstoken}' -n default" 'cannot list secrets in the namespace'
 os::cmd::expect_success_and_text "oc get projects --token='${allescalatingpowerstoken}'" "${project}"
 os::cmd::expect_success_and_text "oc policy can-i --list --token='${allescalatingpowerstoken}' -n '${project}'" 'get.*pods'
 

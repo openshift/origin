@@ -35,6 +35,7 @@ var expectedGroupPreferredVersions []string = []string{
 	"admissionregistration.k8s.io/v1alpha1",
 	"apps/v1beta1,authentication.k8s.io/v1",
 	"authorization.k8s.io/v1",
+	"authorization.openshift.io/v1",
 	"autoscaling/v1",
 	"batch/v1",
 	"certificates.k8s.io/v1beta1",
