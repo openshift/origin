@@ -10,7 +10,6 @@ import (
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -19,6 +18,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
@@ -133,20 +133,26 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 
 	// one of the items in this list should be the project.  We are going to locate it, remove it from the list, create it separately
 	var projectFromTemplate *projectapi.Project
-	var lastRoleBinding *authorizationapi.RoleBinding
+	lastRoleBindingName := ""
 	objectsToCreate := &kapi.List{}
 	for i := range list.Objects {
-		if templateProject, ok := list.Objects[i].(*projectapi.Project); ok {
-			projectFromTemplate = templateProject
+		switch t := list.Objects[i].(type) {
+		case *projectapi.Project:
+			if projectFromTemplate != nil {
+				return nil, kapierror.NewInternalError(fmt.Errorf("the project template (%s/%s) is not correctly configured: must contain only one project resource", r.templateNamespace, r.templateName))
+			}
+			projectFromTemplate = t
 			// don't add this to the list to create.  We'll create the project separately.
 			continue
+		case *rbac.RoleBinding:
+			lastRoleBindingName = t.Name
+		case *authorizationapi.RoleBinding:
+			lastRoleBindingName = t.Name
+		default:
+			// noop, we care only for special handling projects and roles
 		}
 
-		if roleBinding, ok := list.Objects[i].(*authorizationapi.RoleBinding); ok {
-			// keep track of the rolebinding, but still add it to the list
-			lastRoleBinding = roleBinding
-		}
-
+		// use list.Objects[i] in append to avoid range memory address reuse
 		objectsToCreate.Items = append(objectsToCreate.Items, list.Objects[i])
 	}
 	if projectFromTemplate == nil {
@@ -187,8 +193,8 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	}
 
 	// wait for a rolebinding if we created one
-	if lastRoleBinding != nil {
-		r.waitForRoleBinding(createdProject.Name, lastRoleBinding.Name)
+	if len(lastRoleBindingName) != 0 {
+		r.waitForRoleBinding(createdProject.Name, lastRoleBindingName)
 	}
 
 	return r.openshiftClient.Projects().Get(createdProject.Name, metav1.GetOptions{})
@@ -201,14 +207,8 @@ func (r *REST) waitForRoleBinding(namespace, name string) {
 	backoff := retry.DefaultBackoff
 	backoff.Steps = 6 // this effectively waits for 6-ish seconds
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		roleBindings, _ := r.roleBindings.RoleBindings(namespace).List(labels.Everything())
-		for _, roleBinding := range roleBindings {
-			if roleBinding.Name == name {
-				return true, nil
-			}
-		}
-
-		return false, nil
+		_, err := r.roleBindings.RoleBindings(namespace).Get(name)
+		return err == nil, nil
 	})
 
 	if err != nil {

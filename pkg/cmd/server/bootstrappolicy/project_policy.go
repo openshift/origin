@@ -1,44 +1,20 @@
 package bootstrappolicy
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	kapi "k8s.io/kubernetes/pkg/api"
-
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 )
 
-func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []authorizationapi.RoleBinding {
-	return []authorizationapi.RoleBinding{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ImagePullerRoleBindingName,
-				Namespace: namespace,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: ImagePullerRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.SystemGroupKind, Name: serviceaccount.MakeNamespaceGroupName(namespace)}},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ImageBuilderRoleBindingName,
-				Namespace: namespace,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: ImageBuilderRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.ServiceAccountKind, Name: BuilderServiceAccountName}},
-		},
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      DeployerRoleBindingName,
-				Namespace: namespace,
-			},
-			RoleRef: kapi.ObjectReference{
-				Name: DeployerRoleName,
-			},
-			Subjects: []kapi.ObjectReference{{Kind: authorizationapi.ServiceAccountKind, Name: DeployerServiceAccountName}},
-		},
+func GetBootstrapServiceAccountProjectRoleBindings(namespace string) []rbac.RoleBinding {
+	return []rbac.RoleBinding{
+		newOriginRoleBindingForClusterRole(ImagePullerRoleBindingName, ImagePullerRoleName, namespace).
+			Groups(serviceaccount.MakeNamespaceGroupName(namespace)).
+			BindingOrDie(),
+		newOriginRoleBindingForClusterRole(ImageBuilderRoleBindingName, ImageBuilderRoleName, namespace).
+			SAs(namespace, BuilderServiceAccountName).
+			BindingOrDie(),
+		newOriginRoleBindingForClusterRole(DeployerRoleBindingName, DeployerRoleName, namespace).
+			SAs(namespace, DeployerServiceAccountName).
+			BindingOrDie(),
 	}
 }
