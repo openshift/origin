@@ -19,8 +19,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -49,7 +51,7 @@ type REST struct {
 	insecureTransport http.RoundTripper
 	clientFn          ImporterDockerRegistryFunc
 	strategy          *strategy
-	sarClient         client.SubjectAccessReviewInterface
+	sarClient         authorizationclient.SubjectAccessReviewInterface
 }
 
 var _ rest.Creater = &REST{}
@@ -63,7 +65,7 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 	clientFn ImporterDockerRegistryFunc,
 	allowedImportRegistries *serverapi.AllowedRegistries,
 	registryFn imageapi.RegistryHostnameRetriever,
-	sarClient client.SubjectAccessReviewInterface,
+	sarClient authorizationclient.SubjectAccessReviewInterface,
 ) *REST {
 	return &REST{
 		importFn:          importFn,
@@ -104,33 +106,35 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	if !ok {
 		return nil, kapierrors.NewBadRequest("unable to get user from context")
 	}
-	isCreateImage, err := r.sarClient.Create(authorizationapi.AddUserToSAR(user,
-		&authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{
+	createImageSAR := authorizationutil.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Verb:     "create",
 				Group:    imageapi.GroupName,
 				Resource: "images",
 			},
 		},
-	))
+	})
+	isCreateImage, err := r.sarClient.Create(createImageSAR)
 	if err != nil {
 		return nil, err
 	}
 
-	isCreateImageStreamMapping, err := r.sarClient.Create(authorizationapi.AddUserToSAR(user,
-		&authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{
+	createImageStreamMappingSAR := authorizationutil.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Verb:     "create",
 				Group:    imageapi.GroupName,
 				Resource: "imagestreammapping",
 			},
 		},
-	))
+	})
+	isCreateImageStreamMapping, err := r.sarClient.Create(createImageStreamMappingSAR)
 	if err != nil {
 		return nil, err
 	}
 
-	if !isCreateImage.Allowed && !isCreateImageStreamMapping.Allowed {
+	if !isCreateImage.Status.Allowed && !isCreateImageStreamMapping.Status.Allowed {
 		if errs := r.strategy.ValidateAllowedRegistries(isi); len(errs) != 0 {
 			return nil, kapierrors.NewInvalid(imageapi.Kind("ImageStreamImport"), isi.Name, errs)
 		}

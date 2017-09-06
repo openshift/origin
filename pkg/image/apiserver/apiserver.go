@@ -128,10 +128,6 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 	if err != nil {
 		return nil, err
 	}
-	deprecatedOpenshiftClient, err := osclient.New(c.CoreAPIServerClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	coreClient, err := coreclient.NewForConfig(c.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
@@ -176,7 +172,7 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		importerDockerClientFn,
 		c.AllowedRegistriesForImport,
 		c.RegistryHostnameRetriever,
-		deprecatedOpenshiftClient.SubjectAccessReviews())
+		authorizationClient.SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 
 	v1Storage := map[string]rest.Storage{}
