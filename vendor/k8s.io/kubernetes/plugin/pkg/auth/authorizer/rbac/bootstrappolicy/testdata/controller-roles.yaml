@@ -102,7 +102,6 @@ items:
     resources:
     - cronjobs
     verbs:
-    - delete
     - get
     - list
     - update
@@ -123,6 +122,12 @@ items:
     - batch
     resources:
     - cronjobs/status
+    verbs:
+    - update
+  - apiGroups:
+    - batch
+    resources:
+    - cronjobs/finalizers
     verbs:
     - update
   - apiGroups:
@@ -151,18 +156,26 @@ items:
     name: system:controller:daemon-set-controller
   rules:
   - apiGroups:
+    - apps
     - extensions
     resources:
     - daemonsets
     verbs:
-    - delete
     - get
     - list
     - watch
   - apiGroups:
+    - apps
     - extensions
     resources:
     - daemonsets/status
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - daemonsets/finalizers
     verbs:
     - update
   - apiGroups:
@@ -223,7 +236,6 @@ items:
     resources:
     - deployments
     verbs:
-    - delete
     - get
     - list
     - update
@@ -233,6 +245,13 @@ items:
     - extensions
     resources:
     - deployments/status
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - deployments/finalizers
     verbs:
     - update
   - apiGroups:
@@ -495,7 +514,6 @@ items:
     resources:
     - jobs
     verbs:
-    - delete
     - get
     - list
     - update
@@ -504,6 +522,12 @@ items:
     - batch
     resources:
     - jobs/status
+    verbs:
+    - update
+  - apiGroups:
+    - batch
+    resources:
+    - jobs/finalizers
     verbs:
     - update
   - apiGroups:
@@ -742,7 +766,6 @@ items:
     resources:
     - replicasets
     verbs:
-    - delete
     - get
     - list
     - update
@@ -751,6 +774,12 @@ items:
     - extensions
     resources:
     - replicasets/status
+    verbs:
+    - update
+  - apiGroups:
+    - extensions
+    resources:
+    - replicasets/finalizers
     verbs:
     - update
   - apiGroups:
@@ -786,7 +815,6 @@ items:
     resources:
     - replicationcontrollers
     verbs:
-    - delete
     - get
     - list
     - update
@@ -795,6 +823,12 @@ items:
     - ""
     resources:
     - replicationcontrollers/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - replicationcontrollers/finalizers
     verbs:
     - update
   - apiGroups:
@@ -962,7 +996,6 @@ items:
     resources:
     - statefulsets
     verbs:
-    - delete
     - get
     - list
     - watch
@@ -970,6 +1003,12 @@ items:
     - apps
     resources:
     - statefulsets/status
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    resources:
+    - statefulsets/finalizers
     verbs:
     - update
   - apiGroups:
