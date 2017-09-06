@@ -5,8 +5,10 @@ import (
 	"testing"
 	"time"
 
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	clientgotesting "k8s.io/client-go/testing"
@@ -40,10 +42,7 @@ func TestStop(t *testing.T) {
 		replicationControllerKind      = schema.GroupVersionKind{Kind: "ReplicationController"}
 	)
 
-	pause := func(d *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
-		d.Spec.Paused = true
-		return d
-	}
+	pauseBytes := []byte(`{"spec":{"paused":true,"replicas":0,"revisionHistoryLimit":0}}`)
 
 	fakeDC := map[string]*deployapi.DeploymentConfig{
 		"simple-stop":           deploytest.OkDeploymentConfig(1),
@@ -52,6 +51,14 @@ func TestStop(t *testing.T) {
 		"legacy-multi-stop":     deploytest.OkDeploymentConfig(5),
 		"no-deployments":        deploytest.OkDeploymentConfig(5),
 		"legacy-no-deployments": deploytest.OkDeploymentConfig(5),
+	}
+
+	emptyClientset := func() *appsfake.Clientset {
+		result := &appsfake.Clientset{}
+		result.AddReactor("patch", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			return true, nil, kapierrors.NewNotFound(schema.GroupResource{Group: "apps.openshift.io", Resource: "deploymentconfig"}, "config")
+		})
+		return result
 	}
 
 	tests := []struct {
@@ -71,8 +78,7 @@ func TestStop(t *testing.T) {
 			oc:        appsfake.NewSimpleClientset(fakeDC["simple-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1)),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
-				clientgotesting.NewUpdateAction(deploymentConfigsResource, "default", pause(fakeDC["simple-stop"])),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
@@ -94,8 +100,7 @@ func TestStop(t *testing.T) {
 			oc:        appsfake.NewSimpleClientset(fakeDC["legacy-simple-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1)),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
-				clientgotesting.NewUpdateAction(deploymentConfigsResource, "default", nil),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
@@ -117,8 +122,7 @@ func TestStop(t *testing.T) {
 			oc:        appsfake.NewSimpleClientset(fakeDC["multi-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1, 2, 3, 4, 5)),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
-				clientgotesting.NewUpdateAction(deploymentConfigsResource, "default", pause(fakeDC["multi-stop"])),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
@@ -164,8 +168,7 @@ func TestStop(t *testing.T) {
 			oc:        appsfake.NewSimpleClientset(fakeDC["legacy-multi-stop"]),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1, 2, 3, 4, 5)),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
-				clientgotesting.NewUpdateAction(deploymentConfigsResource, "default", nil),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
@@ -208,10 +211,10 @@ func TestStop(t *testing.T) {
 			testName:  "no config, some deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        appsfake.NewSimpleClientset(),
+			oc:        emptyClientset(),
 			kc:        fake.NewSimpleClientset(mkdeploymentlist(1)),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 			},
 			kexpected: []clientgotesting.Action{
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{LabelSelector: labels.SelectorFromSet(map[string]string{"openshift.io/deployment-config.name": "config"}).String()}),
@@ -228,10 +231,10 @@ func TestStop(t *testing.T) {
 			testName:  "no config, no deployments",
 			namespace: "default",
 			name:      "config",
-			oc:        appsfake.NewSimpleClientset(),
+			oc:        emptyClientset(),
 			kc:        fake.NewSimpleClientset(&kapi.ReplicationControllerList{}),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 			},
 			kexpected: []clientgotesting.Action{
 				clientgotesting.NewListAction(replicationControllersResource, replicationControllerKind, "default", metav1.ListOptions{}),
@@ -245,8 +248,7 @@ func TestStop(t *testing.T) {
 			oc:        appsfake.NewSimpleClientset(fakeDC["no-deployments"]),
 			kc:        fake.NewSimpleClientset(&kapi.ReplicationControllerList{}),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
-				clientgotesting.NewUpdateAction(deploymentConfigsResource, "default", pause(fakeDC["no-deployments"])),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
@@ -262,8 +264,7 @@ func TestStop(t *testing.T) {
 			oc:        appsfake.NewSimpleClientset(fakeDC["legacy-no-deployments"]),
 			kc:        fake.NewSimpleClientset(&kapi.ReplicationControllerList{}),
 			expected: []clientgotesting.Action{
-				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
-				clientgotesting.NewUpdateAction(deploymentConfigsResource, "default", nil),
+				clientgotesting.NewPatchAction(deploymentConfigsResource, "default", "config", pauseBytes),
 				clientgotesting.NewGetAction(deploymentConfigsResource, "default", "config"),
 				clientgotesting.NewDeleteAction(deploymentConfigsResource, "default", "config"),
 			},
