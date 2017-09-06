@@ -24,6 +24,7 @@ import (
 
 	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/util/signature"
 )
 
 // Add a dockerregistry.Client to the passed context with this key to support v1 Docker registry importing
@@ -509,6 +510,14 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 				continue
 			}
 		}
+
+		signatures, err := signature.GetSignatureForImage(ctx, repository.Registry.Hostname(), repository.Name, importDigest.Image.Name)
+		if err == nil {
+			importDigest.Image.Signatures = signatures
+		} else {
+			glog.V(3).Infof("Failed to import image signature for %q: %v", repository.Ref.String(), err)
+			continue
+		}
 	}
 
 	for i := range repository.Tags {
@@ -565,6 +574,13 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 				importTag.Err = err
 				continue
 			}
+		}
+		signatures, err := signature.GetSignatureForImage(ctx, repository.Registry.Hostname(), repository.Name, importTag.Image.Name)
+		if err == nil {
+			importTag.Image.Signatures = signatures
+		} else {
+			glog.V(3).Infof("Failed to import image signature for %q: %v", repository.Ref.String(), err)
+			continue
 		}
 	}
 }

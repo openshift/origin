@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
@@ -259,7 +260,7 @@ func TestImport(t *testing.T) {
 	}
 	for i, test := range testCases {
 		im := NewImageStreamImporter(test.retriever, 5, nil, nil)
-		if err := im.Import(nil, &test.isi); err != nil {
+		if err := im.Import(context.Background(), &test.isi); err != nil {
 			t.Errorf("%d: %v", i, err)
 		}
 		if test.expect != nil {

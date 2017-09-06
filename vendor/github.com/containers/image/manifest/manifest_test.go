@@ -21,8 +21,6 @@ func TestGuessMIMEType(t *testing.T) {
 		path     string
 		mimeType string
 	}{
-		{"ociv1.manifest.json", imgspecv1.MediaTypeImageManifest},
-		{"ociv1list.manifest.json", imgspecv1.MediaTypeImageManifestList},
 		{"v2s2.manifest.json", DockerV2Schema2MediaType},
 		{"v2list.manifest.json", DockerV2ListMediaType},
 		{"v2s1.manifest.json", DockerV2Schema1SignedMediaType},
@@ -31,6 +29,8 @@ func TestGuessMIMEType(t *testing.T) {
 		{"v2s2nomime.manifest.json", DockerV2Schema2MediaType}, // It is unclear whether this one is legal, but we should guess v2s2 if anything at all.
 		{"unknown-version.manifest.json", ""},
 		{"non-json.manifest.json", ""}, // Not a manifest (nor JSON) at all
+		{"ociv1.manifest.json", imgspecv1.MediaTypeImageManifest},
+		{"ociv1.image.index.json", imgspecv1.MediaTypeImageIndex},
 	}
 
 	for _, c := range cases {

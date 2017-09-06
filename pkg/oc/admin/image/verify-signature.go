@@ -1,6 +1,7 @@
 package image
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -405,6 +406,6 @@ func (ui *unparsedImage) Manifest() ([]byte, string, error) {
 }
 
 // Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
-func (ui *unparsedImage) Signatures() ([][]byte, error) {
+func (ui *unparsedImage) Signatures(ctx context.Context) ([][]byte, error) {
 	return [][]byte{ui.signature}, nil
 }

@@ -592,31 +592,39 @@
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/docker/reference",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/image",
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/manifest",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+		},
+		{
+			"ImportPath": "github.com/containers/image/pkg/strslice",
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/signature",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/transports",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/types",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/image/version",
-			"Rev": "f5768e7cbd2d715ea3f0153cd857699157d1f33a"
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
 		{
 			"ImportPath": "github.com/containers/storage/pkg/homedir",
@@ -1484,17 +1492,17 @@
 		{
 			"ImportPath": "github.com/docker/go-connections/nat",
 			"Comment": "v0.2.0-2-gf549a93",
-			"Rev": "f549a9393d05688dff0992ef3efd8bbe6c628aeb"
+			"Rev": "3ede32e2033de7505e6500d6c868c2b9ed9f169d"
 		},
 		{
 			"ImportPath": "github.com/docker/go-connections/sockets",
 			"Comment": "v0.2.0-2-gf549a93",
-			"Rev": "f549a9393d05688dff0992ef3efd8bbe6c628aeb"
+			"Rev": "3ede32e2033de7505e6500d6c868c2b9ed9f169d"
 		},
 		{
 			"ImportPath": "github.com/docker/go-connections/tlsconfig",
 			"Comment": "v0.2.0-2-gf549a93",
-			"Rev": "f549a9393d05688dff0992ef3efd8bbe6c628aeb"
+			"Rev": "3ede32e2033de7505e6500d6c868c2b9ed9f169d"
 		},
 		{
 			"ImportPath": "github.com/docker/go-units",
@@ -2864,12 +2872,12 @@
 		{
 			"ImportPath": "github.com/opencontainers/image-spec/specs-go",
 			"Comment": "v1.0.0-rc3-110-g00850ec",
-			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+			"Rev": "ef2b9a1d696677abd664a0879758d2b115b1ded3"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/image-spec/specs-go/v1",
 			"Comment": "v1.0.0-rc3-110-g00850ec",
-			"Rev": "00850eca2ab993e282a4921f8b7000b2fcbd26fa"
+			"Rev": "ef2b9a1d696677abd664a0879758d2b115b1ded3"
 		},
 		{
 			"ImportPath": "github.com/opencontainers/runc/libcontainer",
