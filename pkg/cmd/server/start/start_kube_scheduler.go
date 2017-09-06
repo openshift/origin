@@ -21,6 +21,10 @@ func newScheduler(kubeconfigFile, schedulerConfigFile string, cmdLineArgs map[st
 	if len(cmdLineArgs["policy-config-file"]) == 0 {
 		cmdLineArgs["policy-config-file"] = []string{schedulerConfigFile}
 	}
+	if len(cmdLineArgs["leader-elect-resource-lock"]) == 0 {
+		cmdLineArgs["leader-elect-resource-lock"] = []string{"configmaps"}
+	}
+
 	// disable serving http since we didn't used to expose it
 	if len(cmdLineArgs["port"]) == 0 {
 		cmdLineArgs["port"] = []string{"-1"}
