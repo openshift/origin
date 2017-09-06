@@ -99,6 +99,8 @@ var (
 )
 
 // +genclient
+// +genclient:method=UpdateDetails,verb=update,subresource=details
+// +genclient:method=Clone,verb=create,subresource=clone,input=BuildRequest
 
 // Build encapsulates the inputs needed to produce a new deployable image, as well as
 // the status of the execution and a reference to the Pod which executed the build.
@@ -1000,6 +1002,8 @@ type ImageLabel struct {
 }
 
 // +genclient
+// +genclient:method=Instantiate,verb=create,subresource=instantiate,input=BuildRequest,result=Build
+// +genclient:method=InstantiateBinary,verb=create,subresource=instantiateBinary,input=BinaryBuildRequestOptions,result=Build
 
 // BuildConfig is a template which can be used to create new builds.
 type BuildConfig struct {

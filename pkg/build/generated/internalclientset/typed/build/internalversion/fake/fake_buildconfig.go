@@ -120,3 +120,25 @@ func (c *FakeBuildConfigs) Patch(name string, pt types.PatchType, data []byte, s
 	}
 	return obj.(*build.BuildConfig), err
 }
+
+// Instantiate takes the representation of a buildRequest and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *FakeBuildConfigs) Instantiate(buildConfigName string, buildRequest *build.BuildRequest) (result *build.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateSubresourceAction(buildconfigsResource, buildConfigName, "instantiate", c.ns, buildRequest), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}
+
+// InstantiateBinary takes the representation of a binaryBuildRequestOptions and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *FakeBuildConfigs) InstantiateBinary(buildConfigName string, binaryBuildRequestOptions *build.BinaryBuildRequestOptions) (result *build.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateSubresourceAction(buildconfigsResource, buildConfigName, "instantiateBinary", c.ns, binaryBuildRequestOptions), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}

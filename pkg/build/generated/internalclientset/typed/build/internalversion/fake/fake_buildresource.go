@@ -120,3 +120,25 @@ func (c *FakeBuilds) Patch(name string, pt types.PatchType, data []byte, subreso
 	}
 	return obj.(*build.Build), err
 }
+
+// UpdateDetails takes the representation of a buildResource and updates it. Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *FakeBuilds) UpdateDetails(buildResourceName string, buildResource *build.Build) (result *build.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(buildsResource, "details", c.ns, buildResource), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}
+
+// Clone takes the representation of a buildRequest and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *FakeBuilds) Clone(buildResourceName string, buildRequest *build.BuildRequest) (result *build.Build, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateSubresourceAction(buildsResource, buildResourceName, "clone", c.ns, buildRequest), &build.Build{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*build.Build), err
+}
