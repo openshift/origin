@@ -113,6 +113,10 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.KubeClientInternal,
 	)
 
+	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	imageStorage, err := imageetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
@@ -120,7 +124,7 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 	imageRegistry := image.NewRegistry(imageStorage)
 	imageSignatureStorage := imagesignature.NewREST(c.DeprecatedOpenshiftClient.Images())
 	imageStreamSecretsStorage := imagesecret.NewREST(c.KubeClientInternal.Core())
-	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever, subjectAccessReviewRegistry, c.LimitVerifier)
+	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.LimitVerifier)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
@@ -151,10 +155,6 @@ func (c OpenshiftAPIConfig) GetRestStorage() (map[schema.GroupVersion]map[string
 		c.DeprecatedOpenshiftClient.SubjectAccessReviews())
 	imageStreamImageStorage := imagestreamimage.NewREST(imageRegistry, imageStreamRegistry)
 
-	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	routeStorage, routeStatusStorage, err := routeetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RouteAllocator, authorizationClient.SubjectAccessReviews())
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
