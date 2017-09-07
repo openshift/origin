@@ -294,16 +294,14 @@
       "vendor/github.com/emicklei/go-restful",
       "vendor/github.com/lestrrat/go-jsschema",
       "vendor/k8s.io/kubernetes/pkg/controller",
+      "vendor/k8s.io/kubernetes/pkg/serviceaccount",
       "vendor/k8s.io/kubernetes/pkg/kubectl/cmd/util",
       "github.com/openshift/origin/pkg/api",
-      "github.com/openshift/origin/pkg/template/apis/template",
-      "github.com/openshift/origin/pkg/cmd/server/bootstrappolicy",
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/authorization/util",
       "github.com/openshift/origin/pkg/template/apis/template/validation",
       "github.com/openshift/origin/pkg/user/apis/user/validation",
-      "github.com/openshift/origin/pkg/route/apis/route",
-      "github.com/openshift/origin/pkg/serviceaccounts"
+      "github.com/openshift/origin/pkg/route/apis/route"
     ]
   }
 ]
