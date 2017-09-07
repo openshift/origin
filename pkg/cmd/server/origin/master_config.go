@@ -84,6 +84,7 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 
@@ -196,6 +197,11 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		return nil, err
 	}
 
+	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientsetInternal.Core().Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
@@ -263,18 +269,19 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		restMapper,
 		quotaRegistry)
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
-		OpenshiftClient:              privilegedLoopbackOpenShiftClient,
-		ProjectCache:                 projectCache,
-		OriginQuotaRegistry:          quotaRegistry,
-		Authorizer:                   authorizer,
-		JenkinsPipelineConfig:        options.JenkinsPipelineConfig,
-		RESTClientConfig:             *privilegedLoopbackClientConfig,
-		Informers:                    informers.GetInternalKubeInformers(),
-		ClusterResourceQuotaInformer: informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
-		ClusterQuotaMapper:           clusterQuotaMappingController.GetClusterQuotaMapper(),
-		RegistryHostnameRetriever:    imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
-		SecurityInformers:            informers.GetSecurityInformers(),
-		UserInformers:                informers.GetUserInformers(),
+		OpenshiftClient:                 privilegedLoopbackOpenShiftClient,
+		OpenshiftInternalTemplateClient: templateClient,
+		ProjectCache:                    projectCache,
+		OriginQuotaRegistry:             quotaRegistry,
+		Authorizer:                      authorizer,
+		JenkinsPipelineConfig:           options.JenkinsPipelineConfig,
+		RESTClientConfig:                *privilegedLoopbackClientConfig,
+		Informers:                       informers.GetInternalKubeInformers(),
+		ClusterResourceQuotaInformer:    informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaMapper:              clusterQuotaMappingController.GetClusterQuotaMapper(),
+		RegistryHostnameRetriever:       imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
+		SecurityInformers:               informers.GetSecurityInformers(),
+		UserInformers:                   informers.GetUserInformers(),
 	}
 	initializersChain := admission.PluginInitializers{genericInitializer, kubePluginInitializer, openshiftPluginInitializer}
 

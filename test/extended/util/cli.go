@@ -25,6 +25,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	oclientset "github.com/openshift/origin/pkg/client/clientset/clientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -224,6 +225,15 @@ func (c *CLI) AdminClient() *client.Client {
 func (c *CLI) TemplateClient() templateclientset.Interface {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
 	client, err := templateclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) BuildClient() buildclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	client, err := buildclientset.NewForConfig(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}

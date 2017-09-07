@@ -356,7 +356,7 @@ func TestAdmission(t *testing.T) {
 		}
 
 		plugin.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kclientset)
-		plugin.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(oclient)
+		plugin.(oadmission.WantsDeprecatedOpenshiftClient).SetDeprecatedOpenshiftClient(oclient)
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
 
 		err = admission.Validate(plugin)

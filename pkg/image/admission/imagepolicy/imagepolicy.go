@@ -65,7 +65,7 @@ type imagePolicyPlugin struct {
 	resolver     imageResolver
 }
 
-var _ = oadmission.WantsOpenshiftClient(&imagePolicyPlugin{})
+var _ = oadmission.WantsDeprecatedOpenshiftClient(&imagePolicyPlugin{})
 var _ = oadmission.WantsDefaultRegistryFunc(&imagePolicyPlugin{})
 
 type integratedRegistryMatcher struct {
@@ -112,7 +112,7 @@ func (a *imagePolicyPlugin) SetDefaultRegistryFunc(fn func() (string, bool)) {
 	a.integratedRegistryMatcher.RegistryMatcher = rules.RegistryNameMatcher(fn)
 }
 
-func (a *imagePolicyPlugin) SetOpenshiftClient(c client.Interface) {
+func (a *imagePolicyPlugin) SetDeprecatedOpenshiftClient(c client.Interface) {
 	a.client = c
 }
 

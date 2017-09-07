@@ -13,6 +13,7 @@ import (
 	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	osclient "github.com/openshift/origin/pkg/client"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -65,6 +66,9 @@ type ControllerClientBuilder interface {
 
 	OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error)
 	OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface
+
+	OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error)
+	OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -168,6 +172,28 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalAppsClient(name strin
 // will panic.
 func (b OpenshiftControllerClientBuilder) OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface {
 	client, err := b.OpenshiftInternalAppsClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
+}
+
+// OpenshiftInternalBuildClient provides a REST client for the build  API.
+// If the client cannot be created because of configuration error, this function
+// will error.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return buildclientinternal.NewForConfig(clientConfig)
+}
+
+// OpenshiftInternalBuildClientOrDie provides a REST client for the build API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface {
+	client, err := b.OpenshiftInternalBuildClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

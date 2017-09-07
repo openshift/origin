@@ -15,8 +15,8 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client/testclient"
 )
 
 func mockBuildConfig(name string) buildapi.BuildConfig {
@@ -97,16 +97,16 @@ func TestHandleBuildPruning(t *testing.T) {
 		objects = append(objects, &builds[index])
 	}
 
-	osclient := testclient.NewSimpleFake(objects...)
+	buildClient := buildfake.NewSimpleClientset(objects...)
 
-	build, err := osclient.Builds("namespace").Get("myapp-0", metav1.GetOptions{})
+	build, err := buildClient.Build().Builds("namespace").Get("myapp-0", metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("%v", err)
 	}
 
-	buildLister := buildclient.NewOSClientBuildLister(osclient)
-	buildConfigGetter := buildclient.NewOSClientBuildConfigLister(osclient)
-	buildDeleter := buildclient.NewOSClientBuildClient(osclient)
+	buildLister := buildclient.NewClientBuildLister(buildClient.Build())
+	buildConfigGetter := buildclient.NewClientBuildConfigLister(buildClient.Build())
+	buildDeleter := buildclient.NewClientBuildClient(buildClient)
 
 	bcName := buildutil.ConfigNameForBuild(build)
 	successfulStartingBuilds, err := buildutil.BuildConfigBuilds(buildLister, build.Namespace, bcName, func(build *buildapi.Build) bool { return build.Status.Phase == buildapi.BuildPhaseComplete })

@@ -69,7 +69,7 @@ type projectRequestLimit struct {
 
 // ensure that the required Openshift admission interfaces are implemented
 var _ = oadmission.WantsProjectCache(&projectRequestLimit{})
-var _ = oadmission.WantsOpenshiftClient(&projectRequestLimit{})
+var _ = oadmission.WantsDeprecatedOpenshiftClient(&projectRequestLimit{})
 
 // Admit ensures that only a configured number of projects can be requested by a particular user.
 func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
@@ -166,7 +166,7 @@ func (o *projectRequestLimit) projectCountByRequester(userName string) (int, err
 	return count, nil
 }
 
-func (o *projectRequestLimit) SetOpenshiftClient(client client.Interface) {
+func (o *projectRequestLimit) SetDeprecatedOpenshiftClient(client client.Interface) {
 	o.client = client
 }
 

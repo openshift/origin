@@ -35,6 +35,7 @@ import (
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -285,11 +286,11 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case buildapi.IsKindOrLegacy("BuildConfig", gk):
-		oc, _, err := f.clientAccessFactory.Clients()
+		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()
 		if err != nil {
 			return nil, err
 		}
-		return buildcmd.NewBuildConfigReaper(oc), nil
+		return buildcmd.NewBuildConfigReaper(buildclient.NewForConfigOrDie(config)), nil
 	}
 	return f.kubeObjectMappingFactory.Reaper(mapping)
 }

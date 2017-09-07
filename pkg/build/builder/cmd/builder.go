@@ -24,14 +24,15 @@ import (
 	bld "github.com/openshift/origin/pkg/build/builder"
 	"github.com/openshift/origin/pkg/build/builder/cmd/scmauth"
 	"github.com/openshift/origin/pkg/build/builder/timing"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	"github.com/openshift/origin/pkg/version"
 )
 
 type builder interface {
-	Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error
+	Build(dockerClient bld.DockerClient, sock string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error
 }
 
 type builderConfig struct {
@@ -40,7 +41,7 @@ type builderConfig struct {
 	sourceSecretDir string
 	dockerClient    *docker.Client
 	dockerEndpoint  string
-	buildsClient    client.BuildInterface
+	buildsClient    buildinternalversion.BuildResourceInterface
 }
 
 func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderConfig, error) {
@@ -101,11 +102,11 @@ func newBuilderConfigFromEnvironment(out io.Writer, needsDocker bool) (*builderC
 	if err != nil {
 		return nil, fmt.Errorf("cannot connect to the server: %v", err)
 	}
-	osClient, err := client.New(clientConfig)
+	buildsClient, err := buildclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client: %v", err)
 	}
-	cfg.buildsClient = osClient.Builds(cfg.build.Namespace)
+	cfg.buildsClient = buildsClient.Build().Builds(cfg.build.Namespace)
 
 	return cfg, nil
 }
@@ -237,14 +238,14 @@ func (c *builderConfig) execute(b builder) error {
 type dockerBuilder struct{}
 
 // Build starts a Docker build.
-func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
+func (dockerBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
 	return bld.NewDockerBuilder(dockerClient, buildsClient, build, cgLimits).Build()
 }
 
 type s2iBuilder struct{}
 
 // Build starts an S2I build.
-func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
+func (s2iBuilder) Build(dockerClient bld.DockerClient, sock string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) error {
 	return bld.NewS2IBuilder(dockerClient, sock, buildsClient, build, cgLimits).Build()
 }
 

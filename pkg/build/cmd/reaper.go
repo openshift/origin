@@ -14,25 +14,25 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/util"
 )
 
 // NewBuildConfigReaper returns a new reaper for buildConfigs
-func NewBuildConfigReaper(oc *client.Client) kubectl.Reaper {
-	return &BuildConfigReaper{oc: oc, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
+func NewBuildConfigReaper(buildClient buildclient.Interface) kubectl.Reaper {
+	return &BuildConfigReaper{buildClient: buildClient, pollInterval: kubectl.Interval, timeout: kubectl.Timeout}
 }
 
 // BuildConfigReaper implements the Reaper interface for buildConfigs
 type BuildConfigReaper struct {
-	oc                    client.Interface
+	buildClient           buildclient.Interface
 	pollInterval, timeout time.Duration
 }
 
 // Stop deletes the build configuration and all of the associated builds.
 func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Duration, gracePeriod *metav1.DeleteOptions) error {
-	_, err := reaper.oc.BuildConfigs(namespace).Get(name, metav1.GetOptions{})
+	_, err := reaper.buildClient.Build().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 
 	if err != nil {
 		return err
@@ -41,7 +41,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	var bcPotentialBuilds []buildapi.Build
 
 	// Collect builds related to the config.
-	builds, err := reaper.oc.Builds(namespace).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(name).String()})
+	builds, err := reaper.buildClient.Build().Builds(namespace).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelector(name).String()})
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 
 	// Collect deprecated builds related to the config.
 	// TODO: Delete this block after BuildConfigLabelDeprecated is removed.
-	builds, err = reaper.oc.Builds(namespace).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(name).String()})
+	builds, err = reaper.buildClient.Build().Builds(namespace).List(metav1.ListOptions{LabelSelector: buildutil.BuildConfigSelectorDeprecated(name).String()})
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		// Add paused annotation to the build config pending the deletion
 		err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
 
-			bc, err := reaper.oc.BuildConfigs(namespace).Get(name, metav1.GetOptions{})
+			bc, err := reaper.buildClient.Build().BuildConfigs(namespace).Get(name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -100,7 +100,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 			if err := util.AddObjectAnnotations(bc, map[string]string{buildapi.BuildConfigPausedAnnotation: "true"}); err != nil {
 				return err
 			}
-			_, err = reaper.oc.BuildConfigs(namespace).Update(bc)
+			_, err = reaper.buildClient.Build().BuildConfigs(namespace).Update(bc)
 			return err
 		})
 
@@ -128,7 +128,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 	errList := []error{}
 	for _, buildUID := range buildUIDs {
 		build := bcBuilds[ktypes.UID(buildUID)]
-		if err := reaper.oc.Builds(namespace).Delete(build.Name); err != nil {
+		if err := reaper.buildClient.Build().Builds(namespace).Delete(build.Name, &metav1.DeleteOptions{}); err != nil {
 			glog.Warningf("Cannot delete Build %s/%s: %v", build.Namespace, build.Name, err)
 			if !kerrors.IsNotFound(err) {
 				errList = append(errList, err)
@@ -141,7 +141,7 @@ func (reaper *BuildConfigReaper) Stop(namespace, name string, timeout time.Durat
 		return kutilerrors.NewAggregate(errList)
 	}
 
-	if err := reaper.oc.BuildConfigs(namespace).Delete(name); err != nil {
+	if err := reaper.buildClient.Build().BuildConfigs(namespace).Delete(name, &metav1.DeleteOptions{}); err != nil {
 		return err
 	}
 

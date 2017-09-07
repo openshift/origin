@@ -24,8 +24,8 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
+	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,19 +71,19 @@ type S2IBuilder struct {
 	dockerClient DockerClient
 	dockerSocket string
 	build        *buildapi.Build
-	client       client.BuildInterface
+	client       buildinternalversion.BuildResourceInterface
 	cgLimits     *s2iapi.CGroupLimits
 }
 
 // NewS2IBuilder creates a new STIBuilder instance
-func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *buildapi.Build,
+func NewS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build,
 	cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// delegate to internal implementation passing default implementation of builderFactory and validator
 	return newS2IBuilder(dockerClient, dockerSocket, buildsClient, build, runtimeBuilderFactory{}, runtimeConfigValidator{}, cgLimits)
 }
 
 // newS2IBuilder is the internal factory function to create STIBuilder based on parameters. Used for testing.
-func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient client.BuildInterface, build *buildapi.Build,
+func newS2IBuilder(dockerClient DockerClient, dockerSocket string, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build,
 	builder builderFactory, validator validator, cgLimits *s2iapi.CGroupLimits) *S2IBuilder {
 	// just create instance
 	return &S2IBuilder{

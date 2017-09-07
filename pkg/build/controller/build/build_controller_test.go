@@ -32,6 +32,7 @@ import (
 	strategy "github.com/openshift/origin/pkg/build/controller/strategy"
 	buildinformersinternal "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildinternalclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildinternalfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
@@ -303,8 +304,8 @@ func TestHandleBuild(t *testing.T) {
 		func() {
 			var patchedBuild *buildapi.Build
 			var appliedPatch string
-			openshiftClient := fakeOpenshiftClient(tc.build)
-			openshiftClient.(*testclient.Fake).PrependReactor("patch", "builds",
+			buildClient := fakeBuildClient(tc.build)
+			buildClient.(*buildfake.Clientset).PrependReactor("patch", "builds",
 				func(action clientgotesting.Action) (bool, runtime.Object, error) {
 					if tc.errorOnBuildUpdate {
 						return true, nil, fmt.Errorf("error")
@@ -343,7 +344,7 @@ func TestHandleBuild(t *testing.T) {
 					return true, nil, nil
 				})
 
-			bc := newFakeBuildController(openshiftClient, nil, nil, kubeClient, nil)
+			bc := newFakeBuildController(nil, buildClient, nil, kubeClient, nil)
 			defer bc.stop()
 
 			runPolicy := tc.runPolicy
@@ -402,11 +403,10 @@ func TestHandleBuild(t *testing.T) {
 func TestWorkWithNewBuild(t *testing.T) {
 	build := dockerStrategy(mockBuild(buildapi.BuildPhaseNew, buildapi.BuildOutput{}))
 	var patchedBuild *buildapi.Build
-	openshiftClient := fakeOpenshiftClient()
-	openshiftClient.(*testclient.Fake).PrependReactor("patch", "builds", applyBuildPatchReaction(t, build, &patchedBuild))
 	buildClient := fakeBuildClient(build)
+	buildClient.(*buildfake.Clientset).PrependReactor("patch", "builds", applyBuildPatchReaction(t, build, &patchedBuild))
 
-	bc := newFakeBuildController(openshiftClient, buildClient, nil, nil, nil)
+	bc := newFakeBuildController(nil, buildClient, nil, nil, nil)
 	defer bc.stop()
 	bc.enqueueBuild(build)
 
@@ -1066,7 +1066,7 @@ func newFakeBuildController(openshiftClient client.Interface, buildClient buildi
 		SecretInformer:      kubeExternalInformers.Core().V1().Secrets(),
 		KubeClientExternal:  kubeExternalClient,
 		KubeClientInternal:  kubeInternalClient,
-		OpenshiftClient:     openshiftClient,
+		BuildClientInternal: buildClient,
 		DockerBuildStrategy: &strategy.DockerBuildStrategy{
 			Image: "test/image:latest",
 			Codec: kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),

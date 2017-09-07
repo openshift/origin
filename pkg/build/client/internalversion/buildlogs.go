@@ -1,28 +1,27 @@
 package internalversion
 
 import (
-	restclient "k8s.io/client-go/rest"
+	rest "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 )
 
 type BuildLogInterface interface {
-	Logs(name string, options buildapi.BuildLogOptions) *restclient.Request
+	Logs(name string, options buildapi.BuildLogOptions) *rest.Request
 }
 
-func NewBuildLogClient(c buildinternalversion.BuildInterface, ns string) BuildLogInterface {
+func NewBuildLogClient(c rest.Interface, ns string) BuildLogInterface {
 	return &buildLogs{client: c, ns: ns}
 }
 
 type buildLogs struct {
-	client buildinternalversion.BuildInterface
+	client rest.Interface
 	ns     string
 }
 
-func (c *buildLogs) Logs(name string, options buildapi.BuildLogOptions) *restclient.Request {
-	return c.client.RESTClient().
+func (c *buildLogs) Logs(name string, options buildapi.BuildLogOptions) *rest.Request {
+	return c.client.
 		Get().
 		Namespace(c.ns).
 		Resource("builds").

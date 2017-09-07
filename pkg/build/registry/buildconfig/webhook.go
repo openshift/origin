@@ -22,7 +22,7 @@ import (
 
 // NewWebHookREST returns the webhook handler wrapped in a rest.WebHook object.
 func NewWebHookREST(buildConfigClient buildclient.BuildInterface, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
-	return newWebHookREST(buildConfigClient, client.BuildConfigInstantiatorClient{BuildClient: buildConfigClient}, groupVersion, plugins)
+	return newWebHookREST(buildConfigClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
 }
 
 // this supports simple unit testing

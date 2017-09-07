@@ -45,7 +45,7 @@ type restrictUsersAdmission struct {
 	groupCache GroupCache
 }
 
-var _ = oadmission.WantsOpenshiftClient(&restrictUsersAdmission{})
+var _ = oadmission.WantsDeprecatedOpenshiftClient(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
@@ -61,7 +61,7 @@ func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface
 	q.kclient = c
 }
 
-func (q *restrictUsersAdmission) SetOpenshiftClient(c oclient.Interface) {
+func (q *restrictUsersAdmission) SetDeprecatedOpenshiftClient(c oclient.Interface) {
 	q.oclient = c
 }
 

@@ -4,16 +4,16 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/openshift/origin/pkg/client/testclient"
+	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 )
 
 func TestBuildPruneNamespaced(t *testing.T) {
-	osFake := testclient.NewSimpleFake()
+	osFake := buildfake.NewSimpleClientset()
 	opts := &PruneBuildsOptions{
 		Namespace: "foo",
 
-		OSClient: osFake,
-		Out:      ioutil.Discard,
+		BuildClient: osFake,
+		Out:         ioutil.Discard,
 	}
 
 	if err := opts.Run(); err != nil {

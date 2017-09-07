@@ -39,11 +39,8 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 		return true, err
 	}
 
-	deprecatedOpenshiftClient, err := ctx.ClientBuilder.DeprecatedOpenshiftClient(bootstrappolicy.InfraBuildControllerServiceAccountName)
-	if err != nil {
-		return true, err
-	}
 	kubeClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	externalKubeClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 
 	buildInformer := ctx.BuildInformers.Build().InternalVersion().Builds()
@@ -60,7 +57,7 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 		SecretInformer:      secretInformer,
 		KubeClientInternal:  kubeClient,
 		KubeClientExternal:  externalKubeClient,
-		OpenshiftClient:     deprecatedOpenshiftClient,
+		BuildClientInternal: buildClient,
 		DockerBuildStrategy: &buildstrategy.DockerBuildStrategy{
 			Image: c.DockerImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
@@ -86,12 +83,12 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 
 func RunBuildConfigChangeController(ctx ControllerContext) (bool, error) {
 	clientName := bootstrappolicy.InfraBuildConfigChangeControllerServiceAccountName
-	openshiftClient := ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(clientName)
 	kubeExternalClient := ctx.ClientBuilder.ClientOrDie(clientName)
+	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(clientName)
 	buildConfigInformer := ctx.BuildInformers.Build().InternalVersion().BuildConfigs()
 	buildInformer := ctx.BuildInformers.Build().InternalVersion().Builds()
 
-	controller := buildconfigcontroller.NewBuildConfigController(openshiftClient, kubeExternalClient, buildConfigInformer, buildInformer)
+	controller := buildconfigcontroller.NewBuildConfigController(buildClient, kubeExternalClient, buildConfigInformer, buildInformer)
 	go controller.Run(5, ctx.Stop)
 	return true, nil
 }

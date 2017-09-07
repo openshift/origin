@@ -9,7 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client/testclient"
+	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/generate/git"
 	s2iapi "github.com/openshift/source-to-image/pkg/api"
 	s2ibuild "github.com/openshift/source-to-image/pkg/build"
@@ -52,12 +52,13 @@ type testS2IBuilderConfig struct {
 // newTestS2IBuilder creates a mock implementation of S2IBuilder, instrumenting
 // different parts to return specific errors according to config.
 func newTestS2IBuilder(config testS2IBuilderConfig) *S2IBuilder {
+	client := &buildfake.Clientset{}
 	return newS2IBuilder(
 		&FakeDocker{
 			errPushImage: config.errPushImage,
 		},
 		"unix:///var/run/docker.sock",
-		testclient.NewSimpleFake().Builds(""),
+		client.Build().Builds(""),
 		makeBuild(),
 		testStiBuilderFactory{
 			getStrategyErr: config.getStrategyErr,
