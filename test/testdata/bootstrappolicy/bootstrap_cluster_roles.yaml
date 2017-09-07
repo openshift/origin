@@ -39,6 +39,16 @@ items:
     - users
     verbs:
     - impersonate
+  - apiGroups:
+    - ""
+    - user.openshift.io
+    resourceNames:
+    - system:masters
+    resources:
+    - groups
+    - systemgroups
+    verbs:
+    - impersonate
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
