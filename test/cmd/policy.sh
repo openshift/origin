@@ -26,7 +26,7 @@ os::cmd::expect_success_and_text 'oc whoami --as=system:serviceaccount:policy-lo
 os::cmd::expect_failure 'oc whoami --as=system:serviceaccount:another:default'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success 'oc delete project policy-login'
-
+os::cmd::expect_failure_and_text 'oc create policybinding default -n myproject' 'error: the server does not support legacy policy resources'
 
 # This test validates user level policy
 os::cmd::expect_failure_and_text 'oc policy add-role-to-user' 'you must specify a role'

@@ -71,12 +71,12 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	}
 	o.BindingNamespace = namespace
 
-	client, _, err := f.Clients()
+	client, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
 
-	if err := clientcmd.Gate(client, "", "3.7.0"); err != nil {
+	if err := clientcmd.LegacyPolicyResourceGate(kclient.Discovery()); err != nil {
 		return err
 	}
 

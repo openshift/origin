@@ -27,6 +27,10 @@ os::cmd::expect_success_and_not_text 'oc adm migrate storage --loglevel=2 --incl
 os::cmd::expect_success_and_text     'oc adm migrate storage --loglevel=2 --confirm' 'unchanged:'
 os::test::junit::declare_suite_end
 
+os::test::junit::declare_suite_start "cmd/migrate/authorization"
+os::cmd::expect_failure_and_text     'oc adm migrate authorization' 'error: the server does not support legacy policy resources'
+os::test::junit::declare_suite_end
+
 os::test::junit::declare_suite_start "cmd/migrate/storage_oauthclientauthorizations"
 # Create valid OAuth client
 os::cmd::expect_success_and_text     'oc create -f test/testdata/oauth/client.yaml' 'oauthclient "test-oauth-client" created'
