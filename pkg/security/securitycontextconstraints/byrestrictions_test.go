@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 func TestPointValue(t *testing.T) {
@@ -33,7 +34,7 @@ func TestPointValue(t *testing.T) {
 	// run through all combos of user strategy + seLinux strategy + priv
 	for userStrategy, userStrategyPoints := range userStrategies {
 		for seLinuxStrategy, seLinuxStrategyPoints := range seLinuxStrategies {
-			expectedPoints := privilegedPoints + userStrategyPoints + seLinuxStrategyPoints
+			expectedPoints := privilegedPoints + userStrategyPoints + seLinuxStrategyPoints + capDefaultPoints
 			scc := newSCC(true, seLinuxStrategy, userStrategy)
 			actualPoints := pointValue(scc)
 
@@ -41,7 +42,7 @@ func TestPointValue(t *testing.T) {
 				t.Errorf("privileged, user: %v, seLinux %v expected %d score but got %d", userStrategy, seLinuxStrategy, expectedPoints, actualPoints)
 			}
 
-			expectedPoints = userStrategyPoints + seLinuxStrategyPoints
+			expectedPoints = userStrategyPoints + seLinuxStrategyPoints + capDefaultPoints
 			scc = newSCC(false, seLinuxStrategy, userStrategy)
 			actualPoints = pointValue(scc)
 
@@ -51,14 +52,15 @@ func TestPointValue(t *testing.T) {
 		}
 	}
 
-	// sanity check to ensure volume score is added (specific volumes scores are tested below
+	// sanity check to ensure volume and capabilities scores are added (specific volumes
+	// and capabilities scores are tested below)
 	scc := newSCC(false, securityapi.SELinuxStrategyMustRunAs, securityapi.RunAsUserStrategyMustRunAs)
 	scc.Volumes = []securityapi.FSType{securityapi.FSTypeHostPath}
 	actualPoints := pointValue(scc)
-	// SELinux + User + host path volume
-	expectedPoints := runAsUserPoints + runAsUserPoints + hostVolumePoints
+	// SELinux + User + host path volume + default capabilities
+	expectedPoints := runAsUserPoints + runAsUserPoints + hostVolumePoints + capDefaultPoints
 	if actualPoints != expectedPoints {
-		t.Errorf("volume score was not added to the scc point value correctly!")
+		t.Errorf("volume score was not added to the scc point value correctly, got %d!", actualPoints)
 	}
 }
 
@@ -165,6 +167,97 @@ func TestVolumePointValue(t *testing.T) {
 		actualPoints := volumePointValue(v.scc)
 		if actualPoints != v.expectedPoints {
 			t.Errorf("%s expected %d volume score but got %d", k, v.expectedPoints, actualPoints)
+		}
+	}
+}
+
+func TestCapabilitiesPointValue(t *testing.T) {
+	newSCC := func(def []kapi.Capability, allow []kapi.Capability, drop []kapi.Capability) *securityapi.SecurityContextConstraints {
+		return &securityapi.SecurityContextConstraints{
+			DefaultAddCapabilities:   def,
+			AllowedCapabilities:      allow,
+			RequiredDropCapabilities: drop,
+		}
+	}
+
+	tests := map[string]struct {
+		defaultAdd     []kapi.Capability
+		allowed        []kapi.Capability
+		requiredDrop   []kapi.Capability
+		expectedPoints points
+	}{
+		"nothing specified": {
+			defaultAdd:     nil,
+			allowed:        nil,
+			requiredDrop:   nil,
+			expectedPoints: capDefaultPoints,
+		},
+		"default": {
+			defaultAdd:     []kapi.Capability{"KILL", "MKNOD"},
+			allowed:        nil,
+			requiredDrop:   nil,
+			expectedPoints: capDefaultPoints + 2*capAddOnePoints,
+		},
+		"allow": {
+			defaultAdd:     nil,
+			allowed:        []kapi.Capability{"KILL", "MKNOD"},
+			requiredDrop:   nil,
+			expectedPoints: capDefaultPoints + 2*capAllowOnePoints,
+		},
+		"allow star": {
+			defaultAdd:     nil,
+			allowed:        []kapi.Capability{"*"},
+			requiredDrop:   nil,
+			expectedPoints: capDefaultPoints + capAllowAllPoints,
+		},
+		"allow all": {
+			defaultAdd:     nil,
+			allowed:        []kapi.Capability{"ALL"},
+			requiredDrop:   nil,
+			expectedPoints: capDefaultPoints + capAllowAllPoints,
+		},
+		"allow all case": {
+			defaultAdd:     nil,
+			allowed:        []kapi.Capability{"All"},
+			requiredDrop:   nil,
+			expectedPoints: capDefaultPoints + capAllowAllPoints,
+		},
+		"drop": {
+			defaultAdd:     nil,
+			allowed:        nil,
+			requiredDrop:   []kapi.Capability{"KILL", "MKNOD"},
+			expectedPoints: capDefaultPoints + 2*capDropOnePoints,
+		},
+		"drop all": {
+			defaultAdd:     nil,
+			allowed:        nil,
+			requiredDrop:   []kapi.Capability{"ALL"},
+			expectedPoints: capDefaultPoints + capDropAllPoints,
+		},
+		"drop all case": {
+			defaultAdd:     nil,
+			allowed:        nil,
+			requiredDrop:   []kapi.Capability{"all"},
+			expectedPoints: capDefaultPoints + capDropAllPoints,
+		},
+		"drop star": {
+			defaultAdd:     nil,
+			allowed:        nil,
+			requiredDrop:   []kapi.Capability{"*"},
+			expectedPoints: capDefaultPoints + capDropOnePoints,
+		},
+		"mixture": {
+			defaultAdd:     []kapi.Capability{"SETUID", "SETGID"},
+			allowed:        []kapi.Capability{"*"},
+			requiredDrop:   []kapi.Capability{"SYS_CHROOT"},
+			expectedPoints: capDefaultPoints + 2*capAddOnePoints + capAllowAllPoints + capDropOnePoints,
+		},
+	}
+	for k, v := range tests {
+		scc := newSCC(v.defaultAdd, v.allowed, v.requiredDrop)
+		actualPoints := capabilitiesPointValue(scc)
+		if actualPoints != v.expectedPoints {
+			t.Errorf("%s expected %d capability score but got %d", k, v.expectedPoints, actualPoints)
 		}
 	}
 }

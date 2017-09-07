@@ -1,9 +1,12 @@
 package securitycontextconstraints
 
 import (
+	"strings"
+
 	"github.com/golang/glog"
 
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 // ByRestrictions is a helper to sort SCCs in order of most restrictive to least restrictive.
@@ -25,15 +28,24 @@ func (s ByRestrictions) Less(i, j int) bool {
 type points int
 
 const (
-	privilegedPoints points = 20
+	privilegedPoints points = 200000
 
-	hostVolumePoints       points = 10
-	nonTrivialVolumePoints points = 5
+	hostVolumePoints       points = 100000
+	nonTrivialVolumePoints points = 50000
 
-	runAsAnyUserPoints points = 4
-	runAsNonRootPoints points = 3
-	runAsRangePoints   points = 2
-	runAsUserPoints    points = 1
+	runAsAnyUserPoints points = 40000
+	runAsNonRootPoints points = 30000
+	runAsRangePoints   points = 20000
+	runAsUserPoints    points = 10000
+
+	capDefaultPoints  points = 5000
+	capAddOnePoints   points = 300
+	capAllowAllPoints points = 4000
+	capAllowOnePoints points = 10
+	capDropAllPoints  points = -3000
+	capDropOnePoints  points = -50
+	capMaxPoints      points = 9999
+	capMinPoints      points = 0
 
 	noPoints points = 0
 )
@@ -49,6 +61,9 @@ func pointValue(constraint *securityapi.SecurityContextConstraints) points {
 
 	// add points based on volume requests
 	totalPoints += volumePointValue(constraint)
+
+	// add points based on capabilities
+	totalPoints += capabilitiesPointValue(constraint)
 
 	// the map contains points for both RunAsUser and SELinuxContext
 	// strategies by taking advantage that they have identical strategy names
@@ -79,9 +94,9 @@ func pointValue(constraint *securityapi.SecurityContextConstraints) points {
 }
 
 // volumePointValue returns a score based on the volumes allowed by the SCC.
-// Allowing a host volume will return a score of 10.  Allowance of anything other
+// Allowing a host volume will return a score of 100000.  Allowance of anything other
 // than Secret, ConfigMap, EmptyDir, DownwardAPI, Projected, and None will result in
-// a score of 5.  If the SCC only allows these trivial types, it will have a
+// a score of 50000.  If the SCC only allows these trivial types, it will have a
 // score of 0.
 func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 	hasHostVolume := false
@@ -110,4 +125,40 @@ func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 		return nonTrivialVolumePoints
 	}
 	return noPoints
+}
+
+// hasCap checks for needle in haystack.
+func hasCap(needle string, haystack []kapi.Capability) bool {
+	for _, c := range haystack {
+		if needle == strings.ToUpper(string(c)) {
+			return true
+		}
+	}
+	return false
+}
+
+// capabilitiesPointValue returns a score based on the capabilities allowed,
+// added, or removed by the SCC. This allow us to prefer the more restrictive
+// SCC.
+func capabilitiesPointValue(scc *securityapi.SecurityContextConstraints) points {
+	capsPoints := capDefaultPoints
+	capsPoints += capAddOnePoints * points(len(scc.DefaultAddCapabilities))
+	if hasCap(string(securityapi.AllowAllCapabilities), scc.AllowedCapabilities) {
+		capsPoints += capAllowAllPoints
+	} else if hasCap("ALL", scc.AllowedCapabilities) {
+		capsPoints += capAllowAllPoints
+	} else {
+		capsPoints += capAllowOnePoints * points(len(scc.AllowedCapabilities))
+	}
+	if hasCap("ALL", scc.RequiredDropCapabilities) {
+		capsPoints += capDropAllPoints
+	} else {
+		capsPoints += capDropOnePoints * points(len(scc.RequiredDropCapabilities))
+	}
+	if capsPoints > capMaxPoints {
+		return capMaxPoints
+	} else if capsPoints < capMinPoints {
+		return capMinPoints
+	}
+	return capsPoints
 }
