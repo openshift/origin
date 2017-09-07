@@ -131,19 +131,19 @@ oc delete imagestream/%[1]s -n default
 `
 
 	clRegISMismatch = `
-Diagnostics created a test ImageStream and compared the registry IP
-it received to the registry IP available via the %[1]s service.
+Diagnostics created a test ImageStream and compared the registry
+it received to the registry IP and host available via the %[1]s service.
 
-%[1]s      : %[2]s
-ImageStream registry : %[3]s
+%[1]s by IP: %[2]s
+%[1]s by host: %[3]s
+ImageStream registry : %[4]s
 
-They do not match, which probably means that an administrator re-created
-the %[1]s service but the master has cached the old service
-IP address. Builds or deployments that use ImageStreams with the wrong
-%[1]s IP will fail under this condition.
-
-To resolve this issue, restarting the master (to clear the cache) should
-be sufficient. Existing ImageStreams may need to be re-created.`
+Neither matches, which could mean that the master has cached an old
+service; possibly an administrator re-created the %[1]s service with
+a different IP address. Builds or deployments that use ImageStreams
+with the wrong %[1]s IP will fail under this condition. If this is the
+case, restarting the master (to clear the cache) should resolve the
+issue. Existing ImageStreams may need to be re-created.`
 )
 
 func (d *ClusterRegistry) Name() string {
@@ -338,8 +338,11 @@ func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r typ
 	}
 	r.Debug("DClu1018", fmt.Sprintf("Created test ImageStream: %[1]v", imgStream))
 	cacheHost := strings.SplitN(imgStream.Status.DockerImageRepository, "/", 2)[0]
-	serviceHost := fmt.Sprintf("%s:%d", service.Spec.ClusterIP, service.Spec.Ports[0].Port)
-	if cacheHost != serviceHost {
-		r.Error("DClu1019", nil, fmt.Sprintf(clRegISMismatch, registryName, serviceHost, cacheHost))
+	// the registry for imagestreams was previously recorded as an IP, which could change if the registry service were re-created.
+	// Now it is a cluster hostname, which should be unchanging even if re-created. Just ensure it is the right hostname.
+	serviceIpPort := fmt.Sprintf("%s:%d", service.Spec.ClusterIP, service.Spec.Ports[0].Port)
+	serviceHostPort := fmt.Sprintf("%s.%s.svc:%d", registryName, service.ObjectMeta.Namespace, service.Spec.Ports[0].Port)
+	if cacheHost != serviceIpPort && cacheHost != serviceHostPort {
+		r.Error("DClu1019", nil, fmt.Sprintf(clRegISMismatch, registryName, serviceIpPort, serviceHostPort, cacheHost))
 	}
 }
