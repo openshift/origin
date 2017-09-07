@@ -15,6 +15,9 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
+// These build pruning tests create 4 builds and check that 2-3 of them are left after pruning.
+// This variation in the number of builds that could be left is caused by the HandleBuildPruning
+// function using cached information from the buildLister.
 var _ = g.Describe("[builds][pruning] prune builds based on settings in the buildconfig", func() {
 	var (
 		buildPruningBaseDir   = exutil.FixturePath("testdata", "build-pruning")
@@ -50,8 +53,8 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		err := oc.Run("create").Args("-f", successfulBuildConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("starting three test builds")
-		for i := 0; i < 3; i++ {
+		g.By("starting four test builds")
+		for i := 0; i < 4; i++ {
 			br, _ := exutil.StartBuildAndWait(oc, "myphp")
 			br.AssertSuccess()
 		}
@@ -81,7 +84,11 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		o.Expect(int32(len(builds.Items))).To(o.Equal(*buildConfig.Spec.SuccessfulBuildsHistoryLimit), "there should be %v completed builds left after pruning, but instead there were %v", *buildConfig.Spec.SuccessfulBuildsHistoryLimit, len(builds.Items))
+		passed := false
+		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+			passed = true
+		}
+		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
 
 	})
 
@@ -91,8 +98,8 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("starting three test builds")
-		for i := 0; i < 3; i++ {
+		g.By("starting four test builds")
+		for i := 0; i < 4; i++ {
 			br, _ := exutil.StartBuildAndWait(oc, "myphp")
 			br.AssertFailure()
 		}
@@ -122,7 +129,11 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		o.Expect(int32(len(builds.Items))).To(o.Equal(*buildConfig.Spec.FailedBuildsHistoryLimit), "there should be %v failed builds left after pruning, but instead there were %v", *buildConfig.Spec.FailedBuildsHistoryLimit, len(builds.Items))
+		passed := false
+		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+			passed = true
+		}
+		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
 
 	})
 
@@ -163,7 +174,11 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		o.Expect(int32(len(builds.Items))).To(o.Equal(*buildConfig.Spec.FailedBuildsHistoryLimit), "there should be %v canceled builds left after pruning, but instead there were %v", *buildConfig.Spec.FailedBuildsHistoryLimit, len(builds.Items))
+		passed := false
+		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+			passed = true
+		}
+		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
 
 	})
 
@@ -173,8 +188,8 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 		err := oc.Run("create").Args("-f", erroredBuildConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("starting three test builds")
-		for i := 0; i < 3; i++ {
+		g.By("starting four test builds")
+		for i := 0; i < 4; i++ {
 			br, _ := exutil.StartBuildAndWait(oc, "myphp")
 			br.AssertFailure()
 		}
@@ -204,7 +219,11 @@ var _ = g.Describe("[builds][pruning] prune builds based on settings in the buil
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
 
-		o.Expect(int32(len(builds.Items))).To(o.Equal(*buildConfig.Spec.FailedBuildsHistoryLimit), "there should be %v failed builds left after pruning, but instead there were %v", *buildConfig.Spec.FailedBuildsHistoryLimit, len(builds.Items))
+		passed := false
+		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+			passed = true
+		}
+		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
 
 	})
 
