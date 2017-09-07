@@ -44,6 +44,8 @@ import (
 )
 
 type ring0Factory struct {
+	*OpenshiftCLIClientBuilder
+
 	clientConfig            kclientcmd.ClientConfig
 	imageResolutionOptions  FlagBinder
 	kubeClientAccessFactory kcmdutil.ClientAccessFactory
@@ -51,27 +53,35 @@ type ring0Factory struct {
 
 type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
+	CLIClientBuilder
 
+	// TODO: this should be removed when we finally get rid of pkg/client
 	Clients() (*client.Client, kclientset.Interface, error)
+
 	OpenShiftClientConfig() kclientcmd.ClientConfig
 	ImageResolutionOptions() FlagBinder
 }
 
 func NewClientAccessFactory(optionalClientConfig kclientcmd.ClientConfig) ClientAccessFactory {
 	flags := pflag.NewFlagSet("", pflag.ContinueOnError)
-
 	clientConfig := optionalClientConfig
 	if optionalClientConfig == nil {
 		// TODO: there should be two client configs, one for OpenShift, and one for Kubernetes
 		clientConfig = DefaultClientConfig(flags)
 		clientConfig = defaultingClientConfig{clientConfig}
 	}
-
-	return &ring0Factory{
-		clientConfig:            clientConfig,
-		imageResolutionOptions:  &imageResolutionOptions{},
-		kubeClientAccessFactory: kcmdutil.NewClientAccessFactoryFromDiscovery(flags, clientConfig, &discoveryFactory{clientConfig: clientConfig}),
+	factory := &ring0Factory{
+		clientConfig:           clientConfig,
+		imageResolutionOptions: &imageResolutionOptions{},
 	}
+	factory.kubeClientAccessFactory = kcmdutil.NewClientAccessFactoryFromDiscovery(
+		flags,
+		clientConfig,
+		&discoveryFactory{clientConfig: clientConfig},
+	)
+	factory.OpenshiftCLIClientBuilder = &OpenshiftCLIClientBuilder{config: clientConfig}
+
+	return factory
 }
 
 type discoveryFactory struct {
@@ -130,7 +140,6 @@ func (f *ring0Factory) Clients() (*client.Client, kclientset.Interface, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-
 	cfg, err := f.clientConfig.ClientConfig()
 	if err != nil {
 		return nil, nil, err
