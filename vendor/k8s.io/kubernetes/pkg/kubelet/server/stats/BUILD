@@ -44,6 +44,7 @@ go_test(
     srcs = [
         "mocks_test.go",
         "summary_test.go",
+        "volume_stat_calculator_test.go",
     ],
     library = ":go_default_library",
     tags = ["automanaged"],
@@ -59,6 +60,7 @@ go_test(
         "//vendor/github.com/google/gofuzz:go_default_library",
         "//vendor/github.com/stretchr/testify/assert:go_default_library",
         "//vendor/github.com/stretchr/testify/mock:go_default_library",
+        "//vendor/k8s.io/apimachinery/pkg/api/resource:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/apis/meta/v1:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/types:go_default_library",
     ],
