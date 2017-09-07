@@ -138,10 +138,8 @@ func (d *DockerBuilder) Build() error {
 	}
 
 	cname := containerName("docker", d.build.Name, d.build.Namespace, "post-commit")
-	startTime = metav1.Now()
-	err = execPostCommitHook(d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
 
-	timing.RecordNewStep(ctx, buildapi.StagePostCommit, buildapi.StepExecPostCommitHook, startTime, metav1.Now())
+	err = execPostCommitHook(ctx, d.dockerClient, d.build.Spec.PostCommit, buildTag, cname)
 
 	if err != nil {
 		d.build.Status.Phase = buildapi.BuildPhaseFailed
