@@ -117,7 +117,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/deploy/apis/apps/v1
+	// github.com/openshift/origin/pkg/apps/apis/apps/v1
 	gvr("", "v1", "deploymentconfigs"): {
 		stub:             `{"metadata": {"name": "dc1"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
 		expectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1",
@@ -671,7 +671,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("build.openshift.io", "v1", "binarybuildrequestoptionses"),
 	// --
 
-	// github.com/openshift/origin/pkg/deploy/apis/apps/v1
+	// github.com/openshift/origin/pkg/apps/apis/apps/v1
 
 	// used for streaming deployment logs from pod, not stored in etcd
 	gvr("", "v1", "deploymentlogs"),

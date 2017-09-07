@@ -24,11 +24,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"

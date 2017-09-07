@@ -4,10 +4,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	deployercontroller "github.com/openshift/origin/pkg/apps/controller/deployer"
+	deployconfigcontroller "github.com/openshift/origin/pkg/apps/controller/deploymentconfig"
+	triggercontroller "github.com/openshift/origin/pkg/apps/controller/generictrigger"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	deployercontroller "github.com/openshift/origin/pkg/deploy/controller/deployer"
-	deployconfigcontroller "github.com/openshift/origin/pkg/deploy/controller/deploymentconfig"
-	triggercontroller "github.com/openshift/origin/pkg/deploy/controller/generictrigger"
 )
 
 type DeployerControllerConfig struct {

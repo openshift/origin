@@ -15,8 +15,8 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
+	deploy "github.com/openshift/origin/pkg/apps/apis/apps"
 	build "github.com/openshift/origin/pkg/build/apis/build"
-	deploy "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/generate"
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	route "github.com/openshift/origin/pkg/route/apis/route"

@@ -18,12 +18,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	"github.com/openshift/origin/pkg/apps/strategy"
+	"github.com/openshift/origin/pkg/apps/strategy/recreate"
+	"github.com/openshift/origin/pkg/apps/strategy/rolling"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	"github.com/openshift/origin/pkg/deploy/strategy"
-	"github.com/openshift/origin/pkg/deploy/strategy/recreate"
-	"github.com/openshift/origin/pkg/deploy/strategy/rolling"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	ocmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 )

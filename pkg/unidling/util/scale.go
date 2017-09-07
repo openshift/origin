@@ -13,9 +13,9 @@ import (
 	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/extensions/v1beta1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 )
 

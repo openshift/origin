@@ -8,12 +8,12 @@ import (
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
-	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	cmdtest "github.com/openshift/origin/pkg/deploy/cmd/test"
-	"github.com/openshift/origin/pkg/deploy/strategy"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	cmdtest "github.com/openshift/origin/pkg/apps/cmd/test"
+	"github.com/openshift/origin/pkg/apps/strategy"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"

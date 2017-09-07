@@ -28,6 +28,8 @@ import (
 
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
+	oappsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
 	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
@@ -35,8 +37,6 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	oappsapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	oappsapiserver "github.com/openshift/origin/pkg/deploy/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"

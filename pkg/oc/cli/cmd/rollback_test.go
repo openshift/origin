@@ -6,9 +6,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 func TestRollbackOptions_findTargetDeployment(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // DeploymentLogsNamespacer has methods to work with DeploymentLogs resources in a namespace

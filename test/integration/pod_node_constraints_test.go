@@ -10,10 +10,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
 	pluginapi "github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
 	testutil "github.com/openshift/origin/test/util"

@@ -24,7 +24,7 @@ func main() {
 	expectedPackages := sets.NewString(
 		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1",
 		"github.com/openshift/origin/pkg/build/apis/build/v1",
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1",
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1",
 		"github.com/openshift/origin/pkg/image/apis/image/v1",
 		"github.com/openshift/origin/pkg/oauth/apis/oauth/v1",
 		"github.com/openshift/origin/pkg/project/apis/project/v1",
@@ -47,7 +47,7 @@ func main() {
 		"k8s.io/apimachinery/pkg/conversion",
 		"github.com/openshift/origin/pkg/authorization/apis/authorization",
 		"github.com/openshift/origin/pkg/build/apis/build",
-		"github.com/openshift/origin/pkg/deploy/apis/apps",
+		"github.com/openshift/origin/pkg/apps/apis/apps",
 		"github.com/openshift/origin/pkg/image/apis/image",
 		"github.com/openshift/origin/pkg/oauth/apis/oauth",
 		"github.com/openshift/origin/pkg/project/apis/project",

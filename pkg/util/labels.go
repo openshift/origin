@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // MergeInto flags

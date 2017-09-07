@@ -4,9 +4,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
+	_ "github.com/openshift/origin/pkg/apps/apis/apps"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	_ "github.com/openshift/origin/pkg/build/apis/build"
-	_ "github.com/openshift/origin/pkg/deploy/apis/apps"
 	_ "github.com/openshift/origin/pkg/image/apis/image"
 	_ "github.com/openshift/origin/pkg/network/apis/network"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth"

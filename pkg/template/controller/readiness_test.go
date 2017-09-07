@@ -13,9 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client/testclient"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 func TestCheckReadiness(t *testing.T) {

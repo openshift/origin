@@ -17,9 +17,9 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )

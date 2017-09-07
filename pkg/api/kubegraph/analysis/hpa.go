@@ -15,8 +15,8 @@ import (
 	"github.com/openshift/origin/pkg/api/kubegraph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubenodes "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deploygraph "github.com/openshift/origin/pkg/deploy/graph"
-	deploynodes "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	deploygraph "github.com/openshift/origin/pkg/apps/graph"
+	deploynodes "github.com/openshift/origin/pkg/apps/graph/nodes"
 )
 
 const (

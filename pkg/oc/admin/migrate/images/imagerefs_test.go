@@ -10,9 +10,9 @@ import (
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kextensions "k8s.io/kubernetes/pkg/apis/extensions"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 

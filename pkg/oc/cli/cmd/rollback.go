@@ -17,10 +17,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	describe "github.com/openshift/origin/pkg/oc/cli/describe"
 )
 

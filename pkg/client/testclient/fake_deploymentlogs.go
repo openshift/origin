@@ -4,7 +4,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // FakeDeploymentLogs implements DeploymentLogsInterface. Meant to be embedded into a struct to get a default

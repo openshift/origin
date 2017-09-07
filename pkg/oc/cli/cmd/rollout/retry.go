@@ -13,9 +13,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	"github.com/spf13/cobra"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"

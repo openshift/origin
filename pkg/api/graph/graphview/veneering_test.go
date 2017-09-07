@@ -14,12 +14,12 @@ import (
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployedges "github.com/openshift/origin/pkg/apps/graph"
+	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployedges "github.com/openshift/origin/pkg/deploy/graph"
-	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 )
 
