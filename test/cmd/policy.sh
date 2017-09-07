@@ -9,7 +9,10 @@ os::test::junit::declare_suite_start "cmd/policy"
 os::cmd::expect_success_and_text 'oc whoami --as deads' "deads"
 
 os::cmd::expect_success 'oc adm policy add-cluster-role-to-user sudoer wheel'
+os::cmd::try_until_text 'oc policy who-can impersonate users system:admin' "wheel"
+os::cmd::try_until_text 'oc policy who-can impersonate groups system:masters' "wheel"
 os::cmd::try_until_text 'oc policy who-can impersonate systemusers system:admin' "wheel"
+os::cmd::try_until_text 'oc policy who-can impersonate systemgroups system:masters' "wheel"
 os::cmd::expect_success 'oc login -u wheel -p pw'
 os::cmd::expect_success_and_text 'oc whoami' "wheel"
 os::cmd::expect_failure 'oc whoami --as deads'
