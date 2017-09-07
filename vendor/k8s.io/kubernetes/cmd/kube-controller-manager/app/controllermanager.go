@@ -130,27 +130,29 @@ func Run(s *options.CMServer) error {
 	}
 	leaderElectionClient := clientset.NewForConfigOrDie(restclient.AddUserAgent(kubeconfig, "leader-election"))
 
-	go func() {
-		mux := http.NewServeMux()
-		healthz.InstallHandler(mux)
-		if s.EnableProfiling {
-			mux.HandleFunc("/debug/pprof/", pprof.Index)
-			mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-			mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-			mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-			if s.EnableContentionProfiling {
-				goruntime.SetBlockProfileRate(1)
+	if s.Port >= 0 {
+		go func() {
+			mux := http.NewServeMux()
+			healthz.InstallHandler(mux)
+			if s.EnableProfiling {
+				mux.HandleFunc("/debug/pprof/", pprof.Index)
+				mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+				mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+				mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+				if s.EnableContentionProfiling {
+					goruntime.SetBlockProfileRate(1)
+				}
 			}
-		}
-		configz.InstallHandler(mux)
-		mux.Handle("/metrics", prometheus.Handler())
+			configz.InstallHandler(mux)
+			mux.Handle("/metrics", prometheus.Handler())
 
-		server := &http.Server{
-			Addr:    net.JoinHostPort(s.Address, strconv.Itoa(int(s.Port))),
-			Handler: mux,
-		}
-		glog.Fatal(server.ListenAndServe())
-	}()
+			server := &http.Server{
+				Addr:    net.JoinHostPort(s.Address, strconv.Itoa(int(s.Port))),
+				Handler: mux,
+			}
+			glog.Fatal(server.ListenAndServe())
+		}()
+	}
 
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(glog.Infof)
@@ -182,7 +184,11 @@ func Run(s *options.CMServer) error {
 			glog.Fatalf("error starting controllers: %v", err)
 		}
 
-		ctx.InformerFactory.Start(ctx.Stop)
+		if StartInformers == nil {
+			ctx.InformerFactory.Start(ctx.Stop)
+		} else {
+			StartInformers(ctx.Stop)
+		}
 
 		select {}
 	}
@@ -389,7 +395,7 @@ func GetAvailableResources(clientBuilder controller.ControllerClientBuilder) (ma
 	return allResources, nil
 }
 
-func CreateControllerContext(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
+func createControllerContext(s *options.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (ControllerContext, error) {
 	versionedClient := rootClientBuilder.ClientOrDie("shared-informers")
 	sharedInformers := informers.NewSharedInformerFactory(versionedClient, ResyncPeriod(s)())
 
