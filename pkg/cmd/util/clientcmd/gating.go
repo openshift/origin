@@ -1,64 +1,126 @@
 package clientcmd
 
 import (
-	"encoding/json"
 	"fmt"
 
-	"github.com/blang/semver"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/version"
+	"github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
 
-// Gate returns an error if the server is below minServerVersion or above/equal maxServerVersion.
-// To test only for min or only max version, set the other string to the empty value.
-func Gate(ocClient *client.Client, minServerVersion, maxServerVersion string) error {
-	if len(minServerVersion) == 0 && len(maxServerVersion) == 0 {
-		return fmt.Errorf("No version info passed to gate command")
-	}
+// LegacyPolicyResourceGate returns err if the server does not support the set of legacy policy objects (< 3.7)
+func LegacyPolicyResourceGate(client discovery.ServerResourcesInterface) error {
+	// The server must support the 4 legacy policy objects in either of the GV schemes.
+	_, all, err := DiscoverGroupVersionResources(client,
+		schema.GroupVersionResource{
+			Group:    authorization.LegacySchemeGroupVersion.Group,
+			Version:  authorization.LegacySchemeGroupVersion.Version,
+			Resource: "clusterpolicies",
+		},
+		schema.GroupVersionResource{
+			Group:    authorization.LegacySchemeGroupVersion.Group,
+			Version:  authorization.LegacySchemeGroupVersion.Version,
+			Resource: "clusterpolicybindings",
+		},
+		schema.GroupVersionResource{
+			Group:    authorization.LegacySchemeGroupVersion.Group,
+			Version:  authorization.LegacySchemeGroupVersion.Version,
+			Resource: "policies",
+		},
+		schema.GroupVersionResource{
+			Group:    authorization.LegacySchemeGroupVersion.Group,
+			Version:  authorization.LegacySchemeGroupVersion.Version,
+			Resource: "policybindings",
+		},
+	)
 
-	ocVersionBody, err := ocClient.Get().AbsPath("/version/openshift").Do().Raw()
 	if err != nil {
 		return err
 	}
-	ocServerInfo := &version.Info{}
-	if err := json.Unmarshal(ocVersionBody, ocServerInfo); err != nil {
+	if all {
+		return nil
+	}
+	_, all, err = DiscoverGroupVersionResources(client,
+		schema.GroupVersionResource{
+			Group:    authorization.SchemeGroupVersion.Group,
+			Version:  authorization.SchemeGroupVersion.Version,
+			Resource: "clusterpolicies",
+		},
+		schema.GroupVersionResource{
+			Group:    authorization.SchemeGroupVersion.Group,
+			Version:  authorization.SchemeGroupVersion.Version,
+			Resource: "clusterpolicybindings",
+		},
+		schema.GroupVersionResource{
+			Group:    authorization.SchemeGroupVersion.Group,
+			Version:  authorization.SchemeGroupVersion.Version,
+			Resource: "policies",
+		},
+		schema.GroupVersionResource{
+			Group:    authorization.SchemeGroupVersion.Group,
+			Version:  authorization.SchemeGroupVersion.Version,
+			Resource: "policybindings",
+		},
+	)
+
+	if err != nil {
 		return err
 	}
-	ocVersion := ocServerInfo.String()
-	// skip first chracter as Openshift returns a 'v' preceding the actual
-	// version string which semver does not grok
-	semVersion, err := semver.Parse(ocVersion[1:])
-	if err != nil {
-		return fmt.Errorf("Failed to parse server version %s: %v", ocVersion, err)
-	}
-	// ignore pre-release version info
-	semVersion.Pre = nil
-
-	if len(minServerVersion) > 0 {
-		min, err := semver.Parse(minServerVersion)
-		if err != nil {
-			return fmt.Errorf("Failed to parse min gate version %s: %v", minServerVersion, err)
-		}
-		// ignore pre-release version info
-		min.Pre = nil
-		if semVersion.LT(min) {
-			return fmt.Errorf("This command works only with server versions > %s, found %s", minServerVersion, ocVersion)
-		}
+	if all {
+		return nil
 	}
 
-	if len(maxServerVersion) > 0 {
-		max, err := semver.Parse(maxServerVersion)
-		if err != nil {
-			return fmt.Errorf("Failed to parse max gate version %s: %v", maxServerVersion, err)
-		}
-		// ignore pre-release version info
-		max.Pre = nil
-		if semVersion.GTE(max) {
-			return fmt.Errorf("This command works only with server versions < %s, found %s", maxServerVersion, ocVersion)
-		}
+	return fmt.Errorf("the server does not support legacy policy resources")
+}
+
+// DiscoverGroupVersionResources performs a server resource discovery for each filterGVR, returning a slice of
+// GVRs for the matching Resources, and a bool for "all" indicating that each item in filterGVR was found.
+func DiscoverGroupVersionResources(client discovery.ServerResourcesInterface, filterGVR ...schema.GroupVersionResource) ([]schema.GroupVersionResource, bool, error) {
+	if len(filterGVR) == 0 {
+		return nil, false, fmt.Errorf("at least one GroupVersionResource must be provided")
 	}
 
-	// OK this is within min/max all good!
-	return nil
+	var groupVersionCache = make(map[string]*v1.APIResourceList)
+	all := true
+	ret := []schema.GroupVersionResource{}
+	for i := range filterGVR {
+		var serverResources *v1.APIResourceList
+		var err error
+
+		// Discover the list of resources for this GVR, with a cache of resources per GV to avoid extra round trips
+		gv := filterGVR[i].GroupVersion()
+		if cachedList, ok := groupVersionCache[gv.String()]; ok {
+			serverResources = cachedList
+		} else {
+			serverResources, err = client.ServerResourcesForGroupVersion(gv.String())
+			if err != nil && errors.IsNotFound(err) {
+				// Cache an empty resource list when not found, we don't want another discovery
+				groupVersionCache[gv.String()] = &v1.APIResourceList{}
+				all = false
+				continue
+			}
+
+			if err != nil {
+				return nil, false, err
+			}
+
+			groupVersionCache[gv.String()] = serverResources
+		}
+
+		seen := false
+		// Add matching resources to the return slice
+		for _, resource := range serverResources.APIResources {
+			if filterGVR[i].Resource == resource.Name {
+				seen = true
+				ret = append(ret, filterGVR[i])
+				break
+			}
+		}
+		all = all && seen
+	}
+
+	return ret, all, nil
 }
