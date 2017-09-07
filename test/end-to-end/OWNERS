@@ -12,6 +12,7 @@ reviewers:
   - knobunc
   - dcbw
   - danwinship
+  - dmage
 approvers:
   - kargakis
   - stevekuznetsov
@@ -21,3 +22,6 @@ approvers:
   - knobunc
   - dcbw
   - danwinship
+  - legionus
+  - miminar
+  - dmage
