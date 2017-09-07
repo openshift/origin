@@ -185,7 +185,7 @@ func (ImageStreamMapping) SwaggerDoc() map[string]string {
 var map_ImageStreamSpec = map[string]string{
 	"":                      "ImageStreamSpec represents options for ImageStreams.",
 	"lookupPolicy":          "lookupPolicy controls how other resources reference images within this namespace.",
-	"dockerImageRepository": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
+	"dockerImageRepository": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.",
 	"tags":                  "tags map arbitrary string values to specific image locators",
 }
 
@@ -342,12 +342,12 @@ func (TagImportPolicy) SwaggerDoc() map[string]string {
 var map_TagReference = map[string]string{
 	"":                "TagReference specifies optional annotations for images using this tag and an optional reference to an ImageStreamTag, ImageStreamImage, or DockerImage this tag should track.",
 	"name":            "Name of the tag",
-	"annotations":     "Annotations associated with images using this tag",
-	"from":            "From is a reference to an image stream tag or image stream this tag should track",
+	"annotations":     "Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags.",
+	"from":            "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.",
 	"reference":       "Reference states if the tag will be imported. Default value is false, which means the tag will be imported.",
-	"generation":      "Generation is the image stream generation that updated this tag - setting it to 0 is an indication that the generation must be updated. Legacy clients will send this as nil, which means the client doesn't know or care.",
-	"importPolicy":    "Import is information that controls how images may be imported by the server.",
-	"referencePolicy": "ReferencePolicy defines how other components should consume the image",
+	"generation":      "Generation is a counter that tracks mutations to the spec tag (user intent). When a tag reference is changed the generation is set to match the current stream generation (which is incremented every time spec is changed). Other processes in the system like the image importer observe that the generation of spec tag is newer than the generation recorded in the status and use that as a trigger to import the newest remote tag. To trigger a new import, clients may set this value to zero which will reset the generation to the latest stream generation. Legacy clients will send this value as nil which will be merged with the current tag generation.",
+	"importPolicy":    "ImportPolicy is information that controls how images may be imported by the server.",
+	"referencePolicy": "ReferencePolicy defines how other components should consume the image.",
 }
 
 func (TagReference) SwaggerDoc() map[string]string {

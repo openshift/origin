@@ -217,6 +217,8 @@ type ImageStreamSpec struct {
 	// lookupPolicy controls how other resources reference images within this namespace.
 	LookupPolicy ImageLookupPolicy
 	// Optional, if specified this stream is backed by a Docker repository on this server
+	// Deprecated: This field is deprecated as of v3.7 and will be removed in a future release.
+	// Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.
 	DockerImageRepository string
 	// Tags map arbitrary string values to specific image locators
 	Tags map[string]TagReference
@@ -256,7 +258,7 @@ type TagReference struct {
 	Generation *int64
 	// ImportPolicy is information that controls how images may be imported by the server.
 	ImportPolicy TagImportPolicy
-	// ReferencePolicy defines how other components should consume the image
+	// ReferencePolicy defines how other components should consume the image.
 	ReferencePolicy TagReferencePolicy
 }
 

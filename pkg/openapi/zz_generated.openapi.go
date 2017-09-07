@@ -6149,7 +6149,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"dockerImageRepository": {
 							SchemaProps: spec.SchemaProps{
-								Description: "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
+								Description: "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -6715,7 +6715,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"annotations": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Annotations associated with images using this tag",
+								Description: "Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags.",
 								Type:        []string{"object"},
 								AdditionalProperties: &spec.SchemaOrBool{
 									Schema: &spec.Schema{
@@ -6729,7 +6729,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"from": {
 							SchemaProps: spec.SchemaProps{
-								Description: "From is a reference to an image stream tag or image stream this tag should track",
+								Description: "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.",
 								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
 							},
 						},
@@ -6742,20 +6742,20 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"generation": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Generation is the image stream generation that updated this tag - setting it to 0 is an indication that the generation must be updated. Legacy clients will send this as nil, which means the client doesn't know or care.",
+								Description: "Generation is a counter that tracks mutations to the spec tag (user intent). When a tag reference is changed the generation is set to match the current stream generation (which is incremented every time spec is changed). Other processes in the system like the image importer observe that the generation of spec tag is newer than the generation recorded in the status and use that as a trigger to import the newest remote tag. To trigger a new import, clients may set this value to zero which will reset the generation to the latest stream generation. Legacy clients will send this value as nil which will be merged with the current tag generation.",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},
 						},
 						"importPolicy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Import is information that controls how images may be imported by the server.",
+								Description: "ImportPolicy is information that controls how images may be imported by the server.",
 								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy"),
 							},
 						},
 						"referencePolicy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "ReferencePolicy defines how other components should consume the image",
+								Description: "ReferencePolicy defines how other components should consume the image.",
 								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy"),
 							},
 						},
