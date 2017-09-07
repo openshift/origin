@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -176,7 +177,7 @@ func getImportContext(
 	secrets, err := osClient.ImageStreamSecrets(namespace).Secrets(name, metav1.ListOptions{})
 	if err != nil {
 		context.GetLogger(ctx).Errorf("error getting secrets for repository %s/%s: %v", namespace, name, err)
-		secrets = &kapi.SecretList{}
+		secrets = &kapiv1.SecretList{}
 	}
 	credentials := importer.NewCredentialsForSecrets(secrets.Items)
 	return importer.NewContext(secureTransport, insecureTransport).WithCredentials(credentials)

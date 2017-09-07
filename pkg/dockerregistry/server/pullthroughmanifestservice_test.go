@@ -93,7 +93,7 @@ func TestPullthroughManifests(t *testing.T) {
 	image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", serverURL.Host, namespace, repo, image.Name)
 	image.DockerImageManifest = ""
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, repo, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -136,7 +136,7 @@ func TestPullthroughManifests(t *testing.T) {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
 		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
 
@@ -351,7 +351,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 			},
 		},
 	} {
-		fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		tc.fakeOpenShiftInit(fos)
 
@@ -359,7 +359,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
-			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
 		ctx = withRepository(ctx, repo)
@@ -459,7 +459,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 	image2 := *img
 	image2.DockerImageReference = dockerImageReference(server2, "foo/bar")
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, repo1, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -493,7 +493,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 		}
 
 		r := newTestRepository(t, namespace, tc.repoName, testRepositoryOptions{
-			client:            registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
 

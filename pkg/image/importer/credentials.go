@@ -9,7 +9,6 @@ import (
 
 	"github.com/docker/distribution/registry/client/auth"
 
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 )
@@ -92,18 +91,18 @@ func (s *keyringCredentialStore) RefreshToken(url *url.URL, service string) stri
 func (s *keyringCredentialStore) SetRefreshToken(url *url.URL, service string, token string) {
 }
 
-func NewCredentialsForSecrets(secrets []kapi.Secret) *SecretCredentialStore {
+func NewCredentialsForSecrets(secrets []kapiv1.Secret) *SecretCredentialStore {
 	return &SecretCredentialStore{secrets: secrets}
 }
 
-func NewLazyCredentialsForSecrets(secretsFn func() ([]kapi.Secret, error)) *SecretCredentialStore {
+func NewLazyCredentialsForSecrets(secretsFn func() ([]kapiv1.Secret, error)) *SecretCredentialStore {
 	return &SecretCredentialStore{secretsFn: secretsFn}
 }
 
 type SecretCredentialStore struct {
 	lock      sync.Mutex
-	secrets   []kapi.Secret
-	secretsFn func() ([]kapi.Secret, error)
+	secrets   []kapiv1.Secret
+	secretsFn func() ([]kapiv1.Secret, error)
 	err       error
 	keyring   credentialprovider.DockerKeyring
 }
@@ -139,16 +138,8 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 		}
 	}
 
-	secretsv1 := make([]kapiv1.Secret, len(s.secrets))
-	for i, secret := range s.secrets {
-		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
-		if err != nil {
-			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
-			continue
-		}
-	}
 	// TODO: need a version of this that is best effort secret - otherwise one error blocks all secrets
-	keyring, err := credentialprovider.MakeDockerKeyring(secretsv1, emptyKeyring)
+	keyring, err := credentialprovider.MakeDockerKeyring(s.secrets, emptyKeyring)
 	if err != nil {
 		glog.V(5).Infof("Loading keyring failed for credential store: %v", err)
 		s.err = err

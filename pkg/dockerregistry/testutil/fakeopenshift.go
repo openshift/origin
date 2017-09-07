@@ -39,6 +39,7 @@ func NewFakeOpenShift() *FakeOpenShift {
 // NewFakeOpenShiftWithClient constructs a fake client associated with
 // the stateful fake in-memory OpenShift reactors. The fake OpenShift is
 // available for direct interaction, so you can make buggy states.
+// TODO: remove the FakeOpenshift as the legacy client is not needed anymore
 func NewFakeOpenShiftWithClient() (*FakeOpenShift, *testclient.Fake, *imagefakeclient.FakeImageV1) {
 	fos := NewFakeOpenShift()
 	client := &testclient.Fake{}

@@ -5,7 +5,6 @@ import (
 	authclientv1 "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/authorization/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageclientv1 "github.com/openshift/origin/pkg/image/generated/clientset/typed/image/v1"
 	userclientv1 "github.com/openshift/origin/pkg/user/generated/clientset/typed/user/v1"
@@ -36,7 +35,6 @@ type Interface interface {
 }
 
 type apiClient struct {
-	oc    osclient.Interface
 	kube  kcoreclient.CoreInterface
 	auth  authclientv1.AuthorizationV1Interface
 	image imageclientv1.ImageV1Interface
@@ -44,14 +42,12 @@ type apiClient struct {
 }
 
 func newAPIClient(
-	c osclient.Interface,
 	kc kcoreclient.CoreInterface,
 	authClient authclientv1.AuthorizationV1Interface,
 	imageClient imageclientv1.ImageV1Interface,
 	userClient userclientv1.UserV1Interface,
 ) Interface {
 	return &apiClient{
-		oc:    c,
 		kube:  kc,
 		auth:  authClient,
 		image: imageClient,
@@ -88,9 +84,7 @@ func (c *apiClient) ImageStreamTags(namespace string) ImageStreamTagInterface {
 }
 
 func (c *apiClient) ImageStreamSecrets(namespace string) ImageStreamSecretInterface {
-	// FIXME: When we generate expansions for images clientset, replace this with
-	// the clientset and get rid of the legacy client alltogether.
-	return c.oc.ImageStreamSecrets(namespace)
+	return c.image.ImageStreams(namespace)
 }
 
 func (c *apiClient) LimitRanges(namespace string) LimitRangeInterface {
@@ -106,22 +100,21 @@ func (c *apiClient) SelfSubjectAccessReviews() SelfSubjectAccessReviewInterface 
 }
 
 type registryClient struct {
-	kubeConfig      *restclient.Config
-	openshiftConfig *restclient.Config
+	kubeConfig *restclient.Config
 }
 
 // NewRegistryClient provides a new registry client.
+// TODO: Remove clientcmd dependency and move the parsing of required
+// environemtn variable to registry.
 func NewRegistryClient(config *clientcmd.Config) RegistryClient {
 	return &registryClient{
-		kubeConfig:      config.KubeConfig(),
-		openshiftConfig: config.OpenShiftConfig(),
+		kubeConfig: config.KubeConfig(),
 	}
 }
 
 // Client returns the authenticated client to use with the server.
 func (c *registryClient) Client() (Interface, error) {
 	return newAPIClient(
-		osclient.NewOrDie(c.openshiftConfig),
 		kcoreclient.NewForConfigOrDie(c.kubeConfig),
 		authclientv1.NewForConfigOrDie(c.kubeConfig),
 		imageclientv1.NewForConfigOrDie(c.kubeConfig),
@@ -132,14 +125,9 @@ func (c *registryClient) Client() (Interface, error) {
 // ClientFromToken returns the client based on the bearer token.
 func (c *registryClient) ClientFromToken(token string) (Interface, error) {
 	newClient := *c
-	newOpenshiftConfig := clientcmd.AnonymousClientConfig(newClient.openshiftConfig)
-	newOpenshiftConfig.BearerToken = token
-
-	newKubeconfig := *newClient.kubeConfig
+	newKubeconfig := restclient.AnonymousClientConfig(newClient.kubeConfig)
 	newKubeconfig.BearerToken = token
-
-	newClient.kubeConfig = &newKubeconfig
-	newClient.openshiftConfig = &newOpenshiftConfig
+	newClient.kubeConfig = newKubeconfig
 
 	return newClient.Client()
 }

@@ -8,8 +8,10 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/credentialprovider"
 
+	"github.com/golang/glog"
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
@@ -22,7 +24,16 @@ func TestCredentialsForSecrets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	store := NewCredentialsForSecrets(obj.(*kapi.SecretList).Items)
+	secrets := obj.(*kapi.SecretList)
+	secretsv1 := make([]kapiv1.Secret, len(secrets.Items))
+	for i, secret := range secrets.Items {
+		err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
+		if err != nil {
+			glog.V(2).Infof("Unable to make the Docker keyring for %s/%s secret: %v", secret.Name, secret.Namespace, err)
+			continue
+		}
+	}
+	store := NewCredentialsForSecrets(secretsv1)
 	user, pass := store.Basic(&url.URL{Scheme: "https", Host: "172.30.213.112:5000"})
 	if user != "serviceaccount" || len(pass) == 0 {
 		t.Errorf("unexpected username and password: %s %s", user, pass)

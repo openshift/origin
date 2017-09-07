@@ -47,19 +47,19 @@ func TestSignatureGet(t *testing.T) {
 	testImage.DockerImageManifest = ""
 	testImage.Signatures = append(testImage.Signatures, testSignature)
 
-	fos, client, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, "user", "app", map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
 	registrytest.AddImage(t, fos, testImage, "user", "app", "latest")
 
-	osclient, err := registryclient.NewFakeRegistryClient(client, imageClient).Client()
+	osclient, err := registryclient.NewFakeRegistryClient(imageClient).Client()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(client, imageClient))
+	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(imageClient))
 	ctx = WithConfiguration(ctx, &regconfig.Configuration{})
 	ctx = withUserClient(ctx, osclient)
 	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
@@ -162,13 +162,13 @@ func TestSignaturePut(t *testing.T) {
 		return true, sign, nil
 	})
 
-	osclient, err := registryclient.NewFakeRegistryClient(nil, imageClient).Client()
+	osclient, err := registryclient.NewFakeRegistryClient(imageClient).Client()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(nil, imageClient))
+	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(imageClient))
 	ctx = WithConfiguration(ctx, &regconfig.Configuration{})
 	ctx = withUserClient(ctx, osclient)
 	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
