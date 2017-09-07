@@ -135,7 +135,15 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: SudoerRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemUserResource).Names(SystemAdminUsername).RuleOrDie(),
+				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemUserResource, authorizationapi.UserResource).Names(SystemAdminUsername).RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ScopeImpersonationRoleName,
+			},
+			Rules: []rbac.PolicyRule{
+				rbac.NewRule("impersonate").Groups(kAuthnGroup).Resources("userextras/scopes.authorization.openshift.io").RuleOrDie(),
 			},
 		},
 		{
@@ -991,6 +999,11 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 		// Allow node-bootstrapper SA to bootstrap nodes by default.
 		rbac.NewClusterBinding(NodeBootstrapRoleName).
 			SAs(DefaultOpenShiftInfraNamespace, InfraNodeBootstrapServiceAccountName).
+			BindingOrDie(),
+		// Everyone should be able to add a scope to their impersonation request.  It is purely tightening.
+		// This does not grant access to impersonate in general, only tighten if you already have permission.
+		rbac.NewClusterBinding(ScopeImpersonationRoleName).
+			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
 	}
 }

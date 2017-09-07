@@ -13,7 +13,7 @@ os::test::junit::declare_suite_start "cmd/quota"
 
 os::test::junit::declare_suite_start "cmd/quota/clusterquota"
 
-os::cmd::expect_success 'oc new-project quota-foo --as=deads'
+os::cmd::expect_success 'oc new-project quota-foo --as=deads --as-group=system:authenticated --as-group=system:authenticated:oauth'
 os::cmd::expect_success 'oc label namespace/quota-foo owner=deads'
 os::cmd::expect_success 'oc create clusterquota for-deads --project-label-selector=owner=deads --hard=secrets=10'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads"
@@ -24,8 +24,8 @@ os::cmd::expect_failure_and_text 'oc create clusterquota for-deads-malformed --p
 os::cmd::expect_success 'oc create clusterquota for-deads-by-annotation --project-annotation-selector=openshift.io/requester=deads --hard=secrets=50'
 os::cmd::expect_success 'oc create clusterquota for-deads-email-by-annotation --project-annotation-selector=openshift.io/requester=deads@deads.io --hard=secrets=50'
 os::cmd::expect_success 'oc create clusterresourcequota annotation-value-with-commas --project-annotation-selector="openshift.io/requester=deads,\"openshift.io/withcomma=yes,true,1\"" --hard=pods=10'
-os::cmd::expect_success 'oc new-project quota-bar --as=deads'
-os::cmd::expect_success 'oc new-project quota-asmail --as=deads@deads.io'
+os::cmd::expect_success 'oc new-project quota-bar --as=deads  --as-group=system:authenticated --as-group=system:authenticated:oauth'
+os::cmd::expect_success 'oc new-project quota-asmail --as=deads@deads.io  --as-group=system:authenticated --as-group=system:authenticated:oauth'
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-bar --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-foo --as deads -o name' "for-deads-by-annotation"
 os::cmd::try_until_text 'oc get appliedclusterresourcequota -n quota-asmail --as deads@deads.io -o name' "for-deads-email-by-annotation"
@@ -43,7 +43,7 @@ os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/quota/imagestreams"
 
-os::cmd::expect_success 'oc new-project quota-images --as=deads'
+os::cmd::expect_success 'oc new-project quota-images --as=deads  --as-group=system:authenticated --as-group=system:authenticated:oauth'
 os::cmd::expect_success 'oc create quota -n quota-images is-quota --hard openshift.io/imagestreams=1'
 os::cmd::try_until_success 'oc tag -n quota-images openshift/hello-openshift myis2:v2'
 os::cmd::expect_failure_and_text 'oc tag -n quota-images busybox mybox:v1' "exceeded quota"

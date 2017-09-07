@@ -36,6 +36,21 @@ items:
     - system:admin
     resources:
     - systemusers
+    - users
+    verbs:
+    - impersonate
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:scope-impersonation
+  rules:
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - userextras/scopes.authorization.openshift.io
     verbs:
     - impersonate
 - apiVersion: rbac.authorization.k8s.io/v1beta1
