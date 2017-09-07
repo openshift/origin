@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -32,6 +33,8 @@ import (
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	authorizerunion "k8s.io/apiserver/pkg/authorization/union"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/client-go/discovery"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
@@ -91,6 +94,8 @@ import (
 // MasterConfig defines the required parameters for starting the OpenShift master
 type MasterConfig struct {
 	Options configapi.MasterConfig
+
+	RESTMapper *discovery.DeferredDiscoveryRESTMapper
 
 	// RESTOptionsGetter provides access to storage and RESTOptions for a particular resource
 	RESTOptionsGetter restoptions.Getter
@@ -222,6 +227,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		options.ProjectConfig.ProjectRequestMessage,
 	)
 
+	// Use a discovery client capable of being refreshed.
+	discoveryClient := cacheddiscovery.NewMemCacheClient(privilegedLoopbackKubeClientsetInternal.Discovery())
+	restMapper := discovery.NewDeferredDiscoveryRESTMapper(discoveryClient, meta.InterfacesForUnstructured)
+
 	// punch through layers to build this in order to get a string for a cloud provider file
 	// TODO refactor us into a forward building flow with a side channel like this
 	kubeOptions, err := kubernetes.BuildKubeAPIserverOptions(options)
@@ -248,8 +257,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		informers.GetInternalKubeInformers(),
 		authorizer,
 		cloudConfig,
-		// TODO: use a dynamic restmapper. See https://github.com/kubernetes/kubernetes/pull/42615.
-		kapi.Registry.RESTMapper(),
+		restMapper,
 		quotaRegistry)
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		OpenshiftClient:              privilegedLoopbackOpenShiftClient,
@@ -294,6 +302,8 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 
 	config := &MasterConfig{
 		Options: options,
+
+		RESTMapper: restMapper,
 
 		RESTOptionsGetter: restOptsGetter,
 

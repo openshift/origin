@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
+	"k8s.io/apimachinery/pkg/util/wait"
 	apiserver "k8s.io/apiserver/pkg/server"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
@@ -249,6 +250,15 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
+	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("admission.openshift.io-RefreshRESTMapper", func(context apiserver.PostStartHookContext) error {
+		c.RESTMapper.Reset()
+		go func() {
+			wait.Until(func() {
+				c.RESTMapper.Reset()
+			}, 10*time.Second, context.StopCh)
+		}()
+		return nil
+	})
 	for name, fn := range extraPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}
