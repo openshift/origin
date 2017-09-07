@@ -18,8 +18,6 @@ import (
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -27,15 +25,12 @@ import (
 	clientgoclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 	aggregatorinstall "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
-	kubecontroller "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/capabilities"
-	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/master"
-	"k8s.io/kubernetes/pkg/volume"
 	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
@@ -410,10 +405,10 @@ func (m *Master) Start() error {
 		imageTemplate := variable.NewDefaultImageTemplate()
 		imageTemplate.Format = m.config.ImageConfig.Format
 		imageTemplate.Latest = m.config.ImageConfig.Latest
-		volume.NewPersistentVolumeRecyclerPodTemplate = newPersistentVolumeRecyclerPodTemplate(imageTemplate.ExpandOrDie("recycler"))
+		recyclerImage := imageTemplate.ExpandOrDie("recycler")
 
+		// you can't double run healthz, so only do this next bit if we aren't starting the API
 		if !m.api {
-			// you can't double run healthz, so only do this next bit if we aren't starting the API
 
 			glog.Infof("Starting controllers on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 			if len(m.config.DisabledFeatures) > 0 {
@@ -477,6 +472,16 @@ func (m *Master) Start() error {
 
 			// continuously run the scheduler while we have the primary lease
 			go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
+
+			go runEmbeddedKubeControllerManager(
+				m.config.MasterClients.OpenShiftLoopbackKubeConfig,
+				m.config.ServiceAccountConfig.PrivateKeyFile,
+				m.config.ServiceAccountConfig.MasterCA,
+				m.config.KubernetesMasterConfig.PodEvictionTimeout,
+				m.config.VolumeConfig.DynamicProvisioningEnabled,
+				m.config.KubernetesMasterConfig.ControllerArguments,
+				recyclerImage,
+				informers)
 
 			controllerContext, err := getControllerContext(*m.config, kubeControllerManagerConfig, cloudProvider, informers, utilwait.NeverStop)
 			if err != nil {
@@ -610,47 +615,6 @@ func testEtcdConnectivity(etcdClientInfo configapi.EtcdConnectionInfo) error {
 	return nil
 }
 
-type GenericResourceInformer interface {
-	ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
-}
-
-// genericInternalResourceInformerFunc will return an internal informer for any resource matching
-// its group resource, instead of the external version. Only valid for use where the type is accessed
-// via generic interfaces, such as the garbage collector with ObjectMeta.
-type genericInternalResourceInformerFunc func(resource schema.GroupVersionResource) (kinformers.GenericInformer, error)
-
-func (fn genericInternalResourceInformerFunc) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-	resource.Version = runtime.APIVersionInternal
-	return fn(resource)
-}
-
-type genericInformers struct {
-	kinformers.SharedInformerFactory
-	generic []GenericResourceInformer
-	// bias is a map that tries loading an informer from another GVR before using the original
-	bias map[schema.GroupVersionResource]schema.GroupVersionResource
-}
-
-func (i genericInformers) ForResource(resource schema.GroupVersionResource) (kinformers.GenericInformer, error) {
-	if try, ok := i.bias[resource]; ok {
-		if res, err := i.ForResource(try); err == nil {
-			return res, nil
-		}
-	}
-
-	informer, firstErr := i.SharedInformerFactory.ForResource(resource)
-	if firstErr == nil {
-		return informer, nil
-	}
-	for _, generic := range i.generic {
-		if informer, err := generic.ForResource(resource); err == nil {
-			return informer, nil
-		}
-	}
-	glog.V(4).Infof("Couldn't find informer for %v", resource)
-	return nil, firstErr
-}
-
 // startControllers launches the controllers
 // allocation controller is passed in because it wants direct etcd access.  Naughty.
 func startControllers(options configapi.MasterConfig, allocationController origin.SecurityAllocationController, controllerContext origincontrollers.ControllerContext) error {
@@ -702,19 +666,9 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 
 	allocationController.RunSecurityAllocationController()
 
-	// set the upstream default until it is configurable
-	kubernetesControllerInitializers := kubecontroller.NewControllerInitializers()
 	openshiftControllerInitializers, err := openshiftControllerConfig.GetControllerInitializers()
 	if err != nil {
 		return err
-	}
-	// Add kubernetes controllers initialized from Origin
-	for name, initFn := range kubernetesControllerInitializers {
-		if _, exists := openshiftControllerInitializers[name]; exists {
-			// don't overwrite, openshift takes priority
-			continue
-		}
-		openshiftControllerInitializers[name] = origincontrollers.FromKubeInitFunc(initFn)
 	}
 
 	excludedControllers := getExcludedControllers(options)
@@ -749,19 +703,11 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 }
 
 func getExcludedControllers(options configapi.MasterConfig) sets.String {
-	excludedControllers := sets.NewString(
-		// not used in openshift.  Yet?
-		"ttl",
-		"bootstrapsigner",
-		"tokencleaner",
-		// remove the HPA controller until it is generic
-		"horizontalpodautoscaling",
-	)
+	excludedControllers := sets.NewString()
 	if !configapi.IsBuildEnabled(&options) {
 		excludedControllers.Insert("openshift.io/build")
 		excludedControllers.Insert("openshift.io/build-config-change")
 	}
-
 	return excludedControllers
 }
 

@@ -1,12 +1,9 @@
 package start
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	cmappoptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/controller"
 
@@ -46,45 +43,7 @@ func getControllerContext(options configapi.MasterConfig, controllerManagerOptio
 				AuthenticationClient: kubeExternal.Authentication(),
 				Namespace:            "kube-system",
 			},
-			InformerFactory: genericInformers{
-				SharedInformerFactory: informers.GetExternalKubeInformers(),
-				generic: []GenericResourceInformer{
-					// use our existing internal informers to satisfy the generic informer requests (which don't require strong
-					// types).
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.appInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.authorizationInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.buildInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.imageInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.quotaInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.securityInformers.ForResource(resource)
-					}),
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.templateInformers.ForResource(resource)
-					}),
-					informers.externalKubeInformers,
-					genericInternalResourceInformerFunc(func(resource schema.GroupVersionResource) (kexternalinformers.GenericInformer, error) {
-						return informers.internalKubeInformers.ForResource(resource)
-					}),
-				},
-				bias: map[schema.GroupVersionResource]schema.GroupVersionResource{
-					{Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "rolebindings", Version: runtime.APIVersionInternal},
-					{Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: "v1beta1"}: {Group: "rbac.authorization.k8s.io", Resource: "clusterrolebindings", Version: runtime.APIVersionInternal},
-					{Group: "rbac.authorization.k8s.io", Resource: "roles", Version: "v1beta1"}:               {Group: "rbac.authorization.k8s.io", Resource: "roles", Version: runtime.APIVersionInternal},
-					{Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: "v1beta1"}:        {Group: "rbac.authorization.k8s.io", Resource: "clusterroles", Version: runtime.APIVersionInternal},
-					{Group: "", Resource: "securitycontextconstraints", Version: "v1"}:                        {Group: "", Resource: "securitycontextconstraints", Version: runtime.APIVersionInternal},
-				},
-			},
+			InformerFactory:    newGenericInformers(informers),
 			Options:            *controllerManagerOptions,
 			AvailableResources: availableResources,
 			Cloud:              cloudProvider,
