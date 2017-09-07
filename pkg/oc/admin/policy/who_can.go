@@ -10,6 +10,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -28,6 +29,9 @@ type whoCanOptions struct {
 	verb         string
 	resource     schema.GroupVersionResource
 	resourceName string
+
+	output   string
+	printObj func(runtime.Object) error
 }
 
 // NewCmdWhoCan implements the OpenShift cli who-can command
@@ -39,7 +43,7 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 		Short: "List who can perform the specified action on a resource",
 		Long:  "List who can perform the specified action on a resource",
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.complete(f, args); err != nil {
+			if err := options.complete(f, cmd, args, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -55,19 +59,26 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 	}
 
 	cmd.Flags().BoolVar(&options.allNamespaces, "all-namespaces", options.allNamespaces, "If true, list who can perform the specified action in all namespaces.")
+	kcmdutil.AddPrinterFlags(cmd)
 
 	return cmd
 }
 
-func (o *whoCanOptions) complete(f *clientcmd.Factory, args []string) error {
+func (o *whoCanOptions) complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
+	mapper, _ := f.Object()
+
+	o.output = kcmdutil.GetFlagString(cmd, "output")
+	o.printObj = func(obj runtime.Object) error {
+		return f.PrintObject(cmd, false, mapper, obj, out)
+	}
+
 	switch len(args) {
 	case 3:
 		o.resourceName = args[2]
 		fallthrough
 	case 2:
-		restMapper, _ := f.Object()
 		o.verb = args[0]
-		o.resource = resourceFor(restMapper, args[1])
+		o.resource = resourceFor(mapper, args[1])
 	default:
 		return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
 	}
@@ -110,6 +121,14 @@ func (o *whoCanOptions) run() error {
 
 	if err != nil {
 		return err
+	}
+
+	if len(o.output) > 0 {
+		if o.output != "json" && o.output != "yaml" {
+			return fmt.Errorf("invalid output format %q, only yaml|json supported", o.output)
+		}
+
+		return o.printObj(resourceAccessReviewResponse)
 	}
 
 	if resourceAccessReviewResponse.Namespace == metav1.NamespaceAll {

@@ -111,7 +111,12 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	o.builder = f.NewBuilder(true)
 	o.RESTClientFactory = f.ClientForMapping
 
-	if len(kcmdutil.GetFlagString(cmd, "output")) != 0 {
+	output := kcmdutil.GetFlagString(cmd, "output")
+	if len(output) > 0 {
+		if output != "json" && output != "yaml" {
+			return fmt.Errorf("invalid output format %q, only yaml|json supported", output)
+		}
+
 		printer, err := f.PrinterForCommand(cmd, false, nil, kprinters.PrintOptions{})
 		if err != nil {
 			return err
