@@ -60,25 +60,25 @@ var _ = g.Describe("[Feature:ImageQuota] Image resource quota", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "refused", imageSize, 1, outSink, false)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "refused", imageSize, 1, outSink, false, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 1)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag1", imageSize, 1, outSink, true)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag1", imageSize, 1, outSink, true, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err := waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image to existing image stream %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag2", imageSize, 1, outSink, true)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "first", "tag2", imageSize, 1, outSink, true, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "refused", imageSize, 1, outSink, false)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "refused", imageSize, 1, outSink, false, true)
 
 		quota, err = bumpQuota(oc, imageapi.ResourceImageStreams, 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -86,14 +86,14 @@ var _ = g.Describe("[Feature:ImageQuota] Image resource quota", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "tag1", imageSize, 1, outSink, true)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "second", "tag1", imageSize, 1, outSink, true, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(assertQuotasEqual(used, quota)).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image exceeding quota %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "refused", imageSize, 1, outSink, false)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "refused", imageSize, 1, outSink, false, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting first image stream")
@@ -110,7 +110,7 @@ var _ = g.Describe("[Feature:ImageQuota] Image resource quota", func() {
 		o.Expect(assertQuotasEqual(used, kapi.ResourceList{imageapi.ResourceImageStreams: resource.MustParse("1")})).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below quota %v", quota))
-		_, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "tag", imageSize, 1, outSink, true)
+		_, _, err = imagesutil.BuildAndPushImageOfSizeWithDocker(oc, dClient, "third", "tag", imageSize, 1, outSink, true, true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = waitForResourceQuotaSync(oc, quotaName, quota)
 		o.Expect(err).NotTo(o.HaveOccurred())

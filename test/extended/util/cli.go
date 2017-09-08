@@ -134,9 +134,9 @@ func (c *CLI) SetNamespace(ns string) *CLI {
 }
 
 // WithoutNamespace instructs the command should be invoked without adding --namespace parameter
-func (c *CLI) WithoutNamespace() *CLI {
+func (c CLI) WithoutNamespace() *CLI {
 	c.withoutNamespace = true
-	return c
+	return &c
 }
 
 // SetOutputDir change the default output directory for temporary files
