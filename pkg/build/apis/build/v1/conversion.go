@@ -4,8 +4,7 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/legacy"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -176,7 +175,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Build",
-		oapi.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), nil),
+		apihelpers.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), nil),
 	); err != nil {
 		return err
 	}
@@ -186,12 +185,12 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 
 func addLegacyFieldLabelConversions(scheme *runtime.Scheme) error {
 	if err := scheme.AddFieldLabelConversionFunc("v1", "Build",
-		oapi.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), map[string]string{"name": "metadata.name"}),
+		apihelpers.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), map[string]string{"name": "metadata.name"}),
 	); err != nil {
 		return err
 	}
 
-	if err := scheme.AddFieldLabelConversionFunc("v1", "BuildConfig", legacy.LegacyMetaV1FieldSelectorConversionWithName); err != nil {
+	if err := scheme.AddFieldLabelConversionFunc("v1", "BuildConfig", apihelpers.LegacyMetaV1FieldSelectorConversionWithName); err != nil {
 		return err
 	}
 	return nil

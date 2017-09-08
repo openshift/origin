@@ -1,4 +1,4 @@
-package extension
+package apihelpers
 
 import (
 	"fmt"

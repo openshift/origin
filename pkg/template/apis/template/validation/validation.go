@@ -11,7 +11,6 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	"github.com/golang/glog"
-	oapi "github.com/openshift/origin/pkg/api"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
@@ -37,7 +36,7 @@ func ValidateProcessedTemplate(template *templateapi.Template) field.ErrorList {
 
 // ValidateTemplate tests if required fields in the Template are set.
 func ValidateTemplate(template *templateapi.Template) (allErrs field.ErrorList) {
-	allErrs = validation.ValidateObjectMeta(&template.ObjectMeta, true, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
+	allErrs = validation.ValidateObjectMeta(&template.ObjectMeta, true, validation.ValidatePodName, field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateBody(template)...)
 	return
 }
@@ -58,7 +57,7 @@ func validateTemplateBody(template *templateapi.Template) (allErrs field.ErrorLi
 
 // ValidateTemplateInstance tests if required fields in the TemplateInstance are set.
 func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (allErrs field.ErrorList) {
-	allErrs = validation.ValidateObjectMeta(&templateInstance.ObjectMeta, true, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
+	allErrs = validation.ValidateObjectMeta(&templateInstance.ObjectMeta, true, validation.ValidatePodName, field.NewPath("metadata"))
 
 	// Allow the nested template name and namespace to be empty.  If not empty,
 	// the fields should pass validation.
@@ -81,7 +80,7 @@ func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (a
 	}
 	if templateInstance.Spec.Secret != nil {
 		if templateInstance.Spec.Secret.Name != "" {
-			for _, msg := range oapi.GetNameValidationFunc(validation.ValidateSecretName)(templateInstance.Spec.Secret.Name, false) {
+			for _, msg := range validation.ValidateSecretName(templateInstance.Spec.Secret.Name, false) {
 				allErrs = append(allErrs, field.Invalid(field.NewPath("spec.secret.name"), templateInstance.Spec.Secret.Name, msg))
 			}
 		} else {
@@ -93,7 +92,7 @@ func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (a
 	} else if templateInstance.Spec.Requester.Username == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.requester.username"), ""))
 	} else {
-		for _, msg := range oapi.GetNameValidationFunc(uservalidation.ValidateUserName)(templateInstance.Spec.Requester.Username, false) {
+		for _, msg := range uservalidation.ValidateUserName(templateInstance.Spec.Requester.Username, false) {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.requester.username"), templateInstance.Spec.Requester.Username, msg))
 		}
 	}
@@ -112,7 +111,7 @@ func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *templ
 
 // ValidateBrokerTemplateInstance tests if required fields in the BrokerTemplateInstance are set.
 func ValidateBrokerTemplateInstance(brokerTemplateInstance *templateapi.BrokerTemplateInstance) (allErrs field.ErrorList) {
-	allErrs = validation.ValidateObjectMeta(&brokerTemplateInstance.ObjectMeta, false, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("metadata"))
+	allErrs = validation.ValidateObjectMeta(&brokerTemplateInstance.ObjectMeta, false, validation.ValidatePodName, field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.TemplateInstance, field.NewPath("spec.templateInstance"), "TemplateInstance")...)
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.Secret, field.NewPath("spec.secret"), "Secret")...)
 	for _, id := range brokerTemplateInstance.Spec.BindingIDs {
@@ -155,7 +154,7 @@ func validateTemplateInstanceReference(ref *kapi.ObjectReference, fldPath *field
 	if len(ref.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 	} else {
-		for _, msg := range oapi.GetNameValidationFunc(validation.ValidatePodName)(ref.Name, false) {
+		for _, msg := range validation.ValidatePodName(ref.Name, false) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), ref.Name, msg))
 		}
 	}
@@ -163,7 +162,7 @@ func validateTemplateInstanceReference(ref *kapi.ObjectReference, fldPath *field
 	if len(ref.Namespace) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("namespace"), ""))
 	} else {
-		for _, msg := range oapi.GetNameValidationFunc(validation.ValidateNamespaceName)(ref.Namespace, false) {
+		for _, msg := range validation.ValidateNamespaceName(ref.Namespace, false) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("namespace"), ref.Namespace, msg))
 		}
 	}

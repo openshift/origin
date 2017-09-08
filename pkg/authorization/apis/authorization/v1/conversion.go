@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kapi "k8s.io/kubernetes/pkg/api"
 
-	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/api/extension"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
@@ -93,7 +93,7 @@ func Convert_authorization_ResourceAccessReviewResponse_To_v1_ResourceAccessRevi
 
 func Convert_v1_PolicyRule_To_authorization_PolicyRule(in *PolicyRule, out *newer.PolicyRule, s conversion.Scope) error {
 	SetDefaults_PolicyRule(in)
-	if err := oapi.Convert_runtime_RawExtension_To_runtime_Object(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
+	if err := apihelpers.Convert_runtime_RawExtension_To_runtime_Object(kapi.Scheme, &in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 
@@ -113,7 +113,7 @@ func Convert_v1_PolicyRule_To_authorization_PolicyRule(in *PolicyRule, out *newe
 }
 
 func Convert_authorization_PolicyRule_To_v1_PolicyRule(in *newer.PolicyRule, out *PolicyRule, s conversion.Scope) error {
-	if err := oapi.Convert_runtime_Object_To_runtime_RawExtension(&in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
+	if err := apihelpers.Convert_runtime_Object_To_runtime_RawExtension(kapi.Scheme, &in.AttributeRestrictions, &out.AttributeRestrictions, s); err != nil {
 		return err
 	}
 
@@ -395,7 +395,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
-		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
+		apihelpers.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
 	); err != nil {
 		return err
 	}
@@ -409,11 +409,11 @@ var _ runtime.NestedObjectEncoder = &PolicyRule{}
 func (c *PolicyRule) DecodeNestedObjects(d runtime.Decoder) error {
 	// decoding failures result in a runtime.Unknown object being created in Object and passed
 	// to conversion
-	extension.DecodeNestedRawExtensionOrUnknown(d, &c.AttributeRestrictions)
+	apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.AttributeRestrictions)
 	return nil
 }
 func (c *PolicyRule) EncodeNestedObjects(e runtime.Encoder) error {
-	return extension.EncodeNestedRawExtension(e, &c.AttributeRestrictions)
+	return apihelpers.EncodeNestedRawExtension(e, &c.AttributeRestrictions)
 }
 
 var _ runtime.NestedObjectDecoder = &SelfSubjectRulesReview{}

@@ -5,8 +5,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	oapi "github.com/openshift/origin/pkg/api"
 )
 
 func ValidateProvisionRequest(preq *ProvisionRequest) field.ErrorList {
@@ -22,7 +20,7 @@ func ValidateProvisionRequest(preq *ProvisionRequest) field.ErrorList {
 	if preq.Context.Namespace == "" {
 		errors = append(errors, field.Required(field.NewPath("context.namespace"), ""))
 	} else {
-		for _, msg := range oapi.GetNameValidationFunc(validation.ValidateNamespaceName)(preq.Context.Namespace, false) {
+		for _, msg := range validation.ValidateNamespaceName(preq.Context.Namespace, false) {
 			errors = append(errors, field.Invalid(field.NewPath("context.namespace"), preq.Context.Namespace, msg))
 		}
 	}

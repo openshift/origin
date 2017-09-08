@@ -1,19 +1,20 @@
-package v1_test
+package v1
 
 import (
 	"testing"
 
+	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
+
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/registry/core/namespace"
-
-	testutil "github.com/openshift/origin/test/util/api"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Project",
+	converter := runtime.NewScheme()
+	LegacySchemeBuilder.AddToScheme(converter)
+
+	apitesting.TestFieldLabelConversions(t, converter, "v1", "Project",
 		// Ensure all currently returned labels are supported
 		namespace.NamespaceToSelectableFields(&kapi.Namespace{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
