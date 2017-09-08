@@ -2610,6 +2610,73 @@ func TestInterPodAffinityWithMultipleNodes(t *testing.T) {
 			},
 			test: "NodeA and nodeB have same topologyKey and label value. NodeA has an existing pod that match the inter pod affinity rule. The pod can not be scheduled onto nodeA and nodeB but can be schedulerd onto nodeC",
 		},
+		{
+			pod: &api.Pod{
+				ObjectMeta: api.ObjectMeta{
+					Labels:    map[string]string{"foo": "123"},
+					Namespace: "NS1",
+					Annotations: map[string]string{
+						api.AffinityAnnotationKey: `
+						{
+							"podAntiAffinity": {
+								"requiredDuringSchedulingIgnoredDuringExecution": [{
+									"labelSelector": {
+										"matchExpressions": [{
+											"key": "foo",
+											"operator": "In",
+											"values": ["bar"]
+										}]
+									},
+									"topologyKey": "region"
+								}]
+							}
+						}`,
+					},
+				},
+			},
+			pods: []*api.Pod{
+				{
+					ObjectMeta: api.ObjectMeta{
+						Labels:    map[string]string{"foo": "bar"},
+						Namespace: "NS1",
+					},
+					Spec: api.PodSpec{NodeName: "nodeA"},
+				},
+				{
+					ObjectMeta: api.ObjectMeta{
+						Namespace: "NS2",
+						Annotations: map[string]string{
+							api.AffinityAnnotationKey: `
+							{
+								"podAntiAffinity": {
+									"requiredDuringSchedulingIgnoredDuringExecution": [{
+										"labelSelector": {
+											"matchExpressions": [{
+												"key": "foo",
+												"operator": "In",
+												"values": ["123"]
+											}]
+										},
+										"topologyKey": "region"
+									}]
+								}
+							}`,
+						},
+					},
+				},
+			},
+			nodes: []api.Node{
+				{ObjectMeta: api.ObjectMeta{Name: "nodeA", Labels: labelRgChina}},
+				{ObjectMeta: api.ObjectMeta{Name: "nodeB", Labels: labelRgChinaAzAz1}},
+				{ObjectMeta: api.ObjectMeta{Name: "nodeC", Labels: labelRgIndia}},
+			},
+			fits: map[string]bool{
+				"nodeA": false,
+				"nodeB": false,
+				"nodeC": true,
+			},
+			test: "NodeA and nodeB have same topologyKey and label value. NodeA has an existing pod that match the inter pod affinity rule. The pod can not be scheduled onto nodeA, nodeB, but can be schedulerd onto nodeC (NodeC has an existing pod that match the inter pod affinity rule but in different namespace)",
+		},
 	}
 	affinityExpectedFailureReasons := []algorithm.PredicateFailureReason{ErrPodAffinityNotMatch}
 	selectorExpectedFailureReasons := []algorithm.PredicateFailureReason{ErrNodeSelectorNotMatch}
