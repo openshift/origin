@@ -690,8 +690,8 @@ func scenario_1_deploymentConfig_imageSource_cacheEntry() *trigger.CacheEntry {
 		Key:       "deploymentconfigs/test/deploy1",
 		Namespace: "test",
 		Triggers: []triggerapi.ObjectFieldTrigger{
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name='first'].image"},
-			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name='second'].image"},
+			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name==\"first\"].image"},
+			{From: triggerapi.ObjectReference{Kind: "ImageStreamTag", Name: "stream:1"}, FieldPath: "spec.template.spec.containers[@name==\"second\"].image"},
 		},
 	}
 }
