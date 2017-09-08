@@ -341,7 +341,7 @@ func formatImageStreamTags(out *tabwriter.Writer, stream *imageapi.ImageStream) 
 
 		switch {
 		case !hasSpecTag:
-			fmt.Fprintf(out, "  empty spec tag\n")
+			fmt.Fprintf(out, "  no spec tag\n")
 		case tagRef.From == nil:
 			fmt.Fprintf(out, "  tag without source image\n")
 		case tagRef.From.Kind == "ImageStreamTag":

@@ -119,7 +119,7 @@ func TestFormatImageStreamTags(t *testing.T) {
 	t.Logf("\n%s", actual)
 
 	for _, s := range []string{
-		"empty spec tag",
+		"no spec tag",
 		"tag without source image",
 		"Unique Images:\t3",
 		"Tags:\t\t6",
