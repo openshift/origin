@@ -996,14 +996,13 @@ func getMatchingAntiAffinityTerms(pod *api.Pod, nodeInfoMap map[string]*schedule
 				continue
 			}
 			for _, term := range getPodAntiAffinityTerms(affinity.PodAntiAffinity) {
-				namespaces := priorityutil.GetNamespacesFromPodAffinityTerm(pod, &term)
+				namespaces := priorityutil.GetNamespacesFromPodAffinityTerm(existingPod, &term)
 				selector, err := unversioned.LabelSelectorAsSelector(term.LabelSelector)
 				if err != nil {
 					catchError(err)
 					return
 				}
-				match := priorityutil.PodMatchesTermsNamespaceAndSelector(pod, namespaces, selector)
-				if match {
+				if priorityutil.PodMatchesTermsNamespaceAndSelector(existingPod, namespaces, selector) {
 					nodeResult = append(nodeResult, matchingPodAntiAffinityTerm{term: &term, node: node})
 				}
 			}
@@ -1034,8 +1033,7 @@ func (c *PodAffinityChecker) getMatchingAntiAffinityTerms(pod *api.Pod, allPods 
 				if err != nil {
 					return nil, err
 				}
-				match := priorityutil.PodMatchesTermsNamespaceAndSelector(pod, namespaces, selector)
-				if match {
+				if priorityutil.PodMatchesTermsNamespaceAndSelector(pod, namespaces, selector) {
 					result = append(result, matchingPodAntiAffinityTerm{term: &term, node: existingPodNode})
 				}
 			}
@@ -1053,17 +1051,17 @@ func (c *PodAffinityChecker) satisfiesExistingPodsAntiAffinity(pod *api.Pod, met
 	} else {
 		allPods, err := c.podLister.List(labels.Everything())
 		if err != nil {
-			glog.V(10).Infof("Failed to get all pods, %+v", err)
+			glog.Errorf("Failed to get all pods, %+v", err)
 			return false
 		}
 		if matchingTerms, err = c.getMatchingAntiAffinityTerms(pod, allPods); err != nil {
-			glog.V(10).Infof("Failed to get all terms that pod %+v matches, err: %+v", podName(pod), err)
+			glog.Errorf("Failed to get all terms that pod %+v matches, err: %+v", podName(pod), err)
 			return false
 		}
 	}
 	for _, term := range matchingTerms {
 		if c.failureDomains.NodesHaveSameTopologyKey(node, term.node, term.term.TopologyKey) {
-			glog.V(10).Infof("Cannot schedule pod %+v onto node %v,because of PodAntiAffinityTerm %v",
+			glog.Errorf("Cannot schedule pod %+v onto node %v,because of PodAntiAffinityTerm %v",
 				podName(pod), node.Name, term.term)
 			return false
 		}
@@ -1088,7 +1086,7 @@ func (c *PodAffinityChecker) satisfiesPodsAffinityAntiAffinity(pod *api.Pod, nod
 	for _, term := range getPodAffinityTerms(affinity.PodAffinity) {
 		termMatches, matchingPodExists, err := c.anyPodMatchesPodAffinityTerm(pod, allPods, node, &term)
 		if err != nil {
-			glog.V(10).Infof("Cannot schedule pod %+v onto node %v,because of PodAffinityTerm %v, err: %v",
+			glog.Errorf("Cannot schedule pod %+v onto node %v,because of PodAffinityTerm %v, err: %v",
 				podName(pod), node.Name, term, err)
 			return false
 		}
@@ -1099,7 +1097,7 @@ func (c *PodAffinityChecker) satisfiesPodsAffinityAntiAffinity(pod *api.Pod, nod
 			namespaces := priorityutil.GetNamespacesFromPodAffinityTerm(pod, &term)
 			selector, err := unversioned.LabelSelectorAsSelector(term.LabelSelector)
 			if err != nil {
-				glog.V(10).Infof("Cannot parse selector on term %v for pod %v. Details %v",
+				glog.Errorf("Cannot parse selector on term %v for pod %v. Details %v",
 					term, podName(pod), err)
 				return false
 			}
