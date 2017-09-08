@@ -53,17 +53,23 @@ type ProxyHandler struct {
 }
 
 func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	reqStart := time.Now()
 	proxyHandlerTraceID := rand.Int63()
 
-	var verb string
-	var apiResource, subresource string
+	var verb, apiResource, subresource, scope string
 	var httpCode int
-	reqStart := time.Now()
+
 	defer func() {
-		metrics.Monitor(&verb, &apiResource, &subresource,
+		responseLength := 0
+		if rw, ok := w.(*metrics.ResponseWriterDelegator); ok {
+			responseLength = rw.ContentLength()
+		}
+		metrics.Monitor(
+			verb, apiResource, subresource, scope,
 			net.GetHTTPClient(req),
 			w.Header().Get("Content-Type"),
-			httpCode, reqStart)
+			httpCode, responseLength, reqStart,
+		)
 	}()
 
 	ctx, ok := r.Mapper.Get(req)
@@ -86,6 +92,13 @@ func (r *ProxyHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	verb = requestInfo.Verb
 	namespace, resource, subresource, parts := requestInfo.Namespace, requestInfo.Resource, requestInfo.Subresource, requestInfo.Parts
+	scope = "cluster"
+	if namespace != "" {
+		scope = "namespace"
+	}
+	if requestInfo.Name != "" {
+		scope = "resource"
+	}
 
 	ctx = request.WithNamespace(ctx, namespace)
 	if len(parts) < 2 {

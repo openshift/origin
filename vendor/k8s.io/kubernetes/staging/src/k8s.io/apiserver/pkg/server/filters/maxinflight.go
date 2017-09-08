@@ -19,10 +19,12 @@ package filters
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/endpoints/metrics"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 
@@ -106,6 +108,18 @@ func WithMaxInFlightLimit(
 						}
 					}
 				}
+				scope := "cluster"
+				if requestInfo.Namespace != "" {
+					scope = "namespace"
+				}
+				if requestInfo.Name != "" {
+					scope = "resource"
+				}
+				if requestInfo.IsResourceRequest {
+					metrics.MonitorRequest(r, strings.ToUpper(requestInfo.Verb), requestInfo.Resource, requestInfo.Subresource, "", scope, http.StatusTooManyRequests, 0, time.Now())
+				} else {
+					metrics.MonitorRequest(r, strings.ToUpper(requestInfo.Verb), "", requestInfo.Path, "", scope, http.StatusTooManyRequests, 0, time.Now())
+				}
 				tooManyRequests(r, w)
 			}
 		}
@@ -115,5 +129,5 @@ func WithMaxInFlightLimit(
 func tooManyRequests(req *http.Request, w http.ResponseWriter) {
 	// Return a 429 status indicating "Too Many Requests"
 	w.Header().Set("Retry-After", retryAfter)
-	http.Error(w, "Too many requests, please try again later.", errors.StatusTooManyRequests)
+	http.Error(w, "Too many requests, please try again later.", http.StatusTooManyRequests)
 }
