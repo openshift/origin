@@ -10,7 +10,10 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
-const MigrateRecommendedName = "migrate"
+const (
+	MigrateRecommendedName      = "migrate"
+	MigrateAlphaRecommendedName = "alpha"
+)
 
 var migrateLong = templates.LongDesc(`
 	Migrate resources on the cluster
@@ -22,6 +25,18 @@ func NewCommandMigrate(name, fullName string, f *clientcmd.Factory, out, errOut 
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Migrate data in the cluster",
+		Long:  migrateLong,
+		Run:   cmdutil.DefaultSubCommandRun(errOut),
+	}
+	cmd.AddCommand(cmds...)
+	return cmd
+}
+
+func NewCommandMigrateAlpha(name, fullName string, f *clientcmd.Factory, out, errOut io.Writer, cmds ...*cobra.Command) *cobra.Command {
+	// Parent command to which all subcommands are added.
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: "Migrate alpha features",
 		Long:  migrateLong,
 		Run:   cmdutil.DefaultSubCommandRun(errOut),
 	}
