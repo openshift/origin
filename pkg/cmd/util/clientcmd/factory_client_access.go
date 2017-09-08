@@ -33,13 +33,25 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/deploy/cmd"
+	appsclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageutil "github.com/openshift/origin/pkg/image/util"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	routegen "github.com/openshift/origin/pkg/route/generator"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 type ring0Factory struct {
@@ -51,7 +63,22 @@ type ring0Factory struct {
 type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
 
+	// TODO: this should be removed when we finally get rid of pkg/client
 	Clients() (*client.Client, kclientset.Interface, error)
+	// use below clients instead whenever needed:
+	OpenShiftAppsClient() (appsclient.Interface, error)
+	OpenShiftAuthorizationClient() (authorizationclient.Interface, error)
+	OpenShiftBuildClient() (buildclient.Interface, error)
+	OpenShiftImageClient() (imageclient.Interface, error)
+	OpenShiftNetworkClient() (networkclient.Interface, error)
+	OpenShiftOAuthClient() (oauthclient.Interface, error)
+	OpenShiftProjectClient() (projectclient.Interface, error)
+	OpenShiftQuotaClient() (quotaclient.Interface, error)
+	OpenShiftRouteClient() (routeclient.Interface, error)
+	OpenShiftSecurityClient() (securityclient.Interface, error)
+	OpenShiftTeamplteClient() (templateclient.Interface, error)
+	OpenShiftUserClient() (userclient.Interface, error)
+
 	OpenShiftClientConfig() kclientcmd.ClientConfig
 	ImageResolutionOptions() FlagBinder
 }
@@ -141,6 +168,150 @@ func (f *ring0Factory) Clients() (*client.Client, kclientset.Interface, error) {
 	}
 
 	return openShiftClient, kubeClientSet, nil
+}
+
+func (f *ring0Factory) OpenShiftAppsClient() (appsclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := appsclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftAuthorizationClient() (authorizationclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := authorizationclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftBuildClient() (buildclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := buildclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftImageClient() (imageclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := imageclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftNetworkClient() (networkclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := networkclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftOAuthClient() (oauthclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := oauthclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftProjectClient() (projectclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := projectclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftQuotaClient() (quotaclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := quotaclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftRouteClient() (routeclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := routeclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftSecurityClient() (securityclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := securityclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftTeamplteClient() (templateclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := templateclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func (f *ring0Factory) OpenShiftUserClient() (userclient.Interface, error) {
+	cfg, err := f.clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	client, err := userclient.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
 }
 
 func (f *ring0Factory) OpenShiftClientConfig() kclientcmd.ClientConfig {
