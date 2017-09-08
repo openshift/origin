@@ -927,7 +927,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 					return rc.Status.ReadyReplicas == dc.Spec.Replicas, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(rc1.Status.AvailableReplicas).To(o.BeZero())
+			o.Expect(rc1.Status.AvailableReplicas).To(o.BeNumerically("<", rc1.Status.ReadyReplicas))
 			// We need to log here to have a timestamp to compare with master logs if something goes wrong
 			e2e.Logf("All replicas are ready.")
 
