@@ -34,9 +34,11 @@ func ValidateProcessedTemplate(template *templateapi.Template) field.ErrorList {
 	return validateTemplateBody(template)
 }
 
+var ValidateTemplateName = validation.NameIsDNSSubdomain
+
 // ValidateTemplate tests if required fields in the Template are set.
 func ValidateTemplate(template *templateapi.Template) (allErrs field.ErrorList) {
-	allErrs = validation.ValidateObjectMeta(&template.ObjectMeta, true, validation.ValidatePodName, field.NewPath("metadata"))
+	allErrs = validation.ValidateObjectMeta(&template.ObjectMeta, true, ValidateTemplateName, field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateBody(template)...)
 	return
 }
@@ -55,9 +57,11 @@ func validateTemplateBody(template *templateapi.Template) (allErrs field.ErrorLi
 	return
 }
 
+var ValidateTemplateInstanceName = validation.NameIsDNSSubdomain
+
 // ValidateTemplateInstance tests if required fields in the TemplateInstance are set.
 func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (allErrs field.ErrorList) {
-	allErrs = validation.ValidateObjectMeta(&templateInstance.ObjectMeta, true, validation.ValidatePodName, field.NewPath("metadata"))
+	allErrs = validation.ValidateObjectMeta(&templateInstance.ObjectMeta, true, ValidateTemplateInstanceName, field.NewPath("metadata"))
 
 	// Allow the nested template name and namespace to be empty.  If not empty,
 	// the fields should pass validation.
@@ -109,9 +113,11 @@ func ValidateTemplateInstanceUpdate(templateInstance, oldTemplateInstance *templ
 	return
 }
 
+var ValidateBrokerTemplateInstanceName = validation.NameIsDNSSubdomain
+
 // ValidateBrokerTemplateInstance tests if required fields in the BrokerTemplateInstance are set.
 func ValidateBrokerTemplateInstance(brokerTemplateInstance *templateapi.BrokerTemplateInstance) (allErrs field.ErrorList) {
-	allErrs = validation.ValidateObjectMeta(&brokerTemplateInstance.ObjectMeta, false, validation.ValidatePodName, field.NewPath("metadata"))
+	allErrs = validation.ValidateObjectMeta(&brokerTemplateInstance.ObjectMeta, false, ValidateBrokerTemplateInstanceName, field.NewPath("metadata"))
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.TemplateInstance, field.NewPath("spec.templateInstance"), "TemplateInstance")...)
 	allErrs = append(allErrs, validateTemplateInstanceReference(&brokerTemplateInstance.Spec.Secret, field.NewPath("spec.secret"), "Secret")...)
 	for _, id := range brokerTemplateInstance.Spec.BindingIDs {
@@ -154,7 +160,7 @@ func validateTemplateInstanceReference(ref *kapi.ObjectReference, fldPath *field
 	if len(ref.Name) == 0 {
 		allErrs = append(allErrs, field.Required(fldPath.Child("name"), ""))
 	} else {
-		for _, msg := range validation.ValidatePodName(ref.Name, false) {
+		for _, msg := range ValidateTemplateName(ref.Name, false) {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("name"), ref.Name, msg))
 		}
 	}

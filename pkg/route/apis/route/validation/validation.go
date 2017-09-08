@@ -20,10 +20,12 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
+var ValidateRouteName = validation.NameIsDNSSubdomain
+
 // ValidateRoute tests if required fields in the route are set.
 func ValidateRoute(route *routeapi.Route) field.ErrorList {
 	//ensure meta is set properly
-	result := validation.ValidateObjectMeta(&route.ObjectMeta, true, validation.ValidatePodName, field.NewPath("metadata"))
+	result := validation.ValidateObjectMeta(&route.ObjectMeta, true, ValidateRouteName, field.NewPath("metadata"))
 
 	specPath := field.NewPath("spec")
 

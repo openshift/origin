@@ -3,12 +3,9 @@ package route
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/apiserver/pkg/storage"
 	"k8s.io/apiserver/pkg/storage/names"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kvalidation "k8s.io/kubernetes/pkg/api/validation"
@@ -296,23 +293,5 @@ func DecorateLegacyRouteWithEmptyDestinationCACertificates(obj runtime.Object) e
 		return nil
 	default:
 		return fmt.Errorf("unknown type passed to %T", obj)
-	}
-}
-
-// GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	route, ok := obj.(*routeapi.Route)
-	if !ok {
-		return nil, nil, false, fmt.Errorf("not a route")
-	}
-	return labels.Set(route.Labels), routeapi.RouteToSelectableFields(route), route.Initializers != nil, nil
-}
-
-// Matcher returns a matcher for a route
-func Matcher(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
-	return storage.SelectionPredicate{
-		Label:    label,
-		Field:    field,
-		GetAttrs: GetAttrs,
 	}
 }
