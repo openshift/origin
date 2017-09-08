@@ -2,6 +2,27 @@
 
 # This library holds utility functions for building container images.
 
+# os::build::check_for_base_images checks for the base images
+# needed to build container images
+#
+# Returns:
+#  None
+function os::build::image::check_for_base_images() {
+    local tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
+    local base_images="${tag_prefix}-source ${tag_prefix}-base"
+    local inspect
+
+    for base_image in ${base_images}; do
+        inspect=$(docker inspect "${base_image}") || {
+            os::log::fatal "Base image ${base_image} has not been built!
+Base images are necessary to build container images.
+Build them with:
+  $ hack/build-base-images.sh"
+        }
+    done
+}
+readonly -f os::build::image::check_for_base_images
+
 # os::build::image builds an image from a directory, to a tag or tags The default
 # behavior is to use the imagebuilder binary if it is available on the path with
 # fallback to docker build if it is not available.

@@ -124,7 +124,12 @@ $ git clone git://github.com/<forkid>/origin  # Replace <forkid> with the your g
 $ cd origin
 $ git remote add upstream git://github.com/openshift/origin
 ----
-4.  You are now ready to edit the source, build and restart OpenShift to
+4. You will need the imagebuilder binary in order to build OpenShift images:
++
+----
+$ go get -u github.com/openshift/imagebuilder/cmd/imagebuilder
+----
+5.  You are now ready to edit the source, build and restart OpenShift to
     test your changes.
 
 ==== Building Origin Binaries, RPMs and Images
