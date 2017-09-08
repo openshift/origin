@@ -8,7 +8,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 # determine the correct tag prefix
 tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
-os::util::ensure::gopath_binary_exists imagebuilder
+os::util::ensure::gopath_binary_exists imagebuilder "github.com/openshift/imagebuilder/cmd/imagebuilder"
 
 # Build the base image without the default image args
 os::build::image "${tag_prefix}-source" "${OS_ROOT}/images/source"
