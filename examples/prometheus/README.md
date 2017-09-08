@@ -5,8 +5,27 @@ This template creates a Prometheus instance preconfigured to gather OpenShift an
 To deploy, run:
 
 ```
-$ oc new-app -f prometheus.yaml
+$ oc new-app -f https://raw.githubusercontent.com/openshift/origin/master/examples/prometheus/prometheus.yaml
 ```
+
+This template sets up an oauth proxy for authentication.  The oauth-proxy relies on the same authentication system configured for your OpenShift cluster.
+
+See [this documentation](https://docs.openshift.org/latest/install_config/configuring_authentication.html) for authentication options for OpenShift.
+
+One option documented above is htpasswd.  Create an htpasswd user called (for example) ```prometheus```.
+
+The ```prometheus``` user must have cluster-reader access.  Grant the user cluster-reader access:
+```
+$ oc adm policy add-cluster-role-to-user cluster-reader prometheus
+```
+
+Query the system for the route created by the template:
+```
+# oc get routes -n kube-system | grep prom
+prometheus   prometheus-kube-system.NNNN-NNN.NN.rhcloud.com             prometheus   <all>     reencrypt     None
+```
+
+Open the route URL in your browser, and you should be able to authenticate using the ```prometheus``` user and the corresponding password.
 
 You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.
 
