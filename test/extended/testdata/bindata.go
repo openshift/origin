@@ -6259,7 +6259,7 @@ items:
   metadata:
     name: serving-cert
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+      service.openshift.io/serving-cert-secret-name: serving-cert
   spec:
     selector:
       app: serving-cert
@@ -24393,7 +24393,7 @@ objects:
     annotations:
       prometheus.io/scrape: "true"
       prometheus.io/scheme: https
-      service.alpha.openshift.io/serving-cert-secret-name: prometheus-tls
+      service.openshift.io/serving-cert-secret-name: prometheus-tls
     labels:
       name: prometheus
     name: prometheus
@@ -24758,7 +24758,7 @@ objects:
   kind: Service
   metadata:
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: prometheus-alerts-tls
+      service.openshift.io/serving-cert-secret-name: prometheus-alerts-tls
     labels:
       name: alerts
     name: alerts
@@ -27951,7 +27951,7 @@ objects:
     namespace: ${NAMESPACE}
     name: apiserver
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+      service.openshift.io/serving-cert-secret-name: apiserver-serving-cert
   spec:
     selector:
       apiserver: "true"

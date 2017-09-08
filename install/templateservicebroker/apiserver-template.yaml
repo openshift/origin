@@ -92,7 +92,7 @@ objects:
     namespace: ${NAMESPACE}
     name: apiserver
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: apiserver-serving-cert
+      service.openshift.io/serving-cert-secret-name: apiserver-serving-cert
   spec:
     selector:
       apiserver: "true"

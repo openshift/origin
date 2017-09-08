@@ -69,7 +69,7 @@ items:
   metadata:
     name: serving-cert
     annotations:
-      service.alpha.openshift.io/serving-cert-secret-name: serving-cert
+      service.openshift.io/serving-cert-secret-name: serving-cert
   spec:
     selector:
       app: serving-cert

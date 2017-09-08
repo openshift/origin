@@ -60,7 +60,7 @@ objects:
       metrics-infra: heapster
       name: heapster
     annotations:
-      "service.alpha.openshift.io/serving-cert-secret-name": heapster-secrets
+      "service.openshift.io/serving-cert-secret-name": heapster-secrets
   spec:
     selector:
       name: heapster
