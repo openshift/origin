@@ -235,12 +235,8 @@ items:
     - ""
     - authorization.openshift.io
     resources:
-    - clusterpolicies
-    - clusterpolicybindings
     - clusterrolebindings
     - clusterroles
-    - policies
-    - policybindings
     - rolebindingrestrictions
     - rolebindings
     - roles
@@ -776,8 +772,6 @@ items:
     - ""
     - authorization.openshift.io
     resources:
-    - policies
-    - policybindings
     - rolebindingrestrictions
     verbs:
     - get
@@ -2504,16 +2498,6 @@ items:
     - localsubjectaccessreviews
     verbs:
     - create
-  - apiGroups:
-    - ""
-    - authorization.openshift.io
-    resources:
-    - policies
-    - policybindings
-    verbs:
-    - get
-    - list
-    - watch
   - apiGroups:
     - ""
     resources:
