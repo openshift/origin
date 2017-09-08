@@ -30,6 +30,7 @@ limitations under the License.
 		AttachedVolume
 		AvoidPods
 		AzureDiskVolumeSource
+        AzureFilePersistentVolumeSource
 		AzureFileVolumeSource
 		Binding
 		Capabilities
@@ -248,6 +249,12 @@ func (*AvoidPods) Descriptor() ([]byte, []int) { return fileDescriptorGenerated,
 func (m *AzureDiskVolumeSource) Reset()                    { *m = AzureDiskVolumeSource{} }
 func (*AzureDiskVolumeSource) ProtoMessage()               {}
 func (*AzureDiskVolumeSource) Descriptor() ([]byte, []int) { return fileDescriptorGenerated, []int{4} }
+
+func (m *AzureFilePersistentVolumeSource) Reset()      { *m = AzureFilePersistentVolumeSource{} }
+func (*AzureFilePersistentVolumeSource) ProtoMessage() {}
+func (*AzureFilePersistentVolumeSource) Descriptor() ([]byte, []int) {
+	return fileDescriptorGenerated, []int{5}
+}
 
 func (m *AzureFileVolumeSource) Reset()                    { *m = AzureFileVolumeSource{} }
 func (*AzureFileVolumeSource) ProtoMessage()               {}
@@ -955,6 +962,7 @@ func init() {
 	proto.RegisterType((*AttachedVolume)(nil), "k8s.io.kubernetes.pkg.api.v1.AttachedVolume")
 	proto.RegisterType((*AvoidPods)(nil), "k8s.io.kubernetes.pkg.api.v1.AvoidPods")
 	proto.RegisterType((*AzureDiskVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.AzureDiskVolumeSource")
+	proto.RegisterType((*AzureFilePersistentVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.AzureFilePersistentVolumeSource")
 	proto.RegisterType((*AzureFileVolumeSource)(nil), "k8s.io.kubernetes.pkg.api.v1.AzureFileVolumeSource")
 	proto.RegisterType((*Binding)(nil), "k8s.io.kubernetes.pkg.api.v1.Binding")
 	proto.RegisterType((*Capabilities)(nil), "k8s.io.kubernetes.pkg.api.v1.Capabilities")
@@ -1313,6 +1321,46 @@ func (m *AzureDiskVolumeSource) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintGenerated(dAtA, i, uint64(len(*m.Kind)))
 		i += copy(dAtA[i:], *m.Kind)
+	}
+	return i, nil
+}
+
+func (m *AzureFilePersistentVolumeSource) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *AzureFilePersistentVolumeSource) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
+	dAtA[i] = 0xa
+	i++
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.SecretName)))
+	i += copy(dAtA[i:], m.SecretName)
+	dAtA[i] = 0x12
+	i++
+	i = encodeVarintGenerated(dAtA, i, uint64(len(m.ShareName)))
+	i += copy(dAtA[i:], m.ShareName)
+	dAtA[i] = 0x18
+	i++
+	if m.ReadOnly {
+		dAtA[i] = 1
+	} else {
+		dAtA[i] = 0
+	}
+	i++
+	if m.SecretNamespace != nil {
+		dAtA[i] = 0x22
+		i++
+		i = encodeVarintGenerated(dAtA, i, uint64(len(*m.SecretNamespace)))
+		i += copy(dAtA[i:], *m.SecretNamespace)
 	}
 	return i, nil
 }
@@ -9573,6 +9621,21 @@ func (m *AzureDiskVolumeSource) Size() (n int) {
 	return n
 }
 
+func (m *AzureFilePersistentVolumeSource) Size() (n int) {
+	var l int
+	_ = l
+	l = len(m.SecretName)
+	n += 1 + l + sovGenerated(uint64(l))
+	l = len(m.ShareName)
+	n += 1 + l + sovGenerated(uint64(l))
+	n += 2
+	if m.SecretNamespace != nil {
+		l = len(*m.SecretNamespace)
+		n += 1 + l + sovGenerated(uint64(l))
+	}
+	return n
+}
+
 func (m *AzureFileVolumeSource) Size() (n int) {
 	var l int
 	_ = l
@@ -12590,6 +12653,19 @@ func (this *AzureDiskVolumeSource) String() string {
 	}, "")
 	return s
 }
+func (this *AzureFilePersistentVolumeSource) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&AzureFilePersistentVolumeSource{`,
+		`SecretName:` + fmt.Sprintf("%v", this.SecretName) + `,`,
+		`ShareName:` + fmt.Sprintf("%v", this.ShareName) + `,`,
+		`ReadOnly:` + fmt.Sprintf("%v", this.ReadOnly) + `,`,
+		`SecretNamespace:` + valueToStringGenerated(this.SecretNamespace) + `,`,
+		`}`,
+	}, "")
+	return s
+}
 func (this *AzureFileVolumeSource) String() string {
 	if this == nil {
 		return "nil"
@@ -13890,7 +13966,7 @@ func (this *PersistentVolumeSource) String() string {
 		`FC:` + strings.Replace(fmt.Sprintf("%v", this.FC), "FCVolumeSource", "FCVolumeSource", 1) + `,`,
 		`Flocker:` + strings.Replace(fmt.Sprintf("%v", this.Flocker), "FlockerVolumeSource", "FlockerVolumeSource", 1) + `,`,
 		`FlexVolume:` + strings.Replace(fmt.Sprintf("%v", this.FlexVolume), "FlexVolumeSource", "FlexVolumeSource", 1) + `,`,
-		`AzureFile:` + strings.Replace(fmt.Sprintf("%v", this.AzureFile), "AzureFileVolumeSource", "AzureFileVolumeSource", 1) + `,`,
+		`AzureFile:` + strings.Replace(fmt.Sprintf("%v", this.AzureFile), "AzureFilePersistentVolumeSource", "AzureFilePersistentVolumeSource", 1) + `,`,
 		`VsphereVolume:` + strings.Replace(fmt.Sprintf("%v", this.VsphereVolume), "VsphereVirtualDiskVolumeSource", "VsphereVirtualDiskVolumeSource", 1) + `,`,
 		`Quobyte:` + strings.Replace(fmt.Sprintf("%v", this.Quobyte), "QuobyteVolumeSource", "QuobyteVolumeSource", 1) + `,`,
 		`AzureDisk:` + strings.Replace(fmt.Sprintf("%v", this.AzureDisk), "AzureDiskVolumeSource", "AzureDiskVolumeSource", 1) + `,`,
@@ -15649,6 +15725,164 @@ func (m *AzureDiskVolumeSource) Unmarshal(dAtA []byte) error {
 			}
 			s := AzureDataDiskKind(dAtA[iNdEx:postIndex])
 			m.Kind = &s
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenerated(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *AzureFilePersistentVolumeSource) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenerated
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: AzureFilePersistentVolumeSource: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: AzureFilePersistentVolumeSource: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.SecretName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ShareName", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.ShareName = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field ReadOnly", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.ReadOnly = bool(v != 0)
+		case 4:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field SecretNamespace", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenerated
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= (uint64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGenerated
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			s := string(dAtA[iNdEx:postIndex])
+			m.SecretNamespace = &s
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
@@ -30956,7 +31190,7 @@ func (m *PersistentVolumeSource) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if m.AzureFile == nil {
-				m.AzureFile = &AzureFileVolumeSource{}
+				m.AzureFile = &AzureFilePersistentVolumeSource{}
 			}
 			if err := m.AzureFile.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
