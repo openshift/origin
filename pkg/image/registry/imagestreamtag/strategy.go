@@ -31,7 +31,10 @@ func (s *strategy) NamespaceScoped() bool {
 
 func (s *strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	newIST := obj.(*imageapi.ImageStreamTag)
-
+	if newIST.Tag != nil && len(newIST.Tag.Name) == 0 {
+		_, tag, _ := imageapi.SplitImageStreamTag(newIST.Name)
+		newIST.Tag.Name = tag
+	}
 	newIST.Conditions = nil
 	newIST.Image = imageapi.Image{}
 }

@@ -122,6 +122,15 @@ func ParseEnv(spec []string, defaultReader io.Reader) ([]kapi.EnvVar, []string, 
 	return parseIntoEnvVar(spec, defaultReader, "environment variable")
 }
 
+func ParseAnnotation(spec []string, defaultReader io.Reader) (map[string]string, []string, error) {
+	vars, remove, err := parseIntoEnvVar(spec, defaultReader, "annotation")
+	annotations := make(map[string]string)
+	for _, v := range vars {
+		annotations[v.Name] = v.Value
+	}
+	return annotations, remove, err
+}
+
 func readEnv(r io.Reader, envVarType string) ([]kapi.EnvVar, error) {
 	env := []kapi.EnvVar{}
 	scanner := bufio.NewScanner(r)
