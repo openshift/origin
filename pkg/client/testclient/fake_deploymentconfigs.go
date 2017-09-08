@@ -8,7 +8,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // FakeDeploymentConfigs implements DeploymentConfigInterface. Meant to be embedded into a struct to get a default

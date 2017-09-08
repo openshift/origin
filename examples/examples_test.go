@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 
 	"github.com/openshift/origin/pkg/api/validation"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"

@@ -18632,7 +18632,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigList"
        }
       },
       "401": {
@@ -18669,7 +18669,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -18677,7 +18677,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -18769,7 +18769,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigList"
        }
       },
       "401": {
@@ -18806,7 +18806,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -18814,7 +18814,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -18963,7 +18963,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -19000,7 +19000,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -19008,7 +19008,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -19121,7 +19121,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -19185,7 +19185,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentRequest"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentRequest"
        }
       }
      ],
@@ -19193,7 +19193,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentRequest"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentRequest"
        }
       },
       "401": {
@@ -19255,7 +19255,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentLog"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentLog"
        }
       },
       "401": {
@@ -19382,7 +19382,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       }
      ],
@@ -19390,7 +19390,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       },
       "401": {
@@ -19606,7 +19606,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -19643,7 +19643,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -19651,7 +19651,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -19698,7 +19698,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -67616,7 +67616,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       }
      ],
@@ -67624,7 +67624,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       },
       "401": {
@@ -67716,7 +67716,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigList"
        }
       },
       "401": {
@@ -67753,7 +67753,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -67761,7 +67761,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -71981,7 +71981,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       }
      ],
@@ -71989,7 +71989,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       },
       "401": {
@@ -72089,7 +72089,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigList"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigList"
        }
       },
       "401": {
@@ -72126,7 +72126,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -72134,7 +72134,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -72283,7 +72283,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -72320,7 +72320,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -72328,7 +72328,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -72441,7 +72441,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -72505,7 +72505,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentRequest"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentRequest"
        }
       }
      ],
@@ -72513,7 +72513,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentRequest"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentRequest"
        }
       },
       "401": {
@@ -72575,7 +72575,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentLog"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentLog"
        }
       },
       "401": {
@@ -72702,7 +72702,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       }
      ],
@@ -72710,7 +72710,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback"
        }
       },
       "401": {
@@ -72926,7 +72926,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -72963,7 +72963,7 @@
        "in": "body",
        "required": true,
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       }
      ],
@@ -72971,7 +72971,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -73018,7 +73018,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
        }
       },
       "401": {
@@ -86945,6 +86945,677 @@
    }
   },
   "definitions": {
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.CustomDeploymentStrategyParams": {
+    "description": "CustomDeploymentStrategyParams are the input to the Custom deployment strategy.",
+    "properties": {
+     "command": {
+      "description": "Command is optional and overrides CMD in the container Image.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "environment": {
+      "description": "Environment holds the environment which will be given to the container for Image.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.EnvVar"
+      }
+     },
+     "image": {
+      "description": "Image specifies a Docker image which can carry out a deployment.",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentCause": {
+    "description": "DeploymentCause captures information about a particular cause of a deployment.",
+    "required": [
+     "type"
+    ],
+    "properties": {
+     "imageTrigger": {
+      "description": "ImageTrigger contains the image trigger details, if this trigger was fired based on an image change",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentCauseImageTrigger"
+     },
+     "type": {
+      "description": "Type of the trigger that resulted in the creation of a new deployment",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentCauseImageTrigger": {
+    "description": "DeploymentCauseImageTrigger represents details about the cause of a deployment originating from an image change trigger",
+    "required": [
+     "from"
+    ],
+    "properties": {
+     "from": {
+      "description": "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentCondition": {
+    "description": "DeploymentCondition describes the state of a deployment config at a certain point.",
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "lastTransitionTime": {
+      "description": "The last time the condition transitioned from one status to another.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
+     },
+     "lastUpdateTime": {
+      "description": "The last time this condition was updated.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
+     },
+     "message": {
+      "description": "A human readable message indicating details about the transition.",
+      "type": "string"
+     },
+     "reason": {
+      "description": "The reason for the condition's last transition.",
+      "type": "string"
+     },
+     "status": {
+      "description": "Status of the condition, one of True, False, Unknown.",
+      "type": "string"
+     },
+     "type": {
+      "description": "Type of deployment condition.",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig": {
+    "description": "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
+    "required": [
+     "spec",
+     "status"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     },
+     "spec": {
+      "description": "Spec represents a desired deployment state and how to deploy to it.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigSpec"
+     },
+     "status": {
+      "description": "Status represents the current deployment state.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigStatus"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "DeploymentConfig"
+     },
+     {
+      "group": "apps.openshift.io",
+      "version": "v1",
+      "kind": "DeploymentConfig"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigList": {
+    "description": "DeploymentConfigList is a collection of deployment configs.",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "items": {
+      "description": "Items is a list of deployment configs",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfig"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object's metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "DeploymentConfigList"
+     },
+     {
+      "group": "apps.openshift.io",
+      "version": "v1",
+      "kind": "DeploymentConfigList"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollback": {
+    "description": "DeploymentConfigRollback provides the input to rollback generation.",
+    "required": [
+     "name",
+     "spec"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "name": {
+      "description": "Name of the deployment config that will be rolled back.",
+      "type": "string"
+     },
+     "spec": {
+      "description": "Spec defines the options to rollback generation.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollbackSpec"
+     },
+     "updatedAnnotations": {
+      "description": "UpdatedAnnotations is a set of new annotations that will be added in the deployment config.",
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "DeploymentConfigRollback"
+     },
+     {
+      "group": "apps.openshift.io",
+      "version": "v1",
+      "kind": "DeploymentConfigRollback"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigRollbackSpec": {
+    "description": "DeploymentConfigRollbackSpec represents the options for rollback generation.",
+    "required": [
+     "from",
+     "includeTriggers",
+     "includeTemplate",
+     "includeReplicationMeta",
+     "includeStrategy"
+    ],
+    "properties": {
+     "from": {
+      "description": "From points to a ReplicationController which is a deployment.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
+     },
+     "includeReplicationMeta": {
+      "description": "IncludeReplicationMeta specifies whether to include the replica count and selector.",
+      "type": "boolean"
+     },
+     "includeStrategy": {
+      "description": "IncludeStrategy specifies whether to include the deployment Strategy.",
+      "type": "boolean"
+     },
+     "includeTemplate": {
+      "description": "IncludeTemplate specifies whether to include the PodTemplateSpec.",
+      "type": "boolean"
+     },
+     "includeTriggers": {
+      "description": "IncludeTriggers specifies whether to include config Triggers.",
+      "type": "boolean"
+     },
+     "revision": {
+      "description": "Revision to rollback to. If set to 0, rollback to the last revision.",
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigSpec": {
+    "description": "DeploymentConfigSpec represents the desired state of the deployment.",
+    "required": [
+     "strategy",
+     "triggers",
+     "replicas",
+     "test"
+    ],
+    "properties": {
+     "minReadySeconds": {
+      "description": "MinReadySeconds is the minimum number of seconds for which a newly created pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)",
+      "type": "integer",
+      "format": "int32"
+     },
+     "paused": {
+      "description": "Paused indicates that the deployment config is paused resulting in no new deployments on template changes or changes in the template caused by other triggers.",
+      "type": "boolean"
+     },
+     "replicas": {
+      "description": "Replicas is the number of desired replicas.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "revisionHistoryLimit": {
+      "description": "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified. Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)",
+      "type": "integer",
+      "format": "int32"
+     },
+     "selector": {
+      "description": "Selector is a label query over pods that should match the Replicas count.",
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     },
+     "strategy": {
+      "description": "Strategy describes how a deployment is executed.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentStrategy"
+     },
+     "template": {
+      "description": "Template is the object that describes the pod that will be created if insufficient replicas are detected.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.PodTemplateSpec"
+     },
+     "test": {
+      "description": "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.",
+      "type": "boolean"
+     },
+     "triggers": {
+      "description": "Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers are defined, a new deployment can only occur as a result of an explicit client update to the DeploymentConfig with a new LatestVersion. If null, defaults to having a config change trigger.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentTriggerPolicy"
+      }
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentConfigStatus": {
+    "description": "DeploymentConfigStatus represents the current deployment state.",
+    "required": [
+     "latestVersion",
+     "observedGeneration",
+     "replicas",
+     "updatedReplicas",
+     "availableReplicas",
+     "unavailableReplicas"
+    ],
+    "properties": {
+     "availableReplicas": {
+      "description": "AvailableReplicas is the total number of available pods targeted by this deployment config.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "conditions": {
+      "description": "Conditions represents the latest available observations of a deployment config's current state.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentCondition"
+      },
+      "x-kubernetes-patch-merge-key": "type",
+      "x-kubernetes-patch-strategy": "merge"
+     },
+     "details": {
+      "description": "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentDetails"
+     },
+     "latestVersion": {
+      "description": "LatestVersion is used to determine whether the current deployment associated with a deployment config is out of sync.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "observedGeneration": {
+      "description": "ObservedGeneration is the most recent generation observed by the deployment config controller.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "readyReplicas": {
+      "description": "Total number of ready pods targeted by this deployment.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "replicas": {
+      "description": "Replicas is the total number of pods targeted by this deployment config.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "unavailableReplicas": {
+      "description": "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "updatedReplicas": {
+      "description": "UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config that have the desired template spec.",
+      "type": "integer",
+      "format": "int32"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentDetails": {
+    "description": "DeploymentDetails captures information about the causes of a deployment.",
+    "required": [
+     "causes"
+    ],
+    "properties": {
+     "causes": {
+      "description": "Causes are extended data associated with all the causes for creating a new deployment",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentCause"
+      }
+     },
+     "message": {
+      "description": "Message is the user specified change message, if this deployment was triggered manually by the user",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentLog": {
+    "description": "DeploymentLog represents the logs for a deployment",
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "DeploymentLog"
+     },
+     {
+      "group": "apps.openshift.io",
+      "version": "v1",
+      "kind": "DeploymentLog"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentRequest": {
+    "description": "DeploymentRequest is a request to a deployment config for a new deployment.",
+    "required": [
+     "name",
+     "latest",
+     "force"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "excludeTriggers": {
+      "description": "ExcludeTriggers instructs the instantiator to avoid processing the specified triggers. This field overrides the triggers from latest and allows clients to control specific logic. This field is ignored if not specified.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "force": {
+      "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
+      "type": "boolean"
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "latest": {
+      "description": "Latest will update the deployment config with the latest state from all triggers.",
+      "type": "boolean"
+     },
+     "name": {
+      "description": "Name of the deployment config for requesting a new deployment.",
+      "type": "string"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "",
+      "version": "v1",
+      "kind": "DeploymentRequest"
+     },
+     {
+      "group": "apps.openshift.io",
+      "version": "v1",
+      "kind": "DeploymentRequest"
+     }
+    ]
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentStrategy": {
+    "description": "DeploymentStrategy describes how to perform a deployment.",
+    "properties": {
+     "activeDeadlineSeconds": {
+      "description": "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "annotations": {
+      "description": "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     },
+     "customParams": {
+      "description": "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.CustomDeploymentStrategyParams"
+     },
+     "labels": {
+      "description": "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+      "type": "object",
+      "additionalProperties": {
+       "type": "string"
+      }
+     },
+     "recreateParams": {
+      "description": "RecreateParams are the input to the Recreate deployment strategy.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.RecreateDeploymentStrategyParams"
+     },
+     "resources": {
+      "description": "Resources contains resource requirements to execute the deployment and any hooks.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ResourceRequirements"
+     },
+     "rollingParams": {
+      "description": "RollingParams are the input to the Rolling deployment strategy.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.RollingDeploymentStrategyParams"
+     },
+     "type": {
+      "description": "Type is the name of a deployment strategy.",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentTriggerImageChangeParams": {
+    "description": "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
+    "required": [
+     "from"
+    ],
+    "properties": {
+     "automatic": {
+      "description": "Automatic means that the detection of a new tag value should result in an image update inside the pod template.",
+      "type": "boolean"
+     },
+     "containerNames": {
+      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod. If multiple triggers point to the same containers, the resulting behavior is undefined. Future API versions will make this a validation error. If ContainerNames does not point to a valid container, the trigger will be ignored. Future API versions will make this a validation error.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "from": {
+      "description": "From is a reference to an image stream tag to watch for changes. From.Name is the only required subfield - if From.Namespace is blank, the namespace of the current deployment trigger will be used.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
+     },
+     "lastTriggeredImage": {
+      "description": "LastTriggeredImage is the last image to be triggered.",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentTriggerPolicy": {
+    "description": "DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.",
+    "properties": {
+     "imageChangeParams": {
+      "description": "ImageChangeParams represents the parameters for the ImageChange trigger.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.DeploymentTriggerImageChangeParams"
+     },
+     "type": {
+      "description": "Type of the trigger",
+      "type": "string"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.ExecNewPodHook": {
+    "description": "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
+    "required": [
+     "command",
+     "containerName"
+    ],
+    "properties": {
+     "command": {
+      "description": "Command is the action command and its arguments.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "containerName": {
+      "description": "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container.",
+      "type": "string"
+     },
+     "env": {
+      "description": "Env is a set of environment variables to supply to the hook pod's container.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.EnvVar"
+      }
+     },
+     "volumes": {
+      "description": "Volumes is a list of named volumes from the pod template which should be copied to the hook pod. Volumes names not found in pod spec are ignored. An empty list means no volumes will be copied.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.LifecycleHook": {
+    "description": "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
+    "required": [
+     "failurePolicy"
+    ],
+    "properties": {
+     "execNewPod": {
+      "description": "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.ExecNewPodHook"
+     },
+     "failurePolicy": {
+      "description": "FailurePolicy specifies what action to take if the hook fails.",
+      "type": "string"
+     },
+     "tagImages": {
+      "description": "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.TagImageHook"
+      }
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.RecreateDeploymentStrategyParams": {
+    "description": "RecreateDeploymentStrategyParams are the input to the Recreate deployment strategy.",
+    "properties": {
+     "mid": {
+      "description": "Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new pod is created. All LifecycleHookFailurePolicy values are supported.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.LifecycleHook"
+     },
+     "post": {
+      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.LifecycleHook"
+     },
+     "pre": {
+      "description": "Pre is a lifecycle hook which is executed before the strategy manipulates the deployment. All LifecycleHookFailurePolicy values are supported.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.LifecycleHook"
+     },
+     "timeoutSeconds": {
+      "description": "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.RollingDeploymentStrategyParams": {
+    "description": "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
+    "properties": {
+     "intervalSeconds": {
+      "description": "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "maxSurge": {
+      "description": "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString"
+     },
+     "maxUnavailable": {
+      "description": "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding down.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString"
+     },
+     "post": {
+      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.LifecycleHook"
+     },
+     "pre": {
+      "description": "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.apps.apis.apps.v1.LifecycleHook"
+     },
+     "timeoutSeconds": {
+      "description": "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
+      "type": "integer",
+      "format": "int64"
+     },
+     "updatePeriodSeconds": {
+      "description": "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
+      "type": "integer",
+      "format": "int64"
+     }
+    }
+   },
+   "com.github.openshift.origin.pkg.apps.apis.apps.v1.TagImageHook": {
+    "description": "TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.",
+    "required": [
+     "containerName",
+     "to"
+    ],
+    "properties": {
+     "containerName": {
+      "description": "ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single container this value will be defaulted to the name of that container.",
+      "type": "string"
+     },
+     "to": {
+      "description": "To is the target ImageStreamTag to set the container's image onto.",
+      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
+     }
+    }
+   },
    "com.github.openshift.origin.pkg.authorization.apis.authorization.v1.ClusterRole": {
     "description": "ClusterRole is a logical grouping of PolicyRules that can be referenced as a unit by ClusterRoleBindings.",
     "required": [
@@ -89137,677 +89808,6 @@
      "secret": {
       "description": "secret used to validate requests.",
       "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.CustomDeploymentStrategyParams": {
-    "description": "CustomDeploymentStrategyParams are the input to the Custom deployment strategy.",
-    "properties": {
-     "command": {
-      "description": "Command is optional and overrides CMD in the container Image.",
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "environment": {
-      "description": "Environment holds the environment which will be given to the container for Image.",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.EnvVar"
-      }
-     },
-     "image": {
-      "description": "Image specifies a Docker image which can carry out a deployment.",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentCause": {
-    "description": "DeploymentCause captures information about a particular cause of a deployment.",
-    "required": [
-     "type"
-    ],
-    "properties": {
-     "imageTrigger": {
-      "description": "ImageTrigger contains the image trigger details, if this trigger was fired based on an image change",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentCauseImageTrigger"
-     },
-     "type": {
-      "description": "Type of the trigger that resulted in the creation of a new deployment",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentCauseImageTrigger": {
-    "description": "DeploymentCauseImageTrigger represents details about the cause of a deployment originating from an image change trigger",
-    "required": [
-     "from"
-    ],
-    "properties": {
-     "from": {
-      "description": "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage.",
-      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentCondition": {
-    "description": "DeploymentCondition describes the state of a deployment config at a certain point.",
-    "required": [
-     "type",
-     "status"
-    ],
-    "properties": {
-     "lastTransitionTime": {
-      "description": "The last time the condition transitioned from one status to another.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-     },
-     "lastUpdateTime": {
-      "description": "The last time this condition was updated.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.Time"
-     },
-     "message": {
-      "description": "A human readable message indicating details about the transition.",
-      "type": "string"
-     },
-     "reason": {
-      "description": "The reason for the condition's last transition.",
-      "type": "string"
-     },
-     "status": {
-      "description": "Status of the condition, one of True, False, Unknown.",
-      "type": "string"
-     },
-     "type": {
-      "description": "Type of deployment condition.",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig": {
-    "description": "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
-    "required": [
-     "spec",
-     "status"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
-     },
-     "spec": {
-      "description": "Spec represents a desired deployment state and how to deploy to it.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigSpec"
-     },
-     "status": {
-      "description": "Status represents the current deployment state.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigStatus"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "DeploymentConfig"
-     },
-     {
-      "group": "apps.openshift.io",
-      "version": "v1",
-      "kind": "DeploymentConfig"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigList": {
-    "description": "DeploymentConfigList is a collection of deployment configs.",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "items": {
-      "description": "Items is a list of deployment configs",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfig"
-      }
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "metadata": {
-      "description": "Standard object's metadata.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ListMeta"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "DeploymentConfigList"
-     },
-     {
-      "group": "apps.openshift.io",
-      "version": "v1",
-      "kind": "DeploymentConfigList"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollback": {
-    "description": "DeploymentConfigRollback provides the input to rollback generation.",
-    "required": [
-     "name",
-     "spec"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "name": {
-      "description": "Name of the deployment config that will be rolled back.",
-      "type": "string"
-     },
-     "spec": {
-      "description": "Spec defines the options to rollback generation.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollbackSpec"
-     },
-     "updatedAnnotations": {
-      "description": "UpdatedAnnotations is a set of new annotations that will be added in the deployment config.",
-      "type": "object",
-      "additionalProperties": {
-       "type": "string"
-      }
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "DeploymentConfigRollback"
-     },
-     {
-      "group": "apps.openshift.io",
-      "version": "v1",
-      "kind": "DeploymentConfigRollback"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigRollbackSpec": {
-    "description": "DeploymentConfigRollbackSpec represents the options for rollback generation.",
-    "required": [
-     "from",
-     "includeTriggers",
-     "includeTemplate",
-     "includeReplicationMeta",
-     "includeStrategy"
-    ],
-    "properties": {
-     "from": {
-      "description": "From points to a ReplicationController which is a deployment.",
-      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
-     },
-     "includeReplicationMeta": {
-      "description": "IncludeReplicationMeta specifies whether to include the replica count and selector.",
-      "type": "boolean"
-     },
-     "includeStrategy": {
-      "description": "IncludeStrategy specifies whether to include the deployment Strategy.",
-      "type": "boolean"
-     },
-     "includeTemplate": {
-      "description": "IncludeTemplate specifies whether to include the PodTemplateSpec.",
-      "type": "boolean"
-     },
-     "includeTriggers": {
-      "description": "IncludeTriggers specifies whether to include config Triggers.",
-      "type": "boolean"
-     },
-     "revision": {
-      "description": "Revision to rollback to. If set to 0, rollback to the last revision.",
-      "type": "integer",
-      "format": "int64"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigSpec": {
-    "description": "DeploymentConfigSpec represents the desired state of the deployment.",
-    "required": [
-     "strategy",
-     "triggers",
-     "replicas",
-     "test"
-    ],
-    "properties": {
-     "minReadySeconds": {
-      "description": "MinReadySeconds is the minimum number of seconds for which a newly created pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)",
-      "type": "integer",
-      "format": "int32"
-     },
-     "paused": {
-      "description": "Paused indicates that the deployment config is paused resulting in no new deployments on template changes or changes in the template caused by other triggers.",
-      "type": "boolean"
-     },
-     "replicas": {
-      "description": "Replicas is the number of desired replicas.",
-      "type": "integer",
-      "format": "int32"
-     },
-     "revisionHistoryLimit": {
-      "description": "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified. Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)",
-      "type": "integer",
-      "format": "int32"
-     },
-     "selector": {
-      "description": "Selector is a label query over pods that should match the Replicas count.",
-      "type": "object",
-      "additionalProperties": {
-       "type": "string"
-      }
-     },
-     "strategy": {
-      "description": "Strategy describes how a deployment is executed.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentStrategy"
-     },
-     "template": {
-      "description": "Template is the object that describes the pod that will be created if insufficient replicas are detected.",
-      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.PodTemplateSpec"
-     },
-     "test": {
-      "description": "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.",
-      "type": "boolean"
-     },
-     "triggers": {
-      "description": "Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers are defined, a new deployment can only occur as a result of an explicit client update to the DeploymentConfig with a new LatestVersion. If null, defaults to having a config change trigger.",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentTriggerPolicy"
-      }
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentConfigStatus": {
-    "description": "DeploymentConfigStatus represents the current deployment state.",
-    "required": [
-     "latestVersion",
-     "observedGeneration",
-     "replicas",
-     "updatedReplicas",
-     "availableReplicas",
-     "unavailableReplicas"
-    ],
-    "properties": {
-     "availableReplicas": {
-      "description": "AvailableReplicas is the total number of available pods targeted by this deployment config.",
-      "type": "integer",
-      "format": "int32"
-     },
-     "conditions": {
-      "description": "Conditions represents the latest available observations of a deployment config's current state.",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentCondition"
-      },
-      "x-kubernetes-patch-merge-key": "type",
-      "x-kubernetes-patch-strategy": "merge"
-     },
-     "details": {
-      "description": "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentDetails"
-     },
-     "latestVersion": {
-      "description": "LatestVersion is used to determine whether the current deployment associated with a deployment config is out of sync.",
-      "type": "integer",
-      "format": "int64"
-     },
-     "observedGeneration": {
-      "description": "ObservedGeneration is the most recent generation observed by the deployment config controller.",
-      "type": "integer",
-      "format": "int64"
-     },
-     "readyReplicas": {
-      "description": "Total number of ready pods targeted by this deployment.",
-      "type": "integer",
-      "format": "int32"
-     },
-     "replicas": {
-      "description": "Replicas is the total number of pods targeted by this deployment config.",
-      "type": "integer",
-      "format": "int32"
-     },
-     "unavailableReplicas": {
-      "description": "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
-      "type": "integer",
-      "format": "int32"
-     },
-     "updatedReplicas": {
-      "description": "UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config that have the desired template spec.",
-      "type": "integer",
-      "format": "int32"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentDetails": {
-    "description": "DeploymentDetails captures information about the causes of a deployment.",
-    "required": [
-     "causes"
-    ],
-    "properties": {
-     "causes": {
-      "description": "Causes are extended data associated with all the causes for creating a new deployment",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentCause"
-      }
-     },
-     "message": {
-      "description": "Message is the user specified change message, if this deployment was triggered manually by the user",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentLog": {
-    "description": "DeploymentLog represents the logs for a deployment",
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "DeploymentLog"
-     },
-     {
-      "group": "apps.openshift.io",
-      "version": "v1",
-      "kind": "DeploymentLog"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentRequest": {
-    "description": "DeploymentRequest is a request to a deployment config for a new deployment.",
-    "required": [
-     "name",
-     "latest",
-     "force"
-    ],
-    "properties": {
-     "apiVersion": {
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-      "type": "string"
-     },
-     "excludeTriggers": {
-      "description": "ExcludeTriggers instructs the instantiator to avoid processing the specified triggers. This field overrides the triggers from latest and allows clients to control specific logic. This field is ignored if not specified.",
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "force": {
-      "description": "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
-      "type": "boolean"
-     },
-     "kind": {
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-      "type": "string"
-     },
-     "latest": {
-      "description": "Latest will update the deployment config with the latest state from all triggers.",
-      "type": "boolean"
-     },
-     "name": {
-      "description": "Name of the deployment config for requesting a new deployment.",
-      "type": "string"
-     }
-    },
-    "x-kubernetes-group-version-kind": [
-     {
-      "group": "",
-      "version": "v1",
-      "kind": "DeploymentRequest"
-     },
-     {
-      "group": "apps.openshift.io",
-      "version": "v1",
-      "kind": "DeploymentRequest"
-     }
-    ]
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentStrategy": {
-    "description": "DeploymentStrategy describes how to perform a deployment.",
-    "properties": {
-     "activeDeadlineSeconds": {
-      "description": "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
-      "type": "integer",
-      "format": "int64"
-     },
-     "annotations": {
-      "description": "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
-      "type": "object",
-      "additionalProperties": {
-       "type": "string"
-      }
-     },
-     "customParams": {
-      "description": "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.CustomDeploymentStrategyParams"
-     },
-     "labels": {
-      "description": "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
-      "type": "object",
-      "additionalProperties": {
-       "type": "string"
-      }
-     },
-     "recreateParams": {
-      "description": "RecreateParams are the input to the Recreate deployment strategy.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.RecreateDeploymentStrategyParams"
-     },
-     "resources": {
-      "description": "Resources contains resource requirements to execute the deployment and any hooks.",
-      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ResourceRequirements"
-     },
-     "rollingParams": {
-      "description": "RollingParams are the input to the Rolling deployment strategy.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.RollingDeploymentStrategyParams"
-     },
-     "type": {
-      "description": "Type is the name of a deployment strategy.",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentTriggerImageChangeParams": {
-    "description": "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
-    "required": [
-     "from"
-    ],
-    "properties": {
-     "automatic": {
-      "description": "Automatic means that the detection of a new tag value should result in an image update inside the pod template.",
-      "type": "boolean"
-     },
-     "containerNames": {
-      "description": "ContainerNames is used to restrict tag updates to the specified set of container names in a pod. If multiple triggers point to the same containers, the resulting behavior is undefined. Future API versions will make this a validation error. If ContainerNames does not point to a valid container, the trigger will be ignored. Future API versions will make this a validation error.",
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "from": {
-      "description": "From is a reference to an image stream tag to watch for changes. From.Name is the only required subfield - if From.Namespace is blank, the namespace of the current deployment trigger will be used.",
-      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
-     },
-     "lastTriggeredImage": {
-      "description": "LastTriggeredImage is the last image to be triggered.",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentTriggerPolicy": {
-    "description": "DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.",
-    "properties": {
-     "imageChangeParams": {
-      "description": "ImageChangeParams represents the parameters for the ImageChange trigger.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.DeploymentTriggerImageChangeParams"
-     },
-     "type": {
-      "description": "Type of the trigger",
-      "type": "string"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.ExecNewPodHook": {
-    "description": "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
-    "required": [
-     "command",
-     "containerName"
-    ],
-    "properties": {
-     "command": {
-      "description": "Command is the action command and its arguments.",
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     },
-     "containerName": {
-      "description": "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container.",
-      "type": "string"
-     },
-     "env": {
-      "description": "Env is a set of environment variables to supply to the hook pod's container.",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.EnvVar"
-      }
-     },
-     "volumes": {
-      "description": "Volumes is a list of named volumes from the pod template which should be copied to the hook pod. Volumes names not found in pod spec are ignored. An empty list means no volumes will be copied.",
-      "type": "array",
-      "items": {
-       "type": "string"
-      }
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.LifecycleHook": {
-    "description": "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
-    "required": [
-     "failurePolicy"
-    ],
-    "properties": {
-     "execNewPod": {
-      "description": "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.ExecNewPodHook"
-     },
-     "failurePolicy": {
-      "description": "FailurePolicy specifies what action to take if the hook fails.",
-      "type": "string"
-     },
-     "tagImages": {
-      "description": "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.",
-      "type": "array",
-      "items": {
-       "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.TagImageHook"
-      }
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.RecreateDeploymentStrategyParams": {
-    "description": "RecreateDeploymentStrategyParams are the input to the Recreate deployment strategy.",
-    "properties": {
-     "mid": {
-      "description": "Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new pod is created. All LifecycleHookFailurePolicy values are supported.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.LifecycleHook"
-     },
-     "post": {
-      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.LifecycleHook"
-     },
-     "pre": {
-      "description": "Pre is a lifecycle hook which is executed before the strategy manipulates the deployment. All LifecycleHookFailurePolicy values are supported.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.LifecycleHook"
-     },
-     "timeoutSeconds": {
-      "description": "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
-      "type": "integer",
-      "format": "int64"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.RollingDeploymentStrategyParams": {
-    "description": "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
-    "properties": {
-     "intervalSeconds": {
-      "description": "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used.",
-      "type": "integer",
-      "format": "int64"
-     },
-     "maxSurge": {
-      "description": "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString"
-     },
-     "maxUnavailable": {
-      "description": "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding down.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
-      "$ref": "#/definitions/io.k8s.apimachinery.pkg.util.intstr.IntOrString"
-     },
-     "post": {
-      "description": "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.LifecycleHook"
-     },
-     "pre": {
-      "description": "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported.",
-      "$ref": "#/definitions/com.github.openshift.origin.pkg.deploy.apis.apps.v1.LifecycleHook"
-     },
-     "timeoutSeconds": {
-      "description": "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
-      "type": "integer",
-      "format": "int64"
-     },
-     "updatePeriodSeconds": {
-      "description": "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
-      "type": "integer",
-      "format": "int64"
-     }
-    }
-   },
-   "com.github.openshift.origin.pkg.deploy.apis.apps.v1.TagImageHook": {
-    "description": "TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.",
-    "required": [
-     "containerName",
-     "to"
-    ],
-    "properties": {
-     "containerName": {
-      "description": "ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single container this value will be defaulted to the name of that container.",
-      "type": "string"
-     },
-     "to": {
-      "description": "To is the target ImageStreamTag to set the container's image onto.",
-      "$ref": "#/definitions/io.k8s.kubernetes.pkg.api.v1.ObjectReference"
      }
     }
    },

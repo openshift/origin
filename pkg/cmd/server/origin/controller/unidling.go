@@ -3,9 +3,9 @@ package controller
 import (
 	"time"
 
+	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
 

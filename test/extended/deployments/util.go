@@ -21,10 +21,10 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"

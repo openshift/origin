@@ -16,9 +16,9 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
-	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
+	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 )
 
 type objectifier interface {

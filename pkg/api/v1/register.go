@@ -1,9 +1,9 @@
 package v1
 
 import (
+	_ "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	_ "github.com/openshift/origin/pkg/build/apis/build/v1"
-	_ "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	_ "github.com/openshift/origin/pkg/image/apis/image/v1"
 	_ "github.com/openshift/origin/pkg/network/apis/network/v1"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"

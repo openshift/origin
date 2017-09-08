@@ -9,11 +9,11 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/controller"
 
+	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
-	appinformer "github.com/openshift/origin/pkg/deploy/generated/informers/internalversion"
-	appsclientinternal "github.com/openshift/origin/pkg/deploy/generated/internalclientset"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"

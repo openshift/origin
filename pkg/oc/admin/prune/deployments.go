@@ -15,10 +15,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	"github.com/openshift/origin/pkg/apps/prune"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	"github.com/openshift/origin/pkg/deploy/prune"
 )
 
 const PruneDeploymentsRecommendedName = "deployments"

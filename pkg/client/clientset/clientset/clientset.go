@@ -5,7 +5,7 @@ import (
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
 
-	appsV1 "github.com/openshift/origin/pkg/deploy/generated/clientset/typed/apps/v1"
+	appsV1 "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 )
 
 type Interface interface {

@@ -11,8 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	stratsupport "github.com/openshift/origin/pkg/deploy/strategy/support"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	stratsupport "github.com/openshift/origin/pkg/apps/strategy/support"
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"

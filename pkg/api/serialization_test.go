@@ -18,9 +18,9 @@ import (
 	"k8s.io/kubernetes/pkg/api/validation"
 
 	_ "github.com/openshift/origin/pkg/api/latest"
+	deploy "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	build "github.com/openshift/origin/pkg/build/apis/build"
-	deploy "github.com/openshift/origin/pkg/deploy/apis/apps"
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	route "github.com/openshift/origin/pkg/route/apis/route"

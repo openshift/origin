@@ -15,7 +15,7 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	_ "github.com/openshift/origin/pkg/api/install"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"

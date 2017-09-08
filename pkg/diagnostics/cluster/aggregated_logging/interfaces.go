@@ -5,8 +5,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	routesapi "github.com/openshift/origin/pkg/route/apis/route"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )

@@ -5,10 +5,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/registry/rest"
 
+	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
+	deploymentconfigetcd "github.com/openshift/origin/pkg/apps/registry/deployconfig/etcd"
 	buildconfig "github.com/openshift/origin/pkg/build/registry/buildconfig"
 	buildconfigetcd "github.com/openshift/origin/pkg/build/registry/buildconfig/etcd"
-	"github.com/openshift/origin/pkg/deploy/registry/deployconfig"
-	deploymentconfigetcd "github.com/openshift/origin/pkg/deploy/registry/deployconfig/etcd"
 	routeregistry "github.com/openshift/origin/pkg/route/registry/route"
 	routeetcd "github.com/openshift/origin/pkg/route/registry/route/etcd"
 )

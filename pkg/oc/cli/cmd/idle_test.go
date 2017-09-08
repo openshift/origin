@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
