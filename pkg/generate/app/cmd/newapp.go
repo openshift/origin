@@ -962,6 +962,9 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 		isName = isContext.Name
 		isTag = ref.Name
 	} else {
+		// Search for a new image stream context based on the name and tag
+		isContext = nil
+
 		// The imagestream is usually being created alongside the buildconfig
 		// when new-build is being used, so scan objects being created for it.
 		for _, check := range objects {

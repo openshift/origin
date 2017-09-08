@@ -37,6 +37,13 @@ os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.7" for "my
 os::cmd::expect_success_and_text 'oc new-app mysql --dry-run --as-test' 'This image will be test deployed'
 os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: true'
 
+# test that imagestream references across imagestreams do not cause an error
+os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'
+os::cmd::expect_success 'oc create -f test/testdata/newapp/imagestream-ref.yaml'
+os::cmd::try_until_success 'oc get imagestreamtags myruby:latest'
+os::cmd::expect_success 'oc new-app myruby~https://github.com/openshift/ruby-hello-world.git --dry-run'
+os::cmd::expect_success 'oc delete is myruby'
+
 # docker strategy with repo that has no dockerfile
 os::cmd::expect_failure_and_text 'oc new-app https://github.com/openshift/nodejs-ex --strategy=docker' 'No Dockerfile was found'
 
