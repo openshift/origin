@@ -13598,6 +13598,7 @@ objects:
     - brokers/status
     - instances/status
     - bindings/status
+    - bindings/finalizers
     verbs:
     - update
   - apiGroups:
