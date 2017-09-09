@@ -185,8 +185,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(read...).Groups(certificatesGroup).Resources("certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("clusterpolicies", "clusterpolicybindings", "clusterroles", "clusterrolebindings",
-					"policies", "policybindings", "roles", "rolebindings", "rolebindingrestrictions").RuleOrDie(),
+				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("clusterroles", "clusterrolebindings", "roles", "rolebindings", "rolebindingrestrictions").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "builds/details", "buildconfigs", "buildconfigs/webhooks", "builds/log").RuleOrDie(),
 
@@ -316,7 +315,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("create").Groups(securityGroup, legacySecurityGroup).Resources("podsecuritypolicysubjectreviews", "podsecuritypolicyselfsubjectreviews", "podsecuritypolicyreviews").RuleOrDie(),
 				rbac.NewRule("create").Groups(kAuthzGroup).Resources("localsubjectaccessreviews").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("policies", "policybindings", "rolebindingrestrictions").RuleOrDie(),
+				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("rolebindingrestrictions").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
@@ -801,7 +800,6 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(readWrite...).Groups(authzGroup, legacyAuthzGroup).Resources("rolebindings", "roles").RuleOrDie(),
 				rbac.NewRule("create").Groups(authzGroup, legacyAuthzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "subjectrulesreviews").RuleOrDie(),
 				rbac.NewRule("create").Groups(kAuthzGroup).Resources("localsubjectaccessreviews").RuleOrDie(),
-				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("policies", "policybindings").RuleOrDie(),
 
 				rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 				rbac.NewRule("get", "delete").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
