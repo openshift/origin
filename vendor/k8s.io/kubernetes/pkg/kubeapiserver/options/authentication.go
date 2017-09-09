@@ -42,6 +42,9 @@ type BuiltInAuthenticationOptions struct {
 	ServiceAccounts *ServiceAccountAuthenticationOptions
 	TokenFile       *TokenFileAuthenticationOptions
 	WebHook         *WebHookAuthenticationOptions
+
+	TokenSuccessCacheTTL time.Duration
+	TokenFailureCacheTTL time.Duration
 }
 
 type AnyTokenAuthenticationOptions struct {
@@ -88,7 +91,10 @@ type WebHookAuthenticationOptions struct {
 }
 
 func NewBuiltInAuthenticationOptions() *BuiltInAuthenticationOptions {
-	return &BuiltInAuthenticationOptions{}
+	return &BuiltInAuthenticationOptions{
+		TokenSuccessCacheTTL: 10 * time.Second,
+		TokenFailureCacheTTL: 0 * time.Second,
+	}
 }
 
 func (s *BuiltInAuthenticationOptions) WithAll() *BuiltInAuthenticationOptions {
@@ -262,7 +268,10 @@ func (s *BuiltInAuthenticationOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 func (s *BuiltInAuthenticationOptions) ToAuthenticationConfig() authenticator.AuthenticatorConfig {
-	ret := authenticator.AuthenticatorConfig{}
+	ret := authenticator.AuthenticatorConfig{
+		TokenSuccessCacheTTL: s.TokenSuccessCacheTTL,
+		TokenFailureCacheTTL: s.TokenFailureCacheTTL,
+	}
 
 	if s.Anonymous != nil {
 		ret.Anonymous = s.Anonymous.Allow

@@ -126,6 +126,9 @@ func TestAPIServerDefaults(t *testing.T) {
 			ServiceAccounts: &kubeoptions.ServiceAccountAuthenticationOptions{},
 			TokenFile:       &kubeoptions.TokenFileAuthenticationOptions{},
 			WebHook:         &kubeoptions.WebHookAuthenticationOptions{CacheTTL: 2 * time.Minute},
+
+			TokenSuccessCacheTTL: 10 * time.Second,
+			TokenFailureCacheTTL: 0,
 		},
 		Authorization: &kubeoptions.BuiltInAuthorizationOptions{
 			Mode: "AlwaysAllow",
