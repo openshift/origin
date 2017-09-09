@@ -136,6 +136,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			},
 			Rules: []rbac.PolicyRule{
 				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemUserResource, authorizationapi.UserResource).Names(SystemAdminUsername).RuleOrDie(),
+				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemGroupResource, authorizationapi.GroupResource).Names(MastersGroup).RuleOrDie(),
 			},
 		},
 		{

@@ -83,7 +83,7 @@ func TestBootstrappedConstraintsWithAddedUser(t *testing.T) {
 
 func getExpectedAccess() (map[string][]string, map[string][]string) {
 	groups := map[string][]string{
-		SecurityContextConstraintPrivileged: {ClusterAdminGroup, NodesGroup},
+		SecurityContextConstraintPrivileged: {ClusterAdminGroup, NodesGroup, MastersGroup},
 		SecurityContextConstraintsAnyUID:    {ClusterAdminGroup},
 		SecurityContextConstraintRestricted: {AuthenticatedGroup},
 	}
@@ -91,7 +91,7 @@ func getExpectedAccess() (map[string][]string, map[string][]string) {
 	buildControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraBuildControllerServiceAccountName)
 	pvRecyclerControllerUsername := serviceaccount.MakeUsername(DefaultOpenShiftInfraNamespace, InfraPersistentVolumeRecyclerControllerServiceAccountName)
 	users := map[string][]string{
-		SecurityContextConstraintPrivileged:         {buildControllerUsername},
+		SecurityContextConstraintPrivileged:         {SystemAdminUsername, buildControllerUsername},
 		SecurityContextConstraintHostMountAndAnyUID: {pvRecyclerControllerUsername},
 	}
 	return groups, users
