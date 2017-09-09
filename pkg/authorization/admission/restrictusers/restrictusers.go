@@ -12,6 +12,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
@@ -68,11 +69,11 @@ func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.Shar
 	q.groupCache = usercache.NewGroupCache(userInformers.User().InternalVersion().Groups())
 }
 
-// objectReferenceDelta returns the relative complement of
-// []ObjectReference elementsToIgnore in []ObjectReference elements
-// (i.e., elements∖elementsToIgnore).
-func objectReferenceDelta(elementsToIgnore, elements []kapi.ObjectReference) []kapi.ObjectReference {
-	result := []kapi.ObjectReference{}
+// subjectsDelta returns the relative complement of elementsToIgnore in
+// elements (i.e., elements∖elementsToIgnore).
+// TODO return []rbac.Subject{} once we convert subjectchecker to RBAC types
+func subjectsDelta(elementsToIgnore, elements []rbac.Subject) ([]kapi.ObjectReference, error) {
+	result := []rbac.Subject{}
 
 	for _, el := range elements {
 		keep := true
@@ -87,7 +88,7 @@ func objectReferenceDelta(elementsToIgnore, elements []kapi.ObjectReference) []k
 		}
 	}
 
-	return result
+	return authorizationapi.Convert_rbac_Subjects_To_authorization_Subjects(result)
 }
 
 // Admit makes admission decisions that enforce restrictions on adding
@@ -95,11 +96,9 @@ func objectReferenceDelta(elementsToIgnore, elements []kapi.ObjectReference) []k
 // each subject in the binding must be matched by some rolebinding restriction
 // in the namespace.
 func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
-	// We only care about rolebindings and policybindings; ignore anything else.
-	gr := a.GetResource().GroupResource()
-	switch {
-	case authorizationapi.IsResourceOrLegacy("policybindings", gr), authorizationapi.IsResourceOrLegacy("rolebindings", gr):
-	default:
+
+	// We only care about rolebindings
+	if a.GetResource().GroupResource() != rbac.Resource("rolebindings") {
 		return nil
 	}
 
@@ -114,66 +113,38 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 		return nil
 	}
 
-	var subjects, oldSubjects []kapi.ObjectReference
+	var oldSubjects []rbac.Subject
 
 	obj, oldObj := a.GetObject(), a.GetOldObject()
-	switch {
-	case authorizationapi.IsResourceOrLegacy("rolebindings", gr):
-		rolebinding, ok := obj.(*authorizationapi.RoleBinding)
-		if !ok {
-			return admission.NewForbidden(a,
-				fmt.Errorf("wrong object type for new rolebinding: %T", obj))
-		}
 
-		subjects = rolebinding.Subjects
-		if len(subjects) == 0 {
-			return nil
-		}
-
-		if oldObj != nil {
-			oldrolebinding, ok := oldObj.(*authorizationapi.RoleBinding)
-			if !ok {
-				return admission.NewForbidden(a,
-					fmt.Errorf("wrong object type for old rolebinding: %T", oldObj))
-			}
-
-			oldSubjects = oldrolebinding.Subjects
-		}
-
-		glog.V(4).Infof("Handling rolebinding %s/%s",
-			rolebinding.Namespace, rolebinding.Name)
-
-	case authorizationapi.IsResourceOrLegacy("policybindings", gr):
-		policybinding, ok := obj.(*authorizationapi.PolicyBinding)
-		if !ok {
-			return admission.NewForbidden(a,
-				fmt.Errorf("wrong object type for new policybinding: %T", obj))
-		}
-
-		for _, rolebinding := range policybinding.RoleBindings {
-			subjects = append(subjects, rolebinding.Subjects...)
-		}
-		if len(subjects) == 0 {
-			return nil
-		}
-
-		if oldObj != nil {
-			oldpolicybinding, ok := oldObj.(*authorizationapi.PolicyBinding)
-			if !ok {
-				return admission.NewForbidden(a,
-					fmt.Errorf("wrong object type for old policybinding: %T", oldObj))
-			}
-
-			for _, rolebinding := range oldpolicybinding.RoleBindings {
-				oldSubjects = append(oldSubjects, rolebinding.Subjects...)
-			}
-		}
-
-		glog.V(4).Infof("Handling policybinding %s/%s",
-			policybinding.Namespace, policybinding.Name)
+	rolebinding, ok := obj.(*rbac.RoleBinding)
+	if !ok {
+		return admission.NewForbidden(a,
+			fmt.Errorf("wrong object type for new rolebinding: %T", obj))
 	}
 
-	newSubjects := objectReferenceDelta(oldSubjects, subjects)
+	if len(rolebinding.Subjects) == 0 {
+		glog.V(4).Infof("No new subjects; admitting")
+		return nil
+	}
+
+	if oldObj != nil {
+		oldrolebinding, ok := oldObj.(*rbac.RoleBinding)
+		if !ok {
+			return admission.NewForbidden(a,
+				fmt.Errorf("wrong object type for old rolebinding: %T", oldObj))
+		}
+		oldSubjects = oldrolebinding.Subjects
+	}
+
+	glog.V(4).Infof("Handling rolebinding %s/%s",
+		rolebinding.Namespace, rolebinding.Name)
+
+	newSubjects, err := subjectsDelta(oldSubjects, rolebinding.Subjects)
+	if err != nil {
+		return admission.NewForbidden(a,
+			fmt.Errorf("failed to select Subjects: %v", err))
+	}
 	if len(newSubjects) == 0 {
 		glog.V(4).Infof("No new subjects; admitting")
 		return nil
