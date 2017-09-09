@@ -47,6 +47,7 @@ func NewContext(transport, insecureTransport http.RoundTripper) Context {
 		Transport:         transport,
 		InsecureTransport: insecureTransport,
 		Challenges:        challenge.NewSimpleManager(),
+		Actions:           []string{"pull"},
 	}
 }
 
@@ -54,12 +55,46 @@ type Context struct {
 	Transport         http.RoundTripper
 	InsecureTransport http.RoundTripper
 	Challenges        challenge.Manager
+	Scopes            []auth.Scope
+	Actions           []string
+}
+
+func (c Context) WithScopes(scopes ...auth.Scope) Context {
+	c.Scopes = scopes
+	return c
+}
+
+func (c Context) WithActions(actions ...string) Context {
+	c.Actions = actions
+	return c
 }
 
 func (c Context) WithCredentials(credentials auth.CredentialStore) RepositoryRetriever {
+	return c.WithAuthHandlers(func(rt http.RoundTripper, _ *url.URL, repoName string) []auth.AuthenticationHandler {
+		scopes := make([]auth.Scope, 0, 1+len(c.Scopes))
+		scopes = append(scopes, c.Scopes...)
+		if len(c.Actions) == 0 {
+			scopes = append(scopes, auth.RepositoryScope{Repository: repoName, Actions: []string{"pull"}})
+		} else {
+			scopes = append(scopes, auth.RepositoryScope{Repository: repoName, Actions: c.Actions})
+		}
+		return []auth.AuthenticationHandler{
+			auth.NewTokenHandlerWithOptions(auth.TokenHandlerOptions{
+				Transport:   rt,
+				Credentials: credentials,
+				Scopes:      scopes,
+			}),
+			auth.NewBasicHandler(credentials),
+		}
+	})
+}
+
+type AuthHandlersFunc func(transport http.RoundTripper, registry *url.URL, repoName string) []auth.AuthenticationHandler
+
+func (c Context) WithAuthHandlers(fn AuthHandlersFunc) RepositoryRetriever {
 	return &repositoryRetriever{
 		context:     c,
-		credentials: credentials,
+		credentials: fn,
 
 		pings:    make(map[url.URL]error),
 		redirect: make(map[url.URL]*url.URL),
@@ -68,7 +103,7 @@ func (c Context) WithCredentials(credentials auth.CredentialStore) RepositoryRet
 
 type repositoryRetriever struct {
 	context     Context
-	credentials auth.CredentialStore
+	credentials AuthHandlersFunc
 
 	pings    map[url.URL]error
 	redirect map[url.URL]*url.URL
@@ -111,8 +146,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 		// TODO: make multiple attempts if the first credential fails
 		auth.NewAuthorizer(
 			r.context.Challenges,
-			auth.NewTokenHandler(t, r.credentials, repoName, "pull"),
-			auth.NewBasicHandler(r.credentials),
+			r.credentials(t, registry, repoName)...,
 		),
 	)
 
