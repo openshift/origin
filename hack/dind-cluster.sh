@@ -67,14 +67,26 @@ function start() {
   local deployed_config_root=$4
   local cluster_id=$5
   local network_plugin=$6
-  local wait_for_cluster=$7
-  local node_count=$8
-  local additional_args=$9
+  local container_runtime=$7
+  local wait_for_cluster=$8
+  local node_count=$9
+  local additional_args=${10}
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
 
-  echo "Starting dind cluster '${cluster_id}' with plugin '${network_plugin}'"
+  runtime_endpoint=
+  if [[ "${container_runtime}" = "dockershim" ]]; then
+    # dockershim is default and doesn't need an endpoint path
+    runtime_endpoint=
+  elif [[ "${container_runtime}" = "crio" ]]; then
+    runtime_endpoint="/var/run/crio.sock"
+  else
+    >&2 echo "Invalid container runtime: ${container_runtime}"
+    exit 1
+  fi
+
+  echo "Starting dind cluster '${cluster_id}' with plugin '${network_plugin}' and runtime '${container_runtime}'"
 
   # Error if a cluster is already configured
   check-no-containers "start"
@@ -91,16 +103,19 @@ function start() {
 
   # Initialize the cluster config path
   mkdir -p "${config_root}"
-  echo "OPENSHIFT_NETWORK_PLUGIN=${network_plugin}" > "${config_root}/network-plugin"
-  echo "OPENSHIFT_ADDITIONAL_ARGS='${additional_args}'" > "${config_root}/additional-args"
+  echo "OPENSHIFT_NETWORK_PLUGIN=${network_plugin}" > "${config_root}/dind-env"
+  echo "OPENSHIFT_ADDITIONAL_ARGS='${additional_args}'" >> "${config_root}/dind-env"
   copy-runtime "${origin_root}" "${config_root}/"
+
+  echo "OPENSHIFT_CONTAINER_RUNTIME=${container_runtime}" >> "${config_root}/dind-env"
+  echo "OPENSHIFT_REMOTE_RUNTIME_ENDPOINT=${runtime_endpoint}" >> "${config_root}/dind-env"
 
   ovn_kubernetes=
   if [[ -d "${ovn_root}" ]]; then
     copy-ovn-runtime "${ovn_root}" "${config_root}/"
     ovn_kubernetes=1
   fi
-  echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" > "${config_root}/ovn-kubernetes"
+  echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
 
   # Create containers
   start-container "${config_root}" "${deployed_config_root}" "${MASTER_IMAGE}" "${MASTER_NAME}"
@@ -603,6 +618,7 @@ MASTER_IMAGE="openshift/dind-master"
 ADDITIONAL_ARGS=""
 
 OVN_ROOT="${OVN_ROOT:-}"
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-dockershim}"
 
 case "${1:-""}" in
   start)
@@ -612,7 +628,7 @@ case "${1:-""}" in
     NETWORK_PLUGIN=
     REMOVE_EXISTING_CLUSTER=
     OPTIND=2
-    while getopts ":bin:rsN:" opt; do
+    while getopts ":bc:in:rsN:" opt; do
       case $opt in
         b)
           BUILD=1
@@ -631,6 +647,9 @@ case "${1:-""}" in
           ;;
         s)
           WAIT_FOR_CLUSTER=
+          ;;
+        c)
+          CONTAINER_RUNTIME="${OPTARG}"
           ;;
         \?)
           echo "Invalid option: -${OPTARG}" >&2
@@ -680,8 +699,8 @@ case "${1:-""}" in
     fi
 
     start "${OS_ROOT}" "${OVN_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
-          "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${WAIT_FOR_CLUSTER}" \
-          "${NODE_COUNT}" "${ADDITIONAL_ARGS}"
+          "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${CONTAINER_RUNTIME}" \
+          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ADDITIONAL_ARGS}"
     ;;
   add-node)
     WAIT_FOR_CLUSTER=1
@@ -810,6 +829,7 @@ start accepts the following options:
  -n [net plugin]   the name of the network plugin to deploy
  -N                number of nodes in the cluster
  -b                build origin before starting the cluster
+ -c [runtime name] use the specified container runtime instead of dockershim (eg, "crio")
  -i                build container images before starting the cluster
  -r                remove an existing cluster
  -s                skip waiting for nodes to become ready
