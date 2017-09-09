@@ -512,7 +512,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			Rules: []rbac.PolicyRule{
 				// Health
 				rbac.NewRule("get").URLs("/healthz", "/healthz/*").RuleOrDie(),
-				authorizationapi.RbacDiscoveryRule,
+				authorizationapi.DiscoveryRule,
 			},
 		},
 		{
@@ -772,7 +772,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: DiscoveryRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				authorizationapi.RbacDiscoveryRule,
+				authorizationapi.DiscoveryRule,
 			},
 		},
 		{
