@@ -9,7 +9,7 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[builds][Slow] s2i extended build", func() {
+var _ = g.Describe("[Feature:Builds][Slow] s2i extended build", func() {
 	defer g.GinkgoRecover()
 
 	var (

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("[networking] network isolation", func() {
+var _ = Describe("[Area:Networking] network isolation", func() {
 	InSingleTenantContext(func() {
 		f1 := e2e.NewDefaultFramework("net-isolation1")
 		f2 := e2e.NewDefaultFramework("net-isolation2")

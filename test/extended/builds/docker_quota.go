@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][quota][Slow] docker build with a quota", func() {
+var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", func() {
 	defer g.GinkgoRecover()
 	const (
 		buildTestPod     = "build-test-pod"

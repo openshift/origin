@@ -7,7 +7,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] testing build configuration hooks", func() {
+var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "test-build-postcommit.json")

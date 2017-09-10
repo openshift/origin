@@ -28,7 +28,7 @@ import (
 const deploymentRunTimeout = 5 * time.Minute
 const deploymentChangeTimeout = 30 * time.Second
 
-var _ = g.Describe("deploymentconfigs", func() {
+var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc                              = exutil.NewCLI("cli-deployment", exutil.KubeConfigPath())

@@ -8,7 +8,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] extremely long build/bc names are not problematic", func() {
+var _ = g.Describe("[Feature:Builds][Slow] extremely long build/bc names are not problematic", func() {
 	defer g.GinkgoRecover()
 	var (
 		testDataBaseDir  = exutil.FixturePath("testdata", "long_names")

@@ -26,7 +26,7 @@ func verifyStages(stages []buildapi.StageInfo, expectedStages map[string][]strin
 	}
 }
 
-var _ = g.Describe("[builds][timing] capture build stages and durations", func() {
+var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations", func() {
 	var (
 		buildTimingBaseDir    = exutil.FixturePath("testdata", "build-timing")
 		isFixture             = filepath.Join(buildTimingBaseDir, "test-is.json")

@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] the s2i build should support proxies", func() {
+var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildFixture = exutil.FixturePath("testdata", "test-build-proxy.yaml")
