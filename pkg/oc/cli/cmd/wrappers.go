@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"io"
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
+
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
@@ -234,7 +237,32 @@ func NewCmdCompletion(fullName string, f *clientcmd.Factory, out io.Writer) *cob
 	cmd := kcmd.NewCmdCompletion(out, "\n")
 	cmd.Long = fmt.Sprintf(completionLong, cmdHelpName)
 	cmd.Example = fmt.Sprintf(completionExample, cmdHelpName, cmdHelpName, cmdHelpName, cmdHelpName)
+	// mark all statically included flags as hidden to prevent them appearing in completions
+	cmd.PreRun = func(c *cobra.Command, _ []string) {
+		pflag.CommandLine.VisitAll(func(flag *pflag.Flag) {
+			flag.Hidden = true
+		})
+		hideGlobalFlags(c.Root(), flag.CommandLine)
+	}
 	return cmd
+}
+
+// hideGlobalFlags marks any flag that is in the global flag set as
+// hidden to prevent completion from varying by platform due to conditional
+// includes. This means that some completions will not be possible unless
+// they are registered in cobra instead of being added to flag.CommandLine.
+func hideGlobalFlags(c *cobra.Command, fs *flag.FlagSet) {
+	fs.VisitAll(func(flag *flag.Flag) {
+		if f := c.PersistentFlags().Lookup(flag.Name); f != nil {
+			f.Hidden = true
+		}
+		if f := c.LocalFlags().Lookup(flag.Name); f != nil {
+			f.Hidden = true
+		}
+	})
+	for _, child := range c.Commands() {
+		hideGlobalFlags(child, fs)
+	}
 }
 
 var (
