@@ -22,12 +22,12 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
-	"github.com/openshift/origin/pkg/network"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -329,22 +329,19 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	server, proxyconfig, err := nodeoptions.Build(nodeConfig)
+	server, proxyConfig, err := nodeoptions.Build(nodeConfig)
 	if err != nil {
 		return err
 	}
 
-	config, err := node.New(nodeConfig, server, proxyconfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
+	networkConfig, err := network.New(nodeConfig, server.ClusterDomain, proxyConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
 	if err != nil {
 		return err
 	}
 
-	if network.IsOpenShiftNetworkPlugin(config.KubeletServer.NetworkPluginName) {
-		// TODO: SDN plugin depends on the Kubelet registering as a Node and doesn't retry cleanly,
-		// and Kubelet also can't start the PodSync loop until the SDN plugin has loaded.
-		if components.Enabled(ComponentKubelet) != components.Enabled(ComponentPlugins) {
-			return fmt.Errorf("the SDN plugin must be run in the same process as the kubelet")
-		}
+	config, err := node.New(nodeConfig, server)
+	if err != nil {
+		return err
 	}
 
 	if components.Enabled(ComponentKubelet) {
@@ -352,12 +349,6 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 	} else {
 		glog.Infof("Starting node networking %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
 	}
-
-	_, kubeClientConfig, err := configapi.GetInternalKubeClient(nodeConfig.MasterKubeConfig, nodeConfig.MasterClientConnectionOverrides)
-	if err != nil {
-		return err
-	}
-	glog.Infof("Connecting to API server %s", kubeClientConfig.Host)
 
 	// preconditions
 	if components.Enabled(ComponentKubelet) {
@@ -371,16 +362,16 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		config.RunKubelet()
 	}
 	if components.Enabled(ComponentPlugins) {
-		config.RunSDN()
+		networkConfig.RunSDN()
 	}
 	if components.Enabled(ComponentProxy) {
-		config.RunProxy()
+		networkConfig.RunProxy()
 	}
-	if components.Enabled(ComponentDNS) && config.DNSServer != nil {
-		config.RunDNS()
+	if components.Enabled(ComponentDNS) && networkConfig.DNSServer != nil {
+		networkConfig.RunDNS()
 	}
 
-	config.InternalKubeInformers.Start(wait.NeverStop)
+	networkConfig.InternalKubeInformers.Start(wait.NeverStop)
 
 	return nil
 }

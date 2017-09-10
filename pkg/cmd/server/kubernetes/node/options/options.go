@@ -80,11 +80,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, *compon
 	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
 	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
 
-	if network.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
-		// set defaults for openshift-sdn
-		server.HairpinMode = componentconfig.HairpinNone
-	}
-
 	// prevents kube from generating certs
 	server.TLSCertFile = options.ServingInfo.ServerCert.CertFile
 	server.TLSPrivateKeyFile = options.ServingInfo.ServerCert.KeyFile
@@ -134,7 +129,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, *compon
 		return nil, nil, err
 	}
 
-	// Initialize SDN before building kubelet config so it can modify option
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
 		// SDN plugin pod setup/teardown is implemented as a CNI plugin
 		server.NetworkPluginName = kubeletcni.CNIPluginName
