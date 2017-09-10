@@ -10,6 +10,16 @@ $ oc new-app -f prometheus.yaml
 
 You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.
 
+The optional `node-exporter` component may be installed as a daemon set to gather host level metrics. It requires additional
+privileges to view the host and should only be run in administrator controlled namespaces.
+
+To deploy, run:
+
+```
+$ oc create -f node-exporter.yaml -n kube-system
+$ oc adm policy add-scc-to-user -z prometheus-node-exporter -n kube-system hostaccess
+```
+
 ## Useful metrics queries
 
 ### Related to how much data is being gathered by Prometheus
