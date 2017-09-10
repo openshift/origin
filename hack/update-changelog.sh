@@ -36,6 +36,10 @@ function component() {
   fi
 }
 
+function issues() {
+  go run tools/changelog/changelog.go "$from" "$to"
+}
+
 cat << EOF
 ${to}
 
@@ -91,7 +95,7 @@ MOVE FROM BUGS
 
 ### Bugs
 
-$( git log --merges --pretty='tformat:%p %s' --reverse "$from..$to" | cut -f 2,6 -d ' ' | xargs -L 1 /bin/sh -c 'echo "- $(git show -s --pretty=tformat:%s $1) [\\$2](https://github.com/$repo/pull/${2:1})"' '' | grep -vE "UPSTREAM|bump" )
+$( issues )
 
 
 ## Release SHA256 Checksums
