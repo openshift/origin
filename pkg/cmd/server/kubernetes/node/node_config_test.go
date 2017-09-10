@@ -138,6 +138,10 @@ func TestKubeletDefaults(t *testing.T) {
 		},
 	}
 
+	if goruntime.GOOS == "darwin" {
+		expectedDefaults.KubeletConfiguration.RemoteRuntimeEndpoint = ""
+	}
+
 	if !reflect.DeepEqual(defaults, expectedDefaults) {
 		t.Logf("expected defaults, actual defaults: \n%s", diff.ObjectReflectDiff(expectedDefaults, defaults))
 		t.Errorf("Got different defaults than expected, adjust in BuildKubernetesNodeConfig and update expectedDefaults")

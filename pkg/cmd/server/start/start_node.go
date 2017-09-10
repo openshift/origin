@@ -22,7 +22,8 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
+	"github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
+	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/docker"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
@@ -328,7 +329,12 @@ func (o NodeOptions) IsRunFromConfig() bool {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	config, err := kubernetes.BuildKubernetesNodeConfig(nodeConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
+	server, proxyconfig, err := nodeoptions.Build(nodeConfig)
+	if err != nil {
+		return err
+	}
+
+	config, err := node.New(nodeConfig, server, proxyconfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
 	if err != nil {
 		return err
 	}
