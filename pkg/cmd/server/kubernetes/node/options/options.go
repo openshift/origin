@@ -201,3 +201,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubePr
 
 	return proxyconfig, nil
 }
+
+func ToFlags(config *kubeletoptions.KubeletServer) []string {
+	return cmdflags.AsArgs(config.AddFlags, kubeletoptions.NewKubeletServer().AddFlags)
+}
