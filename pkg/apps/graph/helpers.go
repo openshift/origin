@@ -7,13 +7,13 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // RelevantDeployments returns the active deployment and a list of inactive deployments (in order from newest to oldest)
-func RelevantDeployments(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNode) (*kubegraph.ReplicationControllerNode, []*kubegraph.ReplicationControllerNode) {
+func RelevantDeployments(g osgraph.Graph, dcNode *appsgraph.DeploymentConfigNode) (*kubegraph.ReplicationControllerNode, []*kubegraph.ReplicationControllerNode) {
 	allDeployments := []*kubegraph.ReplicationControllerNode{}
 	uncastDeployments := g.SuccessorNodesByEdgeKind(dcNode, DeploymentEdgeKind)
 	if len(uncastDeployments) == 0 {
@@ -26,16 +26,16 @@ func RelevantDeployments(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNo
 
 	sort.Sort(RecentDeploymentReferences(allDeployments))
 
-	if dcNode.DeploymentConfig.Status.LatestVersion == deployutil.DeploymentVersionFor(allDeployments[0].ReplicationController) {
+	if dcNode.DeploymentConfig.Status.LatestVersion == appsutil.DeploymentVersionFor(allDeployments[0].ReplicationController) {
 		return allDeployments[0], allDeployments[1:]
 	}
 
 	return nil, allDeployments
 }
 
-func BelongsToDeploymentConfig(config *deployapi.DeploymentConfig, b *kapi.ReplicationController) bool {
+func BelongsToDeploymentConfig(config *appsapi.DeploymentConfig, b *kapi.ReplicationController) bool {
 	if b.Annotations != nil {
-		return config.Name == deployutil.DeploymentConfigNameFor(b)
+		return config.Name == appsutil.DeploymentConfigNameFor(b)
 	}
 	return false
 }
@@ -45,5 +45,5 @@ type RecentDeploymentReferences []*kubegraph.ReplicationControllerNode
 func (m RecentDeploymentReferences) Len() int      { return len(m) }
 func (m RecentDeploymentReferences) Swap(i, j int) { m[i], m[j] = m[j], m[i] }
 func (m RecentDeploymentReferences) Less(i, j int) bool {
-	return deployutil.DeploymentVersionFor(m[i].ReplicationController) > deployutil.DeploymentVersionFor(m[j].ReplicationController)
+	return appsutil.DeploymentVersionFor(m[i].ReplicationController) > appsutil.DeploymentVersionFor(m[j].ReplicationController)
 }

@@ -7,7 +7,7 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // EnsureDaemonSetNode adds the provided daemon set to the graph if it does not exist
@@ -65,7 +65,7 @@ func FindOrCreateSyntheticDeploymentNode(g osgraph.MutableUniqueGraph, deploymen
 }
 
 // EnsureDeploymentConfigNode adds the provided deployment config to the graph if it does not exist
-func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *deployapi.DeploymentConfig) *DeploymentConfigNode {
+func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsapi.DeploymentConfig) *DeploymentConfigNode {
 	dcName := DeploymentConfigNodeName(dc)
 	dcNode := osgraph.EnsureUnique(
 		g,
@@ -83,7 +83,7 @@ func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *deployapi.Depl
 	return dcNode
 }
 
-func FindOrCreateSyntheticDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *deployapi.DeploymentConfig) *DeploymentConfigNode {
+func FindOrCreateSyntheticDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *appsapi.DeploymentConfig) *DeploymentConfigNode {
 	return osgraph.EnsureUnique(
 		g,
 		DeploymentConfigNodeName(dc),

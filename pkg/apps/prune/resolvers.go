@@ -6,8 +6,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // Resolver knows how to resolve the set of candidate objects to prune
@@ -33,7 +33,7 @@ func (m *mergeResolver) Resolve() ([]*kapi.ReplicationController, error) {
 }
 
 // NewOrphanDeploymentResolver returns a Resolver that matches objects with no associated DeploymentConfig and has a DeploymentStatus in filter
-func NewOrphanDeploymentResolver(dataSet DataSet, deploymentStatusFilter []deployapi.DeploymentStatus) Resolver {
+func NewOrphanDeploymentResolver(dataSet DataSet, deploymentStatusFilter []appsapi.DeploymentStatus) Resolver {
 	filter := sets.NewString()
 	for _, deploymentStatus := range deploymentStatusFilter {
 		filter.Insert(string(deploymentStatus))
@@ -59,7 +59,7 @@ func (o *orphanDeploymentResolver) Resolve() ([]*kapi.ReplicationController, err
 
 	results := []*kapi.ReplicationController{}
 	for _, deployment := range deployments {
-		deploymentStatus := deployutil.DeploymentStatusFor(deployment)
+		deploymentStatus := appsutil.DeploymentStatusFor(deployment)
 		if !o.deploymentStatusFilter.Has(string(deploymentStatus)) {
 			continue
 		}
@@ -92,8 +92,8 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 		return nil, err
 	}
 
-	completeStates := sets.NewString(string(deployapi.DeploymentStatusComplete))
-	failedStates := sets.NewString(string(deployapi.DeploymentStatusFailed))
+	completeStates := sets.NewString(string(appsapi.DeploymentStatusComplete))
+	failedStates := sets.NewString(string(appsapi.DeploymentStatusFailed))
 
 	results := []*kapi.ReplicationController{}
 	for _, deploymentConfig := range deploymentConfigs {
@@ -104,15 +104,15 @@ func (o *perDeploymentConfigResolver) Resolve() ([]*kapi.ReplicationController, 
 
 		completeDeployments, failedDeployments := []*kapi.ReplicationController{}, []*kapi.ReplicationController{}
 		for _, deployment := range deployments {
-			status := deployutil.DeploymentStatusFor(deployment)
+			status := appsutil.DeploymentStatusFor(deployment)
 			if completeStates.Has(string(status)) {
 				completeDeployments = append(completeDeployments, deployment)
 			} else if failedStates.Has(string(status)) {
 				failedDeployments = append(failedDeployments, deployment)
 			}
 		}
-		sort.Sort(deployutil.ByMostRecent(completeDeployments))
-		sort.Sort(deployutil.ByMostRecent(failedDeployments))
+		sort.Sort(appsutil.ByMostRecent(completeDeployments))
+		sort.Sort(appsutil.ByMostRecent(failedDeployments))
 
 		if o.keepComplete >= 0 && o.keepComplete < len(completeDeployments) {
 			results = append(results, completeDeployments[o.keepComplete:]...)

@@ -12,7 +12,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	"github.com/openshift/origin/pkg/apps/util"
 )
@@ -31,7 +31,7 @@ type DeploymentConfigReaper struct {
 
 // pause marks the deployment configuration as paused to avoid triggering new
 // deployments.
-func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*deployapi.DeploymentConfig, error) {
+func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*appsapi.DeploymentConfig, error) {
 	patchBytes := []byte(`{"spec":{"paused":true,"replicas":0,"revisionHistoryLimit":0}}`)
 	return reaper.appsClient.Apps().DeploymentConfigs(namespace).Patch(name, types.StrategicMergePatchType, patchBytes)
 }

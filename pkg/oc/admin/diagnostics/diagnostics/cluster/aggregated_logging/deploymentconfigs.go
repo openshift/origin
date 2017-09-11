@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 const (
@@ -91,7 +91,7 @@ func checkDeploymentConfigs(r diagnosticReporter, adapter deploymentConfigAdapte
 	checkDeploymentConfigPods(r, adapter, *dcList, project)
 }
 
-func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAdapter, dcs deployapi.DeploymentConfigList, project string) {
+func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAdapter, dcs appsapi.DeploymentConfigList, project string) {
 	compReq, _ := labels.NewRequirement(componentKey, selection.In, loggingComponents.List())
 	provReq, _ := labels.NewRequirement(providerKey, selection.Equals, []string{openshiftValue})
 	podSelector := labels.NewSelector().Add(*compReq, *provReq)
@@ -112,7 +112,7 @@ func checkDeploymentConfigPods(r diagnosticReporter, adapter deploymentConfigAda
 
 	for _, pod := range podList.Items {
 		r.Debug("AGL0082", fmt.Sprintf("Checking status of Pod '%s'...", pod.ObjectMeta.Name))
-		dcName, hasDcName := pod.ObjectMeta.Annotations[deployapi.DeploymentConfigAnnotation]
+		dcName, hasDcName := pod.ObjectMeta.Annotations[appsapi.DeploymentConfigAnnotation]
 		if !hasDcName {
 			r.Warn("AGL0085", nil, fmt.Sprintf("Found Pod '%s' that that does not reference a logging deployment config which may be acceptable. Skipping check to see if its running.", pod.ObjectMeta.Name))
 			continue

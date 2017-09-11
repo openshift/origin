@@ -37,9 +37,9 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appstypeclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -167,7 +167,7 @@ func DumpBuilds(oc *CLI) {
 }
 
 func GetDeploymentConfigPods(oc *CLI, dcName string, version int64) (*kapiv1.PodList, error) {
-	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", deployapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
+	return oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{LabelSelector: ParseLabelsOrDie(fmt.Sprintf("%s=%s-%d", appsapi.DeployerPodForDeploymentLabel, dcName, version)).String()})
 }
 
 func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
@@ -790,7 +790,7 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 // to a given version and report minimum availability.
 func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, cli *CLI) error {
 	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
-	var dc *deployapi.DeploymentConfig
+	var dc *appsapi.DeploymentConfig
 
 	start := time.Now()
 	err := wait.Poll(time.Second, 15*time.Minute, func() (done bool, err error) {
@@ -810,13 +810,13 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 			return false, nil
 		}
 
-		var progressing, available *deployapi.DeploymentCondition
+		var progressing, available *appsapi.DeploymentCondition
 		for i, condition := range dc.Status.Conditions {
 			switch condition.Type {
-			case deployapi.DeploymentProgressing:
+			case appsapi.DeploymentProgressing:
 				progressing = &dc.Status.Conditions[i]
 
-			case deployapi.DeploymentAvailable:
+			case appsapi.DeploymentAvailable:
 				available = &dc.Status.Conditions[i]
 			}
 		}
@@ -827,7 +827,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 
 		if progressing != nil &&
 			progressing.Status == kapi.ConditionTrue &&
-			progressing.Reason == deployapi.NewRcAvailableReason &&
+			progressing.Reason == appsapi.NewRcAvailableReason &&
 			available != nil &&
 			available.Status == kapi.ConditionTrue {
 			return true, nil
@@ -846,7 +846,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset
 		return err
 	}
 
-	requirement, err := labels.NewRequirement(deployapi.DeploymentLabel, selection.Equals, []string{deployutil.LatestDeploymentNameForConfig(dc)})
+	requirement, err := labels.NewRequirement(appsapi.DeploymentLabel, selection.Equals, []string{appsutil.LatestDeploymentNameForConfig(dc)})
 	if err != nil {
 		return err
 	}

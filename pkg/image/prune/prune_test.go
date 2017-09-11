@@ -21,7 +21,7 @@ import (
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/api/graph"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
@@ -58,7 +58,7 @@ func TestImagePruning(t *testing.T) {
 		builds                     buildapi.BuildList
 		dss                        kapisext.DaemonSetList
 		deployments                kapisext.DeploymentList
-		dcs                        deployapi.DeploymentConfigList
+		dcs                        appsapi.DeploymentConfigList
 		rss                        kapisext.ReplicaSetList
 		limits                     map[string][]*kapi.LimitRange
 		expectedImageDeletions     []string
@@ -1192,7 +1192,7 @@ func TestRegistryPruning(t *testing.T) {
 				Builds:           &buildapi.BuildList{},
 				DSs:              &kapisext.DaemonSetList{},
 				Deployments:      &kapisext.DeploymentList{},
-				DCs:              &deployapi.DeploymentConfigList{},
+				DCs:              &appsapi.DeploymentConfigList{},
 				RSs:              &kapisext.ReplicaSetList{},
 				RegistryURL:      &url.URL{Scheme: "https", Host: "registry1.io"},
 			}

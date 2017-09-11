@@ -14,10 +14,10 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/scale"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -44,9 +44,9 @@ func TestDeployScale(t *testing.T) {
 	}
 	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
 
-	config := deploytest.OkDeploymentConfig(0)
+	config := appstest.OkDeploymentConfig(0)
 	config.Namespace = namespace
-	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{}
+	config.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{}
 	config.Spec.Replicas = 1
 
 	dc, err := adminAppsClient.Apps().DeploymentConfigs(namespace).Create(config)
@@ -104,7 +104,7 @@ func TestDeployScale(t *testing.T) {
 		if err != nil {
 			return false, nil
 		}
-		return deployutil.HasSynced(config, generation), nil
+		return appsutil.HasSynced(config, generation), nil
 	}
 	if err := wait.PollImmediate(500*time.Millisecond, 10*time.Second, condition); err != nil {
 		t.Fatalf("Deployment config never synced: %v", err)
@@ -121,7 +121,7 @@ func TestDeployScale(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scale, err := scaleClient.Scales(namespace).Get(deployapi.Resource("deploymentconfigs"), config.Name)
+	scale, err := scaleClient.Scales(namespace).Get(appsapi.Resource("deploymentconfigs"), config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get DeploymentConfig scale: %v", err)
 	}
@@ -131,7 +131,7 @@ func TestDeployScale(t *testing.T) {
 
 	scaleUpdate := scale.DeepCopy()
 	scaleUpdate.Spec.Replicas = 3
-	updatedScale, err := scaleClient.Scales(namespace).Update(deployapi.Resource("deploymentconfigs"), scaleUpdate)
+	updatedScale, err := scaleClient.Scales(namespace).Update(appsapi.Resource("deploymentconfigs"), scaleUpdate)
 	if err != nil {
 		// If this complains about "Scale" not being registered in "v1", check the kind overrides in the API registration in SubresourceGroupVersionKind
 		t.Fatalf("Couldn't update DeploymentConfig scale to %#v: %v", scaleUpdate, err)
@@ -140,7 +140,7 @@ func TestDeployScale(t *testing.T) {
 		t.Fatalf("Expected scale.spec.replicas=3, got %#v", scale)
 	}
 
-	persistedScale, err := scaleClient.Scales(namespace).Get(deployapi.Resource("deploymentconfigs"), config.Name)
+	persistedScale, err := scaleClient.Scales(namespace).Get(appsapi.Resource("deploymentconfigs"), config.Name)
 	if err != nil {
 		t.Fatalf("Couldn't get DeploymentConfig scale: %v", err)
 	}

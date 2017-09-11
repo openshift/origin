@@ -6,13 +6,13 @@ import (
 	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 var (
 	DaemonSetNodeKind        = reflect.TypeOf(kapisext.DaemonSet{}).Name()
 	DeploymentNodeKind       = reflect.TypeOf(kapisext.Deployment{}).Name()
-	DeploymentConfigNodeKind = reflect.TypeOf(deployapi.DeploymentConfig{}).Name()
+	DeploymentConfigNodeKind = reflect.TypeOf(appsapi.DeploymentConfig{}).Name()
 	ReplicaSetNodeKind       = reflect.TypeOf(kapisext.ReplicaSet{}).Name()
 )
 
@@ -70,13 +70,13 @@ func (*DeploymentNode) Kind() string {
 	return DeploymentNodeKind
 }
 
-func DeploymentConfigNodeName(o *deployapi.DeploymentConfig) osgraph.UniqueName {
+func DeploymentConfigNodeName(o *appsapi.DeploymentConfig) osgraph.UniqueName {
 	return osgraph.GetUniqueRuntimeObjectNodeName(DeploymentConfigNodeKind, o)
 }
 
 type DeploymentConfigNode struct {
 	osgraph.Node
-	DeploymentConfig *deployapi.DeploymentConfig
+	DeploymentConfig *appsapi.DeploymentConfig
 
 	IsFound bool
 }

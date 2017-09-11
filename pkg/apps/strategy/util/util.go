@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 // RecordConfigEvent records an event for the deployment config referenced by the
@@ -22,7 +22,7 @@ import (
 func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.ReplicationController, decoder runtime.Decoder, eventType, reason, msg string) {
 	t := metav1.Time{Time: time.Now()}
 	var obj runtime.Object = deployment
-	if config, err := deployutil.DecodeDeploymentConfig(deployment, decoder); err == nil {
+	if config, err := appsutil.DecodeDeploymentConfig(deployment, decoder); err == nil {
 		obj = config
 	} else {
 		glog.Errorf("Unable to decode deployment config from %s/%s: %v", deployment.Namespace, deployment.Name, err)
@@ -41,7 +41,7 @@ func RecordConfigEvent(client kcoreclient.EventsGetter, deployment *kapi.Replica
 		Reason:         reason,
 		Message:        msg,
 		Source: kapi.EventSource{
-			Component: deployutil.DeployerPodNameFor(deployment),
+			Component: appsutil.DeployerPodNameFor(deployment),
 		},
 		FirstTimestamp: t,
 		LastTimestamp:  t,

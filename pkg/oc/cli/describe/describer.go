@@ -27,7 +27,7 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
@@ -108,7 +108,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	m := map[schema.GroupKind]kprinters.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{buildClient, kclient},
 		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{buildClient, kclient, host},
-		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{appsClient, kclient, nil},
+		appsapi.Kind("DeploymentConfig"):                &DeploymentConfigDescriber{appsClient, kclient, nil},
 		imageapi.Kind("Image"):                          &ImageDescriber{imageClient},
 		imageapi.Kind("ImageStream"):                    &ImageStreamDescriber{imageClient},
 		imageapi.Kind("ImageStreamTag"):                 &ImageStreamTagDescriber{imageClient},

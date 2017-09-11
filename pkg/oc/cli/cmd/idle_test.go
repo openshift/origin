@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -78,7 +78,7 @@ func makeRC(name, dcName, createdByDCName string, t *testing.T) *kapi.Replicatio
 	}
 
 	if dcName != "" {
-		rc.Annotations[deployapi.DeploymentConfigAnnotation] = dcName
+		rc.Annotations[appsapi.DeploymentConfigAnnotation] = dcName
 	}
 
 	return &rc

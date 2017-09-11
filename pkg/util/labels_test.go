@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	testtypes "github.com/openshift/origin/pkg/util/testing"
 )
 
@@ -98,11 +98,11 @@ func TestAddConfigLabels(t *testing.T) {
 			expectedLabels: map[string]string{"foo": "same value"},
 		},
 		{ // [9] Test adding labels to a DeploymentConfig object
-			obj: &deployapi.DeploymentConfig{
+			obj: &appsapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{"foo": "first value"},
 				},
-				Spec: deployapi.DeploymentConfigSpec{
+				Spec: appsapi.DeploymentConfigSpec{
 					Template: &kapi.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{"foo": "first value"},
@@ -147,7 +147,7 @@ func TestAddConfigLabels(t *testing.T) {
 			if e, a := map[string]string{}, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}
-		case *deployapi.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			if e, a := test.expectedLabels, objType.Spec.Template.Labels; !reflect.DeepEqual(e, a) {
 				t.Errorf("Unexpected labels on testCase[%v]. Expected: %#v, got: %#v.", i, e, a)
 			}

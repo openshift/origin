@@ -10,7 +10,7 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
 )
@@ -25,7 +25,7 @@ type ServiceGroup struct {
 
 	// TODO: this has to stop
 	FulfillingStatefulSets []*kubegraph.StatefulSetNode
-	FulfillingDCs          []*deploygraph.DeploymentConfigNode
+	FulfillingDCs          []*appsgraph.DeploymentConfigNode
 	FulfillingRCs          []*kubegraph.ReplicationControllerNode
 	FulfillingPods         []*kubegraph.PodNode
 
@@ -63,7 +63,7 @@ func NewServiceGroup(g osgraph.Graph, serviceNode *kubegraph.ServiceNode) (Servi
 		container := osgraph.GetTopLevelContainerNode(g, uncastServiceFulfiller)
 
 		switch castContainer := container.(type) {
-		case *deploygraph.DeploymentConfigNode:
+		case *appsgraph.DeploymentConfigNode:
 			service.FulfillingDCs = append(service.FulfillingDCs, castContainer)
 		case *kubegraph.ReplicationControllerNode:
 			service.FulfillingRCs = append(service.FulfillingRCs, castContainer)

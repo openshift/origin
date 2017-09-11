@@ -26,7 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/util/term"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	generateapp "github.com/openshift/origin/pkg/generate/app"
@@ -416,7 +416,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 		return nil, nil // ID is needed for later lookup
 	}
 
-	dcname := pod.Annotations[deployapi.DeploymentConfigAnnotation]
+	dcname := pod.Annotations[appsapi.DeploymentConfigAnnotation]
 	if dcname == "" {
 		return nil, nil // Pod doesn't appear to have been created by a DeploymentConfig
 	}
@@ -427,7 +427,7 @@ func (o *DebugOptions) getContainerImageViaDeploymentConfig(pod *kapi.Pod, conta
 	}
 
 	for _, trigger := range dc.Spec.Triggers {
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange &&
+		if trigger.Type == appsapi.DeploymentTriggerOnImageChange &&
 			trigger.ImageChangeParams != nil &&
 			trigger.ImageChangeParams.From.Kind == "ImageStreamTag" {
 

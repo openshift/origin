@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 func TestDefaults(t *testing.T) {
@@ -29,13 +29,13 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRolling,
 						RollingParams: &v1.RollingDeploymentStrategyParams{
-							UpdatePeriodSeconds: newInt64(deployapi.DefaultRollingUpdatePeriodSeconds),
-							IntervalSeconds:     newInt64(deployapi.DefaultRollingIntervalSeconds),
-							TimeoutSeconds:      newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							UpdatePeriodSeconds: newInt64(appsapi.DefaultRollingUpdatePeriodSeconds),
+							IntervalSeconds:     newInt64(appsapi.DefaultRollingIntervalSeconds),
+							TimeoutSeconds:      newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							MaxSurge:            &defaultIntOrString,
 							MaxUnavailable:      &defaultIntOrString,
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{
@@ -51,7 +51,7 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &v1.RecreateDeploymentStrategyParams{
-							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							TimeoutSeconds: newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							Pre: &v1.LifecycleHook{
 								TagImages: []v1.TagImageHook{{}, {}},
 							},
@@ -97,7 +97,7 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &v1.RecreateDeploymentStrategyParams{
-							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							TimeoutSeconds: newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							Pre: &v1.LifecycleHook{
 								TagImages: []v1.TagImageHook{{ContainerName: "test"}, {ContainerName: "test"}},
 							},
@@ -121,7 +121,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            &differentIntOrString,
 							MaxUnavailable:      &differentIntOrString,
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{
@@ -222,7 +222,7 @@ func TestDefaults(t *testing.T) {
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{
@@ -260,7 +260,7 @@ func TestDefaults(t *testing.T) {
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 							MaxSurge:            newIntOrString(intstr.FromInt(0)),
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{},
@@ -285,13 +285,13 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRolling,
 						RollingParams: &v1.RollingDeploymentStrategyParams{
-							IntervalSeconds:     newInt64(deployapi.DefaultRollingIntervalSeconds),
-							UpdatePeriodSeconds: newInt64(deployapi.DefaultRollingUpdatePeriodSeconds),
-							TimeoutSeconds:      newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							IntervalSeconds:     newInt64(appsapi.DefaultRollingIntervalSeconds),
+							UpdatePeriodSeconds: newInt64(appsapi.DefaultRollingUpdatePeriodSeconds),
+							TimeoutSeconds:      newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							MaxSurge:            newIntOrString(intstr.FromString("25%")),
 							MaxUnavailable:      newIntOrString(intstr.FromString("25%")),
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{},
@@ -317,9 +317,9 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &v1.RecreateDeploymentStrategyParams{
-							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							TimeoutSeconds: newInt64(appsapi.DefaultRollingTimeoutSeconds),
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{},
@@ -344,9 +344,9 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &v1.RecreateDeploymentStrategyParams{
-							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							TimeoutSeconds: newInt64(appsapi.DefaultRollingTimeoutSeconds),
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{},
@@ -408,7 +408,7 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRecreate,
 						RecreateParams: &v1.RecreateDeploymentStrategyParams{
-							TimeoutSeconds: newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							TimeoutSeconds: newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							Pre: &v1.LifecycleHook{
 								TagImages:  []v1.TagImageHook{{ContainerName: "first"}},
 								ExecNewPod: &v1.ExecNewPodHook{ContainerName: "first"},
@@ -422,7 +422,7 @@ func TestDefaults(t *testing.T) {
 								ExecNewPod: &v1.ExecNewPodHook{ContainerName: "first"},
 							},
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{},
@@ -480,9 +480,9 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRolling,
 						RollingParams: &v1.RollingDeploymentStrategyParams{
-							UpdatePeriodSeconds: newInt64(deployapi.DefaultRollingUpdatePeriodSeconds),
-							IntervalSeconds:     newInt64(deployapi.DefaultRollingIntervalSeconds),
-							TimeoutSeconds:      newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							UpdatePeriodSeconds: newInt64(appsapi.DefaultRollingUpdatePeriodSeconds),
+							IntervalSeconds:     newInt64(appsapi.DefaultRollingIntervalSeconds),
+							TimeoutSeconds:      newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							MaxSurge:            &defaultIntOrString,
 							MaxUnavailable:      &defaultIntOrString,
 							Pre: &v1.LifecycleHook{
@@ -494,7 +494,7 @@ func TestDefaults(t *testing.T) {
 								ExecNewPod: &v1.ExecNewPodHook{ContainerName: "first"},
 							},
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{},
@@ -518,13 +518,13 @@ func TestDefaults(t *testing.T) {
 					Strategy: v1.DeploymentStrategy{
 						Type: v1.DeploymentStrategyTypeRolling,
 						RollingParams: &v1.RollingDeploymentStrategyParams{
-							UpdatePeriodSeconds: newInt64(deployapi.DefaultRollingUpdatePeriodSeconds),
-							IntervalSeconds:     newInt64(deployapi.DefaultRollingIntervalSeconds),
-							TimeoutSeconds:      newInt64(deployapi.DefaultRollingTimeoutSeconds),
+							UpdatePeriodSeconds: newInt64(appsapi.DefaultRollingUpdatePeriodSeconds),
+							IntervalSeconds:     newInt64(appsapi.DefaultRollingIntervalSeconds),
+							TimeoutSeconds:      newInt64(appsapi.DefaultRollingTimeoutSeconds),
 							MaxSurge:            &defaultIntOrString,
 							MaxUnavailable:      &defaultIntOrString,
 						},
-						ActiveDeadlineSeconds: newInt64(deployapi.MaxDeploymentDurationSeconds),
+						ActiveDeadlineSeconds: newInt64(appsapi.MaxDeploymentDurationSeconds),
 					},
 					Triggers: []v1.DeploymentTriggerPolicy{
 						{

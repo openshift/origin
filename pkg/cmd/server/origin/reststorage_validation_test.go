@@ -14,7 +14,7 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	_ "github.com/openshift/origin/pkg/api/install"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
@@ -29,7 +29,7 @@ import (
 // If you add something to this list, explain why it doesn't need update validation.
 var KnownUpdateValidationExceptions = []reflect.Type{
 	reflect.TypeOf(&quotaapi.AppliedClusterResourceQuota{}), // this only retrieved, never created.  its a virtual projection of ClusterResourceQuota
-	reflect.TypeOf(&deployapi.DeploymentRequest{}),          // request for deployments already use ValidateDeploymentRequest()
+	reflect.TypeOf(&appsapi.DeploymentRequest{}),            // request for deployments already use ValidateDeploymentRequest()
 }
 
 // TestValidationRegistration makes sure that any RESTStorage that allows create or update has the correct validation register.

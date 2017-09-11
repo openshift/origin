@@ -9,8 +9,8 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
@@ -27,16 +27,16 @@ const (
 )
 
 // AddTriggerEdges creates edges that point to named Docker image repositories for each image used in the deployment.
-func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
+func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
 	podTemplate := node.DeploymentConfig.Spec.Template
 	if podTemplate == nil {
 		return node
 	}
 
-	deployapi.EachTemplateImage(
+	appsapi.EachTemplateImage(
 		&podTemplate.Spec,
-		deployapi.DeploymentConfigHasTrigger(node.DeploymentConfig),
-		func(image deployapi.TemplateImage, err error) {
+		appsapi.DeploymentConfigHasTrigger(node.DeploymentConfig),
+		func(image appsapi.TemplateImage, err error) {
 			if err != nil {
 				return
 			}
@@ -61,13 +61,13 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentC
 
 func AddAllTriggerEdges(g osgraph.MutableUniqueGraph) {
 	for _, node := range g.(graph.Graph).Nodes() {
-		if dcNode, ok := node.(*deploygraph.DeploymentConfigNode); ok {
+		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok {
 			AddTriggerEdges(g, dcNode)
 		}
 	}
 }
 
-func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *deploygraph.DeploymentConfigNode) *deploygraph.DeploymentConfigNode {
+func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *appsgraph.DeploymentConfigNode) *appsgraph.DeploymentConfigNode {
 	for _, n := range g.(graph.Graph).Nodes() {
 		if rcNode, ok := n.(*kubegraph.ReplicationControllerNode); ok {
 			if rcNode.ReplicationController.Namespace != node.DeploymentConfig.Namespace {
@@ -85,13 +85,13 @@ func AddDeploymentEdges(g osgraph.MutableUniqueGraph, node *deploygraph.Deployme
 
 func AddAllDeploymentEdges(g osgraph.MutableUniqueGraph) {
 	for _, node := range g.(graph.Graph).Nodes() {
-		if dcNode, ok := node.(*deploygraph.DeploymentConfigNode); ok {
+		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok {
 			AddDeploymentEdges(g, dcNode)
 		}
 	}
 }
 
-func AddVolumeClaimEdges(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNode) {
+func AddVolumeClaimEdges(g osgraph.Graph, dcNode *appsgraph.DeploymentConfigNode) {
 	for _, volume := range dcNode.DeploymentConfig.Spec.Template.Spec.Volumes {
 		source := volume.VolumeSource
 		if source.PersistentVolumeClaim == nil {
@@ -113,7 +113,7 @@ func AddVolumeClaimEdges(g osgraph.Graph, dcNode *deploygraph.DeploymentConfigNo
 
 func AddAllVolumeClaimEdges(g osgraph.Graph) {
 	for _, node := range g.Nodes() {
-		if dcNode, ok := node.(*deploygraph.DeploymentConfigNode); ok {
+		if dcNode, ok := node.(*appsgraph.DeploymentConfigNode); ok {
 			AddVolumeClaimEdges(g, dcNode)
 		}
 	}

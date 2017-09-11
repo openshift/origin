@@ -19,7 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/capabilities"
 
 	"github.com/openshift/origin/pkg/api/validation"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -114,7 +114,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 		},
 		"../test/extended/testdata/ldap": {
 			"ldapserver-buildconfig":         &buildapi.BuildConfig{},
-			"ldapserver-deploymentconfig":    &deployapi.DeploymentConfig{},
+			"ldapserver-deploymentconfig":    &appsapi.DeploymentConfig{},
 			"ldapserver-imagestream":         &imageapi.ImageStream{},
 			"ldapserver-imagestream-testenv": &imageapi.ImageStream{},
 			"ldapserver-service":             &kapi.Service{},
@@ -123,7 +123,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 			// TODO fix this test to  handle json and yaml
 			"project-request-template-with-quota": nil, // skip a yaml file
 			"test-replication-controller":         nil, // skip &api.ReplicationController
-			"test-deployment-config":              &deployapi.DeploymentConfig{},
+			"test-deployment-config":              &appsapi.DeploymentConfig{},
 			"test-image":                          &imageapi.Image{},
 			"test-image-stream":                   &imageapi.ImageStream{},
 			"test-image-stream-mapping":           nil, // skip &imageapi.ImageStreamMapping{},

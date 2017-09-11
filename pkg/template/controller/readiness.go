@@ -12,7 +12,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -84,15 +84,15 @@ func checkDeploymentReadiness(obj runtime.Object) (bool, bool, error) {
 // checkDeploymentConfigReadiness determins if a DeploymentConfig is ready,
 // failed or neither.
 func checkDeploymentConfigReadiness(obj runtime.Object) (bool, bool, error) {
-	dc := obj.(*deployapi.DeploymentConfig)
+	dc := obj.(*appsapi.DeploymentConfig)
 
-	var progressing, available *deployapi.DeploymentCondition
+	var progressing, available *appsapi.DeploymentCondition
 	for i, condition := range dc.Status.Conditions {
 		switch condition.Type {
-		case deployapi.DeploymentProgressing:
+		case appsapi.DeploymentProgressing:
 			progressing = &dc.Status.Conditions[i]
 
-		case deployapi.DeploymentAvailable:
+		case appsapi.DeploymentAvailable:
 			available = &dc.Status.Conditions[i]
 		}
 	}
@@ -100,7 +100,7 @@ func checkDeploymentConfigReadiness(obj runtime.Object) (bool, bool, error) {
 	ready := dc.Status.ObservedGeneration == dc.Generation &&
 		progressing != nil &&
 		progressing.Status == kapi.ConditionTrue &&
-		progressing.Reason == deployapi.NewRcAvailableReason &&
+		progressing.Reason == appsapi.NewRcAvailableReason &&
 		available != nil &&
 		available.Status == kapi.ConditionTrue
 
@@ -146,16 +146,16 @@ func checkRouteReadiness(obj runtime.Object) (bool, bool, error) {
 // readinessCheckers maps GroupKinds to the appropriate function.  Note that in
 // some cases more than one GK maps to the same function.
 var readinessCheckers = map[schema.GroupKind]func(runtime.Object) (bool, bool, error){
-	buildapi.LegacyKind("Build"):             checkBuildReadiness,
-	buildapi.Kind("Build"):                   checkBuildReadiness,
-	apps.Kind("Deployment"):                  checkDeploymentReadiness,
-	extensions.Kind("Deployment"):            checkDeploymentReadiness,
-	deployapi.LegacyKind("DeploymentConfig"): checkDeploymentConfigReadiness,
-	deployapi.Kind("DeploymentConfig"):       checkDeploymentConfigReadiness,
-	batch.Kind("Job"):                        checkJobReadiness,
-	apps.Kind("StatefulSet"):                 checkStatefulSetReadiness,
-	routeapi.Kind("Route"):                   checkRouteReadiness,
-	routeapi.LegacyKind("Route"):             checkRouteReadiness,
+	buildapi.LegacyKind("Build"):           checkBuildReadiness,
+	buildapi.Kind("Build"):                 checkBuildReadiness,
+	apps.Kind("Deployment"):                checkDeploymentReadiness,
+	extensions.Kind("Deployment"):          checkDeploymentReadiness,
+	appsapi.LegacyKind("DeploymentConfig"): checkDeploymentConfigReadiness,
+	appsapi.Kind("DeploymentConfig"):       checkDeploymentConfigReadiness,
+	batch.Kind("Job"):                      checkJobReadiness,
+	apps.Kind("StatefulSet"):               checkStatefulSetReadiness,
+	routeapi.Kind("Route"):                 checkRouteReadiness,
+	routeapi.LegacyKind("Route"):           checkRouteReadiness,
 }
 
 // CanCheckReadiness indicates whether a readiness check exists for a GK.

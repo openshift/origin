@@ -28,8 +28,8 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -147,7 +147,7 @@ type PrunerOptions struct {
 	// Deployments is the entire list of kube's deployments across all namespaces in the cluster.
 	Deployments *kapisext.DeploymentList
 	// DCs is the entire list of deployment configs across all namespaces in the cluster.
-	DCs *deployapi.DeploymentConfigList
+	DCs *appsapi.DeploymentConfigList
 	// RSs is the entire list of replica sets across all namespaces in the cluster.
 	RSs *kapisext.ReplicaSetList
 	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
@@ -560,7 +560,7 @@ func (p *pruner) addDaemonSetsToGraph(dss *kapisext.DaemonSetList) []error {
 		ds := &dss.Items[i]
 		desc := fmt.Sprintf("DaemonSet %s", getName(ds))
 		glog.V(4).Infof("Examining %s", desc)
-		dsNode := deploygraph.EnsureDaemonSetNode(p.g, ds)
+		dsNode := appsgraph.EnsureDaemonSetNode(p.g, ds)
 		errs = append(errs, p.addPodSpecToGraph(getRef(ds), &ds.Spec.Template.Spec, dsNode)...)
 	}
 
@@ -578,7 +578,7 @@ func (p *pruner) addDeploymentsToGraph(dmnts *kapisext.DeploymentList) []error {
 		d := &dmnts.Items[i]
 		ref := getRef(d)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		dNode := deploygraph.EnsureDeploymentNode(p.g, d)
+		dNode := appsgraph.EnsureDeploymentNode(p.g, d)
 		errs = append(errs, p.addPodSpecToGraph(ref, &d.Spec.Template.Spec, dNode)...)
 	}
 
@@ -590,14 +590,14 @@ func (p *pruner) addDeploymentsToGraph(dmnts *kapisext.DeploymentList) []error {
 // Edges are added to the graph from each deployment config to the images
 // specified by its pod spec's list of containers, as long as the image is
 // managed by OpenShift.
-func (p *pruner) addDeploymentConfigsToGraph(dcs *deployapi.DeploymentConfigList) []error {
+func (p *pruner) addDeploymentConfigsToGraph(dcs *appsapi.DeploymentConfigList) []error {
 	var errs []error
 
 	for i := range dcs.Items {
 		dc := &dcs.Items[i]
 		ref := getRef(dc)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		dcNode := deploygraph.EnsureDeploymentConfigNode(p.g, dc)
+		dcNode := appsgraph.EnsureDeploymentConfigNode(p.g, dc)
 		errs = append(errs, p.addPodSpecToGraph(getRef(dc), &dc.Spec.Template.Spec, dcNode)...)
 	}
 
@@ -615,7 +615,7 @@ func (p *pruner) addReplicaSetsToGraph(rss *kapisext.ReplicaSetList) []error {
 		rs := &rss.Items[i]
 		ref := getRef(rs)
 		glog.V(4).Infof("Examining %s", getKindName(ref))
-		rsNode := deploygraph.EnsureReplicaSetNode(p.g, rs)
+		rsNode := appsgraph.EnsureReplicaSetNode(p.g, rs)
 		errs = append(errs, p.addPodSpecToGraph(ref, &rs.Spec.Template.Spec, rsNode)...)
 	}
 

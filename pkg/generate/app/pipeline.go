@@ -17,12 +17,12 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	extensions "k8s.io/kubernetes/pkg/apis/extensions"
 
-	deploy "github.com/openshift/origin/pkg/apps/apis/apps"
-	build "github.com/openshift/origin/pkg/build/apis/build"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/generate"
-	image "github.com/openshift/origin/pkg/image/apis/image"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
-	route "github.com/openshift/origin/pkg/route/apis/route"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
 
@@ -40,7 +40,7 @@ type PipelineBuilder interface {
 // The pipelines created with a PipelineBuilder will have access to the given
 // environment. The boolean outputDocker controls whether builds will output to
 // an image stream tag or docker image reference.
-func NewPipelineBuilder(name string, environment Environment, dockerStrategyOptions *build.DockerStrategyOptions, outputDocker bool) PipelineBuilder {
+func NewPipelineBuilder(name string, environment Environment, dockerStrategyOptions *buildapi.DockerStrategyOptions, outputDocker bool) PipelineBuilder {
 	return &pipelineBuilder{
 		nameGenerator:         NewUniqueNameGenerator(name),
 		environment:           environment,
@@ -54,7 +54,7 @@ type pipelineBuilder struct {
 	environment           Environment
 	outputDocker          bool
 	to                    string
-	dockerStrategyOptions *build.DockerStrategyOptions
+	dockerStrategyOptions *buildapi.DockerStrategyOptions
 }
 
 func (pb *pipelineBuilder) To(name string) PipelineBuilder {
@@ -76,7 +76,7 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		AsImageStream: !pb.outputDocker,
 	}
 	if len(pb.to) > 0 {
-		outputImageRef, err := image.ParseDockerImageReference(pb.to)
+		outputImageRef, err := imageapi.ParseDockerImageReference(pb.to)
 		if err != nil {
 			return nil, err
 		}
@@ -90,9 +90,9 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		if err != nil {
 			return nil, err
 		}
-		output.Reference = image.DockerImageReference{
+		output.Reference = imageapi.DockerImageReference{
 			Name: name,
-			Tag:  image.DefaultImageTag,
+			Tag:  imageapi.DefaultImageTag,
 		}
 	}
 	source.Name = name
@@ -103,8 +103,8 @@ func (pb *pipelineBuilder) NewBuildPipeline(from string, input *ImageRef, source
 		ports := dockerfile.LastExposedPorts(node)
 		if len(ports) > 0 {
 			if input.Info == nil {
-				input.Info = &image.DockerImage{
-					Config: &image.DockerConfig{},
+				input.Info = &imageapi.DockerImage{
+					Config: &imageapi.DockerConfig{},
 				}
 			}
 			input.Info.Config.ExposedPorts = map[string]struct{}{}
@@ -367,7 +367,7 @@ func AddServices(objects Objects, firstPortOnly bool) Objects {
 	svcs := []runtime.Object{}
 	for _, o := range objects {
 		switch t := o.(type) {
-		case *deploy.DeploymentConfig:
+		case *appsapi.DeploymentConfig:
 			svc := addServiceInternal(t.Spec.Template.Spec.Containers, t.ObjectMeta, t.Spec.Selector, firstPortOnly)
 			if svc != nil {
 				svcs = append(svcs, svc)
@@ -402,13 +402,13 @@ func AddRoutes(objects Objects) Objects {
 	for _, o := range objects {
 		switch t := o.(type) {
 		case *kapi.Service:
-			routes = append(routes, &route.Route{
+			routes = append(routes, &routeapi.Route{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   t.Name,
 					Labels: t.Labels,
 				},
-				Spec: route.RouteSpec{
-					To: route.RouteTargetReference{
+				Spec: routeapi.RouteSpec{
+					To: routeapi.RouteTargetReference{
 						Name: t.Name,
 					},
 				},
@@ -486,10 +486,10 @@ func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !image.IsKindOrLegacy("ImageStream", gk) {
+	if !imageapi.IsKindOrLegacy("ImageStream", gk) {
 		return true
 	}
-	is, ok := from.(*image.ImageStream)
+	is, ok := from.(*imageapi.ImageStream)
 	if !ok {
 		glog.V(4).Infof("type cast to image stream %#v not right for an unanticipated reason", from)
 		return true
@@ -531,10 +531,10 @@ func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	if !image.IsKindOrLegacy("ImageStreamTag", gk) {
+	if !imageapi.IsKindOrLegacy("ImageStreamTag", gk) {
 		return true
 	}
-	ist, ok := from.(*image.ImageStreamTag)
+	ist, ok := from.(*imageapi.ImageStreamTag)
 	if !ok {
 		glog.V(4).Infof("type cast to imagestreamtag %#v not right for an unanticipated reason", from)
 		return true
@@ -585,7 +585,7 @@ func (a *acceptBuildConfigs) Accept(from interface{}) bool {
 		return false
 	}
 	gk := gvk[0].GroupKind()
-	return build.IsKindOrLegacy("BuildConfig", gk) || image.IsKindOrLegacy("ImageStream", gk)
+	return buildapi.IsKindOrLegacy("BuildConfig", gk) || imageapi.IsKindOrLegacy("ImageStream", gk)
 }
 
 // NewAcceptBuildConfigs creates an acceptor accepting BuildConfig objects

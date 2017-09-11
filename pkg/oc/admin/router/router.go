@@ -29,7 +29,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -760,20 +760,20 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		},
 	)
 
-	objects = append(objects, &deployapi.DeploymentConfig{
+	objects = append(objects, &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: label,
 		},
-		Spec: deployapi.DeploymentConfigSpec{
-			Strategy: deployapi.DeploymentStrategy{
-				Type:          deployapi.DeploymentStrategyTypeRolling,
-				RollingParams: &deployapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
+		Spec: appsapi.DeploymentConfigSpec{
+			Strategy: appsapi.DeploymentStrategy{
+				Type:          appsapi.DeploymentStrategyTypeRolling,
+				RollingParams: &appsapi.RollingDeploymentStrategyParams{MaxUnavailable: intstr.FromString("25%")},
 			},
 			Replicas: cfg.Replicas,
 			Selector: label,
-			Triggers: []deployapi.DeploymentTriggerPolicy{
-				{Type: deployapi.DeploymentTriggerOnConfigChange},
+			Triggers: []appsapi.DeploymentTriggerPolicy{
+				{Type: appsapi.DeploymentTriggerOnConfigChange},
 			},
 			Template: &kapi.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{Labels: label},

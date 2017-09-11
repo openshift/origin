@@ -15,7 +15,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	appsapiv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
 	testutil "github.com/openshift/origin/test/util"
@@ -26,16 +26,16 @@ import (
 )
 
 var (
-	nonDefaultRevisionHistoryLimit = deployapi.DefaultRevisionHistoryLimit + 42
+	nonDefaultRevisionHistoryLimit = appsapi.DefaultRevisionHistoryLimit + 42
 )
 
-func minimalDC(name string, generation int64) *deployapi.DeploymentConfig {
-	return &deployapi.DeploymentConfig{
+func minimalDC(name string, generation int64) *appsapi.DeploymentConfig {
+	return &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       name,
 			Generation: generation,
 		},
-		Spec: deployapi.DeploymentConfigSpec{
+		Spec: appsapi.DeploymentConfigSpec{
 			Selector: map[string]string{
 				"app": name,
 			},
@@ -66,9 +66,9 @@ func int32ptr(v int32) *int32 {
 	return &v
 }
 
-func setEssentialDefaults(dc *deployapi.DeploymentConfig) *deployapi.DeploymentConfig {
-	dc.Spec.Strategy.Type = deployapi.DeploymentStrategyTypeRolling
-	dc.Spec.Strategy.RollingParams = &deployapi.RollingDeploymentStrategyParams{
+func setEssentialDefaults(dc *appsapi.DeploymentConfig) *appsapi.DeploymentConfig {
+	dc.Spec.Strategy.Type = appsapi.DeploymentStrategyTypeRolling
+	dc.Spec.Strategy.RollingParams = &appsapi.RollingDeploymentStrategyParams{
 		IntervalSeconds:     int64ptr(1),
 		UpdatePeriodSeconds: int64ptr(1),
 		TimeoutSeconds:      int64ptr(600),
@@ -76,8 +76,8 @@ func setEssentialDefaults(dc *deployapi.DeploymentConfig) *deployapi.DeploymentC
 		MaxSurge:            intstr.FromString("25%"),
 	}
 	dc.Spec.Strategy.ActiveDeadlineSeconds = int64ptr(21600)
-	dc.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{
-		{Type: deployapi.DeploymentTriggerOnConfigChange},
+	dc.Spec.Triggers = []appsapi.DeploymentTriggerPolicy{
+		{Type: appsapi.DeploymentTriggerOnConfigChange},
 	}
 	dc.Spec.Template.Spec.Containers[0].TerminationMessagePath = "/dev/termination-log"
 	dc.Spec.Template.Spec.Containers[0].TerminationMessagePolicy = "File"
@@ -95,7 +95,7 @@ func setEssentialDefaults(dc *deployapi.DeploymentConfig) *deployapi.DeploymentC
 	return dc
 }
 
-func clearTransient(dc *deployapi.DeploymentConfig) {
+func clearTransient(dc *appsapi.DeploymentConfig) {
 	dc.ObjectMeta.Namespace = ""
 	dc.ObjectMeta.SelfLink = ""
 	dc.ObjectMeta.UID = ""
@@ -122,22 +122,22 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 		t.Fatalf("Failed to create appsClient: %v", err)
 	}
 	// install the legacy types into the client for decoding
-	legacy.InstallLegacy(deployapi.GroupName, deployapi.AddToSchemeInCoreGroup, appsapiv1.AddToSchemeInCoreGroup,
+	legacy.InstallLegacy(appsapi.GroupName, appsapi.AddToSchemeInCoreGroup, appsapiv1.AddToSchemeInCoreGroup,
 		sets.NewString(),
 		appsclientscheme.Registry, appsclientscheme.Scheme,
 	)
 
 	ttLegacy := []struct {
-		obj    *deployapi.DeploymentConfig
-		legacy *deployapi.DeploymentConfig
+		obj    *appsapi.DeploymentConfig
+		legacy *appsapi.DeploymentConfig
 	}{
 		{
-			obj: func() *deployapi.DeploymentConfig {
+			obj: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-legacy-01", 0)
 				dc.Spec.RevisionHistoryLimit = nil
 				return dc
 			}(),
-			legacy: func() *deployapi.DeploymentConfig {
+			legacy: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-legacy-01", 1)
 				setEssentialDefaults(dc)
 				// Legacy API shall not default RevisionHistoryLimit to maintain backwards compatibility
@@ -146,12 +146,12 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 			}(),
 		},
 		{
-			obj: func() *deployapi.DeploymentConfig {
+			obj: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-legacy-02", 0)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
 				return dc
 			}(),
-			legacy: func() *deployapi.DeploymentConfig {
+			legacy: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-legacy-02", 1)
 				setEssentialDefaults(dc)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
@@ -170,7 +170,7 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create DC: %v", err)
 				}
-				legacyDC := legacyObj.(*deployapi.DeploymentConfig)
+				legacyDC := legacyObj.(*appsapi.DeploymentConfig)
 
 				clearTransient(legacyDC)
 				if !reflect.DeepEqual(legacyDC, tc.legacy) {
@@ -181,16 +181,16 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	})
 
 	ttApps := []struct {
-		obj  *deployapi.DeploymentConfig
-		apps *deployapi.DeploymentConfig
+		obj  *appsapi.DeploymentConfig
+		apps *appsapi.DeploymentConfig
 	}{
 		{
-			obj: func() *deployapi.DeploymentConfig {
+			obj: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-apps-01", 0)
 				dc.Spec.RevisionHistoryLimit = nil
 				return dc
 			}(),
-			apps: func() *deployapi.DeploymentConfig {
+			apps: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-apps-01", 1)
 				setEssentialDefaults(dc)
 				// Group API should default RevisionHistoryLimit
@@ -199,12 +199,12 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 			}(),
 		},
 		{
-			obj: func() *deployapi.DeploymentConfig {
+			obj: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-apps-02", 0)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit
 				return dc
 			}(),
-			apps: func() *deployapi.DeploymentConfig {
+			apps: func() *appsapi.DeploymentConfig {
 				dc := minimalDC("test-apps-02", 1)
 				setEssentialDefaults(dc)
 				dc.Spec.RevisionHistoryLimit = &nonDefaultRevisionHistoryLimit

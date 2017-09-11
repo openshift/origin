@@ -17,7 +17,7 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	_ "github.com/openshift/origin/pkg/api/install"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/scheduler/admission/podnodeconstraints/api"
@@ -196,14 +196,14 @@ func TestPodNodeConstraintsResources(t *testing.T) {
 		},
 		{
 			resource:      deploymentConfig,
-			kind:          deployapi.Kind("DeploymentConfig"),
-			groupresource: deployapi.Resource("deploymentconfigs"),
+			kind:          appsapi.Kind("DeploymentConfig"),
+			groupresource: appsapi.Resource("deploymentconfigs"),
 			prefix:        "DeploymentConfig",
 		},
 		{
 			resource:      podTemplate,
-			kind:          deployapi.LegacyKind("PodTemplate"),
-			groupresource: deployapi.LegacyResource("podtemplates"),
+			kind:          appsapi.LegacyKind("PodTemplate"),
+			groupresource: appsapi.LegacyResource("podtemplates"),
 			prefix:        "PodTemplate",
 		},
 		{
@@ -376,7 +376,7 @@ func resourceQuota() runtime.Object {
 }
 
 func deploymentConfig(setNodeSelector bool) runtime.Object {
-	dc := &deployapi.DeploymentConfig{}
+	dc := &appsapi.DeploymentConfig{}
 	dc.Spec.Template = podTemplateSpec(setNodeSelector)
 	return dc
 }

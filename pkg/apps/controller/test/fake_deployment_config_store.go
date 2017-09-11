@@ -3,15 +3,15 @@ package test
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 type FakeDeploymentConfigStore struct {
-	DeploymentConfig *deployapi.DeploymentConfig
+	DeploymentConfig *appsapi.DeploymentConfig
 	Err              error
 }
 
-func NewFakeDeploymentConfigStore(deployment *deployapi.DeploymentConfig) FakeDeploymentConfigStore {
+func NewFakeDeploymentConfigStore(deployment *appsapi.DeploymentConfig) FakeDeploymentConfigStore {
 	return FakeDeploymentConfigStore{DeploymentConfig: deployment}
 }
 

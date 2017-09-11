@@ -17,9 +17,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 
-	deployapiv1 "github.com/openshift/api/apps/v1"
+	appsapiv1 "github.com/openshift/api/apps/v1"
 	securityapiv1 "github.com/openshift/api/security/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 )
 
@@ -61,8 +61,8 @@ var resourcesToCheck = map[schema.GroupResource]schema.GroupKind{
 	extensions.Resource("replicasets"): extensions.Kind("ReplicaSet"),
 	apps.Resource("statefulsets"):      apps.Kind("StatefulSet"),
 
-	deployapi.Resource("deploymentconfigs"):                           deployapi.Kind("DeploymentConfig"),
-	deployapi.LegacyResource("deploymentconfigs"):                     deployapi.LegacyKind("DeploymentConfig"),
+	appsapi.Resource("deploymentconfigs"):                             appsapi.Kind("DeploymentConfig"),
+	appsapi.LegacyResource("deploymentconfigs"):                       appsapi.LegacyKind("DeploymentConfig"),
 	securityapi.Resource("podsecuritypolicysubjectreviews"):           securityapi.Kind("PodSecurityPolicySubjectReview"),
 	securityapi.LegacyResource("podsecuritypolicysubjectreviews"):     securityapi.LegacyKind("PodSecurityPolicySubjectReview"),
 	securityapi.Resource("podsecuritypolicyselfsubjectreviews"):       securityapi.Kind("PodSecurityPolicySelfSubjectReview"),
@@ -112,7 +112,7 @@ func GetPodSpec(obj runtime.Object) (*kapi.PodSpec, *field.Path, error) {
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *securityapi.PodSecurityPolicyReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 		}
@@ -155,7 +155,7 @@ func GetPodSpecV1(obj runtime.Object) (*kapiv1.PodSpec, *field.Path, error) {
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 	case *securityapiv1.PodSecurityPolicyReview:
 		return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
-	case *deployapiv1.DeploymentConfig:
+	case *appsapiv1.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.Spec, field.NewPath("spec", "template", "spec"), nil
 		}
@@ -195,7 +195,7 @@ func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 		return &r.Spec.Template.ObjectMeta, true
 	case *securityapiv1.PodSecurityPolicyReview:
 		return &r.Spec.Template.ObjectMeta, true
-	case *deployapiv1.DeploymentConfig:
+	case *appsapiv1.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.ObjectMeta, true
 		}
@@ -225,7 +225,7 @@ func GetTemplateMetaObject(obj runtime.Object) (metav1.Object, bool) {
 		return &r.Spec.Template.ObjectMeta, true
 	case *securityapi.PodSecurityPolicyReview:
 		return &r.Spec.Template.ObjectMeta, true
-	case *deployapi.DeploymentConfig:
+	case *appsapi.DeploymentConfig:
 		if r.Spec.Template != nil {
 			return &r.Spec.Template.ObjectMeta, true
 		}

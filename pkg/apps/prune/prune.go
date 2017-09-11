@@ -9,8 +9,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 )
 
 type Pruner interface {
@@ -43,7 +43,7 @@ type PrunerOptions struct {
 	// KeepFailed is per DeploymentConfig how many of the most recent failed deployments should be preserved.
 	KeepFailed int
 	// DeploymentConfigs is the entire list of deploymentconfigs across all namespaces in the cluster.
-	DeploymentConfigs []*deployapi.DeploymentConfig
+	DeploymentConfigs []*appsapi.DeploymentConfig
 	// Deployments is the entire list of deployments across all namespaces in the cluster.
 	Deployments []*kapi.ReplicationController
 }
@@ -66,9 +66,9 @@ func NewPruner(options PrunerOptions) Pruner {
 
 	resolvers := []Resolver{}
 	if options.Orphans {
-		inactiveDeploymentStatus := []deployapi.DeploymentStatus{
-			deployapi.DeploymentStatusComplete,
-			deployapi.DeploymentStatusFailed,
+		inactiveDeploymentStatus := []appsapi.DeploymentStatus{
+			appsapi.DeploymentStatusComplete,
+			appsapi.DeploymentStatusFailed,
 		}
 		resolvers = append(resolvers, NewOrphanDeploymentResolver(dataSet, inactiveDeploymentStatus))
 	}
@@ -112,8 +112,8 @@ func NewDeploymentDeleter(deployments kcoreclient.ReplicationControllersGetter, 
 func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationController) error {
 	glog.V(4).Infof("Deleting deployment %q", deployment.Name)
 	// If the deployment is failed we need to remove its deployer pods, too.
-	if deployutil.IsFailedDeployment(deployment) {
-		dpSelector := deployutil.DeployerPodSelector(deployment.Name)
+	if appsutil.IsFailedDeployment(deployment) {
+		dpSelector := appsutil.DeployerPodSelector(deployment.Name)
 		deployers, err := p.pods.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: dpSelector.String()})
 		if err != nil {
 			glog.Warningf("Cannot list deployer pods for %q: %v\n", deployment.Name, err)

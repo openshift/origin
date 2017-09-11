@@ -25,7 +25,7 @@ import (
 
 	authorizationapiv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/origin/pkg/api/legacy"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	oappsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
@@ -176,14 +176,14 @@ func TestClusterReaderCoverage(t *testing.T) {
 		buildapi.LegacyResource("buildconfigs/instantiate"),
 		buildapi.Resource("builds/clone"),
 		buildapi.LegacyResource("builds/clone"),
-		deployapi.Resource("deploymentconfigrollbacks"),
-		deployapi.LegacyResource("deploymentconfigrollbacks"),
-		deployapi.Resource("generatedeploymentconfigs"),
-		deployapi.LegacyResource("generatedeploymentconfigs"),
-		deployapi.Resource("deploymentconfigs/rollback"),
-		deployapi.LegacyResource("deploymentconfigs/rollback"),
-		deployapi.Resource("deploymentconfigs/instantiate"),
-		deployapi.LegacyResource("deploymentconfigs/instantiate"),
+		oappsapi.Resource("deploymentconfigrollbacks"),
+		oappsapi.LegacyResource("deploymentconfigrollbacks"),
+		oappsapi.Resource("generatedeploymentconfigs"),
+		oappsapi.LegacyResource("generatedeploymentconfigs"),
+		oappsapi.Resource("deploymentconfigs/rollback"),
+		oappsapi.LegacyResource("deploymentconfigs/rollback"),
+		oappsapi.Resource("deploymentconfigs/instantiate"),
+		oappsapi.LegacyResource("deploymentconfigs/instantiate"),
 		imageapi.Resource("imagestreamimports"),
 		imageapi.LegacyResource("imagestreamimports"),
 		imageapi.Resource("imagestreammappings"),

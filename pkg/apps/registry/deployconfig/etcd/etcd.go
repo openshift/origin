@@ -18,8 +18,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/labels"
 
-	deployapiv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapiv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/apps/registry/deployconfig"
 	"github.com/openshift/origin/pkg/util/restoptions"
 )
@@ -48,9 +48,9 @@ func (r *REST) ShortNames() []string {
 // and a scaleREST containing the REST storage for the Scale subresources of DeploymentConfigs.
 func NewREST(optsGetter restoptions.Getter) (*REST, *StatusREST, *ScaleREST, error) {
 	store := &registry.Store{
-		NewFunc:                  func() runtime.Object { return &deployapi.DeploymentConfig{} },
-		NewListFunc:              func() runtime.Object { return &deployapi.DeploymentConfigList{} },
-		DefaultQualifiedResource: deployapi.Resource("deploymentconfigs"),
+		NewFunc:                  func() runtime.Object { return &appsapi.DeploymentConfig{} },
+		NewListFunc:              func() runtime.Object { return &appsapi.DeploymentConfigList{} },
+		DefaultQualifiedResource: appsapi.Resource("deploymentconfigs"),
 
 		CreateStrategy: deployconfig.GroupStrategy,
 		UpdateStrategy: deployconfig.GroupStrategy,
@@ -88,8 +88,8 @@ func (r *ScaleREST) New() runtime.Object {
 
 func (r *ScaleREST) GroupVersionKind(containingGV schema.GroupVersion) schema.GroupVersionKind {
 	switch containingGV {
-	case deployapiv1.SchemeGroupVersion,
-		deployapiv1.LegacySchemeGroupVersion:
+	case appsapiv1.SchemeGroupVersion,
+		appsapiv1.LegacySchemeGroupVersion:
 		return extensionsv1beta1.SchemeGroupVersion.WithKind("Scale")
 	default:
 		return autoscalingv1.SchemeGroupVersion.WithKind("Scale")
@@ -103,7 +103,7 @@ func (r *ScaleREST) Get(ctx apirequest.Context, name string, options *metav1.Get
 		return nil, err
 	}
 
-	return scaleFromConfig(deploymentConfig.(*deployapi.DeploymentConfig)), nil
+	return scaleFromConfig(deploymentConfig.(*appsapi.DeploymentConfig)), nil
 }
 
 // Update scales the DeploymentConfig for the given Scale subresource, returning the updated Scale.
@@ -112,7 +112,7 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 	if err != nil {
 		return nil, false, errors.NewNotFound(extensions.Resource("scale"), name)
 	}
-	deploymentConfig := uncastObj.(*deployapi.DeploymentConfig)
+	deploymentConfig := uncastObj.(*appsapi.DeploymentConfig)
 
 	old := scaleFromConfig(deploymentConfig)
 	obj, err := objInfo.UpdatedObject(ctx, old)
@@ -138,7 +138,7 @@ func (r *ScaleREST) Update(ctx apirequest.Context, name string, objInfo rest.Upd
 }
 
 // scaleFromConfig builds a scale resource out of a deployment config.
-func scaleFromConfig(dc *deployapi.DeploymentConfig) *autoscaling.Scale {
+func scaleFromConfig(dc *appsapi.DeploymentConfig) *autoscaling.Scale {
 	return &autoscaling.Scale{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              dc.Name,
@@ -166,7 +166,7 @@ type StatusREST struct {
 var _ = rest.Patcher(&StatusREST{})
 
 func (r *StatusREST) New() runtime.Object {
-	return &deployapi.DeploymentConfig{}
+	return &appsapi.DeploymentConfig{}
 }
 
 // Get retrieves the object from the storage. It is required to support Patch.

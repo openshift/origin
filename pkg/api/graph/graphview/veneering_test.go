@@ -14,9 +14,9 @@ import (
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	kubeedges "github.com/openshift/origin/pkg/api/kubegraph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployedges "github.com/openshift/origin/pkg/apps/graph"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsedges "github.com/openshift/origin/pkg/apps/graph"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
@@ -31,7 +31,7 @@ func TestServiceGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -104,7 +104,7 @@ func TestBareDCGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -160,7 +160,7 @@ func TestBareBCGroup(t *testing.T) {
 
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
-	deployedges.AddAllTriggerEdges(g)
+	appsedges.AddAllTriggerEdges(g)
 
 	coveredNodes := IntSet{}
 
@@ -286,12 +286,12 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	deploygraph.EnsureDeploymentConfigNode(g, &deployapi.DeploymentConfig{
+	appsgraph.EnsureDeploymentConfigNode(g, &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "other", Name: "deploy1"},
-		Spec: deployapi.DeploymentConfigSpec{
-			Triggers: []deployapi.DeploymentTriggerPolicy{
+		Spec: appsapi.DeploymentConfigSpec{
+			Triggers: []appsapi.DeploymentTriggerPolicy{
 				{
-					ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+					ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
 						From:           kapi.ObjectReference{Kind: "ImageStreamTag", Namespace: "default", Name: "other:tag1"},
 						ContainerNames: []string{"1", "2"},
 					},
@@ -323,9 +323,9 @@ func TestGraph(t *testing.T) {
 			},
 		},
 	})
-	deploygraph.EnsureDeploymentConfigNode(g, &deployapi.DeploymentConfig{
+	appsgraph.EnsureDeploymentConfigNode(g, &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "deploy2"},
-		Spec: deployapi.DeploymentConfigSpec{
+		Spec: appsapi.DeploymentConfigSpec{
 			Template: &kapi.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
@@ -348,8 +348,8 @@ func TestGraph(t *testing.T) {
 	kubeedges.AddAllExposedPodTemplateSpecEdges(g)
 	buildedges.AddAllInputOutputEdges(g)
 	buildedges.AddAllBuildEdges(g)
-	deployedges.AddAllTriggerEdges(g)
-	deployedges.AddAllDeploymentEdges(g)
+	appsedges.AddAllTriggerEdges(g)
+	appsedges.AddAllDeploymentEdges(g)
 
 	t.Log(g)
 

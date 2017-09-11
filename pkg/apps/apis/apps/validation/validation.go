@@ -15,19 +15,19 @@ import (
 	"k8s.io/kubernetes/pkg/apis/core/validation"
 	kapivalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageval "github.com/openshift/origin/pkg/image/apis/image/validation"
 )
 
-func ValidateDeploymentConfig(config *deployapi.DeploymentConfig) field.ErrorList {
+func ValidateDeploymentConfig(config *appsapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&config.ObjectMeta, true, validation.NameIsDNSSubdomain, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfigSpec(config.Spec)...)
 	allErrs = append(allErrs, ValidateDeploymentConfigStatus(config.Status)...)
 	return allErrs
 }
 
-func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.ErrorList {
+func ValidateDeploymentConfigSpec(spec appsapi.DeploymentConfigSpec) field.ErrorList {
 	allErrs := field.ErrorList{}
 	specPath := field.NewPath("spec")
 	for i := range spec.Triggers {
@@ -44,7 +44,7 @@ func ValidateDeploymentConfigSpec(spec deployapi.DeploymentConfigSpec) field.Err
 		allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(*spec.RevisionHistoryLimit), specPath.Child("revisionHistoryLimit"))...)
 	}
 	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(spec.MinReadySeconds), specPath.Child("minReadySeconds"))...)
-	timeoutSeconds := deployapi.DefaultRollingTimeoutSeconds
+	timeoutSeconds := appsapi.DefaultRollingTimeoutSeconds
 	if spec.Strategy.RollingParams != nil && spec.Strategy.RollingParams.TimeoutSeconds != nil {
 		timeoutSeconds = *(spec.Strategy.RollingParams.TimeoutSeconds)
 	} else if spec.Strategy.RecreateParams != nil && spec.Strategy.RecreateParams.TimeoutSeconds != nil {
@@ -87,7 +87,7 @@ func setContainerImageNames(template *kapi.PodTemplateSpec, originalNames []stri
 	}
 }
 
-func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []deployapi.DeploymentTriggerPolicy) {
+func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []appsapi.DeploymentTriggerPolicy) {
 	// if we have both an ICT defined and an empty Template->PodSpec->Container->Image field, we are going
 	// to modify this method's local copy (a pointer was NOT used for the parameter) by setting the field to a non-empty value to
 	// work around the k8s validation as our ICT will supply the image field value
@@ -106,7 +106,7 @@ func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []deplo
 	for _, trigger := range triggers {
 		// note, the validateTrigger call above will add an error if ImageChangeParams is nil, but
 		// we can still fall down this path so account for it being nil
-		if trigger.Type != deployapi.DeploymentTriggerOnImageChange || trigger.ImageChangeParams == nil {
+		if trigger.Type != appsapi.DeploymentTriggerOnImageChange || trigger.ImageChangeParams == nil {
 			continue
 		}
 
@@ -130,7 +130,7 @@ func handleEmptyImageReferences(template *kapi.PodTemplateSpec, triggers []deplo
 
 }
 
-func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) field.ErrorList {
+func ValidateDeploymentConfigStatus(status appsapi.DeploymentConfigStatus) field.ErrorList {
 	allErrs := field.ErrorList{}
 	statusPath := field.NewPath("status")
 	allErrs = append(allErrs, kapivalidation.ValidateNonnegativeField(int64(status.LatestVersion), statusPath.Child("latestVersion"))...)
@@ -142,14 +142,14 @@ func ValidateDeploymentConfigStatus(status deployapi.DeploymentConfigStatus) fie
 	return allErrs
 }
 
-func ValidateDeploymentConfigUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
+func ValidateDeploymentConfigUpdate(newConfig *appsapi.DeploymentConfig, oldConfig *appsapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfig(newConfig)...)
 	allErrs = append(allErrs, ValidateDeploymentConfigStatusUpdate(newConfig, oldConfig)...)
 	return allErrs
 }
 
-func ValidateDeploymentConfigStatusUpdate(newConfig *deployapi.DeploymentConfig, oldConfig *deployapi.DeploymentConfig) field.ErrorList {
+func ValidateDeploymentConfigStatusUpdate(newConfig *appsapi.DeploymentConfig, oldConfig *appsapi.DeploymentConfig) field.ErrorList {
 	allErrs := validation.ValidateObjectMetaUpdate(&newConfig.ObjectMeta, &oldConfig.ObjectMeta, field.NewPath("metadata"))
 	allErrs = append(allErrs, ValidateDeploymentConfigStatus(newConfig.Status)...)
 	statusPath := field.NewPath("status")
@@ -164,7 +164,7 @@ func ValidateDeploymentConfigStatusUpdate(newConfig *deployapi.DeploymentConfig,
 	return allErrs
 }
 
-func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
+func ValidateDeploymentConfigRollback(rollback *appsapi.DeploymentConfigRollback) field.ErrorList {
 	result := field.ErrorList{}
 
 	if len(rollback.Name) == 0 {
@@ -181,7 +181,7 @@ func ValidateDeploymentConfigRollback(rollback *deployapi.DeploymentConfigRollba
 	return result
 }
 
-func ValidateDeploymentConfigRollbackDeprecated(rollback *deployapi.DeploymentConfigRollback) field.ErrorList {
+func ValidateDeploymentConfigRollbackDeprecated(rollback *appsapi.DeploymentConfigRollback) field.ErrorList {
 	result := field.ErrorList{}
 
 	fromPath := field.NewPath("spec", "from")
@@ -200,7 +200,7 @@ func ValidateDeploymentConfigRollbackDeprecated(rollback *deployapi.DeploymentCo
 	return result
 }
 
-func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
+func validateDeploymentStrategy(strategy *appsapi.DeploymentStrategy, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(strategy.Type) == 0 {
@@ -212,17 +212,17 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	}
 
 	switch strategy.Type {
-	case deployapi.DeploymentStrategyTypeRecreate:
+	case appsapi.DeploymentStrategyTypeRecreate:
 		if strategy.RecreateParams != nil {
 			errs = append(errs, validateRecreateParams(strategy.RecreateParams, pod, fldPath.Child("recreateParams"))...)
 		}
-	case deployapi.DeploymentStrategyTypeRolling:
+	case appsapi.DeploymentStrategyTypeRolling:
 		if strategy.RollingParams == nil {
 			errs = append(errs, field.Required(fldPath.Child("rollingParams"), ""))
 		} else {
 			errs = append(errs, validateRollingParams(strategy.RollingParams, pod, fldPath.Child("rollingParams"))...)
 		}
-	case deployapi.DeploymentStrategyTypeCustom:
+	case appsapi.DeploymentStrategyTypeCustom:
 		if strategy.CustomParams == nil {
 			errs = append(errs, field.Required(fldPath.Child("customParams"), ""))
 		}
@@ -263,7 +263,7 @@ func validateDeploymentStrategy(strategy *deployapi.DeploymentStrategy, pod *kap
 	return errs
 }
 
-func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
+func validateCustomParams(params *appsapi.CustomDeploymentStrategyParams, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	errs = append(errs, validateEnv(params.Environment, fldPath.Child("environment"))...)
@@ -271,7 +271,7 @@ func validateCustomParams(params *deployapi.CustomDeploymentStrategyParams, fldP
 	return errs
 }
 
-func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
+func validateRecreateParams(params *appsapi.RecreateDeploymentStrategyParams, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if params.TimeoutSeconds != nil && *params.TimeoutSeconds < 1 {
@@ -291,7 +291,7 @@ func validateRecreateParams(params *deployapi.RecreateDeploymentStrategyParams, 
 	return errs
 }
 
-func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
+func validateLifecycleHook(hook *appsapi.LifecycleHook, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(hook.FailurePolicy) == 0 {
@@ -308,7 +308,7 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fld
 			if len(image.ContainerName) == 0 {
 				errs = append(errs, field.Required(fldPath.Child("tagImages").Index(i).Child("containerName"), "a containerName is required"))
 			} else {
-				if _, err := deployapi.TemplateImageForContainer(pod, deployapi.IgnoreTriggers, image.ContainerName); err != nil {
+				if _, err := appsapi.TemplateImageForContainer(pod, appsapi.IgnoreTriggers, image.ContainerName); err != nil {
 					errs = append(errs, field.Invalid(fldPath.Child("tagImages").Index(i).Child("containerName"), image.ContainerName, err.Error()))
 				}
 			}
@@ -326,7 +326,7 @@ func validateLifecycleHook(hook *deployapi.LifecycleHook, pod *kapi.PodSpec, fld
 	return errs
 }
 
-func validateExecNewPod(hook *deployapi.ExecNewPodHook, fldPath *field.Path) field.ErrorList {
+func validateExecNewPod(hook *appsapi.ExecNewPodHook, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(hook.Command) == 0 {
@@ -375,7 +375,7 @@ func validateHookVolumes(volumes []string, fldPath *field.Path) field.ErrorList 
 	return errs
 }
 
-func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
+func validateRollingParams(params *appsapi.RollingDeploymentStrategyParams, pod *kapi.PodSpec, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if params.IntervalSeconds != nil && *params.IntervalSeconds < 1 {
@@ -412,14 +412,14 @@ func validateRollingParams(params *deployapi.RollingDeploymentStrategyParams, po
 	return errs
 }
 
-func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy, fldPath *field.Path) field.ErrorList {
+func validateTrigger(trigger *appsapi.DeploymentTriggerPolicy, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	if len(trigger.Type) == 0 {
 		errs = append(errs, field.Required(fldPath.Child("type"), ""))
 	}
 
-	if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+	if trigger.Type == appsapi.DeploymentTriggerOnImageChange {
 		if trigger.ImageChangeParams == nil {
 			errs = append(errs, field.Required(fldPath.Child("imageChangeParams"), ""))
 		} else {
@@ -430,7 +430,7 @@ func validateTrigger(trigger *deployapi.DeploymentTriggerPolicy, fldPath *field.
 	return errs
 }
 
-func validateImageChangeParams(params *deployapi.DeploymentTriggerImageChangeParams, fldPath *field.Path) field.ErrorList {
+func validateImageChangeParams(params *appsapi.DeploymentTriggerImageChangeParams, fldPath *field.Path) field.ErrorList {
 	errs := field.ErrorList{}
 
 	fromPath := fldPath.Child("from")
@@ -523,7 +523,7 @@ func IsValidPercent(percent string) bool {
 
 const isNegativeErrorMsg string = `must be non-negative`
 
-func ValidateDeploymentRequest(req *deployapi.DeploymentRequest) field.ErrorList {
+func ValidateDeploymentRequest(req *appsapi.DeploymentRequest) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if len(req.Name) == 0 {
@@ -535,7 +535,7 @@ func ValidateDeploymentRequest(req *deployapi.DeploymentRequest) field.ErrorList
 	return allErrs
 }
 
-func ValidateRequestForDeploymentConfig(req *deployapi.DeploymentRequest, config *deployapi.DeploymentConfig) field.ErrorList {
+func ValidateRequestForDeploymentConfig(req *appsapi.DeploymentRequest, config *appsapi.DeploymentConfig) field.ErrorList {
 	allErrs := ValidateDeploymentRequest(req)
 
 	if config.Spec.Paused {
@@ -548,11 +548,11 @@ func ValidateRequestForDeploymentConfig(req *deployapi.DeploymentRequest, config
 	return allErrs
 }
 
-func ValidateDeploymentLogOptions(opts *deployapi.DeploymentLogOptions) field.ErrorList {
+func ValidateDeploymentLogOptions(opts *appsapi.DeploymentLogOptions) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// TODO: Replace by validating PodLogOptions via DeploymentLogOptions once it's bundled in
-	popts := deployapi.DeploymentToPodLogOptions(opts)
+	popts := appsapi.DeploymentToPodLogOptions(opts)
 	if errs := validation.ValidatePodLogOptions(popts); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}

@@ -14,7 +14,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
@@ -350,16 +350,16 @@ func (r *ImageRef) ImageStreamTag() (*imageapi.ImageStreamTag, error) {
 }
 
 // DeployableContainer sets up a container for the image ready for deployment
-func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []deployapi.DeploymentTriggerPolicy, err error) {
+func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []appsapi.DeploymentTriggerPolicy, err error) {
 	name, ok := r.SuggestName()
 	if !ok {
 		return nil, nil, fmt.Errorf("unable to suggest a container name for the image %q", r.Reference.String())
 	}
 	if r.AsImageStream {
-		triggers = []deployapi.DeploymentTriggerPolicy{
+		triggers = []appsapi.DeploymentTriggerPolicy{
 			{
-				Type: deployapi.DeploymentTriggerOnImageChange,
-				ImageChangeParams: &deployapi.DeploymentTriggerImageChangeParams{
+				Type: appsapi.DeploymentTriggerOnImageChange,
+				ImageChangeParams: &appsapi.DeploymentTriggerImageChangeParams{
 					Automatic:      true,
 					ContainerNames: []string{name},
 					From:           r.ObjectReference(),

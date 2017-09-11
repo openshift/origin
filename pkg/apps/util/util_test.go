@@ -11,15 +11,15 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployv1 "github.com/openshift/api/apps/v1"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsv1 "github.com/openshift/api/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func podTemplateA() *kapi.PodTemplateSpec {
-	t := deploytest.OkPodTemplate()
+	t := appstest.OkPodTemplate()
 	t.Spec.Containers = append(t.Spec.Containers, kapi.Container{
 		Name:  "container1",
 		Image: "registry:8080/repo1:ref1",
@@ -67,17 +67,17 @@ func TestPodName(t *testing.T) {
 }
 
 func TestMakeDeploymentOk(t *testing.T) {
-	config := deploytest.OkDeploymentConfig(1)
-	deployment, err := MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+	config := appstest.OkDeploymentConfig(1)
+	deployment, err := MakeDeployment(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 
 	if err != nil {
 		t.Fatalf("unexpected error: %#v", err)
 	}
 
 	expectedAnnotations := map[string]string{
-		deployapi.DeploymentConfigAnnotation:  config.Name,
-		deployapi.DeploymentStatusAnnotation:  string(deployapi.DeploymentStatusNew),
-		deployapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
+		appsapi.DeploymentConfigAnnotation:  config.Name,
+		appsapi.DeploymentStatusAnnotation:  string(appsapi.DeploymentStatusNew),
+		appsapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
 	}
 
 	for key, expected := range expectedAnnotations {
@@ -87,9 +87,9 @@ func TestMakeDeploymentOk(t *testing.T) {
 	}
 
 	expectedAnnotations = map[string]string{
-		deployapi.DeploymentAnnotation:        deployment.Name,
-		deployapi.DeploymentConfigAnnotation:  config.Name,
-		deployapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
+		appsapi.DeploymentAnnotation:        deployment.Name,
+		appsapi.DeploymentConfigAnnotation:  config.Name,
+		appsapi.DeploymentVersionAnnotation: strconv.FormatInt(config.Status.LatestVersion, 10),
 	}
 
 	for key, expected := range expectedAnnotations {
@@ -102,7 +102,7 @@ func TestMakeDeploymentOk(t *testing.T) {
 		t.Fatalf("expected deployment with DeploymentEncodedConfigAnnotation annotation")
 	}
 
-	if decodedConfig, err := DecodeDeploymentConfig(deployment, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)); err != nil {
+	if decodedConfig, err := DecodeDeploymentConfig(deployment, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion)); err != nil {
 		t.Fatalf("invalid encoded config on deployment: %v", err)
 	} else {
 		if e, a := config.Name, decodedConfig.Name; e != a {
@@ -115,30 +115,30 @@ func TestMakeDeploymentOk(t *testing.T) {
 		t.Fatalf("expected deployment replicas to be 0")
 	}
 
-	if l, e, a := deployapi.DeploymentConfigAnnotation, config.Name, deployment.Labels[deployapi.DeploymentConfigAnnotation]; e != a {
+	if l, e, a := appsapi.DeploymentConfigAnnotation, config.Name, deployment.Labels[appsapi.DeploymentConfigAnnotation]; e != a {
 		t.Fatalf("expected label %s=%s, got %s", l, e, a)
 	}
 
-	if e, a := config.Name, deployment.Spec.Template.Labels[deployapi.DeploymentConfigLabel]; e != a {
+	if e, a := config.Name, deployment.Spec.Template.Labels[appsapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected label DeploymentConfigLabel=%s, got %s", e, a)
 	}
 
-	if e, a := deployment.Name, deployment.Spec.Template.Labels[deployapi.DeploymentLabel]; e != a {
+	if e, a := deployment.Name, deployment.Spec.Template.Labels[appsapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected label DeploymentLabel=%s, got %s", e, a)
 	}
 
-	if e, a := config.Name, deployment.Spec.Selector[deployapi.DeploymentConfigLabel]; e != a {
+	if e, a := config.Name, deployment.Spec.Selector[appsapi.DeploymentConfigLabel]; e != a {
 		t.Fatalf("expected selector DeploymentConfigLabel=%s, got %s", e, a)
 	}
 
-	if e, a := deployment.Name, deployment.Spec.Selector[deployapi.DeploymentLabel]; e != a {
+	if e, a := deployment.Name, deployment.Spec.Selector[appsapi.DeploymentLabel]; e != a {
 		t.Fatalf("expected selector DeploymentLabel=%s, got %s", e, a)
 	}
 }
 
 func TestDeploymentsByLatestVersion_sorting(t *testing.T) {
 	mkdeployment := func(version int64) *kapi.ReplicationController {
-		deployment, _ := MakeDeployment(deploytest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+		deployment, _ := MakeDeployment(appstest.OkDeploymentConfig(version), legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 		return deployment
 	}
 	deployments := []*kapi.ReplicationController{
@@ -191,157 +191,157 @@ func TestSort(t *testing.T) {
 func TestCanTransitionPhase(t *testing.T) {
 	tests := []struct {
 		name          string
-		current, next deployapi.DeploymentStatus
+		current, next appsapi.DeploymentStatus
 		expected      bool
 	}{
 		{
 			name:     "New->New",
-			current:  deployapi.DeploymentStatusNew,
-			next:     deployapi.DeploymentStatusNew,
+			current:  appsapi.DeploymentStatusNew,
+			next:     appsapi.DeploymentStatusNew,
 			expected: false,
 		},
 		{
 			name:     "New->Pending",
-			current:  deployapi.DeploymentStatusNew,
-			next:     deployapi.DeploymentStatusPending,
+			current:  appsapi.DeploymentStatusNew,
+			next:     appsapi.DeploymentStatusPending,
 			expected: true,
 		},
 		{
 			name:     "New->Running",
-			current:  deployapi.DeploymentStatusNew,
-			next:     deployapi.DeploymentStatusRunning,
+			current:  appsapi.DeploymentStatusNew,
+			next:     appsapi.DeploymentStatusRunning,
 			expected: true,
 		},
 		{
 			name:     "New->Complete",
-			current:  deployapi.DeploymentStatusNew,
-			next:     deployapi.DeploymentStatusComplete,
+			current:  appsapi.DeploymentStatusNew,
+			next:     appsapi.DeploymentStatusComplete,
 			expected: true,
 		},
 		{
 			name:     "New->Failed",
-			current:  deployapi.DeploymentStatusNew,
-			next:     deployapi.DeploymentStatusFailed,
+			current:  appsapi.DeploymentStatusNew,
+			next:     appsapi.DeploymentStatusFailed,
 			expected: true,
 		},
 		{
 			name:     "Pending->New",
-			current:  deployapi.DeploymentStatusPending,
-			next:     deployapi.DeploymentStatusNew,
+			current:  appsapi.DeploymentStatusPending,
+			next:     appsapi.DeploymentStatusNew,
 			expected: false,
 		},
 		{
 			name:     "Pending->Pending",
-			current:  deployapi.DeploymentStatusPending,
-			next:     deployapi.DeploymentStatusPending,
+			current:  appsapi.DeploymentStatusPending,
+			next:     appsapi.DeploymentStatusPending,
 			expected: false,
 		},
 		{
 			name:     "Pending->Running",
-			current:  deployapi.DeploymentStatusPending,
-			next:     deployapi.DeploymentStatusRunning,
+			current:  appsapi.DeploymentStatusPending,
+			next:     appsapi.DeploymentStatusRunning,
 			expected: true,
 		},
 		{
 			name:     "Pending->Failed",
-			current:  deployapi.DeploymentStatusPending,
-			next:     deployapi.DeploymentStatusFailed,
+			current:  appsapi.DeploymentStatusPending,
+			next:     appsapi.DeploymentStatusFailed,
 			expected: true,
 		},
 		{
 			name:     "Pending->Complete",
-			current:  deployapi.DeploymentStatusPending,
-			next:     deployapi.DeploymentStatusComplete,
+			current:  appsapi.DeploymentStatusPending,
+			next:     appsapi.DeploymentStatusComplete,
 			expected: true,
 		},
 		{
 			name:     "Running->New",
-			current:  deployapi.DeploymentStatusRunning,
-			next:     deployapi.DeploymentStatusNew,
+			current:  appsapi.DeploymentStatusRunning,
+			next:     appsapi.DeploymentStatusNew,
 			expected: false,
 		},
 		{
 			name:     "Running->Pending",
-			current:  deployapi.DeploymentStatusRunning,
-			next:     deployapi.DeploymentStatusPending,
+			current:  appsapi.DeploymentStatusRunning,
+			next:     appsapi.DeploymentStatusPending,
 			expected: false,
 		},
 		{
 			name:     "Running->Running",
-			current:  deployapi.DeploymentStatusRunning,
-			next:     deployapi.DeploymentStatusRunning,
+			current:  appsapi.DeploymentStatusRunning,
+			next:     appsapi.DeploymentStatusRunning,
 			expected: false,
 		},
 		{
 			name:     "Running->Failed",
-			current:  deployapi.DeploymentStatusRunning,
-			next:     deployapi.DeploymentStatusFailed,
+			current:  appsapi.DeploymentStatusRunning,
+			next:     appsapi.DeploymentStatusFailed,
 			expected: true,
 		},
 		{
 			name:     "Running->Complete",
-			current:  deployapi.DeploymentStatusRunning,
-			next:     deployapi.DeploymentStatusComplete,
+			current:  appsapi.DeploymentStatusRunning,
+			next:     appsapi.DeploymentStatusComplete,
 			expected: true,
 		},
 		{
 			name:     "Complete->New",
-			current:  deployapi.DeploymentStatusComplete,
-			next:     deployapi.DeploymentStatusNew,
+			current:  appsapi.DeploymentStatusComplete,
+			next:     appsapi.DeploymentStatusNew,
 			expected: false,
 		},
 		{
 			name:     "Complete->Pending",
-			current:  deployapi.DeploymentStatusComplete,
-			next:     deployapi.DeploymentStatusPending,
+			current:  appsapi.DeploymentStatusComplete,
+			next:     appsapi.DeploymentStatusPending,
 			expected: false,
 		},
 		{
 			name:     "Complete->Running",
-			current:  deployapi.DeploymentStatusComplete,
-			next:     deployapi.DeploymentStatusRunning,
+			current:  appsapi.DeploymentStatusComplete,
+			next:     appsapi.DeploymentStatusRunning,
 			expected: false,
 		},
 		{
 			name:     "Complete->Failed",
-			current:  deployapi.DeploymentStatusComplete,
-			next:     deployapi.DeploymentStatusFailed,
+			current:  appsapi.DeploymentStatusComplete,
+			next:     appsapi.DeploymentStatusFailed,
 			expected: false,
 		},
 		{
 			name:     "Complete->Complete",
-			current:  deployapi.DeploymentStatusComplete,
-			next:     deployapi.DeploymentStatusComplete,
+			current:  appsapi.DeploymentStatusComplete,
+			next:     appsapi.DeploymentStatusComplete,
 			expected: false,
 		},
 		{
 			name:     "Failed->New",
-			current:  deployapi.DeploymentStatusFailed,
-			next:     deployapi.DeploymentStatusNew,
+			current:  appsapi.DeploymentStatusFailed,
+			next:     appsapi.DeploymentStatusNew,
 			expected: false,
 		},
 		{
 			name:     "Failed->Pending",
-			current:  deployapi.DeploymentStatusFailed,
-			next:     deployapi.DeploymentStatusPending,
+			current:  appsapi.DeploymentStatusFailed,
+			next:     appsapi.DeploymentStatusPending,
 			expected: false,
 		},
 		{
 			name:     "Failed->Running",
-			current:  deployapi.DeploymentStatusFailed,
-			next:     deployapi.DeploymentStatusRunning,
+			current:  appsapi.DeploymentStatusFailed,
+			next:     appsapi.DeploymentStatusRunning,
 			expected: false,
 		},
 		{
 			name:     "Failed->Complete",
-			current:  deployapi.DeploymentStatusFailed,
-			next:     deployapi.DeploymentStatusComplete,
+			current:  appsapi.DeploymentStatusFailed,
+			next:     appsapi.DeploymentStatusComplete,
 			expected: false,
 		},
 		{
 			name:     "Failed->Failed",
-			current:  deployapi.DeploymentStatusFailed,
-			next:     deployapi.DeploymentStatusFailed,
+			current:  appsapi.DeploymentStatusFailed,
+			next:     appsapi.DeploymentStatusFailed,
 			expected: false,
 		},
 	}
@@ -359,60 +359,60 @@ var (
 	later   = metav1.Time{Time: now.Add(time.Minute)}
 	earlier = metav1.Time{Time: now.Add(-time.Minute)}
 
-	condProgressing = func() deployapi.DeploymentCondition {
-		return deployapi.DeploymentCondition{
-			Type:               deployapi.DeploymentProgressing,
+	condProgressing = func() appsapi.DeploymentCondition {
+		return appsapi.DeploymentCondition{
+			Type:               appsapi.DeploymentProgressing,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: now,
 		}
 	}
 
-	condProgressingDifferentTime = func() deployapi.DeploymentCondition {
-		return deployapi.DeploymentCondition{
-			Type:               deployapi.DeploymentProgressing,
+	condProgressingDifferentTime = func() appsapi.DeploymentCondition {
+		return appsapi.DeploymentCondition{
+			Type:               appsapi.DeploymentProgressing,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: later,
 		}
 	}
 
-	condProgressingDifferentReason = func() deployapi.DeploymentCondition {
-		return deployapi.DeploymentCondition{
-			Type:               deployapi.DeploymentProgressing,
+	condProgressingDifferentReason = func() appsapi.DeploymentCondition {
+		return appsapi.DeploymentCondition{
+			Type:               appsapi.DeploymentProgressing,
 			Status:             kapi.ConditionTrue,
 			LastTransitionTime: later,
-			Reason:             deployapi.NewReplicationControllerReason,
+			Reason:             appsapi.NewReplicationControllerReason,
 		}
 	}
 
-	condNotProgressing = func() deployapi.DeploymentCondition {
-		return deployapi.DeploymentCondition{
-			Type:               deployapi.DeploymentProgressing,
+	condNotProgressing = func() appsapi.DeploymentCondition {
+		return appsapi.DeploymentCondition{
+			Type:               appsapi.DeploymentProgressing,
 			Status:             kapi.ConditionFalse,
 			LastUpdateTime:     earlier,
 			LastTransitionTime: earlier,
 		}
 	}
 
-	condAvailable = func() deployapi.DeploymentCondition {
-		return deployapi.DeploymentCondition{
-			Type:   deployapi.DeploymentAvailable,
+	condAvailable = func() appsapi.DeploymentCondition {
+		return appsapi.DeploymentCondition{
+			Type:   appsapi.DeploymentAvailable,
 			Status: kapi.ConditionTrue,
 		}
 	}
 )
 
 func TestGetCondition(t *testing.T) {
-	exampleStatus := func() deployapi.DeploymentConfigStatus {
-		return deployapi.DeploymentConfigStatus{
-			Conditions: []deployapi.DeploymentCondition{condProgressing(), condAvailable()},
+	exampleStatus := func() appsapi.DeploymentConfigStatus {
+		return appsapi.DeploymentConfigStatus{
+			Conditions: []appsapi.DeploymentCondition{condProgressing(), condAvailable()},
 		}
 	}
 
 	tests := []struct {
 		name string
 
-		status     deployapi.DeploymentConfigStatus
-		condType   deployapi.DeploymentConditionType
+		status     appsapi.DeploymentConfigStatus
+		condType   appsapi.DeploymentConditionType
 		condStatus kapi.ConditionStatus
 
 		expected bool
@@ -421,7 +421,7 @@ func TestGetCondition(t *testing.T) {
 			name: "condition exists",
 
 			status:   exampleStatus(),
-			condType: deployapi.DeploymentAvailable,
+			condType: appsapi.DeploymentAvailable,
 
 			expected: true,
 		},
@@ -429,7 +429,7 @@ func TestGetCondition(t *testing.T) {
 			name: "condition does not exist",
 
 			status:   exampleStatus(),
-			condType: deployapi.DeploymentReplicaFailure,
+			condType: appsapi.DeploymentReplicaFailure,
 
 			expected: false,
 		},
@@ -448,19 +448,19 @@ func TestSetCondition(t *testing.T) {
 	tests := []struct {
 		name string
 
-		status *deployapi.DeploymentConfigStatus
-		cond   deployapi.DeploymentCondition
+		status *appsapi.DeploymentConfigStatus
+		cond   appsapi.DeploymentCondition
 
-		expectedStatus *deployapi.DeploymentConfigStatus
+		expectedStatus *appsapi.DeploymentConfigStatus
 	}{
 		{
 			name: "set for the first time",
 
-			status: &deployapi.DeploymentConfigStatus{},
+			status: &appsapi.DeploymentConfigStatus{},
 			cond:   condAvailable(),
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			expectedStatus: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					condAvailable(),
 				},
 			},
@@ -468,15 +468,15 @@ func TestSetCondition(t *testing.T) {
 		{
 			name: "simple set",
 
-			status: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			status: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					condProgressing(),
 				},
 			},
 			cond: condAvailable(),
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			expectedStatus: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					condProgressing(), condAvailable(),
 				},
 			},
@@ -484,34 +484,34 @@ func TestSetCondition(t *testing.T) {
 		{
 			name: "replace if status changes",
 
-			status: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			status: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					condNotProgressing(),
 				},
 			},
 			cond: condProgressing(),
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressing()}},
+			expectedStatus: &appsapi.DeploymentConfigStatus{Conditions: []appsapi.DeploymentCondition{condProgressing()}},
 		},
 		{
 			name: "replace if reason changes",
 
-			status: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			status: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					condProgressing(),
 				},
 			},
 			cond: condProgressingDifferentReason(),
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			expectedStatus: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					{
-						Type:   deployapi.DeploymentProgressing,
+						Type:   appsapi.DeploymentProgressing,
 						Status: kapi.ConditionTrue,
 						// Note that LastTransitionTime stays the same.
 						LastTransitionTime: now,
 						// Only the reason changes.
-						Reason: deployapi.NewReplicationControllerReason,
+						Reason: appsapi.NewReplicationControllerReason,
 					},
 				},
 			},
@@ -519,14 +519,14 @@ func TestSetCondition(t *testing.T) {
 		{
 			name: "don't replace if status and reason don't change",
 
-			status: &deployapi.DeploymentConfigStatus{
-				Conditions: []deployapi.DeploymentCondition{
+			status: &appsapi.DeploymentConfigStatus{
+				Conditions: []appsapi.DeploymentCondition{
 					condProgressing(),
 				},
 			},
 			cond: condProgressingDifferentTime(),
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressing()}},
+			expectedStatus: &appsapi.DeploymentConfigStatus{Conditions: []appsapi.DeploymentCondition{condProgressing()}},
 		},
 	}
 
@@ -540,41 +540,41 @@ func TestSetCondition(t *testing.T) {
 }
 
 func TestRemoveCondition(t *testing.T) {
-	exampleStatus := func() *deployapi.DeploymentConfigStatus {
-		return &deployapi.DeploymentConfigStatus{
-			Conditions: []deployapi.DeploymentCondition{condProgressing(), condAvailable()},
+	exampleStatus := func() *appsapi.DeploymentConfigStatus {
+		return &appsapi.DeploymentConfigStatus{
+			Conditions: []appsapi.DeploymentCondition{condProgressing(), condAvailable()},
 		}
 	}
 
 	tests := []struct {
 		name string
 
-		status   *deployapi.DeploymentConfigStatus
-		condType deployapi.DeploymentConditionType
+		status   *appsapi.DeploymentConfigStatus
+		condType appsapi.DeploymentConditionType
 
-		expectedStatus *deployapi.DeploymentConfigStatus
+		expectedStatus *appsapi.DeploymentConfigStatus
 	}{
 		{
 			name: "remove from empty status",
 
-			status:   &deployapi.DeploymentConfigStatus{},
-			condType: deployapi.DeploymentProgressing,
+			status:   &appsapi.DeploymentConfigStatus{},
+			condType: appsapi.DeploymentProgressing,
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{},
+			expectedStatus: &appsapi.DeploymentConfigStatus{},
 		},
 		{
 			name: "simple remove",
 
-			status:   &deployapi.DeploymentConfigStatus{Conditions: []deployapi.DeploymentCondition{condProgressing()}},
-			condType: deployapi.DeploymentProgressing,
+			status:   &appsapi.DeploymentConfigStatus{Conditions: []appsapi.DeploymentCondition{condProgressing()}},
+			condType: appsapi.DeploymentProgressing,
 
-			expectedStatus: &deployapi.DeploymentConfigStatus{},
+			expectedStatus: &appsapi.DeploymentConfigStatus{},
 		},
 		{
 			name: "doesn't remove anything",
 
 			status:   exampleStatus(),
-			condType: deployapi.DeploymentReplicaFailure,
+			condType: appsapi.DeploymentReplicaFailure,
 
 			expectedStatus: exampleStatus(),
 		},
@@ -592,15 +592,15 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 	now := time.Now()
 	tests := []struct {
 		name                   string
-		config                 *deployapi.DeploymentConfig
+		config                 *appsapi.DeploymentConfig
 		deploymentCreationTime time.Time
 		expectTimeout          bool
 	}{
 		// Recreate strategy with deployment running for 20s (exceeding 10s timeout)
 		{
 			name: "recreate timeout",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
 				config.Spec.Strategy.RecreateParams.TimeoutSeconds = &timeoutSeconds
 				return config
 			}(int64(10)),
@@ -610,8 +610,8 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 		// Recreate strategy with no timeout
 		{
 			name: "recreate no timeout",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
 				config.Spec.Strategy.RecreateParams.TimeoutSeconds = &timeoutSeconds
 				return config
 			}(int64(0)),
@@ -622,9 +622,9 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 		// Rolling strategy with deployment running for 20s (exceeding 10s timeout)
 		{
 			name: "rolling timeout",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
-				config.Spec.Strategy = deploytest.OkRollingStrategy()
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
+				config.Spec.Strategy = appstest.OkRollingStrategy()
 				config.Spec.Strategy.RollingParams.TimeoutSeconds = &timeoutSeconds
 				return config
 			}(int64(10)),
@@ -634,9 +634,9 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 		// Rolling strategy with deployment with no timeout specified.
 		{
 			name: "rolling using default timeout",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
-				config.Spec.Strategy = deploytest.OkRollingStrategy()
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
+				config.Spec.Strategy = appstest.OkRollingStrategy()
 				config.Spec.Strategy.RollingParams.TimeoutSeconds = nil
 				return config
 			}(0),
@@ -646,8 +646,8 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 		// Recreate strategy with deployment with no timeout specified.
 		{
 			name: "recreate using default timeout",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
 				config.Spec.Strategy.RecreateParams.TimeoutSeconds = nil
 				return config
 			}(0),
@@ -657,9 +657,9 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 		// Custom strategy with deployment with no timeout specified.
 		{
 			name: "custom using default timeout",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
-				config.Spec.Strategy = deploytest.OkCustomStrategy()
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
+				config.Spec.Strategy = appstest.OkCustomStrategy()
 				return config
 			}(0),
 			deploymentCreationTime: now.Add(-20 * time.Second),
@@ -668,9 +668,9 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 		// Custom strategy use default timeout exceeding it.
 		{
 			name: "custom using default timeout timing out",
-			config: func(timeoutSeconds int64) *deployapi.DeploymentConfig {
-				config := deploytest.OkDeploymentConfig(1)
-				config.Spec.Strategy = deploytest.OkCustomStrategy()
+			config: func(timeoutSeconds int64) *appsapi.DeploymentConfig {
+				config := appstest.OkDeploymentConfig(1)
+				config.Spec.Strategy = appstest.OkCustomStrategy()
 				return config
 			}(0),
 			deploymentCreationTime: now.Add(-700 * time.Second),
@@ -680,7 +680,7 @@ func TestRolloutExceededTimeoutSeconds(t *testing.T) {
 
 	for _, tc := range tests {
 		config := tc.config
-		deployment, err := MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(deployv1.SchemeGroupVersion))
+		deployment, err := MakeDeploymentV1(config, legacyscheme.Codecs.LegacyCodec(appsv1.SchemeGroupVersion))
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

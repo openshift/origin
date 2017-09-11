@@ -10,8 +10,8 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployedges "github.com/openshift/origin/pkg/apps/graph"
-	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	appsedges "github.com/openshift/origin/pkg/apps/graph"
+	appsgraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
@@ -36,8 +36,8 @@ const (
 func FindDeploymentConfigTriggerErrors(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
-	for _, uncastDcNode := range g.NodesByKind(deploygraph.DeploymentConfigNodeKind) {
-		dcNode := uncastDcNode.(*deploygraph.DeploymentConfigNode)
+	for _, uncastDcNode := range g.NodesByKind(appsgraph.DeploymentConfigNodeKind) {
+		dcNode := uncastDcNode.(*appsgraph.DeploymentConfigNode)
 		marker := ictMarker(g, f, dcNode)
 		if marker != nil {
 			markers = append(markers, *marker)
@@ -53,8 +53,8 @@ func FindDeploymentConfigTriggerErrors(g osgraph.Graph, f osgraph.Namer) []osgra
 // 1. The image stream pointed by the dc trigger doen not exist.
 // 2. The image stream tag pointed by the dc trigger does not exist and there is no build in
 // 	  flight that could push to the tag.
-func ictMarker(g osgraph.Graph, f osgraph.Namer, dcNode *deploygraph.DeploymentConfigNode) *osgraph.Marker {
-	for _, uncastIstNode := range g.PredecessorNodesByEdgeKind(dcNode, deployedges.TriggersDeploymentEdgeKind) {
+func ictMarker(g osgraph.Graph, f osgraph.Namer, dcNode *appsgraph.DeploymentConfigNode) *osgraph.Marker {
+	for _, uncastIstNode := range g.PredecessorNodesByEdgeKind(dcNode, appsedges.TriggersDeploymentEdgeKind) {
 		if istNode := uncastIstNode.(*imagegraph.ImageStreamTagNode); !istNode.Found() {
 			// The image stream for the tag of interest does not exist.
 			if isNode, exists := doesImageStreamExist(g, uncastIstNode); !exists {
@@ -108,8 +108,8 @@ func FindDeploymentConfigReadinessWarnings(g osgraph.Graph, f osgraph.Namer, set
 	markers := []osgraph.Marker{}
 
 Node:
-	for _, uncastDcNode := range g.NodesByKind(deploygraph.DeploymentConfigNodeKind) {
-		dcNode := uncastDcNode.(*deploygraph.DeploymentConfigNode)
+	for _, uncastDcNode := range g.NodesByKind(appsgraph.DeploymentConfigNodeKind) {
+		dcNode := uncastDcNode.(*appsgraph.DeploymentConfigNode)
 		if t := dcNode.DeploymentConfig.Spec.Template; t != nil && len(t.Spec.Containers) > 0 {
 			for _, container := range t.Spec.Containers {
 				if container.ReadinessProbe != nil {
@@ -135,8 +135,8 @@ Node:
 func FindPersistentVolumeClaimWarnings(g osgraph.Graph, f osgraph.Namer) []osgraph.Marker {
 	markers := []osgraph.Marker{}
 
-	for _, uncastDcNode := range g.NodesByKind(deploygraph.DeploymentConfigNodeKind) {
-		dcNode := uncastDcNode.(*deploygraph.DeploymentConfigNode)
+	for _, uncastDcNode := range g.NodesByKind(appsgraph.DeploymentConfigNodeKind) {
+		dcNode := uncastDcNode.(*appsgraph.DeploymentConfigNode)
 		marker := pvcMarker(g, f, dcNode)
 		if marker != nil {
 			markers = append(markers, *marker)
@@ -146,8 +146,8 @@ func FindPersistentVolumeClaimWarnings(g osgraph.Graph, f osgraph.Namer) []osgra
 	return markers
 }
 
-func pvcMarker(g osgraph.Graph, f osgraph.Namer, dcNode *deploygraph.DeploymentConfigNode) *osgraph.Marker {
-	for _, uncastPvcNode := range g.SuccessorNodesByEdgeKind(dcNode, deployedges.VolumeClaimEdgeKind) {
+func pvcMarker(g osgraph.Graph, f osgraph.Namer, dcNode *appsgraph.DeploymentConfigNode) *osgraph.Marker {
+	for _, uncastPvcNode := range g.SuccessorNodesByEdgeKind(dcNode, appsedges.VolumeClaimEdgeKind) {
 		pvcNode := uncastPvcNode.(*kubegraph.PersistentVolumeClaimNode)
 
 		if !pvcNode.Found() {

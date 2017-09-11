@@ -7,7 +7,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 )
 
@@ -20,7 +20,7 @@ const (
 type fakeDeploymentConfigsDiagnostic struct {
 	fakeDiagnostic
 	fakePods     kapi.PodList
-	fakeDcs      deployapi.DeploymentConfigList
+	fakeDcs      appsapi.DeploymentConfigList
 	clienterrors map[string]error
 }
 
@@ -32,7 +32,7 @@ func newFakeDeploymentConfigsDiagnostic(t *testing.T) *fakeDeploymentConfigsDiag
 }
 func (f *fakeDeploymentConfigsDiagnostic) addDeployConfigFor(component string) {
 	labels := map[string]string{componentKey: component}
-	dc := deployapi.DeploymentConfig{
+	dc := appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   component + "Name",
 			Labels: labels,
@@ -44,7 +44,7 @@ func (f *fakeDeploymentConfigsDiagnostic) addDeployConfigFor(component string) {
 func (f *fakeDeploymentConfigsDiagnostic) addPodFor(comp string, state kapi.PodPhase) {
 	annotations := map[string]string{}
 	if comp != testSkipAnnotation {
-		annotations[deployapi.DeploymentConfigAnnotation] = comp
+		annotations[appsapi.DeploymentConfigAnnotation] = comp
 	}
 	pod := kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -59,7 +59,7 @@ func (f *fakeDeploymentConfigsDiagnostic) addPodFor(comp string, state kapi.PodP
 	f.fakePods.Items = append(f.fakePods.Items, pod)
 }
 
-func (f *fakeDeploymentConfigsDiagnostic) deploymentconfigs(project string, options metav1.ListOptions) (*deployapi.DeploymentConfigList, error) {
+func (f *fakeDeploymentConfigsDiagnostic) deploymentconfigs(project string, options metav1.ListOptions) (*appsapi.DeploymentConfigList, error) {
 	f.test.Logf(">> calling deploymentconfigs: %s", f.clienterrors)
 	value, ok := f.clienterrors[testDcKey]
 	if ok {

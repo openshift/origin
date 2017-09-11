@@ -10,7 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/experimental/ipfailover/ipfailover"
@@ -84,7 +84,8 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 }
 
 // GetDeploymentConfig gets the deployment config associated with this IP Failover configurator plugin.
-func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
+
+func (p *KeepalivedPlugin) GetDeploymentConfig() (*appsapi.DeploymentConfig, error) {
 	appsClient, err := p.Factory.OpenshiftInternalAppsClient()
 	if err != nil {
 		return nil, fmt.Errorf("error getting client: %v", err)

@@ -13,7 +13,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -148,21 +148,21 @@ func TestCheckReadiness(t *testing.T) {
 
 		// DeploymentConfig
 		{
-			groupKind: deployapi.Kind("DeploymentConfig"),
-			object:    &deployapi.DeploymentConfig{},
+			groupKind: appsapi.Kind("DeploymentConfig"),
+			object:    &appsapi.DeploymentConfig{},
 		},
 		{
-			groupKind: deployapi.Kind("DeploymentConfig"),
-			object: &deployapi.DeploymentConfig{
-				Status: deployapi.DeploymentConfigStatus{
-					Conditions: []deployapi.DeploymentCondition{
+			groupKind: appsapi.Kind("DeploymentConfig"),
+			object: &appsapi.DeploymentConfig{
+				Status: appsapi.DeploymentConfigStatus{
+					Conditions: []appsapi.DeploymentCondition{
 						{
-							Type:   deployapi.DeploymentProgressing,
+							Type:   appsapi.DeploymentProgressing,
 							Status: kapi.ConditionTrue,
-							Reason: deployapi.NewRcAvailableReason,
+							Reason: appsapi.NewRcAvailableReason,
 						},
 						{
-							Type:   deployapi.DeploymentAvailable,
+							Type:   appsapi.DeploymentAvailable,
 							Status: kapi.ConditionTrue,
 						},
 					},
@@ -171,12 +171,12 @@ func TestCheckReadiness(t *testing.T) {
 			expectedReady: true,
 		},
 		{
-			groupKind: deployapi.Kind("DeploymentConfig"),
-			object: &deployapi.DeploymentConfig{
-				Status: deployapi.DeploymentConfigStatus{
-					Conditions: []deployapi.DeploymentCondition{
+			groupKind: appsapi.Kind("DeploymentConfig"),
+			object: &appsapi.DeploymentConfig{
+				Status: appsapi.DeploymentConfigStatus{
+					Conditions: []appsapi.DeploymentCondition{
 						{
-							Type:   deployapi.DeploymentProgressing,
+							Type:   appsapi.DeploymentProgressing,
 							Status: kapi.ConditionFalse,
 						},
 					},

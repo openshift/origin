@@ -22,7 +22,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -71,8 +71,8 @@ var (
 	legacyAuthzGroup    = authorizationapi.LegacyGroupName
 	buildGroup          = buildapi.GroupName
 	legacyBuildGroup    = buildapi.LegacyGroupName
-	deployGroup         = deployapi.GroupName
-	legacyDeployGroup   = deployapi.LegacyGroupName
+	deployGroup         = appsapi.GroupName
+	legacyDeployGroup   = appsapi.LegacyGroupName
 	imageGroup          = imageapi.GroupName
 	legacyImageGroup    = imageapi.LegacyGroupName
 	projectGroup        = projectapi.GroupName

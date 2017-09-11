@@ -7,13 +7,13 @@ import (
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 
 	legacy "github.com/openshift/origin/pkg/api/legacy"
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func init() {
-	legacy.InstallLegacy(deployapi.GroupName, deployapi.AddToSchemeInCoreGroup, deployapiv1.AddToSchemeInCoreGroup, sets.NewString(), legacyscheme.Registry, legacyscheme.Scheme)
+	legacy.InstallLegacy(appsapi.GroupName, appsapi.AddToSchemeInCoreGroup, appsapiv1.AddToSchemeInCoreGroup, sets.NewString(), legacyscheme.Registry, legacyscheme.Scheme)
 	Install(legacyscheme.GroupFactoryRegistry, legacyscheme.Registry, legacyscheme.Scheme)
 }
 
@@ -21,12 +21,12 @@ func init() {
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
-			GroupName:                  deployapi.GroupName,
-			VersionPreferenceOrder:     []string{deployapiv1.SchemeGroupVersion.Version},
-			AddInternalObjectsToScheme: deployapi.AddToScheme,
+			GroupName:                  appsapi.GroupName,
+			VersionPreferenceOrder:     []string{appsapiv1.SchemeGroupVersion.Version},
+			AddInternalObjectsToScheme: appsapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
-			deployapiv1.SchemeGroupVersion.Version: deployapiv1.AddToScheme,
+			appsapiv1.SchemeGroupVersion.Version: appsapiv1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
