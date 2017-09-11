@@ -77,7 +77,8 @@ func TestStrategyPrepareForCreate(t *testing.T) {
 		t.Fatalf("fuzzifier failed to generate signatures")
 	}
 
-	Strategy.PrepareForCreate(ctx, image)
+	strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, "", ""))
+	strategy.PrepareForCreate(ctx, image)
 
 	if len(image.Signatures) != len(fuzzed.Signatures) {
 		t.Errorf("unexpected number of signatures: %d != %d", len(image.Signatures), len(fuzzed.Signatures))

@@ -12,6 +12,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/blang/semver"
@@ -1238,5 +1239,61 @@ func ValidateRegistryURL(registryURL string) error {
 	if len(u.Host) == 0 {
 		return errRegistryURLHostEmpty
 	}
+	return nil
+}
+
+// UpdateWithRegistryHostnames takes ImageStreams, ImageStreamList, Image or
+// ImageList object and mutates the image pull specs using configured hostnames
+// for image registry.
+func UpdateWithRegistryHostnames(r RegistryHostnameRetriever, obj runtime.Object) error {
+	registryInternal, hasInternal := r.InternalRegistryHostname()
+	registryExternal, hasExternal := r.ExternalRegistryHostname()
+	toImageRepository := func(meta metav1.ObjectMeta, registry string) string {
+		ref := DockerImageReference{
+			Registry:  registry,
+			Namespace: meta.Namespace,
+			Name:      meta.Name,
+		}
+		return ref.String()
+	}
+	toImageReference := func(currentRef, registry string) string {
+		ref, _ := ParseDockerImageReference(currentRef)
+		if len(ref.Registry) > 0 {
+			ref.Registry = registry
+		}
+		return ref.String()
+	}
+	switch t := obj.(type) {
+	case *ImageStream:
+		if hasInternal {
+			if len(t.Namespace) == 0 {
+				t.Namespace = metav1.NamespaceDefault
+			}
+			t.Status.DockerImageRepository = toImageRepository(t.ObjectMeta, registryInternal)
+		} else {
+			t.Status.DockerImageRepository = t.Spec.DockerImageRepository
+		}
+		if hasExternal {
+			t.Status.PublicDockerImageRepository = toImageRepository(t.ObjectMeta, registryExternal)
+		}
+	case *Image:
+		if hasInternal {
+			t.DockerImageReference = toImageReference(t.DockerImageReference, registryInternal)
+		}
+		if hasExternal {
+			t.PublicDockerImageReference = toImageReference(t.DockerImageReference, registryExternal)
+		}
+	case *ImageStreamList:
+		for i := range t.Items {
+			UpdateWithRegistryHostnames(r, &t.Items[i])
+		}
+	case *ImageList:
+		for i := range t.Items {
+			UpdateWithRegistryHostnames(r, &t.Items[i])
+		}
+	default:
+		return errors.NewBadRequest(fmt.Sprintf("invalid object type %T, only Image, ImageStream, ImageList and ImageStreamList are supported", obj))
+	}
+
 	return nil
 }

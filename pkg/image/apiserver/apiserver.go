@@ -141,7 +141,7 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		return nil, err
 	}
 
-	imageStorage, err := imageetcd.NewREST(c.GenericConfig.RESTOptionsGetter)
+	imageStorage, err := imageetcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}

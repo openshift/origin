@@ -49,12 +49,12 @@ func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizat
 func setup(t *testing.T) (etcd.KV, *etcdtesting.EtcdTestServer, *REST) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, "")
 	etcdClient := etcd.NewKV(server.V3Client)
+	registry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
 
-	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	imageStorage, err := imageetcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), registry)
 	if err != nil {
 		t.Fatal(err)
 	}
-	registry := imageapi.DefaultRegistryHostnameRetriever(testDefaultRegistry, "", "")
 	imageStreamStorage, imageStreamStatus, internalStorage, err := imagestreametcd.NewREST(restoptions.NewSimpleGetter(etcdStorage), registry, &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{})
 	if err != nil {
 		t.Fatal(err)

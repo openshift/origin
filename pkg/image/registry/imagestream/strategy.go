@@ -62,8 +62,11 @@ func (s Strategy) NamespaceScoped() bool {
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*imageapi.ImageStream)
+	err := imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, stream)
+	if err != nil {
+		glog.V(4).Infof("Unable to set dockerImageRepository for %s/%s: %v", stream.Namespace, stream.Name, err)
+	}
 	stream.Status = imageapi.ImageStreamStatus{
-		DockerImageRepository: s.dockerImageRepository(stream),
 		Tags: make(map[string]imageapi.TagEventList),
 	}
 	stream.Generation = 1
@@ -111,44 +114,6 @@ func (s Strategy) AllowCreateOnUpdate() bool {
 
 func (Strategy) AllowUnconditionalUpdate() bool {
 	return false
-}
-
-// dockerImageRepository determines the docker image stream for stream.
-// If stream.DockerImageRepository is set, that value is returned. Otherwise,
-// if a default registry exists, the value returned is of the form
-// <default registry>/<namespace>/<stream name>.
-func (s Strategy) dockerImageRepository(stream *imageapi.ImageStream) string {
-	registry, ok := s.registryHostnameRetriever.InternalRegistryHostname()
-	if !ok {
-		return stream.Spec.DockerImageRepository
-	}
-
-	if len(stream.Namespace) == 0 {
-		stream.Namespace = metav1.NamespaceDefault
-	}
-	ref := imageapi.DockerImageReference{
-		Registry:  registry,
-		Namespace: stream.Namespace,
-		Name:      stream.Name,
-	}
-	return ref.String()
-}
-
-// publicDockerImageRepository determines the public location of given image
-// stream. If the ExternalRegistryHostname is set in the master config, the
-// value of this property is used as a hostname part for the docker image
-// reference.
-func (s Strategy) publicDockerImageRepository(stream *imageapi.ImageStream) string {
-	externalHostname, ok := s.registryHostnameRetriever.ExternalRegistryHostname()
-	if !ok {
-		return ""
-	}
-	ref := imageapi.DockerImageReference{
-		Registry:  externalHostname,
-		Namespace: stream.Namespace,
-		Name:      stream.Name,
-	}
-	return ref.String()
 }
 
 func parseFromReference(stream *imageapi.ImageStream, from *kapi.ObjectReference) (string, string, error) {
@@ -504,7 +469,10 @@ func (s Strategy) prepareForUpdate(obj, old runtime.Object, resetStatus bool) {
 	if resetStatus {
 		stream.Status = oldStream.Status
 	}
-	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+
+	if err := imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, stream); err != nil {
+		glog.V(4).Infof("Unable to set dockerImageRepository for %s/%s: %v", stream.Namespace, stream.Name, err)
+	}
 
 	// ensure that users cannot change spec tag generation to any value except 0
 	updateSpecTagGenerationsForUpdate(stream, oldStream)
@@ -537,23 +505,9 @@ func (s Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object
 	return errs
 }
 
-// Decorate decorates stream.Status.DockerImageRepository using the logic from
-// dockerImageRepository().
+// Decorate decorates the stream status with internal and external registry.
 func (s Strategy) Decorate(obj runtime.Object) error {
-	switch t := obj.(type) {
-	case *imageapi.ImageStream:
-		t.Status.DockerImageRepository = s.dockerImageRepository(t)
-		t.Status.PublicDockerImageRepository = s.publicDockerImageRepository(t)
-	case *imageapi.ImageStreamList:
-		for i := range t.Items {
-			is := &t.Items[i]
-			is.Status.DockerImageRepository = s.dockerImageRepository(is)
-			is.Status.PublicDockerImageRepository = s.publicDockerImageRepository(is)
-		}
-	default:
-		return kerrors.NewBadRequest(fmt.Sprintf("not an ImageStream nor ImageStreamList: %v", obj))
-	}
-	return nil
+	return imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, obj)
 }
 
 type StatusStrategy struct {
@@ -640,7 +594,11 @@ func (InternalStrategy) Canonicalize(obj runtime.Object) {
 func (s InternalStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	stream := obj.(*imageapi.ImageStream)
 
-	stream.Status.DockerImageRepository = s.dockerImageRepository(stream)
+	err := imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, stream)
+	if err != nil {
+		glog.V(4).Infof("Unable to set dockerImageRepository for %s/%s: %v", stream.Namespace, stream.Name, err)
+	}
+
 	stream.Generation = 1
 	for tag, ref := range stream.Spec.Tags {
 		ref.Generation = &stream.Generation

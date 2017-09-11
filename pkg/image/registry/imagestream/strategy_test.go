@@ -108,8 +108,11 @@ func TestPublicDockerImageRepository(t *testing.T) {
 
 	for testName, test := range tests {
 		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(nil, test.publicRegistry, ""), &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
-		value := strategy.publicDockerImageRepository(test.stream)
-		if e, a := test.expected, value; e != a {
+		err := strategy.Decorate(test.stream)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", err)
+		}
+		if e, a := test.expected, test.stream.Status.PublicDockerImageRepository; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
 		}
 	}
@@ -179,8 +182,11 @@ func TestDockerImageRepository(t *testing.T) {
 	for testName, test := range tests {
 		fakeRegistry := &fakeDefaultRegistry{test.defaultRegistry}
 		strategy := NewStrategy(imageapi.DefaultRegistryHostnameRetriever(fakeRegistry.DefaultRegistry, "", ""), &fakeSubjectAccessReviewRegistry{}, &testutil.FakeImageStreamLimitVerifier{}, nil)
-		value := strategy.dockerImageRepository(test.stream)
-		if e, a := test.expected, value; e != a {
+		err := strategy.Decorate(test.stream)
+		if err != nil {
+			t.Errorf("%s: unexpected error: %v", err)
+		}
+		if e, a := test.expected, test.stream.Status.DockerImageRepository; e != a {
 			t.Errorf("%s: expected %q, got %q", testName, e, a)
 		}
 	}
