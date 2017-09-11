@@ -5481,6 +5481,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
+						"publicDockerImageReference": {
+							SchemaProps: spec.SchemaProps{
+								Description: "PublicDockerImageReference represents the public location from where the image can be pulled outside the cluster. This field may be empty if the administrator has not exposed the integrated registry externally.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
 						"dockerImageMetadata": {
 							VendorExtensible: spec.VendorExtensible{
 								Extensions: spec.Extensions{

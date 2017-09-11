@@ -40,6 +40,11 @@ message Image {
   // DockerImageReference is the string that can be used to pull this image.
   optional string dockerImageReference = 2;
 
+  // PublicDockerImageReference represents the public location from where the image can
+  // be pulled outside the cluster. This field may be empty if the administrator
+  // has not exposed the integrated registry externally.
+  optional string publicDockerImageReference = 11;
+
   // DockerImageMetadata contains metadata about this image
   // +patchStrategy=replace
   optional k8s.io.apimachinery.pkg.runtime.RawExtension dockerImageMetadata = 3;

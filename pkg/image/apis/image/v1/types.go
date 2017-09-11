@@ -27,6 +27,10 @@ type Image struct {
 
 	// DockerImageReference is the string that can be used to pull this image.
 	DockerImageReference string `json:"dockerImageReference,omitempty" protobuf:"bytes,2,opt,name=dockerImageReference"`
+	// PublicDockerImageReference represents the public location from where the image can
+	// be pulled outside the cluster. This field may be empty if the administrator
+	// has not exposed the integrated registry externally.
+	PublicDockerImageReference string `json:"publicDockerImageReference,omitempty" protobuf:"bytes,11,opt,name=publicDockerImageReference"`
 	// DockerImageMetadata contains metadata about this image
 	// +patchStrategy=replace
 	DockerImageMetadata runtime.RawExtension `json:"dockerImageMetadata,omitempty" patchStrategy:"replace" protobuf:"bytes,3,opt,name=dockerImageMetadata"`

@@ -25879,6 +25879,10 @@
       "type": "string",
       "description": "DockerImageReference is the string that can be used to pull this image."
      },
+     "publicDockerImageReference": {
+      "type": "string",
+      "description": "PublicDockerImageReference represents the public location from where the image can be pulled outside the cluster. This field may be empty if the administrator has not exposed the integrated registry externally."
+     },
      "dockerImageMetadata": {
       "type": "string",
       "description": "DockerImageMetadata contains metadata about this image"

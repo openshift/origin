@@ -116,6 +116,7 @@ func Convert_image_DockerImageReference_To_v1_DockerImageReference(in *image.Doc
 func autoConvert_v1_Image_To_image_Image(in *Image, out *image.Image, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.DockerImageReference = in.DockerImageReference
+	out.PublicDockerImageReference = in.PublicDockerImageReference
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.DockerImageMetadata, &out.DockerImageMetadata, 0); err != nil {
 		return err
@@ -133,6 +134,7 @@ func autoConvert_v1_Image_To_image_Image(in *Image, out *image.Image, s conversi
 func autoConvert_image_Image_To_v1_Image(in *image.Image, out *Image, s conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.DockerImageReference = in.DockerImageReference
+	out.PublicDockerImageReference = in.PublicDockerImageReference
 	// TODO: Inefficient conversion - can we improve it?
 	if err := s.Convert(&in.DockerImageMetadata, &out.DockerImageMetadata, 0); err != nil {
 		return err

@@ -20,6 +20,7 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.S
 	}
 
 	out.DockerImageReference = in.DockerImageReference
+	out.PublicDockerImageReference = in.PublicDockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
 	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
 	out.DockerImageConfig = in.DockerImageConfig
@@ -83,6 +84,7 @@ func Convert_v1_Image_To_image_Image(in *Image, out *newer.Image, s conversion.S
 	}
 
 	out.DockerImageReference = in.DockerImageReference
+	out.PublicDockerImageReference = in.PublicDockerImageReference
 	out.DockerImageManifest = in.DockerImageManifest
 	out.DockerImageManifestMediaType = in.DockerImageManifestMediaType
 	out.DockerImageConfig = in.DockerImageConfig
