@@ -35,7 +35,7 @@ var thirdPartyResources = []v1beta1.ThirdPartyResource{
 	serviceBrokerTPR,
 	serviceClassTPR,
 	serviceInstanceTPR,
-	serviceBindingTPR,
+	serviceInstanceCredentialTPR,
 }
 
 // ErrTPRInstall is returned when we fail to install TPR

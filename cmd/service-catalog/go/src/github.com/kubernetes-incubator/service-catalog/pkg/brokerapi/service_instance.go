@@ -20,15 +20,15 @@ package brokerapi
 type ServiceInstance struct {
 	ID               string `json:"id"`
 	DashboardURL     string `json:"dashboard_url"`
-	InternalID       string `json:"internal_id, omitempty"`
+	InternalID       string `json:"internal_id,omitempty"`
 	ServiceID        string `json:"service_id"`
 	PlanID           string `json:"plan_id"`
 	OrganizationGUID string `json:"organization_guid"`
 	SpaceGUID        string `json:"space_guid"`
 
-	LastOperation *LastOperationResponse `json:"last_operation, omitempty"`
+	LastOperation *LastOperationResponse `json:"last_operation,omitempty"`
 
-	Parameters map[string]interface{} `json:"parameters, omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // CreateServiceInstanceRequest represents a request to a broker to provision an
@@ -59,8 +59,8 @@ type ContextProfile struct {
 // CreateServiceInstanceResponse represents the response from a broker after a
 // request to provision an instance of a service
 type CreateServiceInstanceResponse struct {
-	DashboardURL string `json:"dashboard_url, omitempty"`
-	Operation    string `json:"operation, omitempty"`
+	DashboardURL string `json:"dashboard_url,omitempty"`
+	Operation    string `json:"operation,omitempty"`
 }
 
 // DeleteServiceInstanceRequest represents a request to a broker to deprovision an

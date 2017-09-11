@@ -25,7 +25,7 @@ type ServiceBinding struct {
 	PrivateKey        string                 `json:"private_key"`
 	ServiceInstanceID string                 `json:"service_instance_id"`
 	BindResource      map[string]interface{} `json:"bind_resource,omitempty"`
-	Parameters        map[string]interface{} `json:"parameters, omitempty"`
+	Parameters        map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // BindingRequest represents a request to bind to a service instance
@@ -40,7 +40,6 @@ type BindingRequest struct {
 // CreateServiceBindingResponse represents a response to a service binding
 // request
 type CreateServiceBindingResponse struct {
-	// SyslogDrainURL string      `json:"syslog_drain_url, omitempty"`
 	Credentials Credential `json:"credentials"`
 }
 

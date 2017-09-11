@@ -25,21 +25,21 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-func TestValidateBroker(t *testing.T) {
+func TestValidateServiceBroker(t *testing.T) {
 	cases := []struct {
 		name   string
-		broker *servicecatalog.Broker
+		broker *servicecatalog.ServiceBroker
 		valid  bool
 	}{
 		{
 			// covers the case where there is no AuthInfo field specified. the validator should
 			// ignore the field and still succeed the validation
 			name: "valid broker - no auth secret",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
 				},
 			},
@@ -47,13 +47,13 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - basic auth - secret",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
-					AuthInfo: &servicecatalog.BrokerAuthInfo{
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
 							SecretRef: &v1.ObjectReference{
 								Namespace: "test-ns",
@@ -67,13 +67,13 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - bearer auth - secret",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
-					AuthInfo: &servicecatalog.BrokerAuthInfo{
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
 							SecretRef: &v1.ObjectReference{
 								Namespace: "test-ns",
@@ -87,12 +87,12 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - broker with namespace",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-broker",
 					Namespace: "oops",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
 				},
 			},
@@ -100,13 +100,13 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - basic auth - secret missing namespace",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
-					AuthInfo: &servicecatalog.BrokerAuthInfo{
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
 							SecretRef: &v1.ObjectReference{
 								Name: "test-secret",
@@ -119,13 +119,13 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - basic auth - secret missing name",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
-					AuthInfo: &servicecatalog.BrokerAuthInfo{
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
 							SecretRef: &v1.ObjectReference{
 								Namespace: "test-ns",
@@ -138,13 +138,13 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - bearer auth - secret missing namespace",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
-					AuthInfo: &servicecatalog.BrokerAuthInfo{
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
 							SecretRef: &v1.ObjectReference{
 								Name: "test-secret",
@@ -157,13 +157,13 @@ func TestValidateBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - bearer auth - secret missing name",
-			broker: &servicecatalog.Broker{
+			broker: &servicecatalog.ServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.BrokerSpec{
+				Spec: servicecatalog.ServiceBrokerSpec{
 					URL: "http://example.com",
-					AuthInfo: &servicecatalog.BrokerAuthInfo{
+					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
 							SecretRef: &v1.ObjectReference{
 								Namespace: "test-ns",
@@ -174,10 +174,50 @@ func TestValidateBroker(t *testing.T) {
 			},
 			valid: false,
 		},
+		{
+			name: "invalid broker - CABundle present with InsecureSkipTLSVerify",
+			broker: &servicecatalog.ServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ServiceBrokerSpec{
+					URL: "http://example.com",
+					InsecureSkipTLSVerify: true,
+					CABundle:              []byte("fake CABundle"),
+				},
+			},
+			valid: false,
+		},
+		{
+			name: "valid broker - InsecureSkipTLSVerify without CABundle",
+			broker: &servicecatalog.ServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ServiceBrokerSpec{
+					URL: "http://example.com",
+					InsecureSkipTLSVerify: true,
+				},
+			},
+			valid: true,
+		},
+		{
+			name: "valid broker - CABundle without InsecureSkipTLSVerify",
+			broker: &servicecatalog.ServiceBroker{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-broker",
+				},
+				Spec: servicecatalog.ServiceBrokerSpec{
+					URL:      "http://example.com",
+					CABundle: []byte("fake CABundle"),
+				},
+			},
+			valid: true,
+		},
 	}
 
 	for _, tc := range cases {
-		errs := ValidateBroker(tc.broker)
+		errs := ValidateServiceBroker(tc.broker)
 		if len(errs) != 0 && tc.valid {
 			t.Errorf("%v: unexpected error: %v", tc.name, errs)
 			continue

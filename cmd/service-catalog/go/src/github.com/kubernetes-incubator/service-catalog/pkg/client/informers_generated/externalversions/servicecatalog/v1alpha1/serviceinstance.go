@@ -30,28 +30,28 @@ import (
 	time "time"
 )
 
-// BrokerInformer provides access to a shared informer and lister for
-// Brokers.
-type BrokerInformer interface {
+// ServiceInstanceInformer provides access to a shared informer and lister for
+// ServiceInstances.
+type ServiceInstanceInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.BrokerLister
+	Lister() v1alpha1.ServiceInstanceLister
 }
 
-type brokerInformer struct {
+type serviceInstanceInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newBrokerInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newServiceInstanceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.ServicecatalogV1alpha1().Brokers().List(options)
+				return client.ServicecatalogV1alpha1().ServiceInstances(v1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.ServicecatalogV1alpha1().Brokers().Watch(options)
+				return client.ServicecatalogV1alpha1().ServiceInstances(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&servicecatalog_v1alpha1.Broker{},
+		&servicecatalog_v1alpha1.ServiceInstance{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -59,10 +59,10 @@ func newBrokerInformer(client clientset.Interface, resyncPeriod time.Duration) c
 	return sharedIndexInformer
 }
 
-func (f *brokerInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog_v1alpha1.Broker{}, newBrokerInformer)
+func (f *serviceInstanceInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&servicecatalog_v1alpha1.ServiceInstance{}, newServiceInstanceInformer)
 }
 
-func (f *brokerInformer) Lister() v1alpha1.BrokerLister {
-	return v1alpha1.NewBrokerLister(f.Informer().GetIndexer())
+func (f *serviceInstanceInformer) Lister() v1alpha1.ServiceInstanceLister {
+	return v1alpha1.NewServiceInstanceLister(f.Informer().GetIndexer())
 }

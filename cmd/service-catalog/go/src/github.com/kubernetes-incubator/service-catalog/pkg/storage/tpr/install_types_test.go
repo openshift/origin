@@ -165,7 +165,7 @@ func TestInstallTypesPolling(t *testing.T) {
 			createCallCount++
 			name := action.(core.CreateAction).GetObject().(*v1beta1.ThirdPartyResource).Name
 			if name == serviceBrokerTPR.Name || name == serviceInstanceTPR.Name {
-				return true, nil, errors.New("Error creating TPR")
+				return true, nil, errors.New("Error creatingTPR")
 			}
 			return true, nil, nil
 		},

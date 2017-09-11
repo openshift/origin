@@ -73,7 +73,7 @@ func init() {
 	}
 }
 
-func (x *Broker) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceBroker) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -216,7 +216,7 @@ func (x *Broker) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *Broker) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBroker) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -246,7 +246,7 @@ func (x *Broker) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *Broker) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceBroker) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -307,14 +307,14 @@ func (x *Broker) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 			}
 		case "spec":
 			if r.TryDecodeAsNil() {
-				x.Spec = BrokerSpec{}
+				x.Spec = ServiceBrokerSpec{}
 			} else {
 				yyv10 := &x.Spec
 				yyv10.CodecDecodeSelf(d)
 			}
 		case "status":
 			if r.TryDecodeAsNil() {
-				x.Status = BrokerStatus{}
+				x.Status = ServiceBrokerStatus{}
 			} else {
 				yyv11 := &x.Status
 				yyv11.CodecDecodeSelf(d)
@@ -326,7 +326,7 @@ func (x *Broker) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *Broker) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceBroker) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -412,7 +412,7 @@ func (x *Broker) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.Spec = BrokerSpec{}
+		x.Spec = ServiceBrokerSpec{}
 	} else {
 		yyv19 := &x.Spec
 		yyv19.CodecDecodeSelf(d)
@@ -429,7 +429,7 @@ func (x *Broker) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.Status = BrokerStatus{}
+		x.Status = ServiceBrokerStatus{}
 	} else {
 		yyv20 := &x.Status
 		yyv20.CodecDecodeSelf(d)
@@ -450,7 +450,7 @@ func (x *Broker) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BrokerList) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceBrokerList) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -571,7 +571,7 @@ func (x *BrokerList) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym15
 					if false {
 					} else {
-						h.encSliceBroker(([]Broker)(x.Items), e)
+						h.encSliceServiceBroker(([]ServiceBroker)(x.Items), e)
 					}
 				}
 			} else {
@@ -585,7 +585,7 @@ func (x *BrokerList) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym16
 					if false {
 					} else {
-						h.encSliceBroker(([]Broker)(x.Items), e)
+						h.encSliceServiceBroker(([]ServiceBroker)(x.Items), e)
 					}
 				}
 			}
@@ -598,7 +598,7 @@ func (x *BrokerList) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BrokerList) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBrokerList) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -628,7 +628,7 @@ func (x *BrokerList) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BrokerList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -696,7 +696,7 @@ func (x *BrokerList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				_ = yym11
 				if false {
 				} else {
-					h.decSliceBroker((*[]Broker)(yyv10), d)
+					h.decSliceServiceBroker((*[]ServiceBroker)(yyv10), d)
 				}
 			}
 		default:
@@ -706,7 +706,7 @@ func (x *BrokerList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BrokerList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -799,7 +799,7 @@ func (x *BrokerList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		_ = yym20
 		if false {
 		} else {
-			h.decSliceBroker((*[]Broker)(yyv19), d)
+			h.decSliceServiceBroker((*[]ServiceBroker)(yyv19), d)
 		}
 	}
 	for {
@@ -818,7 +818,7 @@ func (x *BrokerList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BrokerSpec) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceBrokerSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -832,13 +832,15 @@ func (x *BrokerSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 		} else {
 			yysep2 := !z.EncBinary()
 			yy2arr2 := z.EncBasicHandle().StructToArray
-			var yyq2 [2]bool
+			var yyq2 [4]bool
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
 			yyq2[1] = x.AuthInfo != nil
+			yyq2[2] = x.InsecureSkipTLSVerify != false
+			yyq2[3] = len(x.CABundle) != 0
 			var yynn2 int
 			if yyr2 || yy2arr2 {
-				r.EncodeArrayStart(2)
+				r.EncodeArrayStart(4)
 			} else {
 				yynn2 = 1
 				for _, b := range yyq2 {
@@ -892,6 +894,64 @@ func (x *BrokerSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 				}
 			}
 			if yyr2 || yy2arr2 {
+				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
+				if yyq2[2] {
+					yym10 := z.EncBinary()
+					_ = yym10
+					if false {
+					} else {
+						r.EncodeBool(bool(x.InsecureSkipTLSVerify))
+					}
+				} else {
+					r.EncodeBool(false)
+				}
+			} else {
+				if yyq2[2] {
+					z.EncSendContainerState(codecSelfer_containerMapKey1234)
+					r.EncodeString(codecSelferC_UTF81234, string("insecureSkipTLSVerify"))
+					z.EncSendContainerState(codecSelfer_containerMapValue1234)
+					yym11 := z.EncBinary()
+					_ = yym11
+					if false {
+					} else {
+						r.EncodeBool(bool(x.InsecureSkipTLSVerify))
+					}
+				}
+			}
+			if yyr2 || yy2arr2 {
+				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
+				if yyq2[3] {
+					if x.CABundle == nil {
+						r.EncodeNil()
+					} else {
+						yym13 := z.EncBinary()
+						_ = yym13
+						if false {
+						} else {
+							r.EncodeStringBytes(codecSelferC_RAW1234, []byte(x.CABundle))
+						}
+					}
+				} else {
+					r.EncodeNil()
+				}
+			} else {
+				if yyq2[3] {
+					z.EncSendContainerState(codecSelfer_containerMapKey1234)
+					r.EncodeString(codecSelferC_UTF81234, string("caBundle"))
+					z.EncSendContainerState(codecSelfer_containerMapValue1234)
+					if x.CABundle == nil {
+						r.EncodeNil()
+					} else {
+						yym14 := z.EncBinary()
+						_ = yym14
+						if false {
+						} else {
+							r.EncodeStringBytes(codecSelferC_RAW1234, []byte(x.CABundle))
+						}
+					}
+				}
+			}
+			if yyr2 || yy2arr2 {
 				z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 			} else {
 				z.EncSendContainerState(codecSelfer_containerMapEnd1234)
@@ -900,7 +960,7 @@ func (x *BrokerSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BrokerSpec) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBrokerSpec) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -930,7 +990,7 @@ func (x *BrokerSpec) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BrokerSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -971,9 +1031,33 @@ func (x *BrokerSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				}
 			} else {
 				if x.AuthInfo == nil {
-					x.AuthInfo = new(BrokerAuthInfo)
+					x.AuthInfo = new(ServiceBrokerAuthInfo)
 				}
 				x.AuthInfo.CodecDecodeSelf(d)
+			}
+		case "insecureSkipTLSVerify":
+			if r.TryDecodeAsNil() {
+				x.InsecureSkipTLSVerify = false
+			} else {
+				yyv7 := &x.InsecureSkipTLSVerify
+				yym8 := z.DecBinary()
+				_ = yym8
+				if false {
+				} else {
+					*((*bool)(yyv7)) = r.DecodeBool()
+				}
+			}
+		case "caBundle":
+			if r.TryDecodeAsNil() {
+				x.CABundle = nil
+			} else {
+				yyv9 := &x.CABundle
+				yym10 := z.DecBinary()
+				_ = yym10
+				if false {
+				} else {
+					*yyv9 = r.DecodeBytes(*(*[]byte)(yyv9), false, false)
+				}
 			}
 		default:
 			z.DecStructFieldNotFound(-1, yys3)
@@ -982,20 +1066,20 @@ func (x *BrokerSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BrokerSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
-	var yyj7 int
-	var yyb7 bool
-	var yyhl7 bool = l >= 0
-	yyj7++
-	if yyhl7 {
-		yyb7 = yyj7 > l
+	var yyj11 int
+	var yyb11 bool
+	var yyhl11 bool = l >= 0
+	yyj11++
+	if yyhl11 {
+		yyb11 = yyj11 > l
 	} else {
-		yyb7 = r.CheckBreak()
+		yyb11 = r.CheckBreak()
 	}
-	if yyb7 {
+	if yyb11 {
 		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 		return
 	}
@@ -1003,21 +1087,21 @@ func (x *BrokerSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	if r.TryDecodeAsNil() {
 		x.URL = ""
 	} else {
-		yyv8 := &x.URL
-		yym9 := z.DecBinary()
-		_ = yym9
+		yyv12 := &x.URL
+		yym13 := z.DecBinary()
+		_ = yym13
 		if false {
 		} else {
-			*((*string)(yyv8)) = r.DecodeString()
+			*((*string)(yyv12)) = r.DecodeString()
 		}
 	}
-	yyj7++
-	if yyhl7 {
-		yyb7 = yyj7 > l
+	yyj11++
+	if yyhl11 {
+		yyb11 = yyj11 > l
 	} else {
-		yyb7 = r.CheckBreak()
+		yyb11 = r.CheckBreak()
 	}
-	if yyb7 {
+	if yyb11 {
 		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 		return
 	}
@@ -1028,27 +1112,71 @@ func (x *BrokerSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		}
 	} else {
 		if x.AuthInfo == nil {
-			x.AuthInfo = new(BrokerAuthInfo)
+			x.AuthInfo = new(ServiceBrokerAuthInfo)
 		}
 		x.AuthInfo.CodecDecodeSelf(d)
 	}
-	for {
-		yyj7++
-		if yyhl7 {
-			yyb7 = yyj7 > l
+	yyj11++
+	if yyhl11 {
+		yyb11 = yyj11 > l
+	} else {
+		yyb11 = r.CheckBreak()
+	}
+	if yyb11 {
+		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
+		return
+	}
+	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
+	if r.TryDecodeAsNil() {
+		x.InsecureSkipTLSVerify = false
+	} else {
+		yyv15 := &x.InsecureSkipTLSVerify
+		yym16 := z.DecBinary()
+		_ = yym16
+		if false {
 		} else {
-			yyb7 = r.CheckBreak()
+			*((*bool)(yyv15)) = r.DecodeBool()
 		}
-		if yyb7 {
+	}
+	yyj11++
+	if yyhl11 {
+		yyb11 = yyj11 > l
+	} else {
+		yyb11 = r.CheckBreak()
+	}
+	if yyb11 {
+		z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
+		return
+	}
+	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
+	if r.TryDecodeAsNil() {
+		x.CABundle = nil
+	} else {
+		yyv17 := &x.CABundle
+		yym18 := z.DecBinary()
+		_ = yym18
+		if false {
+		} else {
+			*yyv17 = r.DecodeBytes(*(*[]byte)(yyv17), false, false)
+		}
+	}
+	for {
+		yyj11++
+		if yyhl11 {
+			yyb11 = yyj11 > l
+		} else {
+			yyb11 = r.CheckBreak()
+		}
+		if yyb11 {
 			break
 		}
 		z.DecSendContainerState(codecSelfer_containerArrayElem1234)
-		z.DecStructFieldNotFound(yyj7-1, "")
+		z.DecStructFieldNotFound(yyj11-1, "")
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BrokerAuthInfo) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceBrokerAuthInfo) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -1159,7 +1287,7 @@ func (x *BrokerAuthInfo) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BrokerAuthInfo) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBrokerAuthInfo) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -1189,7 +1317,7 @@ func (x *BrokerAuthInfo) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BrokerAuthInfo) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerAuthInfo) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -1251,7 +1379,7 @@ func (x *BrokerAuthInfo) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BrokerAuthInfo) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerAuthInfo) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -1691,7 +1819,7 @@ func (x *BearerTokenAuthConfig) codecDecodeSelfFromArray(l int, d *codec1978.Dec
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BrokerStatus) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceBrokerStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -1708,12 +1836,11 @@ func (x *BrokerStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 			var yyq2 [2]bool
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
-			yyq2[1] = x.Checksum != nil
 			var yynn2 int
 			if yyr2 || yy2arr2 {
 				r.EncodeArrayStart(2)
 			} else {
-				yynn2 = 1
+				yynn2 = 2
 				for _, b := range yyq2 {
 					if b {
 						yynn2++
@@ -1731,7 +1858,7 @@ func (x *BrokerStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym4
 					if false {
 					} else {
-						h.encSliceBrokerCondition(([]BrokerCondition)(x.Conditions), e)
+						h.encSliceServiceBrokerCondition(([]ServiceBrokerCondition)(x.Conditions), e)
 					}
 				}
 			} else {
@@ -1745,43 +1872,27 @@ func (x *BrokerStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym5
 					if false {
 					} else {
-						h.encSliceBrokerCondition(([]BrokerCondition)(x.Conditions), e)
+						h.encSliceServiceBrokerCondition(([]ServiceBrokerCondition)(x.Conditions), e)
 					}
 				}
 			}
 			if yyr2 || yy2arr2 {
 				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
-				if yyq2[1] {
-					if x.Checksum == nil {
-						r.EncodeNil()
-					} else {
-						yy7 := *x.Checksum
-						yym8 := z.EncBinary()
-						_ = yym8
-						if false {
-						} else {
-							r.EncodeString(codecSelferC_UTF81234, string(yy7))
-						}
-					}
+				yym7 := z.EncBinary()
+				_ = yym7
+				if false {
 				} else {
-					r.EncodeNil()
+					r.EncodeInt(int64(x.ReconciledGeneration))
 				}
 			} else {
-				if yyq2[1] {
-					z.EncSendContainerState(codecSelfer_containerMapKey1234)
-					r.EncodeString(codecSelferC_UTF81234, string("checksum"))
-					z.EncSendContainerState(codecSelfer_containerMapValue1234)
-					if x.Checksum == nil {
-						r.EncodeNil()
-					} else {
-						yy9 := *x.Checksum
-						yym10 := z.EncBinary()
-						_ = yym10
-						if false {
-						} else {
-							r.EncodeString(codecSelferC_UTF81234, string(yy9))
-						}
-					}
+				z.EncSendContainerState(codecSelfer_containerMapKey1234)
+				r.EncodeString(codecSelferC_UTF81234, string("reconciledGeneration"))
+				z.EncSendContainerState(codecSelfer_containerMapValue1234)
+				yym8 := z.EncBinary()
+				_ = yym8
+				if false {
+				} else {
+					r.EncodeInt(int64(x.ReconciledGeneration))
 				}
 			}
 			if yyr2 || yy2arr2 {
@@ -1793,7 +1904,7 @@ func (x *BrokerStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BrokerStatus) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBrokerStatus) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -1823,7 +1934,7 @@ func (x *BrokerStatus) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BrokerStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -1854,23 +1965,19 @@ func (x *BrokerStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				_ = yym5
 				if false {
 				} else {
-					h.decSliceBrokerCondition((*[]BrokerCondition)(yyv4), d)
+					h.decSliceServiceBrokerCondition((*[]ServiceBrokerCondition)(yyv4), d)
 				}
 			}
-		case "checksum":
+		case "reconciledGeneration":
 			if r.TryDecodeAsNil() {
-				if x.Checksum != nil {
-					x.Checksum = nil
-				}
+				x.ReconciledGeneration = 0
 			} else {
-				if x.Checksum == nil {
-					x.Checksum = new(string)
-				}
+				yyv6 := &x.ReconciledGeneration
 				yym7 := z.DecBinary()
 				_ = yym7
 				if false {
 				} else {
-					*((*string)(x.Checksum)) = r.DecodeString()
+					*((*int64)(yyv6)) = int64(r.DecodeInt(64))
 				}
 			}
 		default:
@@ -1880,7 +1987,7 @@ func (x *BrokerStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BrokerStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -1906,7 +2013,7 @@ func (x *BrokerStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		_ = yym10
 		if false {
 		} else {
-			h.decSliceBrokerCondition((*[]BrokerCondition)(yyv9), d)
+			h.decSliceServiceBrokerCondition((*[]ServiceBrokerCondition)(yyv9), d)
 		}
 	}
 	yyj8++
@@ -1921,18 +2028,14 @@ func (x *BrokerStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		if x.Checksum != nil {
-			x.Checksum = nil
-		}
+		x.ReconciledGeneration = 0
 	} else {
-		if x.Checksum == nil {
-			x.Checksum = new(string)
-		}
+		yyv11 := &x.ReconciledGeneration
 		yym12 := z.DecBinary()
 		_ = yym12
 		if false {
 		} else {
-			*((*string)(x.Checksum)) = r.DecodeString()
+			*((*int64)(yyv11)) = int64(r.DecodeInt(64))
 		}
 	}
 	for {
@@ -1951,7 +2054,7 @@ func (x *BrokerStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BrokerCondition) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceBrokerCondition) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -2077,7 +2180,7 @@ func (x *BrokerCondition) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BrokerCondition) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBrokerCondition) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -2107,7 +2210,7 @@ func (x *BrokerCondition) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BrokerCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -2191,7 +2294,7 @@ func (x *BrokerCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BrokerCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceBrokerCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -2319,7 +2422,7 @@ func (x *BrokerCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) 
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x BrokerConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x ServiceBrokerConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -2332,7 +2435,7 @@ func (x BrokerConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BrokerConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceBrokerConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -2859,7 +2962,7 @@ func (x *ServiceClass) CodecEncodeSelf(e *codec1978.Encoder) {
 				_ = yym15
 				if false {
 				} else {
-					r.EncodeString(codecSelferC_UTF81234, string(x.BrokerName))
+					r.EncodeString(codecSelferC_UTF81234, string(x.ServiceBrokerName))
 				}
 			} else {
 				z.EncSendContainerState(codecSelfer_containerMapKey1234)
@@ -2869,7 +2972,7 @@ func (x *ServiceClass) CodecEncodeSelf(e *codec1978.Encoder) {
 				_ = yym16
 				if false {
 				} else {
-					r.EncodeString(codecSelferC_UTF81234, string(x.BrokerName))
+					r.EncodeString(codecSelferC_UTF81234, string(x.ServiceBrokerName))
 				}
 			}
 			if yyr2 || yy2arr2 {
@@ -3174,9 +3277,9 @@ func (x *ServiceClass) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 			}
 		case "brokerName":
 			if r.TryDecodeAsNil() {
-				x.BrokerName = ""
+				x.ServiceBrokerName = ""
 			} else {
-				yyv10 := &x.BrokerName
+				yyv10 := &x.ServiceBrokerName
 				yym11 := z.DecBinary()
 				_ = yym11
 				if false {
@@ -3380,9 +3483,9 @@ func (x *ServiceClass) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.BrokerName = ""
+		x.ServiceBrokerName = ""
 	} else {
-		yyv35 := &x.BrokerName
+		yyv35 := &x.ServiceBrokerName
 		yym36 := z.DecBinary()
 		_ = yym36
 		if false {
@@ -3607,9 +3710,9 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 			_, _, _ = yysep2, yyq2, yy2arr2
 			const yyr2 bool = false
 			yyq2[3] = x.Bindable != nil
-			yyq2[6] = x.AlphaInstanceCreateParameterSchema != nil
-			yyq2[7] = x.AlphaInstanceUpdateParameterSchema != nil
-			yyq2[8] = x.AlphaBindingCreateParameterSchema != nil
+			yyq2[6] = x.AlphaServiceInstanceCreateParameterSchema != nil
+			yyq2[7] = x.AlphaServiceInstanceUpdateParameterSchema != nil
+			yyq2[8] = x.AlphaServiceInstanceCredentialCreateParameterSchema != nil
 			var yynn2 int
 			if yyr2 || yy2arr2 {
 				r.EncodeArrayStart(9)
@@ -3770,17 +3873,17 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 			if yyr2 || yy2arr2 {
 				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
 				if yyq2[6] {
-					if x.AlphaInstanceCreateParameterSchema == nil {
+					if x.AlphaServiceInstanceCreateParameterSchema == nil {
 						r.EncodeNil()
 					} else {
 						yym24 := z.EncBinary()
 						_ = yym24
 						if false {
-						} else if z.HasExtensions() && z.EncExt(x.AlphaInstanceCreateParameterSchema) {
+						} else if z.HasExtensions() && z.EncExt(x.AlphaServiceInstanceCreateParameterSchema) {
 						} else if !yym24 && z.IsJSONHandle() {
-							z.EncJSONMarshal(x.AlphaInstanceCreateParameterSchema)
+							z.EncJSONMarshal(x.AlphaServiceInstanceCreateParameterSchema)
 						} else {
-							z.EncFallback(x.AlphaInstanceCreateParameterSchema)
+							z.EncFallback(x.AlphaServiceInstanceCreateParameterSchema)
 						}
 					}
 				} else {
@@ -3791,17 +3894,17 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 					z.EncSendContainerState(codecSelfer_containerMapKey1234)
 					r.EncodeString(codecSelferC_UTF81234, string("alphaInstanceCreateParameterSchema"))
 					z.EncSendContainerState(codecSelfer_containerMapValue1234)
-					if x.AlphaInstanceCreateParameterSchema == nil {
+					if x.AlphaServiceInstanceCreateParameterSchema == nil {
 						r.EncodeNil()
 					} else {
 						yym25 := z.EncBinary()
 						_ = yym25
 						if false {
-						} else if z.HasExtensions() && z.EncExt(x.AlphaInstanceCreateParameterSchema) {
+						} else if z.HasExtensions() && z.EncExt(x.AlphaServiceInstanceCreateParameterSchema) {
 						} else if !yym25 && z.IsJSONHandle() {
-							z.EncJSONMarshal(x.AlphaInstanceCreateParameterSchema)
+							z.EncJSONMarshal(x.AlphaServiceInstanceCreateParameterSchema)
 						} else {
-							z.EncFallback(x.AlphaInstanceCreateParameterSchema)
+							z.EncFallback(x.AlphaServiceInstanceCreateParameterSchema)
 						}
 					}
 				}
@@ -3809,17 +3912,17 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 			if yyr2 || yy2arr2 {
 				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
 				if yyq2[7] {
-					if x.AlphaInstanceUpdateParameterSchema == nil {
+					if x.AlphaServiceInstanceUpdateParameterSchema == nil {
 						r.EncodeNil()
 					} else {
 						yym27 := z.EncBinary()
 						_ = yym27
 						if false {
-						} else if z.HasExtensions() && z.EncExt(x.AlphaInstanceUpdateParameterSchema) {
+						} else if z.HasExtensions() && z.EncExt(x.AlphaServiceInstanceUpdateParameterSchema) {
 						} else if !yym27 && z.IsJSONHandle() {
-							z.EncJSONMarshal(x.AlphaInstanceUpdateParameterSchema)
+							z.EncJSONMarshal(x.AlphaServiceInstanceUpdateParameterSchema)
 						} else {
-							z.EncFallback(x.AlphaInstanceUpdateParameterSchema)
+							z.EncFallback(x.AlphaServiceInstanceUpdateParameterSchema)
 						}
 					}
 				} else {
@@ -3830,17 +3933,17 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 					z.EncSendContainerState(codecSelfer_containerMapKey1234)
 					r.EncodeString(codecSelferC_UTF81234, string("alphaInstanceUpdateParameterSchema"))
 					z.EncSendContainerState(codecSelfer_containerMapValue1234)
-					if x.AlphaInstanceUpdateParameterSchema == nil {
+					if x.AlphaServiceInstanceUpdateParameterSchema == nil {
 						r.EncodeNil()
 					} else {
 						yym28 := z.EncBinary()
 						_ = yym28
 						if false {
-						} else if z.HasExtensions() && z.EncExt(x.AlphaInstanceUpdateParameterSchema) {
+						} else if z.HasExtensions() && z.EncExt(x.AlphaServiceInstanceUpdateParameterSchema) {
 						} else if !yym28 && z.IsJSONHandle() {
-							z.EncJSONMarshal(x.AlphaInstanceUpdateParameterSchema)
+							z.EncJSONMarshal(x.AlphaServiceInstanceUpdateParameterSchema)
 						} else {
-							z.EncFallback(x.AlphaInstanceUpdateParameterSchema)
+							z.EncFallback(x.AlphaServiceInstanceUpdateParameterSchema)
 						}
 					}
 				}
@@ -3848,17 +3951,17 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 			if yyr2 || yy2arr2 {
 				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
 				if yyq2[8] {
-					if x.AlphaBindingCreateParameterSchema == nil {
+					if x.AlphaServiceInstanceCredentialCreateParameterSchema == nil {
 						r.EncodeNil()
 					} else {
 						yym30 := z.EncBinary()
 						_ = yym30
 						if false {
-						} else if z.HasExtensions() && z.EncExt(x.AlphaBindingCreateParameterSchema) {
+						} else if z.HasExtensions() && z.EncExt(x.AlphaServiceInstanceCredentialCreateParameterSchema) {
 						} else if !yym30 && z.IsJSONHandle() {
-							z.EncJSONMarshal(x.AlphaBindingCreateParameterSchema)
+							z.EncJSONMarshal(x.AlphaServiceInstanceCredentialCreateParameterSchema)
 						} else {
-							z.EncFallback(x.AlphaBindingCreateParameterSchema)
+							z.EncFallback(x.AlphaServiceInstanceCredentialCreateParameterSchema)
 						}
 					}
 				} else {
@@ -3867,19 +3970,19 @@ func (x *ServicePlan) CodecEncodeSelf(e *codec1978.Encoder) {
 			} else {
 				if yyq2[8] {
 					z.EncSendContainerState(codecSelfer_containerMapKey1234)
-					r.EncodeString(codecSelferC_UTF81234, string("alphaBindingCreateParameterSchema"))
+					r.EncodeString(codecSelferC_UTF81234, string("alphaServiceInstanceCredentialCreateParameterSchema"))
 					z.EncSendContainerState(codecSelfer_containerMapValue1234)
-					if x.AlphaBindingCreateParameterSchema == nil {
+					if x.AlphaServiceInstanceCredentialCreateParameterSchema == nil {
 						r.EncodeNil()
 					} else {
 						yym31 := z.EncBinary()
 						_ = yym31
 						if false {
-						} else if z.HasExtensions() && z.EncExt(x.AlphaBindingCreateParameterSchema) {
+						} else if z.HasExtensions() && z.EncExt(x.AlphaServiceInstanceCredentialCreateParameterSchema) {
 						} else if !yym31 && z.IsJSONHandle() {
-							z.EncJSONMarshal(x.AlphaBindingCreateParameterSchema)
+							z.EncJSONMarshal(x.AlphaServiceInstanceCredentialCreateParameterSchema)
 						} else {
-							z.EncFallback(x.AlphaBindingCreateParameterSchema)
+							z.EncFallback(x.AlphaServiceInstanceCredentialCreateParameterSchema)
 						}
 					}
 				}
@@ -4030,59 +4133,59 @@ func (x *ServicePlan) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 			}
 		case "alphaInstanceCreateParameterSchema":
 			if r.TryDecodeAsNil() {
-				if x.AlphaInstanceCreateParameterSchema != nil {
-					x.AlphaInstanceCreateParameterSchema = nil
+				if x.AlphaServiceInstanceCreateParameterSchema != nil {
+					x.AlphaServiceInstanceCreateParameterSchema = nil
 				}
 			} else {
-				if x.AlphaInstanceCreateParameterSchema == nil {
-					x.AlphaInstanceCreateParameterSchema = new(pkg4_runtime.RawExtension)
+				if x.AlphaServiceInstanceCreateParameterSchema == nil {
+					x.AlphaServiceInstanceCreateParameterSchema = new(pkg4_runtime.RawExtension)
 				}
 				yym17 := z.DecBinary()
 				_ = yym17
 				if false {
-				} else if z.HasExtensions() && z.DecExt(x.AlphaInstanceCreateParameterSchema) {
+				} else if z.HasExtensions() && z.DecExt(x.AlphaServiceInstanceCreateParameterSchema) {
 				} else if !yym17 && z.IsJSONHandle() {
-					z.DecJSONUnmarshal(x.AlphaInstanceCreateParameterSchema)
+					z.DecJSONUnmarshal(x.AlphaServiceInstanceCreateParameterSchema)
 				} else {
-					z.DecFallback(x.AlphaInstanceCreateParameterSchema, false)
+					z.DecFallback(x.AlphaServiceInstanceCreateParameterSchema, false)
 				}
 			}
 		case "alphaInstanceUpdateParameterSchema":
 			if r.TryDecodeAsNil() {
-				if x.AlphaInstanceUpdateParameterSchema != nil {
-					x.AlphaInstanceUpdateParameterSchema = nil
+				if x.AlphaServiceInstanceUpdateParameterSchema != nil {
+					x.AlphaServiceInstanceUpdateParameterSchema = nil
 				}
 			} else {
-				if x.AlphaInstanceUpdateParameterSchema == nil {
-					x.AlphaInstanceUpdateParameterSchema = new(pkg4_runtime.RawExtension)
+				if x.AlphaServiceInstanceUpdateParameterSchema == nil {
+					x.AlphaServiceInstanceUpdateParameterSchema = new(pkg4_runtime.RawExtension)
 				}
 				yym19 := z.DecBinary()
 				_ = yym19
 				if false {
-				} else if z.HasExtensions() && z.DecExt(x.AlphaInstanceUpdateParameterSchema) {
+				} else if z.HasExtensions() && z.DecExt(x.AlphaServiceInstanceUpdateParameterSchema) {
 				} else if !yym19 && z.IsJSONHandle() {
-					z.DecJSONUnmarshal(x.AlphaInstanceUpdateParameterSchema)
+					z.DecJSONUnmarshal(x.AlphaServiceInstanceUpdateParameterSchema)
 				} else {
-					z.DecFallback(x.AlphaInstanceUpdateParameterSchema, false)
+					z.DecFallback(x.AlphaServiceInstanceUpdateParameterSchema, false)
 				}
 			}
-		case "alphaBindingCreateParameterSchema":
+		case "alphaServiceInstanceCredentialCreateParameterSchema":
 			if r.TryDecodeAsNil() {
-				if x.AlphaBindingCreateParameterSchema != nil {
-					x.AlphaBindingCreateParameterSchema = nil
+				if x.AlphaServiceInstanceCredentialCreateParameterSchema != nil {
+					x.AlphaServiceInstanceCredentialCreateParameterSchema = nil
 				}
 			} else {
-				if x.AlphaBindingCreateParameterSchema == nil {
-					x.AlphaBindingCreateParameterSchema = new(pkg4_runtime.RawExtension)
+				if x.AlphaServiceInstanceCredentialCreateParameterSchema == nil {
+					x.AlphaServiceInstanceCredentialCreateParameterSchema = new(pkg4_runtime.RawExtension)
 				}
 				yym21 := z.DecBinary()
 				_ = yym21
 				if false {
-				} else if z.HasExtensions() && z.DecExt(x.AlphaBindingCreateParameterSchema) {
+				} else if z.HasExtensions() && z.DecExt(x.AlphaServiceInstanceCredentialCreateParameterSchema) {
 				} else if !yym21 && z.IsJSONHandle() {
-					z.DecJSONUnmarshal(x.AlphaBindingCreateParameterSchema)
+					z.DecJSONUnmarshal(x.AlphaServiceInstanceCredentialCreateParameterSchema)
 				} else {
-					z.DecFallback(x.AlphaBindingCreateParameterSchema, false)
+					z.DecFallback(x.AlphaServiceInstanceCredentialCreateParameterSchema, false)
 				}
 			}
 		default:
@@ -4254,21 +4357,21 @@ func (x *ServicePlan) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		if x.AlphaInstanceCreateParameterSchema != nil {
-			x.AlphaInstanceCreateParameterSchema = nil
+		if x.AlphaServiceInstanceCreateParameterSchema != nil {
+			x.AlphaServiceInstanceCreateParameterSchema = nil
 		}
 	} else {
-		if x.AlphaInstanceCreateParameterSchema == nil {
-			x.AlphaInstanceCreateParameterSchema = new(pkg4_runtime.RawExtension)
+		if x.AlphaServiceInstanceCreateParameterSchema == nil {
+			x.AlphaServiceInstanceCreateParameterSchema = new(pkg4_runtime.RawExtension)
 		}
 		yym36 := z.DecBinary()
 		_ = yym36
 		if false {
-		} else if z.HasExtensions() && z.DecExt(x.AlphaInstanceCreateParameterSchema) {
+		} else if z.HasExtensions() && z.DecExt(x.AlphaServiceInstanceCreateParameterSchema) {
 		} else if !yym36 && z.IsJSONHandle() {
-			z.DecJSONUnmarshal(x.AlphaInstanceCreateParameterSchema)
+			z.DecJSONUnmarshal(x.AlphaServiceInstanceCreateParameterSchema)
 		} else {
-			z.DecFallback(x.AlphaInstanceCreateParameterSchema, false)
+			z.DecFallback(x.AlphaServiceInstanceCreateParameterSchema, false)
 		}
 	}
 	yyj22++
@@ -4283,21 +4386,21 @@ func (x *ServicePlan) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		if x.AlphaInstanceUpdateParameterSchema != nil {
-			x.AlphaInstanceUpdateParameterSchema = nil
+		if x.AlphaServiceInstanceUpdateParameterSchema != nil {
+			x.AlphaServiceInstanceUpdateParameterSchema = nil
 		}
 	} else {
-		if x.AlphaInstanceUpdateParameterSchema == nil {
-			x.AlphaInstanceUpdateParameterSchema = new(pkg4_runtime.RawExtension)
+		if x.AlphaServiceInstanceUpdateParameterSchema == nil {
+			x.AlphaServiceInstanceUpdateParameterSchema = new(pkg4_runtime.RawExtension)
 		}
 		yym38 := z.DecBinary()
 		_ = yym38
 		if false {
-		} else if z.HasExtensions() && z.DecExt(x.AlphaInstanceUpdateParameterSchema) {
+		} else if z.HasExtensions() && z.DecExt(x.AlphaServiceInstanceUpdateParameterSchema) {
 		} else if !yym38 && z.IsJSONHandle() {
-			z.DecJSONUnmarshal(x.AlphaInstanceUpdateParameterSchema)
+			z.DecJSONUnmarshal(x.AlphaServiceInstanceUpdateParameterSchema)
 		} else {
-			z.DecFallback(x.AlphaInstanceUpdateParameterSchema, false)
+			z.DecFallback(x.AlphaServiceInstanceUpdateParameterSchema, false)
 		}
 	}
 	yyj22++
@@ -4312,21 +4415,21 @@ func (x *ServicePlan) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		if x.AlphaBindingCreateParameterSchema != nil {
-			x.AlphaBindingCreateParameterSchema = nil
+		if x.AlphaServiceInstanceCredentialCreateParameterSchema != nil {
+			x.AlphaServiceInstanceCredentialCreateParameterSchema = nil
 		}
 	} else {
-		if x.AlphaBindingCreateParameterSchema == nil {
-			x.AlphaBindingCreateParameterSchema = new(pkg4_runtime.RawExtension)
+		if x.AlphaServiceInstanceCredentialCreateParameterSchema == nil {
+			x.AlphaServiceInstanceCredentialCreateParameterSchema = new(pkg4_runtime.RawExtension)
 		}
 		yym40 := z.DecBinary()
 		_ = yym40
 		if false {
-		} else if z.HasExtensions() && z.DecExt(x.AlphaBindingCreateParameterSchema) {
+		} else if z.HasExtensions() && z.DecExt(x.AlphaServiceInstanceCredentialCreateParameterSchema) {
 		} else if !yym40 && z.IsJSONHandle() {
-			z.DecJSONUnmarshal(x.AlphaBindingCreateParameterSchema)
+			z.DecJSONUnmarshal(x.AlphaServiceInstanceCredentialCreateParameterSchema)
 		} else {
-			z.DecFallback(x.AlphaBindingCreateParameterSchema, false)
+			z.DecFallback(x.AlphaServiceInstanceCredentialCreateParameterSchema, false)
 		}
 	}
 	for {
@@ -4345,7 +4448,7 @@ func (x *ServicePlan) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *InstanceList) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceList) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -4466,7 +4569,7 @@ func (x *InstanceList) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym15
 					if false {
 					} else {
-						h.encSliceInstance(([]Instance)(x.Items), e)
+						h.encSliceServiceInstance(([]ServiceInstance)(x.Items), e)
 					}
 				}
 			} else {
@@ -4480,7 +4583,7 @@ func (x *InstanceList) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym16
 					if false {
 					} else {
-						h.encSliceInstance(([]Instance)(x.Items), e)
+						h.encSliceServiceInstance(([]ServiceInstance)(x.Items), e)
 					}
 				}
 			}
@@ -4493,7 +4596,7 @@ func (x *InstanceList) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *InstanceList) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceList) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -4523,7 +4626,7 @@ func (x *InstanceList) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *InstanceList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -4591,7 +4694,7 @@ func (x *InstanceList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				_ = yym11
 				if false {
 				} else {
-					h.decSliceInstance((*[]Instance)(yyv10), d)
+					h.decSliceServiceInstance((*[]ServiceInstance)(yyv10), d)
 				}
 			}
 		default:
@@ -4601,7 +4704,7 @@ func (x *InstanceList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *InstanceList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -4694,7 +4797,7 @@ func (x *InstanceList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		_ = yym20
 		if false {
 		} else {
-			h.decSliceInstance((*[]Instance)(yyv19), d)
+			h.decSliceServiceInstance((*[]ServiceInstance)(yyv19), d)
 		}
 	}
 	for {
@@ -4713,7 +4816,7 @@ func (x *InstanceList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *Instance) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstance) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -4856,7 +4959,7 @@ func (x *Instance) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *Instance) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstance) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -4886,7 +4989,7 @@ func (x *Instance) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *Instance) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstance) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -4947,14 +5050,14 @@ func (x *Instance) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 			}
 		case "spec":
 			if r.TryDecodeAsNil() {
-				x.Spec = InstanceSpec{}
+				x.Spec = ServiceInstanceSpec{}
 			} else {
 				yyv10 := &x.Spec
 				yyv10.CodecDecodeSelf(d)
 			}
 		case "status":
 			if r.TryDecodeAsNil() {
-				x.Status = InstanceStatus{}
+				x.Status = ServiceInstanceStatus{}
 			} else {
 				yyv11 := &x.Status
 				yyv11.CodecDecodeSelf(d)
@@ -4966,7 +5069,7 @@ func (x *Instance) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *Instance) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstance) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5052,7 +5155,7 @@ func (x *Instance) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.Spec = InstanceSpec{}
+		x.Spec = ServiceInstanceSpec{}
 	} else {
 		yyv19 := &x.Spec
 		yyv19.CodecDecodeSelf(d)
@@ -5069,7 +5172,7 @@ func (x *Instance) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.Status = InstanceStatus{}
+		x.Status = ServiceInstanceStatus{}
 	} else {
 		yyv20 := &x.Status
 		yyv20.CodecDecodeSelf(d)
@@ -5090,7 +5193,7 @@ func (x *Instance) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *InstanceSpec) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -5267,7 +5370,7 @@ func (x *InstanceSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *InstanceSpec) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceSpec) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5297,7 +5400,7 @@ func (x *InstanceSpec) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *InstanceSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5393,7 +5496,7 @@ func (x *InstanceSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *InstanceSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5533,7 +5636,7 @@ func (x *InstanceSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *InstanceStatus) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -5575,7 +5678,7 @@ func (x *InstanceStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym4
 					if false {
 					} else {
-						h.encSliceInstanceCondition(([]InstanceCondition)(x.Conditions), e)
+						h.encSliceServiceInstanceCondition(([]ServiceInstanceCondition)(x.Conditions), e)
 					}
 				}
 			} else {
@@ -5589,7 +5692,7 @@ func (x *InstanceStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym5
 					if false {
 					} else {
-						h.encSliceInstanceCondition(([]InstanceCondition)(x.Conditions), e)
+						h.encSliceServiceInstanceCondition(([]ServiceInstanceCondition)(x.Conditions), e)
 					}
 				}
 			}
@@ -5726,7 +5829,7 @@ func (x *InstanceStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *InstanceStatus) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceStatus) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5756,7 +5859,7 @@ func (x *InstanceStatus) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *InstanceStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5787,7 +5890,7 @@ func (x *InstanceStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				_ = yym5
 				if false {
 				} else {
-					h.decSliceInstanceCondition((*[]InstanceCondition)(yyv4), d)
+					h.decSliceServiceInstanceCondition((*[]ServiceInstanceCondition)(yyv4), d)
 				}
 			}
 		case "asyncOpInProgress":
@@ -5857,7 +5960,7 @@ func (x *InstanceStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *InstanceStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -5883,7 +5986,7 @@ func (x *InstanceStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		_ = yym16
 		if false {
 		} else {
-			h.decSliceInstanceCondition((*[]InstanceCondition)(yyv15), d)
+			h.decSliceServiceInstanceCondition((*[]ServiceInstanceCondition)(yyv15), d)
 		}
 	}
 	yyj14++
@@ -6002,7 +6105,7 @@ func (x *InstanceStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *InstanceCondition) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceCondition) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -6128,7 +6231,7 @@ func (x *InstanceCondition) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *InstanceCondition) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCondition) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6158,7 +6261,7 @@ func (x *InstanceCondition) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *InstanceCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6242,7 +6345,7 @@ func (x *InstanceCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) 
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *InstanceCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6370,7 +6473,7 @@ func (x *InstanceCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x InstanceConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x ServiceInstanceConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -6383,7 +6486,7 @@ func (x InstanceConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *InstanceConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6396,7 +6499,7 @@ func (x *InstanceConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BindingList) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceCredentialList) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -6517,7 +6620,7 @@ func (x *BindingList) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym15
 					if false {
 					} else {
-						h.encSliceBinding(([]Binding)(x.Items), e)
+						h.encSliceServiceInstanceCredential(([]ServiceInstanceCredential)(x.Items), e)
 					}
 				}
 			} else {
@@ -6531,7 +6634,7 @@ func (x *BindingList) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym16
 					if false {
 					} else {
-						h.encSliceBinding(([]Binding)(x.Items), e)
+						h.encSliceServiceInstanceCredential(([]ServiceInstanceCredential)(x.Items), e)
 					}
 				}
 			}
@@ -6544,7 +6647,7 @@ func (x *BindingList) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BindingList) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialList) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6574,7 +6677,7 @@ func (x *BindingList) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BindingList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6642,7 +6745,7 @@ func (x *BindingList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				_ = yym11
 				if false {
 				} else {
-					h.decSliceBinding((*[]Binding)(yyv10), d)
+					h.decSliceServiceInstanceCredential((*[]ServiceInstanceCredential)(yyv10), d)
 				}
 			}
 		default:
@@ -6652,7 +6755,7 @@ func (x *BindingList) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BindingList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6745,7 +6848,7 @@ func (x *BindingList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		_ = yym20
 		if false {
 		} else {
-			h.decSliceBinding((*[]Binding)(yyv19), d)
+			h.decSliceServiceInstanceCredential((*[]ServiceInstanceCredential)(yyv19), d)
 		}
 	}
 	for {
@@ -6764,7 +6867,7 @@ func (x *BindingList) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *Binding) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceCredential) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -6907,7 +7010,7 @@ func (x *Binding) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *Binding) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCredential) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6937,7 +7040,7 @@ func (x *Binding) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *Binding) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredential) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -6998,14 +7101,14 @@ func (x *Binding) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 			}
 		case "spec":
 			if r.TryDecodeAsNil() {
-				x.Spec = BindingSpec{}
+				x.Spec = ServiceInstanceCredentialSpec{}
 			} else {
 				yyv10 := &x.Spec
 				yyv10.CodecDecodeSelf(d)
 			}
 		case "status":
 			if r.TryDecodeAsNil() {
-				x.Status = BindingStatus{}
+				x.Status = ServiceInstanceCredentialStatus{}
 			} else {
 				yyv11 := &x.Status
 				yyv11.CodecDecodeSelf(d)
@@ -7017,7 +7120,7 @@ func (x *Binding) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *Binding) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredential) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7103,7 +7206,7 @@ func (x *Binding) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.Spec = BindingSpec{}
+		x.Spec = ServiceInstanceCredentialSpec{}
 	} else {
 		yyv19 := &x.Spec
 		yyv19.CodecDecodeSelf(d)
@@ -7120,7 +7223,7 @@ func (x *Binding) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.Status = BindingStatus{}
+		x.Status = ServiceInstanceCredentialStatus{}
 	} else {
 		yyv20 := &x.Status
 		yyv20.CodecDecodeSelf(d)
@@ -7141,7 +7244,7 @@ func (x *Binding) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BindingSpec) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceCredentialSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -7176,13 +7279,13 @@ func (x *BindingSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 			}
 			if yyr2 || yy2arr2 {
 				z.EncSendContainerState(codecSelfer_containerArrayElem1234)
-				yy4 := &x.InstanceRef
+				yy4 := &x.ServiceInstanceRef
 				yy4.CodecEncodeSelf(e)
 			} else {
 				z.EncSendContainerState(codecSelfer_containerMapKey1234)
 				r.EncodeString(codecSelferC_UTF81234, string("instanceRef"))
 				z.EncSendContainerState(codecSelfer_containerMapValue1234)
-				yy6 := &x.InstanceRef
+				yy6 := &x.ServiceInstanceRef
 				yy6.CodecEncodeSelf(e)
 			}
 			if yyr2 || yy2arr2 {
@@ -7310,7 +7413,7 @@ func (x *BindingSpec) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BindingSpec) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialSpec) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7340,7 +7443,7 @@ func (x *BindingSpec) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BindingSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7364,9 +7467,9 @@ func (x *BindingSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 		switch yys3 {
 		case "instanceRef":
 			if r.TryDecodeAsNil() {
-				x.InstanceRef = pkg3_v1.LocalObjectReference{}
+				x.ServiceInstanceRef = pkg3_v1.LocalObjectReference{}
 			} else {
-				yyv4 := &x.InstanceRef
+				yyv4 := &x.ServiceInstanceRef
 				yyv4.CodecDecodeSelf(d)
 			}
 		case "parameters":
@@ -7431,7 +7534,7 @@ func (x *BindingSpec) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BindingSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7450,9 +7553,9 @@ func (x *BindingSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	}
 	z.DecSendContainerState(codecSelfer_containerArrayElem1234)
 	if r.TryDecodeAsNil() {
-		x.InstanceRef = pkg3_v1.LocalObjectReference{}
+		x.ServiceInstanceRef = pkg3_v1.LocalObjectReference{}
 	} else {
-		yyv14 := &x.InstanceRef
+		yyv14 := &x.ServiceInstanceRef
 		yyv14.CodecDecodeSelf(d)
 	}
 	yyj13++
@@ -7566,7 +7669,7 @@ func (x *BindingSpec) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BindingStatus) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceCredentialStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -7606,7 +7709,7 @@ func (x *BindingStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym4
 					if false {
 					} else {
-						h.encSliceBindingCondition(([]BindingCondition)(x.Conditions), e)
+						h.encSliceServiceInstanceCredentialCondition(([]ServiceInstanceCredentialCondition)(x.Conditions), e)
 					}
 				}
 			} else {
@@ -7620,7 +7723,7 @@ func (x *BindingStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 					_ = yym5
 					if false {
 					} else {
-						h.encSliceBindingCondition(([]BindingCondition)(x.Conditions), e)
+						h.encSliceServiceInstanceCredentialCondition(([]ServiceInstanceCredentialCondition)(x.Conditions), e)
 					}
 				}
 			}
@@ -7668,7 +7771,7 @@ func (x *BindingStatus) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BindingStatus) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialStatus) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7698,7 +7801,7 @@ func (x *BindingStatus) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BindingStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7729,7 +7832,7 @@ func (x *BindingStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 				_ = yym5
 				if false {
 				} else {
-					h.decSliceBindingCondition((*[]BindingCondition)(yyv4), d)
+					h.decSliceServiceInstanceCredentialCondition((*[]ServiceInstanceCredentialCondition)(yyv4), d)
 				}
 			}
 		case "checksum":
@@ -7755,7 +7858,7 @@ func (x *BindingStatus) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BindingStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7781,7 +7884,7 @@ func (x *BindingStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 		_ = yym10
 		if false {
 		} else {
-			h.decSliceBindingCondition((*[]BindingCondition)(yyv9), d)
+			h.decSliceServiceInstanceCredentialCondition((*[]ServiceInstanceCredentialCondition)(yyv9), d)
 		}
 	}
 	yyj8++
@@ -7826,7 +7929,7 @@ func (x *BindingStatus) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x *BindingCondition) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x *ServiceInstanceCredentialCondition) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -7952,7 +8055,7 @@ func (x *BindingCondition) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BindingCondition) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialCondition) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -7982,7 +8085,7 @@ func (x *BindingCondition) CodecDecodeSelf(d *codec1978.Decoder) {
 	}
 }
 
-func (x *BindingCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -8066,7 +8169,7 @@ func (x *BindingCondition) codecDecodeSelfFromMap(l int, d *codec1978.Decoder) {
 	z.DecSendContainerState(codecSelfer_containerMapEnd1234)
 }
 
-func (x *BindingCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -8194,7 +8297,7 @@ func (x *BindingCondition) codecDecodeSelfFromArray(l int, d *codec1978.Decoder)
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x BindingConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
+func (x ServiceInstanceCredentialConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -8207,7 +8310,7 @@ func (x BindingConditionType) CodecEncodeSelf(e *codec1978.Encoder) {
 	}
 }
 
-func (x *BindingConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
+func (x *ServiceInstanceCredentialConditionType) CodecDecodeSelf(d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -8624,7 +8727,7 @@ func (x *SecretKeyReference) codecDecodeSelfFromArray(l int, d *codec1978.Decode
 	z.DecSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) encSliceBroker(v []Broker, e *codec1978.Encoder) {
+func (x codecSelfer1234) encSliceServiceBroker(v []ServiceBroker, e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -8637,7 +8740,7 @@ func (x codecSelfer1234) encSliceBroker(v []Broker, e *codec1978.Encoder) {
 	z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
+func (x codecSelfer1234) decSliceServiceBroker(v *[]ServiceBroker, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -8648,7 +8751,7 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 	_ = yyc1
 	if yyl1 == 0 {
 		if yyv1 == nil {
-			yyv1 = []Broker{}
+			yyv1 = []ServiceBroker{}
 			yyc1 = true
 		} else if len(yyv1) != 0 {
 			yyv1 = yyv1[:0]
@@ -8663,15 +8766,15 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 
 			yyrg1 := len(yyv1) > 0
 			yyv21 := yyv1
-			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 320)
+			yyrl1, yyrt1 = z.DecInferLen(yyl1, z.DecBasicHandle().MaxInitLen, 352)
 			if yyrt1 {
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
 				} else {
-					yyv1 = make([]Broker, yyrl1)
+					yyv1 = make([]ServiceBroker, yyrl1)
 				}
 			} else {
-				yyv1 = make([]Broker, yyrl1)
+				yyv1 = make([]ServiceBroker, yyrl1)
 			}
 			yyc1 = true
 			yyrr1 = len(yyv1)
@@ -8686,7 +8789,7 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 		for ; yyj1 < yyrr1; yyj1++ {
 			yyh1.ElemContainerState(yyj1)
 			if r.TryDecodeAsNil() {
-				yyv1[yyj1] = Broker{}
+				yyv1[yyj1] = ServiceBroker{}
 			} else {
 				yyv2 := &yyv1[yyj1]
 				yyv2.CodecDecodeSelf(d)
@@ -8695,10 +8798,10 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 		}
 		if yyrt1 {
 			for ; yyj1 < yyl1; yyj1++ {
-				yyv1 = append(yyv1, Broker{})
+				yyv1 = append(yyv1, ServiceBroker{})
 				yyh1.ElemContainerState(yyj1)
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = Broker{}
+					yyv1[yyj1] = ServiceBroker{}
 				} else {
 					yyv3 := &yyv1[yyj1]
 					yyv3.CodecDecodeSelf(d)
@@ -8712,13 +8815,13 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 		for ; !r.CheckBreak(); yyj1++ {
 
 			if yyj1 >= len(yyv1) {
-				yyv1 = append(yyv1, Broker{}) // var yyz1 Broker
+				yyv1 = append(yyv1, ServiceBroker{}) // var yyz1 ServiceBroker
 				yyc1 = true
 			}
 			yyh1.ElemContainerState(yyj1)
 			if yyj1 < len(yyv1) {
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = Broker{}
+					yyv1[yyj1] = ServiceBroker{}
 				} else {
 					yyv4 := &yyv1[yyj1]
 					yyv4.CodecDecodeSelf(d)
@@ -8733,7 +8836,7 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 			yyv1 = yyv1[:yyj1]
 			yyc1 = true
 		} else if yyj1 == 0 && yyv1 == nil {
-			yyv1 = []Broker{}
+			yyv1 = []ServiceBroker{}
 			yyc1 = true
 		}
 	}
@@ -8743,7 +8846,7 @@ func (x codecSelfer1234) decSliceBroker(v *[]Broker, d *codec1978.Decoder) {
 	}
 }
 
-func (x codecSelfer1234) encSliceBrokerCondition(v []BrokerCondition, e *codec1978.Encoder) {
+func (x codecSelfer1234) encSliceServiceBrokerCondition(v []ServiceBrokerCondition, e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -8756,7 +8859,7 @@ func (x codecSelfer1234) encSliceBrokerCondition(v []BrokerCondition, e *codec19
 	z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1978.Decoder) {
+func (x codecSelfer1234) decSliceServiceBrokerCondition(v *[]ServiceBrokerCondition, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -8767,7 +8870,7 @@ func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1
 	_ = yyc1
 	if yyl1 == 0 {
 		if yyv1 == nil {
-			yyv1 = []BrokerCondition{}
+			yyv1 = []ServiceBrokerCondition{}
 			yyc1 = true
 		} else if len(yyv1) != 0 {
 			yyv1 = yyv1[:0]
@@ -8787,10 +8890,10 @@ func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
 				} else {
-					yyv1 = make([]BrokerCondition, yyrl1)
+					yyv1 = make([]ServiceBrokerCondition, yyrl1)
 				}
 			} else {
-				yyv1 = make([]BrokerCondition, yyrl1)
+				yyv1 = make([]ServiceBrokerCondition, yyrl1)
 			}
 			yyc1 = true
 			yyrr1 = len(yyv1)
@@ -8805,7 +8908,7 @@ func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1
 		for ; yyj1 < yyrr1; yyj1++ {
 			yyh1.ElemContainerState(yyj1)
 			if r.TryDecodeAsNil() {
-				yyv1[yyj1] = BrokerCondition{}
+				yyv1[yyj1] = ServiceBrokerCondition{}
 			} else {
 				yyv2 := &yyv1[yyj1]
 				yyv2.CodecDecodeSelf(d)
@@ -8814,10 +8917,10 @@ func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1
 		}
 		if yyrt1 {
 			for ; yyj1 < yyl1; yyj1++ {
-				yyv1 = append(yyv1, BrokerCondition{})
+				yyv1 = append(yyv1, ServiceBrokerCondition{})
 				yyh1.ElemContainerState(yyj1)
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = BrokerCondition{}
+					yyv1[yyj1] = ServiceBrokerCondition{}
 				} else {
 					yyv3 := &yyv1[yyj1]
 					yyv3.CodecDecodeSelf(d)
@@ -8831,13 +8934,13 @@ func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1
 		for ; !r.CheckBreak(); yyj1++ {
 
 			if yyj1 >= len(yyv1) {
-				yyv1 = append(yyv1, BrokerCondition{}) // var yyz1 BrokerCondition
+				yyv1 = append(yyv1, ServiceBrokerCondition{}) // var yyz1 ServiceBrokerCondition
 				yyc1 = true
 			}
 			yyh1.ElemContainerState(yyj1)
 			if yyj1 < len(yyv1) {
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = BrokerCondition{}
+					yyv1[yyj1] = ServiceBrokerCondition{}
 				} else {
 					yyv4 := &yyv1[yyj1]
 					yyv4.CodecDecodeSelf(d)
@@ -8852,7 +8955,7 @@ func (x codecSelfer1234) decSliceBrokerCondition(v *[]BrokerCondition, d *codec1
 			yyv1 = yyv1[:yyj1]
 			yyc1 = true
 		} else if yyj1 == 0 && yyv1 == nil {
-			yyv1 = []BrokerCondition{}
+			yyv1 = []ServiceBrokerCondition{}
 			yyc1 = true
 		}
 	}
@@ -9100,7 +9203,7 @@ func (x codecSelfer1234) decSliceServicePlan(v *[]ServicePlan, d *codec1978.Deco
 	}
 }
 
-func (x codecSelfer1234) encSliceInstance(v []Instance, e *codec1978.Encoder) {
+func (x codecSelfer1234) encSliceServiceInstance(v []ServiceInstance, e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -9113,7 +9216,7 @@ func (x codecSelfer1234) encSliceInstance(v []Instance, e *codec1978.Encoder) {
 	z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
+func (x codecSelfer1234) decSliceServiceInstance(v *[]ServiceInstance, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -9124,7 +9227,7 @@ func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
 	_ = yyc1
 	if yyl1 == 0 {
 		if yyv1 == nil {
-			yyv1 = []Instance{}
+			yyv1 = []ServiceInstance{}
 			yyc1 = true
 		} else if len(yyv1) != 0 {
 			yyv1 = yyv1[:0]
@@ -9144,10 +9247,10 @@ func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
 				} else {
-					yyv1 = make([]Instance, yyrl1)
+					yyv1 = make([]ServiceInstance, yyrl1)
 				}
 			} else {
-				yyv1 = make([]Instance, yyrl1)
+				yyv1 = make([]ServiceInstance, yyrl1)
 			}
 			yyc1 = true
 			yyrr1 = len(yyv1)
@@ -9162,7 +9265,7 @@ func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
 		for ; yyj1 < yyrr1; yyj1++ {
 			yyh1.ElemContainerState(yyj1)
 			if r.TryDecodeAsNil() {
-				yyv1[yyj1] = Instance{}
+				yyv1[yyj1] = ServiceInstance{}
 			} else {
 				yyv2 := &yyv1[yyj1]
 				yyv2.CodecDecodeSelf(d)
@@ -9171,10 +9274,10 @@ func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
 		}
 		if yyrt1 {
 			for ; yyj1 < yyl1; yyj1++ {
-				yyv1 = append(yyv1, Instance{})
+				yyv1 = append(yyv1, ServiceInstance{})
 				yyh1.ElemContainerState(yyj1)
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = Instance{}
+					yyv1[yyj1] = ServiceInstance{}
 				} else {
 					yyv3 := &yyv1[yyj1]
 					yyv3.CodecDecodeSelf(d)
@@ -9188,13 +9291,13 @@ func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
 		for ; !r.CheckBreak(); yyj1++ {
 
 			if yyj1 >= len(yyv1) {
-				yyv1 = append(yyv1, Instance{}) // var yyz1 Instance
+				yyv1 = append(yyv1, ServiceInstance{}) // var yyz1 ServiceInstance
 				yyc1 = true
 			}
 			yyh1.ElemContainerState(yyj1)
 			if yyj1 < len(yyv1) {
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = Instance{}
+					yyv1[yyj1] = ServiceInstance{}
 				} else {
 					yyv4 := &yyv1[yyj1]
 					yyv4.CodecDecodeSelf(d)
@@ -9209,7 +9312,7 @@ func (x codecSelfer1234) decSliceInstance(v *[]Instance, d *codec1978.Decoder) {
 			yyv1 = yyv1[:yyj1]
 			yyc1 = true
 		} else if yyj1 == 0 && yyv1 == nil {
-			yyv1 = []Instance{}
+			yyv1 = []ServiceInstance{}
 			yyc1 = true
 		}
 	}
@@ -9338,7 +9441,7 @@ func (x codecSelfer1234) decSliceParametersFromSource(v *[]ParametersFromSource,
 	}
 }
 
-func (x codecSelfer1234) encSliceInstanceCondition(v []InstanceCondition, e *codec1978.Encoder) {
+func (x codecSelfer1234) encSliceServiceInstanceCondition(v []ServiceInstanceCondition, e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -9351,7 +9454,7 @@ func (x codecSelfer1234) encSliceInstanceCondition(v []InstanceCondition, e *cod
 	z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *codec1978.Decoder) {
+func (x codecSelfer1234) decSliceServiceInstanceCondition(v *[]ServiceInstanceCondition, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -9362,7 +9465,7 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 	_ = yyc1
 	if yyl1 == 0 {
 		if yyv1 == nil {
-			yyv1 = []InstanceCondition{}
+			yyv1 = []ServiceInstanceCondition{}
 			yyc1 = true
 		} else if len(yyv1) != 0 {
 			yyv1 = yyv1[:0]
@@ -9382,10 +9485,10 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
 				} else {
-					yyv1 = make([]InstanceCondition, yyrl1)
+					yyv1 = make([]ServiceInstanceCondition, yyrl1)
 				}
 			} else {
-				yyv1 = make([]InstanceCondition, yyrl1)
+				yyv1 = make([]ServiceInstanceCondition, yyrl1)
 			}
 			yyc1 = true
 			yyrr1 = len(yyv1)
@@ -9400,7 +9503,7 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 		for ; yyj1 < yyrr1; yyj1++ {
 			yyh1.ElemContainerState(yyj1)
 			if r.TryDecodeAsNil() {
-				yyv1[yyj1] = InstanceCondition{}
+				yyv1[yyj1] = ServiceInstanceCondition{}
 			} else {
 				yyv2 := &yyv1[yyj1]
 				yyv2.CodecDecodeSelf(d)
@@ -9409,10 +9512,10 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 		}
 		if yyrt1 {
 			for ; yyj1 < yyl1; yyj1++ {
-				yyv1 = append(yyv1, InstanceCondition{})
+				yyv1 = append(yyv1, ServiceInstanceCondition{})
 				yyh1.ElemContainerState(yyj1)
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = InstanceCondition{}
+					yyv1[yyj1] = ServiceInstanceCondition{}
 				} else {
 					yyv3 := &yyv1[yyj1]
 					yyv3.CodecDecodeSelf(d)
@@ -9426,13 +9529,13 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 		for ; !r.CheckBreak(); yyj1++ {
 
 			if yyj1 >= len(yyv1) {
-				yyv1 = append(yyv1, InstanceCondition{}) // var yyz1 InstanceCondition
+				yyv1 = append(yyv1, ServiceInstanceCondition{}) // var yyz1 ServiceInstanceCondition
 				yyc1 = true
 			}
 			yyh1.ElemContainerState(yyj1)
 			if yyj1 < len(yyv1) {
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = InstanceCondition{}
+					yyv1[yyj1] = ServiceInstanceCondition{}
 				} else {
 					yyv4 := &yyv1[yyj1]
 					yyv4.CodecDecodeSelf(d)
@@ -9447,7 +9550,7 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 			yyv1 = yyv1[:yyj1]
 			yyc1 = true
 		} else if yyj1 == 0 && yyv1 == nil {
-			yyv1 = []InstanceCondition{}
+			yyv1 = []ServiceInstanceCondition{}
 			yyc1 = true
 		}
 	}
@@ -9457,7 +9560,7 @@ func (x codecSelfer1234) decSliceInstanceCondition(v *[]InstanceCondition, d *co
 	}
 }
 
-func (x codecSelfer1234) encSliceBinding(v []Binding, e *codec1978.Encoder) {
+func (x codecSelfer1234) encSliceServiceInstanceCredential(v []ServiceInstanceCredential, e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -9470,7 +9573,7 @@ func (x codecSelfer1234) encSliceBinding(v []Binding, e *codec1978.Encoder) {
 	z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
+func (x codecSelfer1234) decSliceServiceInstanceCredential(v *[]ServiceInstanceCredential, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -9481,7 +9584,7 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 	_ = yyc1
 	if yyl1 == 0 {
 		if yyv1 == nil {
-			yyv1 = []Binding{}
+			yyv1 = []ServiceInstanceCredential{}
 			yyc1 = true
 		} else if len(yyv1) != 0 {
 			yyv1 = yyv1[:0]
@@ -9501,10 +9604,10 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
 				} else {
-					yyv1 = make([]Binding, yyrl1)
+					yyv1 = make([]ServiceInstanceCredential, yyrl1)
 				}
 			} else {
-				yyv1 = make([]Binding, yyrl1)
+				yyv1 = make([]ServiceInstanceCredential, yyrl1)
 			}
 			yyc1 = true
 			yyrr1 = len(yyv1)
@@ -9519,7 +9622,7 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 		for ; yyj1 < yyrr1; yyj1++ {
 			yyh1.ElemContainerState(yyj1)
 			if r.TryDecodeAsNil() {
-				yyv1[yyj1] = Binding{}
+				yyv1[yyj1] = ServiceInstanceCredential{}
 			} else {
 				yyv2 := &yyv1[yyj1]
 				yyv2.CodecDecodeSelf(d)
@@ -9528,10 +9631,10 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 		}
 		if yyrt1 {
 			for ; yyj1 < yyl1; yyj1++ {
-				yyv1 = append(yyv1, Binding{})
+				yyv1 = append(yyv1, ServiceInstanceCredential{})
 				yyh1.ElemContainerState(yyj1)
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = Binding{}
+					yyv1[yyj1] = ServiceInstanceCredential{}
 				} else {
 					yyv3 := &yyv1[yyj1]
 					yyv3.CodecDecodeSelf(d)
@@ -9545,13 +9648,13 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 		for ; !r.CheckBreak(); yyj1++ {
 
 			if yyj1 >= len(yyv1) {
-				yyv1 = append(yyv1, Binding{}) // var yyz1 Binding
+				yyv1 = append(yyv1, ServiceInstanceCredential{}) // var yyz1 ServiceInstanceCredential
 				yyc1 = true
 			}
 			yyh1.ElemContainerState(yyj1)
 			if yyj1 < len(yyv1) {
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = Binding{}
+					yyv1[yyj1] = ServiceInstanceCredential{}
 				} else {
 					yyv4 := &yyv1[yyj1]
 					yyv4.CodecDecodeSelf(d)
@@ -9566,7 +9669,7 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 			yyv1 = yyv1[:yyj1]
 			yyc1 = true
 		} else if yyj1 == 0 && yyv1 == nil {
-			yyv1 = []Binding{}
+			yyv1 = []ServiceInstanceCredential{}
 			yyc1 = true
 		}
 	}
@@ -9576,7 +9679,7 @@ func (x codecSelfer1234) decSliceBinding(v *[]Binding, d *codec1978.Decoder) {
 	}
 }
 
-func (x codecSelfer1234) encSliceBindingCondition(v []BindingCondition, e *codec1978.Encoder) {
+func (x codecSelfer1234) encSliceServiceInstanceCredentialCondition(v []ServiceInstanceCredentialCondition, e *codec1978.Encoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperEncoder(e)
 	_, _, _ = h, z, r
@@ -9589,7 +9692,7 @@ func (x codecSelfer1234) encSliceBindingCondition(v []BindingCondition, e *codec
 	z.EncSendContainerState(codecSelfer_containerArrayEnd1234)
 }
 
-func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *codec1978.Decoder) {
+func (x codecSelfer1234) decSliceServiceInstanceCredentialCondition(v *[]ServiceInstanceCredentialCondition, d *codec1978.Decoder) {
 	var h codecSelfer1234
 	z, r := codec1978.GenHelperDecoder(d)
 	_, _, _ = h, z, r
@@ -9600,7 +9703,7 @@ func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *code
 	_ = yyc1
 	if yyl1 == 0 {
 		if yyv1 == nil {
-			yyv1 = []BindingCondition{}
+			yyv1 = []ServiceInstanceCredentialCondition{}
 			yyc1 = true
 		} else if len(yyv1) != 0 {
 			yyv1 = yyv1[:0]
@@ -9620,10 +9723,10 @@ func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *code
 				if yyrl1 <= cap(yyv1) {
 					yyv1 = yyv1[:yyrl1]
 				} else {
-					yyv1 = make([]BindingCondition, yyrl1)
+					yyv1 = make([]ServiceInstanceCredentialCondition, yyrl1)
 				}
 			} else {
-				yyv1 = make([]BindingCondition, yyrl1)
+				yyv1 = make([]ServiceInstanceCredentialCondition, yyrl1)
 			}
 			yyc1 = true
 			yyrr1 = len(yyv1)
@@ -9638,7 +9741,7 @@ func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *code
 		for ; yyj1 < yyrr1; yyj1++ {
 			yyh1.ElemContainerState(yyj1)
 			if r.TryDecodeAsNil() {
-				yyv1[yyj1] = BindingCondition{}
+				yyv1[yyj1] = ServiceInstanceCredentialCondition{}
 			} else {
 				yyv2 := &yyv1[yyj1]
 				yyv2.CodecDecodeSelf(d)
@@ -9647,10 +9750,10 @@ func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *code
 		}
 		if yyrt1 {
 			for ; yyj1 < yyl1; yyj1++ {
-				yyv1 = append(yyv1, BindingCondition{})
+				yyv1 = append(yyv1, ServiceInstanceCredentialCondition{})
 				yyh1.ElemContainerState(yyj1)
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = BindingCondition{}
+					yyv1[yyj1] = ServiceInstanceCredentialCondition{}
 				} else {
 					yyv3 := &yyv1[yyj1]
 					yyv3.CodecDecodeSelf(d)
@@ -9664,13 +9767,13 @@ func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *code
 		for ; !r.CheckBreak(); yyj1++ {
 
 			if yyj1 >= len(yyv1) {
-				yyv1 = append(yyv1, BindingCondition{}) // var yyz1 BindingCondition
+				yyv1 = append(yyv1, ServiceInstanceCredentialCondition{}) // var yyz1 ServiceInstanceCredentialCondition
 				yyc1 = true
 			}
 			yyh1.ElemContainerState(yyj1)
 			if yyj1 < len(yyv1) {
 				if r.TryDecodeAsNil() {
-					yyv1[yyj1] = BindingCondition{}
+					yyv1[yyj1] = ServiceInstanceCredentialCondition{}
 				} else {
 					yyv4 := &yyv1[yyj1]
 					yyv4.CodecDecodeSelf(d)
@@ -9685,7 +9788,7 @@ func (x codecSelfer1234) decSliceBindingCondition(v *[]BindingCondition, d *code
 			yyv1 = yyv1[:yyj1]
 			yyc1 = true
 		} else if yyj1 == 0 && yyv1 == nil {
-			yyv1 = []BindingCondition{}
+			yyv1 = []ServiceInstanceCredentialCondition{}
 			yyc1 = true
 		}
 	}

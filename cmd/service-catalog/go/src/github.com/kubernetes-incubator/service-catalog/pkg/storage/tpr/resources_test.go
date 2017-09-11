@@ -32,7 +32,7 @@ func TestTPRKinds(t *testing.T) {
 			APIVersion: "v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: withGroupName("instance"),
+			Name: withGroupName("service-instance"),
 		},
 		Versions: []v1beta1.APIVersion{
 			{Name: "v1alpha1"},
@@ -45,7 +45,7 @@ func TestTPRKinds(t *testing.T) {
 			APIVersion: "v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: withGroupName("broker"),
+			Name: withGroupName("service-broker"),
 		},
 		Versions: []v1beta1.APIVersion{
 			{Name: "v1alpha1"},
@@ -65,13 +65,13 @@ func TestTPRKinds(t *testing.T) {
 		},
 	}
 
-	var serviceBindingSample = v1beta1.ThirdPartyResource{
+	var serviceInstanceCredentialSample = v1beta1.ThirdPartyResource{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ThirdPartyResource",
 			APIVersion: "v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: withGroupName("binding"),
+			Name: withGroupName("service-instance-credential"),
 		},
 		Versions: []v1beta1.APIVersion{
 			{Name: "v1alpha1"},
@@ -79,15 +79,15 @@ func TestTPRKinds(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(serviceInstanceSample, serviceInstanceTPR) {
-		t.Errorf("Unexpected Instance TPR structure")
+		t.Errorf("Unexpected ServiceInstance TPR structure")
 	}
 
-	if !reflect.DeepEqual(serviceBindingSample, serviceBindingTPR) {
-		t.Errorf("Unexpected Broker TPR structure")
+	if !reflect.DeepEqual(serviceInstanceCredentialSample, serviceInstanceCredentialTPR) {
+		t.Errorf("Unexpected ServiceBroker TPR structure")
 	}
 
 	if !reflect.DeepEqual(serviceBrokerSample, serviceBrokerTPR) {
-		t.Errorf("Unexpected Binding TPR structure")
+		t.Errorf("Unexpected ServiceInstanceCredential TPR structure")
 	}
 
 	if !reflect.DeepEqual(serviceClassSample, serviceClassTPR) {

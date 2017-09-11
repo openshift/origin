@@ -23,16 +23,16 @@ import (
 	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/unversioned"
 )
 
-func instanceWithFalseReadyCondition() *servicecatalog.Instance {
-	return &servicecatalog.Instance{
-		Spec: servicecatalog.InstanceSpec{
+func instanceWithFalseReadyCondition() *servicecatalog.ServiceInstance {
+	return &servicecatalog.ServiceInstance{
+		Spec: servicecatalog.ServiceInstanceSpec{
 			ServiceClassName: "test-serviceclass",
 			PlanName:         "test-plan",
 		},
-		Status: servicecatalog.InstanceStatus{
-			Conditions: []servicecatalog.InstanceCondition{
+		Status: servicecatalog.ServiceInstanceStatus{
+			Conditions: []servicecatalog.ServiceInstanceCondition{
 				{
-					Type:   servicecatalog.InstanceConditionReady,
+					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionFalse,
 				},
 			},
@@ -40,16 +40,16 @@ func instanceWithFalseReadyCondition() *servicecatalog.Instance {
 	}
 }
 
-func instanceWithTrueReadyCondition() *servicecatalog.Instance {
-	return &servicecatalog.Instance{
-		Spec: servicecatalog.InstanceSpec{
+func instanceWithTrueReadyCondition() *servicecatalog.ServiceInstance {
+	return &servicecatalog.ServiceInstance{
+		Spec: servicecatalog.ServiceInstanceSpec{
 			ServiceClassName: "test-serviceclass",
 			PlanName:         "test-plan",
 		},
-		Status: servicecatalog.InstanceStatus{
-			Conditions: []servicecatalog.InstanceCondition{
+		Status: servicecatalog.ServiceInstanceStatus{
+			Conditions: []servicecatalog.ServiceInstanceCondition{
 				{
-					Type:   servicecatalog.InstanceConditionReady,
+					Type:   servicecatalog.ServiceInstanceConditionReady,
 					Status: servicecatalog.ConditionTrue,
 				},
 			},
@@ -60,8 +60,8 @@ func instanceWithTrueReadyCondition() *servicecatalog.Instance {
 func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
 	cases := []struct {
 		name                string
-		old                 *servicecatalog.Instance
-		newer               *servicecatalog.Instance
+		old                 *servicecatalog.ServiceInstance
+		newer               *servicecatalog.ServiceInstance
 		shouldChecksum      bool
 		checksumShouldBeSet bool
 	}{
@@ -74,7 +74,7 @@ func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
 		},
 		{
 			name: "not ready -> not ready, checksum already set",
-			old: func() *servicecatalog.Instance {
+			old: func() *servicecatalog.ServiceInstance {
 				i := instanceWithFalseReadyCondition()
 				cs := "22081-9471-471"
 				i.Status.Checksum = &cs
@@ -102,7 +102,7 @@ func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
 				continue
 			}
 
-			if e, a := checksum.InstanceSpecChecksum(tc.newer.Spec), *tc.newer.Status.Checksum; e != a {
+			if e, a := checksum.ServiceInstanceSpecChecksum(tc.newer.Spec), *tc.newer.Status.Checksum; e != a {
 				t.Errorf("%v: Checksum was incorrect; expected %v got %v", tc.name, e, a)
 			}
 		} else if tc.checksumShouldBeSet != (tc.newer.Status.Checksum != nil) {

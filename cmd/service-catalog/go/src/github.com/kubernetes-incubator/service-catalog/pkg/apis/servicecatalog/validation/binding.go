@@ -23,29 +23,29 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-// validateBindingName is the validation function for Binding names.
-var validateBindingName = apivalidation.NameIsDNSSubdomain
+// validateServiceInstanceCredentialName is the validation function for ServiceInstanceCredential names.
+var validateServiceInstanceCredentialName = apivalidation.NameIsDNSSubdomain
 
-// ValidateBinding validates a Binding and returns a list of errors.
-func ValidateBinding(binding *sc.Binding) field.ErrorList {
-	return internalValidateBinding(binding, true)
+// ValidateServiceInstanceCredential validates a ServiceInstanceCredential and returns a list of errors.
+func ValidateServiceInstanceCredential(binding *sc.ServiceInstanceCredential) field.ErrorList {
+	return internalValidateServiceInstanceCredential(binding, true)
 }
 
-func internalValidateBinding(binding *sc.Binding, create bool) field.ErrorList {
+func internalValidateServiceInstanceCredential(binding *sc.ServiceInstanceCredential, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&binding.ObjectMeta, true, /*namespace*/
-		validateBindingName,
+		validateServiceInstanceCredentialName,
 		field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateBindingSpec(&binding.Spec, field.NewPath("Spec"), create)...)
+	allErrs = append(allErrs, validateServiceInstanceCredentialSpec(&binding.Spec, field.NewPath("Spec"), create)...)
 
 	return allErrs
 }
 
-func validateBindingSpec(spec *sc.BindingSpec, fldPath *field.Path, create bool) field.ErrorList {
+func validateServiceInstanceCredentialSpec(spec *sc.ServiceInstanceCredentialSpec, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	for _, msg := range validateInstanceName(spec.InstanceRef.Name, false /* prefix */) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("instanceRef", "name"), spec.InstanceRef.Name, msg))
+	for _, msg := range validateServiceInstanceName(spec.ServiceInstanceRef.Name, false /* prefix */) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("instanceRef", "name"), spec.ServiceInstanceRef.Name, msg))
 	}
 
 	for _, msg := range apivalidation.NameIsDNSSubdomain(spec.SecretName, false /* prefix */) {
@@ -55,14 +55,14 @@ func validateBindingSpec(spec *sc.BindingSpec, fldPath *field.Path, create bool)
 	return allErrs
 }
 
-// ValidateBindingUpdate checks that when changing from an older binding to a newer binding is okay.
-func ValidateBindingUpdate(new *sc.Binding, old *sc.Binding) field.ErrorList {
-	return internalValidateBinding(new, false)
+// ValidateServiceInstanceCredentialUpdate checks that when changing from an older binding to a newer binding is okay.
+func ValidateServiceInstanceCredentialUpdate(new *sc.ServiceInstanceCredential, old *sc.ServiceInstanceCredential) field.ErrorList {
+	return internalValidateServiceInstanceCredential(new, false)
 }
 
-// ValidateBindingStatusUpdate checks that when changing from an older binding to a newer binding is okay.
-func ValidateBindingStatusUpdate(new *sc.Binding, old *sc.Binding) field.ErrorList {
+// ValidateServiceInstanceCredentialStatusUpdate checks that when changing from an older binding to a newer binding is okay.
+func ValidateServiceInstanceCredentialStatusUpdate(new *sc.ServiceInstanceCredential, old *sc.ServiceInstanceCredential) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, ValidateBindingUpdate(new, old)...)
+	allErrs = append(allErrs, ValidateServiceInstanceCredentialUpdate(new, old)...)
 	return allErrs
 }

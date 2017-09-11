@@ -88,7 +88,7 @@ func TestGroupVersion(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
-				return &servicecatalog.Broker{}
+				return &servicecatalog.ServiceBroker{}
 			})
 			defer shutdownServer()
 			if err := testGroupVersion(client); err != nil {
@@ -170,7 +170,7 @@ func TestNoName(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
-				return &servicecatalog.Broker{}
+				return &servicecatalog.ServiceBroker{}
 			})
 			defer shutdownServer()
 			if err := testNoName(client); err != nil {
@@ -191,16 +191,16 @@ func testNoName(client servicecatalogclient.Interface) error {
 
 	ns := "namespace"
 
-	if br, e := scClient.Brokers().Create(&v1alpha1.Broker{}); nil == e {
+	if br, e := scClient.ServiceBrokers().Create(&v1alpha1.ServiceBroker{}); nil == e {
 		return fmt.Errorf("needs a name (%s)", br.Name)
 	}
 	if sc, e := scClient.ServiceClasses().Create(&v1alpha1.ServiceClass{}); nil == e {
 		return fmt.Errorf("needs a name (%s)", sc.Name)
 	}
-	if i, e := scClient.Instances(ns).Create(&v1alpha1.Instance{}); nil == e {
+	if i, e := scClient.ServiceInstances(ns).Create(&v1alpha1.ServiceInstance{}); nil == e {
 		return fmt.Errorf("needs a name (%s)", i.Name)
 	}
-	if bi, e := scClient.Bindings(ns).Create(&v1alpha1.Binding{}); nil == e {
+	if bi, e := scClient.ServiceInstanceCredentials(ns).Create(&v1alpha1.ServiceInstanceCredential{}); nil == e {
 		return fmt.Errorf("needs a name (%s)", bi.Name)
 	}
 	return nil
@@ -212,7 +212,7 @@ func TestBrokerClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
-				return &servicecatalog.Broker{}
+				return &servicecatalog.ServiceBroker{}
 			})
 			defer shutdownServer()
 			if err := testBrokerClient(sType, client, name); err != nil {
@@ -228,10 +228,10 @@ func TestBrokerClient(t *testing.T) {
 }
 
 func testBrokerClient(sType server.StorageType, client servicecatalogclient.Interface, name string) error {
-	brokerClient := client.Servicecatalog().Brokers()
-	broker := &v1alpha1.Broker{
+	brokerClient := client.Servicecatalog().ServiceBrokers()
+	broker := &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: v1alpha1.BrokerSpec{
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: "https://example.com",
 		},
 	}
@@ -287,7 +287,7 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 		Name:      "test-name",
 	}
 
-	brokerServer.Spec.AuthInfo = &v1alpha1.BrokerAuthInfo{
+	brokerServer.Spec.AuthInfo = &v1alpha1.ServiceBrokerAuthInfo{
 		Basic: &v1alpha1.BasicAuthConfig{
 			SecretRef: authSecret,
 		},
@@ -300,14 +300,14 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 		return fmt.Errorf("broker wasn't updated, %v, %v", brokerServer, brokerUpdated)
 	}
 
-	readyConditionTrue := v1alpha1.BrokerCondition{
-		Type:    v1alpha1.BrokerConditionReady,
+	readyConditionTrue := v1alpha1.ServiceBrokerCondition{
+		Type:    v1alpha1.ServiceBrokerConditionReady,
 		Status:  v1alpha1.ConditionTrue,
 		Reason:  "ConditionReason",
 		Message: "ConditionMessage",
 	}
-	brokerUpdated.Status = v1alpha1.BrokerStatus{
-		Conditions: []v1alpha1.BrokerCondition{
+	brokerUpdated.Status = v1alpha1.ServiceBrokerStatus{
+		Conditions: []v1alpha1.ServiceBrokerCondition{
 			readyConditionTrue,
 		},
 	}
@@ -324,8 +324,8 @@ func testBrokerClient(sType server.StorageType, client servicecatalogclient.Inte
 		return fmt.Errorf("Should not be able to update spec from status subresource")
 	}
 
-	readyConditionFalse := v1alpha1.BrokerCondition{
-		Type:    v1alpha1.BrokerConditionReady,
+	readyConditionFalse := v1alpha1.ServiceBrokerCondition{
+		Type:    v1alpha1.ServiceBrokerConditionReady,
 		Status:  v1alpha1.ConditionFalse,
 		Reason:  "ConditionReason",
 		Message: "ConditionMessage",
@@ -396,11 +396,11 @@ func testServiceClassClient(sType server.StorageType, client servicecatalogclien
 	serviceClassClient := client.Servicecatalog().ServiceClasses()
 
 	serviceClass := &v1alpha1.ServiceClass{
-		ObjectMeta:  metav1.ObjectMeta{Name: name},
-		BrokerName:  "test-broker",
-		Bindable:    true,
-		ExternalID:  "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
-		Description: "test description",
+		ObjectMeta:        metav1.ObjectMeta{Name: name},
+		ServiceBrokerName: "test-broker",
+		Bindable:          true,
+		ExternalID:        "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
+		Description:       "test description",
 		Plans: []v1alpha1.ServicePlan{
 			{
 				Name:        "test-service-plan",
@@ -499,7 +499,7 @@ func TestInstanceClient(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-instance"
 			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
-				return &servicecatalog.Instance{}
+				return &servicecatalog.ServiceInstance{}
 			})
 			defer shutdownServer()
 			if err := testInstanceClient(sType, client, name); err != nil {
@@ -519,11 +519,11 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 		osbGUID      = "9737b6ed-ca95-4439-8219-c53fcad118ab"
 		dashboardURL = "http://test-dashboard.example.com"
 	)
-	instanceClient := client.Servicecatalog().Instances("test-namespace")
+	instanceClient := client.Servicecatalog().ServiceInstances("test-namespace")
 
-	instance := &v1alpha1.Instance{
+	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1alpha1.ServiceInstanceSpec{
 			ServiceClassName: "service-class-name",
 			PlanName:         "plan-name",
 			Parameters:       &runtime.RawExtension{Raw: []byte(instanceParameter)},
@@ -604,14 +604,14 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 	}
 
 	// update the instance's conditions
-	readyConditionTrue := v1alpha1.InstanceCondition{
-		Type:    v1alpha1.InstanceConditionReady,
+	readyConditionTrue := v1alpha1.ServiceInstanceCondition{
+		Type:    v1alpha1.ServiceInstanceConditionReady,
 		Status:  v1alpha1.ConditionTrue,
 		Reason:  "ConditionReason",
 		Message: "ConditionMessage",
 	}
-	instanceServer.Status = v1alpha1.InstanceStatus{
-		Conditions: []v1alpha1.InstanceCondition{readyConditionTrue},
+	instanceServer.Status = v1alpha1.ServiceInstanceStatus{
+		Conditions: []v1alpha1.ServiceInstanceCondition{readyConditionTrue},
 	}
 
 	_, err = instanceClient.UpdateStatus(instanceServer)
@@ -661,7 +661,7 @@ func TestBindingClient(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-binding"
 			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
-				return &servicecatalog.Binding{}
+				return &servicecatalog.ServiceInstanceCredential{}
 			})
 			defer shutdownServer()
 
@@ -679,12 +679,12 @@ func TestBindingClient(t *testing.T) {
 }
 
 func testBindingClient(sType server.StorageType, client servicecatalogclient.Interface, name string) error {
-	bindingClient := client.Servicecatalog().Bindings("test-namespace")
+	bindingClient := client.Servicecatalog().ServiceInstanceCredentials("test-namespace")
 
-	binding := &v1alpha1.Binding{
+	binding := &v1alpha1.ServiceInstanceCredential{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-binding"},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+		Spec: v1alpha1.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: "bar",
 			},
 			Parameters: &runtime.RawExtension{Raw: []byte(bindingParameter)},
@@ -779,14 +779,14 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 		return fmt.Errorf("Didn't find second value in parameters.baz was %+v", parameters)
 	}
 
-	readyConditionTrue := v1alpha1.BindingCondition{
-		Type:    v1alpha1.BindingConditionReady,
+	readyConditionTrue := v1alpha1.ServiceInstanceCredentialCondition{
+		Type:    v1alpha1.ServiceInstanceCredentialConditionReady,
 		Status:  v1alpha1.ConditionTrue,
 		Reason:  "ConditionReason",
 		Message: "ConditionMessage",
 	}
-	bindingServer.Status = v1alpha1.BindingStatus{
-		Conditions: []v1alpha1.BindingCondition{readyConditionTrue},
+	bindingServer.Status = v1alpha1.ServiceInstanceCredentialStatus{
+		Conditions: []v1alpha1.ServiceInstanceCredentialCondition{readyConditionTrue},
 	}
 	if _, err = bindingClient.UpdateStatus(bindingServer); err != nil {
 		return fmt.Errorf("Error updating binding: %v", err)

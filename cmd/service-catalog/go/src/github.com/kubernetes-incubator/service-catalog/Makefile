@@ -326,6 +326,8 @@ images: user-broker-image controller-manager-image apiserver-image
 
 images-all: $(addprefix arch-image-,$(ALL_ARCH))
 arch-image-%:
+	$(MAKE) clean-bin
+	$(MAKE) ARCH=$* build
 	$(MAKE) ARCH=$* images
 
 define build-and-tag # (service, image, mutable_image, prefix)

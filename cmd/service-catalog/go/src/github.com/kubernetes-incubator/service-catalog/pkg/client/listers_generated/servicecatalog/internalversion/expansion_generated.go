@@ -18,26 +18,26 @@ limitations under the License.
 
 package internalversion
 
-// BindingListerExpansion allows custom methods to be added to
-// BindingLister.
-type BindingListerExpansion interface{}
-
-// BindingNamespaceListerExpansion allows custom methods to be added to
-// BindingNamespaceLister.
-type BindingNamespaceListerExpansion interface{}
-
-// BrokerListerExpansion allows custom methods to be added to
-// BrokerLister.
-type BrokerListerExpansion interface{}
-
-// InstanceListerExpansion allows custom methods to be added to
-// InstanceLister.
-type InstanceListerExpansion interface{}
-
-// InstanceNamespaceListerExpansion allows custom methods to be added to
-// InstanceNamespaceLister.
-type InstanceNamespaceListerExpansion interface{}
+// ServiceBrokerListerExpansion allows custom methods to be added to
+// ServiceBrokerLister.
+type ServiceBrokerListerExpansion interface{}
 
 // ServiceClassListerExpansion allows custom methods to be added to
 // ServiceClassLister.
 type ServiceClassListerExpansion interface{}
+
+// ServiceInstanceListerExpansion allows custom methods to be added to
+// ServiceInstanceLister.
+type ServiceInstanceListerExpansion interface{}
+
+// ServiceInstanceNamespaceListerExpansion allows custom methods to be added to
+// ServiceInstanceNamespaceLister.
+type ServiceInstanceNamespaceListerExpansion interface{}
+
+// ServiceInstanceCredentialListerExpansion allows custom methods to be added to
+// ServiceInstanceCredentialLister.
+type ServiceInstanceCredentialListerExpansion interface{}
+
+// ServiceInstanceCredentialNamespaceListerExpansion allows custom methods to be added to
+// ServiceInstanceCredentialNamespaceLister.
+type ServiceInstanceCredentialNamespaceListerExpansion interface{}

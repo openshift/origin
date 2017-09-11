@@ -25,39 +25,47 @@ import (
 // +genclient=true
 // +nonNamespaced=true
 
-// Broker represents an entity that provides ServiceClasses for use in the
-// service catalog. Broker is backed by an OSBAPI v2 broker supporting the
+// ServiceBroker represents an entity that provides ServiceClasses for use in the
+// service catalog. ServiceBroker is backed by an OSBAPI v2 broker supporting the
 // latest minor version of the v2 major version.
-type Broker struct {
+type ServiceBroker struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	Spec   BrokerSpec
-	Status BrokerStatus
+	Spec   ServiceBrokerSpec
+	Status ServiceBrokerStatus
 }
 
-// BrokerList is a list of Brokers.
-type BrokerList struct {
+// ServiceBrokerList is a list of Brokers.
+type ServiceBrokerList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
 
-	Items []Broker
+	Items []ServiceBroker
 }
 
-// BrokerSpec represents a description of a Broker.
-type BrokerSpec struct {
-	// URL is the address used to communicate with the Broker.
+// ServiceBrokerSpec represents a description of a Broker.
+type ServiceBrokerSpec struct {
+	// URL is the address used to communicate with the ServiceBroker.
 	URL string
 
 	// AuthInfo contains the data that the service catalog should use to authenticate
-	// with the Broker.
-	AuthInfo *BrokerAuthInfo
+	// with the Service Broker.
+	AuthInfo *ServiceBrokerAuthInfo
+
+	// InsecureSkipTLSVerify disables TLS certificate verification when communicating with this Broker.
+	// This is strongly discouraged.  You should use the CABundle instead.
+	// +optional
+	InsecureSkipTLSVerify bool
+	// CABundle is a PEM encoded CA bundle which will be used to validate a Broker's serving certificate.
+	// +optional
+	CABundle []byte
 }
 
-// BrokerAuthInfo is a union type that contains information on one of the authentication methods
+// ServiceBrokerAuthInfo is a union type that contains information on one of the authentication methods
 // the the service catalog and brokers may support, according to the OpenServiceBroker API
 // specification (https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md).
-type BrokerAuthInfo struct {
+type ServiceBrokerAuthInfo struct {
 	// Basic provides configuration for basic authentication.
 	Basic *BasicAuthConfig
 	// BearerTokenAuthConfig provides configuration to send an opaque value as a bearer token.
@@ -67,14 +75,14 @@ type BrokerAuthInfo struct {
 
 	// DEPRECATED: use `Basic` field for configuring basic authentication instead.
 	// BasicAuthSecret is a reference to a Secret containing auth information the
-	// catalog should use to authenticate to this Broker using basic auth.
+	// catalog should use to authenticate to this ServiceBroker using basic auth.
 	BasicAuthSecret *v1.ObjectReference
 }
 
 // BasicAuthConfig provides config for the basic authentication.
 type BasicAuthConfig struct {
 	// SecretRef is a reference to a Secret containing information the
-	// catalog should use to authenticate to this Broker.
+	// catalog should use to authenticate to this ServiceBroker.
 	//
 	// Required at least one of the fields:
 	// - Secret.Data["username"] - username used for authentication
@@ -85,7 +93,7 @@ type BasicAuthConfig struct {
 // BearerTokenAuthConfig provides config for the bearer token authentication.
 type BearerTokenAuthConfig struct {
 	// SecretRef is a reference to a Secret containing information the
-	// catalog should use to authenticate to this Broker.
+	// catalog should use to authenticate to this ServiceBroker.
 	//
 	// Required field:
 	// - Secret.Data["token"] - bearer token for authentication
@@ -102,19 +110,19 @@ const (
 	BearerTokenKey = "token"
 )
 
-// BrokerStatus represents the current status of a Broker.
-type BrokerStatus struct {
-	Conditions []BrokerCondition
+// ServiceBrokerStatus represents the current status of a Broker.
+type ServiceBrokerStatus struct {
+	Conditions []ServiceBrokerCondition
 
-	// Checksum is the sha hash of the BrokerSpec that was last successfully
-	// reconciled against the broker.
-	Checksum *string
+	// ReconciledGeneration is the generation of the broker that was last
+	// successfully reconciled.
+	ReconciledGeneration int64
 }
 
-// BrokerCondition contains condition information for a Broker.
-type BrokerCondition struct {
+// ServiceBrokerCondition contains condition information for a Broker.
+type ServiceBrokerCondition struct {
 	// Type of the condition, currently ('Ready').
-	Type BrokerConditionType
+	Type ServiceBrokerConditionType
 
 	// Status of the condition, one of ('True', 'False', 'Unknown').
 	Status ConditionStatus
@@ -132,13 +140,13 @@ type BrokerCondition struct {
 	Message string
 }
 
-// BrokerConditionType represents a broker condition value.
-type BrokerConditionType string
+// ServiceBrokerConditionType represents a broker condition value.
+type ServiceBrokerConditionType string
 
 const (
-	// BrokerConditionReady represents the fact that a given broker condition
+	// ServiceBrokerConditionReady represents the fact that a given broker condition
 	// is in ready state.
-	BrokerConditionReady BrokerConditionType = "Ready"
+	ServiceBrokerConditionReady ServiceBrokerConditionType = "Ready"
 )
 
 // ConditionStatus represents a condition's status.
@@ -176,16 +184,16 @@ type ServiceClass struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	// BrokerName is the reference to the Broker that provides this
+	// ServiceBrokerName is the reference to the Broker that provides this
 	// ServiceClass.
 	//
 	// Immutable.
-	BrokerName string
+	ServiceBrokerName string
 
 	// Description is a short description of this ServiceClass.
 	Description string
 
-	// Bindable indicates whether a user can create bindings to an Instance
+	// Bindable indicates whether a user can create bindings to an ServiceInstance
 	// provisioned from this service. ServicePlan has an optional field called
 	// Bindable which overrides the value of this field.
 	Bindable bool
@@ -223,7 +231,7 @@ type ServiceClass struct {
 	// AlphaRequires exposes a list of Cloud Foundry-specific 'permissions'
 	// that must be granted to an instance of this service within Cloud
 	// Foundry.  These 'permissions' have no meaning within Kubernetes and an
-	// Instance provisioned from this ServiceClass will not work correctly.
+	// ServiceInstance provisioned from this ServiceClass will not work correctly.
 	AlphaRequires []string
 }
 
@@ -240,7 +248,7 @@ type ServicePlan struct {
 	// Description is a short description of this ServicePlan.
 	Description string
 
-	// Bindable indicates whether a user can create bindings to an Instance
+	// Bindable indicates whether a user can create bindings to an ServiceInstance
 	// using this ServicePlan.  If set, overrides the value of the
 	// ServiceClass.Bindable field.
 	Bindable *bool
@@ -256,54 +264,54 @@ type ServicePlan struct {
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaInstanceCreateParameterSchema is the schema for the parameters
-	// that may be supplied when provisioning a new Instance on this plan.
-	AlphaInstanceCreateParameterSchema *runtime.RawExtension
+	// AlphaServiceInstanceCreateParameterSchema is the schema for the parameters
+	// that may be supplied when provisioning a new ServiceInstance on this plan.
+	AlphaServiceInstanceCreateParameterSchema *runtime.RawExtension
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaInstanceUpdateParameterSchema is the schema for the parameters
-	// that may be updated once an Instance has been provisioned on this plan.
+	// AlphaServiceInstanceUpdateParameterSchema is the schema for the parameters
+	// that may be updated once an ServiceInstance has been provisioned on this plan.
 	// This field only has meaning if the ServiceClass is PlanUpdatable.
-	AlphaInstanceUpdateParameterSchema *runtime.RawExtension
+	AlphaServiceInstanceUpdateParameterSchema *runtime.RawExtension
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaBindingCreateParameterSchema is the schema for the parameters that
-	// may be supplied binding to an Instance on this plan.
-	AlphaBindingCreateParameterSchema *runtime.RawExtension
+	// AlphaServiceInstanceCredentialCreateParameterSchema is the schema for the parameters that
+	// may be supplied binding to an ServiceInstance on this plan.
+	AlphaServiceInstanceCredentialCreateParameterSchema *runtime.RawExtension
 }
 
-// InstanceList is a list of instances.
-type InstanceList struct {
+// ServiceInstanceList is a list of instances.
+type ServiceInstanceList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
 
-	Items []Instance
+	Items []ServiceInstance
 }
 
 // +genclient=true
 
-// Instance represents a provisioned instance of a ServiceClass.
-type Instance struct {
+// ServiceInstance represents a provisioned instance of a ServiceClass.
+type ServiceInstance struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	Spec   InstanceSpec
-	Status InstanceStatus
+	Spec   ServiceInstanceSpec
+	Status ServiceInstanceStatus
 }
 
-// InstanceSpec represents the desired state of an Instance.
-type InstanceSpec struct {
-	// ServiceClassName is the name of the ServiceClass this Instance
+// ServiceInstanceSpec represents the desired state of an Instance.
+type ServiceInstanceSpec struct {
+	// ServiceClassName is the name of the ServiceClass this ServiceInstance
 	// should be provisioned from.
 	//
 	// Immutable.
 	ServiceClassName string
 
-	// PlanName is the name of the ServicePlan this Instance should be
+	// PlanName is the name of the ServicePlan this ServiceInstance should be
 	// provisioned from.
 	PlanName string
 
@@ -330,14 +338,14 @@ type InstanceSpec struct {
 	ExternalID string
 }
 
-// InstanceStatus represents the current status of an Instance.
-type InstanceStatus struct {
-	// Conditions is an array of InstanceConditions capturing aspects of an
-	// Instance's status.
-	Conditions []InstanceCondition
+// ServiceInstanceStatus represents the current status of an Instance.
+type ServiceInstanceStatus struct {
+	// Conditions is an array of ServiceInstanceConditions capturing aspects of an
+	// ServiceInstance's status.
+	Conditions []ServiceInstanceCondition
 
 	// AsyncOpInProgress is set to true if there is an ongoing async operation
-	// against this Instance in progress.
+	// against this ServiceInstance in progress.
 	AsyncOpInProgress bool
 
 	// LastOperation is the string that the broker may have returned when
@@ -349,15 +357,15 @@ type InstanceStatus struct {
 	// the service instance.
 	DashboardURL *string
 
-	// Checksum is the checksum of the InstanceSpec that was last successfully
+	// Checksum is the checksum of the ServiceInstanceSpec that was last successfully
 	// reconciled against the broker.
 	Checksum *string
 }
 
-// InstanceCondition contains condition information about an Instance.
-type InstanceCondition struct {
+// ServiceInstanceCondition contains condition information about an Instance.
+type ServiceInstanceCondition struct {
 	// Type of the condition, currently ('Ready').
-	Type InstanceConditionType
+	Type ServiceInstanceConditionType
 
 	// Status of the condition, one of ('True', 'False', 'Unknown').
 	Status ConditionStatus
@@ -375,45 +383,45 @@ type InstanceCondition struct {
 	Message string
 }
 
-// InstanceConditionType represents a instance condition value.
-type InstanceConditionType string
+// ServiceInstanceConditionType represents a instance condition value.
+type ServiceInstanceConditionType string
 
 const (
-	// InstanceConditionReady represents that a given InstanceCondition is in
+	// ServiceInstanceConditionReady represents that a given InstanceCondition is in
 	// ready state.
-	InstanceConditionReady InstanceConditionType = "Ready"
+	ServiceInstanceConditionReady ServiceInstanceConditionType = "Ready"
 
-	// InstanceConditionFailed represents information about a final failure
+	// ServiceInstanceConditionFailed represents information about a final failure
 	// that should not be retried.
-	InstanceConditionFailed InstanceConditionType = "Failed"
+	ServiceInstanceConditionFailed ServiceInstanceConditionType = "Failed"
 )
 
-// BindingList is a list of Bindings.
-type BindingList struct {
+// ServiceInstanceCredentialList is a list of ServiceInstanceCredentials.
+type ServiceInstanceCredentialList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
 
-	Items []Binding
+	Items []ServiceInstanceCredential
 }
 
 // +genclient=true
 
-// Binding represents a "used by" relationship between an application and an
-// Instance.
-type Binding struct {
+// ServiceInstanceCredential represents a "used by" relationship between an application and an
+// ServiceInstance.
+type ServiceInstanceCredential struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
-	Spec   BindingSpec
-	Status BindingStatus
+	Spec   ServiceInstanceCredentialSpec
+	Status ServiceInstanceCredentialStatus
 }
 
-// BindingSpec represents the desired state of a Binding.
-type BindingSpec struct {
-	// InstanceRef is the reference to the Instance this Binding is to.
+// ServiceInstanceCredentialSpec represents the desired state of a ServiceInstanceCredential.
+type ServiceInstanceCredentialSpec struct {
+	// ServiceInstanceRef is the reference to the Instance this ServiceInstanceCredential is to.
 	//
 	// Immutable.
-	InstanceRef v1.LocalObjectReference
+	ServiceInstanceRef v1.LocalObjectReference
 
 	// Parameters is a set of the parameters to be
 	// passed to the underlying broker.
@@ -432,8 +440,8 @@ type BindingSpec struct {
 	// +optional
 	ParametersFrom []ParametersFromSource
 
-	// SecretName is the name of the secret to create in the Binding's
-	// namespace that will hold the credentials associated with the Binding.
+	// SecretName is the name of the secret to create in the ServiceInstanceCredential's
+	// namespace that will hold the credentials associated with the ServiceInstanceCredential.
 	SecretName string
 
 	// ExternalID is the identity of this object for use with the OSB API.
@@ -442,19 +450,19 @@ type BindingSpec struct {
 	ExternalID string
 }
 
-// BindingStatus represents the current status of a Binding.
-type BindingStatus struct {
-	Conditions []BindingCondition
+// ServiceInstanceCredentialStatus represents the current status of a ServiceInstanceCredential.
+type ServiceInstanceCredentialStatus struct {
+	Conditions []ServiceInstanceCredentialCondition
 
-	// Checksum is the checksum of the BindingSpec that was last successfully
+	// Checksum is the checksum of the ServiceInstanceCredentialSpec that was last successfully
 	// reconciled against the broker.
 	Checksum *string
 }
 
-// BindingCondition condition information for a Binding.
-type BindingCondition struct {
+// ServiceInstanceCredentialCondition condition information for a ServiceInstanceCredential.
+type ServiceInstanceCredentialCondition struct {
 	// Type of the condition, currently ('Ready').
-	Type BindingConditionType
+	Type ServiceInstanceCredentialConditionType
 
 	// Status of the condition, one of ('True', 'False', 'Unknown').
 	Status ConditionStatus
@@ -472,16 +480,16 @@ type BindingCondition struct {
 	Message string
 }
 
-// BindingConditionType represents a BindingCondition value.
-type BindingConditionType string
+// ServiceInstanceCredentialConditionType represents a ServiceInstanceCredentialCondition value.
+type ServiceInstanceCredentialConditionType string
 
 const (
-	// BindingConditionReady represents a BindingCondition is in ready state.
-	BindingConditionReady BindingConditionType = "Ready"
+	// ServiceInstanceCredentialConditionReady represents a ServiceInstanceCredentialCondition is in ready state.
+	ServiceInstanceCredentialConditionReady ServiceInstanceCredentialConditionType = "Ready"
 
-	// BindingConditionFailed represents a BindingCondition that has failed
+	// ServiceInstanceCredentialConditionFailed represents a ServiceInstanceCredentialCondition that has failed
 	// completely and should not be retried.
-	BindingConditionFailed BindingConditionType = "Failed"
+	ServiceInstanceCredentialConditionFailed ServiceInstanceCredentialConditionType = "Failed"
 )
 
 // These are internal finalizer values to service catalog, must be qualified name.

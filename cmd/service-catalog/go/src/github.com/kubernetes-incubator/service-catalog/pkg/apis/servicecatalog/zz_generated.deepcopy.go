@@ -38,26 +38,26 @@ func RegisterDeepCopies(scheme *runtime.Scheme) error {
 	return scheme.AddGeneratedDeepCopyFuncs(
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BasicAuthConfig, InType: reflect.TypeOf(&BasicAuthConfig{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BearerTokenAuthConfig, InType: reflect.TypeOf(&BearerTokenAuthConfig{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_Binding, InType: reflect.TypeOf(&Binding{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingCondition, InType: reflect.TypeOf(&BindingCondition{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingList, InType: reflect.TypeOf(&BindingList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingSpec, InType: reflect.TypeOf(&BindingSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BindingStatus, InType: reflect.TypeOf(&BindingStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_Broker, InType: reflect.TypeOf(&Broker{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerAuthInfo, InType: reflect.TypeOf(&BrokerAuthInfo{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerCondition, InType: reflect.TypeOf(&BrokerCondition{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerList, InType: reflect.TypeOf(&BrokerList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerSpec, InType: reflect.TypeOf(&BrokerSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_BrokerStatus, InType: reflect.TypeOf(&BrokerStatus{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_Instance, InType: reflect.TypeOf(&Instance{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_InstanceCondition, InType: reflect.TypeOf(&InstanceCondition{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_InstanceList, InType: reflect.TypeOf(&InstanceList{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_InstanceSpec, InType: reflect.TypeOf(&InstanceSpec{})},
-		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_InstanceStatus, InType: reflect.TypeOf(&InstanceStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ParametersFromSource, InType: reflect.TypeOf(&ParametersFromSource{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_SecretKeyReference, InType: reflect.TypeOf(&SecretKeyReference{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceBroker, InType: reflect.TypeOf(&ServiceBroker{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceBrokerAuthInfo, InType: reflect.TypeOf(&ServiceBrokerAuthInfo{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceBrokerCondition, InType: reflect.TypeOf(&ServiceBrokerCondition{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceBrokerList, InType: reflect.TypeOf(&ServiceBrokerList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceBrokerSpec, InType: reflect.TypeOf(&ServiceBrokerSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceBrokerStatus, InType: reflect.TypeOf(&ServiceBrokerStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceClass, InType: reflect.TypeOf(&ServiceClass{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceClassList, InType: reflect.TypeOf(&ServiceClassList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstance, InType: reflect.TypeOf(&ServiceInstance{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceCondition, InType: reflect.TypeOf(&ServiceInstanceCondition{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceCredential, InType: reflect.TypeOf(&ServiceInstanceCredential{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceCredentialCondition, InType: reflect.TypeOf(&ServiceInstanceCredentialCondition{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceCredentialList, InType: reflect.TypeOf(&ServiceInstanceCredentialList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceCredentialSpec, InType: reflect.TypeOf(&ServiceInstanceCredentialSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceCredentialStatus, InType: reflect.TypeOf(&ServiceInstanceCredentialStatus{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceList, InType: reflect.TypeOf(&ServiceInstanceList{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceSpec, InType: reflect.TypeOf(&ServiceInstanceSpec{})},
+		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServiceInstanceStatus, InType: reflect.TypeOf(&ServiceInstanceStatus{})},
 		conversion.GeneratedDeepCopyFunc{Fn: DeepCopy_servicecatalog_ServicePlan, InType: reflect.TypeOf(&ServicePlan{})},
 	)
 }
@@ -92,134 +92,57 @@ func DeepCopy_servicecatalog_BearerTokenAuthConfig(in interface{}, out interface
 	}
 }
 
-// DeepCopy_servicecatalog_Binding is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_Binding(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_ParametersFromSource is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ParametersFromSource(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*Binding)
-		out := out.(*Binding)
+		in := in.(*ParametersFromSource)
+		out := out.(*ParametersFromSource)
 		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
-		}
-		if err := DeepCopy_servicecatalog_BindingSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_servicecatalog_BindingStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_BindingCondition is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BindingCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*BindingCondition)
-		out := out.(*BindingCondition)
-		*out = *in
-		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_BindingList is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BindingList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*BindingList)
-		out := out.(*BindingList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]Binding, len(*in))
-			for i := range *in {
-				if err := DeepCopy_servicecatalog_Binding(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_BindingSpec is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BindingSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*BindingSpec)
-		out := out.(*BindingSpec)
-		*out = *in
-		if in.Parameters != nil {
-			in, out := &in.Parameters, &out.Parameters
-			if newVal, err := c.DeepCopy(*in); err != nil {
-				return err
-			} else {
-				*out = newVal.(*runtime.RawExtension)
-			}
-		}
-		if in.ParametersFrom != nil {
-			in, out := &in.ParametersFrom, &out.ParametersFrom
-			*out = make([]ParametersFromSource, len(*in))
-			for i := range *in {
-				if err := DeepCopy_servicecatalog_ParametersFromSource(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_BindingStatus is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BindingStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*BindingStatus)
-		out := out.(*BindingStatus)
-		*out = *in
-		if in.Conditions != nil {
-			in, out := &in.Conditions, &out.Conditions
-			*out = make([]BindingCondition, len(*in))
-			for i := range *in {
-				if err := DeepCopy_servicecatalog_BindingCondition(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.Checksum != nil {
-			in, out := &in.Checksum, &out.Checksum
-			*out = new(string)
+		if in.SecretKeyRef != nil {
+			in, out := &in.SecretKeyRef, &out.SecretKeyRef
+			*out = new(SecretKeyReference)
 			**out = **in
 		}
 		return nil
 	}
 }
 
-// DeepCopy_servicecatalog_Broker is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_Broker(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_SecretKeyReference is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_SecretKeyReference(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*Broker)
-		out := out.(*Broker)
+		in := in.(*SecretKeyReference)
+		out := out.(*SecretKeyReference)
+		*out = *in
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceBroker is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceBroker(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceBroker)
+		out := out.(*ServiceBroker)
 		*out = *in
 		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
 			return err
 		} else {
 			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
-		if err := DeepCopy_servicecatalog_BrokerSpec(&in.Spec, &out.Spec, c); err != nil {
+		if err := DeepCopy_servicecatalog_ServiceBrokerSpec(&in.Spec, &out.Spec, c); err != nil {
 			return err
 		}
-		if err := DeepCopy_servicecatalog_BrokerStatus(&in.Status, &out.Status, c); err != nil {
+		if err := DeepCopy_servicecatalog_ServiceBrokerStatus(&in.Status, &out.Status, c); err != nil {
 			return err
 		}
 		return nil
 	}
 }
 
-// DeepCopy_servicecatalog_BrokerAuthInfo is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BrokerAuthInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_ServiceBrokerAuthInfo is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceBrokerAuthInfo(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*BrokerAuthInfo)
-		out := out.(*BrokerAuthInfo)
+		in := in.(*ServiceBrokerAuthInfo)
+		out := out.(*ServiceBrokerAuthInfo)
 		*out = *in
 		if in.Basic != nil {
 			in, out := &in.Basic, &out.Basic
@@ -244,28 +167,28 @@ func DeepCopy_servicecatalog_BrokerAuthInfo(in interface{}, out interface{}, c *
 	}
 }
 
-// DeepCopy_servicecatalog_BrokerCondition is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BrokerCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_ServiceBrokerCondition is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceBrokerCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*BrokerCondition)
-		out := out.(*BrokerCondition)
+		in := in.(*ServiceBrokerCondition)
+		out := out.(*ServiceBrokerCondition)
 		*out = *in
 		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
 		return nil
 	}
 }
 
-// DeepCopy_servicecatalog_BrokerList is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BrokerList(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_ServiceBrokerList is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceBrokerList(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*BrokerList)
-		out := out.(*BrokerList)
+		in := in.(*ServiceBrokerList)
+		out := out.(*ServiceBrokerList)
 		*out = *in
 		if in.Items != nil {
 			in, out := &in.Items, &out.Items
-			*out = make([]Broker, len(*in))
+			*out = make([]ServiceBroker, len(*in))
 			for i := range *in {
-				if err := DeepCopy_servicecatalog_Broker(&(*in)[i], &(*out)[i], c); err != nil {
+				if err := DeepCopy_servicecatalog_ServiceBroker(&(*in)[i], &(*out)[i], c); err != nil {
 					return err
 				}
 			}
@@ -274,180 +197,43 @@ func DeepCopy_servicecatalog_BrokerList(in interface{}, out interface{}, c *conv
 	}
 }
 
-// DeepCopy_servicecatalog_BrokerSpec is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BrokerSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_ServiceBrokerSpec is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceBrokerSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*BrokerSpec)
-		out := out.(*BrokerSpec)
+		in := in.(*ServiceBrokerSpec)
+		out := out.(*ServiceBrokerSpec)
 		*out = *in
 		if in.AuthInfo != nil {
 			in, out := &in.AuthInfo, &out.AuthInfo
-			*out = new(BrokerAuthInfo)
-			if err := DeepCopy_servicecatalog_BrokerAuthInfo(*in, *out, c); err != nil {
+			*out = new(ServiceBrokerAuthInfo)
+			if err := DeepCopy_servicecatalog_ServiceBrokerAuthInfo(*in, *out, c); err != nil {
 				return err
 			}
 		}
+		if in.CABundle != nil {
+			in, out := &in.CABundle, &out.CABundle
+			*out = make([]byte, len(*in))
+			copy(*out, *in)
+		}
 		return nil
 	}
 }
 
-// DeepCopy_servicecatalog_BrokerStatus is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_BrokerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+// DeepCopy_servicecatalog_ServiceBrokerStatus is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceBrokerStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
-		in := in.(*BrokerStatus)
-		out := out.(*BrokerStatus)
+		in := in.(*ServiceBrokerStatus)
+		out := out.(*ServiceBrokerStatus)
 		*out = *in
 		if in.Conditions != nil {
 			in, out := &in.Conditions, &out.Conditions
-			*out = make([]BrokerCondition, len(*in))
+			*out = make([]ServiceBrokerCondition, len(*in))
 			for i := range *in {
-				if err := DeepCopy_servicecatalog_BrokerCondition(&(*in)[i], &(*out)[i], c); err != nil {
+				if err := DeepCopy_servicecatalog_ServiceBrokerCondition(&(*in)[i], &(*out)[i], c); err != nil {
 					return err
 				}
 			}
 		}
-		if in.Checksum != nil {
-			in, out := &in.Checksum, &out.Checksum
-			*out = new(string)
-			**out = **in
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_Instance is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_Instance(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*Instance)
-		out := out.(*Instance)
-		*out = *in
-		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
-			return err
-		} else {
-			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
-		}
-		if err := DeepCopy_servicecatalog_InstanceSpec(&in.Spec, &out.Spec, c); err != nil {
-			return err
-		}
-		if err := DeepCopy_servicecatalog_InstanceStatus(&in.Status, &out.Status, c); err != nil {
-			return err
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_InstanceCondition is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_InstanceCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*InstanceCondition)
-		out := out.(*InstanceCondition)
-		*out = *in
-		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_InstanceList is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_InstanceList(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*InstanceList)
-		out := out.(*InstanceList)
-		*out = *in
-		if in.Items != nil {
-			in, out := &in.Items, &out.Items
-			*out = make([]Instance, len(*in))
-			for i := range *in {
-				if err := DeepCopy_servicecatalog_Instance(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_InstanceSpec is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_InstanceSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*InstanceSpec)
-		out := out.(*InstanceSpec)
-		*out = *in
-		if in.Parameters != nil {
-			in, out := &in.Parameters, &out.Parameters
-			if newVal, err := c.DeepCopy(*in); err != nil {
-				return err
-			} else {
-				*out = newVal.(*runtime.RawExtension)
-			}
-		}
-		if in.ParametersFrom != nil {
-			in, out := &in.ParametersFrom, &out.ParametersFrom
-			*out = make([]ParametersFromSource, len(*in))
-			for i := range *in {
-				if err := DeepCopy_servicecatalog_ParametersFromSource(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_InstanceStatus is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_InstanceStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*InstanceStatus)
-		out := out.(*InstanceStatus)
-		*out = *in
-		if in.Conditions != nil {
-			in, out := &in.Conditions, &out.Conditions
-			*out = make([]InstanceCondition, len(*in))
-			for i := range *in {
-				if err := DeepCopy_servicecatalog_InstanceCondition(&(*in)[i], &(*out)[i], c); err != nil {
-					return err
-				}
-			}
-		}
-		if in.LastOperation != nil {
-			in, out := &in.LastOperation, &out.LastOperation
-			*out = new(string)
-			**out = **in
-		}
-		if in.DashboardURL != nil {
-			in, out := &in.DashboardURL, &out.DashboardURL
-			*out = new(string)
-			**out = **in
-		}
-		if in.Checksum != nil {
-			in, out := &in.Checksum, &out.Checksum
-			*out = new(string)
-			**out = **in
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_ParametersFromSource is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_ParametersFromSource(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*ParametersFromSource)
-		out := out.(*ParametersFromSource)
-		*out = *in
-		if in.SecretKeyRef != nil {
-			in, out := &in.SecretKeyRef, &out.SecretKeyRef
-			*out = new(SecretKeyReference)
-			**out = **in
-		}
-		return nil
-	}
-}
-
-// DeepCopy_servicecatalog_SecretKeyReference is an autogenerated deepcopy function.
-func DeepCopy_servicecatalog_SecretKeyReference(in interface{}, out interface{}, c *conversion.Cloner) error {
-	{
-		in := in.(*SecretKeyReference)
-		out := out.(*SecretKeyReference)
-		*out = *in
 		return nil
 	}
 }
@@ -513,6 +299,220 @@ func DeepCopy_servicecatalog_ServiceClassList(in interface{}, out interface{}, c
 	}
 }
 
+// DeepCopy_servicecatalog_ServiceInstance is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstance(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstance)
+		out := out.(*ServiceInstance)
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
+			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
+		}
+		if err := DeepCopy_servicecatalog_ServiceInstanceSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_servicecatalog_ServiceInstanceStatus(&in.Status, &out.Status, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceCondition is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceCondition)
+		out := out.(*ServiceInstanceCondition)
+		*out = *in
+		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceCredential is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceCredential(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceCredential)
+		out := out.(*ServiceInstanceCredential)
+		*out = *in
+		if newVal, err := c.DeepCopy(&in.ObjectMeta); err != nil {
+			return err
+		} else {
+			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
+		}
+		if err := DeepCopy_servicecatalog_ServiceInstanceCredentialSpec(&in.Spec, &out.Spec, c); err != nil {
+			return err
+		}
+		if err := DeepCopy_servicecatalog_ServiceInstanceCredentialStatus(&in.Status, &out.Status, c); err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceCredentialCondition is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceCredentialCondition(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceCredentialCondition)
+		out := out.(*ServiceInstanceCredentialCondition)
+		*out = *in
+		out.LastTransitionTime = in.LastTransitionTime.DeepCopy()
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceCredentialList is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceCredentialList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceCredentialList)
+		out := out.(*ServiceInstanceCredentialList)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]ServiceInstanceCredential, len(*in))
+			for i := range *in {
+				if err := DeepCopy_servicecatalog_ServiceInstanceCredential(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceCredentialSpec is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceCredentialSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceCredentialSpec)
+		out := out.(*ServiceInstanceCredentialSpec)
+		*out = *in
+		if in.Parameters != nil {
+			in, out := &in.Parameters, &out.Parameters
+			if newVal, err := c.DeepCopy(*in); err != nil {
+				return err
+			} else {
+				*out = newVal.(*runtime.RawExtension)
+			}
+		}
+		if in.ParametersFrom != nil {
+			in, out := &in.ParametersFrom, &out.ParametersFrom
+			*out = make([]ParametersFromSource, len(*in))
+			for i := range *in {
+				if err := DeepCopy_servicecatalog_ParametersFromSource(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceCredentialStatus is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceCredentialStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceCredentialStatus)
+		out := out.(*ServiceInstanceCredentialStatus)
+		*out = *in
+		if in.Conditions != nil {
+			in, out := &in.Conditions, &out.Conditions
+			*out = make([]ServiceInstanceCredentialCondition, len(*in))
+			for i := range *in {
+				if err := DeepCopy_servicecatalog_ServiceInstanceCredentialCondition(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.Checksum != nil {
+			in, out := &in.Checksum, &out.Checksum
+			*out = new(string)
+			**out = **in
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceList is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceList(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceList)
+		out := out.(*ServiceInstanceList)
+		*out = *in
+		if in.Items != nil {
+			in, out := &in.Items, &out.Items
+			*out = make([]ServiceInstance, len(*in))
+			for i := range *in {
+				if err := DeepCopy_servicecatalog_ServiceInstance(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceSpec is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceSpec(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceSpec)
+		out := out.(*ServiceInstanceSpec)
+		*out = *in
+		if in.Parameters != nil {
+			in, out := &in.Parameters, &out.Parameters
+			if newVal, err := c.DeepCopy(*in); err != nil {
+				return err
+			} else {
+				*out = newVal.(*runtime.RawExtension)
+			}
+		}
+		if in.ParametersFrom != nil {
+			in, out := &in.ParametersFrom, &out.ParametersFrom
+			*out = make([]ParametersFromSource, len(*in))
+			for i := range *in {
+				if err := DeepCopy_servicecatalog_ParametersFromSource(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+}
+
+// DeepCopy_servicecatalog_ServiceInstanceStatus is an autogenerated deepcopy function.
+func DeepCopy_servicecatalog_ServiceInstanceStatus(in interface{}, out interface{}, c *conversion.Cloner) error {
+	{
+		in := in.(*ServiceInstanceStatus)
+		out := out.(*ServiceInstanceStatus)
+		*out = *in
+		if in.Conditions != nil {
+			in, out := &in.Conditions, &out.Conditions
+			*out = make([]ServiceInstanceCondition, len(*in))
+			for i := range *in {
+				if err := DeepCopy_servicecatalog_ServiceInstanceCondition(&(*in)[i], &(*out)[i], c); err != nil {
+					return err
+				}
+			}
+		}
+		if in.LastOperation != nil {
+			in, out := &in.LastOperation, &out.LastOperation
+			*out = new(string)
+			**out = **in
+		}
+		if in.DashboardURL != nil {
+			in, out := &in.DashboardURL, &out.DashboardURL
+			*out = new(string)
+			**out = **in
+		}
+		if in.Checksum != nil {
+			in, out := &in.Checksum, &out.Checksum
+			*out = new(string)
+			**out = **in
+		}
+		return nil
+	}
+}
+
 // DeepCopy_servicecatalog_ServicePlan is an autogenerated deepcopy function.
 func DeepCopy_servicecatalog_ServicePlan(in interface{}, out interface{}, c *conversion.Cloner) error {
 	{
@@ -532,24 +532,24 @@ func DeepCopy_servicecatalog_ServicePlan(in interface{}, out interface{}, c *con
 				*out = newVal.(*runtime.RawExtension)
 			}
 		}
-		if in.AlphaInstanceCreateParameterSchema != nil {
-			in, out := &in.AlphaInstanceCreateParameterSchema, &out.AlphaInstanceCreateParameterSchema
+		if in.AlphaServiceInstanceCreateParameterSchema != nil {
+			in, out := &in.AlphaServiceInstanceCreateParameterSchema, &out.AlphaServiceInstanceCreateParameterSchema
 			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
 			} else {
 				*out = newVal.(*runtime.RawExtension)
 			}
 		}
-		if in.AlphaInstanceUpdateParameterSchema != nil {
-			in, out := &in.AlphaInstanceUpdateParameterSchema, &out.AlphaInstanceUpdateParameterSchema
+		if in.AlphaServiceInstanceUpdateParameterSchema != nil {
+			in, out := &in.AlphaServiceInstanceUpdateParameterSchema, &out.AlphaServiceInstanceUpdateParameterSchema
 			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
 			} else {
 				*out = newVal.(*runtime.RawExtension)
 			}
 		}
-		if in.AlphaBindingCreateParameterSchema != nil {
-			in, out := &in.AlphaBindingCreateParameterSchema, &out.AlphaBindingCreateParameterSchema
+		if in.AlphaServiceInstanceCredentialCreateParameterSchema != nil {
+			in, out := &in.AlphaServiceInstanceCredentialCreateParameterSchema, &out.AlphaServiceInstanceCredentialCreateParameterSchema
 			if newVal, err := c.DeepCopy(*in); err != nil {
 				return err
 			} else {

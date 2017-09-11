@@ -24,7 +24,7 @@ import (
 
 func TestNewListNilField(t *testing.T) {
 	newList := NewList()
-	realObj := newList.(*servicecatalog.InstanceList)
+	realObj := newList.(*servicecatalog.ServiceInstanceList)
 
 	if realObj.Items == nil {
 		t.Fatalf("nil incorrectly set on Items field")

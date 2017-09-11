@@ -30,28 +30,28 @@ import (
 	time "time"
 )
 
-// BindingInformer provides access to a shared informer and lister for
-// Bindings.
-type BindingInformer interface {
+// ServiceInstanceInformer provides access to a shared informer and lister for
+// ServiceInstances.
+type ServiceInstanceInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() internalversion.BindingLister
+	Lister() internalversion.ServiceInstanceLister
 }
 
-type bindingInformer struct {
+type serviceInstanceInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newBindingInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newServiceInstanceInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Servicecatalog().Bindings(v1.NamespaceAll).List(options)
+				return client.Servicecatalog().ServiceInstances(v1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Servicecatalog().Bindings(v1.NamespaceAll).Watch(options)
+				return client.Servicecatalog().ServiceInstances(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&servicecatalog.Binding{},
+		&servicecatalog.ServiceInstance{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -59,10 +59,10 @@ func newBindingInformer(client internalclientset.Interface, resyncPeriod time.Du
 	return sharedIndexInformer
 }
 
-func (f *bindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog.Binding{}, newBindingInformer)
+func (f *serviceInstanceInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&servicecatalog.ServiceInstance{}, newServiceInstanceInformer)
 }
 
-func (f *bindingInformer) Lister() internalversion.BindingLister {
-	return internalversion.NewBindingLister(f.Informer().GetIndexer())
+func (f *serviceInstanceInformer) Lister() internalversion.ServiceInstanceLister {
+	return internalversion.NewServiceInstanceLister(f.Informer().GetIndexer())
 }

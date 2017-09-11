@@ -1,5 +1,5 @@
 apiVersion: servicecatalog.k8s.io/v1alpha1
-kind: Instance
+kind: ServiceInstance
 metadata:
   name: ups-instance
   namespace: test-ns

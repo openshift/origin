@@ -9,7 +9,7 @@ import (
 // supported.
 type AuthConfig struct {
 	BasicAuthConfig *BasicAuthConfig
-	BearerConfig *BearerConfig
+	BearerConfig    *BearerConfig
 }
 
 // BasicAuthConfig represents a set of basic auth credentials.
@@ -61,6 +61,9 @@ type ClientConfiguration struct {
 	// any request parameters or request or response fields that correspond to
 	// alpha features.
 	EnableAlphaFeatures bool
+	// CAData holds PEM-encoded bytes (typically read from a root certificates bundle).
+	// This CA certificate will be added to any specified in TLSConfig.RootCAs.
+	CAData []byte
 }
 
 // DefaultClientConfiguration returns a default ClientConfiguration:

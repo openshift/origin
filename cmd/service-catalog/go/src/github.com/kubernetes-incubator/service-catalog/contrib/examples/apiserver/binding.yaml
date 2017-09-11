@@ -1,5 +1,5 @@
 apiVersion: servicecatalog.k8s.io/v1alpha1
-kind: Binding
+kind: ServiceInstanceCredential
 metadata:
   name: test-binding
   namespace: test-ns
