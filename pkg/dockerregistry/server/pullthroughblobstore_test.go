@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -213,57 +212,49 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	}
 
 	dgst := digest.FromBytes(blob1Content)
-	blob1Storage := map[digest.Digest][]byte{
-		dgst: blob1Content,
-	}
 
 	// start regular HTTP server
+	remoteRegistryHandler := &registrytest.RegistryMockHandler{
+		repoName: {
+			Blobs: registrytest.TaggedHandlers{
+				{
+					Tags: []string{dgst.String()},
+					Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						w.Header().Set("Content-Length", fmt.Sprintf("%d", len(blob1Content)))
+						if r.Method == "HEAD" {
+							w.Header().Set("Docker-Content-Digest", dgst.String())
+							w.WriteHeader(http.StatusOK)
+							return
+						} else {
+							// Important!
+							//
+							// We need to return any return code between 200 and 399, expept 200 and 206.
+							// https://github.com/docker/distribution/blob/master/registry/client/transport/http_reader.go#L192
+							//
+							// In this case the docker client library will make a not truly
+							// seekable response.
+							// https://github.com/docker/distribution/blob/master/registry/client/transport/http_reader.go#L239
+							w.WriteHeader(http.StatusNonAuthoritativeInfo)
+						}
+						w.Write(blob1Content)
+						return
+					}),
+				},
+			},
+			Manifests: registrytest.TaggedHandlers{
+				{
+					Tags:    []string{"latest", etcdDigest},
+					Handler: registrytest.ManifestServer([]byte(etcdManifest)),
+				},
+			},
+		},
+	}
 	remoteRegistryServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		t.Logf("External registry got %s %s", r.Method, r.URL.Path)
 
 		w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
 
-		switch r.URL.Path {
-		case "/v2/":
-			w.Write([]byte(`{}`))
-		case "/v2/" + repoName + "/tags/list":
-			w.Write([]byte("{\"name\": \"" + repoName + "\", \"tags\": [\"latest\"]}"))
-		case "/v2/" + repoName + "/manifests/latest", "/v2/" + repoName + "/manifests/" + etcdDigest:
-			if r.Method == "HEAD" {
-				w.Header().Set("Content-Length", fmt.Sprintf("%d", len(etcdManifest)))
-				w.Header().Set("Docker-Content-Digest", etcdDigest)
-				w.WriteHeader(http.StatusOK)
-			} else {
-				w.Write([]byte(etcdManifest))
-			}
-		default:
-			if strings.HasPrefix(r.URL.Path, "/v2/"+repoName+"/blobs/") {
-				for dgst, payload := range blob1Storage {
-					if r.URL.Path != "/v2/"+repoName+"/blobs/"+dgst.String() {
-						continue
-					}
-					w.Header().Set("Content-Length", fmt.Sprintf("%d", len(payload)))
-					if r.Method == "HEAD" {
-						w.Header().Set("Docker-Content-Digest", dgst.String())
-						w.WriteHeader(http.StatusOK)
-						return
-					} else {
-						// Important!
-						//
-						// We need to return any return code between 200 and 399, expept 200 and 206.
-						// https://github.com/docker/distribution/blob/master/registry/client/transport/http_reader.go#L192
-						//
-						// In this case the docker client library will make a not truly
-						// seekable response.
-						// https://github.com/docker/distribution/blob/master/registry/client/transport/http_reader.go#L239
-						w.WriteHeader(http.StatusAccepted)
-					}
-					w.Write(payload)
-					return
-				}
-			}
-			t.Fatalf("unexpected request %s: %#v", r.URL.Path, r)
-		}
+		remoteRegistryHandler.ServeHTTP(w, r)
 	}))
 
 	serverURL, err := url.Parse(remoteRegistryServer.URL)
