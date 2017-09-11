@@ -15,4 +15,4 @@ limitations under the License.
 */
 
 // +groupName=testgroup.k8s.io
-package testgroup // import "k8s.io/kube-gen/cmd/client-gen/test_apis/testgroup"
+package testgroup // import "k8s.io/code-generator/cmd/client-gen/test_apis/testgroup"

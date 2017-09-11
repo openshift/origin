@@ -26,12 +26,12 @@ import (
 	"k8s.io/gengo/generator"
 	"k8s.io/gengo/namer"
 	"k8s.io/gengo/types"
-	clientgenargs "k8s.io/kube-gen/cmd/client-gen/args"
-	"k8s.io/kube-gen/cmd/client-gen/generators/fake"
-	"k8s.io/kube-gen/cmd/client-gen/generators/scheme"
-	"k8s.io/kube-gen/cmd/client-gen/generators/util"
-	"k8s.io/kube-gen/cmd/client-gen/path"
-	clientgentypes "k8s.io/kube-gen/cmd/client-gen/types"
+	clientgenargs "k8s.io/code-generator/cmd/client-gen/args"
+	"k8s.io/code-generator/cmd/client-gen/generators/fake"
+	"k8s.io/code-generator/cmd/client-gen/generators/scheme"
+	"k8s.io/code-generator/cmd/client-gen/generators/util"
+	"k8s.io/code-generator/cmd/client-gen/path"
+	clientgentypes "k8s.io/code-generator/cmd/client-gen/types"
 
 	"github.com/golang/glog"
 )

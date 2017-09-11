@@ -20,7 +20,7 @@ set -o pipefail
 
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")/..
 SCRIPT_BASE=${SCRIPT_ROOT}/../..
-KUBEGEN_PKG=${KUBEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/kube-gen 2>/dev/null || echo k8s.io/kube-gen)}
+KUBEGEN_PKG=${KUBEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo k8s.io/code-generator)}
 
 if LANG=C sed --help 2>&1 | grep -q GNU; then
   SED="sed"
