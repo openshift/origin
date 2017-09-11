@@ -25,17 +25,17 @@ import (
 	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/unversioned"
 )
 
-func bindingWithFalseReadyCondition() *servicecatalog.Binding {
-	return &servicecatalog.Binding{
-		Spec: servicecatalog.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+func bindingWithFalseReadyCondition() *servicecatalog.ServiceInstanceCredential {
+	return &servicecatalog.ServiceInstanceCredential{
+		Spec: servicecatalog.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: "some-string",
 			},
 		},
-		Status: servicecatalog.BindingStatus{
-			Conditions: []servicecatalog.BindingCondition{
+		Status: servicecatalog.ServiceInstanceCredentialStatus{
+			Conditions: []servicecatalog.ServiceInstanceCredentialCondition{
 				{
-					Type:   servicecatalog.BindingConditionReady,
+					Type:   servicecatalog.ServiceInstanceCredentialConditionReady,
 					Status: servicecatalog.ConditionFalse,
 				},
 			},
@@ -43,17 +43,17 @@ func bindingWithFalseReadyCondition() *servicecatalog.Binding {
 	}
 }
 
-func bindingWithTrueReadyCondition() *servicecatalog.Binding {
-	return &servicecatalog.Binding{
-		Spec: servicecatalog.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+func bindingWithTrueReadyCondition() *servicecatalog.ServiceInstanceCredential {
+	return &servicecatalog.ServiceInstanceCredential{
+		Spec: servicecatalog.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: "some-string",
 			},
 		},
-		Status: servicecatalog.BindingStatus{
-			Conditions: []servicecatalog.BindingCondition{
+		Status: servicecatalog.ServiceInstanceCredentialStatus{
+			Conditions: []servicecatalog.ServiceInstanceCredentialCondition{
 				{
-					Type:   servicecatalog.BindingConditionReady,
+					Type:   servicecatalog.ServiceInstanceCredentialConditionReady,
 					Status: servicecatalog.ConditionTrue,
 				},
 			},
@@ -64,8 +64,8 @@ func bindingWithTrueReadyCondition() *servicecatalog.Binding {
 func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
 	cases := []struct {
 		name                string
-		old                 *servicecatalog.Binding
-		newer               *servicecatalog.Binding
+		old                 *servicecatalog.ServiceInstanceCredential
+		newer               *servicecatalog.ServiceInstanceCredential
 		shouldChecksum      bool
 		checksumShouldBeSet bool
 	}{
@@ -78,7 +78,7 @@ func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
 		},
 		{
 			name: "not ready -> not ready, checksum already set",
-			old: func() *servicecatalog.Binding {
+			old: func() *servicecatalog.ServiceInstanceCredential {
 				b := bindingWithFalseReadyCondition()
 				cs := "22081-9471-471"
 				b.Status.Checksum = &cs
@@ -106,7 +106,7 @@ func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
 				continue
 			}
 
-			if e, a := checksum.BindingSpecChecksum(tc.newer.Spec), *tc.newer.Status.Checksum; e != a {
+			if e, a := checksum.ServiceInstanceCredentialSpecChecksum(tc.newer.Spec), *tc.newer.Status.Checksum; e != a {
 				t.Errorf("%v: Checksum was incorrect; expected %v got %v", tc.name, e, a)
 			}
 		} else if tc.checksumShouldBeSet != (tc.newer.Status.Checksum != nil) {

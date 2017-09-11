@@ -28,8 +28,8 @@ import (
 )
 
 func TestStripNamespacesFromList(t *testing.T) {
-	lst := sc.BrokerList{
-		Items: []sc.Broker{
+	lst := sc.ServiceBrokerList{
+		Items: []sc.ServiceBroker{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "testns1",
@@ -59,7 +59,7 @@ func TestGetAllNamespaces(t *testing.T) {
 		ns1Name = "ns1"
 	)
 	cl := fake.NewRESTClient(func() runtime.Object {
-		return &sc.Broker{}
+		return &sc.ServiceBroker{}
 	})
 	nsList, err := getAllNamespaces(cl)
 	if err != nil {
@@ -88,10 +88,10 @@ func TestListResource(t *testing.T) {
 	)
 
 	cl := fake.NewRESTClient(func() runtime.Object {
-		return &sc.Broker{}
+		return &sc.ServiceBroker{}
 	})
-	listObj := sc.BrokerList{TypeMeta: newTypeMeta(kind)}
-	codec, err := testapi.GetCodecForObject(&sc.BrokerList{TypeMeta: newTypeMeta(kind)})
+	listObj := sc.ServiceBrokerList{TypeMeta: newTypeMeta(kind)}
+	codec, err := testapi.GetCodecForObject(&sc.ServiceBrokerList{TypeMeta: newTypeMeta(kind)})
 	if err != nil {
 		t.Fatalf("error getting codec (%s)", err)
 	}
@@ -102,11 +102,11 @@ func TestListResource(t *testing.T) {
 	if len(objs) != 0 {
 		t.Fatalf("expected 0 objects returned, got %d instead", len(objs))
 	}
-	cl.Storage.Set(ns, ServiceBrokerKind.URLName(), "broker1", &sc.Broker{
+	cl.Storage.Set(ns, ServiceBrokerKind.URLName(), "broker1", &sc.ServiceBroker{
 		TypeMeta:   newTypeMeta(kind),
 		ObjectMeta: metav1.ObjectMeta{Name: "broker1"},
 	})
-	cl.Storage.Set(ns, ServiceBrokerKind.URLName(), "broker2", &sc.Broker{
+	cl.Storage.Set(ns, ServiceBrokerKind.URLName(), "broker2", &sc.ServiceBroker{
 		TypeMeta:   newTypeMeta(kind),
 		ObjectMeta: metav1.ObjectMeta{Name: "broker2"},
 	})

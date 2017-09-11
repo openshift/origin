@@ -68,20 +68,20 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 	return obj3
 }
 
-func TestSetDefaultInstance(t *testing.T) {
-	i := &versioned.Instance{}
+func TestSetDefaultServiceInstance(t *testing.T) {
+	i := &versioned.ServiceInstance{}
 	obj2 := roundTrip(t, runtime.Object(i))
-	i2 := obj2.(*versioned.Instance)
+	i2 := obj2.(*versioned.ServiceInstance)
 
 	if i2.Spec.ExternalID == "" {
 		t.Error("Expected a default ExternalID, but got none")
 	}
 }
 
-func TestSetDefaultBinding(t *testing.T) {
-	b := &versioned.Binding{}
+func TestSetDefaultServiceInstanceCredential(t *testing.T) {
+	b := &versioned.ServiceInstanceCredential{}
 	obj2 := roundTrip(t, runtime.Object(b))
-	b2 := obj2.(*versioned.Binding)
+	b2 := obj2.(*versioned.ServiceInstanceCredential)
 
 	if b2.Spec.ExternalID == "" {
 		t.Error("Expected a default ExternalID, but got none")

@@ -18,6 +18,8 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"time"
@@ -56,8 +58,41 @@ func createHandler(c controller.Controller) http.Handler {
 // Run creates the HTTP handler based on an implementation of a
 // controller.Controller interface, and begins to listen on the specified address.
 func Run(ctx context.Context, addr string, c controller.Controller) error {
+	listenAndServe := func(srv *http.Server) error {
+		return srv.ListenAndServe()
+	}
+	return run(ctx, addr, listenAndServe, c)
+}
+
+// RunTLS creates the HTTPS handler based on an implementation of a
+// controller.Controller interface, and begins to listen on the specified address.
+func RunTLS(ctx context.Context, addr string, cert string, key string, c controller.Controller) error {
+	var decodedCert, decodedKey []byte
+	var tlsCert tls.Certificate
+	var err error
+	decodedCert, err = base64.StdEncoding.DecodeString(cert)
+	if err != nil {
+		return err
+	}
+	decodedKey, err = base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		return err
+	}
+	tlsCert, err = tls.X509KeyPair(decodedCert, decodedKey)
+	if err != nil {
+		return err
+	}
+	listenAndServe := func(srv *http.Server) error {
+		srv.TLSConfig = new(tls.Config)
+		srv.TLSConfig.Certificates = []tls.Certificate{tlsCert}
+		return srv.ListenAndServeTLS("", "")
+	}
+	return run(ctx, addr, listenAndServe, c)
+}
+
+func run(ctx context.Context, addr string, listenAndServe func(srv *http.Server) error, c controller.Controller) error {
 	glog.Infof("Starting server on %d\n", addr)
-	srv := http.Server{
+	srv := &http.Server{
 		Addr:    addr,
 		Handler: createHandler(c),
 	}
@@ -69,7 +104,7 @@ func Run(ctx context.Context, addr string, c controller.Controller) error {
 			srv.Close()
 		}
 	}()
-	return srv.ListenAndServe()
+	return listenAndServe(srv)
 }
 
 func (s *server) catalog(w http.ResponseWriter, r *http.Request) {

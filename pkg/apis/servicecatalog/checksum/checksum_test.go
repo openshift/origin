@@ -28,63 +28,40 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 )
 
-func TestInstanceSpecChecksum(t *testing.T) {
-	spec := servicecatalog.InstanceSpec{
+func TestServiceInstanceSpecChecksum(t *testing.T) {
+	spec := servicecatalog.ServiceInstanceSpec{
 		ServiceClassName: "blorb",
 		PlanName:         "plumbus",
 		ExternalID:       "ea6d2fc8-0bb8-11e7-af5d-0242ac110005",
 	}
 
-	unversionedChecksum := unversioned.InstanceSpecChecksum(spec)
+	unversionedChecksum := unversioned.ServiceInstanceSpecChecksum(spec)
 
-	versionedSpec := v1alpha1.InstanceSpec{}
-	v1alpha1.Convert_servicecatalog_InstanceSpec_To_v1alpha1_InstanceSpec(&spec, &versionedSpec, nil /* conversionScope */)
-	versionedChecksum := checksumv1alpha1.InstanceSpecChecksum(versionedSpec)
-
-	if e, a := unversionedChecksum, versionedChecksum; e != a {
-		t.Fatalf("versioned and unversioned checksums should match; expected %v, got %v", e, a)
-	}
-}
-
-// TestBindingChecksum tests that an internal and v1alpha1 checksum of the same object are equivalent
-func TestBindingSpecChecksum(t *testing.T) {
-	spec := servicecatalog.BindingSpec{
-		InstanceRef: v1.LocalObjectReference{Name: "test-instance"},
-		SecretName:  "test-secret",
-		ExternalID:  "1995a7e6-d078-4ce6-9057-bcefd793634e",
-	}
-
-	unversionedChecksum := unversioned.BindingSpecChecksum(spec)
-
-	versionedSpec := v1alpha1.BindingSpec{}
-	v1alpha1.Convert_servicecatalog_BindingSpec_To_v1alpha1_BindingSpec(&spec, &versionedSpec, nil /* conversionScope */)
-	versionedChecksum := checksumv1alpha1.BindingSpecChecksum(versionedSpec)
+	versionedSpec := v1alpha1.ServiceInstanceSpec{}
+	v1alpha1.Convert_servicecatalog_ServiceInstanceSpec_To_v1alpha1_ServiceInstanceSpec(&spec, &versionedSpec, nil /* conversionScope */)
+	versionedChecksum := checksumv1alpha1.ServiceInstanceSpecChecksum(versionedSpec)
 
 	if e, a := unversionedChecksum, versionedChecksum; e != a {
 		t.Fatalf("versioned and unversioned checksums should match; expected %v, got %v", e, a)
 	}
 }
 
-// TestBrokerSpecChecksum tests than an internal and v1alpha1 checksum of the same object are equivalent
-func TestBrokerSpecChecksum(t *testing.T) {
-	spec := servicecatalog.BrokerSpec{
-		URL: "https://kubernetes.default.svc:443/brokers/template.k8s.io",
-		AuthInfo: &servicecatalog.BrokerAuthInfo{
-			Basic: &servicecatalog.BasicAuthConfig{
-				SecretRef: &v1.ObjectReference{
-					Namespace: "test-ns",
-					Name:      "test-secret",
-				},
-			},
-		},
+// TestServiceInstanceCredentialChecksum tests that an internal and v1alpha1 checksum of the same object are equivalent
+func TestServiceInstanceCredentialSpecChecksum(t *testing.T) {
+	spec := servicecatalog.ServiceInstanceCredentialSpec{
+		ServiceInstanceRef: v1.LocalObjectReference{Name: "test-instance"},
+		SecretName:         "test-secret",
+		ExternalID:         "1995a7e6-d078-4ce6-9057-bcefd793634e",
 	}
 
-	unversionedChecksum := unversioned.BrokerSpecChecksum(spec)
-	versionedSpec := v1alpha1.BrokerSpec{}
-	v1alpha1.Convert_servicecatalog_BrokerSpec_To_v1alpha1_BrokerSpec(&spec, &versionedSpec, nil /* conversionScope */)
-	versionedChecksum := checksumv1alpha1.BrokerSpecChecksum(versionedSpec)
+	unversionedChecksum := unversioned.ServiceInstanceCredentialSpecChecksum(spec)
+
+	versionedSpec := v1alpha1.ServiceInstanceCredentialSpec{}
+	v1alpha1.Convert_servicecatalog_ServiceInstanceCredentialSpec_To_v1alpha1_ServiceInstanceCredentialSpec(&spec, &versionedSpec, nil /* conversionScope */)
+	versionedChecksum := checksumv1alpha1.ServiceInstanceCredentialSpecChecksum(versionedSpec)
 
 	if e, a := unversionedChecksum, versionedChecksum; e != a {
 		t.Fatalf("versioned and unversioned checksums should match; expected %v, got %v", e, a)
 	}
 }
+

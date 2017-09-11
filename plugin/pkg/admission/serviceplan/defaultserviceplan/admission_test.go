@@ -67,9 +67,9 @@ func newFakeServiceCatalogClientForTest(sc *servicecatalog.ServiceClass) *fake.C
 	return fakeClient
 }
 
-// newInstance returns a new instance for the specified namespace.
-func newInstance(namespace string) servicecatalog.Instance {
-	return servicecatalog.Instance{
+// newServiceInstance returns a new instance for the specified namespace.
+func newServiceInstance(namespace string) servicecatalog.ServiceInstance {
+	return servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
 	}
 }
@@ -94,10 +94,10 @@ func TestWithListFailure(t *testing.T) {
 	}
 	informerFactory.Start(wait.NeverStop)
 
-	instance := newInstance("dummy")
+	instance := newServiceInstance("dummy")
 	instance.Spec.ServiceClassName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no ServiceClasses.List succeeding")
 	} else if !strings.Contains(err.Error(), "not yet ready to handle request") {
@@ -113,11 +113,11 @@ func TestWithPlanWorks(t *testing.T) {
 	}
 	informerFactory.Start(wait.NeverStop)
 
-	instance := newInstance("dummy")
+	instance := newServiceInstance("dummy")
 	instance.Spec.ServiceClassName = "foo"
 	instance.Spec.PlanName = "bar"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {
@@ -135,10 +135,10 @@ func TestWithNoPlanFailsWithNoServiceClass(t *testing.T) {
 	}
 	informerFactory.Start(wait.NeverStop)
 
-	instance := newInstance("dummy")
+	instance := newServiceInstance("dummy")
 	instance.Spec.ServiceClassName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no plan specified and no serviceclass existing")
 	} else if !strings.Contains(err.Error(), "does not exist, can not figure") {
@@ -156,10 +156,10 @@ func TestWithNoPlanWorksWithSinglePlan(t *testing.T) {
 	}
 	informerFactory.Start(wait.NeverStop)
 
-	instance := newInstance("dummy")
+	instance := newServiceInstance("dummy")
 	instance.Spec.ServiceClassName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		actions := ""
 		for _, action := range fakeClient.Actions() {
@@ -167,7 +167,7 @@ func TestWithNoPlanWorksWithSinglePlan(t *testing.T) {
 		}
 		t.Errorf("unexpected error %q returned from admission handler: %v", err, actions)
 	}
-	// Make sure the Instance has been mutated to include the service plan name
+	// Make sure the ServiceInstance has been mutated to include the service plan name
 	if instance.Spec.PlanName != "bar" {
 		t.Errorf("PlanName was not modified for the default plan")
 	}
@@ -183,10 +183,10 @@ func TestWithNoPlanFailsWithMultiplePlans(t *testing.T) {
 	}
 	informerFactory.Start(wait.NeverStop)
 
-	instance := newInstance("dummy")
+	instance := newServiceInstance("dummy")
 	instance.Spec.ServiceClassName = "foo"
 
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("unexpected success with no plan specified and no serviceclass existing")
 		return

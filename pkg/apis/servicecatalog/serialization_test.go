@@ -219,8 +219,8 @@ func TestSpecificKind(t *testing.T) {
 	}
 }
 
-func TestBrokerList(t *testing.T) {
-	kind := "BrokerList"
+func TestServiceBrokerList(t *testing.T) {
+	kind := "ServiceBrokerList"
 	item, err := api.Scheme.New(serviceCatalogAPIGroup().InternalGroupVersion().WithKind(kind))
 	if err != nil {
 		t.Errorf("Couldn't make a %v? %v", kind, err)
@@ -271,9 +271,9 @@ func TestRoundTripTypes(t *testing.T) {
 }
 
 func testEncodePtr(t *testing.T) {
-	broker := &servicecatalog.Broker{
+	broker := &servicecatalog.ServiceBroker{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Broker",
+			Kind: "ServiceBroker",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{"name": "broker_foo"},

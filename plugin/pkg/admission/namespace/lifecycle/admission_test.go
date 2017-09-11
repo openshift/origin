@@ -88,16 +88,9 @@ func newMockClientForTest() *fake.Clientset {
 	return mockClient
 }
 
-// newBroker returns a new broker for testing.
-func newBroker() servicecatalog.Broker {
-	return servicecatalog.Broker{
-		ObjectMeta: metav1.ObjectMeta{Name: "broker"},
-	}
-}
-
-// newInstance returns a new instance for the specified namespace.
-func newInstance(namespace string) servicecatalog.Instance {
-	return servicecatalog.Instance{
+// newServiceInstance returns a new instance for the specified namespace.
+func newServiceInstance(namespace string) servicecatalog.ServiceInstance {
+	return servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
 	}
 }
@@ -117,8 +110,8 @@ func TestAdmissionNamespaceDoesNotExist(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 	kubeInformerFactory.Start(wait.NeverStop)
 
-	instance := newInstance(namespace)
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	instance := newServiceInstance(namespace)
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		actions := ""
 		for _, action := range mockClient.Actions() {
@@ -142,8 +135,8 @@ func TestAdmissionNamespaceActive(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 	kubeInformerFactory.Start(wait.NeverStop)
 
-	instance := newInstance(namespace)
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	instance := newServiceInstance(namespace)
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err != nil {
 		t.Errorf("unexpected error returned from admission handler")
 	}
@@ -163,20 +156,20 @@ func TestAdmissionNamespaceTerminating(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 	kubeInformerFactory.Start(wait.NeverStop)
 
-	instance := newInstance(namespace)
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Create, nil))
+	instance := newServiceInstance(namespace)
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Create, nil))
 	if err == nil {
 		t.Errorf("Expected error rejecting creates in a namespace when it is terminating")
 	}
 
 	// verify update operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Update, nil))
+	err = handler.Admit(admission.NewAttributesRecord(&instance, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Update, nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}
 
 	// verify delete operations in the namespace can proceed
-	err = handler.Admit(admission.NewAttributesRecord(nil, nil, servicecatalog.Kind("Instance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("instances").WithVersion("version"), "", admission.Delete, nil))
+	err = handler.Admit(admission.NewAttributesRecord(nil, nil, servicecatalog.Kind("ServiceInstance").WithVersion("version"), instance.Namespace, instance.Name, servicecatalog.Resource("serviceinstances").WithVersion("version"), "", admission.Delete, nil))
 	if err != nil {
 		t.Errorf("Unexpected error returned from admission handler: %v", err)
 	}

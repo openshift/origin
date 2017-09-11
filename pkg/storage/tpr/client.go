@@ -34,8 +34,8 @@ func GetResourceClient(cl *dynamic.Client, kind Kind, namespace string) (*dynami
 	switch kind {
 	case ServiceInstanceKind, ServiceInstanceListKind:
 		return cl.Resource(&ServiceInstanceResource, namespace), nil
-	case ServiceBindingKind, ServiceBindingListKind:
-		return cl.Resource(&ServiceBindingResource, namespace), nil
+	case ServiceInstanceCredentialKind, ServiceInstanceCredentialListKind:
+		return cl.Resource(&ServiceInstanceCredentialResource, namespace), nil
 	case ServiceBrokerKind, ServiceBrokerListKind:
 		return cl.Resource(&ServiceBrokerResource, namespace), nil
 	case ServiceClassKind, ServiceClassListKind:

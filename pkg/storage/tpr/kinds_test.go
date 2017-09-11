@@ -30,7 +30,7 @@ func TestTPRName(t *testing.T) {
 		{before: "ServiceClass", after: "service-class"},
 		{before: "ThisIsAThing", after: "this-is-a-thing"},
 		{before: "thisIsAThing", after: "this-is-a-thing"},
-		{before: "Binding", after: "binding"},
+		{before: "ServiceInstanceCredential", after: "service-instance-credential"},
 		{before: "ThisIsAAThing", after: "this-is-a-a-thing"},
 	}
 	for _, testCase := range testCases {
@@ -49,7 +49,7 @@ func TestURLName(t *testing.T) {
 		{before: "ServiceClass", after: "serviceclasses"},
 		{before: "ThisIsAThing", after: "thisisathings"},
 		{before: "thisIsAThing", after: "thisisathings"},
-		{before: "Binding", after: "bindings"},
+		{before: "ServiceInstanceCredential", after: "serviceinstancecredentials"},
 	}
 
 	for _, testCase := range testCases {

@@ -26,19 +26,19 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func newTestBroker(name, url string) *v1alpha1.Broker {
-	return &v1alpha1.Broker{
+func newTestBroker(name, url string) *v1alpha1.ServiceBroker {
+	return &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: v1alpha1.BrokerSpec{
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: url,
 		},
 	}
 }
 
-var _ = framework.ServiceCatalogDescribe("Broker", func() {
-	f := framework.NewDefaultFramework("create-broker")
+var _ = framework.ServiceCatalogDescribe("ServiceBroker", func() {
+	f := framework.NewDefaultFramework("create-service-broker")
 
 	brokerName := "test-broker"
 
@@ -67,19 +67,19 @@ var _ = framework.ServiceCatalogDescribe("Broker", func() {
 		By("Creating a Broker")
 
 		url := "http://test-broker." + f.Namespace.Name + ".svc.cluster.local"
-		broker, err := f.ServiceCatalogClientSet.ServicecatalogV1alpha1().Brokers().Create(newTestBroker(brokerName, url))
+		broker, err := f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceBrokers().Create(newTestBroker(brokerName, url))
 		Expect(err).NotTo(HaveOccurred())
 		By("Waiting for Broker to be ready")
 		err = util.WaitForBrokerCondition(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(),
 			broker.Name,
-			v1alpha1.BrokerCondition{
-				Type:   v1alpha1.BrokerConditionReady,
+			v1alpha1.ServiceBrokerCondition{
+				Type:   v1alpha1.ServiceBrokerConditionReady,
 				Status: v1alpha1.ConditionTrue,
 			})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Deleting the Broker")
-		err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().Brokers().Delete(brokerName, nil)
+		err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceBrokers().Delete(brokerName, nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Waiting for Broker to not exist")

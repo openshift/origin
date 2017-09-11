@@ -12,13 +12,13 @@
 
 * As a Catalog Operator, I want to be able to register a Service Broker with the
   Kubernetes Service Catalog, so that the Service Catalog is aware of the
-  Services that Broker offers
+  Services that ServiceBroker offers
 * As a Catalog Operator, I want to be able to update a registered Service Broker
   so that the Service Catalog can maintain the most recent versions of Services
-  that Broker offers
+  that ServiceBroker offers
 * As a Catalog Operator, I want to be able to delete a Service Broker from the
   Service Catalog, so that I can keep the Service Catalog clean of Service
-  Brokers I no longer want to support
+  ServiceBrokers I no longer want to support
 
 * Can I export a list of Service Brokers and types from my Service Controller?
 * Is there an auth story for adding Service Brokers?
@@ -54,7 +54,7 @@ differentiate the tiers of that Service.
 
 ### Updating a Service Broker
 
-Broker operators make changes to the services their brokers offer. To refresh
+ServiceBroker operators make changes to the services their brokers offer. To refresh
 the services a broker offers, the Service Controller should re-list the
 `/v2/catalog` endpoint.  The Service Controller should apply the result of
 re-listing the broker to its internal representation of that broker's services:
@@ -144,18 +144,18 @@ TODO: How to deal with name conflicts for {broker, service}.
 * As an Application Operator, who has requested a Service Instance, know that a request for a
   service instance has been fulfilled?
 * As an Application Operator, I should be able to pass parameters to be used by the Service
-  Instance or Binding when causing a new Service Instance to be created, so that
-  I may change the attributes of the Service Instance or Binding.
+  ServiceInstance or ServiceInstanceCredential when causing a new Service Instance to be created, so that
+  I may change the attributes of the Service Instance or ServiceInstanceCredential.
 
 ## Provisioning a Service Instance
 
-* As a Broker operator, I want to control the number of instances of my Service,
+* As a ServiceBroker operator, I want to control the number of instances of my Service,
   so that I can control the resource footprint of my Service.
 
-## Binding to a Service Instance
+## ServiceInstanceCredential to a Service Instance
 
-* As a Broker operator, I want to control the number of bindings to a Service
-  Instance so that I may provide limits for services (e.g. free plan with 3
+* As a ServiceBroker operator, I want to control the number of bindings to a Service
+  ServiceInstance so that I may provide limits for services (e.g. free plan with 3
   bindings). (TODO: Do we care?)
 * As a user of a Service Instance, I want a predictable set of Kubernetes
   resources (Secrets, ConfigMap, etc.) created after binding, so that I know how
@@ -166,7 +166,7 @@ TODO: How to deal with name conflicts for {broker, service}.
 * As an Application Operator I should be able to see what Service Instances my applications are
   bound to.
 * As an Application Operator I should be able to pass paramters when binding to a Service
-  Instance so that I may indicate what type of binding my application needs.
+  ServiceInstance so that I may indicate what type of binding my application needs.
   (e.g. credential type, admin binding, ro binding, rw binding)
 
 As an Application Operator, I should be able to accomplish the following sets of bindings:
@@ -180,8 +180,8 @@ As an Application Operator, I should be able to accomplish the following sets of
 ## Using/Consuming a Service Instance
 
 * As an Application Operator consuming a Service Instance, I need to be able to understand the structure
-  of the Kubernetes resources that are created when a new Binding to a Service
-  Instance is created, so that I can configure my application appropriately.
+  of the Kubernetes resources that are created when a new ServiceInstanceCredential to a Service
+  ServiceInstance is created, so that I can configure my application appropriately.
 * As an Application Operator, I want to be able to understand the relationship between a Secret
   and Service Instance, so that I can properly configure my application (e.g.
   app connecting to sharded database).
@@ -209,7 +209,7 @@ variables, volumes, etc.
   _may_ be upgraded (plan updateable), so that I can communicate Service
   capabilities to end users.
 * As an Application Operator of a Service Instance, I want to be able to change the Service
-  Instance plan so that I may size it appropriately for my needs.
+  ServiceInstance plan so that I may size it appropriately for my needs.
 * What is the update story for bindings to a Service Instance?
 * What is the versioning and update story for a Service Instance: what happens
   when a broker changes the Services it provides?

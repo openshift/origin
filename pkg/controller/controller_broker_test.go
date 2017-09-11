@@ -38,7 +38,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 )
 
-// TestShouldReconcileBroker ensures that with the expected conditions the
+// TestShouldReconcileServiceBroker ensures that with the expected conditions the
 // reconciler is reported as needing to run.
 //
 // The test cases are proving:
@@ -49,32 +49,32 @@ import (
 // - broker with status/ready, past relist interval will reconcile
 // - broker with status/ready, within relist interval will NOT reconcile
 // - broker with status/ready/checksum, will reconcile
-func TestShouldReconcileBroker(t *testing.T) {
+func TestShouldReconcileServiceBroker(t *testing.T) {
 	// Anonymous struct fields:
 	// name: short description of the test
 	// broker: broker object to test
 	// now: what time the interval is calculated with respect to interval
 	// internal: the time that has elapsed since now
 	// reconcile: whether or not the reconciler should run, the return of
-	// shouldReconcileBroker
+	// shouldReconcileServiceBroker
 	cases := []struct {
 		name      string
-		broker    *v1alpha1.Broker
+		broker    *v1alpha1.ServiceBroker
 		now       time.Time
 		interval  time.Duration
 		reconcile bool
 	}{
 		{
 			name:      "no status",
-			broker:    getTestBroker(),
+			broker:    getTestServiceBroker(),
 			now:       time.Now(),
 			interval:  3 * time.Minute,
 			reconcile: true,
 		},
 		{
 			name: "deletionTimestamp set",
-			broker: func() *v1alpha1.Broker {
-				b := getTestBrokerWithStatus(v1alpha1.ConditionTrue)
+			broker: func() *v1alpha1.ServiceBroker {
+				b := getTestServiceBrokerWithStatus(v1alpha1.ConditionTrue)
 				b.DeletionTimestamp = &metav1.Time{}
 				return b
 			}(),
@@ -84,12 +84,12 @@ func TestShouldReconcileBroker(t *testing.T) {
 		},
 		{
 			name: "no ready condition",
-			broker: func() *v1alpha1.Broker {
-				b := getTestBroker()
-				b.Status = v1alpha1.BrokerStatus{
-					Conditions: []v1alpha1.BrokerCondition{
+			broker: func() *v1alpha1.ServiceBroker {
+				b := getTestServiceBroker()
+				b.Status = v1alpha1.ServiceBrokerStatus{
+					Conditions: []v1alpha1.ServiceBrokerCondition{
 						{
-							Type:   v1alpha1.BrokerConditionType("NotARealCondition"),
+							Type:   v1alpha1.ServiceBrokerConditionType("NotARealCondition"),
 							Status: v1alpha1.ConditionTrue,
 						},
 					},
@@ -102,15 +102,15 @@ func TestShouldReconcileBroker(t *testing.T) {
 		},
 		{
 			name:      "not ready",
-			broker:    getTestBrokerWithStatus(v1alpha1.ConditionFalse),
+			broker:    getTestServiceBrokerWithStatus(v1alpha1.ConditionFalse),
 			now:       time.Now(),
 			interval:  3 * time.Minute,
 			reconcile: true,
 		},
 		{
 			name: "ready, interval elapsed",
-			broker: func() *v1alpha1.Broker {
-				broker := getTestBrokerWithStatus(v1alpha1.ConditionTrue)
+			broker: func() *v1alpha1.ServiceBroker {
+				broker := getTestServiceBrokerWithStatus(v1alpha1.ConditionTrue)
 				return broker
 			}(),
 			now:       time.Now(),
@@ -119,8 +119,8 @@ func TestShouldReconcileBroker(t *testing.T) {
 		},
 		{
 			name: "ready, interval not elapsed",
-			broker: func() *v1alpha1.Broker {
-				broker := getTestBrokerWithStatus(v1alpha1.ConditionTrue)
+			broker: func() *v1alpha1.ServiceBroker {
+				broker := getTestServiceBrokerWithStatus(v1alpha1.ConditionTrue)
 				return broker
 			}(),
 			now:       time.Now(),
@@ -128,11 +128,11 @@ func TestShouldReconcileBroker(t *testing.T) {
 			reconcile: false,
 		},
 		{
-			name: "ready, interval not elapsed, checksum changed",
-			broker: func() *v1alpha1.Broker {
-				broker := getTestBrokerWithStatus(v1alpha1.ConditionTrue)
-				cs := "22081-9471-471"
-				broker.Status.Checksum = &cs
+			name: "ready, interval not elapsed, spec changed",
+			broker: func() *v1alpha1.ServiceBroker {
+				broker := getTestServiceBrokerWithStatus(v1alpha1.ConditionTrue)
+				broker.Generation = 2
+				broker.Status.ReconciledGeneration = 1
 				return broker
 			}(),
 			now:       time.Now(),
@@ -148,7 +148,7 @@ func TestShouldReconcileBroker(t *testing.T) {
 		}
 
 		t.Logf("%v: now: %v, interval: %v, last transition time: %v", tc.name, tc.now, tc.interval, ltt)
-		actual := shouldReconcileBroker(tc.broker, tc.now, tc.interval)
+		actual := shouldReconcileServiceBroker(tc.broker, tc.now, tc.interval)
 
 		if e, a := tc.reconcile, actual; e != a {
 			t.Errorf("%v: unexpected result: expected %v, got %v", tc.name, e, a)
@@ -156,23 +156,23 @@ func TestShouldReconcileBroker(t *testing.T) {
 	}
 }
 
-// TestReconcileBrokerExistingServiceClass verifies a simple, successful run
-// of reconcileBroker().  This test will cause reconcileBroker() to fetch the
-// catalog from the Broker, create a Service Class for the single service that
+// TestReconcileServiceBrokerExistingServiceClass verifies a simple, successful run
+// of reconcileServiceBroker().  This test will cause reconcileBroker() to fetch the
+// catalog from the ServiceBroker, create a Service Class for the single service that
 // it lists and reconcile the service class ensuring the name and id of the
 // relisted service matches the existing entry and updates the service catalog.
-func TestReconcileBrokerExistingServiceClass(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+func TestReconcileServiceBrokerExistingServiceClass(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
 	testServiceClass := getTestServiceClass()
 	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
 
-	if err := testController.reconcileBroker(getTestBroker()); err != nil {
+	if err := testController.reconcileServiceBroker(getTestServiceBroker()); err != nil {
 		t.Fatalf("This should not fail : %v", err)
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 1)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
@@ -182,37 +182,37 @@ func TestReconcileBrokerExistingServiceClass(t *testing.T) {
 	assertUpdate(t, actions[0], testServiceClass)
 
 	// second action should be an update action for broker status subresource
-	updatedBroker := assertUpdateStatus(t, actions[1], getTestBroker())
-	assertBrokerReadyTrue(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[1], getTestServiceBroker())
+	assertServiceBrokerReadyTrue(t, updatedServiceBroker)
 
 	// verify no kube resources created
 	kubeActions := fakeKubeClient.Actions()
 	assertNumberOfActions(t, kubeActions, 0)
 }
 
-// TestReconcileBrokerExistingServiceClassDifferentExternalID simulates catalog
+// TestReconcileServiceBrokerExistingServiceClassDifferentExternalID simulates catalog
 // refresh where broker lists an existing service but there is a mismatch on the
 // service class ID which should result in an error
-func TestReconcileBrokerExistingServiceClassDifferentExternalID(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+func TestReconcileServiceBrokerExistingServiceClassDifferentExternalID(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
 	testServiceClass := getTestServiceClass()
 	testServiceClass.ExternalID = "notTheSame"
 	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
 
-	if err := testController.reconcileBroker(getTestBroker()); err == nil {
+	if err := testController.reconcileServiceBroker(getTestServiceBroker()); err == nil {
 		t.Fatal("The same service class should not be allowed with a different ID")
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 1)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
 	assertNumberOfActions(t, actions, 1)
 
-	updatedBroker := assertUpdateStatus(t, actions[0], getTestBroker())
-	assertBrokerReadyFalse(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[0], getTestServiceBroker())
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	// verify no kube resources created
 	kubeActions := fakeKubeClient.Actions()
@@ -227,29 +227,29 @@ func TestReconcileBrokerExistingServiceClassDifferentExternalID(t *testing.T) {
 	}
 }
 
-// TestReconcileBrokerExistingServiceClassDifferentBroker simulates catalog
+// TestReconcileServiceBrokerExistingServiceClassDifferentBroker simulates catalog
 // refresh where broker lists a service which matches an existing, already
-// cataloged service but the service points to a different Broker.  Results in an error.
-func TestReconcileBrokerExistingServiceClassDifferentBroker(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+// cataloged service but the service points to a different ServiceBroker.  Results in an error.
+func TestReconcileServiceBrokerExistingServiceClassDifferentBroker(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
 	testServiceClass := getTestServiceClass()
-	testServiceClass.BrokerName = "notTheSame"
+	testServiceClass.ServiceBrokerName = "notTheSame"
 	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
 
-	if err := testController.reconcileBroker(getTestBroker()); err == nil {
+	if err := testController.reconcileServiceBroker(getTestServiceBroker()); err == nil {
 		t.Fatal("The same service class should not belong to two different brokers.")
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 1)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
 	assertNumberOfActions(t, actions, 1)
 
-	updatedBroker := assertUpdateStatus(t, actions[0], getTestBroker())
-	assertBrokerReadyFalse(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[0], getTestServiceBroker())
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	// verify no kube resources created
 	kubeActions := fakeKubeClient.Actions()
@@ -258,34 +258,34 @@ func TestReconcileBrokerExistingServiceClassDifferentBroker(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" for Broker "test-broker" already exists for Broker "notTheSame"`
+	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" for ServiceBroker "test-broker" already exists for Broker "notTheSame"`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
 	}
 }
 
-// TestReconcileBrokerDelete simulates a broker reconciliation where broker was marked for deletion.
+// TestReconcileServiceBrokerDelete simulates a broker reconciliation where broker was marked for deletion.
 // Results in service class and broker both being deleted.
-func TestReconcileBrokerDelete(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+func TestReconcileServiceBrokerDelete(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
 	testServiceClass := getTestServiceClass()
 	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
 
-	broker := getTestBroker()
+	broker := getTestServiceBroker()
 	broker.DeletionTimestamp = &metav1.Time{}
 	broker.Finalizers = []string{v1alpha1.FinalizerServiceCatalog}
-	fakeCatalogClient.AddReactor("get", "brokers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+	fakeCatalogClient.AddReactor("get", "servicebrokers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, broker, nil
 	})
 
-	err := testController.reconcileBroker(broker)
+	err := testController.reconcileServiceBroker(broker)
 	if err != nil {
 		t.Fatalf("This should not fail : %v", err)
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 0)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 0)
 
 	// Verify no core kube actions occurred
 	kubeActions := fakeKubeClient.Actions()
@@ -301,48 +301,48 @@ func TestReconcileBrokerDelete(t *testing.T) {
 
 	assertDelete(t, actions[0], testServiceClass)
 
-	updatedBroker := assertUpdateStatus(t, actions[1], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[1], broker)
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	assertGet(t, actions[2], broker)
 
-	updatedBroker = assertUpdateStatus(t, actions[3], broker)
-	assertEmptyFinalizers(t, updatedBroker)
+	updatedServiceBroker = assertUpdateStatus(t, actions[3], broker)
+	assertEmptyFinalizers(t, updatedServiceBroker)
 
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeNormal + " " + successBrokerDeletedReason + " " + "The broker test-broker was deleted successfully."
+	expectedEvent := api.EventTypeNormal + " " + successServiceBrokerDeletedReason + " " + "The broker test-broker was deleted successfully."
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
 }
 
-// TestReconcileBrokerErrorFetchingCatalog simulates broker reconciliation where
+// TestReconcileServiceBrokerErrorFetchingCatalog simulates broker reconciliation where
 // OSB client responds with an error for getting the catalog which in turn causes
-// reconcileBroker() to return an error.
-func TestReconcileBrokerErrorFetchingCatalog(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{
+// reconcileServiceBroker() to return an error.
+func TestReconcileServiceBrokerErrorFetchingCatalog(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Error: errors.New("ooops"),
 		},
 	})
 
-	broker := getTestBroker()
+	broker := getTestServiceBroker()
 
-	if err := testController.reconcileBroker(broker); err == nil {
+	if err := testController.reconcileServiceBroker(broker); err == nil {
 		t.Fatal("Should have failed to get the catalog.")
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 1)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
 	assertNumberOfActions(t, actions, 1)
 
-	updatedBroker := assertUpdateStatus(t, actions[0], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[0], broker)
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
 
@@ -355,31 +355,31 @@ func TestReconcileBrokerErrorFetchingCatalog(t *testing.T) {
 	}
 }
 
-// TestReconcileBrokerZeroServices simulates broker reconciliation where
-// OSB client responds with zero services which causes reconcileBroker()
+// TestReconcileServiceBrokerZeroServices simulates broker reconciliation where
+// OSB client responds with zero services which causes reconcileServiceBroker()
 // to return an error
-func TestReconcileBrokerZeroServices(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{
+func TestReconcileServiceBrokerZeroServices(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Response: &osb.CatalogResponse{},
 		},
 	})
 
-	broker := getTestBroker()
+	broker := getTestServiceBroker()
 
-	if err := testController.reconcileBroker(broker); err == nil {
-		t.Fatal("Broker should not have had any Service Classes.")
+	if err := testController.reconcileServiceBroker(broker); err == nil {
+		t.Fatal("ServiceBroker should not have had any Service Classes.")
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 1)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
 	assertNumberOfActions(t, actions, 1)
 
-	updatedBroker := assertUpdateStatus(t, actions[0], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[0], broker)
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
 
@@ -392,8 +392,8 @@ func TestReconcileBrokerZeroServices(t *testing.T) {
 	}
 }
 
-func TestReconcileBrokerWithAuth(t *testing.T) {
-	basicAuthInfo := &v1alpha1.BrokerAuthInfo{
+func TestReconcileServiceBrokerWithAuth(t *testing.T) {
+	basicAuthInfo := &v1alpha1.ServiceBrokerAuthInfo{
 		Basic: &v1alpha1.BasicAuthConfig{
 			SecretRef: &v1.ObjectReference{
 				Namespace: "test-ns",
@@ -401,7 +401,7 @@ func TestReconcileBrokerWithAuth(t *testing.T) {
 			},
 		},
 	}
-	bearerAuthInfo := &v1alpha1.BrokerAuthInfo{
+	bearerAuthInfo := &v1alpha1.ServiceBrokerAuthInfo{
 		Bearer: &v1alpha1.BearerTokenAuthConfig{
 			SecretRef: &v1.ObjectReference{
 				Namespace: "test-ns",
@@ -430,7 +430,7 @@ func TestReconcileBrokerWithAuth(t *testing.T) {
 	// shouldSucceed: whether authentication should succeed
 	cases := []struct {
 		name          string
-		authInfo      *v1alpha1.BrokerAuthInfo
+		authInfo      *v1alpha1.ServiceBrokerAuthInfo
 		secret        *v1.Secret
 		shouldSucceed bool
 	}{
@@ -475,22 +475,22 @@ func TestReconcileBrokerWithAuth(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			testReconcileBrokerWithAuth(t, tc.authInfo, tc.secret, tc.shouldSucceed)
+			testReconcileServiceBrokerWithAuth(t, tc.authInfo, tc.secret, tc.shouldSucceed)
 		})
 	}
 }
 
-func testReconcileBrokerWithAuth(t *testing.T, authInfo *v1alpha1.BrokerAuthInfo, secret *v1.Secret, shouldSucceed bool) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{})
+func testReconcileServiceBrokerWithAuth(t *testing.T, authInfo *v1alpha1.ServiceBrokerAuthInfo, secret *v1.Secret, shouldSucceed bool) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{})
 
-	broker := getTestBrokerWithAuth(authInfo)
+	broker := getTestServiceBrokerWithAuth(authInfo)
 	if secret != nil {
 		addGetSecretReaction(fakeKubeClient, secret)
 	} else {
 		addGetSecretNotFoundReaction(fakeKubeClient)
 	}
 	testServiceClass := getTestServiceClass()
-	fakeBrokerClient.CatalogReaction = &fakeosb.CatalogReaction{
+	fakeServiceBrokerClient.CatalogReaction = &fakeosb.CatalogReaction{
 		Response: &osb.CatalogResponse{
 			Services: []osb.Service{
 				{
@@ -501,30 +501,30 @@ func testReconcileBrokerWithAuth(t *testing.T, authInfo *v1alpha1.BrokerAuthInfo
 		},
 	}
 
-	err := testController.reconcileBroker(broker)
+	err := testController.reconcileServiceBroker(broker)
 	if shouldSucceed && err != nil {
 		t.Fatal("Should have succeeded to get the catalog for the broker. got error: ", err)
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
+	brokerActions := fakeServiceBrokerClient.Actions()
 	if shouldSucceed {
 		// GetCatalog
-		assertNumberOfBrokerActions(t, brokerActions, 1)
+		assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 		assertGetCatalog(t, brokerActions[0])
 	} else {
-		assertNumberOfBrokerActions(t, brokerActions, 0)
+		assertNumberOfServiceBrokerActions(t, brokerActions, 0)
 	}
 
 	actions := fakeCatalogClient.Actions()
 	if shouldSucceed {
 		assertNumberOfActions(t, actions, 2)
 		assertCreate(t, actions[0], testServiceClass)
-		updatedBroker := assertUpdateStatus(t, actions[1], broker)
-		assertBrokerReadyTrue(t, updatedBroker)
+		updatedServiceBroker := assertUpdateStatus(t, actions[1], broker)
+		assertServiceBrokerReadyTrue(t, updatedServiceBroker)
 	} else {
 		assertNumberOfActions(t, actions, 1)
-		updatedBroker := assertUpdateStatus(t, actions[0], broker)
-		assertBrokerReadyFalse(t, updatedBroker)
+		updatedServiceBroker := assertUpdateStatus(t, actions[0], broker)
+		assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 	}
 
 	// verify one kube action occurred
@@ -553,24 +553,24 @@ func testReconcileBrokerWithAuth(t *testing.T, authInfo *v1alpha1.BrokerAuthInfo
 	}
 }
 
-// TestReconcileBrokerWithReconcileError simulates broker reconciliation where
-// creation of a service class causes an error which causes ReconcileBroker to
+// TestReconcileServiceBrokerWithReconcileError simulates broker reconciliation where
+// creation of a service class causes an error which causes ReconcileServiceBroker to
 // return an error
-func TestReconcileBrokerWithReconcileError(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeBrokerClient, testController, _ := newTestController(t, getTestCatalogConfig())
+func TestReconcileServiceBrokerWithReconcileError(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, _ := newTestController(t, getTestCatalogConfig())
 
-	broker := getTestBroker()
+	broker := getTestServiceBroker()
 
 	fakeCatalogClient.AddReactor("create", "serviceclasses", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("error creating serviceclass")
 	})
 
-	if err := testController.reconcileBroker(broker); err == nil {
+	if err := testController.reconcileServiceBroker(broker); err == nil {
 		t.Fatal("There should have been an error.")
 	}
 
-	brokerActions := fakeBrokerClient.Actions()
-	assertNumberOfBrokerActions(t, brokerActions, 1)
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
@@ -584,8 +584,8 @@ func TestReconcileBrokerWithReconcileError(t *testing.T) {
 	if e, a := getTestServiceClass(), createdSC; !reflect.DeepEqual(e, a) {
 		t.Fatalf("unexpected diff for created ServiceClass: %v,\n\nEXPECTED: %+v\n\nACTUAL:  %+v", diff.ObjectReflectDiff(e, a), e, a)
 	}
-	updatedBroker := assertUpdateStatus(t, actions[1], broker)
-	assertBrokerReadyFalse(t, updatedBroker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[1], broker)
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	kubeActions := fakeKubeClient.Actions()
 	assertNumberOfActions(t, kubeActions, 0)
@@ -599,8 +599,8 @@ func TestReconcileBrokerWithReconcileError(t *testing.T) {
 	}
 }
 
-// TestUpdateBrokerCondition ensures that with specific conditions
-// the broker correctly reflects the changes during updateBrokerCondition().
+// TestUpdateServiceBrokerCondition ensures that with specific conditions
+// the broker correctly reflects the changes during updateServiceBrokerCondition().
 //
 // The test cases are proving:
 // - broker transitions from unset status to not ready results in status change and new time
@@ -610,7 +610,7 @@ func TestReconcileBrokerWithReconcileError(t *testing.T) {
 // - broker transitions from ready to ready results in no status change
 // - broker transitions from ready to not ready results in status change & new time
 // - condition reason & message should always be updated
-func TestUpdateBrokerCondition(t *testing.T) {
+func TestUpdateServiceBrokerCondition(t *testing.T) {
 	// Anonymous struct fields:
 	// name: short description of the test
 	// input: broker object to test
@@ -620,7 +620,7 @@ func TestUpdateBrokerCondition(t *testing.T) {
 	// transitionTimeChanged: true if the test conditions should result in transition time change
 	cases := []struct {
 		name                  string
-		input                 *v1alpha1.Broker
+		input                 *v1alpha1.ServiceBroker
 		status                v1alpha1.ConditionStatus
 		reason                string
 		message               string
@@ -629,19 +629,19 @@ func TestUpdateBrokerCondition(t *testing.T) {
 
 		{
 			name:                  "initially unset",
-			input:                 getTestBroker(),
+			input:                 getTestServiceBroker(),
 			status:                v1alpha1.ConditionFalse,
 			transitionTimeChanged: true,
 		},
 		{
 			name:                  "not ready -> not ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionFalse),
+			input:                 getTestServiceBrokerWithStatus(v1alpha1.ConditionFalse),
 			status:                v1alpha1.ConditionFalse,
 			transitionTimeChanged: false,
 		},
 		{
 			name:                  "not ready -> not ready with reason and message change",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionFalse),
+			input:                 getTestServiceBrokerWithStatus(v1alpha1.ConditionFalse),
 			status:                v1alpha1.ConditionFalse,
 			reason:                "foo",
 			message:               "bar",
@@ -649,19 +649,19 @@ func TestUpdateBrokerCondition(t *testing.T) {
 		},
 		{
 			name:                  "not ready -> ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionFalse),
+			input:                 getTestServiceBrokerWithStatus(v1alpha1.ConditionFalse),
 			status:                v1alpha1.ConditionTrue,
 			transitionTimeChanged: true,
 		},
 		{
 			name:                  "ready -> ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionTrue),
+			input:                 getTestServiceBrokerWithStatus(v1alpha1.ConditionTrue),
 			status:                v1alpha1.ConditionTrue,
 			transitionTimeChanged: false,
 		},
 		{
 			name:                  "ready -> not ready",
-			input:                 getTestBrokerWithStatus(v1alpha1.ConditionTrue),
+			input:                 getTestServiceBrokerWithStatus(v1alpha1.ConditionTrue),
 			status:                v1alpha1.ConditionFalse,
 			transitionTimeChanged: true,
 		},
@@ -676,9 +676,9 @@ func TestUpdateBrokerCondition(t *testing.T) {
 			continue
 		}
 
-		inputClone := clone.(*v1alpha1.Broker)
+		inputClone := clone.(*v1alpha1.ServiceBroker)
 
-		err = testController.updateBrokerCondition(tc.input, v1alpha1.BrokerConditionReady, tc.status, tc.reason, tc.message)
+		err = testController.updateServiceBrokerCondition(tc.input, v1alpha1.ServiceBrokerConditionReady, tc.status, tc.reason, tc.message)
 		if err != nil {
 			t.Errorf("%v: error updating broker condition: %v", tc.name, err)
 			continue
@@ -694,12 +694,12 @@ func TestUpdateBrokerCondition(t *testing.T) {
 			continue
 		}
 
-		updatedBroker, ok := expectUpdateStatus(t, tc.name, actions[0], tc.input)
+		updatedServiceBroker, ok := expectUpdateStatus(t, tc.name, actions[0], tc.input)
 		if !ok {
 			continue
 		}
 
-		updateActionObject, ok := updatedBroker.(*v1alpha1.Broker)
+		updateActionObject, ok := updatedServiceBroker.(*v1alpha1.ServiceBroker)
 		if !ok {
 			t.Errorf("%v: couldn't convert to broker", tc.name)
 			continue

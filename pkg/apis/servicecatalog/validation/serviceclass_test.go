@@ -29,10 +29,10 @@ func validServiceClass() *servicecatalog.ServiceClass {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-serviceclass",
 		},
-		Bindable:    true,
-		BrokerName:  "test-broker",
-		ExternalID:  "1234-4354a-49b",
-		Description: "service description",
+		Bindable:          true,
+		ServiceBrokerName: "test-broker",
+		ExternalID:        "1234-4354a-49b",
+		Description:       "service description",
 		Plans: []servicecatalog.ServicePlan{
 			{
 				Name:        "test-plan",

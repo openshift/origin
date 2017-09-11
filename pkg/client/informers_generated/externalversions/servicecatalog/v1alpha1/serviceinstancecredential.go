@@ -30,28 +30,28 @@ import (
 	time "time"
 )
 
-// InstanceInformer provides access to a shared informer and lister for
-// Instances.
-type InstanceInformer interface {
+// ServiceInstanceCredentialInformer provides access to a shared informer and lister for
+// ServiceInstanceCredentials.
+type ServiceInstanceCredentialInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.InstanceLister
+	Lister() v1alpha1.ServiceInstanceCredentialLister
 }
 
-type instanceInformer struct {
+type serviceInstanceCredentialInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newInstanceInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newServiceInstanceCredentialInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.ServicecatalogV1alpha1().Instances(v1.NamespaceAll).List(options)
+				return client.ServicecatalogV1alpha1().ServiceInstanceCredentials(v1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.ServicecatalogV1alpha1().Instances(v1.NamespaceAll).Watch(options)
+				return client.ServicecatalogV1alpha1().ServiceInstanceCredentials(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&servicecatalog_v1alpha1.Instance{},
+		&servicecatalog_v1alpha1.ServiceInstanceCredential{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -59,10 +59,10 @@ func newInstanceInformer(client clientset.Interface, resyncPeriod time.Duration)
 	return sharedIndexInformer
 }
 
-func (f *instanceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog_v1alpha1.Instance{}, newInstanceInformer)
+func (f *serviceInstanceCredentialInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&servicecatalog_v1alpha1.ServiceInstanceCredential{}, newServiceInstanceCredentialInformer)
 }
 
-func (f *instanceInformer) Lister() v1alpha1.InstanceLister {
-	return v1alpha1.NewInstanceLister(f.Informer().GetIndexer())
+func (f *serviceInstanceCredentialInformer) Lister() v1alpha1.ServiceInstanceCredentialLister {
+	return v1alpha1.NewServiceInstanceCredentialLister(f.Informer().GetIndexer())
 }

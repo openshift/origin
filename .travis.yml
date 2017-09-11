@@ -9,7 +9,7 @@ script:
 - make verify build test images
 deploy:
   provider: script
-  script: scripts/deploy.sh
+  script: contrib/travis/deploy.sh
   on:
     repo: kubernetes-incubator/service-catalog
     all_branches: true

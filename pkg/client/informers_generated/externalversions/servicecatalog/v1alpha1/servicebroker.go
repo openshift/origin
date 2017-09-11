@@ -30,28 +30,28 @@ import (
 	time "time"
 )
 
-// BindingInformer provides access to a shared informer and lister for
-// Bindings.
-type BindingInformer interface {
+// ServiceBrokerInformer provides access to a shared informer and lister for
+// ServiceBrokers.
+type ServiceBrokerInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.BindingLister
+	Lister() v1alpha1.ServiceBrokerLister
 }
 
-type bindingInformer struct {
+type serviceBrokerInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newBindingInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newServiceBrokerInformer(client clientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.ServicecatalogV1alpha1().Bindings(v1.NamespaceAll).List(options)
+				return client.ServicecatalogV1alpha1().ServiceBrokers().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.ServicecatalogV1alpha1().Bindings(v1.NamespaceAll).Watch(options)
+				return client.ServicecatalogV1alpha1().ServiceBrokers().Watch(options)
 			},
 		},
-		&servicecatalog_v1alpha1.Binding{},
+		&servicecatalog_v1alpha1.ServiceBroker{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -59,10 +59,10 @@ func newBindingInformer(client clientset.Interface, resyncPeriod time.Duration) 
 	return sharedIndexInformer
 }
 
-func (f *bindingInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog_v1alpha1.Binding{}, newBindingInformer)
+func (f *serviceBrokerInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&servicecatalog_v1alpha1.ServiceBroker{}, newServiceBrokerInformer)
 }
 
-func (f *bindingInformer) Lister() v1alpha1.BindingLister {
-	return v1alpha1.NewBindingLister(f.Informer().GetIndexer())
+func (f *serviceBrokerInformer) Lister() v1alpha1.ServiceBrokerLister {
+	return v1alpha1.NewServiceBrokerLister(f.Informer().GetIndexer())
 }

@@ -30,28 +30,28 @@ import (
 	time "time"
 )
 
-// InstanceInformer provides access to a shared informer and lister for
-// Instances.
-type InstanceInformer interface {
+// ServiceInstanceCredentialInformer provides access to a shared informer and lister for
+// ServiceInstanceCredentials.
+type ServiceInstanceCredentialInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() internalversion.InstanceLister
+	Lister() internalversion.ServiceInstanceCredentialLister
 }
 
-type instanceInformer struct {
+type serviceInstanceCredentialInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newInstanceInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newServiceInstanceCredentialInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Servicecatalog().Instances(v1.NamespaceAll).List(options)
+				return client.Servicecatalog().ServiceInstanceCredentials(v1.NamespaceAll).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Servicecatalog().Instances(v1.NamespaceAll).Watch(options)
+				return client.Servicecatalog().ServiceInstanceCredentials(v1.NamespaceAll).Watch(options)
 			},
 		},
-		&servicecatalog.Instance{},
+		&servicecatalog.ServiceInstanceCredential{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -59,10 +59,10 @@ func newInstanceInformer(client internalclientset.Interface, resyncPeriod time.D
 	return sharedIndexInformer
 }
 
-func (f *instanceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog.Instance{}, newInstanceInformer)
+func (f *serviceInstanceCredentialInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&servicecatalog.ServiceInstanceCredential{}, newServiceInstanceCredentialInformer)
 }
 
-func (f *instanceInformer) Lister() internalversion.InstanceLister {
-	return internalversion.NewInstanceLister(f.Informer().GetIndexer())
+func (f *serviceInstanceCredentialInformer) Lister() internalversion.ServiceInstanceCredentialLister {
+	return internalversion.NewServiceInstanceCredentialLister(f.Informer().GetIndexer())
 }

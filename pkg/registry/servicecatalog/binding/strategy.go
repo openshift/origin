@@ -70,7 +70,7 @@ var (
 
 // Canonicalize does not transform a binding.
 func (bindingRESTStrategy) Canonicalize(obj runtime.Object) {
-	_, ok := obj.(*sc.Binding)
+	_, ok := obj.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to create")
 	}
@@ -81,10 +81,10 @@ func (bindingRESTStrategy) NamespaceScoped() bool {
 	return true
 }
 
-// PrepareForCreate receives a the incoming Binding and clears it's
+// PrepareForCreate receives a the incoming ServiceInstanceCredential and clears it's
 // Status. Status is not a user settable field.
 func (bindingRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.Object) {
-	binding, ok := obj.(*sc.Binding)
+	binding, ok := obj.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to create")
 	}
@@ -93,14 +93,14 @@ func (bindingRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj r
 	// Creating a brand new object, thus it must have no
 	// status. We can't fail here if they passed a status in, so
 	// we just wipe it clean.
-	binding.Status = sc.BindingStatus{}
+	binding.Status = sc.ServiceInstanceCredentialStatus{}
 	// Fill in the first entry set to "creating"?
-	binding.Status.Conditions = []sc.BindingCondition{}
+	binding.Status.Conditions = []sc.ServiceInstanceCredentialCondition{}
 	binding.Finalizers = []string{sc.FinalizerServiceCatalog}
 }
 
 func (bindingRESTStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
-	return scv.ValidateBinding(obj.(*sc.Binding))
+	return scv.ValidateServiceInstanceCredential(obj.(*sc.ServiceInstanceCredential))
 }
 
 func (bindingRESTStrategy) AllowCreateOnUpdate() bool {
@@ -112,56 +112,56 @@ func (bindingRESTStrategy) AllowUnconditionalUpdate() bool {
 }
 
 func (bindingRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
-	newBinding, ok := new.(*sc.Binding)
+	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to update to")
 	}
-	oldBinding, ok := old.(*sc.Binding)
+	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to update from")
 	}
-	newBinding.Spec = oldBinding.Spec
-	newBinding.Status = oldBinding.Status
+	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
+	newServiceInstanceCredential.Status = oldServiceInstanceCredential.Status
 }
 
 func (bindingRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
-	newBinding, ok := new.(*sc.Binding)
+	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate to")
 	}
-	oldBinding, ok := old.(*sc.Binding)
+	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate from")
 	}
 
-	return scv.ValidateBindingUpdate(newBinding, oldBinding)
+	return scv.ValidateServiceInstanceCredentialUpdate(newServiceInstanceCredential, oldServiceInstanceCredential)
 }
 
 func (bindingStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
-	newBinding, ok := new.(*sc.Binding)
+	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to update to")
 	}
-	oldBinding, ok := old.(*sc.Binding)
+	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to update from")
 	}
 	// status changes are not allowed to update spec
-	newBinding.Spec = oldBinding.Spec
+	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
 
 	foundReadyConditionTrue := false
-	for _, condition := range newBinding.Status.Conditions {
-		if condition.Type == sc.BindingConditionReady && condition.Status == sc.ConditionTrue {
+	for _, condition := range newServiceInstanceCredential.Status.Conditions {
+		if condition.Type == sc.ServiceInstanceCredentialConditionReady && condition.Status == sc.ConditionTrue {
 			foundReadyConditionTrue = true
 			break
 		}
 	}
 
 	if foundReadyConditionTrue {
-		glog.Infof("Found true ready condition for Binding %v/%v; updating checksum", newBinding.Namespace, newBinding.Name)
+		glog.Infof("Found true ready condition for ServiceInstanceCredential %v/%v; updating checksum", newServiceInstanceCredential.Namespace, newServiceInstanceCredential.Name)
 		// This status update has a true ready condition; update the checksum if necessary
-		newBinding.Status.Checksum = func() *string {
-			s := checksum.BindingSpecChecksum(newBinding.Spec)
+		newServiceInstanceCredential.Status.Checksum = func() *string {
+			s := checksum.ServiceInstanceCredentialSpecChecksum(newServiceInstanceCredential.Spec)
 			return &s
 		}()
 		return
@@ -169,18 +169,18 @@ func (bindingStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context,
 
 	// if the ready condition is not true, the value of the checksum should
 	// not change.
-	newBinding.Status.Checksum = oldBinding.Status.Checksum
+	newServiceInstanceCredential.Status.Checksum = oldServiceInstanceCredential.Status.Checksum
 }
 
 func (bindingStatusRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
-	newBinding, ok := new.(*sc.Binding)
+	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate to")
 	}
-	oldBinding, ok := old.(*sc.Binding)
+	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate from")
 	}
 
-	return scv.ValidateBindingStatusUpdate(newBinding, oldBinding)
+	return scv.ValidateServiceInstanceCredentialStatusUpdate(newServiceInstanceCredential, oldServiceInstanceCredential)
 }

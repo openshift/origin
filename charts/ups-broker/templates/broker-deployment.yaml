@@ -27,6 +27,14 @@ spec:
         args:
         - --port
         - "8080"
+        {{- if .Values.tls.cert}}
+        - --tlsCert
+        - "{{ .Values.tls.cert }}"
+        {{- end}}
+        {{- if .Values.tls.key}}
+        - --tlsKey
+        - "{{ .Values.tls.key }}"
+        {{- end}}
         ports:
         - containerPort: 8080
         readinessProbe:
