@@ -139,7 +139,7 @@ func ValidateIdentity(identity *userapi.Identity) field.ErrorList {
 
 	if len(identity.ProviderUserName) == 0 {
 		allErrs = append(allErrs, field.Required(field.NewPath("providerUserName"), ""))
-	} else if reasons := ValidateIdentityProviderName(identity.ProviderUserName); len(reasons) != 0 {
+	} else if reasons := ValidateIdentityProviderUserName(identity.ProviderUserName); len(reasons) != 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("providerUserName"), identity.ProviderUserName, strings.Join(reasons, ", ")))
 	}
 

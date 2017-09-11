@@ -19,10 +19,10 @@ import (
 	_ "k8s.io/kubernetes/pkg/apis/settings/install"
 	_ "k8s.io/kubernetes/pkg/apis/storage/install"
 
+	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
-	_ "github.com/openshift/origin/pkg/deploy/apis/apps/install"
 	_ "github.com/openshift/origin/pkg/image/apis/image/install"
 	_ "github.com/openshift/origin/pkg/network/apis/network/install"
 	_ "github.com/openshift/origin/pkg/oauth/apis/oauth/install"
@@ -37,9 +37,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -47,9 +47,9 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 
+	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	authorizationv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-	deployv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
 	imagev1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	oauthv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
 	projectv1 "github.com/openshift/origin/pkg/project/apis/project/v1"

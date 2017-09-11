@@ -2,13 +2,11 @@ package integration
 
 import (
 	"testing"
-	//"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	//"k8s.io/kubernetes/pkg/api/unversioned"
-	//utilwait "k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -35,6 +33,11 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -135,6 +138,16 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("expected forbidden, got %v", err)
 	}
 
+	// Creating a RBAC rolebinding when the subject is not already bound
+	// should also fail.
+	rbacRolebindingBob := &rbac.RoleBinding{}
+	if err := authorizationapi.Convert_authorization_RoleBinding_To_rbac_RoleBinding(rolebindingBob, rbacRolebindingBob, nil); err != nil {
+		t.Fatalf("failed to convert RoleBinding: %v", err)
+	}
+	if _, err := clusterAdminKubeClient.Rbac().RoleBindings("namespace").Create(rbacRolebindingBob); !kapierrors.IsForbidden(err) {
+		t.Fatalf("expected forbidden, got %v", err)
+	}
+
 	allowBob := &authorizationapi.RoleBindingRestriction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "match-users-bob",
@@ -156,4 +169,5 @@ func TestRestrictUsers(t *testing.T) {
 	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingBob); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 }

@@ -30,13 +30,13 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/dockerfile"
 	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
@@ -100,6 +100,7 @@ type AppConfig struct {
 	SkipGeneration bool
 
 	AllowSecretUse              bool
+	SourceSecret                string
 	AllowNonNumericExposedPorts bool
 	SecretAccessor              app.SecretAccessor
 
@@ -883,6 +884,15 @@ func (c *AppConfig) Run() (*AppResult, error) {
 			}
 		}
 	}
+	if len(c.SourceSecret) > 0 {
+		for _, obj := range objects {
+			if bc, ok := obj.(*buildapi.BuildConfig); ok {
+				glog.V(4).Infof("Setting source secret for build config to: %v", c.SourceSecret)
+				bc.Spec.Source.SourceSecret = &kapi.LocalObjectReference{Name: c.SourceSecret}
+				break
+			}
+		}
+	}
 
 	return &AppResult{
 		List:      &kapi.List{Items: objects},
@@ -952,6 +962,9 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 		isName = isContext.Name
 		isTag = ref.Name
 	} else {
+		// Search for a new image stream context based on the name and tag
+		isContext = nil
+
 		// The imagestream is usually being created alongside the buildconfig
 		// when new-build is being used, so scan objects being created for it.
 		for _, check := range objects {

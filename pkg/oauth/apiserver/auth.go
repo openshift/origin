@@ -126,10 +126,32 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	)
 	server.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
 
-	osOAuthClientConfig := newOpenShiftOAuthClientConfig(OpenShiftBrowserClientID, "", c.Options.MasterPublicURL, c.Options.MasterURL)
+	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, c.getOsinOAuthClient)
+	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
+
+	// glog.Infof("oauth server configured as: %#v", server)
+	// glog.Infof("auth handler: %#v", authHandler)
+	// glog.Infof("auth request handler: %#v", authRequestHandler)
+	// glog.Infof("grant checker: %#v", grantChecker)
+	// glog.Infof("grant handler: %#v", grantHandler)
+
+	return baseMux, nil
+}
+
+func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
+	browserClient, err := c.OAuthClientClient.Get(OpenShiftBrowserClientID, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	osOAuthClientConfig := newOpenShiftOAuthClientConfig(browserClient.Name, browserClient.Secret, c.Options.MasterPublicURL, c.Options.MasterURL)
 	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
 
-	osOAuthClient, _ := osincli.NewClient(osOAuthClientConfig)
+	osOAuthClient, err := osincli.NewClient(osOAuthClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(*c.Options.MasterCA) > 0 {
 		rootCAs, err := cmdutil.CertPoolFromFile(*c.Options.MasterCA)
 		if err != nil {
@@ -141,16 +163,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 		})
 	}
 
-	tokenRequestEndpoints := tokenrequest.NewEndpoints(c.Options.MasterPublicURL, osOAuthClient)
-	tokenRequestEndpoints.Install(mux, oauthutil.OpenShiftOAuthAPIPrefix)
-
-	// glog.Infof("oauth server configured as: %#v", server)
-	// glog.Infof("auth handler: %#v", authHandler)
-	// glog.Infof("auth request handler: %#v", authRequestHandler)
-	// glog.Infof("grant checker: %#v", grantChecker)
-	// glog.Infof("grant handler: %#v", grantHandler)
-
-	return baseMux, nil
+	return osOAuthClient, nil
 }
 
 func (c *OAuthServerConfig) possiblyWrapMux(mux cmdutil.Mux) cmdutil.Mux {

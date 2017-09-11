@@ -286,10 +286,7 @@ func (s *S2IBuilder) Build() error {
 	}
 
 	cName := containerName("s2i", s.build.Name, s.build.Namespace, "post-commit")
-	startTime = metav1.Now()
-	err = execPostCommitHook(s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
-
-	timing.RecordNewStep(ctx, buildapi.StagePostCommit, buildapi.StepExecPostCommitHook, startTime, metav1.Now())
+	err = execPostCommitHook(ctx, s.dockerClient, s.build.Spec.PostCommit, buildTag, cName)
 
 	if err != nil {
 		s.build.Status.Phase = buildapi.BuildPhaseFailed

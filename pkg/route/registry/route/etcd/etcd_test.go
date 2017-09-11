@@ -9,9 +9,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	routetypes "github.com/openshift/origin/pkg/route"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	_ "github.com/openshift/origin/pkg/route/apis/route/install"
@@ -41,9 +41,13 @@ type testSAR struct {
 	sar   *authorizationapi.SubjectAccessReview
 }
 
-func (t *testSAR) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (t *testSAR) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReview, error) {
 	t.sar = subjectAccessReview
-	return &authorizationapi.SubjectAccessReviewResponse{Allowed: t.allow}, t.err
+	return &authorizationapi.SubjectAccessReview{
+		Status: authorizationapi.SubjectAccessReviewStatus{
+			Allowed: t.allow,
+		},
+	}, t.err
 }
 
 func newStorage(t *testing.T, allocator routetypes.RouteAllocator) (*REST, *etcdtesting.EtcdTestServer) {

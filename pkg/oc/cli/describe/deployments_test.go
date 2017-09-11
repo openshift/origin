@@ -11,10 +11,10 @@ import (
 	kfake "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployapitest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/client/testclient"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployapitest "github.com/openshift/origin/pkg/deploy/apis/apps/test"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {

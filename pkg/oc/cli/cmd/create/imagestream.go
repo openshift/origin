@@ -28,7 +28,7 @@ var (
 		from many different registries and control how those images are referenced by pods, deployments,
 		and builds.
 
-		If --resolve-local is passed, the image stream will be used as the source when pods reference
+		If --lookup-local is passed, the image stream will be used as the source when pods reference
 		it by name. For example, if stream 'mysql' resolves local names, a pod that points to
 		'mysql:latest' will use the image the image stream points to under the "latest" tag.`)
 

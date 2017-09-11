@@ -333,33 +333,40 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 	options = append(options, "backup-volfile-servers="+dstrings.Join(addrlist[:], ":"))
 	mountOptions := volume.JoinMountOptions(b.mountOptions, options)
 
-	// Avoid mount storm, pick a host randomly.
-	// Iterate all hosts until mount succeeds.
-	for _, ip := range addrlist {
+	// with `backup-volfile-servers` mount option in place, it is not required to
+	// iterate over all the servers in the addrlist. A mount attempt with this option
+	// will fetch all the servers mentioned in the backup-volfile-servers list.
+	// Refer backup-volfile-servers @ https://access.redhat.com/documentation/en-US/Red_Hat_Storage/3/html/Administration_Guide/sect-Native_Client.html
+
+	if (len(addrlist) > 0) && (addrlist[0] != "") {
+		ip := addrlist[0]
+
 		errs = b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", mountOptions)
 		if errs == nil {
 			glog.Infof("glusterfs: successfully mounted %s", dir)
 			return nil
 		}
 
-		// Give a try without `auto_unmount mount option, because
-		// it could be that gluster fuse client is older version and
-		// mount.glusterfs is unaware of `auto_unmount`.
-		// Use a mount string without `auto_unmount``
+		const invalidOption = "Invalid option auto_unmount"
+		if dstrings.Contains(errs.Error(), invalidOption) {
+			// Give a try without `auto_unmount mount option, because
+			// it could be that gluster fuse client is older version and
+			// mount.glusterfs is unaware of `auto_unmount`.
+			noAutoMountOptions := make([]string, 0, len(mountOptions))
+			for _, opt := range mountOptions {
+				if opt != "auto_unmount" {
+					noAutoMountOptions = append(noAutoMountOptions, opt)
+				}
+			}
 
-		autoMountOptions := make([]string, len(mountOptions))
-		for _, opt := range mountOptions {
-			if opt != "auto_unmount" {
-				autoMountOptions = append(autoMountOptions, opt)
+			errs = b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", noAutoMountOptions)
+			if errs == nil {
+				glog.Infof("glusterfs: successfully mounted %s", dir)
+				return nil
 			}
 		}
-
-		autoerrs := b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", autoMountOptions)
-		if autoerrs == nil {
-			glog.Infof("glusterfs: successfully mounted %s", dir)
-			return nil
-		}
-
+	} else {
+		return fmt.Errorf("glusterfs: failed to execute mount command:[no valid ipaddress found in endpoint address list]")
 	}
 
 	// Failed mount scenario.

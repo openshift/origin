@@ -22,9 +22,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer"
+	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 

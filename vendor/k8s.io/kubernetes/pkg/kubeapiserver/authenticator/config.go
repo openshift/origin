@@ -30,7 +30,9 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	"k8s.io/apiserver/pkg/authentication/request/x509"
+	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
 	"k8s.io/apiserver/pkg/authentication/token/tokenfile"
+	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	"k8s.io/apiserver/plugin/pkg/authenticator/password/keystone"
 	"k8s.io/apiserver/plugin/pkg/authenticator/password/passwordfile"
 	"k8s.io/apiserver/plugin/pkg/authenticator/request/basicauth"
@@ -64,6 +66,9 @@ type AuthenticatorConfig struct {
 	WebhookTokenAuthnConfigFile string
 	WebhookTokenAuthnCacheTTL   time.Duration
 
+	TokenSuccessCacheTTL time.Duration
+	TokenFailureCacheTTL time.Duration
+
 	RequestHeaderConfig *authenticatorfactory.RequestHeaderConfig
 
 	// TODO, this is the only non-serializable part of the entire config.  Factor it out into a clientconfig
@@ -75,9 +80,9 @@ type AuthenticatorConfig struct {
 // Kubernetes authentication mechanisms.
 func (config AuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDefinitions, error) {
 	var authenticators []authenticator.Request
+	var tokenAuthenticators []authenticator.Token
 	securityDefinitions := spec.SecurityDefinitions{}
 	hasBasicAuth := false
-	hasTokenAuth := false
 
 	// front-proxy, BasicAuth methods, local first, then remote
 	// Add the front proxy authenticator if requested
@@ -127,22 +132,19 @@ func (config AuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDe
 		if err != nil {
 			return nil, nil, err
 		}
-		authenticators = append(authenticators, bearertoken.New(tokenAuth), websocket.NewProtocolAuthenticator(tokenAuth))
-		hasTokenAuth = true
+		tokenAuthenticators = append(tokenAuthenticators, tokenAuth)
 	}
 	if len(config.ServiceAccountKeyFiles) > 0 {
 		serviceAccountAuth, err := newServiceAccountAuthenticator(config.ServiceAccountKeyFiles, config.ServiceAccountLookup, config.ServiceAccountTokenGetter)
 		if err != nil {
 			return nil, nil, err
 		}
-		authenticators = append(authenticators, bearertoken.New(serviceAccountAuth), websocket.NewProtocolAuthenticator(serviceAccountAuth))
-		hasTokenAuth = true
+		tokenAuthenticators = append(tokenAuthenticators, serviceAccountAuth)
 	}
 	if config.BootstrapToken {
 		if config.BootstrapTokenAuthenticator != nil {
 			// TODO: This can sometimes be nil because of
-			authenticators = append(authenticators, bearertoken.New(config.BootstrapTokenAuthenticator), websocket.NewProtocolAuthenticator(config.BootstrapTokenAuthenticator))
-			hasTokenAuth = true
+			tokenAuthenticators = append(tokenAuthenticators, config.BootstrapTokenAuthenticator)
 		}
 	}
 	// NOTE(ericchiang): Keep the OpenID Connect after Service Accounts.
@@ -156,22 +158,19 @@ func (config AuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDe
 		if err != nil {
 			return nil, nil, err
 		}
-		authenticators = append(authenticators, bearertoken.New(oidcAuth), websocket.NewProtocolAuthenticator(oidcAuth))
-		hasTokenAuth = true
+		tokenAuthenticators = append(tokenAuthenticators, oidcAuth)
 	}
 	if len(config.WebhookTokenAuthnConfigFile) > 0 {
 		webhookTokenAuth, err := newWebhookTokenAuthenticator(config.WebhookTokenAuthnConfigFile, config.WebhookTokenAuthnCacheTTL)
 		if err != nil {
 			return nil, nil, err
 		}
-		authenticators = append(authenticators, bearertoken.New(webhookTokenAuth), websocket.NewProtocolAuthenticator(webhookTokenAuth))
-		hasTokenAuth = true
+		tokenAuthenticators = append(tokenAuthenticators, webhookTokenAuth)
 	}
 
 	// always add anytoken last, so that every other token authenticator gets to try first
 	if config.AnyToken {
-		authenticators = append(authenticators, bearertoken.New(anytoken.AnyTokenAuthenticator{}), websocket.NewProtocolAuthenticator(anytoken.AnyTokenAuthenticator{}))
-		hasTokenAuth = true
+		tokenAuthenticators = append(tokenAuthenticators, anytoken.AnyTokenAuthenticator{})
 	}
 
 	if hasBasicAuth {
@@ -183,7 +182,14 @@ func (config AuthenticatorConfig) New() (authenticator.Request, *spec.SecurityDe
 		}
 	}
 
-	if hasTokenAuth {
+	if len(tokenAuthenticators) > 0 {
+		// Union the token authenticators
+		tokenAuth := tokenunion.New(tokenAuthenticators...)
+		// Optionally cache authentication results
+		if config.TokenSuccessCacheTTL > 0 || config.TokenFailureCacheTTL > 0 {
+			tokenAuth = tokencache.New(tokenAuth, config.TokenSuccessCacheTTL, config.TokenFailureCacheTTL)
+		}
+		authenticators = append(authenticators, bearertoken.New(tokenAuth), websocket.NewProtocolAuthenticator(tokenAuth))
 		securityDefinitions["BearerToken"] = &spec.SecurityScheme{
 			SecuritySchemeProps: spec.SecuritySchemeProps{
 				Type:        "apiKey",

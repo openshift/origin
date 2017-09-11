@@ -117,7 +117,7 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 	},
 	// --
 
-	// github.com/openshift/origin/pkg/deploy/apis/apps/v1
+	// github.com/openshift/origin/pkg/apps/apis/apps/v1
 	gvr("", "v1", "deploymentconfigs"): {
 		stub:             `{"metadata": {"name": "dc1"}, "spec": {"selector": {"d": "c"}, "template": {"metadata": {"labels": {"d": "c"}}, "spec": {"containers": [{"image": "fedora:latest", "name": "container2"}]}}}}`,
 		expectedEtcdPath: "openshift.io/deploymentconfigs/etcdstoragepathtestnamespace/dc1",
@@ -671,7 +671,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	gvr("build.openshift.io", "v1", "binarybuildrequestoptionses"),
 	// --
 
-	// github.com/openshift/origin/pkg/deploy/apis/apps/v1
+	// github.com/openshift/origin/pkg/apps/apis/apps/v1
 
 	// used for streaming deployment logs from pod, not stored in etcd
 	gvr("", "v1", "deploymentlogs"),
@@ -814,7 +814,7 @@ var ephemeralWhiteList = createEphemeralWhiteList(
 	// --
 )
 
-// Only add kinds to this list when there is no mapping from GVK to GVR (and thus there is no way to create the object)
+// Only add kinds to this list when there is no way to create the object
 var kindWhiteList = sets.NewString(
 	// k8s.io/apimachinery/pkg/apis/meta/v1
 	"APIVersions",
@@ -949,14 +949,14 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 		kind := gvk.Kind
 		pkgPath := apiType.PkgPath()
 
+		if kindWhiteList.Has(kind) {
+			kindSeen.Insert(kind)
+			continue
+		}
+
 		mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
-			kindSeen.Insert(kind)
-			if kindWhiteList.Has(kind) {
-				// t.Logf("skipping test for %s from %s because its GVK %s is whitelisted and has no mapping", kind, pkgPath, gvk)
-			} else {
-				t.Errorf("no mapping found for %s from %s but its GVK %s is not whitelisted", kind, pkgPath, gvk)
-			}
+			t.Errorf("unexpected error getting mapping for %s from %s with GVK %s: %v", kind, pkgPath, gvk, err)
 			continue
 		}
 

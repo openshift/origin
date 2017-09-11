@@ -133,7 +133,6 @@ func TestHandleBuild(t *testing.T) {
 		expectPodCreated bool
 		expectPodDeleted bool
 		expectError      bool
-		expectOnComplete bool
 	}{
 		{
 			name:  "cancel running build",
@@ -145,7 +144,6 @@ func TestHandleBuild(t *testing.T) {
 				completionTime(now).
 				startTime(now).update,
 			expectPodDeleted: true,
-			expectOnComplete: true,
 		},
 		{
 			name:         "cancel build in terminal state",
@@ -195,7 +193,6 @@ func TestHandleBuild(t *testing.T) {
 				startTime(now).
 				completionTime(now).
 				update,
-			expectOnComplete: true,
 		},
 		{
 			name:         "new not runnable by policy",
@@ -231,10 +228,9 @@ func TestHandleBuild(t *testing.T) {
 			expectError:        true,
 		},
 		{
-			name:             "pending -> failed",
-			build:            build(buildapi.BuildPhasePending),
-			pod:              pod(v1.PodFailed),
-			expectOnComplete: true,
+			name:  "pending -> failed",
+			build: build(buildapi.BuildPhasePending),
+			pod:   pod(v1.PodFailed),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseFailed).
 				reason(buildapi.StatusReasonGenericBuildFailed).
@@ -250,10 +246,9 @@ func TestHandleBuild(t *testing.T) {
 			expectUpdate: nil,
 		},
 		{
-			name:             "running -> complete",
-			build:            build(buildapi.BuildPhaseRunning),
-			pod:              pod(v1.PodSucceeded),
-			expectOnComplete: true,
+			name:  "running -> complete",
+			build: build(buildapi.BuildPhaseRunning),
+			pod:   pod(v1.PodSucceeded),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseComplete).
 				reason("").
@@ -269,9 +264,8 @@ func TestHandleBuild(t *testing.T) {
 			expectUpdate: nil,
 		},
 		{
-			name:             "running with missing pod",
-			build:            build(buildapi.BuildPhaseRunning),
-			expectOnComplete: true,
+			name:  "running with missing pod",
+			build: build(buildapi.BuildPhaseRunning),
 			expectUpdate: newUpdate().
 				phase(buildapi.BuildPhaseError).
 				reason(buildapi.StatusReasonBuildPodDeleted).
@@ -281,10 +275,9 @@ func TestHandleBuild(t *testing.T) {
 				update,
 		},
 		{
-			name:             "failed -> failed with no completion timestamp",
-			build:            build(buildapi.BuildPhaseFailed),
-			pod:              pod(v1.PodFailed),
-			expectOnComplete: true,
+			name:  "failed -> failed with no completion timestamp",
+			build: build(buildapi.BuildPhaseFailed),
+			pod:   pod(v1.PodFailed),
 			expectUpdate: newUpdate().
 				startTime(now).
 				completionTime(now).
@@ -294,18 +287,15 @@ func TestHandleBuild(t *testing.T) {
 			name:  "failed -> failed with completion timestamp+message and no logsnippet",
 			build: withCompletionTS(build(buildapi.BuildPhaseFailed)),
 			pod:   withTerminationMessage(pod(v1.PodFailed)),
-			// no oncomplete call because the completion timestamp is already set.
-			expectOnComplete: false,
 			expectUpdate: newUpdate().
 				startTime(now).
 				logSnippet("termination message").
 				update,
 		},
 		{
-			name:             "failed -> failed with completion timestamp+message and logsnippet",
-			build:            withLogSnippet(withCompletionTS(build(buildapi.BuildPhaseFailed))),
-			pod:              withTerminationMessage(pod(v1.PodFailed)),
-			expectOnComplete: false,
+			name:  "failed -> failed with completion timestamp+message and logsnippet",
+			build: withLogSnippet(withCompletionTS(build(buildapi.BuildPhaseFailed))),
+			pod:   withTerminationMessage(pod(v1.PodFailed)),
 		},
 	}
 
@@ -377,9 +367,6 @@ func TestHandleBuild(t *testing.T) {
 			if tc.expectPodCreated != podCreated {
 				t.Errorf("%s: pod created. expected: %v, actual: %v", tc.name, tc.expectPodCreated, podCreated)
 			}
-			if tc.expectOnComplete != runPolicy.onCompleteCalled {
-				t.Errorf("%s: on complete called. expected: %v, actual: %v", tc.name, tc.expectOnComplete, runPolicy.onCompleteCalled)
-			}
 			if tc.expectUpdate != nil {
 				if patchedBuild == nil {
 					t.Errorf("%s: did not get an update. Expected: %v", tc.name, tc.expectUpdate)
@@ -423,9 +410,9 @@ func TestWorkWithNewBuild(t *testing.T) {
 	defer bc.stop()
 	bc.enqueueBuild(build)
 
-	bc.work()
+	bc.buildWork()
 
-	if bc.queue.Len() > 0 {
+	if bc.buildQueue.Len() > 0 {
 		t.Errorf("Expected queue to be empty")
 	}
 	if patchedBuild == nil {

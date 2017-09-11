@@ -1,109 +1,34 @@
 package install
 
 import (
-	"fmt"
-
-	"github.com/golang/glog"
-
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apimachinery"
+	"k8s.io/apimachinery/pkg/apimachinery/announced"
+	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api/legacy"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeapiv1 "github.com/openshift/origin/pkg/route/apis/route/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/route/apis/route"
-
-var accessor = meta.NewAccessor()
-
-// availableVersions lists all known external versions for this group from most preferred to least preferred
-var availableVersions = []schema.GroupVersion{routeapiv1.LegacySchemeGroupVersion}
-
 func init() {
-	kapi.Registry.RegisterVersions(availableVersions)
-	externalVersions := []schema.GroupVersion{}
-	for _, v := range availableVersions {
-		if kapi.Registry.IsAllowedVersion(v) {
-			externalVersions = append(externalVersions, v)
-		}
-	}
-	if len(externalVersions) == 0 {
-		glog.Infof("No version is registered for group %v", routeapi.LegacyGroupName)
-		return
-	}
+	legacy.InstallLegacy(routeapi.GroupName, routeapi.AddToSchemeInCoreGroup, routeapiv1.AddToSchemeInCoreGroup, sets.NewString(), kapi.Registry, kapi.Scheme)
+	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
+}
 
-	if err := kapi.Registry.EnableVersions(externalVersions...); err != nil {
+// Install registers the API group and adds types to a scheme
+func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
+	if err := announced.NewGroupMetaFactory(
+		&announced.GroupMetaFactoryArgs{
+			GroupName:                  routeapi.GroupName,
+			VersionPreferenceOrder:     []string{routeapiv1.SchemeGroupVersion.Version},
+			AddInternalObjectsToScheme: routeapi.AddToScheme,
+		},
+		announced.VersionToSchemeFunc{
+			routeapiv1.SchemeGroupVersion.Version: routeapiv1.AddToScheme,
+		},
+	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
-	}
-	if err := enableVersions(externalVersions); err != nil {
-		panic(err)
-	}
-
-	installApiGroup()
-}
-
-// TODO: enableVersions should be centralized rather than spread in each API
-// group.
-// We can combine kapi.Registry.RegisterVersions, kapi.Registry.EnableVersions and
-// kapi.Registry.RegisterGroup once we have moved enableVersions there.
-func enableVersions(externalVersions []schema.GroupVersion) error {
-	addVersionsToScheme(externalVersions...)
-	preferredExternalVersion := externalVersions[0]
-
-	groupMeta := apimachinery.GroupMeta{
-		GroupVersion:  preferredExternalVersion,
-		GroupVersions: externalVersions,
-		RESTMapper:    newRESTMapper(externalVersions),
-		SelfLinker:    runtime.SelfLinker(accessor),
-		InterfacesFor: interfacesFor,
-	}
-
-	if err := kapi.Registry.RegisterGroup(groupMeta); err != nil {
-		return err
-	}
-	return nil
-}
-
-func addVersionsToScheme(externalVersions ...schema.GroupVersion) {
-	// add the internal version to Scheme
-	routeapi.AddToSchemeInCoreGroup(kapi.Scheme)
-	// add the enabled external versions to Scheme
-	for _, v := range externalVersions {
-		if !kapi.Registry.IsEnabledVersion(v) {
-			glog.Errorf("Version %s is not enabled, so it will not be added to the Scheme.", v)
-			continue
-		}
-		switch v {
-		case routeapiv1.LegacySchemeGroupVersion:
-			routeapiv1.AddToSchemeInCoreGroup(kapi.Scheme)
-
-		default:
-			glog.Errorf("Version %s is not known, so it will not be added to the Scheme.", v)
-			continue
-		}
-	}
-}
-
-func newRESTMapper(externalVersions []schema.GroupVersion) meta.RESTMapper {
-	rootScoped := sets.NewString()
-	ignoredKinds := sets.NewString()
-	return meta.NewDefaultRESTMapperFromScheme(externalVersions, interfacesFor, importPrefix, ignoredKinds, rootScoped, kapi.Scheme)
-}
-
-func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {
-	switch version {
-	case routeapiv1.LegacySchemeGroupVersion:
-		return &meta.VersionInterfaces{
-			ObjectConvertor:  kapi.Scheme,
-			MetadataAccessor: accessor,
-		}, nil
-
-	default:
-		g, _ := kapi.Registry.Group(routeapi.LegacyGroupName)
-		return nil, fmt.Errorf("unsupported storage version: %s (valid: %v)", version, g.GroupVersions)
 	}
 }

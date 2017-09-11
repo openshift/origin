@@ -107,6 +107,7 @@ func setUp(t *testing.T) (*etcdtesting.EtcdTestServer, Config, *assert.Assertion
 	// 	},
 	// }
 	config.SwaggerConfig = DefaultSwaggerConfig()
+	config.Complete()
 
 	return etcdServer, *config, assert.New(t)
 }
@@ -167,7 +168,7 @@ func TestInstallAPIGroups(t *testing.T) {
 			}, nil
 		}
 
-		mapper := meta.NewDefaultRESTMapperFromScheme([]schema.GroupVersion{gv}, interfacesFor, "", sets.NewString(), sets.NewString(), scheme)
+		mapper := meta.NewDefaultRESTMapperFromScheme([]schema.GroupVersion{gv}, interfacesFor, sets.NewString(), sets.NewString(), scheme)
 		groupMeta := apimachinery.GroupMeta{
 			GroupVersion:  gv,
 			GroupVersions: []schema.GroupVersion{gv},

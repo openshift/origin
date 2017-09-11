@@ -55,11 +55,11 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 
 			assertPageContent := func(content string, dcLabel labels.Selector) {
 				_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, dcName, "", content)
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(result).To(o.BeTrue())
+				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+				o.ExpectWithOffset(1, result).To(o.BeTrue())
 			}
 
 			// with hot deploy disabled, making a change to

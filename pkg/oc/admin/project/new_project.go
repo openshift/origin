@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -127,7 +128,13 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		}
 	}
 
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(o.ProjectName) {
+	for _, rbacBinding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(o.ProjectName) {
+		binding, err := authorizationregistryutil.RoleBindingFromRBAC(&rbacBinding)
+		if err != nil {
+			fmt.Printf("Could not convert Role Binding %s in the %q namespace: %v\n", rbacBinding.Name, o.ProjectName, err)
+			errs = append(errs, err)
+			continue
+		}
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,

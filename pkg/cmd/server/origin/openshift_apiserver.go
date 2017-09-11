@@ -20,7 +20,6 @@ import (
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	kapi "k8s.io/kubernetes/pkg/api"
 	v1beta1extensions "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
@@ -29,22 +28,30 @@ import (
 
 	"github.com/openshift/origin/pkg/api"
 	"github.com/openshift/origin/pkg/api/v1"
+	oappsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	oappsapiserver "github.com/openshift/origin/pkg/apps/apiserver"
+	authorizationapiserver "github.com/openshift/origin/pkg/authorization/apiserver"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
-	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	buildapiserver "github.com/openshift/origin/pkg/build/apiserver"
 	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	oappsapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	oappsapiserver "github.com/openshift/origin/pkg/deploy/apiserver"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiserver "github.com/openshift/origin/pkg/image/apiserver"
+	networkapiserver "github.com/openshift/origin/pkg/network/apiserver"
+	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
+	projectapiserver "github.com/openshift/origin/pkg/project/apiserver"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	quotaapiserver "github.com/openshift/origin/pkg/quota/apiserver"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	routeapiserver "github.com/openshift/origin/pkg/route/apiserver"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
+	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
@@ -52,7 +59,7 @@ import (
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
 	"github.com/openshift/origin/pkg/version"
 
-	authzapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	networkapiv1 "github.com/openshift/origin/pkg/network/apis/network/v1"
@@ -63,19 +70,20 @@ import (
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	userapiv1 "github.com/openshift/origin/pkg/user/apis/user/v1"
+
+	// register api groups
+	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 type OpenshiftAPIConfig struct {
 	GenericConfig *genericapiserver.Config
 
-	KubeClientExternal    kclientsetexternal.Interface
 	KubeClientInternal    kclientsetinternal.Interface
 	KubeletClientConfig   *kubeletclient.KubeletClientConfig
 	KubeInternalInformers kinternalinformers.SharedInformerFactory
 
-	AuthorizationInformers authorizationinformer.SharedInformerFactory
-	QuotaInformers         quotainformer.SharedInformerFactory
-	SecurityInformers      securityinformer.SharedInformerFactory
+	QuotaInformers    quotainformer.SharedInformerFactory
+	SecurityInformers securityinformer.SharedInformerFactory
 
 	// DeprecatedInformers is a shared factory for getting old style openshift informers
 	DeprecatedOpenshiftClient *osclient.Client
@@ -83,7 +91,9 @@ type OpenshiftAPIConfig struct {
 	// these are all required to build our storage
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
 	SubjectLocator authorizer.SubjectLocator
-	LimitVerifier  imageadmission.LimitVerifier
+
+	// for Images
+	LimitVerifier imageadmission.LimitVerifier
 	// RegistryHostnameRetriever retrieves the internal and external hostname of
 	// the integrated registry, or false if no such registry is available.
 	RegistryHostnameRetriever          imageapi.RegistryHostnameRetriever
@@ -99,6 +109,7 @@ type OpenshiftAPIConfig struct {
 
 	EnableBuilds bool
 
+	// oauth API server
 	ServiceAccountMethod configapi.GrantHandlerType
 
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
@@ -112,9 +123,6 @@ type OpenshiftAPIConfig struct {
 func (c *OpenshiftAPIConfig) Validate() error {
 	ret := []error{}
 
-	if c.KubeClientExternal == nil {
-		ret = append(ret, fmt.Errorf("KubeClientExternal is required"))
-	}
 	if c.KubeClientInternal == nil {
 		ret = append(ret, fmt.Errorf("KubeClientInternal is required"))
 	}
@@ -123,9 +131,6 @@ func (c *OpenshiftAPIConfig) Validate() error {
 	}
 	if c.KubeInternalInformers == nil {
 		ret = append(ret, fmt.Errorf("KubeInternalInformers is required"))
-	}
-	if c.AuthorizationInformers == nil {
-		ret = append(ret, fmt.Errorf("AuthorizationInformers is required"))
 	}
 	if c.QuotaInformers == nil {
 		ret = append(ret, fmt.Errorf("QuotaInformers is required"))
@@ -241,6 +246,30 @@ func (c *completedConfig) withAppsAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, legacyStorageMutators{legacyStorageMutatorFunc(legacyDCRollbackMutator.Mutate), &legacyStorageVersionMutator{version: oappsapiv1.SchemeGroupVersion, storage: storage}}, nil
 }
 
+func (c *completedConfig) withAuthorizationAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &authorizationapiserver.AuthorizationAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		KubeInternalInformers:     c.KubeInternalInformers,
+		RuleResolver:              c.RuleResolver,
+		SubjectLocator:            c.SubjectLocator,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: authorizationapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
 func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	if !c.EnableBuilds {
 		return delegateAPIServer, legacyStorageMutatorFunc(func(map[schema.GroupVersion]map[string]rest.Storage) {}), nil
@@ -267,13 +296,177 @@ func (c *completedConfig) withBuildAPIServer(delegateAPIServer genericapiserver.
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: buildapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+func (c *completedConfig) withImageAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &imageapiserver.ImageAPIServerConfig{
+		GenericConfig:                      c.GenericConfig,
+		CoreAPIServerClientConfig:          c.GenericConfig.LoopbackClientConfig,
+		LimitVerifier:                      c.LimitVerifier,
+		RegistryHostnameRetriever:          c.RegistryHostnameRetriever,
+		AllowedRegistriesForImport:         c.AllowedRegistriesForImport,
+		MaxImagesBulkImportedPerRepository: c.MaxImagesBulkImportedPerRepository,
+		Codecs:   kapi.Codecs,
+		Registry: kapi.Registry,
+		Scheme:   kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: imageapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withNetworkAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &networkapiserver.NetworkAPIServerConfig{
+		GenericConfig: c.GenericConfig,
+		Codecs:        kapi.Codecs,
+		Registry:      kapi.Registry,
+		Scheme:        kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: networkapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withOAuthAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &oauthapiserver.OAuthAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		ServiceAccountMethod:      c.ServiceAccountMethod,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: oauthapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withProjectAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &projectapiserver.ProjectAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		KubeInternalInformers:     c.KubeInternalInformers,
+		ProjectAuthorizationCache: c.ProjectAuthorizationCache,
+		ProjectCache:              c.ProjectCache,
+		ProjectRequestTemplate:    c.ProjectRequestTemplate,
+		ProjectRequestMessage:     c.ProjectRequestMessage,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: projectapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withQuotaAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &quotaapiserver.QuotaAPIServerConfig{
+		GenericConfig:                 c.GenericConfig,
+		ClusterQuotaMappingController: c.ClusterQuotaMappingController,
+		QuotaInformers:                c.QuotaInformers,
+		KubeInternalInformers:         c.KubeInternalInformers,
+		Codecs:                        kapi.Codecs,
+		Registry:                      kapi.Registry,
+		Scheme:                        kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: quotaapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withRouteAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &routeapiserver.RouteAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		RouteAllocator:            c.RouteAllocator,
+		Codecs:                    kapi.Codecs,
+		Registry:                  kapi.Registry,
+		Scheme:                    kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: routeapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
+func (c *completedConfig) withSecurityAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
+	config := &securityapiserver.SecurityAPIServerConfig{
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		// SCCStorage is actually created with a kubernetes restmapper options to have the correct prefix,
+		// so we have to have it special cased here to point to the right spot.
+		SCCStorage:            c.SCCStorage,
+		SecurityInformers:     c.SecurityInformers,
+		KubeInternalInformers: c.KubeInternalInformers,
+		Codecs:                kapi.Codecs,
+		Registry:              kapi.Registry,
+		Scheme:                kapi.Scheme,
+	}
+	server, err := config.Complete().New(delegateAPIServer)
+	if err != nil {
+		return nil, nil, err
+	}
+	storage, err := config.V1RESTStorage()
+	if err != nil {
+		return nil, nil, err
+	}
+	server.GenericAPIServer.PrepareRun() // this triggers openapi construction
+
+	return server.GenericAPIServer, &legacyStorageVersionMutator{version: securityapiv1.SchemeGroupVersion, storage: storage}, nil
+}
+
 func (c *completedConfig) withTemplateAPIServer(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error) {
 	config := &templateapiserver.TemplateConfig{
-		GenericConfig:       c.GenericConfig,
-		AuthorizationClient: c.KubeClientInternal.Authorization(),
-		Codecs:              kapi.Codecs,
-		Registry:            kapi.Registry,
-		Scheme:              kapi.Scheme,
+		GenericConfig:             c.GenericConfig,
+		CoreAPIServerClientConfig: c.GenericConfig.LoopbackClientConfig,
+		Codecs:   kapi.Codecs,
+		Registry: kapi.Registry,
+		Scheme:   kapi.Scheme,
 	}
 	server, err := config.Complete().New(delegateAPIServer)
 	if err != nil {
@@ -308,36 +501,34 @@ func (c *completedConfig) withUserAPIServer(delegateAPIServer genericapiserver.D
 	return server.GenericAPIServer, &legacyStorageVersionMutator{version: userapiv1.SchemeGroupVersion, storage: storage}, nil
 }
 
+type apiServerAppenderFunc func(delegateAPIServer genericapiserver.DelegationTarget) (genericapiserver.DelegationTarget, legacyStorageMutator, error)
+
+func addAPIServerOrDie(delegateAPIServer genericapiserver.DelegationTarget, legacyStorageModifiers legacyStorageMutators, apiServerAppenderFn apiServerAppenderFunc) (genericapiserver.DelegationTarget, legacyStorageMutators) {
+	delegateAPIServer, currLegacyStorageMutator, err := apiServerAppenderFn(delegateAPIServer)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	legacyStorageModifiers = append(legacyStorageModifiers, currLegacyStorageMutator)
+
+	return delegateAPIServer, legacyStorageModifiers
+}
+
 func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget) (*OpenshiftAPIServer, error) {
+	delegateAPIServer := delegationTarget
 	legacyStorageModifier := legacyStorageMutators{}
 
-	delegateAPIServer := delegationTarget
-	var currLegacyStorageMutator legacyStorageMutator
-	var err error
-
-	delegateAPIServer, currLegacyStorageMutator, err = c.withAppsAPIServer(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
-
-	delegateAPIServer, currLegacyStorageMutator, err = c.withBuildAPIServer(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
-
-	delegateAPIServer, currLegacyStorageMutator, err = c.withTemplateAPIServer(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
-
-	delegateAPIServer, currLegacyStorageMutator, err = c.withUserAPIServer(delegateAPIServer)
-	if err != nil {
-		return nil, err
-	}
-	legacyStorageModifier = append(legacyStorageModifier, currLegacyStorageMutator)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAppsAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withAuthorizationAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withBuildAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withImageAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withNetworkAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withOAuthAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withProjectAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withQuotaAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withRouteAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withSecurityAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withTemplateAPIServer)
+	delegateAPIServer, legacyStorageModifier = addAPIServerOrDie(delegateAPIServer, legacyStorageModifier, c.withUserAPIServer)
 
 	genericServer, err := c.OpenshiftAPIConfig.GenericConfig.SkipComplete().New("openshift-apiserver", delegateAPIServer) // completion is done in Complete, no need for a second time
 	if err != nil {
@@ -348,57 +539,12 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		GenericAPIServer: genericServer,
 	}
 
-	storage, err := c.GetRestStorage()
-	if err != nil {
-		return nil, err
+	legacyStorage := map[schema.GroupVersion]map[string]rest.Storage{
+		v1.SchemeGroupVersion: {},
 	}
-	groupVersions := map[string][]string{}
+	legacyStorageModifier.mutate(legacyStorage)
 
-	// TODO restructure this to be more friendly
-	// Install Origin API groups
-	for gv := range storage {
-		// skip pure-legacy groups as API groups
-		if gv == v1.SchemeGroupVersion {
-			continue
-		}
-		if !kapi.Registry.IsEnabledVersion(gv) {
-			continue
-		}
-		for _, infos := range apiGroupsVersions {
-			for _, group := range infos.Versions {
-				groupVersions[group.Group] = append(groupVersions[group.Group], gv.Version)
-			}
-		}
-	}
-
-	for group, versions := range groupVersions {
-		apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(group, kapi.Registry, kapi.Scheme, kapi.ParameterCodec, kapi.Codecs)
-
-		for _, version := range versions {
-			gv := schema.GroupVersion{Group: group, Version: version}
-			apiGroupInfo.VersionedResourcesStorageMap[version] = storage[gv]
-
-			// TODO all of our groups currently have one version, by the time we get more than one, these should be split up
-			// into their own api servers
-			if isPreferredGroupVersion(gv) {
-				apiGroupInfo.GroupMeta.GroupVersion = gv
-			}
-		}
-
-		if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
-			return nil, fmt.Errorf("unable to initialize %s API group: %v", apiGroupInfo.GroupMeta.GroupVersion, err)
-		}
-		glog.Infof("Starting Origin API at %s/%s/%s", api.GroupPrefix, apiGroupInfo.GroupMeta.GroupVersion.Group, apiGroupInfo.GroupMeta.GroupVersion.Version)
-	}
-
-	// after the old-style groupified storage is created, modify the storage map to include the already migrated storage
-	// to be included in the legacy group
-	if _, ok := storage[v1.SchemeGroupVersion]; !ok {
-		storage[v1.SchemeGroupVersion] = map[string]rest.Storage{}
-	}
-	legacyStorageModifier.mutate(storage)
-
-	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(storage))); err != nil {
+	if err := s.GenericAPIServer.InstallLegacyAPIGroup(api.Prefix, apiLegacyV1(LegacyStorage(legacyStorage))); err != nil {
 		return nil, fmt.Errorf("Unable to initialize v1 API: %v", err)
 	}
 	glog.Infof("Started Origin API at %s/%s", api.Prefix, v1.SchemeGroupVersion.Version)
@@ -490,39 +636,6 @@ func writeJSON(resp *restful.Response, json []byte) {
 	resp.ResponseWriter.Header().Set("Content-Type", "application/json")
 	resp.ResponseWriter.WriteHeader(http.StatusOK)
 	resp.ResponseWriter.Write(json)
-}
-
-// apiGroupInfo represents a set of API group versions and their preferred version.
-type apiGroupInfo struct {
-	PreferredVersion string
-	Versions         []schema.GroupVersion
-}
-
-// apiGroupsVersions holds the list of installed Origin API groups and their preferred version.
-// FIXME: This should be handled in each REST storage separately and on in one place. That
-//        will be addressed as a separate issue.
-var apiGroupsVersions = []apiGroupInfo{
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{securityapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{projectapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{quotaapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{networkapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{routeapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{imageapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{authzapiv1.SchemeGroupVersion}},
-	{PreferredVersion: "v1", Versions: []schema.GroupVersion{oauthapiv1.SchemeGroupVersion}},
-}
-
-// isPreferredGroupVersion returns true if the given GroupVersion is preferred version in
-// the API group.
-func isPreferredGroupVersion(gv schema.GroupVersion) bool {
-	for _, info := range apiGroupsVersions {
-		for _, version := range info.Versions {
-			if version == gv && gv.Version == info.PreferredVersion {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func (c *OpenshiftAPIConfig) startClusterQuotaMapping(context genericapiserver.PostStartHookContext) error {
@@ -625,7 +738,13 @@ func EnsureNamespaceServiceAccountRoleBindings(kubeClientInternal kclientsetinte
 	}
 
 	hasErrors := false
-	for _, binding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name) {
+	for _, rbacBinding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(namespace.Name) {
+		binding, err := authorizationregistryutil.RoleBindingFromRBAC(&rbacBinding)
+		if err != nil {
+			glog.Errorf("Could not convert Role Binding %s in the %q namespace: %v\n", rbacBinding.Name, namespace.Name, err)
+			hasErrors = true
+			continue
+		}
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
@@ -633,7 +752,7 @@ func EnsureNamespaceServiceAccountRoleBindings(kubeClientInternal kclientsetinte
 			Subjects:            binding.Subjects,
 		}
 		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error { return addRole.AddRole() }); err != nil {
-			glog.Errorf("Could not add service accounts to the %v role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
+			glog.Errorf("Could not add service accounts to the %s role in the %q namespace: %v\n", binding.RoleRef.Name, namespace.Name, err)
 			hasErrors = true
 		}
 	}

@@ -10,8 +10,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )

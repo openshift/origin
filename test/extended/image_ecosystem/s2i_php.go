@@ -48,11 +48,11 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 
 			assertPageCountIs := func(i int) {
 				_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, "cakephp-mysql-example", "", pageCountFn(i))
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(result).To(o.BeTrue())
+				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+				o.ExpectWithOffset(1, result).To(o.BeTrue())
 			}
 
 			g.By("checking page count")

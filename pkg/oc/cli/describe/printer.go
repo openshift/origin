@@ -17,9 +17,9 @@ import (
 	kinternalprinters "k8s.io/kubernetes/pkg/printers/internalversion"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -954,7 +954,7 @@ func printOAuthAuthorizeTokenList(list *oauthapi.OAuthAuthorizeTokenList, w io.W
 
 func printUser(user *userapi.User, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, user.Name, opts.WithKind)
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, user.UID, user.FullName, strings.Join(user.Identities, ", ")); err != nil {
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, user.UID, user.FullName, strings.Join(user.Identities, ", ")); err != nil {
 		return err
 	}
 	if err := appendItemLabels(user.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {

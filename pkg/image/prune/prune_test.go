@@ -24,9 +24,9 @@ import (
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/api/graph"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client/testclient"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )

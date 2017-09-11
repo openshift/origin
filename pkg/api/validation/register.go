@@ -1,9 +1,9 @@
 package validation
 
 import (
+	deployvalidation "github.com/openshift/origin/pkg/apps/apis/apps/validation"
 	authorizationvalidation "github.com/openshift/origin/pkg/authorization/apis/authorization/validation"
 	buildvalidation "github.com/openshift/origin/pkg/build/apis/build/validation"
-	deployvalidation "github.com/openshift/origin/pkg/deploy/apis/apps/validation"
 	imagevalidation "github.com/openshift/origin/pkg/image/apis/image/validation"
 	sdnvalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	oauthvalidation "github.com/openshift/origin/pkg/oauth/apis/oauth/validation"
@@ -15,9 +15,9 @@ import (
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"

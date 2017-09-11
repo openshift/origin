@@ -2,11 +2,10 @@ package delegated
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
+	"k8s.io/kubernetes/pkg/apis/rbac/v1beta1"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
@@ -46,17 +45,14 @@ func DefaultTemplate() *templateapi.Template {
 
 	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
 	for i := range serviceAccountRoleBindings {
-		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, authorizationapiv1.SchemeGroupVersion); err != nil {
+		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, v1beta1.SchemeGroupVersion); err != nil {
 			panic(err)
 		}
 	}
 
-	binding := &authorizationapi.RoleBinding{}
-	binding.Name = bootstrappolicy.AdminRoleName
-	binding.Namespace = ns
-	binding.Subjects = []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "${" + ProjectAdminUserParam + "}"}}
-	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
-	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{binding}, authorizationapiv1.SchemeGroupVersion); err != nil {
+	binding := rbac.NewRoleBindingForClusterRole(bootstrappolicy.AdminRoleName, ns).Users("${" + ProjectAdminUserParam + "}").BindingOrDie()
+
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&binding}, v1beta1.SchemeGroupVersion); err != nil {
 		// this should never happen because we're tightly controlling what goes in.
 		panic(err)
 	}

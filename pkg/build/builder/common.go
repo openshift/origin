@@ -1,6 +1,7 @@
 package builder
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/json"
 	"fmt"
@@ -20,6 +21,7 @@ import (
 	"github.com/openshift/source-to-image/pkg/util"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	"github.com/openshift/origin/pkg/build/builder/timing"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
 	"github.com/openshift/origin/pkg/client"
@@ -114,7 +116,7 @@ func containerName(strategyName, buildName, namespace, containerPurpose string) 
 // postCommitSpec in a new ephemeral Docker container running the given image.
 // It returns an error if the hook cannot be run or returns a non-zero exit
 // code.
-func execPostCommitHook(client DockerClient, postCommitSpec buildapi.BuildPostCommitSpec, image, containerName string) error {
+func execPostCommitHook(ctx context.Context, client DockerClient, postCommitSpec buildapi.BuildPostCommitSpec, image, containerName string) error {
 	command := postCommitSpec.Command
 	args := postCommitSpec.Args
 	script := postCommitSpec.Script
@@ -143,8 +145,9 @@ func execPostCommitHook(client DockerClient, postCommitSpec buildapi.BuildPostCo
 	if err != nil {
 		return fmt.Errorf("read cgroup parent: %v", err)
 	}
+	startTime := metav1.Now()
 
-	return dockerRun(client, docker.CreateContainerOptions{
+	err = dockerRun(client, docker.CreateContainerOptions{
 		Name: containerName,
 		Config: &docker.Config{
 			Image:      image,
@@ -169,6 +172,9 @@ func execPostCommitHook(client DockerClient, postCommitSpec buildapi.BuildPostCo
 		Stdout:       true,
 		Stderr:       true,
 	})
+	timing.RecordNewStep(ctx, buildapi.StagePostCommit, buildapi.StepExecPostCommitHook, startTime, metav1.Now())
+
+	return err
 }
 
 // GetSourceRevision returns a SourceRevision object either from the build (if it already had one)

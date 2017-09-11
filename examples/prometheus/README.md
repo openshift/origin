@@ -10,6 +10,16 @@ $ oc new-app -f prometheus.yaml
 
 You may customize where the images (built from `openshift/prometheus` and `openshift/oauth-proxy`) are pulled from via template parameters.
 
+The optional `node-exporter` component may be installed as a daemon set to gather host level metrics. It requires additional
+privileges to view the host and should only be run in administrator controlled namespaces.
+
+To deploy, run:
+
+```
+$ oc create -f node-exporter.yaml -n kube-system
+$ oc adm policy add-scc-to-user -z prometheus-node-exporter -n kube-system hostaccess
+```
+
 ## Useful metrics queries
 
 ### Related to how much data is being gathered by Prometheus
@@ -83,3 +93,26 @@ Number of non-mutating API requests being made to the control plane.
 
 Top 10 pods doing the most receive network traffic
 
+### etcd related queries
+
+> etcd_disk_wal_fsync_duration_seconds_count{type="master"}
+
+etcd "write-ahead-log" latency in milliseconds.  If this goes over 100ms, the cluster might destabilize.  Over 1000ms and things definitely start falling apart.
+
+### Kubelet / docker related queries
+
+> kubelet_docker_operations_latency_microseconds{type="compute",quantile="0.9"}
+
+90th percentile latency for docker operations (in microseconds).  This number will include image pulls, so often will be hundreds of seconds.
+
+> kubelet_docker_operations_timeout
+
+Returns a running count (not a rate) of docker operations that have timed out since the kubelet was started.
+
+> kubelet_docker_operations_errors
+
+Returns a running count (not a rate) of docker operations that have failed since the kubelet was started.
+
+> kubelet_pleg_relist_latency_microseconds
+
+Returns PLEG (pod lifecycle event generator) latency metrics.  This represents the latency experienced by calls from the kubelet to the container runtime (i.e. docker or CRI-O).  High PLEG latency is often related to disk I/O performance on the docker storage partition.

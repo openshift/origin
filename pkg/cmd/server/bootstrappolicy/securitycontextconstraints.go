@@ -285,7 +285,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 // GetBoostrapSCCAccess provides the default set of access that should be passed to GetBootstrapSecurityContextConstraints.
 func GetBoostrapSCCAccess(infraNamespace string) (map[string][]string, map[string][]string) {
 	groups := map[string][]string{
-		SecurityContextConstraintPrivileged: {ClusterAdminGroup, NodesGroup},
+		SecurityContextConstraintPrivileged: {ClusterAdminGroup, NodesGroup, MastersGroup},
 		SecurityContextConstraintsAnyUID:    {ClusterAdminGroup},
 		SecurityContextConstraintRestricted: {AuthenticatedGroup},
 	}
@@ -293,7 +293,7 @@ func GetBoostrapSCCAccess(infraNamespace string) (map[string][]string, map[strin
 	buildControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraBuildControllerServiceAccountName)
 	pvRecyclerControllerUsername := serviceaccount.MakeUsername(infraNamespace, InfraPersistentVolumeRecyclerControllerServiceAccountName)
 	users := map[string][]string{
-		SecurityContextConstraintPrivileged:         {buildControllerUsername},
+		SecurityContextConstraintPrivileged:         {SystemAdminUsername, buildControllerUsername},
 		SecurityContextConstraintHostMountAndAnyUID: {pvRecyclerControllerUsername},
 	}
 	return groups, users

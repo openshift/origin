@@ -17,16 +17,37 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/client/retry"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
+	"github.com/openshift/origin/pkg/client"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 )
+
+type updateConfigFunc func(d *deployapi.DeploymentConfig)
+
+// updateConfigWithRetries will try to update a deployment config and ignore any update conflicts.
+func updateConfigWithRetries(dn client.DeploymentConfigsNamespacer, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
+	var config *deployapi.DeploymentConfig
+	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		var err error
+		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		// Apply the update, then attempt to push it to the apiserver.
+		applyUpdate(config)
+		config, err = dn.DeploymentConfigs(namespace).Update(config)
+		return err
+	})
+	return config, resultErr
+}
 
 func deploymentPods(pods []kapiv1.Pod) (map[string][]*kapiv1.Pod, error) {
 	deployers := make(map[string][]*kapiv1.Pod)

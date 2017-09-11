@@ -19,11 +19,11 @@ func TestManifestServiceExists(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, client, imageClient := testutil.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := testutil.NewFakeOpenShiftWithClient()
 	testImage := testutil.AddRandomImage(t, fos, namespace, repo, tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 	})
 
 	ms := &manifestService{
@@ -51,7 +51,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, client, imageClient := testutil.NewFakeOpenShiftWithClient()
+	fos, _, imageClient := testutil.NewFakeOpenShiftWithClient()
 
 	testImage, err := testutil.CreateRandomImage(namespace, repo)
 	if err != nil {
@@ -77,7 +77,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 	}
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 	})
 
 	ms := &manifestService{
@@ -113,7 +113,7 @@ func TestManifestServicePut(t *testing.T) {
 	repo := "app"
 	repoName := fmt.Sprintf("%s/%s", namespace, repo)
 
-	_, client, imageClient := testutil.NewFakeOpenShiftWithClient()
+	_, _, imageClient := testutil.NewFakeOpenShiftWithClient()
 
 	bs := newTestBlobStore(map[digest.Digest][]byte{
 		"test:1": []byte("{}"),
@@ -122,7 +122,7 @@ func TestManifestServicePut(t *testing.T) {
 	tms := newTestManifestService(repoName, nil)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 		blobs:  bs,
 	})
 
@@ -146,7 +146,7 @@ func TestManifestServicePut(t *testing.T) {
 		},
 	}
 
-	osclient, err := registryclient.NewFakeRegistryClient(client, imageClient).Client()
+	osclient, err := registryclient.NewFakeRegistryClient(imageClient).Client()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +161,7 @@ func TestManifestServicePut(t *testing.T) {
 
 	// recreate repository to reset cached image stream
 	r = newTestRepository(t, namespace, repo, testRepositoryOptions{
-		client: registryclient.NewFakeRegistryAPIClient(client, nil, imageClient),
+		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 		blobs:  bs,
 	})
 

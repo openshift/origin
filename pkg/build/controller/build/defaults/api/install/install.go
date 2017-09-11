@@ -3,17 +3,12 @@ package install
 import (
 	"github.com/golang/glog"
 
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/openshift/origin/pkg/build/controller/build/defaults/api"
 	"github.com/openshift/origin/pkg/build/controller/build/defaults/api/v1"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
-
-const importPrefix = "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
-
-var accessor = meta.NewAccessor()
 
 // availableVersions lists all known external versions for this group from most preferred to least preferred
 var availableVersions = []schema.GroupVersion{v1.SchemeGroupVersion}

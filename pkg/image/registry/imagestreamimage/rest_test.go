@@ -13,10 +13,9 @@ import (
 	etcdtesting "k8s.io/apiserver/pkg/storage/etcd/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/registry/registrytest"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/authorization/registry/subjectaccessreview"
 	"github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
@@ -33,9 +32,7 @@ var testDefaultRegistry = func() (string, bool) { return "defaultregistry:5000",
 type fakeSubjectAccessReviewRegistry struct {
 }
 
-var _ subjectaccessreview.Registry = &fakeSubjectAccessReviewRegistry{}
-
-func (f *fakeSubjectAccessReviewRegistry) CreateSubjectAccessReview(ctx apirequest.Context, subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReviewResponse, error) {
+func (f *fakeSubjectAccessReviewRegistry) Create(subjectAccessReview *authorizationapi.SubjectAccessReview) (*authorizationapi.SubjectAccessReview, error) {
 	return nil, nil
 }
 

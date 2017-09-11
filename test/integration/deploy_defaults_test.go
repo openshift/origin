@@ -10,10 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	"github.com/openshift/origin/pkg/apps/generated/clientset"
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/deploy/apis/apps/v1"
-	"github.com/openshift/origin/pkg/deploy/generated/clientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )

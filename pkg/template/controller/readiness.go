@@ -12,10 +12,10 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	deploymentutil "k8s.io/kubernetes/pkg/controller/deployment/util"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 // checkBuildReadiness determins if a Build is ready, failed or neither.

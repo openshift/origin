@@ -36,6 +36,31 @@ items:
     - system:admin
     resources:
     - systemusers
+    - users
+    verbs:
+    - impersonate
+  - apiGroups:
+    - ""
+    - user.openshift.io
+    resourceNames:
+    - system:masters
+    resources:
+    - groups
+    - systemgroups
+    verbs:
+    - impersonate
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRole
+  metadata:
+    annotations:
+      authorization.openshift.io/system-only: "true"
+    creationTimestamp: null
+    name: system:scope-impersonation
+  rules:
+  - apiGroups:
+    - authentication.k8s.io
+    resources:
+    - userextras/scopes.authorization.openshift.io
     verbs:
     - impersonate
 - apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -220,12 +245,8 @@ items:
     - ""
     - authorization.openshift.io
     resources:
-    - clusterpolicies
-    - clusterpolicybindings
     - clusterrolebindings
     - clusterroles
-    - policies
-    - policybindings
     - rolebindingrestrictions
     - rolebindings
     - roles
@@ -761,8 +782,6 @@ items:
     - ""
     - authorization.openshift.io
     resources:
-    - policies
-    - policybindings
     - rolebindingrestrictions
     verbs:
     - get
@@ -1684,22 +1703,22 @@ items:
     verbs:
     - get
   - nonResourceURLs:
-    - /
-    - /.well-known
-    - /.well-known/*
+    - /version
+    - /version/*
     - /api
     - /api/*
     - /apis
     - /apis/*
     - /oapi
     - /oapi/*
-    - /osapi
-    - /osapi/
-    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
-    - /version
-    - /version/*
+    - /swagger.json
+    - /osapi
+    - /osapi/
+    - /.well-known
+    - /.well-known/*
+    - /
     verbs:
     - get
 - apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -2341,22 +2360,22 @@ items:
     name: system:discovery
   rules:
   - nonResourceURLs:
-    - /
-    - /.well-known
-    - /.well-known/*
+    - /version
+    - /version/*
     - /api
     - /api/*
     - /apis
     - /apis/*
     - /oapi
     - /oapi/*
-    - /osapi
-    - /osapi/
-    - /swagger.json
     - /swaggerapi
     - /swaggerapi/*
-    - /version
-    - /version/*
+    - /swagger.json
+    - /osapi
+    - /osapi/
+    - /.well-known
+    - /.well-known/*
+    - /
     verbs:
     - get
 - apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -2489,16 +2508,6 @@ items:
     - localsubjectaccessreviews
     verbs:
     - create
-  - apiGroups:
-    - ""
-    - authorization.openshift.io
-    resources:
-    - policies
-    - policybindings
-    verbs:
-    - get
-    - list
-    - watch
   - apiGroups:
     - ""
     resources:
@@ -2788,6 +2797,13 @@ items:
     - ""
     - build.openshift.io
     resources:
+    - builds/finalizers
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    - build.openshift.io
+    resources:
     - buildconfigs
     verbs:
     - get
@@ -2959,9 +2975,15 @@ items:
     - ""
     - apps.openshift.io
     resources:
+    - deploymentconfigs/finalizers
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    - apps.openshift.io
+    resources:
     - deploymentconfigs
     verbs:
-    - delete
     - get
     - list
     - watch
@@ -3799,7 +3821,6 @@ items:
     resources:
     - cronjobs
     verbs:
-    - delete
     - get
     - list
     - update
@@ -3820,6 +3841,12 @@ items:
     - batch
     resources:
     - cronjobs/status
+    verbs:
+    - update
+  - apiGroups:
+    - batch
+    resources:
+    - cronjobs/finalizers
     verbs:
     - update
   - apiGroups:
@@ -3849,18 +3876,26 @@ items:
     name: system:controller:daemon-set-controller
   rules:
   - apiGroups:
+    - apps
     - extensions
     resources:
     - daemonsets
     verbs:
-    - delete
     - get
     - list
     - watch
   - apiGroups:
+    - apps
     - extensions
     resources:
     - daemonsets/status
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - daemonsets/finalizers
     verbs:
     - update
   - apiGroups:
@@ -3922,7 +3957,6 @@ items:
     resources:
     - deployments
     verbs:
-    - delete
     - get
     - list
     - update
@@ -3932,6 +3966,13 @@ items:
     - extensions
     resources:
     - deployments/status
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    - extensions
+    resources:
+    - deployments/finalizers
     verbs:
     - update
   - apiGroups:
@@ -4199,7 +4240,6 @@ items:
     resources:
     - jobs
     verbs:
-    - delete
     - get
     - list
     - update
@@ -4208,6 +4248,12 @@ items:
     - batch
     resources:
     - jobs/status
+    verbs:
+    - update
+  - apiGroups:
+    - batch
+    resources:
+    - jobs/finalizers
     verbs:
     - update
   - apiGroups:
@@ -4451,7 +4497,6 @@ items:
     resources:
     - replicasets
     verbs:
-    - delete
     - get
     - list
     - update
@@ -4460,6 +4505,12 @@ items:
     - extensions
     resources:
     - replicasets/status
+    verbs:
+    - update
+  - apiGroups:
+    - extensions
+    resources:
+    - replicasets/finalizers
     verbs:
     - update
   - apiGroups:
@@ -4496,7 +4547,6 @@ items:
     resources:
     - replicationcontrollers
     verbs:
-    - delete
     - get
     - list
     - update
@@ -4505,6 +4555,12 @@ items:
     - ""
     resources:
     - replicationcontrollers/status
+    verbs:
+    - update
+  - apiGroups:
+    - ""
+    resources:
+    - replicationcontrollers/finalizers
     verbs:
     - update
   - apiGroups:
@@ -4677,7 +4733,6 @@ items:
     resources:
     - statefulsets
     verbs:
-    - delete
     - get
     - list
     - watch
@@ -4685,6 +4740,12 @@ items:
     - apps
     resources:
     - statefulsets/status
+    verbs:
+    - update
+  - apiGroups:
+    - apps
+    resources:
+    - statefulsets/finalizers
     verbs:
     - update
   - apiGroups:

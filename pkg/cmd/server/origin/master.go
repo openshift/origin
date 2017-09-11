@@ -2,7 +2,6 @@ package origin
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -10,16 +9,9 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"gopkg.in/natefinch/lumberjack.v2"
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
-	auditinternal "k8s.io/apiserver/pkg/apis/audit"
-	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
-	apifilters "k8s.io/apiserver/pkg/endpoints/filters"
-	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	apiserver "k8s.io/apiserver/pkg/server"
-	apiserverfilters "k8s.io/apiserver/pkg/server/filters"
-	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	kcorestorage "k8s.io/kubernetes/pkg/registry/core/rest"
@@ -35,7 +27,6 @@ import (
 	routeplugin "github.com/openshift/origin/pkg/route/allocation/simple"
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
-	"github.com/openshift/origin/pkg/user/cache"
 )
 
 const (
@@ -62,11 +53,9 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &genericConfig,
 
-		KubeClientExternal:                 c.PrivilegedLoopbackKubernetesClientsetExternal,
 		KubeClientInternal:                 c.PrivilegedLoopbackKubernetesClientsetInternal,
 		KubeletClientConfig:                c.KubeletClientConfig,
 		KubeInternalInformers:              c.InternalKubeInformers,
-		AuthorizationInformers:             c.AuthorizationInformers,
 		QuotaInformers:                     c.QuotaInformers,
 		SecurityInformers:                  c.SecurityInformers,
 		DeprecatedOpenshiftClient:          c.PrivilegedLoopbackOpenShiftClient,
@@ -285,45 +274,10 @@ func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *ap
 			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
 			handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
 
-			// these are all equivalent to the kube handler chain
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			handler = serverhandlers.AuthorizationFilter(handler, c.Authorizer, c.AuthorizationAttributeBuilder, genericConfig.RequestContextMapper)
-			handler = serverhandlers.ImpersonationFilter(handler, c.Authorizer, cache.NewGroupCache(c.UserInformers.User().InternalVersion().Groups()), genericConfig.RequestContextMapper)
-			// audit handler must comes before the impersonationFilter to read the original user
-			if c.Options.AuditConfig.Enabled {
-				var writer io.Writer
-				if len(c.Options.AuditConfig.AuditFilePath) > 0 {
-					writer = &lumberjack.Logger{
-						Filename:   c.Options.AuditConfig.AuditFilePath,
-						MaxAge:     c.Options.AuditConfig.MaximumFileRetentionDays,
-						MaxBackups: c.Options.AuditConfig.MaximumRetainedFiles,
-						MaxSize:    c.Options.AuditConfig.MaximumFileSizeMegabytes,
-					}
-				} else {
-					// backwards compatible writer to regular log
-					writer = cmdutil.NewGLogWriterV(0)
-				}
-				c.AuditBackend = auditlog.NewBackend(writer)
-				auditPolicyChecker := auditpolicy.NewChecker(&auditinternal.Policy{
-					// This is for backwards compatibility maintaining the old visibility, ie. just
-					// raw overview of the requests comming in.
-					Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
-				})
-				handler = apifilters.WithAudit(handler, genericConfig.RequestContextMapper, c.AuditBackend, auditPolicyChecker, genericConfig.LongRunningFunc)
-			}
-			handler = apifilters.WithAuthentication(handler, c.RequestContextMapper, c.Authenticator, apifilters.Unauthorized(false))
-			handler = apiserverfilters.WithCORS(handler, c.Options.CORSAllowedOrigins, nil, nil, nil, "true")
-			handler = apiserverfilters.WithTimeoutForNonLongRunningRequests(handler, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
-			// TODO: MaxRequestsInFlight should be subdivided by intent, type of behavior, and speed of
-			// execution - updates vs reads, long reads vs short reads, fat reads vs skinny reads.
-			// NOTE: read vs. write is implemented in Kube 1.6+
-			handler = apiserverfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
-			handler = apifilters.WithRequestInfo(handler, apiserver.NewRequestInfoResolver(genericConfig), genericConfig.RequestContextMapper)
-			handler = apirequest.WithRequestContext(handler, genericConfig.RequestContextMapper)
-			handler = apiserverfilters.WithPanicRecovery(handler)
-			///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)
 
 			// these handlers are all before the normal kube chain
+			handler = serverhandlers.TranslateLegacyScopeImpersonation(handler)
 			handler = cacheControlFilter(handler, "no-store") // protected endpoints should not be cached
 
 			if c.WebConsoleEnabled() {

@@ -20,9 +20,9 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -135,7 +135,16 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: SudoerRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemUserResource).Names(SystemAdminUsername).RuleOrDie(),
+				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemUserResource, authorizationapi.UserResource).Names(SystemAdminUsername).RuleOrDie(),
+				rbac.NewRule("impersonate").Groups(userGroup, legacyUserGroup).Resources(authorizationapi.SystemGroupResource, authorizationapi.GroupResource).Names(MastersGroup).RuleOrDie(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ScopeImpersonationRoleName,
+			},
+			Rules: []rbac.PolicyRule{
+				rbac.NewRule("impersonate").Groups(kAuthnGroup).Resources("userextras/scopes.authorization.openshift.io").RuleOrDie(),
 			},
 		},
 		{
@@ -177,8 +186,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 
 				rbac.NewRule(read...).Groups(certificatesGroup).Resources("certificatesigningrequests", "certificatesigningrequests/approval", "certificatesigningrequests/status").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("clusterpolicies", "clusterpolicybindings", "clusterroles", "clusterrolebindings",
-					"policies", "policybindings", "roles", "rolebindings", "rolebindingrestrictions").RuleOrDie(),
+				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("clusterroles", "clusterrolebindings", "roles", "rolebindings", "rolebindingrestrictions").RuleOrDie(),
 
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "builds/details", "buildconfigs", "buildconfigs/webhooks", "builds/log").RuleOrDie(),
 
@@ -308,7 +316,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("create").Groups(securityGroup, legacySecurityGroup).Resources("podsecuritypolicysubjectreviews", "podsecuritypolicyselfsubjectreviews", "podsecuritypolicyreviews").RuleOrDie(),
 				rbac.NewRule("create").Groups(kAuthzGroup).Resources("localsubjectaccessreviews").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("policies", "policybindings", "rolebindingrestrictions").RuleOrDie(),
+				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("rolebindingrestrictions").RuleOrDie(),
 
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("builds", "buildconfigs", "buildconfigs/webhooks").RuleOrDie(),
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("builds/log").RuleOrDie(),
@@ -504,7 +512,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			Rules: []rbac.PolicyRule{
 				// Health
 				rbac.NewRule("get").URLs("/healthz", "/healthz/*").RuleOrDie(),
-				authorizationapi.RbacDiscoveryRule,
+				authorizationapi.DiscoveryRule,
 			},
 		},
 		{
@@ -764,7 +772,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				Name: DiscoveryRoleName,
 			},
 			Rules: []rbac.PolicyRule{
-				authorizationapi.RbacDiscoveryRule,
+				authorizationapi.DiscoveryRule,
 			},
 		},
 		{
@@ -793,7 +801,6 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(readWrite...).Groups(authzGroup, legacyAuthzGroup).Resources("rolebindings", "roles").RuleOrDie(),
 				rbac.NewRule("create").Groups(authzGroup, legacyAuthzGroup).Resources("localresourceaccessreviews", "localsubjectaccessreviews", "subjectrulesreviews").RuleOrDie(),
 				rbac.NewRule("create").Groups(kAuthzGroup).Resources("localsubjectaccessreviews").RuleOrDie(),
-				rbac.NewRule(read...).Groups(authzGroup, legacyAuthzGroup).Resources("policies", "policybindings").RuleOrDie(),
 
 				rbac.NewRule("get").Groups(kapiGroup).Resources("namespaces").RuleOrDie(),
 				rbac.NewRule("get", "delete").Groups(projectGroup, legacyProjectGroup).Resources("projects").RuleOrDie(),
@@ -913,6 +920,12 @@ func newOriginRoleBinding(bindingName, roleName, namespace string) *rbac.RoleBin
 	return builder
 }
 
+func newOriginRoleBindingForClusterRole(bindingName, roleName, namespace string) *rbac.RoleBindingBuilder {
+	builder := rbac.NewRoleBindingForClusterRole(roleName, namespace)
+	builder.RoleBinding.Name = bindingName
+	return builder
+}
+
 func newOriginClusterBinding(bindingName, roleName string) *rbac.ClusterRoleBindingBuilder {
 	builder := rbac.NewClusterBinding(roleName)
 	builder.ClusterRoleBinding.Name = bindingName
@@ -985,6 +998,11 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 		// Allow node-bootstrapper SA to bootstrap nodes by default.
 		rbac.NewClusterBinding(NodeBootstrapRoleName).
 			SAs(DefaultOpenShiftInfraNamespace, InfraNodeBootstrapServiceAccountName).
+			BindingOrDie(),
+		// Everyone should be able to add a scope to their impersonation request.  It is purely tightening.
+		// This does not grant access to impersonate in general, only tighten if you already have permission.
+		rbac.NewClusterBinding(ScopeImpersonationRoleName).
+			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
 	}
 }

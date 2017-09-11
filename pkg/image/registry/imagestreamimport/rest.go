@@ -18,14 +18,15 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/dockerregistry"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	"github.com/openshift/origin/pkg/image/importer"
+	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
@@ -35,7 +36,7 @@ type ImporterFunc func(r importer.RepositoryRetriever) importer.Interface
 
 // ImporterDockerRegistryFunc returns an instance of a docker client that should be used per invocation of import,
 // may be nil if no legacy import capability is required.
-type ImporterDockerRegistryFunc func() dockerregistry.Client
+type ImporterDockerRegistryFunc func() dockerv1client.Client
 
 // REST implements the RESTStorage interface for ImageStreamImport
 type REST struct {
@@ -147,12 +148,20 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	}
 
 	// only load secrets if we need them
-	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapi.Secret, error) {
+	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapiv1.Secret, error) {
 		secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
-		return secrets.Items, nil
+		secretsv1 := make([]kapiv1.Secret, len(secrets.Items))
+		for i, secret := range secrets.Items {
+			err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
+			if err != nil {
+				utilruntime.HandleError(err)
+				continue
+			}
+		}
+		return secretsv1, nil
 	})
 	importCtx := importer.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
 	imports := r.importFn(importCtx)

@@ -20,12 +20,12 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
@@ -302,15 +302,7 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// try to add Valerie to a non-existent role, looping until it is true due to
-	// the policy cache taking time to react
-	if err := wait.Poll(time.Second, 2*time.Minute, func() (bool, error) {
-		err := addValerie.AddRole()
-		if err == nil || kapierror.IsNotFound(err) { // TODO what does this mean?
-			return true, nil
-		}
-		return false, err
-	}); err != nil {
+	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -318,7 +310,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	roleWithGroup.Name = "with-group"
 	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
 		Verbs:     sets.NewString("list"),
-		Resources: sets.NewString("builds"), // TODO we may need to track these down
+		Resources: sets.NewString("builds"),
 	})
 	if _, err := clusterAdminClient.ClusterRoles().Create(roleWithGroup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1174,8 +1166,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `User "harold" cannot create localsubjectaccessreviews in project "mallet-project"`,
-		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in project "mallet-project"`,
+		err:               `User "harold" cannot create localsubjectaccessreviews in the namespace "mallet-project"`,
+		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project mallet-project",
@@ -1183,8 +1175,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in project "mallet-project"`,
-		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in project "mallet-project"`,
+		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in the namespace "mallet-project"`,
+		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
 	}.run(t)
 	// ensure message does not leak whether the namespace exists or not
 	subjectAccessReviewTest{
@@ -1193,8 +1185,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `User "harold" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
-		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in project "nonexistent-project"`,
+		err:               `User "harold" cannot create localsubjectaccessreviews in the namespace "nonexistent-project"`,
+		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project nonexistent-project",
@@ -1202,8 +1194,8 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in project "nonexistent-project"`,
-		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in project "nonexistent-project"`,
+		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in the namespace "nonexistent-project"`,
+		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
 	}.run(t)
 
 	askCanHaroldUpdateProject := &authorizationapi.LocalSubjectAccessReview{
@@ -1652,49 +1644,6 @@ func TestClusterPolicyCache(t *testing.T) {
 			RoleRef:    kapi.ObjectReference{Name: clusterRole.Name}}
 		if _, err := clusterAdminClient.ClusterRoleBindings().Create(clusterRoleBinding); err != nil {
 			t.Fatalf("cache error creating cluster role binding %d %q: %v", i, clusterRoleBinding.Name, err)
-		}
-	}
-}
-
-// TestPolicyCache confirms that the creation of role bindings fallback to live lookups when the referenced role is not cached
-func TestPolicyCache(t *testing.T) {
-	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	defer testserver.CleanupMasterEtcd(t, masterConfig)
-
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	user := "harold"
-	namespace := "hammer-project"
-
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, user)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	haroldClient.RESTClient.Throttle = flowcontrol.NewFakeAlwaysRateLimiter() // turn off rate limiting so cache misses are more likely
-
-	for i := 0; i < 100; i++ { // usually takes less than 60 attempts for this to cache miss
-		role := &authorizationapi.Role{ObjectMeta: metav1.ObjectMeta{GenerateName: time.Now().String()}}
-		role, err = haroldClient.Roles(namespace).Create(role)
-		if err != nil {
-			t.Fatalf("unexpected error creating role %q: %v", role.Name, err)
-		}
-		roleBinding := &authorizationapi.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: role.Name},
-			Subjects:   []kapi.ObjectReference{{Name: user, Kind: authorizationapi.UserKind}},
-			RoleRef:    kapi.ObjectReference{Name: role.Name, Namespace: namespace}}
-		if _, err := haroldClient.RoleBindings(namespace).Create(roleBinding); err != nil {
-			t.Fatalf("cache error creating role binding %d %q: %v", i, roleBinding.Name, err)
 		}
 	}
 }

@@ -27,11 +27,6 @@ func (s *ParallelPolicy) IsRunnable(build *buildapi.Build) (bool, error) {
 	return !hasRunningSerialBuild(s.BuildLister, build.Namespace, bcName), nil
 }
 
-// OnComplete implements the RunPolicy interface.
-func (s *ParallelPolicy) OnComplete(build *buildapi.Build) error {
-	return handleComplete(s.BuildLister, s.BuildUpdater, build)
-}
-
 // Handles returns true for the build run parallel policy
 func (s *ParallelPolicy) Handles(policy buildapi.BuildRunPolicy) bool {
 	return policy == buildapi.BuildRunPolicyParallel

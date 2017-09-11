@@ -3,6 +3,7 @@ package master
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -16,6 +17,7 @@ import (
 	restful "github.com/emicklei/go-restful"
 	"github.com/go-openapi/spec"
 	"github.com/golang/glog"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapicommon "k8s.io/apimachinery/pkg/openapi"
@@ -26,6 +28,8 @@ import (
 	knet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
+	auditinternal "k8s.io/apiserver/pkg/apis/audit"
+	auditpolicy "k8s.io/apiserver/pkg/audit/policy"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	apiserverendpointsopenapi "k8s.io/apiserver/pkg/endpoints/openapi"
@@ -40,6 +44,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 	storagefactory "k8s.io/apiserver/pkg/storage/storagebackend/factory"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
+	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -59,12 +64,15 @@ import (
 	kversion "k8s.io/kubernetes/pkg/version"
 
 	"github.com/openshift/origin/pkg/api"
+	oauthorizer "github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
+	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
@@ -144,6 +152,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Etcd.StorageConfig.CAFile = masterConfig.EtcdClientInfo.CA
 	server.Etcd.DefaultWatchCacheSize = DefaultWatchCacheSize
 
+	server.GenericServerRunOptions.CorsAllowedOriginList = masterConfig.CORSAllowedOrigins
 	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
 	server.GenericServerRunOptions.MaxMutatingRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight / 2
 	server.GenericServerRunOptions.MinRequestTimeout = masterConfig.ServingInfo.RequestTimeoutSeconds
@@ -159,6 +168,18 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.KubeletConfig.ReadOnlyPort = 0
 
 	// resolve extended arguments
+	args := map[string][]string{}
+	for k, v := range masterConfig.KubernetesMasterConfig.APIServerArguments {
+		args[k] = v
+	}
+	if masterConfig.AuditConfig.Enabled {
+		if existing, ok := args["feature-gates"]; ok {
+			args["feature-gates"] = []string{existing[0] + ",AdvancedAuditing=true"}
+		} else {
+			args["feature-gates"] = []string{"AdvancedAuditing=true"}
+
+		}
+	}
 	// TODO: this should be done in config validation (along with the above) so we can provide
 	// proper errors
 	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.APIServerArguments, server.AddFlags); len(err) > 0 {
@@ -449,6 +470,7 @@ func buildKubeApiserverConfig(
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
 	genericConfig.AdmissionControl = admissionControl
 	genericConfig.RequestContextMapper = requestContextMapper
+	genericConfig.RequestInfoResolver = openshiftRequestInfoResolver(genericConfig.RequestContextMapper)
 	genericConfig.OpenAPIConfig = defaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
@@ -487,6 +509,29 @@ func buildKubeApiserverConfig(
 
 	if err := apiserverOptions.Etcd.ApplyWithStorageFactoryTo(storageFactory, genericConfig); err != nil {
 		return nil, err
+	}
+
+	// we don't use legacy audit anymore
+	genericConfig.LegacyAuditWriter = nil
+	if masterConfig.AuditConfig.Enabled {
+		var writer io.Writer
+		if len(masterConfig.AuditConfig.AuditFilePath) > 0 {
+			writer = &lumberjack.Logger{
+				Filename:   masterConfig.AuditConfig.AuditFilePath,
+				MaxAge:     masterConfig.AuditConfig.MaximumFileRetentionDays,
+				MaxBackups: masterConfig.AuditConfig.MaximumRetainedFiles,
+				MaxSize:    masterConfig.AuditConfig.MaximumFileSizeMegabytes,
+			}
+		} else {
+			// backwards compatible writer to regular log
+			writer = cmdutil.NewGLogWriterV(0)
+		}
+		genericConfig.AuditBackend = auditlog.NewBackend(writer)
+		genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
+			// This is for backwards compatibility maintaining the old visibility, ie. just
+			// raw overview of the requests comming in.
+			Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
+		})
 	}
 
 	kubeApiserverConfig := &master.Config{
@@ -780,4 +825,19 @@ func readCAorNil(file string) ([]byte, error) {
 
 func newMasterLeases(storage storage.Interface, masterEndpointReconcileTTL int) election.Leases {
 	return election.NewLeases(storage, "/masterleases/", uint64(masterEndpointReconcileTTL))
+}
+
+func openshiftRequestInfoResolver(requestContextMapper apirequest.RequestContextMapper) apirequest.RequestInfoResolver {
+	// Default API request info factory
+	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
+	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
+	browserSafeRequestInfoResolver := oauthorizer.NewBrowserSafeRequestInfoResolver(
+		requestContextMapper,
+		sets.NewString(bootstrappolicy.AuthenticatedGroup),
+		requestInfoFactory,
+	)
+	personalSARRequestInfoResolver := oauthorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
+	projectRequestInfoResolver := oauthorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
+
+	return projectRequestInfoResolver
 }

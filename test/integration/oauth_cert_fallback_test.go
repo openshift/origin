@@ -35,7 +35,7 @@ func TestOAuthCertFallback(t *testing.T) {
 		certUser  = "system:admin"
 
 		unauthorizedError = "the server has asked for the client to provide credentials (get users ~)"
-		anonymousError    = `User "system:anonymous" cannot get users at the cluster scope`
+		anonymousError    = `User "system:anonymous" cannot get users at the cluster scope: User "system:anonymous" cannot get users at the cluster scope (get users ~)`
 	)
 
 	// Build master config

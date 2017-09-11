@@ -32,8 +32,10 @@
 // examples/quickstarts/rails-postgresql.json
 // examples/logging/logging-deployer.yaml
 // examples/heapster/heapster-standalone.yaml
+// examples/prometheus/node-exporter.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
+// install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
 // install/templateservicebroker/rbac-template.yaml
@@ -92,7 +94,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
       "metadata": {
         "name": "httpd",
         "annotations": {
-          "openshift.io/display-name": "Httpd"
+          "openshift.io/display-name": "Apache HTTP Server (httpd)"
         }
       },
       "spec": {
@@ -100,8 +102,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "openshift.io/display-name": "Httpd (Latest)",
-              "description": "Build and serve static content via Httpd on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
+              "openshift.io/display-name": "Apache HTTP Server (Latest)",
+              "description": "Build and serve static content via Apache HTTP Server (httpd) on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
               "iconClass": "icon-apache",
               "tags": "builder,httpd",
               "supports":"httpd",
@@ -115,8 +117,8 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
           {
             "name": "2.4",
             "annotations": {
-              "openshift.io/display-name": "Httpd 2.4",
-              "description": "Build and serve static content via Httpd on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "openshift.io/display-name": "Apache HTTP Server 2.4",
+              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
               "iconClass": "icon-apache",
               "tags": "builder,httpd",
               "supports":"httpd",
@@ -154,7 +156,7 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.3"
+              "name": "2.4"
             }
           },
           {
@@ -203,6 +205,22 @@ var _examplesImageStreamsImageStreamsCentos7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "centos/ruby-23-centos7:latest"
+            }
+          },
+          {
+            "name": "2.4",
+            "annotations": {
+              "openshift.io/display-name": "Ruby 2.4",
+              "description": "Build and run Ruby 2.4 applications on CentOS 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.4,ruby",
+              "version": "2.4",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "centos/ruby-24-centos7:latest"
             }
           }
         ]
@@ -999,7 +1017,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
       "metadata": {
         "name": "httpd",
         "annotations": {
-          "openshift.io/display-name": "Httpd"
+          "openshift.io/display-name": "Apache HTTP Server (httpd)"
         }
       },
       "spec": {
@@ -1007,8 +1025,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "latest",
             "annotations": {
-              "openshift.io/display-name": "Httpd (Latest)",
-              "description": "Build and serve static content via Httpd on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
+              "openshift.io/display-name": "Apache HTTP Server (Latest)",
+              "description": "Build and serve static content via Apache HTTP Server (httpd) on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.\n\nWARNING: By selecting this tag, your application will automatically update to use the latest version of Httpd available on OpenShift, including major versions updates.",
               "iconClass": "icon-apache",
               "tags": "builder,httpd",
               "supports":"httpd",
@@ -1022,8 +1040,8 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
           {
             "name": "2.4",
             "annotations": {
-              "openshift.io/display-name": "Httpd 2.4",
-              "description": "Build and serve static content via Httpd on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
+              "openshift.io/display-name": "Apache HTTP Server 2.4",
+              "description": "Build and serve static content via Apache HTTP Server (httpd) 2.4 on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/httpd-container/blob/master/2.4/README.md.",
               "iconClass": "icon-apache",
               "tags": "builder,httpd",
               "supports":"httpd",
@@ -1061,7 +1079,7 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             },
             "from": {
               "kind": "ImageStreamTag",
-              "name": "2.3"
+              "name": "2.4"
             }
           },
           {
@@ -1110,6 +1128,22 @@ var _examplesImageStreamsImageStreamsRhel7Json = []byte(`{
             "from": {
               "kind": "DockerImage",
               "name": "registry.access.redhat.com/rhscl/ruby-23-rhel7:latest"
+            }
+          },
+          {
+            "name": "2.4",
+            "annotations": {
+              "openshift.io/display-name": "Ruby 2.4",
+              "description": "Build and run Ruby 2.4 applications on RHEL 7. For more information about using this builder image, including OpenShift considerations, see https://github.com/sclorg/s2i-ruby-container/blob/master/2.4/README.md.",
+              "iconClass": "icon-ruby",
+              "tags": "builder,ruby",
+              "supports": "ruby:2.4,ruby",
+              "version": "2.4",
+              "sampleRepo": "https://github.com/openshift/ruby-ex.git"
+            },
+            "from": {
+              "kind": "DockerImage",
+              "name": "registry.access.redhat.com/rhscl/ruby-24-rhel7:latest"
             }
           }
         ]
@@ -4721,6 +4755,10 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                     "value": "true"
                   },
                   {
+                    "name": "JENKINS_SERVICE_NAME",
+                    "value": "${JENKINS_SERVICE_NAME}"
+                  },
+                  {
                     "name": "JNLP_SERVICE_NAME",
                     "value": "${JNLP_SERVICE_NAME}"
                   }
@@ -5043,6 +5081,10 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                   {
                     "name": "KUBERNETES_TRUST_CERTIFICATES",
                     "value": "true"
+                  },
+                  {
+                    "name": "JENKINS_SERVICE_NAME",
+                    "value": "${JENKINS_SERVICE_NAME}"
                   },
                   {
                     "name": "JNLP_SERVICE_NAME",
@@ -6727,7 +6769,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 30,
                   "httpGet": {
-                    "path": "/",
+                    "path": "/health.php",
                     "port": 8080
                   }
                 },
@@ -7332,7 +7374,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 30,
                   "httpGet": {
-                    "path": "/",
+                    "path": "/health.php",
                     "port": 8080
                   }
                 },
@@ -7898,7 +7940,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 30,
                     "httpGet": {
-                        "path": "/",
+                        "path": "/health",
                         "port": 8080
                     }
                 },
@@ -8447,7 +8489,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 30,
                     "httpGet": {
-                        "path": "/",
+                        "path": "/health",
                         "port": 8080
                     }
                 },
@@ -9860,11 +9902,11 @@ var _examplesQuickstartsHttpdJson = []byte(`{
   "metadata": {
     "name": "httpd-example",
     "annotations": {
-      "openshift.io/display-name": "Httpd",
-      "description": "An example Httpd application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
+      "openshift.io/display-name": "Apache HTTP Server",
+      "description": "An example Apache HTTP Server (httpd) application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
       "tags": "quickstart,httpd",
       "iconClass": "icon-apache",
-      "template.openshift.io/long-description": "This template defines resources needed to develop a static application served by httpd, including a build configuration and application deployment configuration.",
+      "template.openshift.io/long-description": "This template defines resources needed to develop a static application served by Apache HTTP Server (httpd), including a build configuration and application deployment configuration.",
       "template.openshift.io/provider-display-name": "Red Hat, Inc.",
       "template.openshift.io/documentation-url": "https://github.com/openshift/httpd-ex",
       "template.openshift.io/support-url": "https://access.redhat.com"
@@ -12968,6 +13010,101 @@ func examplesHeapsterHeapsterStandaloneYaml() (*asset, error) {
 	return a, nil
 }
 
+var _examplesPrometheusNodeExporterYaml = []byte(`# node-exporter is an optional component that collects host level metrics from the nodes 
+# in the cluster. This group of resources will require the 'hostaccess' level of privilege, which
+# should only be granted to namespaces that administrators can access.
+apiVersion: v1
+kind: List
+items:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: prometheus-node-exporter
+  # You must grant hostaccess via: oadm policy add-scc-to-user -z prometheus-node-exporter hostaccess
+  # in order for the node-exporter to access the host network and mount /proc and /sys from the host
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/scrape: "true"
+    labels:
+      app: prometheus-node-exporter
+    name: prometheus-node-exporter
+  spec:
+    clusterIP: None
+    ports:
+    - name: scrape
+      port: 9100
+      protocol: TCP
+      targetPort: 9100
+    selector:
+      app: prometheus-node-exporter
+- apiVersion: extensions/v1beta1
+  kind: DaemonSet
+  metadata:
+    name: prometheus-node-exporter
+    labels:
+      app: prometheus-node-exporter
+      role: monitoring
+  spec:
+    updateStrategy:
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: prometheus-node-exporter
+          role: monitoring
+        name: prometheus-exporter
+      spec:
+        serviceAccountName: prometheus-node-exporter
+        hostNetwork: true
+        hostPID: true
+        containers:
+        - image: openshift/prometheus-node-exporter:v0.14.0
+          args:
+          - "--collector.procfs=/host/proc"
+          - "--collector.sysfs=/host/sys"
+          name: node-exporter
+          ports:
+          - containerPort: 9100
+            name: scrape
+          resources:
+            requests:
+              memory: 30Mi
+              cpu: 100m
+            limits:
+              memory: 50Mi
+              cpu: 200m
+          volumeMounts:
+          - name: proc
+            readOnly:  true
+            mountPath: /host/proc
+          - name: sys
+            readOnly: true
+            mountPath: /host/sys
+        volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+        - name: sys
+          hostPath:
+            path: /sys`)
+
+func examplesPrometheusNodeExporterYamlBytes() ([]byte, error) {
+	return _examplesPrometheusNodeExporterYaml, nil
+}
+
+func examplesPrometheusNodeExporterYaml() (*asset, error) {
+	bytes, err := examplesPrometheusNodeExporterYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "examples/prometheus/node-exporter.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _examplesPrometheusPrometheusYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -13589,6 +13726,7 @@ objects:
     - brokers/status
     - instances/status
     - bindings/status
+    - bindings/finalizers
     verbs:
     - update
   - apiGroups:
@@ -13914,6 +14052,48 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: template-service-broker-registration
+parameters:
+- name: TSB_NAMESPACE
+  value: openshift-template-service-broker
+- name: CA_BUNDLE
+  required: true
+objects:
+# register the tsb with the service catalog
+- apiVersion: servicecatalog.k8s.io/v1alpha1
+  kind: Broker
+  metadata:
+    name: template-service-broker
+  spec:
+    url: https://apiserver.${TSB_NAMESPACE}.svc:443/brokers/template.openshift.io
+    insecureSkipTLSVerify: false
+    caBundle: ${CA_BUNDLE}
+    authInfo: 
+      bearer: 
+        secretRef:
+          kind:      Secret
+          name:      templateservicebroker-client
+          namespace: ${TSB_NAMESPACE}
+`)
+
+func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYamlBytes() ([]byte, error) {
+	return _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, nil
+}
+
+func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml() (*asset, error) {
+	bytes, err := installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "install/service-catalog-broker-resources/template-service-broker-registration.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
@@ -14085,11 +14265,12 @@ parameters:
 objects:
 
 # Grant the service account permission to call the TSB
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: templateservicebroker-client
   roleRef:
+    kind: ClusterRole
     name: system:openshift:templateservicebroker-client
   subjects:
   - kind: ServiceAccount
@@ -14097,11 +14278,12 @@ objects:
     name: templateservicebroker-client
 
 # to delegate authentication and authorization
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: auth-delegator-${NAMESPACE}
   roleRef:
+    kind: ClusterRole
     name: system:auth-delegator
   subjects:
   - kind: ServiceAccount
@@ -14109,11 +14291,12 @@ objects:
     name: apiserver
 
 # to have the template service broker powers
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
     name: tsb-${NAMESPACE}
   roleRef:
+    kind: ClusterRole
     name: system:openshift:controller:template-service-broker
   subjects:
   - kind: ServiceAccount
@@ -14121,13 +14304,13 @@ objects:
     name: apiserver
 
 # to read the config for terminating authentication
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: RoleBinding
   metadata:
     namespace: ${KUBE_SYSTEM}
     name: extension-apiserver-authentication-reader-${NAMESPACE}
   roleRef:
-    namespace: kube-system
+    kind: Role
     name: extension-apiserver-authentication-reader
   subjects:
   - kind: ServiceAccount
@@ -14136,7 +14319,7 @@ objects:
 
 # allow the kube service catalog's SA to read the static secret defined
 # above, which will contain the token for the SA that can call the TSB.
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: Role
   metadata:
     name: templateservicebroker-auth-reader
@@ -14150,12 +14333,13 @@ objects:
     - secrets
     verbs:
     - get
-- apiVersion: authorization.openshift.io/v1
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: RoleBinding
   metadata:
     namespace: ${NAMESPACE}
     name: templateservicebroker-auth-reader
   roleRef:
+    kind: Role
     name: templateservicebroker-auth-reader
   subjects:
   - kind: ServiceAccount
@@ -14298,8 +14482,10 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/quickstarts/rails-postgresql.json": examplesQuickstartsRailsPostgresqlJson,
 	"examples/logging/logging-deployer.yaml": examplesLoggingLoggingDeployerYaml,
 	"examples/heapster/heapster-standalone.yaml": examplesHeapsterHeapsterStandaloneYaml,
+	"examples/prometheus/node-exporter.yaml": examplesPrometheusNodeExporterYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
 	"install/templateservicebroker/rbac-template.yaml": installTemplateservicebrokerRbacTemplateYaml,
@@ -14381,6 +14567,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 			"logging-deployer.yaml": &bintree{examplesLoggingLoggingDeployerYaml, map[string]*bintree{}},
 		}},
 		"prometheus": &bintree{nil, map[string]*bintree{
+			"node-exporter.yaml": &bintree{examplesPrometheusNodeExporterYaml, map[string]*bintree{}},
 			"prometheus.yaml": &bintree{examplesPrometheusPrometheusYaml, map[string]*bintree{}},
 		}},
 		"quickstarts": &bintree{nil, map[string]*bintree{
@@ -14401,6 +14588,9 @@ var _bintree = &bintree{nil, map[string]*bintree{
 		}},
 	}},
 	"install": &bintree{nil, map[string]*bintree{
+		"service-catalog-broker-resources": &bintree{nil, map[string]*bintree{
+			"template-service-broker-registration.yaml": &bintree{installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml, map[string]*bintree{}},
+		}},
 		"templateservicebroker": &bintree{nil, map[string]*bintree{
 			"apiserver-config.yaml": &bintree{installTemplateservicebrokerApiserverConfigYaml, map[string]*bintree{}},
 			"apiserver-template.yaml": &bintree{installTemplateservicebrokerApiserverTemplateYaml, map[string]*bintree{}},

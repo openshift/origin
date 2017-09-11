@@ -12,14 +12,18 @@ import (
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	extrouteclientset "github.com/openshift/origin/pkg/route/generated/clientset/typed/route/v1"
-	"github.com/openshift/origin/pkg/serviceaccounts"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
+)
+
+// do not wire these back to bootstrappolicy because we're snipping package dependencies
+const (
+	DefaultOpenShiftInfraNamespace               = "openshift-infra"
+	InfraTemplateServiceBrokerServiceAccountName = "template-service-broker"
 )
 
 // Broker represents the template service broker.  It implements
@@ -123,11 +127,11 @@ func (b *Broker) MakeReady() error {
 		return err
 	}
 
-	restconfig, _, kc, extkc, err := serviceaccounts.Clients(
+	restconfig, kc, extkc, err := Clients(
 		b.privilegedKubeClientConfig,
-		&serviceaccounts.ClientLookupTokenRetriever{Client: privilegedKubeClient},
-		bootstrappolicy.DefaultOpenShiftInfraNamespace,
-		bootstrappolicy.InfraTemplateServiceBrokerServiceAccountName,
+		&ClientLookupTokenRetriever{Client: privilegedKubeClient},
+		DefaultOpenShiftInfraNamespace,
+		InfraTemplateServiceBrokerServiceAccountName,
 	)
 	if err != nil {
 		return fmt.Errorf("Template service broker: failed to initialize clients: %v", err)

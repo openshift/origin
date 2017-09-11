@@ -20,11 +20,11 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployedges "github.com/openshift/origin/pkg/apps/graph"
+	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployedges "github.com/openshift/origin/pkg/deploy/graph"
-	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 

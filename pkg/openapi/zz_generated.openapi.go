@@ -14,6 +14,1085 @@ import (
 
 func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.OpenAPIDefinition {
 	return map[string]openapi.OpenAPIDefinition{
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.CustomDeploymentStrategyParams": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "CustomDeploymentStrategyParams are the input to the Custom deployment strategy.",
+					Properties: map[string]spec.Schema{
+						"image": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Image specifies a Docker image which can carry out a deployment.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"environment": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Environment holds the environment which will be given to the container for Image.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kubernetes/pkg/api/v1.EnvVar"),
+										},
+									},
+								},
+							},
+						},
+						"command": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Command is optional and overrides CMD in the container Image.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.EnvVar"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCause": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentCause captures information about a particular cause of a deployment.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type of the trigger that resulted in the creation of a new deployment",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"imageTrigger": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ImageTrigger contains the image trigger details, if this trigger was fired based on an image change",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCauseImageTrigger"),
+							},
+						},
+					},
+					Required: []string{"type"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCauseImageTrigger"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCauseImageTrigger": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentCauseImageTrigger represents details about the cause of a deployment originating from an image change trigger",
+					Properties: map[string]spec.Schema{
+						"from": {
+							SchemaProps: spec.SchemaProps{
+								Description: "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+					},
+					Required: []string{"from"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCondition": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentCondition describes the state of a deployment config at a certain point.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type of deployment condition.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Status of the condition, one of True, False, Unknown.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"lastUpdateTime": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The last time this condition was updated.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							},
+						},
+						"lastTransitionTime": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The last time the condition transitioned from one status to another.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							},
+						},
+						"reason": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The reason for the condition's last transition.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"message": {
+							SchemaProps: spec.SchemaProps{
+								Description: "A human readable message indicating details about the transition.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"type", "status"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfig": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Spec represents a desired deployment state and how to deploy to it.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigSpec"),
+							},
+						},
+						"status": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Status represents the current deployment state.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigStatus"),
+							},
+						},
+					},
+					Required: []string{"spec", "status"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigSpec", "github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigList": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentConfigList is a collection of deployment configs.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object's metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+							},
+						},
+						"items": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Items is a list of deployment configs",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfig"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"items"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollback": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentConfigRollback provides the input to rollback generation.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"name": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Name of the deployment config that will be rolled back.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"updatedAnnotations": {
+							SchemaProps: spec.SchemaProps{
+								Description: "UpdatedAnnotations is a set of new annotations that will be added in the deployment config.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"spec": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Spec defines the options to rollback generation.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollbackSpec"),
+							},
+						},
+					},
+					Required: []string{"name", "spec"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollbackSpec"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigRollbackSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentConfigRollbackSpec represents the options for rollback generation.",
+					Properties: map[string]spec.Schema{
+						"from": {
+							SchemaProps: spec.SchemaProps{
+								Description: "From points to a ReplicationController which is a deployment.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+						"revision": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Revision to rollback to. If set to 0, rollback to the last revision.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"includeTriggers": {
+							SchemaProps: spec.SchemaProps{
+								Description: "IncludeTriggers specifies whether to include config Triggers.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"includeTemplate": {
+							SchemaProps: spec.SchemaProps{
+								Description: "IncludeTemplate specifies whether to include the PodTemplateSpec.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"includeReplicationMeta": {
+							SchemaProps: spec.SchemaProps{
+								Description: "IncludeReplicationMeta specifies whether to include the replica count and selector.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"includeStrategy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "IncludeStrategy specifies whether to include the deployment Strategy.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"from", "includeTriggers", "includeTemplate", "includeReplicationMeta", "includeStrategy"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigSpec": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentConfigSpec represents the desired state of the deployment.",
+					Properties: map[string]spec.Schema{
+						"strategy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Strategy describes how a deployment is executed.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentStrategy"),
+							},
+						},
+						"minReadySeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MinReadySeconds is the minimum number of seconds for which a newly created pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"triggers": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers are defined, a new deployment can only occur as a result of an explicit client update to the DeploymentConfig with a new LatestVersion. If null, defaults to having a config change trigger.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerPolicy"),
+										},
+									},
+								},
+							},
+						},
+						"replicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Replicas is the number of desired replicas.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"revisionHistoryLimit": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified. Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"test": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"paused": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Paused indicates that the deployment config is paused resulting in no new deployments on template changes or changes in the template caused by other triggers.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"selector": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Selector is a label query over pods that should match the Replicas count.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"template": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Template is the object that describes the pod that will be created if insufficient replicas are detected.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.PodTemplateSpec"),
+							},
+						},
+					},
+					Required: []string{"strategy", "triggers", "replicas", "test"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentStrategy", "github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerPolicy", "k8s.io/kubernetes/pkg/api/v1.PodTemplateSpec"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentConfigStatus": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentConfigStatus represents the current deployment state.",
+					Properties: map[string]spec.Schema{
+						"latestVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LatestVersion is used to determine whether the current deployment associated with a deployment config is out of sync.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"observedGeneration": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ObservedGeneration is the most recent generation observed by the deployment config controller.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"replicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Replicas is the total number of pods targeted by this deployment config.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"updatedReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config that have the desired template spec.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"availableReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AvailableReplicas is the total number of available pods targeted by this deployment config.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"unavailableReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+						"details": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentDetails"),
+							},
+						},
+						"conditions": {
+							VendorExtensible: spec.VendorExtensible{
+								Extensions: spec.Extensions{
+									"x-kubernetes-patch-merge-key": "type",
+									"x-kubernetes-patch-strategy":  "merge",
+								},
+							},
+							SchemaProps: spec.SchemaProps{
+								Description: "Conditions represents the latest available observations of a deployment config's current state.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCondition"),
+										},
+									},
+								},
+							},
+						},
+						"readyReplicas": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Total number of ready pods targeted by this deployment.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
+					},
+					Required: []string{"latestVersion", "observedGeneration", "replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCondition", "github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentDetails"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentDetails": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentDetails captures information about the causes of a deployment.",
+					Properties: map[string]spec.Schema{
+						"message": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Message is the user specified change message, if this deployment was triggered manually by the user",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"causes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Causes are extended data associated with all the causes for creating a new deployment",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCause"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"causes"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentCause"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentLog": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentLog represents the logs for a deployment",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentLogOptions": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentLogOptions is the REST options for a deployment log",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"container": {
+							SchemaProps: spec.SchemaProps{
+								Description: "The container for which to stream logs. Defaults to only container if there is one container in the pod.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"follow": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Follow if true indicates that the build log should be streamed until the build terminates.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"previous": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Return previous deployment logs. Defaults to false.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"sinceSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "A relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"sinceTime": {
+							SchemaProps: spec.SchemaProps{
+								Description: "An RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+							},
+						},
+						"timestamps": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"tailLines": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"limitBytes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "If set, the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"nowait": {
+							SchemaProps: spec.SchemaProps{
+								Description: "NoWait if true causes the call to return immediately even if the deployment is not available yet. Otherwise the server will wait until the deployment has started.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"version": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Version of the deployment for which to view logs.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentRequest": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentRequest is a request to a deployment config for a new deployment.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"name": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Name of the deployment config for requesting a new deployment.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"latest": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Latest will update the deployment config with the latest state from all triggers.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"force": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"excludeTriggers": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ExcludeTriggers instructs the instantiator to avoid processing the specified triggers. This field overrides the triggers from latest and allows clients to control specific logic. This field is ignored if not specified.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"name", "latest", "force"},
+				},
+			},
+			Dependencies: []string{},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentStrategy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentStrategy describes how to perform a deployment.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type is the name of a deployment strategy.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"customParams": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.CustomDeploymentStrategyParams"),
+							},
+						},
+						"recreateParams": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RecreateParams are the input to the Recreate deployment strategy.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.RecreateDeploymentStrategyParams"),
+							},
+						},
+						"rollingParams": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RollingParams are the input to the Rolling deployment strategy.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.RollingDeploymentStrategyParams"),
+							},
+						},
+						"resources": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Resources contains resource requirements to execute the deployment and any hooks.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ResourceRequirements"),
+							},
+						},
+						"labels": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"annotations": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
+								Type:        []string{"object"},
+								AdditionalProperties: &spec.SchemaOrBool{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"activeDeadlineSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.CustomDeploymentStrategyParams", "github.com/openshift/origin/pkg/apps/apis/apps/v1.RecreateDeploymentStrategyParams", "github.com/openshift/origin/pkg/apps/apis/apps/v1.RollingDeploymentStrategyParams", "k8s.io/kubernetes/pkg/api/v1.ResourceRequirements"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerImageChangeParams": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
+					Properties: map[string]spec.Schema{
+						"automatic": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Automatic means that the detection of a new tag value should result in an image update inside the pod template.",
+								Type:        []string{"boolean"},
+								Format:      "",
+							},
+						},
+						"containerNames": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ContainerNames is used to restrict tag updates to the specified set of container names in a pod. If multiple triggers point to the same containers, the resulting behavior is undefined. Future API versions will make this a validation error. If ContainerNames does not point to a valid container, the trigger will be ignored. Future API versions will make this a validation error.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"from": {
+							SchemaProps: spec.SchemaProps{
+								Description: "From is a reference to an image stream tag to watch for changes. From.Name is the only required subfield - if From.Namespace is blank, the namespace of the current deployment trigger will be used.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+						"lastTriggeredImage": {
+							SchemaProps: spec.SchemaProps{
+								Description: "LastTriggeredImage is the last image to be triggered.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+					Required: []string{"from"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerPolicy": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.",
+					Properties: map[string]spec.Schema{
+						"type": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Type of the trigger",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"imageChangeParams": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ImageChangeParams represents the parameters for the ImageChange trigger.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerImageChangeParams"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.DeploymentTriggerImageChangeParams"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.ExecNewPodHook": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
+					Properties: map[string]spec.Schema{
+						"command": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Command is the action command and its arguments.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"env": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Env is a set of environment variables to supply to the hook pod's container.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("k8s.io/kubernetes/pkg/api/v1.EnvVar"),
+										},
+									},
+								},
+							},
+						},
+						"containerName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"volumes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Volumes is a list of named volumes from the pod template which should be copied to the hook pod. Volumes names not found in pod spec are ignored. An empty list means no volumes will be copied.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"command", "containerName"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.EnvVar"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
+					Properties: map[string]spec.Schema{
+						"failurePolicy": {
+							SchemaProps: spec.SchemaProps{
+								Description: "FailurePolicy specifies what action to take if the hook fails.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"execNewPod": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.ExecNewPodHook"),
+							},
+						},
+						"tagImages": {
+							SchemaProps: spec.SchemaProps{
+								Description: "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.TagImageHook"),
+										},
+									},
+								},
+							},
+						},
+					},
+					Required: []string{"failurePolicy"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.ExecNewPodHook", "github.com/openshift/origin/pkg/apps/apis/apps/v1.TagImageHook"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.RecreateDeploymentStrategyParams": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "RecreateDeploymentStrategyParams are the input to the Recreate deployment strategy.",
+					Properties: map[string]spec.Schema{
+						"timeoutSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"pre": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Pre is a lifecycle hook which is executed before the strategy manipulates the deployment. All LifecycleHookFailurePolicy values are supported.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+							},
+						},
+						"mid": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new pod is created. All LifecycleHookFailurePolicy values are supported.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+							},
+						},
+						"post": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.RollingDeploymentStrategyParams": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
+					Properties: map[string]spec.Schema{
+						"updatePeriodSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"intervalSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"timeoutSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+						"maxUnavailable": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding down.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
+								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+							},
+						},
+						"maxSurge": {
+							SchemaProps: spec.SchemaProps{
+								Description: "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods.",
+								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+							},
+						},
+						"pre": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+							},
+						},
+						"post": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
+								Ref:         ref("github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook"),
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/apps/apis/apps/v1.LifecycleHook", "k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
+		},
+		"github.com/openshift/origin/pkg/apps/apis/apps/v1.TagImageHook": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.",
+					Properties: map[string]spec.Schema{
+						"containerName": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single container this value will be defaulted to the name of that container.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"to": {
+							SchemaProps: spec.SchemaProps{
+								Description: "To is the target ImageStreamTag to set the container's image onto.",
+								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
+							},
+						},
+					},
+					Required: []string{"containerName", "to"},
+				},
+			},
+			Dependencies: []string{
+				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+		},
 		"github.com/openshift/origin/pkg/authorization/apis/authorization/v1.Action": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -4324,1085 +5403,6 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.CustomDeploymentStrategyParams": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "CustomDeploymentStrategyParams are the input to the Custom deployment strategy.",
-					Properties: map[string]spec.Schema{
-						"image": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Image specifies a Docker image which can carry out a deployment.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"environment": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Environment holds the environment which will be given to the container for Image.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kubernetes/pkg/api/v1.EnvVar"),
-										},
-									},
-								},
-							},
-						},
-						"command": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Command is optional and overrides CMD in the container Image.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/pkg/api/v1.EnvVar"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCause": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentCause captures information about a particular cause of a deployment.",
-					Properties: map[string]spec.Schema{
-						"type": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Type of the trigger that resulted in the creation of a new deployment",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"imageTrigger": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ImageTrigger contains the image trigger details, if this trigger was fired based on an image change",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCauseImageTrigger"),
-							},
-						},
-					},
-					Required: []string{"type"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCauseImageTrigger"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCauseImageTrigger": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentCauseImageTrigger represents details about the cause of a deployment originating from an image change trigger",
-					Properties: map[string]spec.Schema{
-						"from": {
-							SchemaProps: spec.SchemaProps{
-								Description: "From is a reference to the changed object which triggered a deployment. The field may have the kinds DockerImage, ImageStreamTag, or ImageStreamImage.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
-							},
-						},
-					},
-					Required: []string{"from"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCondition": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentCondition describes the state of a deployment config at a certain point.",
-					Properties: map[string]spec.Schema{
-						"type": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Type of deployment condition.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"status": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Status of the condition, one of True, False, Unknown.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"lastUpdateTime": {
-							SchemaProps: spec.SchemaProps{
-								Description: "The last time this condition was updated.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-							},
-						},
-						"lastTransitionTime": {
-							SchemaProps: spec.SchemaProps{
-								Description: "The last time the condition transitioned from one status to another.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-							},
-						},
-						"reason": {
-							SchemaProps: spec.SchemaProps{
-								Description: "The reason for the condition's last transition.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"message": {
-							SchemaProps: spec.SchemaProps{
-								Description: "A human readable message indicating details about the transition.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"type", "status"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfig": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "Deployment Configs define the template for a pod and manages deploying new images or configuration changes. A single deployment configuration is usually analogous to a single micro-service. Can support many different deployment patterns, including full restart, customizable rolling updates, and  fully custom behaviors, as well as pre- and post- deployment hooks. Each individual deployment is represented as a replication controller.\n\nA deployment is \"triggered\" when its configuration is changed or a tag in an Image Stream is changed. Triggers can be disabled to allow manual control over a deployment. The \"strategy\" determines how the deployment is carried out and may be changed at any time. The `latestVersion` field is updated when a new deployment is triggered by any means.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-							},
-						},
-						"spec": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Spec represents a desired deployment state and how to deploy to it.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigSpec"),
-							},
-						},
-						"status": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Status represents the current deployment state.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigStatus"),
-							},
-						},
-					},
-					Required: []string{"spec", "status"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigSpec", "github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigList": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentConfigList is a collection of deployment configs.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"metadata": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Standard object's metadata.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-							},
-						},
-						"items": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Items is a list of deployment configs",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfig"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"items"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfig", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigRollback": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentConfigRollback provides the input to rollback generation.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"name": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Name of the deployment config that will be rolled back.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"updatedAnnotations": {
-							SchemaProps: spec.SchemaProps{
-								Description: "UpdatedAnnotations is a set of new annotations that will be added in the deployment config.",
-								Type:        []string{"object"},
-								AdditionalProperties: &spec.SchemaOrBool{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-						"spec": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Spec defines the options to rollback generation.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigRollbackSpec"),
-							},
-						},
-					},
-					Required: []string{"name", "spec"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigRollbackSpec"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigRollbackSpec": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentConfigRollbackSpec represents the options for rollback generation.",
-					Properties: map[string]spec.Schema{
-						"from": {
-							SchemaProps: spec.SchemaProps{
-								Description: "From points to a ReplicationController which is a deployment.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
-							},
-						},
-						"revision": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Revision to rollback to. If set to 0, rollback to the last revision.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"includeTriggers": {
-							SchemaProps: spec.SchemaProps{
-								Description: "IncludeTriggers specifies whether to include config Triggers.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"includeTemplate": {
-							SchemaProps: spec.SchemaProps{
-								Description: "IncludeTemplate specifies whether to include the PodTemplateSpec.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"includeReplicationMeta": {
-							SchemaProps: spec.SchemaProps{
-								Description: "IncludeReplicationMeta specifies whether to include the replica count and selector.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"includeStrategy": {
-							SchemaProps: spec.SchemaProps{
-								Description: "IncludeStrategy specifies whether to include the deployment Strategy.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"from", "includeTriggers", "includeTemplate", "includeReplicationMeta", "includeStrategy"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigSpec": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentConfigSpec represents the desired state of the deployment.",
-					Properties: map[string]spec.Schema{
-						"strategy": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Strategy describes how a deployment is executed.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentStrategy"),
-							},
-						},
-						"minReadySeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "MinReadySeconds is the minimum number of seconds for which a newly created pod should be ready without any of its container crashing, for it to be considered available. Defaults to 0 (pod will be considered available as soon as it is ready)",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"triggers": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Triggers determine how updates to a DeploymentConfig result in new deployments. If no triggers are defined, a new deployment can only occur as a result of an explicit client update to the DeploymentConfig with a new LatestVersion. If null, defaults to having a config change trigger.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentTriggerPolicy"),
-										},
-									},
-								},
-							},
-						},
-						"replicas": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Replicas is the number of desired replicas.",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"revisionHistoryLimit": {
-							SchemaProps: spec.SchemaProps{
-								Description: "RevisionHistoryLimit is the number of old ReplicationControllers to retain to allow for rollbacks. This field is a pointer to allow for differentiation between an explicit zero and not specified. Defaults to 10. (This only applies to DeploymentConfigs created via the new group API resource, not the legacy resource.)",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"test": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Test ensures that this deployment config will have zero replicas except while a deployment is running. This allows the deployment config to be used as a continuous deployment test - triggering on images, running the deployment, and then succeeding or failing. Post strategy hooks and After actions can be used to integrate successful deployment with an action.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"paused": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Paused indicates that the deployment config is paused resulting in no new deployments on template changes or changes in the template caused by other triggers.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"selector": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Selector is a label query over pods that should match the Replicas count.",
-								Type:        []string{"object"},
-								AdditionalProperties: &spec.SchemaOrBool{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-						"template": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Template is the object that describes the pod that will be created if insufficient replicas are detected.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.PodTemplateSpec"),
-							},
-						},
-					},
-					Required: []string{"strategy", "triggers", "replicas", "test"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentStrategy", "github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentTriggerPolicy", "k8s.io/kubernetes/pkg/api/v1.PodTemplateSpec"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentConfigStatus": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentConfigStatus represents the current deployment state.",
-					Properties: map[string]spec.Schema{
-						"latestVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "LatestVersion is used to determine whether the current deployment associated with a deployment config is out of sync.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"observedGeneration": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ObservedGeneration is the most recent generation observed by the deployment config controller.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"replicas": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Replicas is the total number of pods targeted by this deployment config.",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"updatedReplicas": {
-							SchemaProps: spec.SchemaProps{
-								Description: "UpdatedReplicas is the total number of non-terminated pods targeted by this deployment config that have the desired template spec.",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"availableReplicas": {
-							SchemaProps: spec.SchemaProps{
-								Description: "AvailableReplicas is the total number of available pods targeted by this deployment config.",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"unavailableReplicas": {
-							SchemaProps: spec.SchemaProps{
-								Description: "UnavailableReplicas is the total number of unavailable pods targeted by this deployment config.",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-						"details": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Details are the reasons for the update to this deployment config. This could be based on a change made by the user or caused by an automatic trigger",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentDetails"),
-							},
-						},
-						"conditions": {
-							VendorExtensible: spec.VendorExtensible{
-								Extensions: spec.Extensions{
-									"x-kubernetes-patch-merge-key": "type",
-									"x-kubernetes-patch-strategy":  "merge",
-								},
-							},
-							SchemaProps: spec.SchemaProps{
-								Description: "Conditions represents the latest available observations of a deployment config's current state.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCondition"),
-										},
-									},
-								},
-							},
-						},
-						"readyReplicas": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Total number of ready pods targeted by this deployment.",
-								Type:        []string{"integer"},
-								Format:      "int32",
-							},
-						},
-					},
-					Required: []string{"latestVersion", "observedGeneration", "replicas", "updatedReplicas", "availableReplicas", "unavailableReplicas"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCondition", "github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentDetails"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentDetails": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentDetails captures information about the causes of a deployment.",
-					Properties: map[string]spec.Schema{
-						"message": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Message is the user specified change message, if this deployment was triggered manually by the user",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"causes": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Causes are extended data associated with all the causes for creating a new deployment",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCause"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"causes"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentCause"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentLog": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentLog represents the logs for a deployment",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentLogOptions": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentLogOptions is the REST options for a deployment log",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"container": {
-							SchemaProps: spec.SchemaProps{
-								Description: "The container for which to stream logs. Defaults to only container if there is one container in the pod.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"follow": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Follow if true indicates that the build log should be streamed until the build terminates.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"previous": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Return previous deployment logs. Defaults to false.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"sinceSeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "A relative time in seconds before the current time from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"sinceTime": {
-							SchemaProps: spec.SchemaProps{
-								Description: "An RFC3339 timestamp from which to show logs. If this value precedes the time a pod was started, only logs since the pod start will be returned. If this value is in the future, no logs will be returned. Only one of sinceSeconds or sinceTime may be specified.",
-								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-							},
-						},
-						"timestamps": {
-							SchemaProps: spec.SchemaProps{
-								Description: "If true, add an RFC3339 or RFC3339Nano timestamp at the beginning of every line of log output. Defaults to false.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"tailLines": {
-							SchemaProps: spec.SchemaProps{
-								Description: "If set, the number of lines from the end of the logs to show. If not specified, logs are shown from the creation of the container or sinceSeconds or sinceTime",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"limitBytes": {
-							SchemaProps: spec.SchemaProps{
-								Description: "If set, the number of bytes to read from the server before terminating the log output. This may not display a complete final line of logging, and may return slightly more or slightly less than the specified limit.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"nowait": {
-							SchemaProps: spec.SchemaProps{
-								Description: "NoWait if true causes the call to return immediately even if the deployment is not available yet. Otherwise the server will wait until the deployment has started.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"version": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Version of the deployment for which to view logs.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentRequest": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentRequest is a request to a deployment config for a new deployment.",
-					Properties: map[string]spec.Schema{
-						"kind": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"apiVersion": {
-							SchemaProps: spec.SchemaProps{
-								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"name": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Name of the deployment config for requesting a new deployment.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"latest": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Latest will update the deployment config with the latest state from all triggers.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"force": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Force will try to force a new deployment to run. If the deployment config is paused, then setting this to true will return an Invalid error.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"excludeTriggers": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ExcludeTriggers instructs the instantiator to avoid processing the specified triggers. This field overrides the triggers from latest and allows clients to control specific logic. This field is ignored if not specified.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"name", "latest", "force"},
-				},
-			},
-			Dependencies: []string{},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentStrategy": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentStrategy describes how to perform a deployment.",
-					Properties: map[string]spec.Schema{
-						"type": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Type is the name of a deployment strategy.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"customParams": {
-							SchemaProps: spec.SchemaProps{
-								Description: "CustomParams are the input to the Custom deployment strategy, and may also be specified for the Recreate and Rolling strategies to customize the execution process that runs the deployment.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.CustomDeploymentStrategyParams"),
-							},
-						},
-						"recreateParams": {
-							SchemaProps: spec.SchemaProps{
-								Description: "RecreateParams are the input to the Recreate deployment strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.RecreateDeploymentStrategyParams"),
-							},
-						},
-						"rollingParams": {
-							SchemaProps: spec.SchemaProps{
-								Description: "RollingParams are the input to the Rolling deployment strategy.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.RollingDeploymentStrategyParams"),
-							},
-						},
-						"resources": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Resources contains resource requirements to execute the deployment and any hooks.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ResourceRequirements"),
-							},
-						},
-						"labels": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Labels is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
-								Type:        []string{"object"},
-								AdditionalProperties: &spec.SchemaOrBool{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-						"annotations": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Annotations is a set of key, value pairs added to custom deployer and lifecycle pre/post hook pods.",
-								Type:        []string{"object"},
-								AdditionalProperties: &spec.SchemaOrBool{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-						"activeDeadlineSeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ActiveDeadlineSeconds is the duration in seconds that the deployer pods for this deployment config may be active on a node before the system actively tries to terminate them.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.CustomDeploymentStrategyParams", "github.com/openshift/origin/pkg/deploy/apis/apps/v1.RecreateDeploymentStrategyParams", "github.com/openshift/origin/pkg/deploy/apis/apps/v1.RollingDeploymentStrategyParams", "k8s.io/kubernetes/pkg/api/v1.ResourceRequirements"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentTriggerImageChangeParams": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentTriggerImageChangeParams represents the parameters to the ImageChange trigger.",
-					Properties: map[string]spec.Schema{
-						"automatic": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Automatic means that the detection of a new tag value should result in an image update inside the pod template.",
-								Type:        []string{"boolean"},
-								Format:      "",
-							},
-						},
-						"containerNames": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ContainerNames is used to restrict tag updates to the specified set of container names in a pod. If multiple triggers point to the same containers, the resulting behavior is undefined. Future API versions will make this a validation error. If ContainerNames does not point to a valid container, the trigger will be ignored. Future API versions will make this a validation error.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-						"from": {
-							SchemaProps: spec.SchemaProps{
-								Description: "From is a reference to an image stream tag to watch for changes. From.Name is the only required subfield - if From.Namespace is blank, the namespace of the current deployment trigger will be used.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
-							},
-						},
-						"lastTriggeredImage": {
-							SchemaProps: spec.SchemaProps{
-								Description: "LastTriggeredImage is the last image to be triggered.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-					},
-					Required: []string{"from"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentTriggerPolicy": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "DeploymentTriggerPolicy describes a policy for a single trigger that results in a new deployment.",
-					Properties: map[string]spec.Schema{
-						"type": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Type of the trigger",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"imageChangeParams": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ImageChangeParams represents the parameters for the ImageChange trigger.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentTriggerImageChangeParams"),
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.DeploymentTriggerImageChangeParams"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.ExecNewPodHook": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "ExecNewPodHook is a hook implementation which runs a command in a new pod based on the specified container which is assumed to be part of the deployment template.",
-					Properties: map[string]spec.Schema{
-						"command": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Command is the action command and its arguments.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-						"env": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Env is a set of environment variables to supply to the hook pod's container.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("k8s.io/kubernetes/pkg/api/v1.EnvVar"),
-										},
-									},
-								},
-							},
-						},
-						"containerName": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ContainerName is the name of a container in the deployment pod template whose Docker image will be used for the hook pod's container.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"volumes": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Volumes is a list of named volumes from the pod template which should be copied to the hook pod. Volumes names not found in pod spec are ignored. An empty list means no volumes will be copied.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Type:   []string{"string"},
-											Format: "",
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"command", "containerName"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/pkg/api/v1.EnvVar"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "LifecycleHook defines a specific deployment lifecycle action. Only one type of action may be specified at any time.",
-					Properties: map[string]spec.Schema{
-						"failurePolicy": {
-							SchemaProps: spec.SchemaProps{
-								Description: "FailurePolicy specifies what action to take if the hook fails.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"execNewPod": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ExecNewPod specifies the options for a lifecycle hook backed by a pod.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.ExecNewPodHook"),
-							},
-						},
-						"tagImages": {
-							SchemaProps: spec.SchemaProps{
-								Description: "TagImages instructs the deployer to tag the current image referenced under a container onto an image stream tag.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.TagImageHook"),
-										},
-									},
-								},
-							},
-						},
-					},
-					Required: []string{"failurePolicy"},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.ExecNewPodHook", "github.com/openshift/origin/pkg/deploy/apis/apps/v1.TagImageHook"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.RecreateDeploymentStrategyParams": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "RecreateDeploymentStrategyParams are the input to the Recreate deployment strategy.",
-					Properties: map[string]spec.Schema{
-						"timeoutSeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"pre": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Pre is a lifecycle hook which is executed before the strategy manipulates the deployment. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook"),
-							},
-						},
-						"mid": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Mid is a lifecycle hook which is executed while the deployment is scaled down to zero before the first new pod is created. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook"),
-							},
-						},
-						"post": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook"),
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.RollingDeploymentStrategyParams": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "RollingDeploymentStrategyParams are the input to the Rolling deployment strategy.",
-					Properties: map[string]spec.Schema{
-						"updatePeriodSeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "UpdatePeriodSeconds is the time to wait between individual pod updates. If the value is nil, a default will be used.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"intervalSeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "IntervalSeconds is the time to wait between polling deployment status after update. If the value is nil, a default will be used.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"timeoutSeconds": {
-							SchemaProps: spec.SchemaProps{
-								Description: "TimeoutSeconds is the time to wait for updates before giving up. If the value is nil, a default will be used.",
-								Type:        []string{"integer"},
-								Format:      "int64",
-							},
-						},
-						"maxUnavailable": {
-							SchemaProps: spec.SchemaProps{
-								Description: "MaxUnavailable is the maximum number of pods that can be unavailable during the update. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of update (ex: 10%). Absolute number is calculated from percentage by rounding down.\n\nThis cannot be 0 if MaxSurge is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the old RC can be scaled down by 30% immediately when the rolling update starts. Once new pods are ready, old RC can be scaled down further, followed by scaling up the new RC, ensuring that at least 70% of original number of pods are available at all times during the update.",
-								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-							},
-						},
-						"maxSurge": {
-							SchemaProps: spec.SchemaProps{
-								Description: "MaxSurge is the maximum number of pods that can be scheduled above the original number of pods. Value can be an absolute number (ex: 5) or a percentage of total pods at the start of the update (ex: 10%). Absolute number is calculated from percentage by rounding up.\n\nThis cannot be 0 if MaxUnavailable is 0. By default, 25% is used.\n\nExample: when this is set to 30%, the new RC can be scaled up by 30% immediately when the rolling update starts. Once old pods have been killed, new RC can be scaled up further, ensuring that total number of pods running at any time during the update is atmost 130% of original pods.",
-								Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
-							},
-						},
-						"pre": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Pre is a lifecycle hook which is executed before the deployment process begins. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook"),
-							},
-						},
-						"post": {
-							SchemaProps: spec.SchemaProps{
-								Description: "Post is a lifecycle hook which is executed after the strategy has finished all deployment logic. All LifecycleHookFailurePolicy values are supported.",
-								Ref:         ref("github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook"),
-							},
-						},
-					},
-				},
-			},
-			Dependencies: []string{
-				"github.com/openshift/origin/pkg/deploy/apis/apps/v1.LifecycleHook", "k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
-		},
-		"github.com/openshift/origin/pkg/deploy/apis/apps/v1.TagImageHook": {
-			Schema: spec.Schema{
-				SchemaProps: spec.SchemaProps{
-					Description: "TagImageHook is a request to tag the image in a particular container onto an ImageStreamTag.",
-					Properties: map[string]spec.Schema{
-						"containerName": {
-							SchemaProps: spec.SchemaProps{
-								Description: "ContainerName is the name of a container in the deployment config whose image value will be used as the source of the tag. If there is only a single container this value will be defaulted to the name of that container.",
-								Type:        []string{"string"},
-								Format:      "",
-							},
-						},
-						"to": {
-							SchemaProps: spec.SchemaProps{
-								Description: "To is the target ImageStreamTag to set the container's image onto.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
-							},
-						},
-					},
-					Required: []string{"containerName", "to"},
-				},
-			},
-			Dependencies: []string{
-				"k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
-		},
 		"github.com/openshift/origin/pkg/image/apis/image/v1.DockerImageReference": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -6149,7 +6149,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"dockerImageRepository": {
 							SchemaProps: spec.SchemaProps{
-								Description: "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server",
+								Description: "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead.",
 								Type:        []string{"string"},
 								Format:      "",
 							},
@@ -6715,7 +6715,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"annotations": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Annotations associated with images using this tag",
+								Description: "Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags.",
 								Type:        []string{"object"},
 								AdditionalProperties: &spec.SchemaOrBool{
 									Schema: &spec.Schema{
@@ -6729,7 +6729,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"from": {
 							SchemaProps: spec.SchemaProps{
-								Description: "From is a reference to an image stream tag or image stream this tag should track",
+								Description: "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage.",
 								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
 							},
 						},
@@ -6742,20 +6742,20 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"generation": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Generation is the image stream generation that updated this tag - setting it to 0 is an indication that the generation must be updated. Legacy clients will send this as nil, which means the client doesn't know or care.",
+								Description: "Generation is a counter that tracks mutations to the spec tag (user intent). When a tag reference is changed the generation is set to match the current stream generation (which is incremented every time spec is changed). Other processes in the system like the image importer observe that the generation of spec tag is newer than the generation recorded in the status and use that as a trigger to import the newest remote tag. To trigger a new import, clients may set this value to zero which will reset the generation to the latest stream generation. Legacy clients will send this value as nil which will be merged with the current tag generation.",
 								Type:        []string{"integer"},
 								Format:      "int64",
 							},
 						},
 						"importPolicy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "Import is information that controls how images may be imported by the server.",
+								Description: "ImportPolicy is information that controls how images may be imported by the server.",
 								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagImportPolicy"),
 							},
 						},
 						"referencePolicy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "ReferencePolicy defines how other components should consume the image",
+								Description: "ReferencePolicy defines how other components should consume the image.",
 								Ref:         ref("github.com/openshift/origin/pkg/image/apis/image/v1.TagReferencePolicy"),
 							},
 						},
@@ -8788,6 +8788,23 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
+		"github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "AllowedFlexVolume represents a single Flexvolume that is allowed to be used.",
+					Properties: map[string]spec.Schema{
+						"driver": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Driver is the name of the Flexvolume driver.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+					},
+				},
+			},
+			Dependencies: []string{},
+		},
 		"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
@@ -9265,6 +9282,19 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"allowedFlexVolumes": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AllowedFlexVolumes is a whitelist of allowed Flexvolumes.  Empty or nil indicates that all Flexvolumes may be used.  This parameter is effective only when the usage of the Flexvolumes is allowed in the \"Volumes\" field.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume"),
+										},
+									},
+								},
+							},
+						},
 						"allowHostNetwork": {
 							SchemaProps: spec.SchemaProps{
 								Description: "AllowHostNetwork determines if the policy allows the use of HostNetwork in the pod spec.",
@@ -9367,11 +9397,11 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"priority", "allowPrivilegedContainer", "defaultAddCapabilities", "requiredDropCapabilities", "allowedCapabilities", "allowHostDirVolumePlugin", "volumes", "allowHostNetwork", "allowHostPorts", "allowHostPID", "allowHostIPC", "readOnlyRootFilesystem"},
+					Required: []string{"priority", "allowPrivilegedContainer", "defaultAddCapabilities", "requiredDropCapabilities", "allowedCapabilities", "allowHostDirVolumePlugin", "volumes", "allowedFlexVolumes", "allowHostNetwork", "allowHostPorts", "allowHostPID", "allowHostIPC", "readOnlyRootFilesystem"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/origin/pkg/security/apis/security/v1.AllowedFlexVolume", "github.com/openshift/origin/pkg/security/apis/security/v1.FSGroupStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.RunAsUserStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SELinuxContextStrategyOptions", "github.com/openshift/origin/pkg/security/apis/security/v1.SupplementalGroupsStrategyOptions", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 		},
 		"github.com/openshift/origin/pkg/security/apis/security/v1.SecurityContextConstraintsList": {
 			Schema: spec.Schema{

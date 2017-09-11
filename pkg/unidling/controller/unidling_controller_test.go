@@ -8,8 +8,8 @@ import (
 
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployfake "github.com/openshift/origin/pkg/deploy/generated/internalclientset/fake"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

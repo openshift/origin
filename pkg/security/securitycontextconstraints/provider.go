@@ -286,6 +286,28 @@ func (s *simpleProvider) ValidatePodSecurityContext(pod *api.Pod, fldPath *field
 		}
 	}
 
+	if len(pod.Spec.Volumes) > 0 && len(s.scc.AllowedFlexVolumes) > 0 && sccutil.SCCAllowsFSType(s.scc, securityapi.FSTypeFlexVolume) {
+		for i, v := range pod.Spec.Volumes {
+			if v.FlexVolume == nil {
+				continue
+			}
+
+			found := false
+			driver := v.FlexVolume.Driver
+			for _, allowedFlexVolume := range s.scc.AllowedFlexVolumes {
+				if driver == allowedFlexVolume.Driver {
+					found = true
+					break
+				}
+			}
+			if !found {
+				allErrs = append(allErrs,
+					field.Invalid(fldPath.Child("volumes").Index(i).Child("driver"), driver,
+						"Flexvolume driver is not allowed to be used"))
+			}
+		}
+	}
+
 	return allErrs
 }
 

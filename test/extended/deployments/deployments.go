@@ -19,9 +19,8 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/pkg/client"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/deploy/util"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
@@ -533,7 +532,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("updating the deployment config in order to trigger a new rollout")
-			_, err = client.UpdateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
+			_, err = updateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
 				one := int64(1)
 				update.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
 			})
@@ -704,7 +703,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			_, err = client.UpdateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+			_, err = updateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
 				// TODO: oc rollout pause should patch instead of making a full update
 				dc.Spec.Paused = false
 			})
@@ -928,7 +927,7 @@ var _ = g.Describe("deploymentconfigs", func() {
 					return rc.Status.ReadyReplicas == dc.Spec.Replicas, nil
 				})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(rc1.Status.AvailableReplicas).To(o.BeZero())
+			o.Expect(rc1.Status.AvailableReplicas).To(o.BeNumerically("<", rc1.Status.ReadyReplicas))
 			// We need to log here to have a timestamp to compare with master logs if something goes wrong
 			e2e.Logf("All replicas are ready.")
 

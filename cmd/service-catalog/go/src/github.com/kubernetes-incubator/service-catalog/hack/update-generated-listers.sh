@@ -9,7 +9,7 @@ os::util::ensure::built_binary_exists 'genlisters'
 packages=(
   github.com/openshift/origin/pkg/authorization
   github.com/openshift/origin/pkg/build
-  github.com/openshift/origin/pkg/deploy
+  github.com/openshift/origin/pkg/apps
   github.com/openshift/origin/pkg/image
   github.com/openshift/origin/pkg/oauth
   github.com/openshift/origin/pkg/project

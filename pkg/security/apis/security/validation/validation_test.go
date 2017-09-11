@@ -95,6 +95,13 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	wildcardAllowedCapAndRequiredDrop.RequiredDropCapabilities = []kapi.Capability{"foo"}
 	wildcardAllowedCapAndRequiredDrop.AllowedCapabilities = []kapi.Capability{securityapi.AllowAllCapabilities}
 
+	emptyFlexDriver := validSCC()
+	emptyFlexDriver.Volumes = []securityapi.FSType{securityapi.FSTypeFlexVolume}
+	emptyFlexDriver.AllowedFlexVolumes = []securityapi.AllowedFlexVolume{{}}
+
+	nonEmptyFlexVolumes := validSCC()
+	nonEmptyFlexVolumes.AllowedFlexVolumes = []securityapi.AllowedFlexVolume{{Driver: "example/driver"}}
+
 	errorCases := map[string]struct {
 		scc         *securityapi.SecurityContextConstraints
 		errorType   field.ErrorType
@@ -185,6 +192,16 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 			errorType:   field.ErrorTypeInvalid,
 			errorDetail: "required capabilities must be empty when all capabilities are allowed by a wildcard",
 		},
+		"empty flex volume driver": {
+			scc:         emptyFlexDriver,
+			errorType:   field.ErrorTypeRequired,
+			errorDetail: "must specify a driver",
+		},
+		"non-empty allowed flex volumes": {
+			scc:         nonEmptyFlexVolumes,
+			errorType:   field.ErrorTypeInvalid,
+			errorDetail: "volumes does not include 'flexVolume' or '*', so no flex volumes are allowed",
+		},
 	}
 
 	for k, v := range errorCases {
@@ -213,6 +230,18 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 	caseInsensitiveAllowedDrop.RequiredDropCapabilities = []kapi.Capability{"FOO"}
 	caseInsensitiveAllowedDrop.AllowedCapabilities = []kapi.Capability{"foo"}
 
+	flexvolumeWhenFlexVolumesAllowed := validSCC()
+	flexvolumeWhenFlexVolumesAllowed.Volumes = []securityapi.FSType{securityapi.FSTypeFlexVolume}
+	flexvolumeWhenFlexVolumesAllowed.AllowedFlexVolumes = []securityapi.AllowedFlexVolume{
+		{Driver: "example/driver1"},
+	}
+
+	flexvolumeWhenAllVolumesAllowed := validSCC()
+	flexvolumeWhenAllVolumesAllowed.Volumes = []securityapi.FSType{securityapi.FSTypeAll}
+	flexvolumeWhenAllVolumesAllowed.AllowedFlexVolumes = []securityapi.AllowedFlexVolume{
+		{Driver: "example/driver2"},
+	}
+
 	successCases := map[string]struct {
 		scc *securityapi.SecurityContextConstraints
 	}{
@@ -231,11 +260,17 @@ func TestValidateSecurityContextConstraints(t *testing.T) {
 		"comparison for allowed -> drop is case sensitive": {
 			scc: caseInsensitiveAllowedDrop,
 		},
+		"allow white-listed flexVolume when flex volumes are allowed": {
+			scc: flexvolumeWhenFlexVolumesAllowed,
+		},
+		"allow white-listed flexVolume when all volumes are allowed": {
+			scc: flexvolumeWhenAllVolumesAllowed,
+		},
 	}
 
 	for k, v := range successCases {
 		if errs := ValidateSecurityContextConstraints(v.scc); len(errs) != 0 {
-			t.Errorf("Expected success for %s, got %v", k, errs)
+			t.Errorf("Expected success for %q, got %v", k, errs)
 		}
 	}
 }

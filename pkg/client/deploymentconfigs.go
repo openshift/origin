@@ -7,9 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
-	"k8s.io/kubernetes/pkg/client/retry"
 
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
 // DeploymentConfigsNamespacer has methods to work with DeploymentConfig resources in a namespace
@@ -168,24 +167,4 @@ func (c *deploymentConfigs) Instantiate(request *deployapi.DeploymentRequest) (*
 	}
 	err := resp.Into(result)
 	return result, err
-}
-
-type updateConfigFunc func(d *deployapi.DeploymentConfig)
-
-// UpdateConfigWithRetries will try to update a deployment config and ignore any update conflicts.
-func UpdateConfigWithRetries(dn DeploymentConfigsNamespacer, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
-	var config *deployapi.DeploymentConfig
-
-	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		var err error
-		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		// Apply the update, then attempt to push it to the apiserver.
-		applyUpdate(config)
-		config, err = dn.DeploymentConfigs(namespace).Update(config)
-		return err
-	})
-	return config, resultErr
 }

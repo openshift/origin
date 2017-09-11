@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/golang/glog"
 
@@ -27,6 +28,8 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	"k8s.io/apiserver/pkg/authentication/request/websocket"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
+	tokencache "k8s.io/apiserver/pkg/authentication/token/cache"
+	tokenunion "k8s.io/apiserver/pkg/authentication/token/union"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
@@ -99,9 +102,6 @@ type MasterConfig struct {
 	Authenticator  authenticator.Request
 	Authorizer     kauthorizer.Authorizer
 	SubjectLocator authorizer.SubjectLocator
-
-	// TODO(sttts): replace AuthorizationAttributeBuilder with apiserverfilters.NewRequestAttributeGetter
-	AuthorizationAttributeBuilder authorizer.AuthorizationAttributeBuilder
 
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
@@ -300,11 +300,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 
 		RESTOptionsGetter: restOptsGetter,
 
-		RuleResolver:                  ruleResolver,
-		Authenticator:                 authenticator,
-		Authorizer:                    authorizer,
-		SubjectLocator:                subjectLocator,
-		AuthorizationAttributeBuilder: newAuthorizationAttributeBuilder(requestContextMapper),
+		RuleResolver:   ruleResolver,
+		Authenticator:  authenticator,
+		Authorizer:     authorizer,
+		SubjectLocator: subjectLocator,
 
 		ProjectAuthorizationCache: newProjectAuthorizationCache(
 			subjectLocator,
@@ -676,7 +675,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 
 func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
-	tokenAuthenticators := []authenticator.Request{}
+	tokenAuthenticators := []authenticator.Token{}
 
 	// ServiceAccount token
 	if len(config.ServiceAccountConfig.PublicKeyFiles) > 0 {
@@ -689,31 +688,32 @@ func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclie
 			publicKeys = append(publicKeys, readPublicKeys...)
 		}
 		serviceAccountTokenAuthenticator := serviceaccount.JWTTokenAuthenticator(publicKeys, true, tokenGetter)
-		tokenAuthenticators = append(
-			tokenAuthenticators,
-			bearertoken.New(serviceAccountTokenAuthenticator),
-			websocket.NewProtocolAuthenticator(serviceAccountTokenAuthenticator),
-			paramtoken.New("access_token", serviceAccountTokenAuthenticator, true),
-		)
+		tokenAuthenticators = append(tokenAuthenticators, serviceAccountTokenAuthenticator)
 	}
 
 	// OAuth token
 	if config.OAuthConfig != nil {
 		oauthTokenAuthenticator := authnregistry.NewTokenAuthenticator(accessTokenGetter, userGetter, groupMapper)
-		oauthTokenRequestAuthenticators := []authenticator.Request{
-			bearertoken.New(oauthTokenAuthenticator),
-			websocket.NewProtocolAuthenticator(oauthTokenAuthenticator),
-			paramtoken.New("access_token", oauthTokenAuthenticator, true),
-		}
-
 		tokenAuthenticators = append(tokenAuthenticators,
 			// if you have a bearer token, you're a human (usually)
 			// if you change this, have a look at the impersonationFilter where we attach groups to the impersonated user
-			group.NewGroupAdder(union.New(oauthTokenRequestAuthenticators...), []string{bootstrappolicy.AuthenticatedOAuthGroup}))
+			group.NewTokenGroupAdder(oauthTokenAuthenticator, []string{bootstrappolicy.AuthenticatedOAuthGroup}))
 	}
 
 	if len(tokenAuthenticators) > 0 {
-		authenticators = append(authenticators, union.New(tokenAuthenticators...))
+		// Combine all token authenticators
+		tokenAuth := tokenunion.New(tokenAuthenticators...)
+
+		// wrap with short cache on success.
+		// this means a revoked service account token or access token will be valid for up to 10 seconds.
+		// it also means group membership changes on users may take up to 10 seconds to become effective.
+		tokenAuth = tokencache.New(tokenAuth, 10*time.Second, 0)
+
+		authenticators = append(authenticators,
+			bearertoken.New(tokenAuth),
+			websocket.NewProtocolAuthenticator(tokenAuth),
+			paramtoken.New("access_token", tokenAuth, true),
+		)
 	}
 
 	// build cert authenticator
@@ -780,22 +780,6 @@ func newAuthorizer(kubeAuthorizer kauthorizer.Authorizer, kubeSubjectLocator rba
 		scopeLimitedAuthorizer)
 
 	return authorizer, subjectLocator
-}
-
-func newAuthorizationAttributeBuilder(requestContextMapper apirequest.RequestContextMapper) authorizer.AuthorizationAttributeBuilder {
-	// Default API request info factory
-	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
-	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-	browserSafeRequestInfoResolver := authorizer.NewBrowserSafeRequestInfoResolver(
-		requestContextMapper,
-		sets.NewString(bootstrappolicy.AuthenticatedGroup),
-		requestInfoFactory,
-	)
-	personalSARRequestInfoResolver := authorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
-	projectRequestInfoResolver := authorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
-
-	authorizationAttributeBuilder := authorizer.NewAuthorizationAttributeBuilder(requestContextMapper, projectRequestInfoResolver)
-	return authorizationAttributeBuilder
 }
 
 // KubeClientsetInternal returns the kubernetes client object

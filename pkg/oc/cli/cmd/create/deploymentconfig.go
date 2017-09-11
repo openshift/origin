@@ -13,9 +13,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
 )
 
 var DeploymentConfigRecommendedName = "deploymentconfig"

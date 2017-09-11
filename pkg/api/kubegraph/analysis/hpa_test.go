@@ -7,7 +7,7 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	osgraphtest "github.com/openshift/origin/pkg/api/graph/test"
 	"github.com/openshift/origin/pkg/api/kubegraph"
-	deploygraph "github.com/openshift/origin/pkg/deploy/graph"
+	deploygraph "github.com/openshift/origin/pkg/apps/graph"
 )
 
 func TestHPAMissingCPUTargetError(t *testing.T) {

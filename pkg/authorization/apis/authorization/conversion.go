@@ -172,7 +172,7 @@ func Convert_rbac_Role_To_authorization_Role(in *rbac.Role, out *Role, _ convers
 
 func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rbac.ClusterRoleBinding, out *ClusterRoleBinding, _ conversion.Scope) error {
 	var err error
-	if out.Subjects, err = convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
+	if out.Subjects, err = Convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
 	}
 	if out.RoleRef, err = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, ""); err != nil {
@@ -184,7 +184,7 @@ func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rba
 
 func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding, out *RoleBinding, _ conversion.Scope) error {
 	var err error
-	if out.Subjects, err = convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
+	if out.Subjects, err = Convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
 	}
 	if out.RoleRef, err = convert_rbac_RoleRef_To_authorization_RoleRef(&in.RoleRef, in.Namespace); err != nil {
@@ -194,7 +194,7 @@ func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding,
 	return nil
 }
 
-func convert_rbac_Subjects_To_authorization_Subjects(in []rbac.Subject) ([]api.ObjectReference, error) {
+func Convert_rbac_Subjects_To_authorization_Subjects(in []rbac.Subject) ([]api.ObjectReference, error) {
 	subjects := make([]api.ObjectReference, 0, len(in))
 	for _, subject := range in {
 		s := api.ObjectReference{

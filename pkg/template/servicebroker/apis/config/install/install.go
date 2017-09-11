@@ -9,15 +9,12 @@ import (
 	configapiv1 "github.com/openshift/origin/pkg/template/servicebroker/apis/config/v1"
 )
 
-const importPrefix = "github.com/openshift/origin/pkg/authorization/apis/authorization"
-
 // Install registers the API group and adds types to a scheme
 func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *registered.APIRegistrationManager, scheme *runtime.Scheme) {
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  configapi.GroupName,
 			VersionPreferenceOrder:     []string{configapiv1.SchemeGroupVersion.Version},
-			ImportPrefix:               importPrefix,
 			AddInternalObjectsToScheme: configapi.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{

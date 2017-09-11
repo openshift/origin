@@ -1,13 +1,7 @@
 package policy
 
 import (
-	"fmt"
-	"time"
-
 	"github.com/golang/glog"
-	"github.com/pborman/uuid"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -22,10 +16,6 @@ import (
 type RunPolicy interface {
 	// IsRunnable returns true of the given build should be executed.
 	IsRunnable(*buildapi.Build) (bool, error)
-
-	// OnComplete allows policy to execute action when the given build just
-	// completed.
-	OnComplete(*buildapi.Build) error
 
 	// Handles returns true if the run policy handles a specific policy
 	Handles(buildapi.BuildRunPolicy) bool
@@ -84,10 +74,10 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 		switch b.Status.Phase {
 		case buildapi.BuildPhasePending, buildapi.BuildPhaseRunning:
 			hasRunningBuilds = true
-			return false
+		case buildapi.BuildPhaseNew:
+			return true
 		}
-		// Only 'new' build can be scheduled to run next
-		return b.Status.Phase == buildapi.BuildPhaseNew
+		return false
 	})
 	if err != nil {
 		return nil, hasRunningBuilds, err
@@ -116,45 +106,6 @@ func GetNextConfigBuild(lister buildlister.BuildLister, namespace, buildConfigNa
 		nextBuilds = append(nextBuilds, nextBuild)
 	}
 	return nextBuilds, hasRunningBuilds, nil
-}
-
-// handleComplete represents the default OnComplete handler. This Handler will
-// check which build should be run next and set the accepted annotation for
-// that build. That will trigger HandleBuild() to process that build immediately
-// and as a result the build is immediately executed.
-func handleComplete(lister buildlister.BuildLister, updater buildclient.BuildUpdater, build *buildapi.Build) error {
-	bcName := buildutil.ConfigNameForBuild(build)
-	if len(bcName) == 0 {
-		return nil
-	}
-	nextBuilds, hasRunningBuilds, err := GetNextConfigBuild(lister, build.Namespace, bcName)
-	if err != nil {
-		return fmt.Errorf("unable to get the next build for %s/%s: %v", build.Namespace, build.Name, err)
-	}
-	if hasRunningBuilds || len(nextBuilds) == 0 {
-		return nil
-	}
-	for _, build := range nextBuilds {
-		// TODO: replace with informer notification requeueing in the future
-
-		// only set the annotation once.
-		if _, ok := build.Annotations[buildapi.BuildAcceptedAnnotation]; !ok {
-			build = copyOrDie(build)
-			build.Annotations[buildapi.BuildAcceptedAnnotation] = uuid.NewRandom().String()
-			err := wait.Poll(500*time.Millisecond, 5*time.Second, func() (bool, error) {
-				err := updater.Update(build.Namespace, build)
-				if err != nil && errors.IsConflict(err) {
-					glog.V(5).Infof("Error updating build %s/%s: %v (will retry)", build.Namespace, build.Name, err)
-					return false, nil
-				}
-				return true, err
-			})
-			if err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 func copyOrDie(build *buildapi.Build) *buildapi.Build {

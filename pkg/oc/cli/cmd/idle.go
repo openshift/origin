@@ -23,11 +23,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
+	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	deployapi "github.com/openshift/origin/pkg/deploy/apis/apps"
-	deployclient "github.com/openshift/origin/pkg/deploy/generated/internalclientset/typed/apps/internalversion"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
 	utilerrors "github.com/openshift/origin/pkg/util/errors"

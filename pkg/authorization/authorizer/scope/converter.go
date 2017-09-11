@@ -25,7 +25,7 @@ import (
 // ScopesToRules takes the scopes and return the rules back.  We ALWAYS add the discovery rules and it is possible to get some rules and and
 // an error since errors aren't fatal to evaluation
 func ScopesToRules(scopes []string, namespace string, clusterRoleGetter rbaclisters.ClusterRoleLister) ([]rbac.PolicyRule, error) {
-	rules := append([]rbac.PolicyRule{}, authorizationapi.RbacDiscoveryRule)
+	rules := append([]rbac.PolicyRule{}, authorizationapi.DiscoveryRule)
 
 	errors := []error{}
 	for _, scope := range scopes {

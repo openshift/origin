@@ -5,8 +5,8 @@ import (
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
-	deployedges "github.com/openshift/origin/pkg/deploy/graph"
-	deploygraph "github.com/openshift/origin/pkg/deploy/graph/nodes"
+	deployedges "github.com/openshift/origin/pkg/apps/graph"
+	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 )
 
 type DeploymentConfigPipeline struct {

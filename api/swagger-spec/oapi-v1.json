@@ -26292,7 +26292,7 @@
      },
      "dockerImageRepository": {
       "type": "string",
-      "description": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server"
+      "description": "dockerImageRepository is optional, if specified this stream is backed by a Docker repository on this server Deprecated: This field is deprecated as of v3.7 and will be removed in a future release. Specify the source for the tags to be imported in each tag via the spec.tags.from reference instead."
      },
      "tags": {
       "type": "array",
@@ -26331,11 +26331,11 @@
      },
      "annotations": {
       "type": "object",
-      "description": "Annotations associated with images using this tag"
+      "description": "Optional; if specified, annotations that are applied to images retrieved via ImageStreamTags."
      },
      "from": {
       "$ref": "v1.ObjectReference",
-      "description": "From is a reference to an image stream tag or image stream this tag should track"
+      "description": "Optional; if specified, a reference to another image that this tag should point to. Valid values are ImageStreamTag, ImageStreamImage, and DockerImage."
      },
      "reference": {
       "type": "boolean",
@@ -26344,15 +26344,15 @@
      "generation": {
       "type": "integer",
       "format": "int64",
-      "description": "Generation is the image stream generation that updated this tag - setting it to 0 is an indication that the generation must be updated. Legacy clients will send this as nil, which means the client doesn't know or care."
+      "description": "Generation is a counter that tracks mutations to the spec tag (user intent). When a tag reference is changed the generation is set to match the current stream generation (which is incremented every time spec is changed). Other processes in the system like the image importer observe that the generation of spec tag is newer than the generation recorded in the status and use that as a trigger to import the newest remote tag. To trigger a new import, clients may set this value to zero which will reset the generation to the latest stream generation. Legacy clients will send this value as nil which will be merged with the current tag generation."
      },
      "importPolicy": {
       "$ref": "v1.TagImportPolicy",
-      "description": "Import is information that controls how images may be imported by the server."
+      "description": "ImportPolicy is information that controls how images may be imported by the server."
      },
      "referencePolicy": {
       "$ref": "v1.TagReferencePolicy",
-      "description": "ReferencePolicy defines how other components should consume the image"
+      "description": "ReferencePolicy defines how other components should consume the image."
      }
     }
    },
