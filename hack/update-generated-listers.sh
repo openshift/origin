@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-os::util::ensure::built_binary_exists 'lister-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/kube-gen/cmd/lister-gen'
+os::util::ensure::built_binary_exists 'lister-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/lister-gen'
 
 # list of package to generate listers for
 packages=(

@@ -14,7 +14,7 @@ import (
 	"k8s.io/gengo/args"
 	"k8s.io/gengo/generator"
 
-	"k8s.io/kube-gen/cmd/conversion-gen/generators"
+	"k8s.io/code-generator/cmd/conversion-gen/generators"
 )
 
 func main() {
