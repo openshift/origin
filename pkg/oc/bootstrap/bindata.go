@@ -6736,7 +6736,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 30,
                   "httpGet": {
-                    "path": "/",
+                    "path": "/health.php",
                     "port": 8080
                   }
                 },
@@ -7341,7 +7341,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 30,
                   "httpGet": {
-                    "path": "/",
+                    "path": "/health.php",
                     "port": 8080
                   }
                 },
@@ -7907,7 +7907,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 30,
                     "httpGet": {
-                        "path": "/",
+                        "path": "/health",
                         "port": 8080
                     }
                 },
@@ -8456,7 +8456,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 30,
                     "httpGet": {
-                        "path": "/",
+                        "path": "/health",
                         "port": 8080
                     }
                 },
@@ -9869,11 +9869,11 @@ var _examplesQuickstartsHttpdJson = []byte(`{
   "metadata": {
     "name": "httpd-example",
     "annotations": {
-      "openshift.io/display-name": "Httpd",
-      "description": "An example Httpd application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
+      "openshift.io/display-name": "Apache HTTP Server",
+      "description": "An example Apache HTTP Server (httpd) application that serves static content. For more information about using this template, including OpenShift considerations, see https://github.com/openshift/httpd-ex/blob/master/README.md.",
       "tags": "quickstart,httpd",
       "iconClass": "icon-apache",
-      "template.openshift.io/long-description": "This template defines resources needed to develop a static application served by httpd, including a build configuration and application deployment configuration.",
+      "template.openshift.io/long-description": "This template defines resources needed to develop a static application served by Apache HTTP Server (httpd), including a build configuration and application deployment configuration.",
       "template.openshift.io/provider-display-name": "Red Hat, Inc.",
       "template.openshift.io/documentation-url": "https://github.com/openshift/httpd-ex",
       "template.openshift.io/support-url": "https://access.redhat.com"
