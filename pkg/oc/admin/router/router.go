@@ -474,7 +474,7 @@ func generateMetricsExporterContainer(cfg *RouterConfig, env app.Environment) *k
 			Image: "prom/haproxy-exporter:latest",
 			Env:   env.List(),
 			Args: []string{
-				fmt.Sprintf("-haproxy.scrape-uri=http://$(STATS_USERNAME):$(STATS_PASSWORD)@localhost:$(STATS_PORT)/haproxy?stats;csv"),
+				fmt.Sprintf("--haproxy.scrape-uri=http://$(STATS_USERNAME):$(STATS_PASSWORD)@localhost:$(STATS_PORT)/haproxy?stats;csv"),
 			},
 			Ports: []kapi.ContainerPort{
 				{
