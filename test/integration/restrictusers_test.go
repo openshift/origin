@@ -170,4 +170,59 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	// Creating rolebindings that also contains "system non existing" users should
+	// not fail.
+	allowWithNonExisting := &authorizationapi.RoleBindingRestriction{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "match-users-eve-and-non-existing",
+			Namespace: "namespace",
+		},
+		Spec: authorizationapi.RoleBindingRestrictionSpec{
+			UserRestriction: &authorizationapi.UserRestriction{
+				Users: []string{"eve", "system:non-existing"},
+			},
+		},
+	}
+
+	if _, err := clusterAdminClient.RoleBindingRestrictions("namespace").Create(allowWithNonExisting); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	rolebindingEve := &authorizationapi.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "namespace",
+			Name:      "rolebinding4",
+		},
+		Subjects: []kapi.ObjectReference{
+			{
+				Kind:      authorizationapi.UserKind,
+				Namespace: "namespace",
+				Name:      "eve",
+			},
+		},
+		RoleRef: kapi.ObjectReference{Name: "role", Namespace: "namespace"},
+	}
+
+	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingEve); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	rolebindingNonExisting := &authorizationapi.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "namespace",
+			Name:      "rolebinding5",
+		},
+		Subjects: []kapi.ObjectReference{
+			{
+				Kind:      authorizationapi.UserKind,
+				Namespace: "namespace",
+				Name:      "system:non-existing",
+			},
+		},
+		RoleRef: kapi.ObjectReference{Name: "role", Namespace: "namespace"},
+	}
+
+	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingNonExisting); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 }
