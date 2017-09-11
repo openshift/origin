@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
@@ -47,6 +49,11 @@ type RoleModificationOptions struct {
 	Users    []string
 	Groups   []string
 	Subjects []kapi.ObjectReference
+
+	DryRun bool
+	Output string
+
+	PrintObj func(obj runtime.Object) error
 }
 
 // NewCmdAddRoleToGroup implements the OpenShift cli add-role-to-group command
@@ -58,7 +65,7 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 		Short: "Add a role to groups for the current project",
 		Long:  `Add a role to groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, &options.Groups, "group", true); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -66,14 +73,18 @@ func NewCmdAddRoleToGroup(name, fullName string, f *clientcmd.Factory, out io.Wr
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, true, "group", options.Targets, true, out)
 
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, true, "group", options.Targets, true, options.DryRun, out)
+			}
 		},
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -88,7 +99,7 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 		Long:    `Add a role to users or serviceaccounts for the current project`,
 		Example: fmt.Sprintf(addRoleToUserExample, fullName),
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, args, saNames, true); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -96,7 +107,9 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, true, "user", options.Targets, true, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, true, "user", options.Targets, true, options.DryRun, out)
+			}
 		},
 	}
 
@@ -104,6 +117,8 @@ func NewCmdAddRoleToUser(name, fullName string, f *clientcmd.Factory, out io.Wri
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -116,7 +131,7 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 		Short: "Remove a role from groups for the current project",
 		Long:  `Remove a role from groups for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, &options.Groups, "group", true); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", true, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -124,12 +139,16 @@ func NewCmdRemoveRoleFromGroup(name, fullName string, f *clientcmd.Factory, out 
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, false, "group", options.Targets, true, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, false, "group", options.Targets, true, options.DryRun, out)
+			}
 		},
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -143,7 +162,7 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 		Short: "Remove a role from users for the current project",
 		Long:  `Remove a role from users for the current project`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, args, saNames, true); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, true, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -151,13 +170,17 @@ func NewCmdRemoveRoleFromUser(name, fullName string, f *clientcmd.Factory, out i
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, false, "user", options.Targets, true, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, false, "user", options.Targets, true, options.DryRun, out)
+			}
 		},
 	}
 
 	cmd.Flags().StringVar(&options.RoleNamespace, "role-namespace", "", "namespace where the role is located: empty means a role defined in cluster policy")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -170,7 +193,7 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 		Short: "Add a role to groups for all projects in the cluster",
 		Long:  `Add a role to groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, &options.Groups, "group", false); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -178,11 +201,15 @@ func NewCmdAddClusterRoleToGroup(name, fullName string, f *clientcmd.Factory, ou
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, true, "group", options.Targets, false, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, true, "group", options.Targets, false, options.DryRun, out)
+			}
 		},
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -196,7 +223,7 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 		Short: "Add a role to users for all projects in the cluster",
 		Long:  `Add a role to users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, args, saNames, false); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -204,13 +231,17 @@ func NewCmdAddClusterRoleToUser(name, fullName string, f *clientcmd.Factory, out
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, true, "user", options.Targets, false, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, true, "user", options.Targets, false, options.DryRun, out)
+			}
 		},
 	}
 
 	cmd.Flags().StringVar(&options.RoleBindingName, "rolebinding-name", "", "Name of the rolebinding to modify or create. If left empty, appends to the first rolebinding found for the given role")
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -223,7 +254,7 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 		Short: "Remove a role from groups for all projects in the cluster",
 		Long:  `Remove a role from groups for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.Complete(f, args, &options.Groups, "group", false); err != nil {
+			if err := options.Complete(f, cmd, args, &options.Groups, "group", false, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -231,10 +262,14 @@ func NewCmdRemoveClusterRoleFromGroup(name, fullName string, f *clientcmd.Factor
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, false, "group", options.Targets, false, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, false, "group", options.Targets, false, options.DryRun, out)
+			}
 		},
 	}
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
@@ -248,7 +283,7 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 		Short: "Remove a role from users for all projects in the cluster",
 		Long:  `Remove a role from users for all projects in the cluster`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.CompleteUserWithSA(f, args, saNames, false); err != nil {
+			if err := options.CompleteUserWithSA(f, cmd, args, saNames, false, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
 
@@ -256,16 +291,20 @@ func NewCmdRemoveClusterRoleFromUser(name, fullName string, f *clientcmd.Factory
 				kcmdutil.CheckErr(err)
 				return
 			}
-			printSuccessForCommand(options.RoleName, false, "user", options.Targets, false, out)
+			if len(options.Output) == 0 {
+				printSuccessForCommand(options.RoleName, false, "user", options.Targets, false, options.DryRun, out)
+			}
 		},
 	}
 
 	cmd.Flags().StringSliceVarP(&saNames, "serviceaccount", "z", saNames, "service account in the current namespace to use as a user")
 
+	kcmdutil.AddDryRunFlag(cmd)
+	kcmdutil.AddPrinterFlags(cmd)
 	return cmd
 }
 
-func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args []string, saNames []string, isNamespaced bool) error {
+func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *cobra.Command, args []string, saNames []string, isNamespaced bool, out io.Writer) error {
 	if len(args) < 1 {
 		return errors.New("you must specify a role")
 	}
@@ -284,6 +323,14 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
+	}
+
+	mapper, _ := f.Object()
+
+	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObj = func(obj runtime.Object) error {
+		return f.PrintObject(cmd, false, mapper, obj, out)
 	}
 
 	roleBindingNamespace, _, err := f.DefaultNamespace()
@@ -305,7 +352,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, args 
 	return nil
 }
 
-func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, target *[]string, targetName string, isNamespaced bool) error {
+func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, target *[]string, targetName string, isNamespaced bool, out io.Writer) error {
 	if len(args) < 2 {
 		return fmt.Errorf("you must specify at least two arguments: <role> <%s> [%s]...", targetName, targetName)
 	}
@@ -318,6 +365,14 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, args []string, 
 	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
+	}
+
+	mapper, _ := f.Object()
+
+	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
+	o.Output = kcmdutil.GetFlagString(cmd, "output")
+	o.PrintObj = func(obj runtime.Object) error {
+		return f.PrintObject(cmd, false, mapper, obj, out)
 	}
 
 	if isNamespaced {
@@ -417,6 +472,14 @@ subjectCheck:
 		roleBinding.Subjects = append(roleBinding.Subjects, newSubject)
 	}
 
+	if len(o.Output) > 0 {
+		return o.PrintObj(roleBinding)
+	}
+
+	if o.DryRun {
+		return nil
+	}
+
 	if isUpdate {
 		err = o.RoleBindingAccessor.UpdateRoleBinding(roleBinding)
 	} else {
@@ -442,8 +505,28 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		return fmt.Errorf("unable to locate RoleBinding for %v/%v", o.RoleNamespace, o.RoleName)
 	}
 
+	updatedBindings := &authorizationapi.RoleBindingList{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "List",
+			APIVersion: "v1",
+		},
+		ListMeta: metav1.ListMeta{},
+	}
+
 	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups)
 	subjectsToRemove = append(subjectsToRemove, o.Subjects...)
+
+	if len(o.Output) > 0 {
+		for _, binding := range roleBindings {
+			binding.Subjects = removeSubjects(binding.Subjects, subjectsToRemove)
+			updatedBindings.Items = append(updatedBindings.Items, *binding)
+		}
+		return o.PrintObj(updatedBindings)
+	}
+
+	if o.DryRun {
+		return nil
+	}
 
 	for _, roleBinding := range roleBindings {
 		roleBinding.Subjects = removeSubjects(roleBinding.Subjects, subjectsToRemove)
@@ -478,7 +561,7 @@ existingLoop:
 }
 
 // prints affirmative output for role modification commands
-func printSuccessForCommand(role string, didAdd bool, targetName string, targets []string, isNamespaced bool, out io.Writer) {
+func printSuccessForCommand(role string, didAdd bool, targetName string, targets []string, isNamespaced bool, dryRun bool, out io.Writer) {
 	verb := "removed"
 	clusterScope := "cluster "
 	allTargets := fmt.Sprintf("%q", targets)
@@ -494,5 +577,10 @@ func printSuccessForCommand(role string, didAdd bool, targetName string, targets
 		verb = "added"
 	}
 
-	fmt.Fprintf(out, "%srole %q %s: %s\n", clusterScope, role, verb, allTargets)
+	msg := "%srole %q %s: %s"
+	if dryRun {
+		msg += " (dry run)"
+	}
+
+	fmt.Fprintf(out, msg+"\n", clusterScope, role, verb, allTargets)
 }
