@@ -86,10 +86,6 @@ func NewCmdMigrateAPIStorage(name, fullName string, f *clientcmd.Factory, in io.
 				{Resource: "replicationcontrollerdummies.extensions"},
 				{Resource: "podtemplates"},
 				{Resource: "selfsubjectaccessreviews", Group: "authorization.k8s.io"}, {Resource: "localsubjectaccessreviews", Group: "authorization.k8s.io"},
-
-				// skip kube RBAC resources for now because no one will have rights to update them yet
-				{Resource: "roles", Group: "rbac.authorization.k8s.io"}, {Resource: "rolebindings", Group: "rbac.authorization.k8s.io"},
-				{Resource: "clusterroles", Group: "rbac.authorization.k8s.io"}, {Resource: "clusterrolebindings", Group: "rbac.authorization.k8s.io"},
 			},
 			// Resources known to share the same storage
 			OverlappingResources: []sets.String{
