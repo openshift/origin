@@ -12,7 +12,7 @@ var InvalidPatternError = errors.New("invalid pattern")
 
 var urlPatternRegex = regexp.MustCompile(`^` +
 	`(?:(\*|git|http|https|ssh)://)` +
-	`(\*|(?:\*\.)?[^/*]+)` +
+	`(\*|(?:\*\.)?[^@/*]+)` +
 	`(/.*)` +
 	`$`)
 
