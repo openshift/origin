@@ -40,13 +40,13 @@ func DefaultTemplate() *templateapi.Template {
 		oapi.OpenShiftDisplayName:   "${" + ProjectDisplayNameParam + "}",
 		projectapi.ProjectRequester: "${" + ProjectRequesterParam + "}",
 	}
-	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{project}, projectapiv1.SchemeGroupVersion); err != nil {
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{project}, projectapiv1.LegacySchemeGroupVersion); err != nil {
 		panic(err)
 	}
 
 	serviceAccountRoleBindings := bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(ns)
 	for i := range serviceAccountRoleBindings {
-		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, authorizationapiv1.SchemeGroupVersion); err != nil {
+		if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{&serviceAccountRoleBindings[i]}, authorizationapiv1.LegacySchemeGroupVersion); err != nil {
 			panic(err)
 		}
 	}
@@ -56,7 +56,7 @@ func DefaultTemplate() *templateapi.Template {
 	binding.Namespace = ns
 	binding.Subjects = []kapi.ObjectReference{{Kind: authorizationapi.UserKind, Name: "${" + ProjectAdminUserParam + "}"}}
 	binding.RoleRef.Name = bootstrappolicy.AdminRoleName
-	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{binding}, authorizationapiv1.SchemeGroupVersion); err != nil {
+	if err := templateapi.AddObjectsToTemplate(ret, []runtime.Object{binding}, authorizationapiv1.LegacySchemeGroupVersion); err != nil {
 		// this should never happen because we're tightly controlling what goes in.
 		panic(err)
 	}
