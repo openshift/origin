@@ -305,5 +305,42 @@
       "github.com/openshift/origin/pkg/route/apis/route",
       "github.com/openshift/origin/pkg/serviceaccounts"
     ]
+  },
+
+  {
+    "checkedPackageRoots": [
+      "github.com/openshift/origin/pkg/dockerregistry"
+    ],
+    "allowedImportPackageRoots": [
+      "vendor/github.com/docker/distribution",
+      "vendor/github.com/docker/libtrust",
+      "vendor/github.com/prometheus",
+      "vendor/k8s.io/client-go",
+      "vendor/github.com/hashicorp/golang-lru",
+      "vendor/github.com/Sirupsen/logrus",
+      "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/",
+      "vendor/k8s.io/apimachinery",
+      "vendor/github.com/gorilla/handlers",
+      "vendor/gopkg.in/yaml.v2",
+      "github.com/openshift/origin/pkg/image/generated",
+      "github.com/openshift/origin/pkg/user/generated"
+    ],
+    "allowedImportPackages": [
+      "github.com/openshift/origin/pkg/image/admission",
+      "github.com/openshift/origin/pkg/cmd/util/clientcmd",
+      "github.com/openshift/origin/pkg/image/importer",
+      "github.com/openshift/origin/pkg/quota/util",
+      "github.com/openshift/origin/pkg/util/httprequest",
+      "github.com/openshift/origin/pkg/api/latest",
+      "github.com/openshift/origin/pkg/client/testclient",
+      "github.com/openshift/origin/pkg/api/install",
+      "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/api/v1",
+      "vendor/k8s.io/kubernetes/pkg/apis/authorization/v1",
+      "github.com/openshift/origin/pkg/image/apis/image",
+      "github.com/openshift/origin/pkg/image/apis/image/v1",
+      "github.com/openshift/origin/pkg/user/apis/user",
+      "github.com/openshift/origin/pkg/user/apis/user/v1"
+    ]
   }
 ]
