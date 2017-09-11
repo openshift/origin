@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f142350c21293346f29ad90965edb766e7ab1d9d
+%global commit da80a61937d6793b78cb310d4c6fe0f0f3148bcc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.124.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f142350
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.125.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=da80a61
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.125.0%{?dist}
+Release:        0.126.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -639,6 +639,156 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Sep 11 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.0
+- wire CORS through (deads@redhat.com)
+- UPSTREAM: 52127: Fix deployment timeout reporting (mkargaki@redhat.com)
+- use offsets for test failure reporting (bparees@redhat.com)
+- better failure reporting in postgres test (use offset, dump pods)
+  (bparees@redhat.com)
+- Do not ignore RBAC during storage migration (mkhan@redhat.com)
+- run the run_policy tests serially (bparees@redhat.com)
+- bump(github.com/kubernetes/kubernetes):930b5c4b2db (ccoleman@redhat.com)
+- Remove policy and policybinding from bootstrap policy (simo@redhat.com)
+- Move RoleBindingRestriction admission to work on RBAC only (simo@redhat.com)
+- Fix deployment minReadySecond check for availableReplicas after all pods are
+  ready (tnozicka@gmail.com)
+- Allow credential mapping from dockercfg for canonical ports
+  (ccoleman@redhat.com)
+- tweaks and rebase (deads@redhat.com)
+- Unify and simplify legacy api installation (stefan.schimanski@gmail.com)
+- Update etcd path test to always use kindWhiteList
+  (stefan.schimanski@gmail.com)
+- Remove Store.ImportPrefix everywhere (stefan.schimanski@gmail.com)
+- new-app: fix stack overflow when resolving imagestream reference to a
+  different imagestream (cewong@redhat.com)
+- UPSTREAM: 50094: apimachinery: remove pre-apigroups import path logic
+  (stefan.schimanski@gmail.com)
+- add more useful queries (jeder@redhat.com)
+- catalog: add update permission for bindings/finalizers (jpeeler@redhat.com)
+- use rbac for TSB templates (deads@redhat.com)
+- limit imports to dockerregistry (deads@redhat.com)
+- update Apache image stream naming, Apache QuickStart, and add Ruby 2.4 image
+  stream (cdaley@redhat.com)
+- Allow more control over the scopes requested by image import
+  (ccoleman@redhat.com)
+- UPSTREAM: 52092: Fix resource quota controller panic (Drop in 1.8)
+  (ironcladlou@gmail.com)
+- snip TSB links (deads@redhat.com)
+- UPSTREAM: 49416: FC volume plugin: remove block device at DetachDisk
+  (hchen@redhat.com)
+- Grant access to privileged SCC to system:admin user and members of
+  system:masters group. (vsemushi@redhat.com)
+- Users with sudoer role now is able to execute commands on behalf of
+  system:masters group (--as-group). (vsemushi@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  db9abb597886a9d6ddb556ebc35aae6e98fc46ab (eparis+openshiftbot@redhat.com)
+- UPSTREAM: 45345: Support "fstype" parameter in dynamically provisioned PVs
+  (jsafrane@redhat.com)
+- fix help for create imagestream (bparees@redhat.com)
+- cleanup imagestreamtag desc (bparees@redhat.com)
+- deprecate imagestream dockerImageRepository field (bparees@redhat.com)
+- Updating docker --build-arg test due to docker code change
+  (cdaley@redhat.com)
+- Ensure that StepExecPostCommit is not recorded if no PostCommit exists
+  (cdaley@redhat.com)
+- Use rbac.PolicyRule directly for DiscoveryRule (mrogers@redhat.com)
+- Rename pkg/deploy -> pkg/apps (maszulik@redhat.com)
+- remove trailing newline from oc-get-users (jvallejo@redhat.com)
+- Add registry team to OWNERS of end-to-end tests (obulatov@redhat.com)
+- ClusterRegistry diagnostic: fix address mismatch (lmeyer@redhat.com)
+- use the upstream handler chain (deads@redhat.com)
+- cleanup remaining storage impls (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  77a9ae80dad4584bfc457f4ea0fab006e65adbdb (eparis+openshiftbot@redhat.com)
+- Check the order of bootstrapped SCCs. (jpazdziora@redhat.com)
+- Correctly validate identity provider username (mkhan@redhat.com)
+- UPSTREAM: google/cadvisor: 1700: Reduce log spam when unable to get network
+  stats (sjenning@redhat.com)
+- Fixing build pruning tests (cdaley@redhat.com)
+- update controller roles (deads@redhat.com)
+- UPSTREAM: 49133: add controller permissions to set blockOwnerDeletion
+  (deads@redhat.com)
+- switch to upstream impersonation (deads@redhat.com)
+- UPSTREAM: 49219: Use case-insensitive header keys for --requestheader-group-
+  headers. (deads@redhat.com)
+- dind: simplify network plugin argument (dcbw@redhat.com)
+- dind: add support for ovn-kubernetes network plugin (dcbw@redhat.com)
+- Add JENKINS_SERVICE_NAME as env var (shebert@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  73c7420693a657ede2157b89d306e2937affc031 (eparis+openshiftbot@redhat.com)
+- UPSTREAM: 50843: FlexVolume: Add ability to control 'SupportsSELinux' during
+  driver's init phase (mawong@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2d2e2975a51af07c6960257319ca9262039ad665 (eparis+openshiftbot@redhat.com)
+- clarify imagestreamtag descriptions (bparees@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  b919687019fbf02c787a88f2af4e6db256dd6c8a (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2fbc58a641d45e1650f41f63567798d6d7ac3fb4 (eparis+openshiftbot@redhat.com)
+- move authorization storage to separate server (deads@redhat.com)
+- move oauth storage to server (deads@redhat.com)
+- move image storage to apiserver (deads@redhat.com)
+- move the docker registry v1 client (deads@redhat.com)
+- switch image api to use SAR client, not registry (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0e7d693bad94e070cda8ed1661e1519ea705026d (eparis+openshiftbot@redhat.com)
+- apps: update pkg/deploy/cmd to use generated client (mfojtik@redhat.com)
+- generate rollback client (mfojtik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4f8b2cfba882fe73471b4e2eac2ec7c23d8b68c3 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  4d49437d637c7809bcf6367777b8fc02f8f3e8a0 (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6ff495e81538daf7af8473930e8d51b9621fc2bc (eparis+openshiftbot@redhat.com)
+- registry: use imagestream clientset to get secrets (mfojtik@redhat.com)
+- message tweaks for kube (deads@redhat.com)
+- use configmaps for scheduler lease (deads@redhat.com)
+- allow cluster up/tsb to tolerate any version of 3.7.x, prerelease or
+  otherwise (bparees@redhat.com)
+- switch route extra auth check to SAR client (deads@redhat.com)
+- Move project creation to use RBAC objects (simo@redhat.com)
+- build controller: use a buildconfig queue to track which buildconfigs to kick
+  (cewong@redhat.com)
+- Lazily initialize Osin client for token endpoint (mkhan@redhat.com)
+- adding --source-secret flag to new-app and new-build (cdaley@redhat.com)
+- add network apiserver (deads@redhat.com)
+- Fix end-to-end tests for Docker 17.x (obulatov@redhat.com)
+- use stock requestinfo and authorization filters (deads@redhat.com)
+- UPSTREAM: 51932: fix format of forbidden messages (deads@redhat.com)
+- UPSTREAM: 51803: make url parsing in apiserver configurable
+  (deads@redhat.com)
+- apps: use generate clientset in controllers and api server
+  (mfojtik@redhat.com)
+- Update auto-generated files. (vsemushi@redhat.com)
+- SecurityContextConstraints: add AllowedFlexVolumes field.
+  (vsemushi@redhat.com)
+- regenerate fake deploymentconfig (mfojtik@redhat.com)
+- UPSTREAM: <drop>: Fix result type in fake clientset generator
+  (mfojtik@redhat.com)
+- Add a new changelog generator (ccoleman@redhat.com)
+- perform tsb registration via a template (bparees@redhat.com)
+- Add node-exporter example to prometheus (ccoleman@redhat.com)
+- cmd test flake: 0-length response instead of expected timeout
+  (bruno@abstractj.org)
+- UPSTREAM: 51727: ensure all unstructured resources (jvallejo@redhat.com)
+- Add short ttl cache to token authenticator on success (jliggitt@redhat.com)
+- UPSTREAM: 50258: Simplify bearer token auth chain, cache successful
+  authentications (jliggitt@redhat.com)
+- UPSTREAM: 50258: Add union token authenticator (jliggitt@redhat.com)
+- UPSTREAM: 50258: Add token cache component (jliggitt@redhat.com)
+- UPSTREAM: 50258: Add token group adder component (jliggitt@redhat.com)
+- WIP (simo@redhat.com)
+- Remove usless test and resolved comments (simo@redhat.com)
+- Make SCC with less capabilities more restrictive. (jpazdziora@redhat.com)
+- Make space in the point logic for capabilities accounting.
+  (jpazdziora@redhat.com)
+- UPSTREAM: 49475: Fixed glusterfs mount options (jsafrane@redhat.com)
+- UPSTREAM: 48940: support fc volume attach and detach (hchen@redhat.com)
+- UPSTREAM: 49127: Make definite mount timeout for glusterfs volume mount
+  (jsafrane@redhat.com)
+- UPSTREAM: 48709: glusterfs: retry without auto_unmount only when it's not
+  supported (jsafrane@redhat.com)
+
 * Tue Sep 05 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.125.0
 - 
 
