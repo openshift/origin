@@ -6769,7 +6769,7 @@ var _examplesQuickstartsCakephpMysqlPersistentJson = []byte(`{
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 30,
                   "httpGet": {
-                    "path": "/",
+                    "path": "/health.php",
                     "port": 8080
                   }
                 },
@@ -7374,7 +7374,7 @@ var _examplesQuickstartsCakephpMysqlJson = []byte(`{
                   "timeoutSeconds": 3,
                   "initialDelaySeconds": 30,
                   "httpGet": {
-                    "path": "/",
+                    "path": "/health.php",
                     "port": 8080
                   }
                 },
@@ -7940,7 +7940,7 @@ var _examplesQuickstartsDancerMysqlPersistentJson = []byte(`{
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 30,
                     "httpGet": {
-                        "path": "/",
+                        "path": "/health",
                         "port": 8080
                     }
                 },
@@ -8489,7 +8489,7 @@ var _examplesQuickstartsDancerMysqlJson = []byte(`{
                     "timeoutSeconds": 3,
                     "initialDelaySeconds": 30,
                     "httpGet": {
-                        "path": "/",
+                        "path": "/health",
                         "port": 8080
                     }
                 },

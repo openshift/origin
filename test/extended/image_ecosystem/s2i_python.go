@@ -57,14 +57,14 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 
 			assertPageCountIs := func(i int, dcLabel labels.Selector) {
 				_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 2*time.Minute)
-				o.Expect(err).NotTo(o.HaveOccurred())
+				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, dcName, "", pageCountFn(i))
 				if err != nil || !result {
 					exutil.DumpApplicationPodLogs(dcName, oc)
 				}
-				o.Expect(err).NotTo(o.HaveOccurred())
-				o.Expect(result).To(o.BeTrue())
+				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
+				o.ExpectWithOffset(1, result).To(o.BeTrue())
 			}
 
 			g.By("checking page count")
