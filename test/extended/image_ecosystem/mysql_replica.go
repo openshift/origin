@@ -74,9 +74,9 @@ func CreateMySQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment,
 }
 
 func cleanup(oc *exutil.CLI) {
-	exutil.DumpImageStreams(oc)
+	//exutil.DumpImageStreams(oc)
 	oc.AsAdmin().Run("delete").Args("all", "--all", "-n", oc.Namespace()).Execute()
-	exutil.DumpImageStreams(oc)
+	//exutil.DumpImageStreams(oc)
 	oc.AsAdmin().Run("delete").Args("pvc", "--all", "-n", oc.Namespace()).Execute()
 	exutil.CleanupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace())
 }
