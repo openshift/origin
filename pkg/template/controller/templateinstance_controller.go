@@ -157,7 +157,9 @@ func (c *TemplateInstanceController) sync(key string) error {
 
 	if !templateInstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue) {
 		ready, err := c.checkReadiness(templateInstance, time.Now())
-		if err != nil {
+		if err != nil && !kerrors.IsTimeout(err) {
+			// NB: kerrors.IsTimeout() is true in the case of an API server
+			// timeout, not the timeout caused by readinessTimeout expiring.
 			glog.V(4).Infof("TemplateInstance controller: checkReadiness %s returned %v", key, err)
 
 			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
