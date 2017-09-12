@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imagecontroller "github.com/openshift/origin/pkg/image/controller"
+	imagesignaturecontroller "github.com/openshift/origin/pkg/image/controller/signature"
 	imagetriggercontroller "github.com/openshift/origin/pkg/image/controller/trigger"
 	triggerannotations "github.com/openshift/origin/pkg/image/trigger/annotations"
 	triggerbuildconfigs "github.com/openshift/origin/pkg/image/trigger/buildconfigs"
@@ -145,6 +147,25 @@ func (u podSpecUpdater) Update(obj runtime.Object) error {
 	default:
 		return fmt.Errorf("unrecognized object - no trigger update possible for %T", obj)
 	}
+}
+
+type ImageSignatureImportControllerConfig struct {
+	ResyncPeriod          time.Duration
+	SignatureFetchTimeout time.Duration
+	SignatureImportLimit  int
+}
+
+func (c *ImageSignatureImportControllerConfig) RunController(ctx ControllerContext) (bool, error) {
+	controller := imagesignaturecontroller.NewSignatureImportController(
+		context.Background(),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(bootstrappolicy.InfraImageImportControllerServiceAccountName),
+		ctx.ImageInformers.Image().InternalVersion().Images(),
+		c.ResyncPeriod,
+		c.SignatureFetchTimeout,
+		c.SignatureImportLimit,
+	)
+	go controller.Run(5, ctx.Stop)
+	return true, nil
 }
 
 type ImageImportControllerConfig struct {
