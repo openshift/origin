@@ -209,7 +209,7 @@ func TestDockerV1Fallback(t *testing.T) {
 }
 
 func TestPing(t *testing.T) {
-	retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials).(*repositoryRetriever)
+	retriever := NewContext(newTransportRetriever()).WithCredentials(NoCredentials).(*repositoryRetriever)
 
 	fn404 := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(404) }
 	var fn http.HandlerFunc
@@ -292,7 +292,7 @@ func TestPing(t *testing.T) {
 
 	for _, test := range testCases {
 		fn = test.fn
-		_, err := retriever.ping(test.uri, true, retriever.context.InsecureTransport)
+		_, err := retriever.ping(test.uri, true, http.DefaultTransport)
 		if (err != nil && strings.Contains(err.Error(), "does not support v2 API")) == test.expectV2 {
 			t.Errorf("%s: Expected ErrNotV2Registry, got %v", test.name, err)
 		}

@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
@@ -15,13 +14,13 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	restclient "k8s.io/client-go/rest"
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/metrics"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	"github.com/openshift/origin/pkg/image/importer"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
@@ -31,24 +30,6 @@ const (
 	defaultDigestToRepositoryCacheSize = 2048
 	defaultBlobRepositoryCacheTTL      = time.Minute * 10
 )
-
-var (
-	// secureTransport is the transport pool used for pullthrough to remote registries marked as
-	// secure.
-	secureTransport http.RoundTripper
-	// insecureTransport is the transport pool that does not verify remote TLS certificates for use
-	// during pullthrough against registries marked as insecure.
-	insecureTransport http.RoundTripper
-)
-
-func init() {
-	secureTransport = http.DefaultTransport
-	var err error
-	insecureTransport, err = restclient.TransportFor(&restclient.Config{TLSClientConfig: restclient.TLSClientConfig{Insecure: true}})
-	if err != nil {
-		panic(fmt.Sprintf("Unable to configure a default transport for importing insecure images: %v", err))
-	}
-}
 
 // repository wraps a distribution.Repository and allows manifests to be served from the OpenShift image
 // API.
@@ -66,6 +47,8 @@ type repository struct {
 
 	// cachedImages contains images cached for the lifetime of the request being handled.
 	cachedImages map[digest.Digest]*imageapiv1.Image
+	// transportRetriever creates transports suitable for retrieving repositories.
+	transportRetriever importer.TransportRetriever
 	// cachedImageStream stays cached for the entire time of handling signle repository-scoped request.
 	imageStreamGetter *cachedImageStreamGetter
 	// cachedLayers remembers a mapping of layer digest to repositories recently seen with that image to avoid
@@ -103,16 +86,17 @@ func (app *App) newRepository(ctx context.Context, repo distribution.Repository,
 	r := &repository{
 		Repository: repo,
 
-		ctx:               ctx,
-		app:               app,
-		registryOSClient:  registryOSClient,
-		namespace:         nameParts[0],
-		name:              nameParts[1],
-		config:            rc,
-		imageStreamGetter: imageStreamGetter,
-		cachedImages:      make(map[digest.Digest]*imageapiv1.Image),
-		cachedLayers:      app.cachedLayers,
-		enabledMetrics:    app.extraConfig.Metrics.Enabled,
+		ctx:                ctx,
+		app:                app,
+		registryOSClient:   registryOSClient,
+		namespace:          nameParts[0],
+		name:               nameParts[1],
+		config:             rc,
+		transportRetriever: app.transportRetriever,
+		imageStreamGetter:  imageStreamGetter,
+		cachedImages:       make(map[digest.Digest]*imageapiv1.Image),
+		cachedLayers:       app.cachedLayers,
+		enabledMetrics:     app.extraConfig.Metrics.Enabled,
 	}
 
 	if rc.pullthrough {
@@ -120,6 +104,7 @@ func (app *App) newRepository(ctx context.Context, repo distribution.Repository,
 			r.namespace,
 			r.name,
 			rc.blobRepositoryCacheTTL,
+			r.transportRetriever,
 			imageStreamGetter.get,
 			registryOSClient,
 			app.cachedLayers)
@@ -149,6 +134,7 @@ func (r *repository) Manifests(ctx context.Context, options ...distribution.Mani
 		ms = &pullthroughManifestService{
 			ManifestService: ms,
 			repo:            r,
+			tr:              r.transportRetriever,
 		}
 	}
 

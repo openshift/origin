@@ -110,20 +110,6 @@ func (c *ImageAPIServerConfig) V1RESTStorage() (map[string]rest.Storage, error) 
 }
 
 func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
-	// TODO: allow the system CAs and the local CAs to be joined together.
-	importTransport, err := restclient.TransportFor(&restclient.Config{})
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
-	}
-	insecureImportTransport, err := restclient.TransportFor(&restclient.Config{
-		TLSClientConfig: restclient.TLSClientConfig{
-			Insecure: true,
-		},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
-	}
-
 	coreClient, err := coreclient.NewForConfig(c.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
@@ -167,8 +153,6 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		internalImageStreamStorage,
 		imageStorage,
 		imageClient,
-		importTransport,
-		insecureImportTransport,
 		importerDockerClientFn,
 		c.AllowedRegistriesForImport,
 		c.RegistryHostnameRetriever,

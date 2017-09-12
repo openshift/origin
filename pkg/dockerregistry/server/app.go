@@ -10,6 +10,8 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 
+	"github.com/openshift/origin/pkg/image/importer"
+
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
@@ -25,6 +27,10 @@ type App struct {
 	extraConfig      *registryconfig.Configuration
 	repositoryConfig repositoryConfig
 	writeLimiter     maxconnections.Limiter
+
+	// transportRetriever creates transports suitable for retrieving
+	// repositories.
+	transportRetriever importer.TransportRetriever
 
 	// driver gives access to the blob store.
 	// This variable holds the object created by docker/distribution. We
@@ -58,10 +64,11 @@ type App struct {
 // The program will be terminated if an error happens.
 func NewApp(ctx context.Context, registryClient client.RegistryClient, dockerConfig *configuration.Configuration, extraConfig *registryconfig.Configuration, writeLimiter maxconnections.Limiter) http.Handler {
 	app := &App{
-		ctx:            ctx,
-		registryClient: registryClient,
-		extraConfig:    extraConfig,
-		writeLimiter:   writeLimiter,
+		ctx:                ctx,
+		registryClient:     registryClient,
+		extraConfig:        extraConfig,
+		writeLimiter:       writeLimiter,
+		transportRetriever: importer.NewTransportRetriever(),
 	}
 
 	cache, err := newDigestToRepositoryCache(defaultDigestToRepositoryCacheSize)

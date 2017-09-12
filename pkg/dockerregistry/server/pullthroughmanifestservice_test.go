@@ -143,6 +143,7 @@ func TestPullthroughManifests(t *testing.T) {
 		ptms := &pullthroughManifestService{
 			ManifestService: localManifestService,
 			repo:            repo,
+			tr:              repo.transportRetriever,
 		}
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
@@ -367,6 +368,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 		ptms := &pullthroughManifestService{
 			ManifestService: localManifestService,
 			repo:            repo,
+			tr:              repo.transportRetriever,
 		}
 
 		manifestResult, err := ptms.Get(ctx, tc.manifestDigest)
@@ -500,6 +502,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 		ptms := &pullthroughManifestService{
 			ManifestService: newTestManifestService(tc.repoName, nil),
 			repo:            r,
+			tr:              r.transportRetriever,
 		}
 
 		ctx := context.Background()
