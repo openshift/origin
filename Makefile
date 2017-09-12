@@ -290,20 +290,19 @@ build-rpms-redistributable:
 	hack/build-rpm-release.sh
 .PHONY: build-rpms-redistributable
 
+build-base-images:
+	hack/build-base-images.sh
+.PHONY: build-base-images
+
 # Build images from the official RPMs
 # 
 # Args:
 #
 # Example:
 #   make build-images
-build-images: build-rpms
-	build-base-images
+build-images:  build-rpms build-base-images
 	hack/build-images.sh
 .PHONY: build-images
-
-build-base-images:
-	hack/build-base-images.sh
-.PHONY: build-base-images
 
 # Vendor the Origin Web Console
 #
