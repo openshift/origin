@@ -34,5 +34,8 @@ os::cmd::expect_success 'oc create user test-user-1'
 os::cmd::expect_success 'oc label user/test-user-1 customlabel=true'
 os::cmd::expect_success_and_text 'oc get users test-user-1 --show-labels' "customlabel=true"
 os::cmd::expect_success_and_not_text 'oc get users test-user-1' "customlabel=true"
-echo "oc get all: ok"
+# test structured and unstructured resources print generically without panic
+os::cmd::expect_success_and_text 'oc get projectrequests -o yaml' 'status: Success'
+os::cmd::expect_success_and_text 'oc get projectrequests,svc,pod -o yaml' 'kind: List'
+echo "oc get: ok"
 os::test::junit::declare_suite_end
