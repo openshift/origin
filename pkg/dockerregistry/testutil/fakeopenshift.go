@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	imagefakeclient "github.com/openshift/origin/pkg/image/generated/clientset/typed/image/v1/fake"
@@ -40,13 +39,12 @@ func NewFakeOpenShift() *FakeOpenShift {
 // the stateful fake in-memory OpenShift reactors. The fake OpenShift is
 // available for direct interaction, so you can make buggy states.
 // TODO: remove the FakeOpenshift as the legacy client is not needed anymore
-func NewFakeOpenShiftWithClient() (*FakeOpenShift, *testclient.Fake, *imagefakeclient.FakeImageV1) {
+func NewFakeOpenShiftWithClient() (*FakeOpenShift, *imagefakeclient.FakeImageV1) {
 	fos := NewFakeOpenShift()
-	client := &testclient.Fake{}
 
 	imageClient := &imagefakeclient.FakeImageV1{Fake: &clientgotesting.Fake{}}
 	fos.AddReactorsTo(imageClient)
-	return fos, client, imageClient
+	return fos, imageClient
 }
 
 func (fos *FakeOpenShift) CreateImage(image *imageapiv1.Image) (*imageapiv1.Image, error) {

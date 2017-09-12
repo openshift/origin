@@ -14,21 +14,27 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	restclient "k8s.io/client-go/rest"
-	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/docker/distribution/context"
-	"github.com/openshift/origin/pkg/api/latest"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization/v1"
 
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
-
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 )
+
+var scheme = runtime.NewScheme()
+var codecs = serializer.NewCodecFactory(scheme)
+
+func init() {
+	authorizationapi.AddToScheme(scheme)
+	userapi.AddToScheme(scheme)
+
+}
 
 func sarResponse(ns string, allowed bool, reason string) *authorizationapi.SelfSubjectAccessReview {
 	resp := &authorizationapi.SelfSubjectAccessReview{}
@@ -53,7 +59,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 			// Test valid openshift bearer token but token *not* scoped for create operation
 			openshiftResponse: response{
 				200,
-				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("foo", false, "not authorized!")),
+				runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("foo", false, "not authorized!")),
 			},
 			expectedError: ErrOpenShiftAccessDenied,
 		},
@@ -61,7 +67,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 			// Test valid openshift bearer token and token scoped for create operation
 			openshiftResponse: response{
 				200,
-				runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("foo", true, "authorized!")),
+				runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("foo", true, "authorized!")),
 			},
 			expectedError: nil,
 		},
@@ -97,7 +103,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 func TestAccessController(t *testing.T) {
 	defaultOptions := map[string]interface{}{
 		"addr":        "https://openshift-example.com/osapi",
-		"apiVersion":  latest.Version,
+		"apiVersion":  schema.GroupVersion{Group: "", Version: "v1"},
 		RealmKey:      "myrealm",
 		TokenRealmKey: "http://tokenrealm.com",
 	}
@@ -124,7 +130,7 @@ func TestAccessController(t *testing.T) {
 		"no token, autodetected tokenrealm": {
 			options: map[string]interface{}{
 				"addr":        "https://openshift-example.com/osapi",
-				"apiVersion":  latest.Version,
+				"apiVersion":  schema.GroupVersion{Group: "", Version: "v1"},
 				RealmKey:      "myrealm",
 				TokenRealmKey: "",
 			},
@@ -162,7 +168,7 @@ func TestAccessController(t *testing.T) {
 			}},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
 			},
 			expectedError:     ErrNamespaceRequired,
 			expectedChallenge: false,
@@ -174,7 +180,7 @@ func TestAccessController(t *testing.T) {
 			access:     []auth.Access{{}},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
 			},
 			expectedError:     ErrUnsupportedResource,
 			expectedChallenge: false,
@@ -192,7 +198,7 @@ func TestAccessController(t *testing.T) {
 			}},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
 			},
 			expectedError:     ErrUnsupportedAction,
 			expectedChallenge: false,
@@ -211,7 +217,7 @@ func TestAccessController(t *testing.T) {
 		"docker login with valid openshift creds": {
 			basicToken: "dXNyMTphd2Vzb21l",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
@@ -227,7 +233,7 @@ func TestAccessController(t *testing.T) {
 			}},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
 				{500, "Uh oh"},
 			},
 			expectedError:     errors.New("an error on the server (\"unknown\") has prevented the request from succeeding (post selfsubjectaccessreviews.authorization.k8s.io)"),
@@ -247,8 +253,8 @@ func TestAccessController(t *testing.T) {
 			}},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("foo", false, "not"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("foo", false, "not"))},
 			},
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
@@ -268,11 +274,11 @@ func TestAccessController(t *testing.T) {
 			},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("foo", true, "authorized!"))},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("bar", true, "authorized!"))},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("", true, "authorized!"))},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("baz", false, "no!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("foo", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("bar", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("baz", false, "no!"))},
 			},
 			expectedError:     ErrOpenShiftAccessDenied,
 			expectedChallenge: true,
@@ -296,10 +302,10 @@ func TestAccessController(t *testing.T) {
 			},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("pushrepo", true, "authorized!"))},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("pushrepo", true, "authorized!"))},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("fromrepo", false, "no!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("pushrepo", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("pushrepo", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("fromrepo", false, "no!"))},
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
@@ -321,8 +327,8 @@ func TestAccessController(t *testing.T) {
 			}},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("", true, "authorized!"))},
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
@@ -341,7 +347,7 @@ func TestAccessController(t *testing.T) {
 			}},
 			bearerToken: "anonymous",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("foo", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("foo", true, "authorized!"))},
 			},
 			expectedError:     nil,
 			expectedChallenge: false,
@@ -367,8 +373,8 @@ func TestAccessController(t *testing.T) {
 			},
 			basicToken: "b3BlbnNoaWZ0OmF3ZXNvbWU=",
 			openshiftResponses: []response{
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(userapi.GroupName).GroupVersions[0]), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
-				{200, runtime.EncodeOrDie(kapi.Codecs.LegacyCodec(kapi.Registry.GroupOrDie(authorizationapi.GroupName).GroupVersions[0]), sarResponse("", true, "authorized!"))},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(userapi.SchemeGroupVersion), &userapi.User{ObjectMeta: metav1.ObjectMeta{Name: "usr1"}})},
+				{200, runtime.EncodeOrDie(codecs.LegacyCodec(authorizationapi.SchemeGroupVersion), sarResponse("", true, "authorized!"))},
 			},
 			expectedError:     nil,
 			expectedChallenge: false,

@@ -297,7 +297,7 @@ func TestRepositoryBlobStat(t *testing.T) {
 			ctx = withDeferredErrors(ctx, tc.deferredErrors)
 		}
 
-		fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		for _, is := range tc.imageStreams {
 			_, err = fos.CreateImageStream(is.Namespace, &is)
@@ -375,7 +375,7 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, "nm", "is", nil)
 	registrytest.AddImage(t, fos, testImage, "nm", "is", "latest")
 
