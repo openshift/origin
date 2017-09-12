@@ -65,15 +65,21 @@ func TestRoundTripVersionedObject(t *testing.T) {
 }
 
 func TestFieldSelectors(t *testing.T) {
-	converter := runtime.NewScheme()
-	imageapiv1.LegacySchemeBuilder.AddToScheme(converter)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "ImageStream",
-		// Ensure all currently returned labels are supported
-		newer.ImageStreamToSelectableFields(&newer.ImageStream{}),
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{imageapiv1.LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
+		Kind:          imageapiv1.LegacySchemeGroupVersion.WithKind("ImageStream"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"name", "spec.dockerImageRepository", "status.dockerImageRepository",
-	)
+		AllowedExternalFieldKeys: []string{"name", "spec.dockerImageRepository", "status.dockerImageRepository"},
+		FieldKeyEvaluatorFn:      newer.ImageStreamSelector,
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{imageapiv1.SchemeBuilder.AddToScheme, newer.SchemeBuilder.AddToScheme},
+		Kind:          imageapiv1.SchemeGroupVersion.WithKind("ImageStream"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"spec.dockerImageRepository", "status.dockerImageRepository"},
+		FieldKeyEvaluatorFn:      newer.ImageStreamSelector,
+	}.Check(t)
 }
 
 func TestImageImportSpecDefaulting(t *testing.T) {

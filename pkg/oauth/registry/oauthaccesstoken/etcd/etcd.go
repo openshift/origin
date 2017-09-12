@@ -31,7 +31,6 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &oauthapi.OAuthAccessToken{} },
 		NewListFunc:              func() runtime.Object { return &oauthapi.OAuthAccessTokenList{} },
-		PredicateFunc:            oauthaccesstoken.Matcher,
 		DefaultQualifiedResource: oauthapi.Resource("oauthaccesstokens"),
 
 		TTLFunc: func(obj runtime.Object, existing uint64, update bool) (uint64, error) {
@@ -45,7 +44,10 @@ func NewREST(optsGetter restoptions.Getter, clientGetter oauthclient.Getter, bac
 		DeleteStrategy: strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: oauthaccesstoken.GetAttrs}
+	options := &generic.StoreOptions{
+		RESTOptions: optsGetter,
+		AttrFunc:    storage.AttrFunc(storage.DefaultNamespaceScopedAttr).WithFieldMutation(oauthapi.OAuthAccessTokenFieldSelector),
+	}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}

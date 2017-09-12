@@ -10,12 +10,11 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	converter := runtime.NewScheme()
-	LegacySchemeBuilder.AddToScheme(converter)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "PolicyBinding",
-		// Ensure all currently returned labels are supported
-		authorizationapi.PolicyBindingToSelectableFields(&authorizationapi.PolicyBinding{}),
-	)
-
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, authorizationapi.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("PolicyBinding"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"policyRef.namespace"},
+		FieldKeyEvaluatorFn:      authorizationapi.PolicyBindingFieldSelector,
+	}.Check(t)
 }

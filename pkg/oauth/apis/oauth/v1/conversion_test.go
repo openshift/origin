@@ -10,27 +10,47 @@ import (
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	converter := runtime.NewScheme()
-	LegacySchemeBuilder.AddToScheme(converter)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "OAuthAccessToken",
-		// Ensure all currently returned labels are supported
-		oauthapi.OAuthAccessTokenToSelectableFields(&oauthapi.OAuthAccessToken{}),
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, oauthapi.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("OAuthAccessToken"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"clientName", "userName", "userUID", "authorizeToken",
-	)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "OAuthAuthorizeToken",
-		// Ensure all currently returned labels are supported
-		oauthapi.OAuthAuthorizeTokenToSelectableFields(&oauthapi.OAuthAuthorizeToken{}),
+		AllowedExternalFieldKeys: []string{"clientName", "userName", "userUID", "authorizeToken"},
+		FieldKeyEvaluatorFn:      oauthapi.OAuthAccessTokenFieldSelector,
+	}.Check(t)
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, oauthapi.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("OAuthAuthorizeToken"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"clientName", "userName", "userUID",
-	)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "OAuthClientAuthorization",
-		// Ensure all currently returned labels are supported
-		oauthapi.OAuthClientAuthorizationToSelectableFields(&oauthapi.OAuthClientAuthorization{}),
+		AllowedExternalFieldKeys: []string{"clientName", "userName", "userUID"},
+		FieldKeyEvaluatorFn:      oauthapi.OAuthAuthorizeTokenFieldSelector,
+	}.Check(t)
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, oauthapi.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("OAuthClientAuthorization"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"clientName", "userName", "userUID",
-	)
+		AllowedExternalFieldKeys: []string{"clientName", "userName", "userUID"},
+		FieldKeyEvaluatorFn:      oauthapi.OAuthClientAuthorizationFieldSelector,
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, oauthapi.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("OAuthAccessToken"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"clientName", "userName", "userUID", "authorizeToken"},
+		FieldKeyEvaluatorFn:      oauthapi.OAuthAccessTokenFieldSelector,
+	}.Check(t)
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, oauthapi.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("OAuthAuthorizeToken"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"clientName", "userName", "userUID"},
+		FieldKeyEvaluatorFn:      oauthapi.OAuthAuthorizeTokenFieldSelector,
+	}.Check(t)
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, oauthapi.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("OAuthClientAuthorization"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"clientName", "userName", "userUID"},
+		FieldKeyEvaluatorFn:      oauthapi.OAuthClientAuthorizationFieldSelector,
+	}.Check(t)
 }

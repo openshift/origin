@@ -16,15 +16,29 @@ import (
 var Convert = knewer.Scheme.Convert
 
 func TestFieldSelectorConversions(t *testing.T) {
-	converter := runtime.NewScheme()
-	LegacySchemeBuilder.AddToScheme(converter)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "Build",
-		// Ensure all currently returned labels are supported
-		newer.BuildToSelectableFields(&newer.Build{}),
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("Build"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"name", "status", "podName",
-	)
+		AllowedExternalFieldKeys: []string{"name", "status", "podName"},
+		FieldKeyEvaluatorFn:      newer.BuildFieldSelector,
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("BuildConfig"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"name"},
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, newer.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("Build"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"status", "podName"},
+		FieldKeyEvaluatorFn:      newer.BuildFieldSelector,
+	}.Check(t)
+
 }
 
 func TestBinaryBuildRequestOptions(t *testing.T) {

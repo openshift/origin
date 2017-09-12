@@ -8,21 +8,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func TestFieldLabelConversions(t *testing.T, scheme *runtime.Scheme, version, kind string, expectedLabels map[string]string, customLabels ...string) {
-	for label := range expectedLabels {
-		_, _, err := scheme.ConvertFieldLabel(version, kind, label, "")
-		if err != nil {
-			t.Errorf("No conversion registered for %s for %s %s", label, version, kind)
-		}
-	}
-	for _, label := range customLabels {
-		_, _, err := scheme.ConvertFieldLabel(version, kind, label, "")
-		if err != nil {
-			t.Errorf("No conversion registered for %s for %s %s", label, version, kind)
-		}
-	}
-}
-
 // FieldKeyCheck gathers information to check if the field key conversions are working correctly.  It takes many parameters
 // in an attempt to reflect reality
 type FieldKeyCheck struct {
@@ -44,6 +29,10 @@ func (f FieldKeyCheck) Check(t *testing.T) {
 		internalFieldKey, _, err := scheme.ConvertFieldLabel(f.Kind.GroupVersion().String(), f.Kind.Kind, externalFieldKey, "")
 		if err != nil {
 			t.Errorf("illegal field conversion %q for %v", externalFieldKey, f.Kind)
+			continue
+		}
+		// we get this by default
+		if internalFieldKey == "metadata.name" {
 			continue
 		}
 

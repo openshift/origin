@@ -1,15 +1,20 @@
 package user
 
-import "k8s.io/apimachinery/pkg/fields"
+import (
+	"fmt"
 
-// IdentityToSelectableFields returns a label set that represents the object
-// changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
-func IdentityToSelectableFields(identity *Identity) fields.Set {
-	return fields.Set{
-		"metadata.name":    identity.Name,
-		"providerName":     identity.ProviderName,
-		"providerUserName": identity.ProviderName,
-		"user.name":        identity.User.Name,
-		"user.uid":         string(identity.User.UID),
+	"k8s.io/apimachinery/pkg/fields"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+)
+
+func IdentityFieldSelector(obj runtime.Object, fieldSet fields.Set) error {
+	identity, ok := obj.(*Identity)
+	if !ok {
+		return fmt.Errorf("%T not an Identity", obj)
 	}
+	fieldSet["providerName"] = identity.ProviderName
+	fieldSet["providerUserName"] = identity.ProviderUserName
+	fieldSet["user.name"] = identity.User.Name
+	fieldSet["user.uid"] = string(identity.User.UID)
+	return nil
 }
