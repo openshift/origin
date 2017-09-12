@@ -3,7 +3,7 @@ source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
 os::build::setup_env
 
-os::util::ensure::built_binary_exists 'informer-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/kube-gen/cmd/informer-gen'
+os::util::ensure::built_binary_exists 'informer-gen' 'vendor/k8s.io/kubernetes/staging/src/k8s.io/code-generator/cmd/informer-gen'
 
 # list of package to generate informers for
 packages=(

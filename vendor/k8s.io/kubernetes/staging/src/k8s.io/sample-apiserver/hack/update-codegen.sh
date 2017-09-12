@@ -21,7 +21,7 @@ set -o pipefail
 SCRIPT_PACKAGE=k8s.io/sample-apiserver
 SCRIPT_ROOT=$(dirname "${BASH_SOURCE}")/..
 SCRIPT_BASE=${SCRIPT_ROOT}/../..
-KUBEGEN_PKG=${KUBEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/kube-gen 2>/dev/null || echo k8s.io/kube-gen)}
+KUBEGEN_PKG=${KUBEGEN_PKG:-$(cd ${SCRIPT_ROOT}; ls -d -1 ./vendor/k8s.io/code-generator 2>/dev/null || echo k8s.io/code-generator)}
 
 clientgen="${PWD}/client-gen-binary"
 listergen="${PWD}/lister-gen"
