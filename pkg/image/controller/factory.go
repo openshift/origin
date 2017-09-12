@@ -69,6 +69,7 @@ func NewImageStreamController(client imageclient.Interface, informer imageinform
 		lister:       informer.Lister(),
 		listerSynced: informer.Informer().HasSynced,
 	}
+	controller.syncHandler = controller.syncImageStream
 
 	informer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    controller.addImageStream,

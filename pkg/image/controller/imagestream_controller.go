@@ -36,6 +36,8 @@ type ImageStreamController struct {
 	// queue contains replication controllers that need to be synced.
 	queue workqueue.RateLimitingInterface
 
+	syncHandler func(isKey string) error
+
 	// lister can list/get image streams from a shared informer's cache
 	lister imageinformer.ImageStreamLister
 	// listerSynced makes sure the is store is synced before reconciling streams
@@ -116,39 +118,39 @@ func (c *ImageStreamController) processNextWorkItem() bool {
 	}
 	defer c.queue.Done(key)
 
-	stream, err := c.getByKey(key.(string))
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error syncing image stream: %v", err))
-		c.queue.AddRateLimited(key)
-		return true
-	}
-	if stream == nil {
+	err := c.syncHandler(key.(string))
+	if err == nil {
 		c.queue.Forget(key)
 		return true
 	}
 
-	glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
-	if err := handleImageStream(stream, c.client, c.notifier); err != nil {
-		utilruntime.HandleError(fmt.Errorf("Error syncing image stream: %v", err))
-		c.queue.AddRateLimited(key)
-		return true
-	}
+	utilruntime.HandleError(fmt.Errorf("Error syncing image stream %q: %v", key, err))
+	c.queue.AddRateLimited(key)
 
-	c.queue.Forget(key)
 	return true
 }
 
-func (c *ImageStreamController) getByKey(key string) (*imageapi.ImageStream, error) {
+func (c *ImageStreamController) syncImageStream(key string) error {
+	startTime := time.Now()
+	defer func() {
+		glog.V(4).Infof("Finished syncing image stream %q (%v)", key, time.Now().Sub(startTime))
+	}()
+
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	stream, err := c.lister.ImageStreams(namespace).Get(name)
 	if apierrs.IsNotFound(err) {
-		// TODO: this is not normal and should be refactored
-		return nil, nil
+		glog.V(4).Infof("ImageStream has been deleted: %v", key)
+		return nil
 	}
-	return stream, err
+	if err != nil {
+		return err
+	}
+
+	glog.V(3).Infof("Queued import of stream %s/%s...", stream.Namespace, stream.Name)
+	return handleImageStream(stream, c.client, c.notifier)
 }
 
 // tagImportable is true if the given TagReference is importable by this controller
