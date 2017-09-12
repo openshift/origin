@@ -47,7 +47,7 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	err = AddSCCToServiceAccount(kubeClient, "privileged", "registry", "default")
+	err = AddSCCToServiceAccount(kubeClient, "privileged", "registry", "default", out)
 	if err != nil {
 		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -215,7 +215,7 @@ func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace stri
 	return addRole.AddRole()
 }
 
-func AddSCCToServiceAccount(kubeClient kclientset.Interface, scc, sa, namespace string) error {
+func AddSCCToServiceAccount(kubeClient kclientset.Interface, scc, sa, namespace string, out io.Writer) error {
 	modifySCC := policy.SCCModificationOptions{
 		SCCName:      scc,
 		SCCInterface: legacyclient.NewFromClient(kubeClient.Core().RESTClient()),
@@ -226,6 +226,8 @@ func AddSCCToServiceAccount(kubeClient kclientset.Interface, scc, sa, namespace 
 				Kind:      "ServiceAccount",
 			},
 		},
+
+		Out: out,
 	}
 	return modifySCC.AddSCC()
 }

@@ -92,7 +92,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Add privileged SCC to aggregated-logging-fluentd sa
-	if err = AddSCCToServiceAccount(kubeClient, "privileged", "aggregated-logging-fluentd", loggingNamespace); err != nil {
+	if err = AddSCCToServiceAccount(kubeClient, "privileged", "aggregated-logging-fluentd", loggingNamespace, out); err != nil {
 		return errors.NewError("cannot add privileged security context constraint to logging fluentd service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 

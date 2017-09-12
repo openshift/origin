@@ -1,6 +1,7 @@
 package openshift
 
 import (
+	"bytes"
 	"fmt"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -123,7 +124,7 @@ func (h *Helper) ensurePVInstallerSA(osclient client.Interface, kclient kclients
 		}
 	}
 
-	err = AddSCCToServiceAccount(kclient, "privileged", "pvinstaller", "default")
+	err = AddSCCToServiceAccount(kclient, "privileged", "pvinstaller", "default", &bytes.Buffer{})
 	if err != nil {
 		return errors.NewError("cannot add privileged SCC to pvinstaller service account").WithCause(err).WithDetails(h.OriginLog())
 	}

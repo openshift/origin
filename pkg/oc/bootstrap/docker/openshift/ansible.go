@@ -195,7 +195,7 @@ func (r *ansibleRunner) createServiceAccount(namespace string) error {
 		return errors.NewError(fmt.Sprintf("cannot create %s service account", serviceAccount.Name)).WithCause(err).WithDetails(r.Helper.OriginLog())
 	}
 	// Add privileged SCC to serviceAccount
-	if err = AddSCCToServiceAccount(r.KubeClient, "privileged", serviceAccount.Name, namespace); err != nil {
+	if err = AddSCCToServiceAccount(r.KubeClient, "privileged", serviceAccount.Name, namespace, &bytes.Buffer{}); err != nil {
 		return errors.NewError("cannot add privileged security context constraint to service account").WithCause(err).WithDetails(r.Helper.OriginLog())
 	}
 	return nil
