@@ -22,6 +22,7 @@ var map_Image = map[string]string{
 	"":                             "Image is an immutable representation of a Docker image and metadata at a point in time.",
 	"metadata":                     "Standard object's metadata.",
 	"dockerImageReference":         "DockerImageReference is the string that can be used to pull this image.",
+	"publicDockerImageReference":   "PublicDockerImageReference represents the public location from where the image can be pulled outside the cluster. This field may be empty if the administrator has not exposed the integrated registry externally.",
 	"dockerImageMetadata":          "DockerImageMetadata contains metadata about this image",
 	"dockerImageMetadataVersion":   "DockerImageMetadataVersion conveys the version of the object, which if empty defaults to \"1.0\"",
 	"dockerImageManifest":          "DockerImageManifest is the raw JSON of the manifest",

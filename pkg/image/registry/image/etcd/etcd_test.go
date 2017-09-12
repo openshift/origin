@@ -24,7 +24,7 @@ import (
 
 func newStorage(t *testing.T) (*REST, *etcdtesting.EtcdTestServer) {
 	etcdStorage, server := registrytest.NewEtcdStorage(t, latest.Version.Group)
-	storage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage))
+	storage, err := NewREST(restoptions.NewSimpleGetter(etcdStorage), imageapi.DefaultRegistryHostnameRetriever(nil, "", ""))
 	if err != nil {
 		t.Fatal(err)
 	}

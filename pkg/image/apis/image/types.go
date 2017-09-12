@@ -61,6 +61,10 @@ type Image struct {
 
 	// The string that can be used to pull this image.
 	DockerImageReference string
+	// PublicDockerImageReference represents the public location from where the image can
+	// be pulled outside the cluster. This field may be empty if the administrator
+	// has not exposed the integrated registry externally.
+	PublicDockerImageReference string
 	// Metadata about this image
 	DockerImageMetadata DockerImage
 	// This attribute conveys the version of docker metadata the JSON should be stored in, which if empty defaults to "1.0"

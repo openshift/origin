@@ -15,59 +15,73 @@ import (
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
 )
 
-// imageStrategy implements behavior for Images.
-type imageStrategy struct {
+type Strategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
+
+	registryHostnameRetriever imageapi.RegistryHostnameRetriever
 }
 
-// Strategy is the default logic that applies when creating and updating
-// Image objects via the REST API.
-var Strategy = imageStrategy{kapi.Scheme, names.SimpleNameGenerator}
+func NewStrategy(registryHostname imageapi.RegistryHostnameRetriever) Strategy {
+	return Strategy{
+		ObjectTyper:   kapi.Scheme,
+		NameGenerator: names.SimpleNameGenerator,
 
-func (imageStrategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
+		registryHostnameRetriever: registryHostname,
+	}
+}
+
+func (s Strategy) DefaultGarbageCollectionPolicy() rest.GarbageCollectionPolicy {
 	return rest.Unsupported
 }
 
 // NamespaceScoped is false for images.
-func (imageStrategy) NamespaceScoped() bool {
+func (Strategy) NamespaceScoped() bool {
 	return false
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 // It extracts the latest information from the manifest (if available) and sets that onto the object.
-func (s imageStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
+func (s Strategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	// ignore errors, change in place
 	if err := imageapi.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
+	err := imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, newImage)
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Unable to set dockerImageRepository for %s: %v", newImage.Name, err))
+	}
 }
 
 // Validate validates a new image.
-func (imageStrategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
+func (Strategy) Validate(ctx apirequest.Context, obj runtime.Object) field.ErrorList {
 	image := obj.(*imageapi.Image)
 	return validation.ValidateImage(image)
 }
 
 // AllowCreateOnUpdate is false for images.
-func (imageStrategy) AllowCreateOnUpdate() bool {
+func (Strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
-func (imageStrategy) AllowUnconditionalUpdate() bool {
+func (Strategy) AllowUnconditionalUpdate() bool {
 	return false
 }
 
 // Canonicalize normalizes the object after validation.
-func (imageStrategy) Canonicalize(obj runtime.Object) {
+func (Strategy) Canonicalize(obj runtime.Object) {
+}
+
+func (s Strategy) Decorate(obj runtime.Object) error {
+	return imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, obj)
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 // It extracts the latest info from the manifest and sets that on the object. It allows a user
 // to update the manifest so that it matches the digest (in case an older server stored a manifest
 // that was malformed, it can always be corrected).
-func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
+func (s Strategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	oldImage := old.(*imageapi.Image)
 
@@ -115,9 +129,13 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 	if err = imageapi.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
+
+	if err = imageapi.UpdateWithRegistryHostnames(s.registryHostnameRetriever, newImage); err != nil {
+		utilruntime.HandleError(fmt.Errorf("Unable to set dockerImageRepository for %s: %v", newImage.Name, err))
+	}
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (imageStrategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
+func (Strategy) ValidateUpdate(ctx apirequest.Context, obj, old runtime.Object) field.ErrorList {
 	return validation.ValidateImageUpdate(old.(*imageapi.Image), obj.(*imageapi.Image))
 }

@@ -20,22 +20,28 @@ type REST struct {
 var _ rest.StandardStorage = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(optsGetter restoptions.Getter) (*REST, error) {
-	store := &registry.Store{
+func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever) (*REST, error) {
+	store := registry.Store{
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.Image{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageList{} },
 		DefaultQualifiedResource: imageapi.Resource("images"),
-
-		CreateStrategy: image.Strategy,
-		UpdateStrategy: image.Strategy,
-		DeleteStrategy: image.Strategy,
 	}
+
+	rest := &REST{
+		Store: &store,
+	}
+
+	strategy := image.NewStrategy(registryHostname)
+	store.CreateStrategy = strategy
+	store.UpdateStrategy = strategy
+	store.DeleteStrategy = strategy
+	store.Decorator = strategy.Decorate
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, err
 	}
 
-	return &REST{store}, nil
+	return rest, nil
 }

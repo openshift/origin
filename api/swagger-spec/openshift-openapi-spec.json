@@ -89869,6 +89869,10 @@
       "description": "Standard object's metadata.",
       "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
      },
+     "publicDockerImageReference": {
+      "description": "PublicDockerImageReference represents the public location from where the image can be pulled outside the cluster. This field may be empty if the administrator has not exposed the integrated registry externally.",
+      "type": "string"
+     },
      "signatures": {
       "description": "Signatures holds all signatures of the image.",
       "type": "array",
