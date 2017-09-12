@@ -29,6 +29,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/kubernetes/pkg/util/mount"
 	"k8s.io/kubernetes/pkg/volume"
+	volumeutil "k8s.io/kubernetes/pkg/volume/util"
 )
 
 var (
@@ -190,7 +191,7 @@ func (util *ISCSIUtil) loadISCSI(conf *iscsiDisk, mnt string) error {
 	return nil
 }
 
-func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
+func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) (string, error) {
 	var devicePath string
 	var devicePaths []string
 	var iscsiTransport string
@@ -199,7 +200,7 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 	out, err := b.plugin.execCommand("iscsiadm", []string{"-m", "iface", "-I", b.Iface, "-o", "show"})
 	if err != nil {
 		glog.Errorf("iscsi: could not read iface %s error: %s", b.Iface, string(out))
-		return err
+		return "", err
 	}
 
 	iscsiTransport = extractTransportname(string(out))
@@ -215,7 +216,7 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 
 		if iscsiTransport == "" {
 			glog.Errorf("iscsi: could not find transport name in iface %s", b.Iface)
-			return fmt.Errorf("Could not parse iface file for %s", b.Iface)
+			return "", fmt.Errorf("Could not parse iface file for %s", b.Iface)
 		} else if iscsiTransport == "tcp" {
 			devicePath = strings.Join([]string{"/dev/disk/by-path/ip", tp, "iscsi", b.Iqn, "lun", b.lun}, "-")
 		} else {
@@ -269,7 +270,7 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 
 	if len(devicePaths) == 0 {
 		glog.Errorf("iscsi: failed to get any path for iscsi disk, last err seen:\n%v", lastErr)
-		return fmt.Errorf("failed to get any path for iscsi disk, last err seen:\n%v", lastErr)
+		return "", fmt.Errorf("failed to get any path for iscsi disk, last err seen:\n%v", lastErr)
 	}
 
 	//Make sure we use a valid devicepath to find mpio device.
@@ -280,12 +281,12 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 	notMnt, err := b.mounter.IsLikelyNotMountPoint(globalPDPath)
 	if !notMnt {
 		glog.Infof("iscsi: %s already mounted", globalPDPath)
-		return nil
+		return "", nil
 	}
 
 	if err := os.MkdirAll(globalPDPath, 0750); err != nil {
 		glog.Errorf("iscsi: failed to mkdir %s, error", globalPDPath)
-		return err
+		return "", err
 	}
 
 	// Persist iscsi disk config to json file for DetachDisk path
@@ -308,7 +309,7 @@ func (util *ISCSIUtil) AttachDisk(b iscsiDiskMounter) error {
 		glog.Errorf("iscsi: failed to mount iscsi volume %s [%s] to %s, error %v", devicePath, b.fsType, globalPDPath, err)
 	}
 
-	return err
+	return devicePath, err
 }
 
 func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, mntPath string) error {
@@ -316,6 +317,12 @@ func (util *ISCSIUtil) DetachDisk(c iscsiDiskUnmounter, mntPath string) error {
 	if err != nil {
 		glog.Errorf("iscsi detach disk: failed to get device from mnt: %s\nError: %v", mntPath, err)
 		return err
+	}
+	if pathExists, pathErr := volumeutil.PathExists(mntPath); pathErr != nil {
+		return fmt.Errorf("Error checking if path exists: %v", pathErr)
+	} else if !pathExists {
+		glog.Warningf("Warning: Unmount skipped because path does not exist: %v", mntPath)
+		return nil
 	}
 	if err = c.mounter.Unmount(mntPath); err != nil {
 		glog.Errorf("iscsi detach disk: failed to unmount: %s\nError: %v", mntPath, err)

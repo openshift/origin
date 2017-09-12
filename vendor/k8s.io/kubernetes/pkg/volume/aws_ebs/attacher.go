@@ -25,6 +25,7 @@ import (
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/cloudprovider/providers/aws"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/mount"
@@ -142,7 +143,7 @@ func (attacher *awsElasticBlockStoreAttacher) BulkVerifyVolumes(volumesByNode ma
 	return volumesAttachedCheck, nil
 }
 
-func (attacher *awsElasticBlockStoreAttacher) WaitForAttach(spec *volume.Spec, devicePath string, timeout time.Duration) (string, error) {
+func (attacher *awsElasticBlockStoreAttacher) WaitForAttach(spec *volume.Spec, devicePath string, _ *v1.Pod, timeout time.Duration) (string, error) {
 	volumeSource, _, err := getVolumeSource(spec)
 	if err != nil {
 		return "", err

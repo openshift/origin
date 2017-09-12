@@ -48,6 +48,7 @@ import (
 	"k8s.io/kubernetes/pkg/volume/gce_pd"
 	"k8s.io/kubernetes/pkg/volume/glusterfs"
 	"k8s.io/kubernetes/pkg/volume/host_path"
+	"k8s.io/kubernetes/pkg/volume/iscsi"
 	"k8s.io/kubernetes/pkg/volume/local"
 	"k8s.io/kubernetes/pkg/volume/nfs"
 	"k8s.io/kubernetes/pkg/volume/photon_pd"
@@ -79,6 +80,7 @@ func ProbeAttachableVolumePlugins(config componentconfig.VolumeConfiguration) []
 	allPlugins = append(allPlugins, scaleio.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, storageos.ProbeVolumePlugins()...)
 	allPlugins = append(allPlugins, fc.ProbeVolumePlugins()...)
+	allPlugins = append(allPlugins, iscsi.ProbeVolumePlugins()...)
 	return allPlugins
 }
 

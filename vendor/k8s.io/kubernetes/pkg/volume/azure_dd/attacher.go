@@ -28,6 +28,7 @@ import (
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/keymutex"
@@ -151,7 +152,7 @@ func (attacher *azureDiskAttacher) VolumesAreAttached(specs []*volume.Spec, node
 }
 
 // WaitForAttach runs on the node to detect if the volume (referenced by LUN) is attached. If attached, the device path is returned
-func (attacher *azureDiskAttacher) WaitForAttach(spec *volume.Spec, lunStr string, timeout time.Duration) (string, error) {
+func (attacher *azureDiskAttacher) WaitForAttach(spec *volume.Spec, lunStr string, _ *v1.Pod, timeout time.Duration) (string, error) {
 	volumeSource, err := getVolumeSource(spec)
 	if err != nil {
 		return "", err
