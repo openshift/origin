@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/builder/dockerfile/parser"
 	"github.com/golang/glog"
@@ -277,6 +278,7 @@ func (r *SourceRepository) LocalPath() (string, error) {
 // 3) GIT_CONFIG_NOSYSTEM prevents git from loading system-wide config
 // 4) GIT_ASKPASS to prevent git from prompting for a user/password
 func (r *SourceRepository) DetectAuth() error {
+
 	url, ok, err := r.RemoteURL()
 	if err != nil {
 		return err
@@ -306,8 +308,10 @@ func (r *SourceRepository) DetectAuth() error {
 			fmt.Sprintf("SystemRoot=%s", os.Getenv("SystemRoot")),
 		)
 	}
+
 	gitRepo := git.NewRepositoryWithEnv(env)
-	_, err = CloneAndCheckoutSources(gitRepo, url.StringNoFragment(), url.URL.Fragment, tempSrc, "")
+	glog.V(4).Infof("Checking if %v requires authentication", url.StringNoFragment())
+	_, _, err = gitRepo.TimedListRemote(10*time.Second, url.StringNoFragment(), "--heads")
 	if err != nil {
 		r.requiresAuth = true
 	}

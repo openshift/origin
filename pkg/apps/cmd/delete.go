@@ -6,16 +6,14 @@ import (
 	"github.com/golang/glog"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl"
-	kutil "k8s.io/kubernetes/pkg/util"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
-	appsinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -31,34 +29,11 @@ type DeploymentConfigReaper struct {
 	pollInterval, timeout time.Duration
 }
 
-type updateConfigFunc func(d *deployapi.DeploymentConfig)
-
-// updateConfigWithRetries will try to update a deployment config and ignore any update conflicts.
-func updateConfigWithRetries(dn appsinternal.DeploymentConfigsGetter, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
-	var config *deployapi.DeploymentConfig
-
-	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		var err error
-		config, err = dn.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		// Apply the update, then attempt to push it to the apiserver.
-		applyUpdate(config)
-		config, err = dn.DeploymentConfigs(namespace).Update(config)
-		return err
-	})
-	return config, resultErr
-}
-
 // pause marks the deployment configuration as paused to avoid triggering new
 // deployments.
 func (reaper *DeploymentConfigReaper) pause(namespace, name string) (*deployapi.DeploymentConfig, error) {
-	return updateConfigWithRetries(reaper.appsClient.Apps(), namespace, name, func(d *deployapi.DeploymentConfig) {
-		d.Spec.RevisionHistoryLimit = kutil.Int32Ptr(0)
-		d.Spec.Replicas = 0
-		d.Spec.Paused = true
-	})
+	patchBytes := []byte(`{"spec":{"paused":true,"replicas":0,"revisionHistoryLimit":0}}`)
+	return reaper.appsClient.Apps().DeploymentConfigs(namespace).Patch(name, types.StrategicMergePatchType, patchBytes)
 }
 
 // Stop scales a replication controller via its deployment configuration down to

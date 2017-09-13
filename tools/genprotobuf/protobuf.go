@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"k8s.io/code-generator/cmd/go-to-protobuf/protobuf"
 	"k8s.io/gengo/args"
-	"k8s.io/kube-gen/cmd/go-to-protobuf/protobuf"
 
 	flag "github.com/spf13/pflag"
 )

@@ -8,8 +8,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/diff"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -256,5 +258,35 @@ func TestHandleImageStream(t *testing.T) {
 				t.Errorf("%d: did not expect remote calls", i)
 			}
 		}
+	}
+}
+
+func TestProcessNextWorkItemOnRemovedStream(t *testing.T) {
+	clientset := imageclient.NewSimpleClientset()
+	informer := imageinformer.NewSharedInformerFactory(imageclient.NewSimpleClientset(), 0)
+	isc := NewImageStreamController(clientset, informer.Image().InternalVersion().ImageStreams())
+	isc.queue.Add("other/test")
+	isc.processNextWorkItem()
+	if isc.queue.Len() != 0 {
+		t.Errorf("Unexpected queue length, expected 0, got %d", isc.queue.Len())
+	}
+}
+
+func TestProcessNextWorkItem(t *testing.T) {
+	stream := &imageapi.ImageStream{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{imageapi.DockerImageRepositoryCheckAnnotation: metav1.Now().UTC().Format(time.RFC3339)},
+			Name:        "test",
+			Namespace:   "other",
+		},
+	}
+	clientset := imageclient.NewSimpleClientset(stream)
+	informer := imageinformer.NewSharedInformerFactory(imageclient.NewSimpleClientset(stream), 0)
+	isc := NewImageStreamController(clientset, informer.Image().InternalVersion().ImageStreams())
+	key, _ := kcontroller.KeyFunc(stream)
+	isc.queue.Add(key)
+	isc.processNextWorkItem()
+	if isc.queue.Len() != 0 {
+		t.Errorf("Unexpected queue length, expected 0, got %d", isc.queue.Len())
 	}
 }

@@ -41,7 +41,6 @@ func Route(container *restful.Container, path string, b api.Broker) {
 	ws.Path(path + "/v2")
 	ws.Filter(apiVersion)
 	ws.Filter(contentType)
-	ws.Filter(waitForReady(b))
 
 	ws.Route(ws.GET("/catalog").To(shim(catalog)))
 	ws.Route(ws.PUT("/service_instances/{instance_id}").To(shim(provision)))
@@ -131,17 +130,6 @@ func getUser(req *restful.Request) (user.Info, error) {
 	u := api.ConvertTemplateInstanceRequesterToUser(&templatereq)
 
 	return u, nil
-}
-
-func waitForReady(b api.Broker) func(*restful.Request, *restful.Response, *restful.FilterChain) {
-	return func(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-		if err := b.WaitForReady(); err != nil {
-			resp.WriteHeaderAndJson(http.StatusServiceUnavailable, &api.ErrorResponse{Description: http.StatusText(http.StatusServiceUnavailable)}, restful.MIME_JSON)
-			return
-		}
-
-		chain.ProcessFilter(req, resp)
-	}
 }
 
 func catalog(b api.Broker, req *restful.Request) *api.Response {
