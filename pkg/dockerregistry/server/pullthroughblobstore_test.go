@@ -46,7 +46,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, repoName, testImage.Name)
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, name, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -278,7 +278,7 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	}
 	testImage.DockerImageReference = fmt.Sprintf("%s/%s@%s", serverURL.Host, repoName, testImage.Name)
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, name, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -598,7 +598,7 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 			expectedBytesServed:   int64(m1img.DockerImageLayers[0].LayerSize),
 		},
 	} {
-		fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		tc.fakeOpenShiftInit(fos)
 

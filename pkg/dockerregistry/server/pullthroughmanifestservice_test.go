@@ -93,7 +93,7 @@ func TestPullthroughManifests(t *testing.T) {
 	image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", serverURL.Host, namespace, repo, image.Name)
 	image.DockerImageManifest = ""
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, repo, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -351,7 +351,7 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 			},
 		},
 	} {
-		fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 		tc.fakeOpenShiftInit(fos)
 
@@ -459,7 +459,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 	image2 := *img
 	image2.DockerImageReference = dockerImageReference(server2, "foo/bar")
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, namespace, repo1, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
