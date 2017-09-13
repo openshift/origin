@@ -490,8 +490,10 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 
 			importDigest.Image, err = schema2ToImage(deserializedManifest, imageConfig, d)
 		} else {
+			// TODO: Current this error means the imported received the manifest list
+			// which we don't support yet.
+			err = fmt.Errorf("unsupported image manifest schema: %T", manifest)
 			glog.V(5).Infof("unsupported manifest type: %T", manifest)
-			continue
 		}
 
 		if err != nil {
@@ -548,8 +550,10 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			}
 			importTag.Image, err = schema2ToImage(deserializedManifest, imageConfig, "")
 		} else {
+			// TODO: Current this error means the imported received the manifest list
+			// which we don't support yet.
+			err = fmt.Errorf("unsupported image manifest schema: %T", manifest)
 			glog.V(5).Infof("unsupported manifest type: %T", manifest)
-			continue
 		}
 
 		if err != nil {
