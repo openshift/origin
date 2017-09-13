@@ -15,10 +15,6 @@ import (
 )
 
 const (
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
-	requesterUsernameTitle       = "Template service broker: requester username"
-	requesterUsernameDescription = "OpenShift user requesting provision/bind"
-
 	noDescriptionProvided = "No description provided."
 )
 
@@ -43,16 +39,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		}
 	}
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be replaced
-	// with the commented out block immediately following it ... note we no longer require the param, in case the new approach is used
-	properties := map[string]*jsschema.Schema{
-		templateapi.RequesterUsernameParameterKey: {
-			Title:       requesterUsernameTitle,
-			Description: requesterUsernameDescription,
-			Type:        []jsschema.PrimitiveType{jsschema.StringType},
-		},
-	}
-	//properties := map[string]*jsschema.Schema{}
+	properties := map[string]*jsschema.Schema{}
 	paramOrdering := []string{}
 	required := []string{}
 	for _, param := range template.Parameters {
@@ -67,8 +54,6 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		}
 		paramOrdering = append(paramOrdering, param.Name)
 	}
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
-	paramOrdering = append(paramOrdering, templateapi.RequesterUsernameParameterKey)
 
 	plan := api.Plan{
 		ID:          string(template.UID), // TODO: this should be a unique value
@@ -90,17 +75,10 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 			ServiceBinding: api.ServiceBindings{
 				Create: map[string]*jsschema.Schema{
 					"parameters": {
-						SchemaRef: jsschema.SchemaURL,
-						Type:      []jsschema.PrimitiveType{jsschema.ObjectType},
-						Properties: map[string]*jsschema.Schema{
-							//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove this prop
-							templateapi.RequesterUsernameParameterKey: {
-								Title:       requesterUsernameTitle,
-								Description: requesterUsernameDescription,
-								Type:        []jsschema.PrimitiveType{jsschema.StringType},
-							},
-						},
-						Required: []string{},
+						SchemaRef:  jsschema.SchemaURL,
+						Type:       []jsschema.PrimitiveType{jsschema.ObjectType},
+						Properties: map[string]*jsschema.Schema{},
+						Required:   []string{},
 					},
 				},
 			},

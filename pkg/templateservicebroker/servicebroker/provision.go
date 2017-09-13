@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/util"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // ensureSecret ensures the existence of a Secret object containing the template
@@ -30,10 +29,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, 
 	}
 
 	for k, v := range preq.Parameters {
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the user name prop check, just copy data
-		if k != templateapi.RequesterUsernameParameterKey {
-			secret.Data[k] = []byte(v)
-		}
+		secret.Data[k] = []byte(v)
 	}
 
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
@@ -247,13 +243,6 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 	}
 
 	namespace := preq.Context.Namespace
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
-	if u.GetName() == "" {
-		impersonate := preq.Parameters[templateapi.RequesterUsernameParameterKey]
-		if impersonate != "" && uservalidation.ValidateUserName(impersonate, true) == nil {
-			u = &user.DefaultInfo{Name: impersonate}
-		}
-	}
 
 	template, err := b.lister.GetByUID(preq.ServiceID)
 	if err != nil && !kerrors.IsNotFound(err) {
@@ -287,20 +276,16 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 		return api.BadRequest(kerrors.NewNotFound(templateapi.Resource("templates"), preq.ServiceID))
 	}
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be uncommented
-	// and pulled back in
-	/*
-		// with groups in the user.Info vs. the username only form of auth, we can SAR for get access on template resources
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-			Namespace: template.Namespace,
-			Verb:      "get",
-			Group:     templateapi.GroupName,
-			Resource:  "templates",
-			Name:      template.Name,
-		}); err != nil {
-			return api.Forbidden(err)
-		}
-	*/
+	// with groups in the user.Info vs. the username only form of auth, we can SAR for get access on template resources
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: template.Namespace,
+		Verb:      "get",
+		Group:     templateapi.GroupName,
+		Resource:  "templates",
+		Name:      template.Name,
+	}); err != nil {
+		return api.Forbidden(err)
+	}
 
 	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
 		Namespace: namespace,

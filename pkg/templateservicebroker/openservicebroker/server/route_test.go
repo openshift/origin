@@ -262,8 +262,7 @@ func TestProvision(t *testing.T) {
 			expectCode:  http.StatusUnprocessableEntity,
 			expectError: `This service plan requires client support for asynchronous service operations.`,
 		},
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
-		/*{
+		{
 			name: "no identity",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
@@ -278,7 +277,7 @@ func TestProvision(t *testing.T) {
 			},
 			expectCode:  http.StatusBadRequest,
 			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
-		},*/
+		},
 		{
 			name: "good",
 			req: http.Request{
@@ -364,15 +363,14 @@ func TestDeprovision(t *testing.T) {
 			expectCode:  http.StatusUnprocessableEntity,
 			expectError: `This service plan requires client support for asynchronous service operations.`,
 		},
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
-		/*{
+		{
 			name: "no identity",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"?accepts_incomplete=true"),
 			},
 			expectCode:  http.StatusBadRequest,
 			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
-		},*/
+		},
 		{
 			name: "good",
 			req: http.Request{
@@ -440,15 +438,14 @@ func TestLastOperation(t *testing.T) {
 			},
 			expectError: `invalid operation`,
 		},
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
-		/*{
+		{
 			name: "no identity",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/last_operation?operation=provisioning"),
 			},
 			expectCode:  http.StatusBadRequest,
 			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
-		},*/
+		},
 		{
 			name: "good",
 			req: http.Request{
@@ -541,8 +538,7 @@ func TestBind(t *testing.T) {
 			body:        &api.BindRequest{},
 			expectError: `service_id: Invalid value: "": must be a valid UUID`,
 		},
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
-		/*{
+		{
 			name: "no identity",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
@@ -553,7 +549,7 @@ func TestBind(t *testing.T) {
 			},
 			expectCode:  http.StatusBadRequest,
 			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
-		},*/
+		},
 		{
 			name: "good",
 			req: http.Request{
@@ -634,15 +630,14 @@ func TestUnbind(t *testing.T) {
 			},
 			expectError: `binding_id: Invalid value: "bad": must be a valid UUID`,
 		},
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, add back
-		/*{
+		{
 			name: "no identity",
 			req: http.Request{
 				URL: parseUrl(t, "/v2/service_instances/"+validUUID+"/service_bindings/"+validUUID),
 			},
 			expectCode:  http.StatusBadRequest,
 			expectError: "couldn't parse X-Broker-API-Originating-Identity header",
-		},*/
+		},
 		{
 			name: "good",
 			req: http.Request{

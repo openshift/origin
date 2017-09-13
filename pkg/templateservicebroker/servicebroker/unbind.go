@@ -31,17 +31,14 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the user name empty string checks
-	if u.GetName() != "" {
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-			Namespace: namespace,
-			Verb:      "get",
-			Group:     templateapi.GroupName,
-			Resource:  "templateinstances",
-			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
-		}); err != nil {
-			return api.Forbidden(err)
-		}
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "get",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+	}); err != nil {
+		return api.Forbidden(err)
 	}
 
 	// The OSB API requires this function to be idempotent (restartable).  If
@@ -56,19 +53,16 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 		}
 	}
 	if status == http.StatusOK { // binding found; remove it
-		//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the user name empty string checks
-		if u.GetName() != "" {
-			// end users are not expected to have access to BrokerTemplateInstance
-			// objects; SAR on the TemplateInstance instead.
-			if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-				Namespace: namespace,
-				Verb:      "update",
-				Group:     templateapi.GroupName,
-				Resource:  "templateinstances",
-				Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
-			}); err != nil {
-				return api.Forbidden(err)
-			}
+		// end users are not expected to have access to BrokerTemplateInstance
+		// objects; SAR on the TemplateInstance instead.
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: namespace,
+			Verb:      "update",
+			Group:     templateapi.GroupName,
+			Resource:  "templateinstances",
+			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+		}); err != nil {
+			return api.Forbidden(err)
 		}
 
 		brokerTemplateInstance, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)

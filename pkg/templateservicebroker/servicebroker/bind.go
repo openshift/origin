@@ -26,7 +26,6 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 func evaluateJSONPathExpression(obj interface{}, annotation, expression string, base64encode bool) (string, error) {
@@ -180,17 +179,8 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 		return api.BadRequest(errs.ToAggregate())
 	}
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this check should be != 0
-	if len(breq.Parameters) > 1 {
+	if len(breq.Parameters) != 0 {
 		return api.BadRequest(errors.New("parameters not supported on bind"))
-	}
-
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
-	if u.GetName() == "" {
-		impersonate := breq.Parameters[templateapi.RequesterUsernameParameterKey]
-		if impersonate != "" && uservalidation.ValidateUserName(impersonate, true) == nil {
-			u = &user.DefaultInfo{Name: impersonate}
-		}
 	}
 
 	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
