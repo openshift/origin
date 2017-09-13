@@ -32,6 +32,8 @@ import (
 )
 
 func TestImageStreamImport(t *testing.T) {
+	t.Skip("This test was disabled until https://github.com/openshift/origin/issues/16323 is fixed!")
+
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -797,6 +799,8 @@ func TestImageStreamImportScheduled(t *testing.T) {
 }
 
 func TestImageStreamImportDockerHub(t *testing.T) {
+	t.Skip("This test was disabled until https://github.com/openshift/origin/issues/16323 is fixed!")
+
 	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
