@@ -19,6 +19,12 @@ func ValidateLDAPSyncConfig(config *api.LDAPSyncConfig) ValidationResults {
 	bindPassword, _ := api.ResolveStringValue(config.BindPassword)
 	validationResults.Append(ValidateLDAPClientConfig(config.URL, config.BindDN, bindPassword, config.CA, config.Insecure, nil))
 
+	for ldapGroupUID, openShiftGroupName := range config.LDAPGroupUIDToOpenShiftGroupNameMapping {
+		if len(ldapGroupUID) == 0 || len(openShiftGroupName) == 0 {
+			validationResults.AddErrors(field.Invalid(field.NewPath("groupUIDNameMapping").Key(ldapGroupUID), openShiftGroupName, "has empty key or value"))
+		}
+	}
+
 	schemaConfigsFound := []string{}
 
 	if config.RFC2307Config != nil {

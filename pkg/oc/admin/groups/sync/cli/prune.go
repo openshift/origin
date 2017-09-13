@@ -132,17 +132,18 @@ func NewCmdPrune(name, fullName string, f *clientcmd.Factory, out io.Writer) *co
 
 func (o *PruneOptions) Complete(whitelistFile, blacklistFile, configFile string, args []string, f *clientcmd.Factory) error {
 	var err error
-	o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile)
-	if err != nil {
-		return err
-	}
-
-	o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, blacklistFile)
-	if err != nil {
-		return err
-	}
 
 	o.Config, err = decodeSyncConfigFromFile(configFile)
+	if err != nil {
+		return err
+	}
+
+	o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
+	if err != nil {
+		return err
+	}
+
+	o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, blacklistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 	if err != nil {
 		return err
 	}
