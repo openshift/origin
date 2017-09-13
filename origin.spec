@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit da80a61937d6793b78cb310d4c6fe0f0f3148bcc
+%global commit 2003f0956746f4843b15d313e85d0bd10f71f717
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.125.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=da80a61
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2003f09
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.126.0%{?dist}
+Release:        0.126.1%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -639,6 +639,30 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Sep 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.1
+- bump(github.com/openshift/origin-web-console):
+  9673fad07166ed5e958b9024848bcb3359069e5c (eparis+openshiftbot@redhat.com)
+- handle kube-gen rename (deads@redhat.com)
+- apps: use patch when pausing dc on delete (mfojtik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  ca54beccf85b385203197649736ef8aee532e37e (eparis+openshiftbot@redhat.com)
+- oc new-app should not time out when using a proxy (cdaley@redhat.com)
+- add dynamic rest mapper to the admission plugin initializer
+  (deads@redhat.com)
+- bump(k8s.io/code-generator): UPSTREAM: <drop>: handle kube-gen rename
+  (deads@redhat.com)
+- bump(k8s.io/code-generator): UPSTREAM: <drop>: rename generators to match
+  upstream (deads@redhat.com)
+- ignore API server timeout errors in templateinstance controller readiness
+  checking (jminter@redhat.com)
+- ensure `oc get` handles mixed resource types (jvallejo@redhat.com)
+- Fix getByKey to return all errors (maszulik@redhat.com)
+- Mark package level flags as hidden for completions (ccoleman@redhat.com)
+- Added networking team members to the hack directory OWNERS
+  (bbennett@redhat.com)
+- remove dead TSB code (deads@redhat.com)
+- UPSTREAM: 48502: Add a refreshing discovery client (deads@redhat.com)
+
 * Mon Sep 11 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.0
 - wire CORS through (deads@redhat.com)
 - UPSTREAM: 52127: Fix deployment timeout reporting (mkargaki@redhat.com)
