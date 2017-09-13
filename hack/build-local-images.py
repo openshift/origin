@@ -7,8 +7,8 @@ from subprocess import call
 from tempfile import mkdtemp
 
 from atexit import register
-from os import getenv, listdir, mkdir, remove
-from os.path import abspath, dirname, exists, isdir, join
+from os import getenv, mkdir, remove
+from os.path import abspath, dirname, isdir, join
 
 if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--h', '-help', '--help']:
     print """Quickly re-build images depending on OpenShift Origin build artifacts.
@@ -173,10 +173,10 @@ def add_to_context(context_dir, source, destination, container_destination):
     sytem at the correct destination.
     """
     debug("Adding file:\n\tfrom {}\n\tto {}\n\tincluding in container at {}".format(
-    	source,
-    	join(context_dir, destination),
-		container_destination)
-   	)
+        source,
+        join(context_dir, destination),
+        container_destination)
+    )
     absolute_destination = abspath(join(context_dir, destination))
     if isdir(source):
         dir_util.copy_tree(source, absolute_destination)
