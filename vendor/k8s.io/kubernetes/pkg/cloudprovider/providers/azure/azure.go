@@ -290,6 +290,11 @@ func (az *Cloud) ScrubDNS(nameservers, searches []string) (nsOut, srchOut []stri
 	return nameservers, searches
 }
 
+// HasClusterID returns true if the cluster has a clusterID
+func (az *Cloud) HasClusterID() bool {
+	return true
+}
+
 // ProviderName returns the cloud provider ID.
 func (az *Cloud) ProviderName() string {
 	return CloudProviderName
