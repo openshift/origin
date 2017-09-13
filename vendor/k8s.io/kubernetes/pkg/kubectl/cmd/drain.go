@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"reflect"
 	"strings"
 	"time"
 
@@ -33,16 +32,21 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/json"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/apimachinery/pkg/util/wait"
+	corev1 "k8s.io/client-go/pkg/api/v1"
 	restclient "k8s.io/client-go/rest"
+
 	"k8s.io/kubernetes/pkg/api"
+	apiv1 "k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/policy"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
-	"k8s.io/kubernetes/pkg/kubelet/types"
 	"k8s.io/kubernetes/pkg/util/i18n"
 )
 
@@ -51,6 +55,7 @@ type DrainOptions struct {
 	restClient         *restclient.RESTClient
 	Factory            cmdutil.Factory
 	Force              bool
+	DryRun             bool
 	GracePeriodSeconds int
 	IgnoreDaemonsets   bool
 	Timeout            time.Duration
@@ -83,7 +88,6 @@ const (
 	kLocalStorageWarning = "Deleting pods with local storage"
 	kUnmanagedFatal      = "pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet (use --force to override)"
 	kUnmanagedWarning    = "Deleting pods not managed by ReplicationController, ReplicaSet, Job, DaemonSet or StatefulSet"
-	kMaxNodeUpdateRetry  = 10
 )
 
 var (
@@ -108,6 +112,7 @@ func NewCmdCordon(f cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(options.RunCordonOrUncordon(true))
 		},
 	}
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -133,6 +138,7 @@ func NewCmdUncordon(f cmdutil.Factory, out io.Writer) *cobra.Command {
 			cmdutil.CheckErr(options.RunCordonOrUncordon(false))
 		},
 	}
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -188,6 +194,7 @@ func NewCmdDrain(f cmdutil.Factory, out, errOut io.Writer) *cobra.Command {
 	cmd.Flags().BoolVar(&options.DeleteLocalData, "delete-local-data", false, "Continue even if there are pods using emptyDir (local data that will be deleted when the node is drained).")
 	cmd.Flags().IntVar(&options.GracePeriodSeconds, "grace-period", -1, "Period of time in seconds given to each pod to terminate gracefully. If negative, the default value specified in the pod will be used.")
 	cmd.Flags().DurationVar(&options.Timeout, "timeout", 0, "The length of time to wait before giving up, zero means infinite")
+	cmdutil.AddDryRunFlag(cmd)
 	return cmd
 }
 
@@ -198,6 +205,8 @@ func (o *DrainOptions) SetupDrain(cmd *cobra.Command, args []string) error {
 	if len(args) != 1 {
 		return cmdutil.UsageError(cmd, fmt.Sprintf("USAGE: %s [flags]", cmd.Use))
 	}
+
+	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
 	if o.client, err = o.Factory.ClientSet(); err != nil {
 		return err
@@ -239,9 +248,12 @@ func (o *DrainOptions) RunDrain() error {
 		return err
 	}
 
-	err := o.deleteOrEvictPodsSimple()
-	if err == nil {
-		cmdutil.PrintSuccess(o.mapper, false, o.Out, "node", o.nodeInfo.Name, false, "drained")
+	var err error
+	if !o.DryRun {
+		err = o.deleteOrEvictPodsSimple()
+	}
+	if err == nil || o.DryRun {
+		cmdutil.PrintSuccess(o.mapper, false, o.Out, "node", o.nodeInfo.Name, o.DryRun, "drained")
 	}
 	return err
 }
@@ -354,7 +366,7 @@ func (o *DrainOptions) daemonsetFilter(pod api.Pod) (bool, *warning, *fatal) {
 }
 
 func mirrorPodFilter(pod api.Pod) (bool, *warning, *fatal) {
-	if _, found := pod.ObjectMeta.Annotations[types.ConfigMirrorAnnotationKey]; found {
+	if _, found := pod.ObjectMeta.Annotations[corev1.MirrorPodAnnotationKey]; found {
 		return false, nil, nil
 	}
 	return true, nil, nil
@@ -625,34 +637,39 @@ func (o *DrainOptions) RunCordonOrUncordon(desired bool) error {
 	}
 
 	if o.nodeInfo.Mapping.GroupVersionKind.Kind == "Node" {
-		unsched := reflect.ValueOf(o.nodeInfo.Object).Elem().FieldByName("Spec").FieldByName("Unschedulable")
-		if unsched.Bool() == desired {
-			cmdutil.PrintSuccess(o.mapper, false, o.Out, o.nodeInfo.Mapping.Resource, o.nodeInfo.Name, false, already(desired))
+		obj, err := o.nodeInfo.Mapping.ConvertToVersion(o.nodeInfo.Object, o.nodeInfo.Mapping.GroupVersionKind.GroupVersion())
+		if err != nil {
+			return err
+		}
+		oldData, err := json.Marshal(obj)
+		node, ok := obj.(*apiv1.Node)
+		if !ok {
+			return fmt.Errorf("unexpected Type%T, expected Node", obj)
+		}
+		unsched := node.Spec.Unschedulable
+		if unsched == desired {
+			cmdutil.PrintSuccess(o.mapper, false, o.Out, o.nodeInfo.Mapping.Resource, o.nodeInfo.Name, o.DryRun, already(desired))
 		} else {
-			helper := resource.NewHelper(o.restClient, o.nodeInfo.Mapping)
-			unsched.SetBool(desired)
-			var err error
-			for i := 0; i < kMaxNodeUpdateRetry; i++ {
-				// We don't care about what previous versions may exist, we always want
-				// to overwrite, and Replace always sets current ResourceVersion if version is "".
-				helper.Versioner.SetResourceVersion(o.nodeInfo.Object, "")
-				_, err = helper.Replace(cmdNamespace, o.nodeInfo.Name, true, o.nodeInfo.Object)
+			node.Spec.Unschedulable = desired
+			if !o.DryRun {
+				helper := resource.NewHelper(o.restClient, o.nodeInfo.Mapping)
+				newData, err := json.Marshal(obj)
 				if err != nil {
-					if !apierrors.IsConflict(err) {
-						return err
-					}
-				} else {
-					break
+					return err
 				}
-				// It's a race, no need to sleep
+				patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, obj)
+				if err != nil {
+					return err
+				}
+				_, err = helper.Patch(cmdNamespace, o.nodeInfo.Name, types.StrategicMergePatchType, patchBytes)
+				if err != nil {
+					return err
+				}
 			}
-			if err != nil {
-				return err
-			}
-			cmdutil.PrintSuccess(o.mapper, false, o.Out, o.nodeInfo.Mapping.Resource, o.nodeInfo.Name, false, changed(desired))
+			cmdutil.PrintSuccess(o.mapper, false, o.Out, o.nodeInfo.Mapping.Resource, o.nodeInfo.Name, o.DryRun, changed(desired))
 		}
 	} else {
-		cmdutil.PrintSuccess(o.mapper, false, o.Out, o.nodeInfo.Mapping.Resource, o.nodeInfo.Name, false, "skipped")
+		cmdutil.PrintSuccess(o.mapper, false, o.Out, o.nodeInfo.Mapping.Resource, o.nodeInfo.Name, o.DryRun, "skipped")
 	}
 
 	return nil
