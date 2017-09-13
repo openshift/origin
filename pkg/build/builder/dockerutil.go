@@ -46,6 +46,7 @@ var (
 		"no route to host",
 		"unexpected end of JSON input",
 		"i/o timeout",
+		"TLS handshake timeout",
 	}
 )
 
