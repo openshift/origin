@@ -104,7 +104,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
-	mediaType, payload, canonical, err := mh.Payload()
+	mediaType, payload, _, err := mh.Payload()
 	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
@@ -124,8 +124,15 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 		return "", err
 	}
 
-	// Calculate digest
-	dgst := digest.FromBytes(canonical)
+	config, err := mh.Config(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	dgst, err := mh.Digest()
+	if err != nil {
+		return "", err
+	}
 
 	// Upload to openshift
 	ism := imageapiv1.ImageStreamMapping{
@@ -137,12 +144,14 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 			ObjectMeta: metav1.ObjectMeta{
 				Name: dgst.String(),
 				Annotations: map[string]string{
-					imageapi.ManagedByOpenShiftAnnotation: "true",
+					imageapi.ManagedByOpenShiftAnnotation:      "true",
+					imageapi.ImageManifestBlobStoredAnnotation: "true",
 				},
 			},
 			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", m.repo.config.registryAddr, m.repo.namespace, m.repo.name, dgst.String()),
 			DockerImageManifest:          string(payload),
 			DockerImageManifestMediaType: mediaType,
+			DockerImageConfig:            string(config),
 		},
 	}
 
@@ -152,14 +161,6 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 			break
 		}
 	}
-
-	if err = mh.FillImageMetadata(ctx, &ism.Image); err != nil {
-		return "", err
-	}
-
-	// Remove the raw manifest as it's very big and this leads to a large memory consumption in etcd.
-	ism.Image.DockerImageManifest = ""
-	ism.Image.DockerImageConfig = ""
 
 	if _, err = m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
 		// if the error was that the image stream wasn't found, try to auto provision it
@@ -248,12 +249,14 @@ func (m *manifestService) storeManifestLocally(ctx context.Context, image *image
 		}
 	}
 
-	if len(image.DockerImageManifest) == 0 {
+	if len(image.DockerImageManifest) == 0 || image.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
 		return
 	}
 
-	image.DockerImageManifest = ""
-	image.DockerImageConfig = ""
+	if image.Annotations == nil {
+		image.Annotations = make(map[string]string)
+	}
+	image.Annotations[imageapi.ImageManifestBlobStoredAnnotation] = "true"
 
 	if _, err := m.repo.updateImage(image); err != nil {
 		context.GetLogger(ctx).Errorf("error updating Image: %v", err)

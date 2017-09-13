@@ -12,6 +12,7 @@ import (
 
 	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
 	"github.com/openshift/origin/pkg/dockerregistry/testutil"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
 func TestManifestServiceExists(t *testing.T) {
@@ -50,6 +51,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
+	const img1Manifest = `{"_":"some json to start migration"}`
 
 	fos, imageClient := testutil.NewFakeOpenShiftWithClient()
 
@@ -60,7 +62,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 
 	img1 := *testImage
 	img1.DockerImageReference = "1"
-	img1.DockerImageManifest = `{"_":"some json to start migration"}`
+	img1.DockerImageManifest = img1Manifest
 	testutil.AddUntaggedImage(t, fos, &img1)
 
 	img2 := *testImage
@@ -100,7 +102,10 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if img.DockerImageManifest != "" {
+	if img.Annotations[imageapi.ImageManifestBlobStoredAnnotation] != "true" {
+		t.Errorf("missing %q annotation on image", imageapi.ImageManifestBlobStoredAnnotation)
+	}
+	if img.DockerImageManifest != img1Manifest {
 		t.Errorf("image doesn't migrated, img.DockerImageManifest: want %q, got %q", "", img.DockerImageManifest)
 	}
 	if img.DockerImageReference != "1" {
@@ -115,7 +120,7 @@ func TestManifestServicePut(t *testing.T) {
 
 	_, imageClient := testutil.NewFakeOpenShiftWithClient()
 
-	bs := newTestBlobStore(map[digest.Digest][]byte{
+	bs := newTestBlobStore(nil, blobContents{
 		"test:1": []byte("{}"),
 	})
 
