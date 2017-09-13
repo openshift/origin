@@ -21,6 +21,7 @@ RUN dnf -y update && dnf -y install\
  bridge-utils\
  ethtool\
  iptables-services\
+ conntrack-tools\
  openvswitch\
  python-netaddr\
  python2-pyroute2\
