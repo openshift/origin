@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+set -o errexit
+
+HELM_SCRIPT=helm-install.sh
+
 export HELM_RELEASE_NAME=${HELM_RELEASE_NAME:-catalog}
 export SVCCAT_NAMESPACE=${SVCCAT_NAMESPACE:-catalog}
 SVCCAT_SERVICE_NAME=${HELM_RELEASE_NAME}-catalog-apiserver
@@ -59,3 +63,16 @@ echo '{"CN":"'${SVCCAT_SERVICE_NAME}'","hosts":['${ALT_NAMES}'],"key":{"algo":"r
 export SC_SERVING_CA=${SVCCAT_CA_CERT}
 export SC_SERVING_CERT=apiserver.pem
 export SC_SERVING_KEY=apiserver-key.pem
+
+cat <<EOF > $HELM_SCRIPT
+#!/bin/bash
+helm install charts/catalog \\
+  --name ${HELM_RELEASE_NAME} \\
+  --namespace ${SVCCAT_NAMESPACE} \\
+  --set apiserver.auth.enabled=true \\
+  --set useAggregator=true \\
+  --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \\
+  --set apiserver.tls.cert=$(base64 --wrap 0 ${SC_SERVING_CERT}) \\
+  --set apiserver.tls.key=$(base64 --wrap 0 ${SC_SERVING_KEY})
+EOF
+chmod +x $HELM_SCRIPT

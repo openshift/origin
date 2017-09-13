@@ -41,8 +41,8 @@ var guidRegexp = regexp.MustCompile("^" + guidFmt + "$")
 // have been passed in. External IDs used to be OpenServiceBrokerAPI
 // GUIDs, so we will retain that form until there is another provider
 // that desires a different form.  In the case of the OSBAPI we
-// generate GUIDs for Instances and Bindings, but for ServiceClass and
-// ServicePlan, they are part of the payload returned from the Broker.
+// generate GUIDs for ServiceInstances and ServiceInstanceCredentials, but for ServiceClass and
+// ServicePlan, they are part of the payload returned from the ServiceBroker.
 func validateExternalID(value string) []string {
 	var errs []string
 	if len(value) > guidMaxLength {
@@ -65,7 +65,7 @@ func ValidateServiceClass(serviceclass *sc.ServiceClass) field.ErrorList {
 			validateServiceClassName,
 			field.NewPath("metadata"))...)
 
-	if "" == serviceclass.BrokerName {
+	if "" == serviceclass.ServiceBrokerName {
 		allErrs = append(allErrs, field.Required(field.NewPath("brokerName"), "brokerName is required"))
 	}
 

@@ -3,6 +3,7 @@ package v2
 import (
 	"bytes"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"io"
@@ -40,6 +41,15 @@ func NewClient(config *ClientConfiguration) (Client, error) {
 	}
 	if config.Insecure {
 		transport.TLSClientConfig.InsecureSkipVerify = true
+	}
+	if len(config.CAData) != 0 {
+		if transport.TLSClientConfig.RootCAs == nil {
+			transport.TLSClientConfig.RootCAs = x509.NewCertPool()
+		}
+		transport.TLSClientConfig.RootCAs.AppendCertsFromPEM(config.CAData)
+	}
+	if transport.TLSClientConfig.InsecureSkipVerify && transport.TLSClientConfig.RootCAs != nil {
+		return nil, errors.New("Cannot specify root CAs and to skip TLS verification")
 	}
 	httpClient.Transport = transport
 

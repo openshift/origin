@@ -34,9 +34,9 @@ const asyncProvisionQueryParamKey = "accepts_incomplete"
 // last_operation requests.
 const LastOperationResponseTestDescription = "test description for last operation"
 
-// FakeBrokerServer is a fake service broker server meant for testing that
+// FakeServiceBrokerServer is a fake service broker server meant for testing that
 // allows for customizing the response behavior.  It does not support auth.
-type FakeBrokerServer struct {
+type FakeServiceBrokerServer struct {
 	responseStatus     int
 	operation          string
 	lastOperationState string
@@ -48,7 +48,7 @@ type FakeBrokerServer struct {
 
 // Start starts the fake broker server listening on a random port, passing
 // back the server's URL.
-func (f *FakeBrokerServer) Start() string {
+func (f *FakeServiceBrokerServer) Start() string {
 	r := mux.NewRouter()
 	// check for headers required by osb api spec
 	router := r.Headers(constants.APIVersionHeader, "",
@@ -68,35 +68,35 @@ func (f *FakeBrokerServer) Start() string {
 }
 
 // Stop shuts down the server.
-func (f *FakeBrokerServer) Stop() {
+func (f *FakeServiceBrokerServer) Stop() {
 	f.server.Close()
 	glog.Info("fake broker stopped")
 }
 
 // SetResponseStatus sets the default response status of the broker to the
 // given HTTP status code.
-func (f *FakeBrokerServer) SetResponseStatus(status int) {
+func (f *FakeServiceBrokerServer) SetResponseStatus(status int) {
 	f.responseStatus = status
 }
 
 // SetOperation sets the operation to return for asynchronous operations.
-func (f *FakeBrokerServer) SetOperation(operation string) {
+func (f *FakeServiceBrokerServer) SetOperation(operation string) {
 	f.operation = operation
 }
 
 // SetLastOperationState sets the state to return for last_operation requests.
-func (f *FakeBrokerServer) SetLastOperationState(state string) {
+func (f *FakeServiceBrokerServer) SetLastOperationState(state string) {
 	f.lastOperationState = state
 }
 
 // HANDLERS
 
-func (f *FakeBrokerServer) catalogHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) catalogHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake catalog called")
 	util.WriteResponse(w, http.StatusOK, &brokerapi.Catalog{})
 }
 
-func (f *FakeBrokerServer) lastOperationHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) lastOperationHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake lastOperation called")
 	f.Request = r
 	req := &brokerapi.LastOperationRequest{}
@@ -118,7 +118,7 @@ func (f *FakeBrokerServer) lastOperationHandler(w http.ResponseWriter, r *http.R
 	util.WriteResponse(w, f.responseStatus, &resp)
 }
 
-func (f *FakeBrokerServer) provisionHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) provisionHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake provision called")
 	f.Request = r
 	req := &brokerapi.CreateServiceInstanceRequest{}
@@ -140,7 +140,7 @@ func (f *FakeBrokerServer) provisionHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (f *FakeBrokerServer) deprovisionHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) deprovisionHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake deprovision called")
 	f.Request = r
 	req := &brokerapi.DeleteServiceInstanceRequest{
@@ -166,13 +166,13 @@ func (f *FakeBrokerServer) deprovisionHandler(w http.ResponseWriter, r *http.Req
 	}
 }
 
-func (f *FakeBrokerServer) updateHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) updateHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake update called")
 	// TODO: Implement
 	util.WriteResponse(w, http.StatusForbidden, nil)
 }
 
-func (f *FakeBrokerServer) bindHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) bindHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake bind called")
 	f.Request = r
 	req := &brokerapi.BindingRequest{}
@@ -184,7 +184,7 @@ func (f *FakeBrokerServer) bindHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, f.responseStatus, &brokerapi.DeleteServiceInstanceResponse{})
 }
 
-func (f *FakeBrokerServer) unbindHandler(w http.ResponseWriter, r *http.Request) {
+func (f *FakeServiceBrokerServer) unbindHandler(w http.ResponseWriter, r *http.Request) {
 	glog.Info("fake unbind called")
 	f.Request = r
 	util.WriteResponse(w, f.responseStatus, &brokerapi.DeleteServiceInstanceResponse{})

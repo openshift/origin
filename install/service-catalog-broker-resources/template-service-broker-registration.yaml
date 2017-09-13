@@ -10,7 +10,7 @@ parameters:
 objects:
 # register the tsb with the service catalog
 - apiVersion: servicecatalog.k8s.io/v1alpha1
-  kind: Broker
+  kind: ServiceBroker
   metadata:
     name: template-service-broker
   spec:

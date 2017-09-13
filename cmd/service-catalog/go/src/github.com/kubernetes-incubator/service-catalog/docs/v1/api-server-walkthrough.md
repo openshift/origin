@@ -150,7 +150,7 @@ query
 ```
 kubectl --certificate-authority=/var/run/kubernetes-service-catalog/apiserver.crt --server=https://localhost:6443 get instance test-instance -o yaml
 apiVersion: servicecatalog.k8s.io/v1alpha1
-kind: Instance
+kind: ServiceInstance
 metadata:
   creationTimestamp: 2017-01-25T21:57:48Z
   name: test-instance

@@ -24,14 +24,14 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// Bindings returns a BindingInformer.
-	Bindings() BindingInformer
-	// Brokers returns a BrokerInformer.
-	Brokers() BrokerInformer
-	// Instances returns a InstanceInformer.
-	Instances() InstanceInformer
+	// ServiceBrokers returns a ServiceBrokerInformer.
+	ServiceBrokers() ServiceBrokerInformer
 	// ServiceClasses returns a ServiceClassInformer.
 	ServiceClasses() ServiceClassInformer
+	// ServiceInstances returns a ServiceInstanceInformer.
+	ServiceInstances() ServiceInstanceInformer
+	// ServiceInstanceCredentials returns a ServiceInstanceCredentialInformer.
+	ServiceInstanceCredentials() ServiceInstanceCredentialInformer
 }
 
 type version struct {
@@ -43,22 +43,22 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
-// Bindings returns a BindingInformer.
-func (v *version) Bindings() BindingInformer {
-	return &bindingInformer{factory: v.SharedInformerFactory}
-}
-
-// Brokers returns a BrokerInformer.
-func (v *version) Brokers() BrokerInformer {
-	return &brokerInformer{factory: v.SharedInformerFactory}
-}
-
-// Instances returns a InstanceInformer.
-func (v *version) Instances() InstanceInformer {
-	return &instanceInformer{factory: v.SharedInformerFactory}
+// ServiceBrokers returns a ServiceBrokerInformer.
+func (v *version) ServiceBrokers() ServiceBrokerInformer {
+	return &serviceBrokerInformer{factory: v.SharedInformerFactory}
 }
 
 // ServiceClasses returns a ServiceClassInformer.
 func (v *version) ServiceClasses() ServiceClassInformer {
 	return &serviceClassInformer{factory: v.SharedInformerFactory}
+}
+
+// ServiceInstances returns a ServiceInstanceInformer.
+func (v *version) ServiceInstances() ServiceInstanceInformer {
+	return &serviceInstanceInformer{factory: v.SharedInformerFactory}
+}
+
+// ServiceInstanceCredentials returns a ServiceInstanceCredentialInformer.
+func (v *version) ServiceInstanceCredentials() ServiceInstanceCredentialInformer {
+	return &serviceInstanceCredentialInformer{factory: v.SharedInformerFactory}
 }

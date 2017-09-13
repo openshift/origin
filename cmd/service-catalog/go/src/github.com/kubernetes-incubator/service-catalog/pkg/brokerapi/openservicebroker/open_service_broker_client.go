@@ -49,7 +49,7 @@ var (
 	errConflict        = errors.New("Service instance with same id but different attributes exists")
 	errBindingConflict = errors.New("Service binding with same service instance id and binding id already exists")
 	errBindingGone     = errors.New("There is no binding with the specified service instance id and binding id")
-	errAsynchronous    = errors.New("Broker only supports this action asynchronously")
+	errAsynchronous    = errors.New("ServiceBroker only supports this action asynchronously")
 	errFailedState     = errors.New("Failed state received from broker")
 	errUnknownState    = errors.New("Unknown state received from broker")
 	errPollingTimeout  = errors.New("Timed out while polling broker")

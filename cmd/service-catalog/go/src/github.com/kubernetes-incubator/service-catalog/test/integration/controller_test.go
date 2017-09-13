@@ -122,22 +122,22 @@ func TestBasicFlowsSync(t *testing.T) {
 
 	client := catalogClient.ServicecatalogV1alpha1()
 
-	broker := &v1alpha1.Broker{
+	broker := &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
-		Spec: v1alpha1.BrokerSpec{
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: testBrokerURL,
 		},
 	}
 
-	_, err := client.Brokers().Create(broker)
+	_, err := client.ServiceBrokers().Create(broker)
 	if nil != err {
-		t.Fatalf("error creating the broker %q (%q)", broker, err)
+		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
 	}
 
 	err = util.WaitForBrokerCondition(client,
 		testBrokerName,
-		v1alpha1.BrokerCondition{
-			Type:   v1alpha1.BrokerConditionReady,
+		v1alpha1.ServiceBrokerCondition{
+			Type:   v1alpha1.ServiceBrokerConditionReady,
 			Status: v1alpha1.ConditionTrue,
 		})
 	if err != nil {
@@ -154,27 +154,27 @@ func TestBasicFlowsSync(t *testing.T) {
 
 	//-----------------
 
-	instance := &v1alpha1.Instance{
+	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1alpha1.ServiceInstanceSpec{
 			ServiceClassName: testServiceClassName,
 			PlanName:         testPlanName,
 			ExternalID:       testExternalID,
 		},
 	}
 
-	if _, err := client.Instances(testNamespace).Create(instance); err != nil {
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
 		t.Fatalf("error creating Instance: %v", err)
 	}
 
-	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.InstanceCondition{
-		Type:   v1alpha1.InstanceConditionReady,
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.ServiceInstanceCondition{
+		Type:   v1alpha1.ServiceInstanceConditionReady,
 		Status: v1alpha1.ConditionTrue,
 	}); err != nil {
 		t.Fatalf("error waiting for instance to become ready: %v", err)
 	}
 
-	retInst, err := client.Instances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
 	}
@@ -189,29 +189,29 @@ func TestBasicFlowsSync(t *testing.T) {
 	// Binding test begins here
 	//-----------------
 
-	binding := &v1alpha1.Binding{
+	binding := &v1alpha1.ServiceInstanceCredential{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testBindingName},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+		Spec: v1alpha1.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: testInstanceName,
 			},
 		},
 	}
 
-	_, err = client.Bindings(testNamespace).Create(binding)
+	_, err = client.ServiceInstanceCredentials(testNamespace).Create(binding)
 	if err != nil {
 		t.Fatalf("error creating Binding: %v", binding)
 	}
 
-	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.BindingCondition{
-		Type:   v1alpha1.BindingConditionReady,
+	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.ServiceInstanceCredentialCondition{
+		Type:   v1alpha1.ServiceInstanceCredentialConditionReady,
 		Status: v1alpha1.ConditionTrue,
 	})
 	if err != nil {
 		t.Fatalf("error waiting for binding to become ready: %v", err)
 	}
 
-	err = client.Bindings(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
+	err = client.ServiceInstanceCredentials(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("binding delete should have been accepted: %v", err)
 	}
@@ -224,7 +224,7 @@ func TestBasicFlowsSync(t *testing.T) {
 	//-----------------
 	// End binding test
 
-	err = client.Instances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
+	err = client.ServiceInstances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("instance delete should have been accepted: %v", err)
 	}
@@ -238,7 +238,7 @@ func TestBasicFlowsSync(t *testing.T) {
 	// End provision test
 
 	// Delete the broker
-	err = client.Brokers().Delete(testBrokerName, &metav1.DeleteOptions{})
+	err = client.ServiceBrokers().Delete(testBrokerName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("broker should be deleted (%s)", err)
 	}
@@ -307,22 +307,22 @@ func TestBasicFlowsAsync(t *testing.T) {
 
 	client := catalogClient.ServicecatalogV1alpha1()
 
-	broker := &v1alpha1.Broker{
+	broker := &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
-		Spec: v1alpha1.BrokerSpec{
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: testBrokerURL,
 		},
 	}
 
-	_, err := client.Brokers().Create(broker)
+	_, err := client.ServiceBrokers().Create(broker)
 	if nil != err {
-		t.Fatalf("error creating the broker %q (%q)", broker, err)
+		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
 	}
 
 	err = util.WaitForBrokerCondition(client,
 		testBrokerName,
-		v1alpha1.BrokerCondition{
-			Type:   v1alpha1.BrokerConditionReady,
+		v1alpha1.ServiceBrokerCondition{
+			Type:   v1alpha1.ServiceBrokerConditionReady,
 			Status: v1alpha1.ConditionTrue,
 		})
 	if err != nil {
@@ -339,27 +339,27 @@ func TestBasicFlowsAsync(t *testing.T) {
 
 	//-----------------
 
-	instance := &v1alpha1.Instance{
+	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1alpha1.ServiceInstanceSpec{
 			ServiceClassName: testServiceClassName,
 			PlanName:         testPlanName,
 			ExternalID:       testExternalID,
 		},
 	}
 
-	if _, err := client.Instances(testNamespace).Create(instance); err != nil {
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
 		t.Fatalf("error creating Instance: %v", err)
 	}
 
-	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.InstanceCondition{
-		Type:   v1alpha1.InstanceConditionReady,
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.ServiceInstanceCondition{
+		Type:   v1alpha1.ServiceInstanceConditionReady,
 		Status: v1alpha1.ConditionTrue,
 	}); err != nil {
 		t.Fatalf("error waiting for instance to become ready: %v", err)
 	}
 
-	retInst, err := client.Instances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
 	}
@@ -374,29 +374,29 @@ func TestBasicFlowsAsync(t *testing.T) {
 	// Binding test begins here
 	//-----------------
 
-	binding := &v1alpha1.Binding{
+	binding := &v1alpha1.ServiceInstanceCredential{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testBindingName},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+		Spec: v1alpha1.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: testInstanceName,
 			},
 		},
 	}
 
-	_, err = client.Bindings(testNamespace).Create(binding)
+	_, err = client.ServiceInstanceCredentials(testNamespace).Create(binding)
 	if err != nil {
 		t.Fatalf("error creating Binding: %v", binding)
 	}
 
-	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.BindingCondition{
-		Type:   v1alpha1.BindingConditionReady,
+	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.ServiceInstanceCredentialCondition{
+		Type:   v1alpha1.ServiceInstanceCredentialConditionReady,
 		Status: v1alpha1.ConditionTrue,
 	})
 	if err != nil {
 		t.Fatalf("error waiting for binding to become ready: %v", err)
 	}
 
-	err = client.Bindings(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
+	err = client.ServiceInstanceCredentials(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("binding delete should have been accepted: %v", err)
 	}
@@ -409,7 +409,7 @@ func TestBasicFlowsAsync(t *testing.T) {
 	//-----------------
 	// End binding test
 
-	err = client.Instances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
+	err = client.ServiceInstances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("instance delete should have been accepted: %v", err)
 	}
@@ -423,7 +423,7 @@ func TestBasicFlowsAsync(t *testing.T) {
 	// End provision test
 
 	// Delete the broker
-	err = client.Brokers().Delete(testBrokerName, &metav1.DeleteOptions{})
+	err = client.ServiceBrokers().Delete(testBrokerName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("broker should be deleted (%s)", err)
 	}
@@ -481,22 +481,22 @@ func TestProvisionFailure(t *testing.T) {
 
 	client := catalogClient.ServicecatalogV1alpha1()
 
-	broker := &v1alpha1.Broker{
+	broker := &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
-		Spec: v1alpha1.BrokerSpec{
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: testBrokerURL,
 		},
 	}
 
-	_, err := client.Brokers().Create(broker)
+	_, err := client.ServiceBrokers().Create(broker)
 	if nil != err {
-		t.Fatalf("error creating the broker %q (%q)", broker, err)
+		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
 	}
 
 	err = util.WaitForBrokerCondition(client,
 		testBrokerName,
-		v1alpha1.BrokerCondition{
-			Type:   v1alpha1.BrokerConditionReady,
+		v1alpha1.ServiceBrokerCondition{
+			Type:   v1alpha1.ServiceBrokerConditionReady,
 			Status: v1alpha1.ConditionTrue,
 		})
 	if err != nil {
@@ -513,27 +513,27 @@ func TestProvisionFailure(t *testing.T) {
 
 	//-----------------
 
-	instance := &v1alpha1.Instance{
+	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1alpha1.ServiceInstanceSpec{
 			ServiceClassName: testServiceClassName,
 			PlanName:         testPlanName,
 			ExternalID:       testExternalID,
 		},
 	}
 
-	if _, err := client.Instances(testNamespace).Create(instance); err != nil {
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
 		t.Fatalf("error creating Instance: %v", err)
 	}
 
-	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.InstanceCondition{
-		Type:   v1alpha1.InstanceConditionFailed,
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.ServiceInstanceCondition{
+		Type:   v1alpha1.ServiceInstanceConditionFailed,
 		Status: v1alpha1.ConditionTrue,
 	}); err != nil {
 		t.Fatalf("error waiting for instance to become failed: %v", err)
 	}
 
-	retInst, err := client.Instances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
 	}
@@ -545,7 +545,7 @@ func TestProvisionFailure(t *testing.T) {
 		)
 	}
 
-	err = client.Instances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
+	err = client.ServiceInstances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("instance delete should have been accepted: %v", err)
 	}
@@ -559,7 +559,7 @@ func TestProvisionFailure(t *testing.T) {
 	// End provision test
 
 	// Delete the broker
-	err = client.Brokers().Delete(testBrokerName, &metav1.DeleteOptions{})
+	err = client.ServiceBrokers().Delete(testBrokerName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("broker should be deleted (%s)", err)
 	}
@@ -621,22 +621,22 @@ func TestBindingFailure(t *testing.T) {
 	defer shutdownServer()
 
 	client := fakeCatalogClient.ServicecatalogV1alpha1()
-	broker := &v1alpha1.Broker{
+	broker := &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
-		Spec: v1alpha1.BrokerSpec{
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: testBrokerURL,
 		},
 	}
 
-	_, err := client.Brokers().Create(broker)
+	_, err := client.ServiceBrokers().Create(broker)
 	if nil != err {
-		t.Fatalf("error creating the broker %q (%q)", broker, err)
+		t.Fatalf("error creating the broker %q (%q)", broker.Name, err)
 	}
 
 	err = util.WaitForBrokerCondition(client,
 		testBrokerName,
-		v1alpha1.BrokerCondition{
-			Type:   v1alpha1.BrokerConditionReady,
+		v1alpha1.ServiceBrokerCondition{
+			Type:   v1alpha1.ServiceBrokerConditionReady,
 			Status: v1alpha1.ConditionTrue,
 		})
 	if err != nil {
@@ -653,27 +653,27 @@ func TestBindingFailure(t *testing.T) {
 
 	//-----------------
 
-	instance := &v1alpha1.Instance{
+	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
-		Spec: v1alpha1.InstanceSpec{
+		Spec: v1alpha1.ServiceInstanceSpec{
 			ServiceClassName: testServiceClassName,
 			PlanName:         testPlanName,
 			ExternalID:       testExternalID,
 		},
 	}
 
-	if _, err := client.Instances(testNamespace).Create(instance); err != nil {
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
 		t.Fatalf("error creating Instance: %v", err)
 	}
 
-	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.InstanceCondition{
-		Type:   v1alpha1.InstanceConditionReady,
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.ServiceInstanceCondition{
+		Type:   v1alpha1.ServiceInstanceConditionReady,
 		Status: v1alpha1.ConditionTrue,
 	}); err != nil {
 		t.Fatalf("error waiting for instance to become ready: %v", err)
 	}
 
-	retInst, err := client.Instances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
 	}
@@ -688,29 +688,29 @@ func TestBindingFailure(t *testing.T) {
 	// Binding test begins here
 	//-----------------
 
-	binding := &v1alpha1.Binding{
+	binding := &v1alpha1.ServiceInstanceCredential{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testBindingName},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+		Spec: v1alpha1.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: testInstanceName,
 			},
 		},
 	}
 
-	_, err = client.Bindings(testNamespace).Create(binding)
+	_, err = client.ServiceInstanceCredentials(testNamespace).Create(binding)
 	if err != nil {
 		t.Fatalf("error creating Binding: %v", binding)
 	}
 
-	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.BindingCondition{
-		Type:   v1alpha1.BindingConditionFailed,
+	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.ServiceInstanceCredentialCondition{
+		Type:   v1alpha1.ServiceInstanceCredentialConditionFailed,
 		Status: v1alpha1.ConditionTrue,
 	})
 	if err != nil {
 		t.Fatalf("error waiting for binding to become failed: %v", err)
 	}
 
-	err = client.Bindings(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
+	err = client.ServiceInstanceCredentials(testNamespace).Delete(testBindingName, &metav1.DeleteOptions{})
 	if err != nil {
 		t.Fatalf("binding delete should have been accepted: %v", err)
 	}
@@ -723,7 +723,7 @@ func TestBindingFailure(t *testing.T) {
 	//-----------------
 	// End binding test
 
-	err = client.Instances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
+	err = client.ServiceInstances(testNamespace).Delete(testInstanceName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("instance delete should have been accepted: %v", err)
 	}
@@ -737,7 +737,7 @@ func TestBindingFailure(t *testing.T) {
 	// End provision test
 
 	// Delete the broker
-	err = client.Brokers().Delete(testBrokerName, &metav1.DeleteOptions{})
+	err = client.ServiceBrokers().Delete(testBrokerName, &metav1.DeleteOptions{})
 	if nil != err {
 		t.Fatalf("broker should be deleted (%s)", err)
 	}
@@ -778,7 +778,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 
 	// create an sc client and running server
 	catalogClient, shutdownServer := getFreshApiserverAndClient(t, server.StorageTypeEtcd.String(), func() runtime.Object {
-		return &servicecatalog.Broker{}
+		return &servicecatalog.ServiceBroker{}
 	})
 
 	fakeOSBClient := fakeosb.NewFakeClient(config) // error should always be nil
@@ -794,10 +794,10 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	testController, err := controller.NewController(
 		fakeKubeClient,
 		catalogClient.ServicecatalogV1alpha1(),
-		serviceCatalogSharedInformers.Brokers(),
+		serviceCatalogSharedInformers.ServiceBrokers(),
 		serviceCatalogSharedInformers.ServiceClasses(),
-		serviceCatalogSharedInformers.Instances(),
-		serviceCatalogSharedInformers.Bindings(),
+		serviceCatalogSharedInformers.ServiceInstances(),
+		serviceCatalogSharedInformers.ServiceInstanceCredentials(),
 		brokerClFunc,
 		24*time.Hour,
 		osb.LatestAPIVersion().HeaderValue(),

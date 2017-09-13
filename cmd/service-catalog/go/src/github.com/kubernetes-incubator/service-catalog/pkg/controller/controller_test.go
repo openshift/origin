@@ -64,17 +64,17 @@ const (
 	instanceGUID                = "IGUID"
 	bindingGUID                 = "BGUID"
 
-	testBrokerName                  = "test-broker"
-	testServiceClassName            = "test-serviceclass"
-	testNonbindableServiceClassName = "test-unbindable-serviceclass"
-	testPlanName                    = "test-plan"
-	testNonbindablePlanName         = "test-unbindable-plan"
-	testInstanceName                = "test-instance"
-	testBindingName                 = "test-binding"
-	testNamespace                   = "test-ns"
-	testBindingSecretName           = "test-secret"
-	testOperation                   = "test-operation"
-	testNsUID                       = "test-ns-uid"
+	testServiceBrokerName                   = "test-broker"
+	testServiceClassName                    = "test-serviceclass"
+	testNonbindableServiceClassName         = "test-unbindable-serviceclass"
+	testPlanName                            = "test-plan"
+	testNonbindablePlanName                 = "test-unbindable-plan"
+	testServiceInstanceName                 = "test-instance"
+	testServiceInstanceCredentialName       = "test-binding"
+	testNamespace                           = "test-ns"
+	testServiceInstanceCredentialSecretName = "test-secret"
+	testOperation                           = "test-operation"
+	testNsUID                               = "test-ns-uid"
 )
 
 var testDashboardURL = "http://dashboard"
@@ -97,7 +97,7 @@ const testCatalog = `{
         "blurb": "Add a blurb here",
         "longDescription": "A long time ago, in a galaxy far far away..."
       },
-      "displayName": "The Fake Broker"
+      "displayName": "The Fake ServiceBroker"
     },
     "dashboard_client": {
       "id": "398e2f8e-XXXX-XXXX-XXXX-19a71ecbcf64",
@@ -285,20 +285,20 @@ const instanceParameterSchemaBytes = `{
 }`
 
 // broker used in most of the tests that need a broker
-func getTestBroker() *v1alpha1.Broker {
-	return &v1alpha1.Broker{
-		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
-		Spec: v1alpha1.BrokerSpec{
+func getTestServiceBroker() *v1alpha1.ServiceBroker {
+	return &v1alpha1.ServiceBroker{
+		ObjectMeta: metav1.ObjectMeta{Name: testServiceBrokerName},
+		Spec: v1alpha1.ServiceBrokerSpec{
 			URL: "https://example.com",
 		},
 	}
 }
 
-func getTestBrokerWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.Broker {
-	broker := getTestBroker()
-	broker.Status = v1alpha1.BrokerStatus{
-		Conditions: []v1alpha1.BrokerCondition{{
-			Type:               v1alpha1.BrokerConditionReady,
+func getTestServiceBrokerWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.ServiceBroker {
+	broker := getTestServiceBroker()
+	broker.Status = v1alpha1.ServiceBrokerStatus{
+		Conditions: []v1alpha1.ServiceBrokerCondition{{
+			Type:               v1alpha1.ServiceBrokerConditionReady,
 			Status:             status,
 			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
 		}},
@@ -307,20 +307,20 @@ func getTestBrokerWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.Broker {
 	return broker
 }
 
-func getTestBrokerWithAuth(authInfo *v1alpha1.BrokerAuthInfo) *v1alpha1.Broker {
-	broker := getTestBroker()
+func getTestServiceBrokerWithAuth(authInfo *v1alpha1.ServiceBrokerAuthInfo) *v1alpha1.ServiceBroker {
+	broker := getTestServiceBroker()
 	broker.Spec.AuthInfo = authInfo
 	return broker
 }
 
-// a bindable service class wired to the result of getTestBroker()
+// a bindable service class wired to the result of getTestServiceBroker()
 func getTestServiceClass() *v1alpha1.ServiceClass {
 	return &v1alpha1.ServiceClass{
-		ObjectMeta:  metav1.ObjectMeta{Name: testServiceClassName},
-		BrokerName:  testBrokerName,
-		Description: "a test service",
-		ExternalID:  serviceClassGUID,
-		Bindable:    true,
+		ObjectMeta:        metav1.ObjectMeta{Name: testServiceClassName},
+		ServiceBrokerName: testServiceBrokerName,
+		Description:       "a test service",
+		ExternalID:        serviceClassGUID,
+		Bindable:          true,
 		Plans: []v1alpha1.ServicePlan{
 			{
 				Name:        testPlanName,
@@ -339,13 +339,13 @@ func getTestServiceClass() *v1alpha1.ServiceClass {
 	}
 }
 
-// an unbindable service class wired to the result of getTestBroker()
+// an unbindable service class wired to the result of getTestServiceBroker()
 func getTestNonbindableServiceClass() *v1alpha1.ServiceClass {
 	return &v1alpha1.ServiceClass{
-		ObjectMeta: metav1.ObjectMeta{Name: testNonbindableServiceClassName},
-		BrokerName: testBrokerName,
-		ExternalID: nonbindableServiceClassGUID,
-		Bindable:   false,
+		ObjectMeta:        metav1.ObjectMeta{Name: testNonbindableServiceClassName},
+		ServiceBrokerName: testServiceBrokerName,
+		ExternalID:        nonbindableServiceClassGUID,
+		Bindable:          false,
 		Plans: []v1alpha1.ServicePlan{
 			{
 				Name:       testPlanName,
@@ -394,10 +394,10 @@ func getTestCatalog() *osb.CatalogResponse {
 }
 
 // instance referencing the result of getTestServiceClass()
-func getTestInstance() *v1alpha1.Instance {
-	return &v1alpha1.Instance{
-		ObjectMeta: metav1.ObjectMeta{Name: testInstanceName, Namespace: testNamespace},
-		Spec: v1alpha1.InstanceSpec{
+func getTestServiceInstance() *v1alpha1.ServiceInstance {
+	return &v1alpha1.ServiceInstance{
+		ObjectMeta: metav1.ObjectMeta{Name: testServiceInstanceName, Namespace: testNamespace},
+		Spec: v1alpha1.ServiceInstanceSpec{
 			ServiceClassName: testServiceClassName,
 			PlanName:         testPlanName,
 			ExternalID:       instanceGUID,
@@ -406,8 +406,8 @@ func getTestInstance() *v1alpha1.Instance {
 }
 
 // an instance referencing the result of getTestNonbindableServiceClass, on the non-bindable plan.
-func getTestNonbindableInstance() *v1alpha1.Instance {
-	i := getTestInstance()
+func getTestNonbindableServiceInstance() *v1alpha1.ServiceInstance {
+	i := getTestServiceInstance()
 	i.Spec.ServiceClassName = testNonbindableServiceClassName
 	i.Spec.PlanName = testNonbindablePlanName
 
@@ -415,25 +415,25 @@ func getTestNonbindableInstance() *v1alpha1.Instance {
 }
 
 // an instance referencing the result of getTestNonbindableServiceClass, on the bindable plan.
-func getTestInstanceNonbindableServiceBindablePlan() *v1alpha1.Instance {
-	i := getTestNonbindableInstance()
+func getTestServiceInstanceNonbindableServiceBindablePlan() *v1alpha1.ServiceInstance {
+	i := getTestNonbindableServiceInstance()
 	i.Spec.PlanName = testPlanName
 
 	return i
 }
 
-func getTestInstanceBindableServiceNonbindablePlan() *v1alpha1.Instance {
-	i := getTestInstance()
+func getTestServiceInstanceBindableServiceNonbindablePlan() *v1alpha1.ServiceInstance {
+	i := getTestServiceInstance()
 	i.Spec.PlanName = testNonbindablePlanName
 
 	return i
 }
 
-func getTestInstanceWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.Instance {
-	instance := getTestInstance()
-	instance.Status = v1alpha1.InstanceStatus{
-		Conditions: []v1alpha1.InstanceCondition{{
-			Type:               v1alpha1.InstanceConditionReady,
+func getTestServiceInstanceWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.ServiceInstance {
+	instance := getTestServiceInstance()
+	instance.Status = v1alpha1.ServiceInstanceStatus{
+		Conditions: []v1alpha1.ServiceInstanceCondition{{
+			Type:               v1alpha1.ServiceInstanceConditionReady,
 			Status:             status,
 			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
 		}},
@@ -442,11 +442,11 @@ func getTestInstanceWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.Instan
 	return instance
 }
 
-func getTestInstanceWithFailedStatus() *v1alpha1.Instance {
-	instance := getTestInstance()
-	instance.Status = v1alpha1.InstanceStatus{
-		Conditions: []v1alpha1.InstanceCondition{{
-			Type:   v1alpha1.InstanceConditionFailed,
+func getTestServiceInstanceWithFailedStatus() *v1alpha1.ServiceInstance {
+	instance := getTestServiceInstance()
+	instance.Status = v1alpha1.ServiceInstanceStatus{
+		Conditions: []v1alpha1.ServiceInstanceCondition{{
+			Type:   v1alpha1.ServiceInstanceConditionFailed,
 			Status: v1alpha1.ConditionTrue,
 		}},
 	}
@@ -454,15 +454,15 @@ func getTestInstanceWithFailedStatus() *v1alpha1.Instance {
 	return instance
 }
 
-// getTestInstanceAsync returns an instance in async mode
-func getTestInstanceAsyncProvisioning(operation string) *v1alpha1.Instance {
-	instance := getTestInstance()
+// getTestServiceInstanceAsync returns an instance in async mode
+func getTestServiceInstanceAsyncProvisioning(operation string) *v1alpha1.ServiceInstance {
+	instance := getTestServiceInstance()
 	if operation != "" {
 		instance.Status.LastOperation = &operation
 	}
-	instance.Status = v1alpha1.InstanceStatus{
-		Conditions: []v1alpha1.InstanceCondition{{
-			Type:               v1alpha1.InstanceConditionReady,
+	instance.Status = v1alpha1.ServiceInstanceStatus{
+		Conditions: []v1alpha1.ServiceInstanceCondition{{
+			Type:               v1alpha1.ServiceInstanceConditionReady,
 			Status:             v1alpha1.ConditionFalse,
 			Message:            "Provisioning",
 			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
@@ -473,14 +473,14 @@ func getTestInstanceAsyncProvisioning(operation string) *v1alpha1.Instance {
 	return instance
 }
 
-func getTestInstanceAsyncDeprovisioning(operation string) *v1alpha1.Instance {
-	instance := getTestInstance()
+func getTestServiceInstanceAsyncDeprovisioning(operation string) *v1alpha1.ServiceInstance {
+	instance := getTestServiceInstance()
 	if operation != "" {
 		instance.Status.LastOperation = &operation
 	}
-	instance.Status = v1alpha1.InstanceStatus{
-		Conditions: []v1alpha1.InstanceCondition{{
-			Type:               v1alpha1.InstanceConditionReady,
+	instance.Status = v1alpha1.ServiceInstanceStatus{
+		Conditions: []v1alpha1.ServiceInstanceCondition{{
+			Type:               v1alpha1.ServiceInstanceConditionReady,
 			Status:             v1alpha1.ConditionFalse,
 			Message:            "Deprovisioning",
 			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
@@ -494,28 +494,28 @@ func getTestInstanceAsyncDeprovisioning(operation string) *v1alpha1.Instance {
 	return instance
 }
 
-func getTestInstanceAsyncDeprovisioningWithFinalizer(operation string) *v1alpha1.Instance {
-	instance := getTestInstanceAsyncDeprovisioning(operation)
+func getTestServiceInstanceAsyncDeprovisioningWithFinalizer(operation string) *v1alpha1.ServiceInstance {
+	instance := getTestServiceInstanceAsyncDeprovisioning(operation)
 	instance.ObjectMeta.Finalizers = []string{v1alpha1.FinalizerServiceCatalog}
 	return instance
 }
 
-// binding referencing the result of getTestInstance()
-func getTestBinding() *v1alpha1.Binding {
-	return &v1alpha1.Binding{
-		ObjectMeta: metav1.ObjectMeta{Name: testBindingName, Namespace: testNamespace},
-		Spec: v1alpha1.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{Name: testInstanceName},
-			ExternalID:  bindingGUID,
+// binding referencing the result of getTestServiceInstance()
+func getTestServiceInstanceCredential() *v1alpha1.ServiceInstanceCredential {
+	return &v1alpha1.ServiceInstanceCredential{
+		ObjectMeta: metav1.ObjectMeta{Name: testServiceInstanceCredentialName, Namespace: testNamespace},
+		Spec: v1alpha1.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{Name: testServiceInstanceName},
+			ExternalID:         bindingGUID,
 		},
 	}
 }
 
-func getTestBindingWithFailedStatus() *v1alpha1.Binding {
-	binding := getTestBinding()
-	binding.Status = v1alpha1.BindingStatus{
-		Conditions: []v1alpha1.BindingCondition{{
-			Type:   v1alpha1.BindingConditionFailed,
+func getTestServiceInstanceCredentialWithFailedStatus() *v1alpha1.ServiceInstanceCredential {
+	binding := getTestServiceInstanceCredential()
+	binding.Status = v1alpha1.ServiceInstanceCredentialStatus{
+		Conditions: []v1alpha1.ServiceInstanceCredentialCondition{{
+			Type:   v1alpha1.ServiceInstanceCredentialConditionFailed,
 			Status: v1alpha1.ConditionTrue,
 		}},
 	}
@@ -584,39 +584,39 @@ func TestCatalogConversionWithAlphaParameterSchemas(t *testing.T) {
 	}
 
 	plan := serviceClass.Plans[0]
-	if plan.AlphaInstanceCreateParameterSchema == nil {
-		t.Fatalf("Expected plan.AlphaInstanceCreateParameterSchema to be set, but was nil")
+	if plan.AlphaServiceInstanceCreateParameterSchema == nil {
+		t.Fatalf("Expected plan.AlphaServiceInstanceCreateParameterSchema to be set, but was nil")
 	}
 
 	cSchema := make(map[string]interface{})
-	if err := json.Unmarshal(plan.AlphaInstanceCreateParameterSchema.Raw, &cSchema); err == nil {
+	if err := json.Unmarshal(plan.AlphaServiceInstanceCreateParameterSchema.Raw, &cSchema); err == nil {
 		schema := make(map[string]interface{})
 		if err := json.Unmarshal([]byte(instanceParameterSchemaBytes), &schema); err != nil {
 			t.Fatalf("Error unmarshalling schema bytes: %v", err)
 		}
 
 		if e, a := schema, cSchema; !reflect.DeepEqual(e, a) {
-			t.Fatalf("Unexpected value of alphaInstanceCreateParameterSchema; expected %v, got %v", e, a)
+			t.Fatalf("Unexpected value of alphaServiceInstanceCreateParameterSchema; expected %v, got %v", e, a)
 		}
 	}
 
-	if plan.AlphaInstanceUpdateParameterSchema == nil {
-		t.Fatalf("Expected plan.AlphaInstanceUpdateParameterSchema to be set, but was nil")
+	if plan.AlphaServiceInstanceUpdateParameterSchema == nil {
+		t.Fatalf("Expected plan.AlphaServiceInstanceUpdateParameterSchema to be set, but was nil")
 	}
 	m := make(map[string]string)
-	if err := json.Unmarshal(plan.AlphaInstanceUpdateParameterSchema.Raw, &m); err == nil {
+	if err := json.Unmarshal(plan.AlphaServiceInstanceUpdateParameterSchema.Raw, &m); err == nil {
 		if e, a := "zap", m["baz"]; e != a {
-			t.Fatalf("Unexpected value of alphaInstanceUpdateParameterSchema; expected %v, got %v", e, a)
+			t.Fatalf("Unexpected value of alphaServiceInstanceUpdateParameterSchema; expected %v, got %v", e, a)
 		}
 	}
 
-	if plan.AlphaBindingCreateParameterSchema == nil {
-		t.Fatalf("Expected plan.AlphaBindingCreateParameterSchema to be set, but was nil")
+	if plan.AlphaServiceInstanceCredentialCreateParameterSchema == nil {
+		t.Fatalf("Expected plan.AlphaServiceInstanceCredentialCreateParameterSchema to be set, but was nil")
 	}
 	m = make(map[string]string)
-	if err := json.Unmarshal(plan.AlphaBindingCreateParameterSchema.Raw, &m); err == nil {
+	if err := json.Unmarshal(plan.AlphaServiceInstanceCredentialCreateParameterSchema.Raw, &m); err == nil {
 		if e, a := "blu", m["zoo"]; e != a {
-			t.Fatalf("Unexpected value of alphaBindingCreateParameterSchema; expected %v, got %v", e, a)
+			t.Fatalf("Unexpected value of alphaServiceInstanceCredentialCreateParameterSchema; expected %v, got %v", e, a)
 		}
 	}
 }
@@ -870,31 +870,31 @@ func TestCatalogConversionServicePlanBindable(t *testing.T) {
 	}
 }
 
-func TestIsBrokerReady(t *testing.T) {
+func TestIsServiceBrokerReady(t *testing.T) {
 	cases := []struct {
 		name  string
-		input *v1alpha1.Instance
+		input *v1alpha1.ServiceInstance
 		ready bool
 	}{
 		{
 			name:  "ready",
-			input: getTestInstanceWithStatus(v1alpha1.ConditionTrue),
+			input: getTestServiceInstanceWithStatus(v1alpha1.ConditionTrue),
 			ready: true,
 		},
 		{
 			name:  "no status",
-			input: getTestInstance(),
+			input: getTestServiceInstance(),
 			ready: false,
 		},
 		{
 			name:  "not ready",
-			input: getTestInstanceWithStatus(v1alpha1.ConditionFalse),
+			input: getTestServiceInstanceWithStatus(v1alpha1.ConditionFalse),
 			ready: false,
 		},
 	}
 
 	for _, tc := range cases {
-		if e, a := tc.ready, isInstanceReady(tc.input); e != a {
+		if e, a := tc.ready, isServiceInstanceReady(tc.input); e != a {
 			t.Errorf("%v: expected result %v, got %v", tc.name, e, a)
 		}
 	}
@@ -1000,10 +1000,10 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	testController, err := NewController(
 		fakeKubeClient,
 		fakeCatalogClient.ServicecatalogV1alpha1(),
-		serviceCatalogSharedInformers.Brokers(),
+		serviceCatalogSharedInformers.ServiceBrokers(),
 		serviceCatalogSharedInformers.ServiceClasses(),
-		serviceCatalogSharedInformers.Instances(),
-		serviceCatalogSharedInformers.Bindings(),
+		serviceCatalogSharedInformers.ServiceInstances(),
+		serviceCatalogSharedInformers.ServiceInstanceCredentials(),
 		brokerClFunc,
 		24*time.Hour,
 		osb.LatestAPIVersion().HeaderValue(),
@@ -1016,23 +1016,23 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	return fakeKubeClient, fakeCatalogClient, fakeOSBClient, testController.(*controller), serviceCatalogSharedInformers
 }
 
-type testControllerWithBrokerServer struct {
-	FakeKubeClient      *clientgofake.Clientset
-	FakeCatalogClient   *servicecatalogclientset.Clientset
-	Controller          *controller
-	Informers           v1alpha1informers.Interface
-	BrokerServerHandler *fakebrokerserver.Handler
-	BrokerServer        *httptest.Server
+type testControllerWithServiceBrokerServer struct {
+	FakeKubeClient             *clientgofake.Clientset
+	FakeCatalogClient          *servicecatalogclientset.Clientset
+	Controller                 *controller
+	Informers                  v1alpha1informers.Interface
+	ServiceBrokerServerHandler *fakebrokerserver.Handler
+	ServiceBrokerServer        *httptest.Server
 }
 
-func (t *testControllerWithBrokerServer) Close() {
-	t.BrokerServer.Close()
+func (t *testControllerWithServiceBrokerServer) Close() {
+	t.ServiceBrokerServer.Close()
 }
 
-func newTestControllerWithBrokerServer(
+func newTestControllerWithServiceBrokerServer(
 	brokerUsername,
 	brokerPassword string,
-) (*testControllerWithBrokerServer, error) {
+) (*testControllerWithServiceBrokerServer, error) {
 	// create a fake kube client
 	fakeKubeClient := &clientgofake.Clientset{}
 	// create a fake sc client
@@ -1051,10 +1051,10 @@ func newTestControllerWithBrokerServer(
 	testController, err := NewController(
 		fakeKubeClient,
 		fakeCatalogClient.ServicecatalogV1alpha1(),
-		serviceCatalogSharedInformers.Brokers(),
+		serviceCatalogSharedInformers.ServiceBrokers(),
 		serviceCatalogSharedInformers.ServiceClasses(),
-		serviceCatalogSharedInformers.Instances(),
-		serviceCatalogSharedInformers.Bindings(),
+		serviceCatalogSharedInformers.ServiceInstances(),
+		serviceCatalogSharedInformers.ServiceInstanceCredentials(),
 		osb.NewClient,
 		24*time.Hour,
 		osb.LatestAPIVersion().HeaderValue(),
@@ -1064,13 +1064,13 @@ func newTestControllerWithBrokerServer(
 		return nil, err
 	}
 
-	return &testControllerWithBrokerServer{
-		FakeKubeClient:      fakeKubeClient,
-		FakeCatalogClient:   fakeCatalogClient,
-		Controller:          testController.(*controller),
-		Informers:           serviceCatalogSharedInformers,
-		BrokerServerHandler: brokerHandler,
-		BrokerServer:        brokerServer,
+	return &testControllerWithServiceBrokerServer{
+		FakeKubeClient:             fakeKubeClient,
+		FakeCatalogClient:          fakeCatalogClient,
+		Controller:                 testController.(*controller),
+		Informers:                  serviceCatalogSharedInformers,
+		ServiceBrokerServerHandler: brokerHandler,
+		ServiceBrokerServer:        brokerServer,
 	}, nil
 }
 
@@ -1181,14 +1181,14 @@ func testActionFor(t *testing.T, name string, f failfFunc, action clientgotestin
 	var resource string
 
 	switch obj.(type) {
-	case *v1alpha1.Broker:
-		resource = "brokers"
+	case *v1alpha1.ServiceBroker:
+		resource = "servicebrokers"
 	case *v1alpha1.ServiceClass:
 		resource = "serviceclasses"
-	case *v1alpha1.Instance:
-		resource = "instances"
-	case *v1alpha1.Binding:
-		resource = "bindings"
+	case *v1alpha1.ServiceInstance:
+		resource = "serviceinstances"
+	case *v1alpha1.ServiceInstanceCredential:
+		resource = "serviceinstancecredentials"
 	}
 
 	if e, a := resource, action.GetResource().Resource; e != a {
@@ -1289,43 +1289,43 @@ func testActionFor(t *testing.T, name string, f failfFunc, action clientgotestin
 	return fakeRtObject, true
 }
 
-func assertBrokerReadyTrue(t *testing.T, obj runtime.Object) {
-	assertBrokerReadyCondition(t, obj, v1alpha1.ConditionTrue)
+func assertServiceBrokerReadyTrue(t *testing.T, obj runtime.Object) {
+	assertServiceBrokerReadyCondition(t, obj, v1alpha1.ConditionTrue)
 }
 
-func assertBrokerReadyFalse(t *testing.T, obj runtime.Object) {
-	assertBrokerReadyCondition(t, obj, v1alpha1.ConditionFalse)
+func assertServiceBrokerReadyFalse(t *testing.T, obj runtime.Object) {
+	assertServiceBrokerReadyCondition(t, obj, v1alpha1.ConditionFalse)
 }
 
-func assertBrokerReadyCondition(t *testing.T, obj runtime.Object, status v1alpha1.ConditionStatus) {
-	broker, ok := obj.(*v1alpha1.Broker)
+func assertServiceBrokerReadyCondition(t *testing.T, obj runtime.Object, status v1alpha1.ConditionStatus) {
+	broker, ok := obj.(*v1alpha1.ServiceBroker)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Broker", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceBroker", obj)
 	}
 
 	for _, condition := range broker.Status.Conditions {
-		if condition.Type == v1alpha1.BrokerConditionReady && condition.Status != status {
+		if condition.Type == v1alpha1.ServiceBrokerConditionReady && condition.Status != status {
 			fatalf(t, "ready condition had unexpected status; expected %v, got %v", status, condition.Status)
 		}
 	}
 }
 
-func assertInstanceReadyTrue(t *testing.T, obj runtime.Object) {
-	assertInstanceReadyCondition(t, obj, v1alpha1.ConditionTrue)
+func assertServiceInstanceReadyTrue(t *testing.T, obj runtime.Object) {
+	assertServiceInstanceReadyCondition(t, obj, v1alpha1.ConditionTrue)
 }
 
-func assertInstanceReadyFalse(t *testing.T, obj runtime.Object, reason ...string) {
-	assertInstanceReadyCondition(t, obj, v1alpha1.ConditionFalse, reason...)
+func assertServiceInstanceReadyFalse(t *testing.T, obj runtime.Object, reason ...string) {
+	assertServiceInstanceReadyCondition(t, obj, v1alpha1.ConditionFalse, reason...)
 }
 
-func assertInstanceReadyCondition(t *testing.T, obj runtime.Object, status v1alpha1.ConditionStatus, reason ...string) {
-	instance, ok := obj.(*v1alpha1.Instance)
+func assertServiceInstanceReadyCondition(t *testing.T, obj runtime.Object, status v1alpha1.ConditionStatus, reason ...string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
 	}
 
 	for _, condition := range instance.Status.Conditions {
-		if condition.Type == v1alpha1.InstanceConditionReady && condition.Status != status {
+		if condition.Type == v1alpha1.ServiceInstanceConditionReady && condition.Status != status {
 			fatalf(t, "ready condition had unexpected status; expected %v, got %v", status, condition.Status)
 		}
 		if len(reason) == 1 && condition.Reason != reason[0] {
@@ -1335,9 +1335,9 @@ func assertInstanceReadyCondition(t *testing.T, obj runtime.Object, status v1alp
 }
 
 func assertAsyncOpInProgressTrue(t *testing.T, obj runtime.Object) {
-	instance, ok := obj.(*v1alpha1.Instance)
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
 	}
 	if !instance.Status.AsyncOpInProgress {
 		fatalf(t, "expected AsyncOpInProgress to be true but was %v", instance.Status.AsyncOpInProgress)
@@ -1345,19 +1345,19 @@ func assertAsyncOpInProgressTrue(t *testing.T, obj runtime.Object) {
 }
 
 func assertAsyncOpInProgressFalse(t *testing.T, obj runtime.Object) {
-	instance, ok := obj.(*v1alpha1.Instance)
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
 	}
 	if instance.Status.AsyncOpInProgress {
 		fatalf(t, "expected AsyncOpInProgress to be false but was %v", instance.Status.AsyncOpInProgress)
 	}
 }
 
-func assertInstanceLastOperation(t *testing.T, obj runtime.Object, operation string) {
-	instance, ok := obj.(*v1alpha1.Instance)
+func assertServiceInstanceLastOperation(t *testing.T, obj runtime.Object, operation string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
 	}
 	if instance.Status.LastOperation == nil {
 		if operation != "" {
@@ -1368,10 +1368,10 @@ func assertInstanceLastOperation(t *testing.T, obj runtime.Object, operation str
 	}
 }
 
-func assertInstanceDashboardURL(t *testing.T, obj runtime.Object, dashboardURL string) {
-	instance, ok := obj.(*v1alpha1.Instance)
+func assertServiceInstanceDashboardURL(t *testing.T, obj runtime.Object, dashboardURL string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Instance", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
 	}
 	if instance.Status.DashboardURL == nil {
 		fatalf(t, "DashboardURL was nil")
@@ -1380,22 +1380,22 @@ func assertInstanceDashboardURL(t *testing.T, obj runtime.Object, dashboardURL s
 	}
 }
 
-func assertBindingReadyTrue(t *testing.T, obj runtime.Object) {
-	assertBindingReadyCondition(t, obj, v1alpha1.ConditionTrue)
+func assertServiceInstanceCredentialReadyTrue(t *testing.T, obj runtime.Object) {
+	assertServiceInstanceCredentialReadyCondition(t, obj, v1alpha1.ConditionTrue)
 }
 
-func assertBindingReadyFalse(t *testing.T, obj runtime.Object, reason ...string) {
-	assertBindingReadyCondition(t, obj, v1alpha1.ConditionFalse, reason...)
+func assertServiceInstanceCredentialReadyFalse(t *testing.T, obj runtime.Object, reason ...string) {
+	assertServiceInstanceCredentialReadyCondition(t, obj, v1alpha1.ConditionFalse, reason...)
 }
 
-func assertBindingReadyCondition(t *testing.T, obj runtime.Object, status v1alpha1.ConditionStatus, reason ...string) {
-	binding, ok := obj.(*v1alpha1.Binding)
+func assertServiceInstanceCredentialReadyCondition(t *testing.T, obj runtime.Object, status v1alpha1.ConditionStatus, reason ...string) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
 	if !ok {
-		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.Binding", obj)
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
 	}
 
 	for _, condition := range binding.Status.Conditions {
-		if condition.Type == v1alpha1.BindingConditionReady && condition.Status != status {
+		if condition.Type == v1alpha1.ServiceInstanceCredentialConditionReady && condition.Status != status {
 			t.Logf("ready condition: %+v", condition)
 			fatalf(t, "ready condition had unexpected status; expected %v, got %v", status, condition.Status)
 		}
@@ -1416,15 +1416,15 @@ func assertEmptyFinalizers(t *testing.T, obj runtime.Object) {
 	}
 }
 
-func assertNumberOfBrokerActions(t *testing.T, actions []fakeosb.Action, number int) {
-	testNumberOfBrokerActions(t, "" /* name */, fatalf, actions, number)
+func assertNumberOfServiceBrokerActions(t *testing.T, actions []fakeosb.Action, number int) {
+	testNumberOfServiceBrokerActions(t, "" /* name */, fatalf, actions, number)
 }
 
-func expectNumberOfBrokerActions(t *testing.T, name string, actions []fakeosb.Action, number int) bool {
-	return testNumberOfBrokerActions(t, name, errorf, actions, number)
+func expectNumberOfServiceBrokerActions(t *testing.T, name string, actions []fakeosb.Action, number int) bool {
+	return testNumberOfServiceBrokerActions(t, name, errorf, actions, number)
 }
 
-func testNumberOfBrokerActions(t *testing.T, name string, f failfFunc, actions []fakeosb.Action, number int) bool {
+func testNumberOfServiceBrokerActions(t *testing.T, name string, f failfFunc, actions []fakeosb.Action, number int) bool {
 	logContext := ""
 	if len(name) > 0 {
 		logContext = name + ": "

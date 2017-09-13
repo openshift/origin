@@ -36,15 +36,15 @@ import (
 )
 
 var (
-	errNotABinding = errors.New("not a binding")
+	errNotAServiceInstanceCredential = errors.New("not a binding")
 )
 
 // NewSingular returns a new shell of a service binding, according to the given namespace and
 // name
 func NewSingular(ns, name string) runtime.Object {
-	return &servicecatalog.Binding{
+	return &servicecatalog.ServiceInstanceCredential{
 		TypeMeta: metav1.TypeMeta{
-			Kind: tpr.ServiceBindingKind.String(),
+			Kind: tpr.ServiceInstanceCredentialKind.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -55,29 +55,29 @@ func NewSingular(ns, name string) runtime.Object {
 
 // EmptyObject returns an empty binding
 func EmptyObject() runtime.Object {
-	return &servicecatalog.Binding{}
+	return &servicecatalog.ServiceInstanceCredential{}
 }
 
 // NewList returns a new shell of a binding list
 func NewList() runtime.Object {
-	return &servicecatalog.BindingList{
+	return &servicecatalog.ServiceInstanceCredentialList{
 		TypeMeta: metav1.TypeMeta{
-			Kind: tpr.ServiceBindingListKind.String(),
+			Kind: tpr.ServiceInstanceCredentialListKind.String(),
 		},
-		Items: []servicecatalog.Binding{},
+		Items: []servicecatalog.ServiceInstanceCredential{},
 	}
 }
 
 // CheckObject returns a non-nil error if obj is not a binding object
 func CheckObject(obj runtime.Object) error {
-	_, ok := obj.(*servicecatalog.Binding)
+	_, ok := obj.(*servicecatalog.ServiceInstanceCredential)
 	if !ok {
-		return errNotABinding
+		return errNotAServiceInstanceCredential
 	}
 	return nil
 }
 
-// Match determines whether an Instance matches a field and label
+// Match determines whether an ServiceInstance matches a field and label
 // selector.
 func Match(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{
@@ -88,28 +88,28 @@ func Match(label labels.Selector, field fields.Selector) storage.SelectionPredic
 }
 
 // toSelectableFields returns a field set that represents the object for matching purposes.
-func toSelectableFields(binding *servicecatalog.Binding) fields.Set {
+func toSelectableFields(binding *servicecatalog.ServiceInstanceCredential) fields.Set {
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&binding.ObjectMeta, true)
 	return generic.MergeFieldsSets(objectMetaFieldsSet, nil)
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	binding, ok := obj.(*servicecatalog.Binding)
+	binding, ok := obj.(*servicecatalog.ServiceInstanceCredential)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a Binding")
+		return nil, nil, false, fmt.Errorf("given object is not a ServiceInstanceCredential")
 	}
 	return labels.Set(binding.ObjectMeta.Labels), toSelectableFields(binding), binding.Initializers != nil, nil
 }
 
-// NewStorage creates a new rest.Storage responsible for accessing Instance
+// NewStorage creates a new rest.Storage responsible for accessing ServiceInstanceCredential
 // resources
 func NewStorage(opts server.Options) (rest.Storage, rest.Storage, error) {
 	prefix := "/" + opts.ResourcePrefix()
 
 	storageInterface, dFunc := opts.GetStorage(
 		1000,
-		&servicecatalog.Binding{},
+		&servicecatalog.ServiceInstanceCredential{},
 		prefix,
 		bindingRESTStrategies,
 		NewList,
@@ -130,7 +130,7 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage, error) {
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,
 		// QualifiedResource should always be plural
-		QualifiedResource: api.Resource("bindings"),
+		QualifiedResource: api.Resource("serviceinstancecredentials"),
 
 		CreateStrategy:          bindingRESTStrategies,
 		UpdateStrategy:          bindingRESTStrategies,

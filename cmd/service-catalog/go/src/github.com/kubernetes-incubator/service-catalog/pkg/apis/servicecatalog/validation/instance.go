@@ -24,25 +24,25 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/controller"
 )
 
-// validateInstanceName is the validation function for Instance names.
-var validateInstanceName = apivalidation.NameIsDNSSubdomain
+// validateServiceInstanceName is the validation function for Instance names.
+var validateServiceInstanceName = apivalidation.NameIsDNSSubdomain
 
-// ValidateInstance validates an Instance and returns a list of errors.
-func ValidateInstance(instance *sc.Instance) field.ErrorList {
-	return internalValidateInstance(instance, true)
+// ValidateServiceInstance validates an Instance and returns a list of errors.
+func ValidateServiceInstance(instance *sc.ServiceInstance) field.ErrorList {
+	return internalValidateServiceInstance(instance, true)
 }
 
-func internalValidateInstance(instance *sc.Instance, create bool) field.ErrorList {
+func internalValidateServiceInstance(instance *sc.ServiceInstance, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&instance.ObjectMeta, true, /*namespace*/
-		validateInstanceName,
+		validateServiceInstanceName,
 		field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateInstanceSpec(&instance.Spec, field.NewPath("Spec"), create)...)
-	allErrs = append(allErrs, validateInstanceStatus(&instance.Status, field.NewPath("Status"), create)...)
+	allErrs = append(allErrs, validateServiceInstanceSpec(&instance.Spec, field.NewPath("Spec"), create)...)
+	allErrs = append(allErrs, validateServiceInstanceStatus(&instance.Status, field.NewPath("Status"), create)...)
 	return allErrs
 }
 
-func validateInstanceSpec(spec *sc.InstanceSpec, fldPath *field.Path, create bool) field.ErrorList {
+func validateServiceInstanceSpec(spec *sc.ServiceInstanceSpec, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if "" == spec.ServiceClassName {
@@ -87,7 +87,7 @@ func validateInstanceSpec(spec *sc.InstanceSpec, fldPath *field.Path, create boo
 	return allErrs
 }
 
-func validateInstanceStatus(spec *sc.InstanceStatus, fldPath *field.Path, create bool) field.ErrorList {
+func validateServiceInstanceStatus(spec *sc.ServiceInstanceStatus, fldPath *field.Path, create bool) field.ErrorList {
 	errors := field.ErrorList{}
 	// TODO(vaikas): Implement more comprehensive status validation.
 	// https://github.com/kubernetes-incubator/service-catalog/issues/882
@@ -96,8 +96,8 @@ func validateInstanceStatus(spec *sc.InstanceStatus, fldPath *field.Path, create
 	// ongoing
 	if spec.AsyncOpInProgress {
 		for _, c := range spec.Conditions {
-			if c.Type == sc.InstanceConditionReady && c.Status == sc.ConditionTrue {
-				errors = append(errors, field.Forbidden(fldPath.Child("Conditions"), "Can not set InstanceConditionReady to true when an async operation is in progress"))
+			if c.Type == sc.ServiceInstanceConditionReady && c.Status == sc.ConditionTrue {
+				errors = append(errors, field.Forbidden(fldPath.Child("Conditions"), "Can not set ServiceInstanceConditionReady to true when an async operation is in progress"))
 			}
 		}
 	}
@@ -105,9 +105,9 @@ func validateInstanceStatus(spec *sc.InstanceStatus, fldPath *field.Path, create
 	return errors
 }
 
-// internalValidateInstanceUpdateAllowed ensures there is not an asynchronous
+// internalValidateServiceInstanceUpdateAllowed ensures there is not an asynchronous
 // operation ongoing with the instance before allowing an update to go through.
-func internalValidateInstanceUpdateAllowed(new *sc.Instance, old *sc.Instance) field.ErrorList {
+func internalValidateServiceInstanceUpdateAllowed(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	errors := field.ErrorList{}
 	if old.Status.AsyncOpInProgress {
 		errors = append(errors, field.Forbidden(field.NewPath("Spec"), "Another operation for this service instance is in progress"))
@@ -115,26 +115,26 @@ func internalValidateInstanceUpdateAllowed(new *sc.Instance, old *sc.Instance) f
 	return errors
 }
 
-// ValidateInstanceUpdate validates a change to the Instance's spec.
-func ValidateInstanceUpdate(new *sc.Instance, old *sc.Instance) field.ErrorList {
+// ValidateServiceInstanceUpdate validates a change to the Instance's spec.
+func ValidateServiceInstanceUpdate(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateInstanceUpdateAllowed(new, old)...)
-	allErrs = append(allErrs, internalValidateInstance(new, false)...)
+	allErrs = append(allErrs, internalValidateServiceInstanceUpdateAllowed(new, old)...)
+	allErrs = append(allErrs, internalValidateServiceInstance(new, false)...)
 	return allErrs
 }
 
-func internalValidateInstanceStatusUpdateAllowed(new *sc.Instance, old *sc.Instance) field.ErrorList {
+func internalValidateServiceInstanceStatusUpdateAllowed(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	errors := field.ErrorList{}
 	// TODO(vaikas): Are there any cases where we do not allow updates to
 	// Status during Async updates in progress?
 	return errors
 }
 
-// ValidateInstanceStatusUpdate checks that when changing from an older
+// ValidateServiceInstanceStatusUpdate checks that when changing from an older
 // instance to a newer instance is okay. This only checks the instance.Status field.
-func ValidateInstanceStatusUpdate(new *sc.Instance, old *sc.Instance) field.ErrorList {
+func ValidateServiceInstanceStatusUpdate(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateInstanceStatusUpdateAllowed(new, old)...)
-	allErrs = append(allErrs, internalValidateInstance(new, false)...)
+	allErrs = append(allErrs, internalValidateServiceInstanceStatusUpdateAllowed(new, old)...)
+	allErrs = append(allErrs, internalValidateServiceInstance(new, false)...)
 	return allErrs
 }

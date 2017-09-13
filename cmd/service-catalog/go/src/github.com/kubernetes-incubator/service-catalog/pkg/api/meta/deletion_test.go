@@ -25,7 +25,7 @@ import (
 )
 
 func TestDeletionTimestampExists(t *testing.T) {
-	obj := &sc.Instance{
+	obj := &sc.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{},
 	}
 	exists, err := DeletionTimestampExists(obj)
@@ -49,7 +49,7 @@ func TestDeletionTimestampExists(t *testing.T) {
 func TestRoundTripDeletionTimestamp(t *testing.T) {
 	t1 := metav1.NewTime(time.Now())
 	t2 := metav1.NewTime(time.Now().Add(1 * time.Hour))
-	obj := &sc.Instance{
+	obj := &sc.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			DeletionTimestamp: &t1,
 		},

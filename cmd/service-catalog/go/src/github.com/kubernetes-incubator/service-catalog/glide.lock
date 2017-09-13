@@ -1,5 +1,5 @@
-hash: e872ffba1b42ff4d0b77dc5af5bbe6fadc77647e1edbfa9a7fde7699459cf139
-updated: 2017-07-21T13:58:14.204655699+10:00
+hash: 05f4625aa27fdafe2ace9772c71ac69edf0d3592dd6a247463340c88aef8bc0a
+updated: 2017-08-10T00:39:55.84973729-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -133,7 +133,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
 - name: github.com/golang/groupcache
   version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
   subpackages:
@@ -160,7 +160,7 @@ imports:
 - name: github.com/gorilla/handlers
   version: a4d79d4487c2430a17d9dc8a1f74d1a6ed6908ca
 - name: github.com/gorilla/mux
-  version: bcd8bc72b08df0f70df986b97f95590779502d31
+  version: ac112f7d75a0714af1bd86ab17749b31f7809640
 - name: github.com/grpc-ecosystem/go-grpc-prometheus
   version: 2500245aa6110c562d17020fb31a2c133d737799
 - name: github.com/grpc-ecosystem/grpc-gateway
@@ -238,7 +238,7 @@ imports:
 - name: github.com/pkg/errors
   version: a22138067af1c4942683050411a841ade67fe1eb
 - name: github.com/pmorie/go-open-service-broker-client
-  version: a15af7d9e6c264f61daf883b78ed3f13a0b53de6
+  version: 48d1e069bbc4a7ec3fe52dee77a48046fbbf48e4
   subpackages:
   - v2
   - v2/fake
