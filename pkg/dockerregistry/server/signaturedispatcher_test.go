@@ -57,6 +57,8 @@ func TestSignatureGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", "localhost:5000")
+
 	ctx := context.Background()
 	ctx = withUserClient(ctx, osclient)
 	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
@@ -162,6 +164,8 @@ func TestSignaturePut(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", "localhost:5000")
 
 	ctx := context.Background()
 	ctx = withUserClient(ctx, osclient)

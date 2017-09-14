@@ -333,6 +333,8 @@ func (ac *AccessController) Authorized(ctx context.Context, accessRecords ...reg
 				if err := verifyImageSignatureAccess(ctx, namespace, name, osClient); err != nil {
 					return nil, ac.wrapErr(ctx, err)
 				}
+			default:
+				return nil, ac.wrapErr(ctx, ErrUnsupportedAction)
 			}
 
 		case "metrics":

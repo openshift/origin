@@ -115,7 +115,11 @@ func NewApp(ctx context.Context, registryClient client.RegistryClient, dockerCon
 
 	// Registry extensions endpoint provides extra functionality to handle the image
 	// signatures.
-	RegisterSignatureHandler(dockerApp)
+	isImageClient, err := registryClient.Client()
+	if err != nil {
+		context.GetLogger(dockerApp).Fatalf("unable to get client for signatures: %v", err)
+	}
+	RegisterSignatureHandler(dockerApp, isImageClient)
 
 	// Registry extensions endpoint provides prometheus metrics.
 	if extraConfig.Metrics.Enabled {
