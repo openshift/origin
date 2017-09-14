@@ -20,8 +20,8 @@ package brokerapi
 // retrieval, service instance management, and service binding management.
 //
 // The broker client defines functions for the catalog, instance and binding APIs for the
-// open service broker API (https://www.openservicebrokerapi.org/, based on the cloud foundry
-// service broker API: https://docs.cloudfoundry.org/services/api.html).
+// Open Service Broker API (https://www.openservicebrokerapi.org/, based on the Cloud Foundry
+// Service Broker API: https://docs.cloudfoundry.org/services/api.html).
 //
 // Each function accepts and returns parameters that are unique to this package. For example,
 // the catalog API function, GetCatalog, returns a *brokerapi.Catalog data type. Most callers

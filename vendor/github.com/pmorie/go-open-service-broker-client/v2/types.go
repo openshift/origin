@@ -121,6 +121,18 @@ type AlphaInputParameters struct {
 	Parameters interface{} `json:"parameters,omitempty"`
 }
 
+// AlphaOriginatingIdentity is ALPHA and may change or disappear at any time.
+//
+// AlphaOriginatingIdentity is used to pass to the broker service an identity from
+// the platform
+type AlphaOriginatingIdentity struct {
+	// The name of the platform to which the user belongs
+	Platform string
+	// A serialized JSON object that describes the user in a way that makes
+	// sense to the platform
+	Value string
+}
+
 // CatalogResponse is sent as the response to catalog requests.
 type CatalogResponse struct {
 	Services []Service `json:"services"`
@@ -153,6 +165,8 @@ type ProvisionRequest struct {
 	// service instance is to be provisioned.  Context was added in version
 	// 2.12 of the OSB API and is only sent for versions 2.12 or later.
 	Context map[string]interface{} `json:"context,omitempty"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity *AlphaOriginatingIdentity `json:"originatingIdentity,omitempty"`
 }
 
 // ProvisionResponse is sent in response to a provision call
@@ -166,6 +180,8 @@ type ProvisionResponse struct {
 	// OperationKey is an extra identifier supplied by the broker to identify
 	// asynchronous operations.
 	OperationKey *OperationKey `json:"operationKey,omitempty"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity AlphaOriginatingIdentity
 }
 
 // OperationKeys may be returned by the broker in order to provide extra
@@ -191,6 +207,8 @@ type UpdateInstanceRequest struct {
 	// unset, indicates that the client does not wish to update the parameters
 	// for an instance.
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity *AlphaOriginatingIdentity `json:"originatingIdentity,omitempty"`
 
 	// The OSB API also has a field called `previous_values` that contains:
 	// OrgID
@@ -228,6 +246,8 @@ type DeprovisionRequest struct {
 	ServiceID string `json:service_id"`
 	// PlanID is the ID of the plan the instance is provisioned from.
 	PlanID string `json:plan_id"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity *AlphaOriginatingIdentity `json:"originatingIdentity,omitempty"`
 }
 
 // DeprovisionResponse represents a broker's response to a deprovision request.
@@ -256,6 +276,8 @@ type LastOperationRequest struct {
 	// response to the initial request.  Optional, but must be sent if
 	// supplied in the response to the original request.
 	OperationKey *OperationKey `json:"operation,omitempty"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity *AlphaOriginatingIdentity `json:"originatingIdentity,omitempty"`
 }
 
 // LastOperationResponse represents the broker response with the state of a
@@ -299,6 +321,8 @@ type BindRequest struct {
 	BindResource *BindResource `json:"bind_resource,omitempty"`
 	// Parameters is configuration parameters for the binding.  Optional.
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity *AlphaOriginatingIdentity `json:"originatingIdentity,omitempty"`
 }
 
 // BindResource contains data for platform resources associated with a
@@ -338,6 +362,8 @@ type UnbindRequest struct {
 	ServiceID string `json:"service_id"`
 	// PlanID is the ID of the plan the instance was provisioned from.
 	PlanID string `json:"plan_id"`
+	// OriginatingIdentity is the identity on the platform of the user making this request.
+	OriginatingIdentity *AlphaOriginatingIdentity `json:"originatingIdentity,omitempty"`
 }
 
 // UnbindResponse represents a broker's response to an UnbindRequest.

@@ -104,7 +104,7 @@ func withConfigGetFreshApiserverAndClient(
 		options := &server.ServiceCatalogServerOptions{
 			StorageTypeString:       serverConfig.storageType.String(),
 			GenericServerRunOptions: genericserveroptions.NewServerRunOptions(),
-			AdmissionOptions: genericserveroptions.NewAdmissionOptions(),
+			AdmissionOptions:        genericserveroptions.NewAdmissionOptions(),
 			SecureServingOptions:    secureServingOptions,
 			EtcdOptions:             etcdOptions,
 			TPROptions:              tprOptions,
@@ -144,7 +144,7 @@ func getFreshApiserverAndClient(
 	t *testing.T,
 	storageTypeStr string,
 	newEmptyObj func() runtime.Object,
-) (servicecatalogclient.Interface, func()) {
+) (servicecatalogclient.Interface, *restclient.Config, func()) {
 	var serverStorageType serverstorage.StorageType
 	serverStorageType, err := serverstorage.StorageTypeFromString(storageTypeStr)
 	if nil != err {
@@ -156,8 +156,8 @@ func getFreshApiserverAndClient(
 		storageType:    serverStorageType,
 		emptyObjFunc:   newEmptyObj,
 	}
-	client, _, shutdownFunc := withConfigGetFreshApiserverAndClient(t, serverConfig)
-	return client, shutdownFunc
+	client, clientConfig, shutdownFunc := withConfigGetFreshApiserverAndClient(t, serverConfig)
+	return client, clientConfig, shutdownFunc
 }
 
 func waitForApiserverUp(serverURL string, stopCh <-chan struct{}) error {

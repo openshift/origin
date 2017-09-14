@@ -114,9 +114,13 @@ const (
 type ServiceBrokerStatus struct {
 	Conditions []ServiceBrokerCondition
 
-	// ReconciledGeneration is the generation of the broker that was last
-	// successfully reconciled.
+	// ReconciledGeneration is the 'Generation' of the serviceBrokerSpec that
+	// was last processed by the controller. The reconciled generation is updated
+	// even if the controller failed to process the spec.
 	ReconciledGeneration int64
+
+	// OperationStartTime is the time at which the current operation began.
+	OperationStartTime *metav1.Time
 }
 
 // ServiceBrokerCondition contains condition information for a Broker.
@@ -147,6 +151,10 @@ const (
 	// ServiceBrokerConditionReady represents the fact that a given broker condition
 	// is in ready state.
 	ServiceBrokerConditionReady ServiceBrokerConditionType = "Ready"
+
+	// ServiceBrokerConditionFailed represents information about a final failure
+	// that should not be retried.
+	ServiceBrokerConditionFailed ServiceInstanceConditionType = "Failed"
 )
 
 // ConditionStatus represents a condition's status.
@@ -223,16 +231,16 @@ type ServiceClass struct {
 	// attributes of the ServiceClass.  These are used in Cloud Foundry in a
 	// way similar to Kubernetes labels, but they currently have no special
 	// meaning in Kubernetes.
-	AlphaTags []string
+	Tags []string
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaRequires exposes a list of Cloud Foundry-specific 'permissions'
+	// Requires exposes a list of Cloud Foundry-specific 'permissions'
 	// that must be granted to an instance of this service within Cloud
 	// Foundry.  These 'permissions' have no meaning within Kubernetes and an
 	// ServiceInstance provisioned from this ServiceClass will not work correctly.
-	AlphaRequires []string
+	Requires []string
 }
 
 // ServicePlan represents a tier of a ServiceClass.
@@ -264,24 +272,24 @@ type ServicePlan struct {
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaServiceInstanceCreateParameterSchema is the schema for the parameters
+	// ServiceInstanceCreateParameterSchema is the schema for the parameters
 	// that may be supplied when provisioning a new ServiceInstance on this plan.
-	AlphaServiceInstanceCreateParameterSchema *runtime.RawExtension
+	ServiceInstanceCreateParameterSchema *runtime.RawExtension
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaServiceInstanceUpdateParameterSchema is the schema for the parameters
+	// ServiceInstanceUpdateParameterSchema is the schema for the parameters
 	// that may be updated once an ServiceInstance has been provisioned on this plan.
 	// This field only has meaning if the ServiceClass is PlanUpdatable.
-	AlphaServiceInstanceUpdateParameterSchema *runtime.RawExtension
+	ServiceInstanceUpdateParameterSchema *runtime.RawExtension
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaServiceInstanceCredentialCreateParameterSchema is the schema for the parameters that
+	// ServiceInstanceCredentialCreateParameterSchema is the schema for the parameters that
 	// may be supplied binding to an ServiceInstance on this plan.
-	AlphaServiceInstanceCredentialCreateParameterSchema *runtime.RawExtension
+	ServiceInstanceCredentialCreateParameterSchema *runtime.RawExtension
 }
 
 // ServiceInstanceList is a list of instances.
@@ -292,9 +300,27 @@ type ServiceInstanceList struct {
 	Items []ServiceInstance
 }
 
+// UserInfo holds information about the user that last changed a resource's spec.
+type UserInfo struct {
+	Username string
+	UID      string
+	Groups   []string
+	Extra    map[string]ExtraValue
+}
+
+// ExtraValue contains additional information about a user that may be
+// provided by the authenticator.
+type ExtraValue []string
+
 // +genclient=true
 
 // ServiceInstance represents a provisioned instance of a ServiceClass.
+// Currently, the spec field cannot be changed once a ServiceInstance is
+// created.  Spec changes submitted by users will be ignored.
+//
+// In the future, this will be allowed and will represent the intention that
+// the ServiceInstance should have the plan and/or parameters updated at the
+// ServiceBroker.
 type ServiceInstance struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
@@ -336,6 +362,15 @@ type ServiceInstanceSpec struct {
 	//
 	// Immutable.
 	ExternalID string
+
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// UserInfo contains information about the user that last modified this
+	// instance. This field is set by the API server and not settable by the
+	// end-user. User-provided values for this field are not saved.
+	// +optional
+	UserInfo *UserInfo
 }
 
 // ServiceInstanceStatus represents the current status of an Instance.
@@ -357,9 +392,13 @@ type ServiceInstanceStatus struct {
 	// the service instance.
 	DashboardURL *string
 
-	// Checksum is the checksum of the ServiceInstanceSpec that was last successfully
-	// reconciled against the broker.
-	Checksum *string
+	// ReconciledGeneration is the 'Generation' of the serviceInstanceSpec that
+	// was last processed by the controller. The reconciled generation is updated
+	// even if the controller failed to process the spec.
+	ReconciledGeneration int64
+
+	// OperationStartTime is the time at which the current operation began.
+	OperationStartTime *metav1.Time
 }
 
 // ServiceInstanceCondition contains condition information about an Instance.
@@ -416,7 +455,11 @@ type ServiceInstanceCredential struct {
 	Status ServiceInstanceCredentialStatus
 }
 
-// ServiceInstanceCredentialSpec represents the desired state of a ServiceInstanceCredential.
+// ServiceInstanceCredentialSpec represents the desired state of a
+// ServiceInstanceCredential.
+//
+// The spec field cannot be changed after a ServiceInstanceCredential is
+// created.  Changes submitted to the spec field will be ignored.
 type ServiceInstanceCredentialSpec struct {
 	// ServiceInstanceRef is the reference to the Instance this ServiceInstanceCredential is to.
 	//
@@ -448,15 +491,29 @@ type ServiceInstanceCredentialSpec struct {
 	//
 	// Immutable.
 	ExternalID string
+
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// UserInfo contains information about the user that last modified this
+	// ServiceInstanceCredential. This field is set by the API server and not
+	// settable by the end-user. User-provided values for this field are not saved.
+	// +optional
+	UserInfo *UserInfo
 }
 
 // ServiceInstanceCredentialStatus represents the current status of a ServiceInstanceCredential.
 type ServiceInstanceCredentialStatus struct {
 	Conditions []ServiceInstanceCredentialCondition
 
-	// Checksum is the checksum of the ServiceInstanceCredentialSpec that was last successfully
-	// reconciled against the broker.
-	Checksum *string
+	// ReconciledGeneration is the 'Generation' of the
+	// serviceInstanceCredentialSpec that was last processed by the controller.
+	// The reconciled generation is updated even if the controller failed to
+	// process the spec.
+	ReconciledGeneration int64
+
+	// OperationStartTime is the time at which the current operation began.
+	OperationStartTime *metav1.Time
 }
 
 // ServiceInstanceCredentialCondition condition information for a ServiceInstanceCredential.

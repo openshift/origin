@@ -14,9 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// The apiserver is the api server and master for the service catalog.
-// It is responsible for serving the service catalog management API.
-
+// The apiserver serves the REST APIs for the service catalog API.
 package main
 
 import (

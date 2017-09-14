@@ -20,7 +20,7 @@ func (c *client) DeprovisionInstance(r *DeprovisionRequest) (*DeprovisionRespons
 		params[asyncQueryParamKey] = "true"
 	}
 
-	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, nil)
+	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, nil, r.OriginatingIdentity)
 	if err != nil {
 		return nil, err
 	}

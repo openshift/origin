@@ -114,13 +114,16 @@ Define a local working directory:
 
 From your shell:
 ```bash
-#Set your working directory
+# Run the following only if `echo $GOPATH` shows nothing.
+export GOPATH=$(go env GOPATH)
+
+# Set your working directory
 working_dir=$GOPATH/src/github.com/kubernetes-incubator
 
-#Set user to match your github profile name
+# Set user to match your github profile name
 user={your github profile name}
 
-#Create your clone:
+# Create your clone:
 mkdir -p $working_dir
 cd $working_dir
 git clone https://github.com/$user/service-catalog.git

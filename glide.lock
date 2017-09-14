@@ -1,5 +1,5 @@
-hash: 05f4625aa27fdafe2ace9772c71ac69edf0d3592dd6a247463340c88aef8bc0a
-updated: 2017-08-10T00:39:55.84973729-04:00
+hash: 5d26c3e65e6f7e51810c5c664a2c3a34b8cab6c16fd1557ac4b8fc8a1145dc7d
+updated: 2017-09-07T15:57:30.299401518-04:00
 imports:
 - name: bitbucket.org/ww/goautoneg
   version: 75cd24fc2f2c2a2088577d12123ddee5f54e0675
@@ -133,7 +133,7 @@ imports:
   - proto
   - sortkeys
 - name: github.com/golang/glog
-  version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/groupcache
   version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
   subpackages:
@@ -238,7 +238,7 @@ imports:
 - name: github.com/pkg/errors
   version: a22138067af1c4942683050411a841ade67fe1eb
 - name: github.com/pmorie/go-open-service-broker-client
-  version: 48d1e069bbc4a7ec3fe52dee77a48046fbbf48e4
+  version: 962a416798366b37a20a06fdb0a09180589ca964
   subpackages:
   - v2
   - v2/fake

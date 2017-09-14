@@ -87,7 +87,7 @@ type bpStruct struct {
 func TestGroupVersion(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
 				return &servicecatalog.ServiceBroker{}
 			})
 			defer shutdownServer()
@@ -169,7 +169,7 @@ func testGroupVersion(client servicecatalogclient.Interface) error {
 func TestNoName(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
 				return &servicecatalog.ServiceBroker{}
 			})
 			defer shutdownServer()
@@ -211,7 +211,7 @@ func TestBrokerClient(t *testing.T) {
 	const name = "test-broker"
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
 				return &servicecatalog.ServiceBroker{}
 			})
 			defer shutdownServer()
@@ -375,7 +375,7 @@ func TestServiceClassClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-serviceclass"
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
 				return &servicecatalog.ServiceClass{}
 			})
 			defer shutdownServer()
@@ -498,7 +498,7 @@ func TestInstanceClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-instance"
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
 				return &servicecatalog.ServiceInstance{}
 			})
 			defer shutdownServer()
@@ -627,9 +627,6 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 	if e, a := readyConditionTrue, instanceServer.Status.Conditions[0]; !reflect.DeepEqual(e, a) {
 		return fmt.Errorf("Didn't get matching ready conditions:\nexpected: %v\n\ngot: %v", e, a)
 	}
-	if instanceServer.Status.Checksum == nil {
-		return fmt.Errorf("Checksum should have been set after updating ready condition to true")
-	}
 
 	// delete the instance, set its finalizers to nil, update it, then ensure it is actually
 	// deleted
@@ -660,7 +657,7 @@ func TestBindingClient(t *testing.T) {
 	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
 		return func(t *testing.T) {
 			const name = "test-binding"
-			client, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
 				return &servicecatalog.ServiceInstanceCredential{}
 			})
 			defer shutdownServer()
@@ -797,9 +794,6 @@ func testBindingClient(sType server.StorageType, client servicecatalogclient.Int
 	}
 	if e, a := readyConditionTrue, bindingServer.Status.Conditions[0]; !reflect.DeepEqual(e, a) {
 		return fmt.Errorf("Didn't get matching ready conditions:\nexpected: %v\n\ngot: %v", e, a)
-	}
-	if bindingServer.Status.Checksum == nil {
-		return fmt.Errorf("Checksum should have been set after updating ready condition to true")
 	}
 
 	if err = bindingClient.Delete(name, &metav1.DeleteOptions{}); nil != err {
