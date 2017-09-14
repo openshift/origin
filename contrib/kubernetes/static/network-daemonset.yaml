@@ -1,0 +1,111 @@
+kind: DaemonSet
+apiVersion: v1
+metadata:
+  name: openshift-node-network
+  annotations:
+    kubernetes.io/description: |
+      This daemon set launches the OpenShift networking components (kube-proxy, DNS, and openshift-sdn)
+      along with the openvswitch daemon.
+spec:
+  template:
+    metadata:
+      labels:
+        component: network
+        type: infra
+        openshift.io/role: network
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: network
+        image: openshift/node:v3.6.0
+        command: ["/usr/bin/openshift", "start", "network"]
+        args:
+        - "--config=/etc/openshift/node/node-config.yaml"
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        volumeMounts:
+        - mountPath: /etc/openshift/node/
+          name: host-config
+          readOnly: true
+        resources:
+          request:
+            cpu: 100m
+            memory: 200Mi
+        env:
+          name: OPENSHIFT_DNS_DOMAIN
+          value: cluster.local
+        ports:
+        - name: healthz
+          port: 10256
+        livenessProbe:
+          initialDelaySeconds: 10
+          httpGet:
+            path: /healthz
+            port: 10256
+            scheme: https
+        lifecycle:
+          postStart:
+            exec:
+              command:
+              - /usr/bin/dbus-send
+              - --system
+              - --dest=uk.org.thekelleys.dnsmasq
+              - /uk/org/thekelleys/dnsmasq
+              - uk.org.thekelleys.SetDomainServers
+              - array:string:/in-addr.arpa/127.0.0.1,/$(OPENSHIFT_DNS_DOMAIN)/127.0.0.1
+          preStop:
+            exec:
+              command:
+              - /usr/bin/dbus-send
+              - --system
+              - --dest=uk.org.thekelleys.dnsmasq
+              - /uk/org/thekelleys/dnsmasq
+              - uk.org.thekelleys.SetDomainServers
+              - "array:string:"
+
+      - name: openvswitch
+        image: openshift/openvswitch:v3.6.0
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        volumeMounts:
+        - mountPath: /lib/modules
+          name: host-modules
+          readOnly: true
+        - mountPath: /run
+          name: host-run
+          readOnly: true
+        - mountPath: /sys
+          name: host-sys
+          readOnly: true
+        - mountPath: /etc/openvswitch
+          name: host-config-openvswitch
+          readOnly: true
+        resources:
+          request:
+            cpu: 100m
+            memory: 200Mi
+          limit:
+            cpu: 200m
+            memory: 300Mi
+
+      volumes:
+      - name: host-config
+        hostPath:
+          path: /etc/origin/node/
+      - name: host-modules
+        hostPath:
+          path: /lib/modules
+      - name: host-run
+        hostPath:
+          path: /run
+      - name: host-sys
+        hostPath:
+          path: /sys
+      - name: host-config-openvswitch
+        hostPath:
+          path: /etc/origin/openvswitch
