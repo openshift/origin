@@ -59,6 +59,9 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
 				result, err := CheckPageContains(oc, dcName, "", pageCountFn(i))
+				if err != nil || !result {
+					exutil.DumpApplicationPodLogs(dcName, oc)
+				}
 				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 				o.ExpectWithOffset(1, result).To(o.BeTrue())
 			}
