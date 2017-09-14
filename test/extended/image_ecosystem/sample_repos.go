@@ -2,10 +2,13 @@ package image_ecosystem
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
+
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
@@ -87,8 +90,17 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("verifying string from app request")
-				response, err := exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(30*time.Second))
-				o.Expect(err).NotTo(o.HaveOccurred())
+				var response string
+				err = wait.Poll(1*time.Second, 2*time.Minute, func() (bool, error) {
+					response, err = exutil.FetchURL("http://"+serviceIP+":8080"+c.appPath, time.Duration(1*time.Minute))
+					if err != nil {
+						o.Expect(err).NotTo(o.HaveOccurred())
+					}
+					if strings.Contains(response, c.expectedString) {
+						return true, nil
+					}
+					return false, nil
+				})
 				o.Expect(response).Should(o.ContainSubstring(c.expectedString))
 			})
 		})
