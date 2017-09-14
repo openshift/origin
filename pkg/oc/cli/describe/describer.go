@@ -226,7 +226,12 @@ func describeBuildDuration(build *buildapi.Build) string {
 		// time a still running build has been running in a pod
 		duration := metav1.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
 		return fmt.Sprintf("running for %v", duration)
+	} else if build.Status.CompletionTimestamp == nil &&
+		build.Status.StartTimestamp == nil &&
+		build.Status.Phase == buildapi.BuildPhaseCancelled {
+		return "<none>"
 	}
+
 	duration := build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
 	return fmt.Sprintf("%v", duration)
 }
