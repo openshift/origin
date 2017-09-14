@@ -19,6 +19,7 @@ import (
 )
 
 var timeout = flag.Duration("sub.timeout", 0, "Specify the timeout for each sub test")
+var loglevel = flag.Int("sub.v", 0, "Set the level of log output (0-10)")
 
 func TestIntegration(t *testing.T) {
 	executeTests(t, "..", "github.com/openshift/origin/test/integration", 1)
@@ -157,6 +158,7 @@ func runSingleTest(t *testing.T, dir, binaryPath, name string) error {
 		cmd.Args = append(cmd.Args, "-test.short")
 	}
 	cmd.Args = append(cmd.Args, "-test.timeout", (*timeout).String())
+	cmd.Args = append(cmd.Args, "-v", fmt.Sprintf("%d", loglevel))
 
 	out, err := cmd.CombinedOutput()
 	if err != nil {

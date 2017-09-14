@@ -8,4 +8,4 @@ if [[ -z "${OPENSHIFT_SKIP_BUILD-}" ]]; then
 fi
 os::util::environment::update_path_var
 
-COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=45m GOTESTFLAGS="-sub.timeout=120s" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner"
+COVERAGE_SPEC=" " DETECT_RACES=false TMPDIR="${BASETMPDIR}" TIMEOUT=45m GOTESTFLAGS="-sub.timeout=120s -sub.v=${LOGLEVEL:-0}" "${OS_ROOT}/hack/test-go.sh" "test/integration/runner" "$@"
