@@ -10,8 +10,8 @@ plans:
   - name: example-plan-1
     externalID: 10e03cb7-b2cf-40dd-a954-16a382b92446
     description: "plan 1 description"
-    osbFree: true
+    free: true
   - name: example-plan-2
     externalID: b8269ab4-7d2d-456d-8c8b-5aab63b321d1
     description: "plan 2 description"
-    osbFree: false
+    free: false

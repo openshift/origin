@@ -92,6 +92,8 @@ const (
 	errorNonbindableServiceClassReason         string = "ErrorNonbindableServiceClass"
 	errorServiceInstanceNotReadyReason         string = "ErrorInstanceNotReady"
 	errorPollingLastOperationReason            string = "ErrorPollingLastOperation"
+	errorWithOriginatingIdentity               string = "Error with Originating Identity"
+	errorReconciliationRetryTimeoutReason      string = "ErrorReconciliationRetryTimeout"
 
 	successInjectedBindResultReason    string = "InjectedBindResult"
 	successInjectedBindResultMessage   string = "Injected bind result"
@@ -202,6 +204,7 @@ func (c *controller) reconcileServiceBroker(broker *v1alpha1.ServiceBroker) erro
 		}
 
 		glog.V(4).Infof("Adding/Updating ServiceBroker %v", broker.Name)
+		now := metav1.Now()
 		brokerCatalog, err := brokerClient.GetCatalog()
 		if err != nil {
 			s := fmt.Sprintf("Error getting broker catalog for broker %q: %s", broker.Name, err)
@@ -209,9 +212,49 @@ func (c *controller) reconcileServiceBroker(broker *v1alpha1.ServiceBroker) erro
 			c.recorder.Eventf(broker, api.EventTypeWarning, errorFetchingCatalogReason, s)
 			c.updateServiceBrokerCondition(broker, v1alpha1.ServiceBrokerConditionReady, v1alpha1.ConditionFalse, errorFetchingCatalogReason,
 				errorFetchingCatalogMessage+s)
+			if broker.Status.OperationStartTime == nil {
+				clone, err := api.Scheme.DeepCopy(broker)
+				if err == nil {
+					toUpdate := clone.(*v1alpha1.ServiceBroker)
+					toUpdate.Status.OperationStartTime = &now
+					_, err := c.serviceCatalogClient.ServiceBrokers().UpdateStatus(toUpdate)
+					if err != nil {
+						glog.Errorf("Error updating operation start time of ServiceBroker %q: %v", broker.Name, err)
+					}
+				}
+			} else if !time.Now().Before(broker.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
+				s := fmt.Sprintf("Stopping reconciliation retries on ServiceBroker %q because too much time has elapsed", broker.Name)
+				glog.Info(s)
+				c.recorder.Event(broker, api.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
+				clone, err := api.Scheme.DeepCopy(broker)
+				if err == nil {
+					toUpdate := clone.(*v1alpha1.ServiceBroker)
+					toUpdate.Status.OperationStartTime = nil
+					toUpdate.Status.ReconciledGeneration = toUpdate.Generation
+					c.updateServiceBrokerCondition(toUpdate,
+						v1alpha1.ServiceBrokerConditionFailed,
+						v1alpha1.ConditionTrue,
+						errorReconciliationRetryTimeoutReason,
+						s)
+				}
+				return nil
+			}
 			return err
 		}
 		glog.V(5).Infof("Successfully fetched %v catalog entries for ServiceBroker %v", len(brokerCatalog.Services), broker.Name)
+
+		if broker.Status.OperationStartTime != nil {
+			clone, err := api.Scheme.DeepCopy(broker)
+			if err != nil {
+				return err
+			}
+			toUpdate := clone.(*v1alpha1.ServiceBroker)
+			toUpdate.Status.OperationStartTime = nil
+			if _, err := c.serviceCatalogClient.ServiceBrokers().UpdateStatus(toUpdate); err != nil {
+				glog.Errorf("Error updating operation start time of ServiceBroker %q: %v", broker.Name, err)
+				return err
+			}
+		}
 
 		glog.V(4).Infof("Converting catalog response for ServiceBroker %v into service-catalog API", broker.Name)
 		catalog, err := convertCatalog(brokerCatalog)
@@ -365,9 +408,9 @@ func (c *controller) reconcileServiceClassFromServiceBrokerCatalog(broker *v1alp
 	toUpdate.Bindable = serviceClass.Bindable
 	toUpdate.Plans = serviceClass.Plans
 	toUpdate.PlanUpdatable = serviceClass.PlanUpdatable
-	toUpdate.AlphaTags = serviceClass.AlphaTags
+	toUpdate.Tags = serviceClass.Tags
 	toUpdate.Description = serviceClass.Description
-	toUpdate.AlphaRequires = serviceClass.AlphaRequires
+	toUpdate.Requires = serviceClass.Requires
 
 	if _, err := c.serviceCatalogClient.ServiceClasses().Update(toUpdate); err != nil {
 		glog.Errorf("Error updating serviceClass %v from ServiceBroker %v: %v", serviceClass.Name, broker.Name, err)

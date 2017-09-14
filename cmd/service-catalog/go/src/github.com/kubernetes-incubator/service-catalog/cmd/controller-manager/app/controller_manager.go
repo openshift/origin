@@ -335,6 +335,7 @@ func StartControllers(s *options.ControllerManagerServer,
 			s.ServiceBrokerRelistInterval,
 			s.OSBAPIPreferredVersion,
 			recorder,
+			s.ReconciliationRetryDuration,
 		)
 		if err != nil {
 			return err

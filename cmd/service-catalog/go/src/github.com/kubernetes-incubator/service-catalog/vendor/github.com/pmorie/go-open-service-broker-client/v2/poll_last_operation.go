@@ -31,7 +31,7 @@ func (c *client) PollLastOperation(r *LastOperationRequest) (*LastOperationRespo
 		params[operationKey] = opStr
 	}
 
-	response, err := c.prepareAndDo(http.MethodGet, fullURL, params, nil /* request body */)
+	response, err := c.prepareAndDo(http.MethodGet, fullURL, params, nil /* request body */, r.OriginatingIdentity)
 	if err != nil {
 		return nil, err
 	}

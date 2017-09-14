@@ -24,7 +24,6 @@ while [[ $# -gt 0 ]]; do
   case "${1}" in
     --registry)         REGISTRY="${2:-}"; shift ;;
     --version)          VERSION="${2:-}"; shift ;;
-    --with-tpr)         WITH_TPR=1 ;;
     --cleanup)          CLEANUP=1 ;;
     --create-artifacts) CREATE_ARTIFACTS=1 ;;
     --fix-auth)         FIX_CONFIGMAP=1 ;;
@@ -43,12 +42,7 @@ function cleanup() {
 
   if [[ -n "${CREATE_ARTIFACTS:-}" ]]; then
     echo 'Creating artifacts...'
-    PREFIX="e2e.test_"
-    if [[ -n "${WITH_TPR:-}" ]]; then
-      PREFIX+='tpr-backed'
-    else
-      PREFIX+='etcd-backed'
-    fi
+    PREFIX="e2e.test"
 
     "${ROOT}/contrib/hack/create_artifacts.sh" \
         --prefix "${PREFIX}" --location "${ROOT}" \
@@ -60,15 +54,6 @@ function cleanup() {
   {
     helm delete --purge "${CATALOG_RELEASE}" || true
     rm -f "${SC_KUBECONFIG}"
-
-    # TODO: Hack in order to delete TPRs. Will need to be removed when TPRs can be deleted
-    # by the catalog API server.
-    if [[ -n "${WITH_TPR:-}" ]]; then
-      kubectl delete thirdpartyresources service-instance-credential.servicecatalog.k8s.io
-      kubectl delete thirdpartyresources service-instance.servicecatalog.k8s.io
-      kubectl delete thirdpartyresources service-broker.servicecatalog.k8s.io
-      kubectl delete thirdpartyresources service-class.servicecatalog.k8s.io
-    fi
   } &> /dev/null
 }
 
@@ -82,9 +67,6 @@ echo "Running 'e2e.test'..."
 ARGUMENTS="--registry ${REGISTRY}"
 ARGUMENTS+=" --version ${VERSION}"
 ARGUMENTS+=" --fix-auth"
-if [[ -n "${WITH_TPR:-}" ]]; then
-  ARGUMENTS+=" --with-tpr"
-fi
 
 ${ROOT}/contrib/jenkins/install_catalog.sh ${ARGUMENTS} \
   || error_exit "Error installing catalog in cluster."

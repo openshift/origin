@@ -60,14 +60,15 @@ const optionalFieldsBindRequestBody = `{"service_id":"test-service-id","plan_id"
 
 func TestBind(t *testing.T) {
 	cases := []struct {
-		name               string
-		enableAlpha        bool
-		request            *BindRequest
-		httpChecks         httpChecks
-		httpReaction       httpReaction
-		expectedResponse   *BindResponse
-		expectedErrMessage string
-		expectedErr        error
+		name                string
+		enableAlpha         bool
+		originatingIdentity *AlphaOriginatingIdentity
+		request             *BindRequest
+		httpChecks          httpChecks
+		httpReaction        httpReaction
+		expectedResponse    *BindResponse
+		expectedErrMessage  string
+		expectedErr         error
 	}{
 		{
 			name: "invalid request",
@@ -137,12 +138,47 @@ func TestBind(t *testing.T) {
 			},
 			expectedErr: testHttpStatusCodeError(),
 		},
+		{
+			name:                "originating identity included",
+			enableAlpha:         true,
+			originatingIdentity: testOriginatingIdentity,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successBindResponseBody,
+			},
+			expectedResponse: successBindResponse(),
+		},
+		{
+			name:                "originating identity excluded",
+			enableAlpha:         true,
+			originatingIdentity: nil,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successBindResponseBody,
+			},
+			expectedResponse: successBindResponse(),
+		},
+		{
+			name:                "originating identity not sent unless alpha enabled",
+			enableAlpha:         false,
+			originatingIdentity: testOriginatingIdentity,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successBindResponseBody,
+			},
+			expectedResponse: successBindResponse(),
+		},
 	}
 
 	for _, tc := range cases {
 		if tc.request == nil {
 			tc.request = defaultBindRequest()
 		}
+
+		tc.request.OriginatingIdentity = tc.originatingIdentity
 
 		if tc.httpChecks.URL == "" {
 			tc.httpChecks.URL = "/v2/service_instances/test-instance-id/service_bindings/test-binding-id"

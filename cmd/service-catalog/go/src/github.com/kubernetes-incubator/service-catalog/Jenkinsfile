@@ -118,15 +118,6 @@ node {
             --create-artifacts
       """
 
-      sh """${env.ROOT}/contrib/jenkins/test_walkthrough.sh \
-            --registry gcr.io/${test_project}/catalog/ \
-            --version ${version} \
-            --with-tpr \
-            --cleanup \
-            --fix-auth \
-            --create-artifacts
-      """
-
       ansiColor('xterm-darker-gray') {
         // Run the e2e test framework
         sh """${env.ROOT}/contrib/jenkins/run_e2e.sh \

@@ -9,7 +9,7 @@ of this repository.
 # Step 1 - Installing the UPS Broker Server
 
 Since the Service Catalog provides a Kubernetes-native interface to an 
-[Open Service Broker API](https://openservicebrokerapi.org/) compatible broker
+[Open Service Broker API](https://www.openservicebrokerapi.org/) compatible broker
 server, we'll need to install one in order to proceed with a demo.
 
 In this repository, there's a simple, "dummy" server called the User Provided 
@@ -34,7 +34,7 @@ Because we haven't created any resources in the service-catalog API server yet,
 
 ```console
 kubectl get servicebrokers,serviceclasses,serviceinstances,serviceinstancecredentials
-No resources found
+No resources found.
 ```
 
 We'll register a broker server with the catalog by creating a new
@@ -69,16 +69,16 @@ kind: ServiceBroker
 metadata:
   creationTimestamp: 2017-03-03T04:11:17Z
   finalizers:
-  - kubernetes
+  - kubernetes-incubator/service-catalog
   name: ups-broker
   resourceVersion: "6"
-  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/brokers/ups-broker
+  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/servicebrokers/ups-broker
   uid: 72fa629b-ffc7-11e6-b111-0242ac110005
 spec:
-  url: http://ups-broker.ups-broker.svc.cluster.local:8000
+  url: http://ups-broker-ups-broker.ups-broker.svc.cluster.local
 status:
   conditions:
-  - message: Successfully fetched catalog from broker
+  - message: Successfully fetched catalog entries from broker.
     reason: FetchedCatalog
     status: "True"
     type: Ready
@@ -110,7 +110,7 @@ As we can see, the UPS broker provides a type of service called
 offering:
 
 ```console
-kubectl get serviceclass user-provided-service -o yaml
+kubectl get serviceclasses user-provided-service -o yaml
 ```
 
 We should see something like:
@@ -122,7 +122,7 @@ metadata:
   creationTimestamp: 2017-03-03T04:11:17Z
   name: user-provided-service
   resourceVersion: "7"
-  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/serviceclassesuser-provided-service
+  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/serviceclasses/user-provided-service
   uid: 72fef5ce-ffc7-11e6-b111-0242ac110005
 brokerName: ups-broker
 externalID: 4F6E6CF6-FFDD-425F-A2C7-3C9258AD2468
@@ -130,7 +130,7 @@ bindable: false
 planUpdatable: false
 plans:
 - name: default
-  osbFree: true
+  free: true
   externalID: 86064792-7ea2-467b-af93-ac9694d96d52
 ```
 
@@ -157,7 +157,7 @@ kubectl create -f contrib/examples/walkthrough/ups-instance.yaml
 That operation should output:
 
 ```console
-instance "ups-instance" created
+serviceinstance "ups-instance" created
 ```
 
 After the `ServiceInstance` is created, the service catalog controller will 
@@ -175,18 +175,25 @@ apiVersion: servicecatalog.k8s.io/v1alpha1
 kind: ServiceInstance
 metadata:
   creationTimestamp: 2017-03-03T04:26:08Z
+  finalizers:
+  - kubernetes-incubator/service-catalog
   name: ups-instance
   namespace: test-ns
   resourceVersion: "9"
-  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/namespaces/test-ns/instances/ups-instance
+  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/namespaces/test-ns/serviceinstances/ups-instance
   uid: 8654e626-ffc9-11e6-b111-0242ac110005
 spec:
   externalID: 34c984e1-4626-4574-8a95-9e500d0d48d3
+  parameters:
+    credentials:
+      name: root
+      password: letmein
   planName: default
   serviceClassName: user-provided-service
 status:
   conditions:
-  - message: The instance was provisioned successfully
+  - lastTransitionTime: 2017-03-03T04:26:09Z
+    message: The instance was provisioned successfully
     reason: ProvisionedSuccessfully
     status: "True"
     type: Ready
@@ -215,7 +222,7 @@ service catalog controller will insert into a Kubernetes `Secret`. We can check
 the status of this process like so:
 
 ```console
-kubectl get serviceinstancecredential -n test-ns ups-instance-credential -o yaml
+kubectl get serviceinstancecredentials -n test-ns ups-instance-credential -o yaml
 ```
 
 We should see something like:
@@ -226,11 +233,11 @@ kind: ServiceInstanceCredential
 metadata:
   creationTimestamp: 2017-03-07T01:44:36Z
   finalizers:
-  - kubernetes
+  - kubernetes-incubator/service-catalog
   name: ups-instance-credential
   namespace: test-ns
   resourceVersion: "29"
-  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/namespaces/test-ns/serviceinstancecredentia/ups-instance-credential
+  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/namespaces/test-ns/serviceinstancecredentials/ups-instance-credential
   uid: 9eb2cdce-02d7-11e7-8edb-0242ac110005
 spec:
   instanceRef:
@@ -239,7 +246,8 @@ spec:
   secretName: ups-instance-credential
 status:
   conditions:
-  - message: Injected bind result
+  - lastTransitionTime: 2017-03-03T01:44:37Z
+    message: Injected bind result
     reason: InjectedBindResult
     status: "True"
     type: Ready
@@ -264,7 +272,7 @@ Now, let's unbind from the instance. To do this, we simply *delete* the
 `ServiceInstanceCredential` resource that we previously created:
 
 ```console
-kubectl delete -n test-ns serviceinstancecredential ups-instance-credential
+kubectl delete -n test-ns serviceinstancecredentials ups-instance-credential
 ```
 
 After the deletion is complete, we should see that the `Secret` is gone:
@@ -299,26 +307,36 @@ broker have also been deleted:
 
 ```console
 kubectl get serviceclasses
-No resources found
+No resources found.
 ```
 
 # Step 9 - Final Cleanup
 
-To clean up, delete all our helm deployments:
+## Cleaning up the UPS Service Broker Server
+
+To clean up, delete the helm deployment:
 
 ```console
-helm delete --purge catalog ups-broker
+helm delete --purge ups-broker
 ```
 
 Then, delete all the namespaces we created:
 
 ```console
-kubectl delete ns test-ns catalog ups-broker
+kubectl delete ns test-ns ups-broker
+```
+## Cleaning up the Service Catalog
+
+Delete the helm deployment and the namespace:
+
+```console
+helm delete --purge catalog
+kubectl delete ns catalog
 ```
 
-## Troubleshooting
+# Troubleshooting
 
-### Firewall rules
+## Firewall rules
 
 If you are using Google Cloud Platform, you may need to run the following
 commands to setup proper firewall rules to allow your traffic get in.

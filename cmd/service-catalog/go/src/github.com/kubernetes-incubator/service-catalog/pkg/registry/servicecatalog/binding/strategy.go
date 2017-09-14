@@ -19,17 +19,20 @@ package binding
 // this was copied from where else and edited to fit our objects
 
 import (
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/pkg/api"
 
 	"github.com/golang/glog"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
-	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/unversioned"
 	scv "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/validation"
+	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 )
 
 // NewScopeStrategy returns a new NamespaceScopedStrategy for bindings
@@ -38,7 +41,7 @@ func NewScopeStrategy() rest.NamespaceScopedStrategy {
 }
 
 // implements interfaces RESTCreateStrategy, RESTUpdateStrategy, RESTDeleteStrategy,
-// NamespaceScopedStrategy
+// NamespaceScopedStrategy, and RESTGracefulDeleteStrategy
 type bindingRESTStrategy struct {
 	runtime.ObjectTyper // inherit ObjectKinds method
 	names.NameGenerator // GenerateName method for CreateStrategy
@@ -58,9 +61,10 @@ var (
 		// `GenerateName(base string) string`
 		NameGenerator: names.SimpleNameGenerator,
 	}
-	_ rest.RESTCreateStrategy = bindingRESTStrategies
-	_ rest.RESTUpdateStrategy = bindingRESTStrategies
-	_ rest.RESTDeleteStrategy = bindingRESTStrategies
+	_ rest.RESTCreateStrategy         = bindingRESTStrategies
+	_ rest.RESTUpdateStrategy         = bindingRESTStrategies
+	_ rest.RESTDeleteStrategy         = bindingRESTStrategies
+	_ rest.RESTGracefulDeleteStrategy = bindingRESTStrategies
 
 	bindingStatusUpdateStrategy = bindingStatusRESTStrategy{
 		bindingRESTStrategies,
@@ -88,7 +92,10 @@ func (bindingRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj r
 	if !ok {
 		glog.Fatal("received a non-binding object to create")
 	}
-	// Is there anything to pull out of the context `ctx`?
+
+	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
+		setServiceInstanceCredentialUserInfo(binding, ctx)
+	}
 
 	// Creating a brand new object, thus it must have no
 	// status. We can't fail here if they passed a status in, so
@@ -97,6 +104,7 @@ func (bindingRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj r
 	// Fill in the first entry set to "creating"?
 	binding.Status.Conditions = []sc.ServiceInstanceCredentialCondition{}
 	binding.Finalizers = []string{sc.FinalizerServiceCatalog}
+	binding.Generation = 1
 }
 
 func (bindingRESTStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
@@ -120,8 +128,26 @@ func (bindingRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, 
 	if !ok {
 		glog.Fatal("received a non-binding object to update from")
 	}
-	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
 	newServiceInstanceCredential.Status = oldServiceInstanceCredential.Status
+
+	// TODO: We currently don't handle any changes to the spec in the
+	// reconciler. Once we do that, this check needs to be removed and
+	// proper validation of allowed changes needs to be implemented in
+	// ValidateUpdate. Also, the check for whether the generation needs
+	// to be updated needs to be un-commented.
+	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
+
+	// Spec updates bump the generation so that we can distinguish between
+	// spec changes and other changes to the object.
+	//
+	// Note that since we do not currently handle any changes to the spec,
+	// the generation will never be incremented
+	if !apiequality.Semantic.DeepEqual(oldServiceInstanceCredential.Spec, newServiceInstanceCredential.Spec) {
+		if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
+			setServiceInstanceCredentialUserInfo(newServiceInstanceCredential, ctx)
+		}
+		newServiceInstanceCredential.Generation = oldServiceInstanceCredential.Generation + 1
+	}
 }
 
 func (bindingRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
@@ -137,6 +163,23 @@ func (bindingRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, ol
 	return scv.ValidateServiceInstanceCredentialUpdate(newServiceInstanceCredential, oldServiceInstanceCredential)
 }
 
+// CheckGracefulDelete sets the UserInfo on the resource to that of the user that
+// initiated the delete.
+// Note that this is a hack way of setting the UserInfo. However, there is not
+// currently any other mechanism in the Delete strategies for getting access to
+// the resource being deleted and the context.
+func (bindingRESTStrategy) CheckGracefulDelete(ctx genericapirequest.Context, obj runtime.Object, options *metav1.DeleteOptions) bool {
+	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
+		serviceInstanceCredential, ok := obj.(*sc.ServiceInstanceCredential)
+		if !ok {
+			glog.Fatal("received a non-ServiceInstanceCredential object to delete")
+		}
+		setServiceInstanceCredentialUserInfo(serviceInstanceCredential, ctx)
+	}
+	// Don't actually do graceful deletion. We are just using this strategy to set the user info prior to reconciling the delete.
+	return false
+}
+
 func (bindingStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
 	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
 	if !ok {
@@ -148,28 +191,6 @@ func (bindingStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context,
 	}
 	// status changes are not allowed to update spec
 	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
-
-	foundReadyConditionTrue := false
-	for _, condition := range newServiceInstanceCredential.Status.Conditions {
-		if condition.Type == sc.ServiceInstanceCredentialConditionReady && condition.Status == sc.ConditionTrue {
-			foundReadyConditionTrue = true
-			break
-		}
-	}
-
-	if foundReadyConditionTrue {
-		glog.Infof("Found true ready condition for ServiceInstanceCredential %v/%v; updating checksum", newServiceInstanceCredential.Namespace, newServiceInstanceCredential.Name)
-		// This status update has a true ready condition; update the checksum if necessary
-		newServiceInstanceCredential.Status.Checksum = func() *string {
-			s := checksum.ServiceInstanceCredentialSpecChecksum(newServiceInstanceCredential.Spec)
-			return &s
-		}()
-		return
-	}
-
-	// if the ready condition is not true, the value of the checksum should
-	// not change.
-	newServiceInstanceCredential.Status.Checksum = oldServiceInstanceCredential.Status.Checksum
 }
 
 func (bindingStatusRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
@@ -183,4 +204,22 @@ func (bindingStatusRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, n
 	}
 
 	return scv.ValidateServiceInstanceCredentialStatusUpdate(newServiceInstanceCredential, oldServiceInstanceCredential)
+}
+
+// setServiceInstanceCredentialUserInfo injects user.Info from the request context
+func setServiceInstanceCredentialUserInfo(instanceCredential *sc.ServiceInstanceCredential, ctx genericapirequest.Context) {
+	instanceCredential.Spec.UserInfo = nil
+	if user, ok := genericapirequest.UserFrom(ctx); ok {
+		instanceCredential.Spec.UserInfo = &sc.UserInfo{
+			Username: user.GetName(),
+			UID:      user.GetUID(),
+			Groups:   user.GetGroups(),
+		}
+		if extra := user.GetExtra(); len(extra) > 0 {
+			instanceCredential.Spec.UserInfo.Extra = map[string]sc.ExtraValue{}
+			for k, v := range extra {
+				instanceCredential.Spec.UserInfo.Extra[k] = sc.ExtraValue(v)
+			}
+		}
+	}
 }
