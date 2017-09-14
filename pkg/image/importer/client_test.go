@@ -20,6 +20,7 @@ import (
 	"github.com/docker/distribution/registry/api/errcode"
 
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -296,6 +297,67 @@ func TestPing(t *testing.T) {
 		if (err != nil && strings.Contains(err.Error(), "does not support v2 API")) == test.expectV2 {
 			t.Errorf("%s: Expected ErrNotV2Registry, got %v", test.name, err)
 		}
+	}
+}
+
+func TestPingRecordRealm(t *testing.T) {
+	testCases := []struct {
+		header string
+		realm  string
+	}{
+		{
+			header: `Bearer realm="https://auth.example.com/token"`,
+			realm:  "https://auth.example.com/token",
+		},
+		{
+			header: `Basic realm="https://auth.example.com/basic"`,
+			realm:  "https://auth.example.com/basic",
+		},
+		{
+			header: `Digest realm="https://auth.example.com/digest"`,
+			realm:  "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run("", func(t *testing.T) {
+			retriever := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NewCredentialsForSecrets([]kapiv1.Secret{})).(*repositoryRetriever)
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Docker-Distribution-API-Version", "registry/2.0")
+				w.Header().Set("WWW-Authenticate", tc.header)
+				w.WriteHeader(http.StatusUnauthorized)
+			}))
+			uri, _ := url.Parse(server.URL)
+
+			_, err := retriever.ping(*uri, true, retriever.context.InsecureTransport)
+			if err != nil {
+				t.Errorf("Unexpected error, got %v", err)
+			}
+			scs, ok := retriever.credentials.(*SecretCredentialStore)
+			if !ok {
+				t.Fatalf("Unexpected credential store type %T", retriever.credentials)
+			}
+			if len(tc.realm) > 0 {
+				if len(scs.realmStore.List()) != 1 {
+					t.Errorf("Unexpected realm # entries, expected 1, got %d", len(scs.realmStore.List()))
+				}
+				obj := scs.realmStore.List()[0]
+				ru, ok := obj.(*realmURL)
+				if !ok {
+					t.Errorf("Unexpected object type, expected realmURL, got %T", obj)
+				}
+				if ru.realm.String() != tc.realm {
+					t.Errorf("Unexpected realm url, expected %v got %v", tc.realm, ru.realm)
+				}
+				if ru.registry.String() != server.URL {
+					t.Errorf("Unexpected registry url, expected %s, got %v", server.URL, ru.registry)
+				}
+			} else {
+				if len(scs.realmStore.List()) > 0 {
+					t.Errorf("Unexpected realm # entries, expected 0, got %d", len(scs.realmStore.List()))
+				}
+			}
+		})
 	}
 }
 
