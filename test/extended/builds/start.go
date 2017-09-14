@@ -73,7 +73,7 @@ var _ = g.Describe("[builds][Slow] starting a build using CLI", func() {
 			// the repo at the PR level noted in bcWithPRRef had a pom.xml level of "0.1-SNAPSHOT" (we are well past that now)
 			// so simply looking for that string in the mvn output is indicative of being at that level
 			g.By("confirm the correct commit level was retrieved")
-			o.Expect(strings.Contains(out, "0.1-SNAPSHOT")).To(o.BeTrue())
+			o.Expect(out).Should(o.ContainSubstring("0.1-SNAPSHOT"))
 		})
 
 	})
