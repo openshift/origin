@@ -32,8 +32,6 @@ import (
 )
 
 func TestImageStreamImport(t *testing.T) {
-	t.Skip("This test was disabled until https://github.com/openshift/origin/issues/16323 is fixed!")
-
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -799,8 +797,6 @@ func TestImageStreamImportScheduled(t *testing.T) {
 }
 
 func TestImageStreamImportDockerHub(t *testing.T) {
-	t.Skip("This test was disabled until https://github.com/openshift/origin/issues/16323 is fixed!")
-
 	rt, _ := restclient.TransportFor(&restclient.Config{})
 	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 
@@ -820,7 +816,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 
 	err := retryWhenUnreachable(t, func() error {
 		i := importer.NewImageStreamImporter(importCtx, 3, nil, nil)
-		if err := i.Import(gocontext.Background(), imports); err != nil {
+		if err := i.Import(gocontext.Background(), imports, &imageapi.ImageStream{}); err != nil {
 			return err
 		}
 
@@ -876,7 +872,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 
 	err := retryWhenUnreachable(t, func() error {
 		i := importer.NewImageStreamImporter(importCtx, 3, nil, nil)
-		if err := i.Import(gocontext.Background(), imports); err != nil {
+		if err := i.Import(gocontext.Background(), imports, &imageapi.ImageStream{}); err != nil {
 			return err
 		}
 
@@ -929,7 +925,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	}
 
 	i := importer.NewImageStreamImporter(importCtx, 3, nil, nil)
-	if err := i.Import(gocontext.Background(), imports); err != nil {
+	if err := i.Import(gocontext.Background(), imports, &imageapi.ImageStream{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -956,7 +952,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 	importCtx = importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
 	err := retryWhenUnreachable(t, func() error {
 		i = importer.NewImageStreamImporter(importCtx, 3, nil, nil)
-		if err := i.Import(context, imports); err != nil {
+		if err := i.Import(context, imports, &imageapi.ImageStream{}); err != nil {
 			return err
 		}
 

@@ -39,6 +39,16 @@ const (
 	// reversed order of their addition (from newest to oldest).
 	DockerImageLayersOrderDescending = "descending"
 
+	// ImporterPreferArchAnnotation represents an architecture that should be
+	// selected if an image uses a manifest list and it should be
+	// downconverted.
+	ImporterPreferArchAnnotation = "importer.image.openshift.io/prefer-arch"
+
+	// ImporterPreferOSAnnotation represents an operation system that should
+	// be selected if an image uses a manifest list and it should be
+	// downconverted.
+	ImporterPreferOSAnnotation = "importer.image.openshift.io/prefer-os"
+
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
 
@@ -157,7 +167,7 @@ const (
 	SignatureRevoked = "Revoked"
 )
 
-/// SignatureConditionType is a type of image signature condition.
+// SignatureConditionType is a type of image signature condition.
 type SignatureConditionType string
 
 // SignatureCondition describes an image signature condition of particular kind at particular probe time.
@@ -485,7 +495,7 @@ type ImageStreamImportStatus struct {
 	Images []ImageImportStatus
 }
 
-// RepositoryImport indicates to load a set of tags from a given Docker image repository
+// RepositoryImportSpec indicates to load a set of tags from a given Docker image repository
 type RepositoryImportSpec struct {
 	// The source of the import, only kind DockerImage is supported
 	From kapi.ObjectReference
