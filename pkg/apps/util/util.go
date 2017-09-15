@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -30,6 +32,19 @@ var (
 	// deployment config. This is used in the ownerRef and GC client picks the appropriate
 	// client to get the deployment config.
 	DeploymentConfigControllerRefKind = deployapiv1.SchemeGroupVersion.WithKind("DeploymentConfig")
+
+	// annotationsToSkip is list of replication controller pod template annotations we skip
+	annotationsToSkip = sets.NewString(
+		deployapi.DeploymentVersionAnnotation,
+		deployapi.DeploymentConfigAnnotation,
+		deployapi.DeploymentAnnotation,
+	)
+
+	// labelsToSkip is list of replication controller pod template labels we skip
+	labelsToSkip = sets.NewString(
+		deployapi.DeploymentLabel,
+		deployapi.DeploymentConfigLabel,
+	)
 )
 
 // NewDeploymentCondition creates a new deployment condition.
@@ -212,6 +227,60 @@ func HasImageChangeTrigger(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
+// HasTrigger returns whether the provided deployment configuration has any trigger
+// defined or not.
+func HasTrigger(config *deployapi.DeploymentConfig) bool {
+	return HasChangeTrigger(config) || HasImageChangeTrigger(config)
+}
+
+// HasLastTriggeredImage returns whether all image change triggers in provided deployment
+// configuration has the lastTriggerImage field set (iow. all images were updated for
+// them). Returns false if deployment configuration has no image change trigger defined.
+func HasLastTriggeredImage(config *deployapi.DeploymentConfig) bool {
+	hasImageTrigger := false
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			hasImageTrigger = true
+			if len(trigger.ImageChangeParams.LastTriggeredImage) == 0 {
+				return false
+			}
+		}
+	}
+	return hasImageTrigger
+}
+
+// IsInitialDeployment returns whether the deployment configuration is the first version
+// of this configuration.
+func IsInitialDeployment(config *deployapi.DeploymentConfig) bool {
+	return config.Status.LatestVersion == 0
+}
+
+// RecordConfigChangeCause sets a deployment config cause for config change.
+func RecordConfigChangeCause(config *deployapi.DeploymentConfig) {
+	config.Status.Details = &deployapi.DeploymentDetails{
+		Causes: []deployapi.DeploymentCause{
+			{
+				Type: deployapi.DeploymentTriggerOnConfigChange,
+			},
+		},
+		Message: "config change",
+	}
+}
+
+// RecordImageChangeCauses sets a deployment config cause for image change. It
+// takes a list of changed images and record an cause for each image.
+func RecordImageChangeCauses(config *deployapi.DeploymentConfig, imageNames []string) {
+	config.Status.Details = &deployapi.DeploymentDetails{
+		Message: "image change",
+	}
+	for _, imageName := range imageNames {
+		config.Status.Details.Causes = append(config.Status.Details.Causes, deployapi.DeploymentCause{
+			Type:         deployapi.DeploymentTriggerOnImageChange,
+			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{From: api.ObjectReference{Kind: "DockerImage", Name: imageName}},
+		})
+	}
+}
+
 func DeploymentConfigDeepCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	objCopy, err := api.Scheme.DeepCopy(dc)
 	if err != nil {
@@ -274,6 +343,76 @@ func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
 		}
 	}
 	return out
+}
+
+func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTemplateSpec {
+	copied, err := api.Scheme.DeepCopy(spec)
+	if err != nil {
+		panic(err)
+	}
+	in := copied.(*api.PodTemplateSpec)
+	out := &v1.PodTemplateSpec{}
+	if err := v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
+		panic(err)
+	}
+	return out
+}
+
+// HasLatestPodTemplate checks if the provided replication controller has the latest
+// deployment config pod template. If not it will return false and the string diff.
+func HasLatestPodTemplate(dc *deployapi.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
+	configTemplate := CopyPodTemplateSpecToV1PodTemplateSpec(dc.Spec.Template)
+	configTemplate = filterOutTemplateAnnotationsAndLabels(configTemplate)
+	rcCopy, err := DeploymentDeepCopyV1(rc)
+	if err != nil {
+		return true, "", err
+	}
+	rcTemplate := filterOutTemplateAnnotationsAndLabels(rcCopy.Spec.Template)
+	if reflect.DeepEqual(configTemplate, rcTemplate) {
+		return true, "", nil
+	}
+	return false, diff.ObjectReflectDiff(configTemplate, rcTemplate), nil
+}
+
+// HasUpdatedImages indicates if the deployment configuration images were updated.
+func HasUpdatedImages(dc *deployapi.DeploymentConfig, rc *v1.ReplicationController) (bool, []string) {
+	updatedImages := []string{}
+	rcImages := sets.NewString()
+	for _, c := range rc.Spec.Template.Spec.Containers {
+		rcImages.Insert(c.Image)
+	}
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		if !rcImages.Has(c.Image) {
+			updatedImages = append(updatedImages, c.Image)
+		}
+	}
+	if len(updatedImages) == 0 {
+		return false, nil
+	}
+	return true, updatedImages
+}
+
+// filterOutTemplateAnnotationsAndLabels filters out annotations and labels we skip when
+// comparing replication controller template with deployment config template.
+func filterOutTemplateAnnotationsAndLabels(in *v1.PodTemplateSpec) *v1.PodTemplateSpec {
+	out := *in
+	out.Annotations = map[string]string{}
+	out.Labels = map[string]string{}
+	if in.Annotations != nil {
+		for k, v := range in.Annotations {
+			if !annotationsToSkip.Has(k) {
+				out.Annotations[k] = v
+			}
+		}
+	}
+	if in.Labels != nil {
+		for k, v := range in.Labels {
+			if !labelsToSkip.Has(k) {
+				out.Labels[k] = v
+			}
+		}
+	}
+	return &out
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

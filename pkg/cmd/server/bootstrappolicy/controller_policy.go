@@ -25,7 +25,6 @@ const (
 	InfraBuildControllerServiceAccountName                      = "build-controller"
 	InfraBuildConfigChangeControllerServiceAccountName          = "build-config-change-controller"
 	InfraDeploymentConfigControllerServiceAccountName           = "deploymentconfig-controller"
-	InfraDeploymentTriggerControllerServiceAccountName          = "deployment-trigger-controller"
 	InfraDeployerControllerServiceAccountName                   = "deployer-controller"
 	InfraImageTriggerControllerServiceAccountName               = "image-trigger-controller"
 	InfraImageImportControllerServiceAccountName                = "image-import-controller"
@@ -141,19 +140,6 @@ func init() {
 			rbac.NewRule("update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/status").RuleOrDie(),
 			rbac.NewRule("update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/finalizers").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
-			eventsRule(),
-		},
-	})
-
-	// deployment-trigger-controller
-	addControllerRole(rbac.ClusterRole{
-		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraDeploymentTriggerControllerServiceAccountName},
-		Rules: []rbac.PolicyRule{
-			rbac.NewRule("get", "list", "watch").Groups(kapiGroup).Resources("replicationcontrollers").RuleOrDie(),
-			rbac.NewRule("get", "list", "watch").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
-			rbac.NewRule("get", "list", "watch").Groups(imageGroup, legacyImageGroup).Resources("imagestreams").RuleOrDie(),
-
-			rbac.NewRule("create").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/instantiate").RuleOrDie(),
 			eventsRule(),
 		},
 	})

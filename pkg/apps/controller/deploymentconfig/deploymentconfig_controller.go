@@ -3,6 +3,7 @@ package deploymentconfig
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -85,7 +86,7 @@ type DeploymentConfigController struct {
 func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) error {
 	glog.V(5).Infof("Reconciling %s/%s", config.Namespace, config.Name)
 	// There's nothing to reconcile until the version is nonzero.
-	if config.Status.LatestVersion == 0 {
+	if deployutil.IsInitialDeployment(config) && !deployutil.HasTrigger(config) {
 		return c.updateStatus(config, []*v1.ReplicationController{})
 	}
 
@@ -95,7 +96,6 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	if err != nil {
 		return fmt.Errorf("error while deploymentConfigController listing replication controllers: %v", err)
 	}
-	selector := deployutil.ConfigSelector(config.Name)
 	// If any adoptions are attempted, we should first recheck for deletion with
 	// an uncached quorum read sometime after listing ReplicationControllers (see Kubernetes #42639).
 	canAdoptFunc := kcontroller.RecheckDeletionTimestamp(func() (metav1.Object, error) {
@@ -104,11 +104,11 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 			return nil, err
 		}
 		if fresh.UID != config.UID {
-			return nil, fmt.Errorf("original DeploymentConfig %v/%v is gone: got uid %v, wanted %v", config.Namespace, config.Name, fresh.UID, config.UID)
+			return nil, fmt.Errorf("original DeploymentConfig %s/%s is gone: got uid %s, wanted %s", config.Namespace, config.Name, fresh.UID, config.UID)
 		}
 		return fresh, nil
 	})
-	cm := NewRCControllerRefManager(c.rcControl, config, selector, deployutil.DeploymentConfigControllerRefKind, canAdoptFunc)
+	cm := NewRCControllerRefManager(c.rcControl, config, deployutil.ConfigSelector(config.Name), deployutil.DeploymentConfigControllerRefKind, canAdoptFunc)
 	existingDeployments, err := cm.ClaimReplicationControllers(rcList)
 	if err != nil {
 		return fmt.Errorf("error while deploymentConfigController claiming replication controllers: %v", err)
@@ -122,63 +122,37 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 	}
 
 	latestIsDeployed, latestDeployment := deployutil.LatestDeploymentInfo(config, existingDeployments)
-	// If the latest deployment doesn't exist yet, cancel any running
-	// deployments to allow them to be superceded by the new config version.
-	awaitingCancellations := false
+
 	if !latestIsDeployed {
-		for i := range existingDeployments {
-			deployment := existingDeployments[i]
-			// Skip deployments with an outcome.
-			if deployutil.IsTerminatedDeployment(deployment) {
-				continue
-			}
-			// Cancel running deployments.
-			awaitingCancellations = true
-			if deployutil.IsDeploymentCancelled(deployment) {
-				continue
-			}
-
-			// Retry faster on conflicts
-			var updatedDeployment *v1.ReplicationController
-			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-				rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
-				if kapierrors.IsNotFound(err) {
-					return nil
-				}
-				if err != nil {
-					return err
-				}
-				// We need to make sure we own that RC or adopt it if possible
-				isOurs, err := cm.ClaimReplicationController(rc)
-				if err != nil {
-					return fmt.Errorf("error while deploymentConfigController claiming the replication controller %s/%s: %v", rc.Namespace, rc.Name, err)
-				}
-				if !isOurs {
-					return nil
-				}
-
-				copied, err := deployutil.DeploymentDeepCopyV1(rc)
-				if err != nil {
-					return err
-				}
-				copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
-				copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
-				updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
-				return err
-			}); err != nil {
-				c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
-			} else if updatedDeployment != nil {
-				// replace the current deployment with the updated copy so that a future update has a chance at working
-				existingDeployments[i] = updatedDeployment
-				c.recorder.Eventf(config, v1.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
-			}
+		if err := c.cancelRunningRollouts(config, existingDeployments, cm); err != nil {
+			return err
 		}
 	}
-	// Wait for deployment cancellations before reconciling or creating a new
-	// deployment to avoid competing with existing deployment processes.
-	if awaitingCancellations {
-		c.recorder.Eventf(config, v1.EventTypeNormal, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
-		return fmt.Errorf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config))
+	// Process triggers and start an initial rollouts
+	configCopy, err := deployutil.DeploymentConfigDeepCopy(config)
+	if err != nil {
+		glog.Errorf("Unable to copy deployment config: %v", err)
+		return c.updateStatus(config, existingDeployments)
+	}
+	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestIsDeployed, latestDeployment)
+	if !shouldSkip && shouldTrigger {
+		configCopy.Status.LatestVersion++
+		return c.updateStatus(configCopy, existingDeployments)
+	}
+	// Have to wait for the image trigger to get the image before proceeding.
+	if shouldSkip && deployutil.IsInitialDeployment(config) {
+		return c.updateStatus(configCopy, existingDeployments)
+	}
+	// If the latest deployment already exists, reconcile existing deployments
+	// and return early.
+	if latestIsDeployed {
+		// If the latest deployment is still running, try again later. We don't
+		// want to compete with the deployer.
+		if !deployutil.IsTerminatedDeployment(latestDeployment) {
+			return c.updateStatus(config, existingDeployments)
+		}
+
+		return c.reconcileDeployments(existingDeployments, config, cm)
 	}
 	// If the latest deployment already exists, reconcile existing deployments
 	// and return early.
@@ -362,6 +336,71 @@ func (c *DeploymentConfigController) updateStatus(config *deployapi.DeploymentCo
 	return nil
 }
 
+// cancelRunningRollouts cancels existing rollouts when the latest deployment does not
+// exists yet to allow new rollout superceded by the new config version.
+func (c *DeploymentConfigController) cancelRunningRollouts(config *deployapi.DeploymentConfig, existingDeployments []*v1.ReplicationController, cm *RCControllerRefManager) error {
+	awaitingCancellations := false
+	for i := range existingDeployments {
+		deployment := existingDeployments[i]
+		// Skip deployments with an outcome.
+		if deployutil.IsTerminatedDeployment(deployment) {
+			continue
+		}
+		// Cancel running deployments.
+		awaitingCancellations = true
+		if deployutil.IsDeploymentCancelled(deployment) {
+			continue
+		}
+
+		// Retry faster on conflicts
+		var updatedDeployment *v1.ReplicationController
+		err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+			rc, err := c.rcLister.ReplicationControllers(deployment.Namespace).Get(deployment.Name)
+			if kapierrors.IsNotFound(err) {
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+			// We need to make sure we own that RC or adopt it if possible
+			isOurs, err := cm.ClaimReplicationController(rc)
+			if err != nil {
+				return fmt.Errorf("error while deploymentConfigController claiming the replication controller %s/%s: %v", rc.Namespace, rc.Name, err)
+			}
+			if !isOurs {
+				return nil
+			}
+
+			copied, err := deployutil.DeploymentDeepCopyV1(rc)
+			if err != nil {
+				return err
+			}
+			copied.Annotations[deployapi.DeploymentCancelledAnnotation] = deployapi.DeploymentCancelledAnnotationValue
+			copied.Annotations[deployapi.DeploymentStatusReasonAnnotation] = deployapi.DeploymentCancelledNewerDeploymentExists
+			updatedDeployment, err = c.rn.ReplicationControllers(copied.Namespace).Update(copied)
+			return err
+		})
+		if err != nil {
+			c.recorder.Eventf(config, v1.EventTypeWarning, "DeploymentCancellationFailed", "Failed to cancel deployment %q superceded by version %d: %s", deployment.Name, config.Status.LatestVersion, err)
+			return err
+		}
+		if updatedDeployment != nil {
+			// replace the current deployment with the updated copy so that a future update has a chance at working
+			existingDeployments[i] = updatedDeployment
+			c.recorder.Eventf(config, v1.EventTypeNormal, "DeploymentCancelled", "Cancelled deployment %q superceded by version %d", deployment.Name, config.Status.LatestVersion)
+		}
+	}
+
+	// Wait for deployment cancellations before reconciling or creating a new
+	// deployment to avoid competing with existing deployment processes.
+	if awaitingCancellations {
+		c.recorder.Eventf(config, v1.EventTypeNormal, "DeploymentAwaitingCancellation", "Deployment of version %d awaiting cancellation of older running deployments", config.Status.LatestVersion)
+		return fmt.Errorf("found previous inflight deployment for %s - requeuing", deployutil.LabelForDeploymentConfig(config))
+	}
+
+	return nil
+}
+
 func calculateStatus(config *deployapi.DeploymentConfig, rcs []*v1.ReplicationController, additional ...deployapi.DeploymentCondition) deployapi.DeploymentConfigStatus {
 	// UpdatedReplicas represents the replicas that use the current deployment config template which means
 	// we should inform about the replicas of the latest deployment and not the active.
@@ -499,4 +538,79 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 	}
 
 	return kutilerrors.NewAggregate(deletionErrors)
+}
+
+// triggerActivated indicates whether we should proceed with new rollout as one of the
+// triggers were activated (config change or image change). The first bool indicates that
+// the triggers are active and second indicates if we should skip the rollout because we
+// are waiting for the trigger to complete update (waiting for image for example).
+func triggerActivated(config *deployapi.DeploymentConfig, latestIsDeployed bool, latestDeployment *v1.ReplicationController) (bool, bool) {
+	if config.Spec.Paused {
+		return false, false
+	}
+	imageTrigger := deployutil.HasImageChangeTrigger(config)
+	configTrigger := deployutil.HasChangeTrigger(config)
+	hasTrigger := imageTrigger || configTrigger
+
+	// no-op when no triggers are defined.
+	if !hasTrigger {
+		return false, false
+	}
+
+	// Handle initial rollouts
+	if deployutil.IsInitialDeployment(config) {
+		hasAvailableImages := deployutil.HasLastTriggeredImage(config)
+		// When config has an image trigger, wait until its images are available to trigger.
+		if imageTrigger {
+			if hasAvailableImages {
+				glog.V(4).Infof("Rolling out initial deployment for %s/%s as it now have images available", config.Namespace, config.Name)
+				// TODO: Technically this is not a config change cause, but we will have to report the image that caused the trigger.
+				//       In some cases it might be difficult because config can have multiple ICT.
+				deployutil.RecordConfigChangeCause(config)
+				return true, false
+			}
+			glog.V(4).Infof("Rolling out initial deployment for %s/%s deferred until its images are ready", config.Namespace, config.Name)
+			return false, true
+		}
+		// Rollout if we only have config change trigger.
+		if configTrigger {
+			glog.V(4).Infof("Rolling out initial deployment for %s/%s", config.Namespace, config.Name)
+			deployutil.RecordConfigChangeCause(config)
+			return true, false
+		}
+		// We are waiting for the initial RC to be created.
+		return false, false
+	}
+
+	// Wait for the RC to be created
+	if !latestIsDeployed {
+		return false, true
+	}
+
+	// We need existing deployment at this point to compare its template with current config template.
+	if latestDeployment == nil {
+		return false, false
+	}
+
+	if imageTrigger {
+		if ok, imageNames := deployutil.HasUpdatedImages(config, latestDeployment); ok {
+			glog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by image changes (%s)", config.Status.LatestVersion+1, config.Namespace, config.Name, strings.Join(imageNames, ","))
+			deployutil.RecordImageChangeCauses(config, imageNames)
+			return true, false
+		}
+	}
+
+	if configTrigger {
+		isLatest, changes, err := deployutil.HasLatestPodTemplate(config, latestDeployment)
+		if err != nil {
+			glog.Errorf("Error while checking for latest pod template in replication controller: %v", err)
+			return false, true
+		}
+		if !isLatest {
+			glog.V(4).Infof("Rolling out #%d deployment for %s/%s caused by config change, diff: %s", config.Status.LatestVersion+1, config.Namespace, config.Name, changes)
+			deployutil.RecordConfigChangeCause(config)
+			return true, false
+		}
+	}
+	return false, false
 }
