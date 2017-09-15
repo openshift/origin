@@ -12,7 +12,7 @@ import (
 
 // GetImageManifestByIDFromRegistry retrieves the image manifest from the registry using the basic
 // authentication using the image ID.
-func GetImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID, username, password string) ([]byte, error) {
+func GetImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID, username, password string, insecure bool) ([]byte, error) {
 	ctx := context.Background()
 
 	credentials := importer.NewBasicCredentials()
@@ -20,7 +20,7 @@ func GetImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID
 
 	repo, err := importer.NewContext(http.DefaultTransport, http.DefaultTransport).
 		WithCredentials(credentials).
-		Repository(ctx, registry, repositoryName, true)
+		Repository(ctx, registry, repositoryName, insecure)
 	if err != nil {
 		return nil, err
 	}

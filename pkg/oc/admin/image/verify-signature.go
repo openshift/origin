@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -44,6 +45,9 @@ var (
 	key or invalid expected identity will cause the saved verification status to be removed
 	and the image will become "unverified".
 
+	If this command is outside the cluster, users have to specify the "--registry-url" parameter
+	with the public URL of image registry.
+
 	To remove all verifications, users can use the "--remove-all" flag.
 	`)
 
@@ -55,6 +59,11 @@ var (
 	# Verify the image signature and identity using the local GPG keychain and save the status
 	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 \
 			--expected-identity=registry.local:5000/foo/bar:v1 --save
+
+	# Verify the image signature and identity via exposed registry route
+	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 \
+			--expected-identity=registry.local:5000/foo/bar:v1 \
+			--registry-url=docker-registry.foo.com
 
 	# Remove all signature verifications from the image
 	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 --remove-all
@@ -70,6 +79,8 @@ type VerifyImageSignatureOptions struct {
 	RemoveAll         bool
 	CurrentUser       string
 	CurrentUserToken  string
+	RegistryURL       string
+	Insecure          bool
 
 	Client       client.Interface
 	clientConfig kclientcmd.ClientConfig
@@ -108,6 +119,8 @@ func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out
 	cmd.Flags().BoolVar(&opts.Save, "save", opts.Save, "If true, the result of the verification will be saved to an image object.")
 	cmd.Flags().BoolVar(&opts.RemoveAll, "remove-all", opts.RemoveAll, "If set, all signature verifications will be removed from the given image.")
 	cmd.Flags().StringVar(&opts.PublicKeyFilename, "public-key", opts.PublicKeyFilename, fmt.Sprintf("A path to a public GPG key to be used for verification. (defaults to %q)", opts.PublicKeyFilename))
+	cmd.Flags().StringVar(&opts.RegistryURL, "registry-url", opts.RegistryURL, "The address to use when contacting the registry, instead of using the internal cluster address. This is useful if you can't resolve or reach the internal registry address.")
+	cmd.Flags().BoolVar(&opts.Insecure, "insecure", opts.Insecure, "If set, use the insecure protocol for registry communication.")
 	return cmd
 }
 
@@ -144,7 +157,6 @@ func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.
 	// We need the current user name so we can record it into an verification condition and
 	// we need a bearer token so we can fetch the manifest from the registry.
 	// TODO: Add support for external registries (currently only integrated registry will
-	// work).
 	if me, err := o.Client.Users().Get("~", metav1.GetOptions{}); err != nil {
 		return err
 	} else {
@@ -232,7 +244,14 @@ func (o *VerifyImageSignatureOptions) getImageManifest(img *imageapi.Image) ([]b
 	if err != nil {
 		return nil, err
 	}
-	return imageutil.GetImageManifestByIDFromRegistry(parsed.RegistryURL(), parsed.RepositoryName(), img.Name, o.CurrentUser, o.CurrentUserToken)
+	registryURL := parsed.RegistryURL()
+	if len(o.RegistryURL) > 0 {
+		registryURL = &url.URL{Host: o.RegistryURL, Scheme: "https"}
+		if o.Insecure {
+			registryURL.Scheme = "http"
+		}
+	}
+	return imageutil.GetImageManifestByIDFromRegistry(registryURL, parsed.RepositoryName(), img.Name, o.CurrentUser, o.CurrentUserToken, o.Insecure)
 }
 
 // verifySignature takes policy, image and the image signature blob and verifies that the
