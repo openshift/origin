@@ -8,6 +8,7 @@ Requires=dnsmasq.service
 After=dnsmasq.service
 
 [Service]
+Type=notify
 EnvironmentFile=/etc/sysconfig/$NAME
 EnvironmentFile=/etc/sysconfig/$NAME-dep
 
