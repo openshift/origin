@@ -186,7 +186,6 @@ func newRepositoryWithClient(
 			return nil, fmt.Errorf("%s variable must be set when running outside of Kubernetes cluster", DockerRegistryURLEnvVar)
 		}
 	}
-	context.GetLogger(ctx).Infof("Using %q as Docker Registry URL", registryAddr)
 
 	acceptschema2, err := getBoolOption(AcceptSchema2EnvVar, "acceptschema2", true, options)
 	if err != nil {
