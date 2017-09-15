@@ -169,6 +169,7 @@ var _ = g.Describe("[builds][Slow] openshift pipeline build", func() {
 			g.By("starting the pipeline build and waiting for it to complete")
 			br, err := exutil.StartBuildAndWait(oc, "openshift-jee-sample")
 			if err != nil || !br.BuildSuccess {
+				exutil.DumpPodLogsStartingWith("maven", oc)
 				exutil.DumpBuildLogs("openshift-jee-sample-docker", oc)
 				exutil.DumpDeploymentLogs("openshift-jee-sample", 1, oc)
 			}

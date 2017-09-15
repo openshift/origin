@@ -187,6 +187,24 @@ func DumpApplicationPodLogs(dcName string, oc *CLI) {
 	DumpPodLogs(pods.Items, oc)
 }
 
+// DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
+func DumpPodLogsStartingWith(prefix string, oc *CLI) {
+	podsToDump := []kapiv1.Pod{}
+	podList, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "Error listing pods: %v", err)
+		return
+	}
+	for _, pod := range podList.Items {
+		if strings.HasPrefix(pod.Name, prefix) {
+			podsToDump = append(podsToDump, pod)
+		}
+	}
+	if len(podsToDump) > 0 {
+		DumpPodLogs(podsToDump, oc)
+	}
+}
+
 func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	for _, pod := range pods {
 		descOutput, err := oc.Run("describe").Args("pod/" + pod.Name).Output()
