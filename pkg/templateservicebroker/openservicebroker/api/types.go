@@ -59,6 +59,20 @@ type ServiceBindings struct {
 	Create map[string]*jsschema.Schema `json:"create,omitempty"`
 }
 
+// ParameterSchemas is an OpenShift extension to allow for form building
+// for provision/bind parameters.
+type ParameterSchemas struct {
+	ServiceInstance ParameterSchema `json:"service_instance,omitempty"`
+}
+
+type ParameterSchema struct {
+	Create OpenShiftMetadata `json:"create,omitempty"`
+}
+
+type OpenShiftMetadata struct {
+	OpenShiftFormDefinition []string `json:"openshift_form_definition,omitempty"`
+}
+
 type CatalogResponse struct {
 	Services []*Service `json:"services"`
 }

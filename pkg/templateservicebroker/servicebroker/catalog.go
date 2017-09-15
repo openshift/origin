@@ -53,6 +53,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		},
 	}
 	//properties := map[string]*jsschema.Schema{}
+	paramOrdering := []string{}
 	required := []string{}
 	for _, param := range template.Parameters {
 		properties[param.Name] = &jsschema.Schema{
@@ -64,7 +65,10 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		if param.Required && param.Generate == "" {
 			required = append(required, param.Name)
 		}
+		paramOrdering = append(paramOrdering, param.Name)
 	}
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
+	paramOrdering = append(paramOrdering, templateapi.RequesterUsernameParameterKey)
 
 	plan := api.Plan{
 		ID:          string(template.UID), // TODO: this should be a unique value
@@ -99,6 +103,17 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 						Required: []string{},
 					},
 				},
+			},
+		},
+	}
+
+	// This metadata ensures the template parameters are displayed in the
+	// service catalog in the same order as they are defined in the template.
+	plan.Metadata = make(map[string]interface{})
+	plan.Metadata["schemas"] = api.ParameterSchemas{
+		ServiceInstance: api.ParameterSchema{
+			Create: api.OpenShiftMetadata{
+				OpenShiftFormDefinition: paramOrdering,
 			},
 		},
 	}
