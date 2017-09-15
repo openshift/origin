@@ -181,6 +181,56 @@ func (e *EndpointController) addPod(obj interface{}) {
 	}
 }
 
+func podToEndpointAddress(pod *v1.Pod) *v1.EndpointAddress {
+	return &v1.EndpointAddress{
+		IP:       pod.Status.PodIP,
+		NodeName: &pod.Spec.NodeName,
+		TargetRef: &v1.ObjectReference{
+			Kind:            "Pod",
+			Namespace:       pod.ObjectMeta.Namespace,
+			Name:            pod.ObjectMeta.Name,
+			UID:             pod.ObjectMeta.UID,
+			ResourceVersion: pod.ObjectMeta.ResourceVersion,
+		}}
+}
+
+func podChanged(oldPod, newPod *v1.Pod) bool {
+	// If the pod's readiness has changed, the associated endpoint address
+	// will move from the unready endpoints set to the ready endpoints.
+	// So for the purposes of an endpoint, a readiness change on a pod
+	// means we have a changed pod.
+	if v1.IsPodReady(oldPod) != v1.IsPodReady(newPod) {
+		return true
+	}
+	// Convert the pod to an EndpointAddress, clear inert fields,
+	// and see if they are the same.
+	newEndpointAddress := podToEndpointAddress(newPod)
+	oldEndpointAddress := podToEndpointAddress(oldPod)
+	// Ignore the ResourceVersion because it changes
+	// with every pod update. This allows the comparison to
+	// show equality if all other relevant fields match.
+	newEndpointAddress.TargetRef.ResourceVersion = ""
+	oldEndpointAddress.TargetRef.ResourceVersion = ""
+	if reflect.DeepEqual(newEndpointAddress, oldEndpointAddress) {
+		// The pod has not changed in any way that impacts the endpoints
+		return false
+	}
+	return true
+}
+
+func determineNeededServiceUpdates(oldServices, services sets.String, podChanged bool) sets.String {
+	if podChanged {
+		// if the labels and pod changed, all services need to be updated
+		services = services.Union(oldServices)
+	} else {
+		// if only the labels changed, services not common to
+		// both the new and old service set (i.e the disjunctive union)
+		// need to be updated
+		services = services.Difference(oldServices).Union(oldServices.Difference(services))
+	}
+	return services
+}
+
 // When a pod is updated, figure out what services it used to be a member of
 // and what services it will be a member of, and enqueue the union of these.
 // old and cur must be *v1.Pod types.
@@ -192,22 +242,37 @@ func (e *EndpointController) updatePod(old, cur interface{}) {
 		// Two different versions of the same pod will always have different RVs.
 		return
 	}
+
+	podChangedFlag := podChanged(oldPod, newPod)
+
+	// Check if the pod labels have changed, indicating a possibe
+	// change in the service membership
+	labelsChanged := false
+	if !reflect.DeepEqual(newPod.Labels, oldPod.Labels) ||
+		!hostNameAndDomainAreEqual(newPod, oldPod) {
+		labelsChanged = true
+	}
+
+	// If both the pod and labels are unchanged, no update is needed
+	if !podChangedFlag && !labelsChanged {
+		return
+	}
+
 	services, err := e.getPodServiceMemberships(newPod)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to get pod %v/%v's service memberships: %v", newPod.Namespace, newPod.Name, err))
 		return
 	}
 
-	// Only need to get the old services if the labels changed.
-	if !reflect.DeepEqual(newPod.Labels, oldPod.Labels) ||
-		!hostNameAndDomainAreEqual(newPod, oldPod) {
+	if labelsChanged {
 		oldServices, err := e.getPodServiceMemberships(oldPod)
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("Unable to get pod %v/%v's service memberships: %v", oldPod.Namespace, oldPod.Name, err))
 			return
 		}
-		services = services.Union(oldServices)
+		services = determineNeededServiceUpdates(oldServices, services, podChangedFlag)
 	}
+
 	for key := range services {
 		e.queue.Add(key)
 	}
@@ -379,16 +444,7 @@ func (e *EndpointController) syncService(key string) error {
 			}
 
 			epp := v1.EndpointPort{Name: portName, Port: int32(portNum), Protocol: portProto}
-			epa := v1.EndpointAddress{
-				IP:       pod.Status.PodIP,
-				NodeName: &pod.Spec.NodeName,
-				TargetRef: &v1.ObjectReference{
-					Kind:            "Pod",
-					Namespace:       pod.ObjectMeta.Namespace,
-					Name:            pod.ObjectMeta.Name,
-					UID:             pod.ObjectMeta.UID,
-					ResourceVersion: pod.ObjectMeta.ResourceVersion,
-				}}
+			epa := *podToEndpointAddress(pod)
 
 			hostname := getHostname(pod)
 			if len(hostname) > 0 &&
