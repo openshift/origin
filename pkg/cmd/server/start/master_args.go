@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/url"
 	"path"
+	"regexp"
 	"strconv"
 
 	"github.com/spf13/pflag"
@@ -127,6 +128,19 @@ func (args MasterArgs) GetConfigFileToWrite() string {
 	return path.Join(args.ConfigDir.Value(), "master-config.yaml")
 }
 
+// makeHostMatchRegex returns a regex that matches this host exactly.
+// If host contains a port, the returned regex matches the port exactly.
+// If host does not contain a port, the returned regex matches any port or no port.
+func makeHostMatchRegex(host string) string {
+	if _, _, err := net.SplitHostPort(host); err == nil {
+		// we have a port, match the end exactly
+		return "//" + regexp.QuoteMeta(host) + "$"
+	} else {
+		// we don't have a port, match a port separator or the end
+		return "//" + regexp.QuoteMeta(host) + "(:|$)"
+	}
+}
+
 // BuildSerializeableMasterConfig takes the MasterArgs (partially complete config) and uses them along with defaulting behavior to create the fully specified
 // config object for starting the master
 func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig, error) {
@@ -149,7 +163,12 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 	// always include localhost as an allowed CORS origin
 	// always include master public address as an allowed CORS origin
 	corsAllowedOrigins := sets.NewString(args.CORSAllowedOrigins...)
-	corsAllowedOrigins.Insert(assetPublicAddr.Host, masterPublicAddr.Host, "localhost", "127.0.0.1")
+	corsAllowedOrigins.Insert(
+		makeHostMatchRegex(assetPublicAddr.Host),
+		makeHostMatchRegex(masterPublicAddr.Host),
+		makeHostMatchRegex("localhost"),
+		makeHostMatchRegex("127.0.0.1"),
+	)
 
 	etcdAddress, err := args.GetEtcdAddress()
 	if err != nil {
