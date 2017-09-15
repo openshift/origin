@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 571b8fbd627c65d7537a4f301716d3baba9616bb
+%global commit 32aab5c0e5b86845ee30f1417db76c9c94465419
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=571b8fb
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.2 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=32aab5c
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.126.2%{?dist}
+Release:        0.126.3%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -639,6 +639,16 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Sep 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.3
+- bump(github.com/openshift/origin-web-console):
+  9148f611dd81dc4f9939dab6c6395a7319063bc3 (eparis+openshiftbot@redhat.com)
+- fix http codes for router e2e (sjenning@redhat.com)
+- improve debug for maven jenkins pipeline failures (gmontero@redhat.com)
+- dind: add support for CRI-O runtime via "-c crio" start argument
+  (dcbw@redhat.com)
+- Avoid printing node list for LoadBalancer in log file (ichavero@redhat.com)
+- unify api helpers and snip some bad deps (deads@redhat.com)
+
 * Thu Sep 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.2
 - wait longer for db availability (bparees@redhat.com)
 - better failure logging for extended build test (bparees@redhat.com)
