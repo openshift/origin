@@ -7,11 +7,29 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/docker10"
+	"github.com/openshift/origin/pkg/image/apis/image/dockerpre012"
 )
+
+var (
+	dockerImageScheme = runtime.NewScheme()
+	dockerImageCodecs = serializer.NewCodecFactory(dockerImageScheme)
+)
+
+func init() {
+	docker10.AddToSchemeInCoreGroup(dockerImageScheme)
+	dockerpre012.AddToSchemeInCoreGroup(dockerImageScheme)
+	newer.AddToSchemeInCoreGroup(dockerImageScheme)
+	AddToSchemeInCoreGroup(dockerImageScheme)
+	docker10.AddToScheme(dockerImageScheme)
+	dockerpre012.AddToScheme(dockerImageScheme)
+	newer.AddToScheme(dockerImageScheme)
+	AddToScheme(dockerImageScheme)
+}
 
 // The docker metadata must be cast to a version
 func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.Scope) error {
@@ -36,7 +54,7 @@ func Convert_image_Image_To_v1_Image(in *newer.Image, out *Image, s conversion.S
 	if err != nil {
 		return err
 	}
-	data, err := runtime.Encode(api.Codecs.LegacyCodec(version), &in.DockerImageMetadata)
+	data, err := runtime.Encode(dockerImageCodecs.LegacyCodec(version), &in.DockerImageMetadata)
 	if err != nil {
 		return err
 	}
@@ -93,11 +111,11 @@ func Convert_v1_Image_To_image_Image(in *Image, out *newer.Image, s conversion.S
 	}
 	if len(in.DockerImageMetadata.Raw) > 0 {
 		// TODO: add a way to default the expected kind and version of an object if not set
-		obj, err := api.Scheme.New(schema.GroupVersionKind{Version: version, Kind: "DockerImage"})
+		obj, err := dockerImageScheme.New(schema.GroupVersionKind{Version: version, Kind: "DockerImage"})
 		if err != nil {
 			return err
 		}
-		if err := runtime.DecodeInto(api.Codecs.UniversalDecoder(), in.DockerImageMetadata.Raw, obj); err != nil {
+		if err := runtime.DecodeInto(dockerImageCodecs.UniversalDecoder(), in.DockerImageMetadata.Raw, obj); err != nil {
 			return err
 		}
 		if err := s.Convert(obj, &out.DockerImageMetadata, 0); err != nil {
