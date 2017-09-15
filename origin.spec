@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 32aab5c0e5b86845ee30f1417db76c9c94465419
+%global commit 7058ce51d17626c88b0b7189a6d342497f40e41d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.2 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=32aab5c
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.3 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=7058ce5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.126.3%{?dist}
+Release:        0.126.4%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,24 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Sep 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.4
+- Fix some minor syntax warnings (jpeeler@redhat.com)
+- Teach build-local-images to build service-catalog (jpeeler@redhat.com)
+- Add App struct for application-scoped data (obulatov@redhat.com)
+- image: add registry-url flag for verify-image-signature command
+  (mfojtik@redhat.com)
+- dind: fix token race, enable GENEVE UDP port, and update OVN repo
+  (dcbw@redhat.com)
+- UPSTREAM: 48524: fix udp service blackhole problem when number of backends
+  changes from 0 to non-0 (danw@redhat.com)
+- Require conntrack-tools in node package (danw@redhat.com)
+- prometheus annotations dropped from router service (pcameron@redhat.com)
+- Install conntrack-tools in dind node image (danw@redhat.com)
+- Generate escaped regexes for cors config (jliggitt@redhat.com)
+- UPSTREAM: 51644: do not update init containers status if terminated
+  (sjenning@redhat.com)
+- UPSTREAM: 49640: Run mount in its own systemd scope (jsafrane@redhat.com)
+
 * Fri Sep 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.3
 - bump(github.com/openshift/origin-web-console):
   9148f611dd81dc4f9939dab6c6395a7319063bc3 (eparis+openshiftbot@redhat.com)
