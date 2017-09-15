@@ -13,11 +13,20 @@ import (
 )
 
 func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Client, kubeClient kclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
+	runtimeEndpoint := options.DockerConfig.DockerShimSocket
+	runtime, ok := options.KubeletArguments["container-runtime"]
+	if ok && len(runtime) == 1 && runtime[0] == "remote" {
+		endpoint, ok := options.KubeletArguments["container-runtime-endpoint"]
+		if ok && len(endpoint) == 1 {
+			runtimeEndpoint = endpoint[0]
+		}
+	}
+
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
 		Hostname:           options.NodeName,
 		SelfIP:             options.NodeIP,
-		RuntimeEndpoint:    options.DockerConfig.DockerShimSocket,
+		RuntimeEndpoint:    runtimeEndpoint,
 		MTU:                options.NetworkConfig.MTU,
 		OSClient:           originClient,
 		KClient:            kubeClient,
