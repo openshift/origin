@@ -328,7 +328,7 @@ func (c *imageResolutionCache) resolveImageReference(ref imageapi.DockerImageRef
 // or returns an error.
 func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string, partial, forceResolveLocalNames bool) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
-	resolved, err := c.tags.ImageStreamTags(namespace).Get(name, tag)
+	resolved, err := c.imageClient.ImageStreamTags(namespace).Get(imageapi.JoinImageStreamTag(name, tag), metav1.GetOptions{})
 	if err != nil {
 		if partial {
 			attrs.IntegratedRegistry = false
@@ -374,7 +374,7 @@ func (c *imageResolutionCache) resolveImageStreamTag(namespace, name, tag string
 // resolveImageStreamImage loads an image stream image if it exists, or returns an error.
 func (c *imageResolutionCache) resolveImageStreamImage(namespace, name, id string) (*rules.ImagePolicyAttributes, error) {
 	attrs := &rules.ImagePolicyAttributes{IntegratedRegistry: true}
-	resolved, err := c.isImages.ImageStreamImages(namespace).Get(name, id)
+	resolved, err := c.imageClient.ImageStreamImages(namespace).Get(imageapi.JoinImageStreamImage(name, id), metav1.GetOptions{})
 	if err != nil {
 		return attrs, err
 	}

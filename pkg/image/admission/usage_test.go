@@ -24,7 +24,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 			name: "isimage without namespace",
 			objRef: kapi.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: imageapi.MakeImageStreamImageName("is", imagetest.BaseImageWith1LayerDigest),
+				Name: imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
 			expectedString: "is@" + imagetest.BaseImageWith1LayerDigest,
 		},
@@ -34,7 +34,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 			namespace: "fallback",
 			objRef: kapi.ObjectReference{
 				Kind: "ImageStreamImage",
-				Name: imageapi.MakeImageStreamImageName("is", imagetest.BaseImageWith1LayerDigest),
+				Name: imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
 			expectedString: "fallback/is@" + imagetest.BaseImageWith1LayerDigest,
 		},
@@ -45,7 +45,7 @@ func TestGetImageReferenceForObjectReference(t *testing.T) {
 			objRef: kapi.ObjectReference{
 				Kind:      "ImageStreamImage",
 				Namespace: "ns",
-				Name:      imageapi.MakeImageStreamImageName("is", imagetest.BaseImageWith1LayerDigest),
+				Name:      imageapi.JoinImageStreamImage("is", imagetest.BaseImageWith1LayerDigest),
 			},
 			expectedString: "ns/is@" + imagetest.BaseImageWith1LayerDigest,
 		},
