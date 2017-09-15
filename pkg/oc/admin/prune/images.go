@@ -22,10 +22,12 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/prune"
 	oserrors "github.com/openshift/origin/pkg/util/errors"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -105,7 +107,9 @@ type PruneImagesOptions struct {
 	ForceInsecure       bool
 
 	ClientConfig *restclient.Config
-	OSClient     client.Interface
+	AppsClient   appsclient.AppsInterface
+	BuildClient  buildclient.BuildInterface
+	ImageClient  imageclient.ImageInterface
 	KubeClient   kclientset.Interface
 	Out          io.Writer
 }
@@ -181,11 +185,13 @@ func (o *PruneImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.ClientConfig = clientConfig
 
-	osClient, kubeClient, err := getClients(f)
+	appsClient, buildClient, imageClient, kubeClient, err := getClients(f)
 	if err != nil {
 		return err
 	}
-	o.OSClient = osClient
+	o.AppsClient = appsClient
+	o.BuildClient = buildClient
+	o.ImageClient = imageClient
 	o.KubeClient = kubeClient
 
 	return nil
@@ -216,12 +222,12 @@ func (o PruneImagesOptions) Validate() error {
 
 // Run contains all the necessary functionality for the OpenShift cli prune images command.
 func (o PruneImagesOptions) Run() error {
-	allImages, err := o.OSClient.Images().List(metav1.ListOptions{})
+	allImages, err := o.ImageClient.Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	allStreams, err := o.OSClient.ImageStreams(o.Namespace).List(metav1.ListOptions{})
+	allStreams, err := o.ImageClient.ImageStreams(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -236,21 +242,21 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
-	allBCs, err := o.OSClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
+	allBCs, err := o.BuildClient.BuildConfigs(o.Namespace).List(metav1.ListOptions{})
 	// We need to tolerate 'not found' errors for buildConfigs since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allBuilds, err := o.OSClient.Builds(o.Namespace).List(metav1.ListOptions{})
+	allBuilds, err := o.BuildClient.Builds(o.Namespace).List(metav1.ListOptions{})
 	// We need to tolerate 'not found' errors for builds since they may be disabled in Atomic
 	err = oserrors.TolerateNotFoundError(err)
 	if err != nil {
 		return err
 	}
 
-	allDCs, err := o.OSClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
+	allDCs, err := o.AppsClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -339,8 +345,8 @@ func (o PruneImagesOptions) Run() error {
 	manifestDeleter := &describingManifestDeleter{w: w}
 
 	if o.Confirm {
-		imageDeleter.delegate = prune.NewImageDeleter(o.OSClient.Images())
-		imageStreamDeleter.delegate = prune.NewImageStreamDeleter(o.OSClient)
+		imageDeleter.delegate = prune.NewImageDeleter(o.ImageClient)
+		imageStreamDeleter.delegate = prune.NewImageStreamDeleter(o.ImageClient)
 		layerLinkDeleter.delegate = prune.NewLayerLinkDeleter()
 		blobDeleter.delegate = prune.NewBlobDeleter()
 		manifestDeleter.delegate = prune.NewManifestDeleter()
@@ -512,21 +518,33 @@ func (p *describingManifestDeleter) DeleteManifest(registryClient *http.Client, 
 }
 
 // getClients returns a OpenShift client and Kube client.
-func getClients(f *clientcmd.Factory) (*client.Client, kclientset.Interface, error) {
+func getClients(f *clientcmd.Factory) (appsclient.AppsInterface, buildclient.BuildInterface, imageclient.ImageInterface, kclientset.Interface, error) {
 	clientConfig, err := f.ClientConfig()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if len(clientConfig.BearerToken) == 0 {
-		return nil, nil, errNoToken
+		return nil, nil, nil, nil, errNoToken
 	}
 
-	osClient, kubeClient, err := f.Clients()
+	_, kubeClient, err := f.Clients()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
-	return osClient, kubeClient, err
+	appsClient, err := appsclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	buildClient, err := buildclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	imageClient, err := imageclient.NewForConfig(clientConfig)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	return appsClient, buildClient, imageClient, kubeClient, err
 }
 
 // getRegistryClient returns a registry client. Note that registryCABundle and registryInsecure=true are

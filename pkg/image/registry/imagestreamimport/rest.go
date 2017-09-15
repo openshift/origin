@@ -23,10 +23,10 @@ import (
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -46,7 +46,7 @@ type REST struct {
 	streams           imagestream.Registry
 	internalStreams   rest.CreaterUpdater
 	images            rest.Creater
-	secrets           client.ImageStreamSecretsNamespacer
+	isClient          imageclient.ImageStreamsGetter
 	transport         http.RoundTripper
 	insecureTransport http.RoundTripper
 	clientFn          ImporterDockerRegistryFunc
@@ -60,7 +60,7 @@ var _ rest.Creater = &REST{}
 // if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
 // include client certs unless you wish to allow the entire cluster to import using those certs.
 func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStreams rest.CreaterUpdater,
-	images rest.Creater, secrets client.ImageStreamSecretsNamespacer,
+	images rest.Creater, isClient imageclient.ImageStreamsGetter,
 	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
 	allowedImportRegistries *serverapi.AllowedRegistries,
@@ -72,7 +72,7 @@ func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStream
 		streams:           streams,
 		internalStreams:   internalStreams,
 		images:            images,
-		secrets:           secrets,
+		isClient:          isClient,
 		transport:         transport,
 		insecureTransport: insecureTransport,
 		clientFn:          clientFn,
@@ -153,7 +153,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 	// only load secrets if we need them
 	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapiv1.Secret, error) {
-		secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, metav1.ListOptions{})
+		secrets, err := r.isClient.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

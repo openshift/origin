@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
@@ -24,10 +25,17 @@ type WantsDeprecatedOpenshiftClient interface {
 	admission.Validator
 }
 
-// WantDeprecatedOpenshiftClient should be implemented by admission plugins that need
+// WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
 // an Openshift internal template client
 type WantsOpenshiftInternalTemplateClient interface {
 	SetOpenShiftInternalTemplateClient(templateclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
+// an Openshift internal image client
+type WantsOpenshiftInternalImageClient interface {
+	SetOpenshiftInternalImageClient(imageclient.Interface)
 	admission.Validator
 }
 

@@ -12,8 +12,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 )
 
 type fakeTagResponse struct {
@@ -35,15 +35,15 @@ func (r fakeTagRetriever) ImageStreamTag(namespace, name string) (string, int64,
 	return "", 0, false
 }
 
-func testDeploymentConfig(params []deployapi.DeploymentTriggerImageChangeParams, containers map[string]string) *deployapi.DeploymentConfig {
-	obj := &deployapi.DeploymentConfig{
+func testDeploymentConfig(params []appsapi.DeploymentTriggerImageChangeParams, containers map[string]string) *appsapi.DeploymentConfig {
+	obj := &appsapi.DeploymentConfig{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
-		Spec: deployapi.DeploymentConfigSpec{
+		Spec: appsapi.DeploymentConfigSpec{
 			Template: &kapi.PodTemplateSpec{},
 		},
 	}
 	for i := range params {
-		obj.Spec.Triggers = append(obj.Spec.Triggers, deployapi.DeploymentTriggerPolicy{ImageChangeParams: &params[i]})
+		obj.Spec.Triggers = append(obj.Spec.Triggers, appsapi.DeploymentTriggerPolicy{ImageChangeParams: &params[i]})
 	}
 	var names []string
 	for k := range containers {
@@ -59,13 +59,13 @@ func testDeploymentConfig(params []deployapi.DeploymentTriggerImageChangeParams,
 func TestDeploymentConfigReactor(t *testing.T) {
 	testCases := []struct {
 		tags        []fakeTagResponse
-		obj         *deployapi.DeploymentConfig
-		response    *deployapi.DeploymentConfig
-		expected    *deployapi.DeploymentConfig
+		obj         *appsapi.DeploymentConfig
+		response    *appsapi.DeploymentConfig
+		expected    *appsapi.DeploymentConfig
 		expectedErr bool
 	}{
 		{
-			obj: &deployapi.DeploymentConfig{
+			obj: &appsapi.DeploymentConfig{
 				ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},
 			},
 		},
@@ -73,15 +73,15 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// no container, last expected changed
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					ContainerNames: []string{"test"},
 				},
 			}, nil),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -94,7 +94,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// no container, second run
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-2", RV: 3}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -102,8 +102,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					LastTriggeredImage: "image-lookup-1",
 				},
 			}, nil),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -115,7 +115,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 
 		{
 			// no ref, no change
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -127,15 +127,15 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// resolved without a change in another namespace
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					ContainerNames: []string{"test"},
 				},
 			}, map[string]string{"test": ""}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -148,20 +148,20 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// will not resolve if not automatic
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      false,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					ContainerNames: []string{"test"},
 				},
 			}, map[string]string{"test": ""}),
-			response: &deployapi.DeploymentConfig{},
+			response: &appsapi.DeploymentConfig{},
 		},
 
 		{
 			// will not fire if both triggers aren't resolved
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -173,13 +173,13 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					ContainerNames: []string{"test2"},
 				},
 			}, map[string]string{"test": "", "test2": ""}),
-			response: &deployapi.DeploymentConfig{},
+			response: &appsapi.DeploymentConfig{},
 		},
 
 		{
 			// will fire if a trigger has already been resolved before
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -192,8 +192,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					LastTriggeredImage: "old-image",
 				},
 			}, map[string]string{"test": "", "test2": "old-image"}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -212,7 +212,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// will fire if the same trigger has already been resolved before
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-2:1", Ref: "image-lookup-2", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -226,8 +226,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					LastTriggeredImage: "image-lookup-1",
 				},
 			}, map[string]string{"test": "old-image", "test2": "image-lookup-1"}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -246,21 +246,21 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// will not fire the image can't be resolved
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-2:1", Ref: "image-lookup-2", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					ContainerNames: []string{"test"},
 				},
 			}, map[string]string{"test": "", "test2": "image-lookup-1"}),
-			response: &deployapi.DeploymentConfig{},
+			response: &appsapi.DeploymentConfig{},
 			expected: nil,
 		},
 
 		{
 			// will not fire the one image can't be resolved and the other can
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-2:1", Ref: "image-lookup-2", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -273,14 +273,14 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					LastTriggeredImage: "image-lookup-1",
 				},
 			}, map[string]string{"test": ""}),
-			response: &deployapi.DeploymentConfig{},
+			response: &appsapi.DeploymentConfig{},
 			expected: nil,
 		},
 
 		{
 			// will fire if both triggers are resolved
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -292,8 +292,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					ContainerNames: []string{"test2"},
 				},
 			}, map[string]string{"test": "", "test2": ""}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -312,7 +312,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// will fire if both triggers are resolved, second run
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-2", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -326,8 +326,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					LastTriggeredImage: "image-lookup-1",
 				},
 			}, map[string]string{"test": "image-lookup-1", "test2": "image-lookup-1"}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -346,15 +346,15 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// will fire from single trigger
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-1", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:      true,
 					From:           kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
 					ContainerNames: []string{"test", "test2"},
 				},
 			}, map[string]string{"test": "", "test2": ""}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -367,7 +367,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 		{
 			// will fire from single trigger, second run
 			tags: []fakeTagResponse{{Namespace: "other", Name: "stream-1:1", Ref: "image-lookup-2", RV: 2}},
-			obj: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			obj: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -375,8 +375,8 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					LastTriggeredImage: "image-lookup-1",
 				},
 			}, map[string]string{"test": "image-lookup-1", "test2": "image-lookup-1"}),
-			response: &deployapi.DeploymentConfig{},
-			expected: testDeploymentConfig([]deployapi.DeploymentTriggerImageChangeParams{
+			response: &appsapi.DeploymentConfig{},
+			expected: testDeploymentConfig([]appsapi.DeploymentTriggerImageChangeParams{
 				{
 					Automatic:          true,
 					From:               kapi.ObjectReference{Name: "stream-1:1", Namespace: "other", Kind: "ImageStreamTag"},
@@ -389,7 +389,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run("", func(t *testing.T) {
-			c := &appsfake.Clientset{}
+			c := &appsclient.Clientset{}
 			var actualUpdate runtime.Object
 			if test.response != nil {
 				c.AddReactor("update", "*", func(action testingcore.Action) (handled bool, ret runtime.Object, err error) {

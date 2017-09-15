@@ -36,6 +36,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
 	"github.com/openshift/origin/pkg/client"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -311,7 +312,11 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 	if imageutil.IsDocker(options.Source) {
 		return f.kubeClientAccessFactory.ResolveImage(image)
 	}
-	oc, _, err := f.Clients()
+	config, err := f.OpenShiftClientConfig().ClientConfig()
+	if err != nil {
+		return "", err
+	}
+	imageClient, err := imageclient.NewForConfig(config)
 	if err != nil {
 		return "", err
 	}
@@ -319,7 +324,8 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return imageutil.ResolveImagePullSpec(oc, oc, options.Source, image, namespace)
+
+	return imageutil.ResolveImagePullSpec(imageClient.Image(), options.Source, image, namespace)
 }
 
 func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {

@@ -16,11 +16,11 @@ import (
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/image/importer"
 	imageimporter "github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
@@ -124,15 +124,15 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
 
-	deprecatedOpenshiftClientForImages, err := osclient.New(c.GenericConfig.LoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	coreClient, err := coreclient.NewForConfig(c.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
 	authorizationClient, err := authorizationclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	imageClient, err := imageclient.NewForConfig(c.GenericConfig.LoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		return nil, fmt.Errorf("error building REST storage: %v", err)
 	}
 	imageRegistry := image.NewRegistry(imageStorage)
-	imageSignatureStorage := imagesignature.NewREST(deprecatedOpenshiftClientForImages.Images())
+	imageSignatureStorage := imagesignature.NewREST(imageClient)
 	imageStreamSecretsStorage := imagesecret.NewREST(coreClient)
 	imageStreamStorage, imageStreamStatusStorage, internalImageStreamStorage, err := imagestreametcd.NewREST(c.GenericConfig.RESTOptionsGetter, c.RegistryHostnameRetriever, authorizationClient.SubjectAccessReviews(), c.LimitVerifier)
 	if err != nil {
@@ -166,7 +166,7 @@ func (c *ImageAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 		imageStreamRegistry,
 		internalImageStreamStorage,
 		imageStorage,
-		deprecatedOpenshiftClientForImages,
+		imageClient,
 		importTransport,
 		insecureImportTransport,
 		importerDockerClientFn,

@@ -9,20 +9,20 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // REST implements the RESTStorage interface for ImageSignature
 type REST struct {
-	imageClient client.ImageInterface
+	imageClient imageclient.ImagesGetter
 }
 
 var _ rest.Creater = &REST{}
 var _ rest.Deleter = &REST{}
 
 // NewREST returns a new REST.
-func NewREST(imageClient client.ImageInterface) *REST {
+func NewREST(imageClient imageclient.ImagesGetter) *REST {
 	return &REST{imageClient: imageClient}
 }
 
@@ -43,7 +43,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		return nil, kapierrors.NewBadRequest(err.Error())
 	}
 
-	image, err := r.imageClient.Get(imageName, metav1.GetOptions{})
+	image, err := r.imageClient.Images().Get(imageName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 	image.Signatures = append(image.Signatures, *signature)
 
-	image, err = r.imageClient.Update(image)
+	image, err = r.imageClient.Images().Update(image)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (r *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 		return nil, kapierrors.NewBadRequest("ImageSignatures must be accessed with <imageName>@<signatureName>")
 	}
 
-	image, err := r.imageClient.Get(imageName, metav1.GetOptions{})
+	image, err := r.imageClient.Images().Get(imageName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (r *REST) Delete(ctx apirequest.Context, name string) (runtime.Object, erro
 	copy(image.Signatures[index:size-1], image.Signatures[index+1:size])
 	image.Signatures = image.Signatures[0 : size-1]
 
-	if _, err := r.imageClient.Update(image); err != nil {
+	if _, err := r.imageClient.Images().Update(image); err != nil {
 		return nil, err
 	}
 

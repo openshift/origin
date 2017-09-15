@@ -10,8 +10,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
@@ -39,7 +39,7 @@ func namesInclude(names []string, name string) bool {
 
 // calculateDeploymentConfigTrigger resolves a particular trigger against the deployment config and extracts a list of triggers.
 // It will silently ignore triggers that do not point to valid container. It returns empty if no triggers can be found.
-func calculateDeploymentConfigTrigger(t deployapi.DeploymentTriggerPolicy, dc *deployapi.DeploymentConfig) []triggerapi.ObjectFieldTrigger {
+func calculateDeploymentConfigTrigger(t appsapi.DeploymentTriggerPolicy, dc *appsapi.DeploymentConfig) []triggerapi.ObjectFieldTrigger {
 	if t.ImageChangeParams == nil {
 		return nil
 	}
@@ -82,7 +82,7 @@ func calculateDeploymentConfigTrigger(t deployapi.DeploymentTriggerPolicy, dc *d
 
 // calculateDeploymentConfigTriggers transforms a deployment config into a set of image change triggers. If retrieveChanges
 // is true an array of the latest state of the triggers will be returned.
-func calculateDeploymentConfigTriggers(dc *deployapi.DeploymentConfig) []triggerapi.ObjectFieldTrigger {
+func calculateDeploymentConfigTriggers(dc *appsapi.DeploymentConfig) []triggerapi.ObjectFieldTrigger {
 	var triggers []triggerapi.ObjectFieldTrigger
 	for _, t := range dc.Spec.Triggers {
 		addedTriggers := calculateDeploymentConfigTrigger(t, dc)
@@ -104,25 +104,25 @@ func NewDeploymentConfigTriggerIndexer(prefix string) trigger.Indexer {
 func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *trigger.CacheEntry, cache.DeltaType, error) {
 	var (
 		triggers []triggerapi.ObjectFieldTrigger
-		dc       *deployapi.DeploymentConfig
+		dc       *appsapi.DeploymentConfig
 		change   cache.DeltaType
 	)
 	switch {
 	case obj != nil && old == nil:
 		// added
-		dc = obj.(*deployapi.DeploymentConfig)
+		dc = obj.(*appsapi.DeploymentConfig)
 		triggers = calculateDeploymentConfigTriggers(dc)
 		change = cache.Added
 	case old != nil && obj == nil:
 		// deleted
-		dc = old.(*deployapi.DeploymentConfig)
+		dc = old.(*appsapi.DeploymentConfig)
 		triggers = calculateDeploymentConfigTriggers(dc)
 		change = cache.Deleted
 	default:
 		// updated
-		dc = obj.(*deployapi.DeploymentConfig)
+		dc = obj.(*appsapi.DeploymentConfig)
 		triggers = calculateDeploymentConfigTriggers(dc)
-		oldTriggers := calculateDeploymentConfigTriggers(old.(*deployapi.DeploymentConfig))
+		oldTriggers := calculateDeploymentConfigTriggers(old.(*appsapi.DeploymentConfig))
 		switch {
 		case len(oldTriggers) == 0:
 			change = cache.Added
@@ -144,13 +144,13 @@ func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *tr
 
 // DeploymentConfigReactor converts image trigger changes into updates on deployments.
 type DeploymentConfigReactor struct {
-	Client appsclientinternal.DeploymentConfigsGetter
+	Client appsclient.DeploymentConfigsGetter
 }
 
 // UpdateDeploymentConfigImages sets the latest image value from all triggers onto each container, returning false if
 // one or more triggers could not be resolved yet or an error. The returned dc will be copied if mutated.
-func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever trigger.TagRetriever) (*deployapi.DeploymentConfig, bool, error) {
-	var updated *deployapi.DeploymentConfig
+func UpdateDeploymentConfigImages(dc *appsapi.DeploymentConfig, tagRetriever trigger.TagRetriever) (*appsapi.DeploymentConfig, bool, error) {
+	var updated *appsapi.DeploymentConfig
 
 	// copy the object and reset dc to the copy
 	copyObject := func() {
@@ -161,7 +161,7 @@ func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever t
 		if err != nil {
 			return
 		}
-		dc = copied.(*deployapi.DeploymentConfig)
+		dc = copied.(*appsapi.DeploymentConfig)
 		updated = dc
 	}
 
@@ -221,12 +221,12 @@ func UpdateDeploymentConfigImages(dc *deployapi.DeploymentConfig, tagRetriever t
 
 // ImageChanged is passed a deployment config and a set of changes.
 func (r *DeploymentConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.TagRetriever) error {
-	dc := obj.(*deployapi.DeploymentConfig)
+	dc := obj.(*appsapi.DeploymentConfig)
 	copied, err := kapi.Scheme.DeepCopy(dc)
 	if err != nil {
 		return err
 	}
-	newDC := copied.(*deployapi.DeploymentConfig)
+	newDC := copied.(*appsapi.DeploymentConfig)
 
 	updated, resolvable, err := UpdateDeploymentConfigImages(newDC, tagRetriever)
 	if err != nil {
@@ -247,7 +247,7 @@ func (r *DeploymentConfigReactor) ImageChanged(obj interface{}, tagRetriever tri
 	return err
 }
 
-func printDeploymentTriggers(triggers []deployapi.DeploymentTriggerPolicy) string {
+func printDeploymentTriggers(triggers []appsapi.DeploymentTriggerPolicy) string {
 	var values []string
 	for _, t := range triggers {
 		if t.ImageChangeParams == nil {

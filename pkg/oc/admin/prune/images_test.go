@@ -6,28 +6,32 @@ import (
 
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/openshift/origin/pkg/client/testclient"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 func TestImagePruneNamespaced(t *testing.T) {
 	kFake := fake.NewSimpleClientset()
-	osFake := testclient.NewSimpleFake()
+	imageFake := imageclient.NewSimpleClientset()
 	opts := &PruneImagesOptions{
 		Namespace: "foo",
 
-		OSClient:   osFake,
-		KubeClient: kFake,
-		Out:        ioutil.Discard,
+		AppsClient:  appsclient.NewSimpleClientset().Apps(),
+		BuildClient: buildclient.NewSimpleClientset().Build(),
+		ImageClient: imageFake.Image(),
+		KubeClient:  kFake,
+		Out:         ioutil.Discard,
 	}
 
 	if err := opts.Run(); err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
 
-	if len(osFake.Actions()) == 0 || len(kFake.Actions()) == 0 {
+	if len(imageFake.Actions()) == 0 || len(kFake.Actions()) == 0 {
 		t.Errorf("Missing get images actions")
 	}
-	for _, a := range osFake.Actions() {
+	for _, a := range imageFake.Actions() {
 		// images are non-namespaced
 		if a.GetResource().Resource == "images" {
 			continue
