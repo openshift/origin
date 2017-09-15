@@ -276,10 +276,19 @@ install -p -m 755 _output/local/bin/${PLATFORM}/ginkgo %{buildroot}%{_libexecdir
 
 %if 0%{?make_redistributable}
 # Install client executable for windows and mac
-install -d %{buildroot}%{_datadir}/%{name}/{linux,macosx,windows}
-install -p -m 755 _output/local/bin/linux/amd64/oc %{buildroot}%{_datadir}/%{name}/linux/oc
-install -p -m 755 _output/local/bin/darwin/amd64/oc %{buildroot}/%{_datadir}/%{name}/macosx/oc
-install -p -m 755 _output/local/bin/windows/amd64/oc.exe %{buildroot}/%{_datadir}/%{name}/windows/oc.exe
+for goos_dir in _output/local/bin/*; do
+  goos=${goos_dir##*/}
+  install -d %{buildroot}%{_datadir}/%{name}/${goos}
+  for goarch_dir in _output/local/bin/${goos}/*; do
+    goarch=${goarch_dir##*/}
+    install -d %{buildroot}%{_datadir}/%{name}/${goos}/${goarch}
+    if [ "${goos}" == "windows" ]; then
+      install -p -m 755 _output/local/bin/${goos}/${goarch}/oc.exe %{buildroot}%{_datadir}/%{name}/${goos}/${goarch}/oc.exe
+    else
+      install -p -m 755 _output/local/bin/${goos}/${goarch}/oc %{buildroot}%{_datadir}/%{name}/${goos}/${goarch}/oc
+    fi
+  done
+done
 %endif
 
 # Install federation services
@@ -575,12 +584,9 @@ fi
 
 %if 0%{?make_redistributable}
 %files clients-redistributable
-%dir %{_datadir}/%{name}/linux/
-%dir %{_datadir}/%{name}/macosx/
-%dir %{_datadir}/%{name}/windows/
-%{_datadir}/%{name}/linux/oc
-%{_datadir}/%{name}/macosx/oc
-%{_datadir}/%{name}/windows/oc.exe
+%dir %{_datadir}/%{name}/*/*
+%{_datadir}/%{name}/*/*/oc
+%{_datadir}/%{name}/*/*/oc.exe
 %endif
 
 %files dockerregistry

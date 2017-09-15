@@ -17,12 +17,10 @@ os::util::ensure::system_binary_exists tito
 os::util::ensure::system_binary_exists createrepo
 os::build::setup_env
 
-if [[ "${OS_ONLY_BUILD_PLATFORMS:-}" == 'linux/amd64' ]]; then
-	# when the user is asking for only Linux binaries, we will
-	# furthermore not build cross-platform clients in tito
-	make_redistributable=0
-else
+if [[ -n "${OS_BUILD_REDISTRIBUTABLE:-}" ]]; then
 	make_redistributable=1
+else
+	make_redistributable=0
 fi
 
 os::log::info 'Building Origin release RPMs with tito...'
