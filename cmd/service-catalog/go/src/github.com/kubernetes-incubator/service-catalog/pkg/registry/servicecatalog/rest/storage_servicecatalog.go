@@ -69,7 +69,7 @@ func (p StorageProvider) v1alpha1Storage(
 	apiResourceConfigSource serverstorage.APIResourceConfigSource,
 	restOptionsGetter generic.RESTOptionsGetter,
 ) (map[string]rest.Storage, error) {
-	brokerRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("brokers"))
+	brokerRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("servicebrokers"))
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +138,7 @@ func (p StorageProvider) v1alpha1Storage(
 		p.StorageType,
 	)
 
-	instanceClassRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("instances"))
+	instanceClassRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("serviceinstances"))
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (p StorageProvider) v1alpha1Storage(
 		p.StorageType,
 	)
 
-	bindingClassRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("bindings"))
+	bindingClassRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("serviceinstancecredentials"))
 	if err != nil {
 		return nil, err
 	}
@@ -191,15 +191,15 @@ func (p StorageProvider) v1alpha1Storage(
 			RESTOptions:      bindingClassRESTOptions,
 			DefaultNamespace: p.DefaultNamespace,
 			RESTClient:       p.RESTClient,
-			SingularKind:     tpr.ServiceBindingKind,
+			SingularKind:     tpr.ServiceInstanceCredentialKind,
 			NewSingularFunc:  binding.NewSingular,
-			ListKind:         tpr.ServiceBindingListKind,
+			ListKind:         tpr.ServiceInstanceCredentialListKind,
 			NewListFunc:      binding.NewList,
 			CheckObjectFunc:  binding.CheckObject,
 			DestroyFunc:      func() {},
 			Keyer: tpr.Keyer{
 				DefaultNamespace: p.DefaultNamespace,
-				ResourceName:     tpr.ServiceBindingKind.String(),
+				ResourceName:     tpr.ServiceInstanceCredentialKind.String(),
 				Separator:        "/",
 			},
 		},
@@ -214,13 +214,13 @@ func (p StorageProvider) v1alpha1Storage(
 		return nil, err
 	}
 	return map[string]rest.Storage{
-		"brokers":          brokerStorage,
-		"brokers/status":   brokerStatusStorage,
-		"serviceclasses":   serviceClassStorage,
-		"instances":        instanceStorage,
-		"instances/status": instanceStatusStorage,
-		"bindings":         bindingStorage,
-		"bindings/status":  bindingStatusStorage,
+		"servicebrokers":                    brokerStorage,
+		"servicebrokers/status":             brokerStatusStorage,
+		"serviceclasses":                    serviceClassStorage,
+		"serviceinstances":                  instanceStorage,
+		"serviceinstances/status":           instanceStatusStorage,
+		"serviceinstancecredentials":        bindingStorage,
+		"serviceinstancecredentials/status": bindingStatusStorage,
 	}, nil
 }
 

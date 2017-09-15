@@ -42,18 +42,18 @@ const (
 //Helpers
 func createSingleItemStorage() NamespacedStorage {
 	storage := make(NamespacedStorage)
-	storage.Set(ns1, tipe1, name1, &servicecatalog.Broker{})
+	storage.Set(ns1, tipe1, name1, &servicecatalog.ServiceBroker{})
 	return storage
 }
 
 func createMultipleItemStorage() NamespacedStorage {
 	storage := make(NamespacedStorage)
-	storage.Set(ns1, tipe1, name1, &servicecatalog.Broker{})
-	storage.Set(ns1, tipe1, name2, &servicecatalog.Broker{})
-	storage.Set(ns1, tipe1, name3, &servicecatalog.Broker{})
+	storage.Set(ns1, tipe1, name1, &servicecatalog.ServiceBroker{})
+	storage.Set(ns1, tipe1, name2, &servicecatalog.ServiceBroker{})
+	storage.Set(ns1, tipe1, name3, &servicecatalog.ServiceBroker{})
 
-	storage.Set(ns2, tipe1, name1, &servicecatalog.Broker{})
-	storage.Set(ns2, tipe1, name2, &servicecatalog.Broker{})
+	storage.Set(ns2, tipe1, name1, &servicecatalog.ServiceBroker{})
+	storage.Set(ns2, tipe1, name2, &servicecatalog.ServiceBroker{})
 
 	return storage
 
@@ -145,7 +145,7 @@ func TestGetItem(t *testing.T) {
 			}
 
 			router := getRouter(tc.storage, tc.watcher, func() runtime.Object {
-				return &servicecatalog.Instance{}
+				return &servicecatalog.ServiceInstance{}
 			})
 
 			router.ServeHTTP(tc.rw, request)
@@ -175,8 +175,8 @@ func TestGetItems(t *testing.T) {
 		url            string
 		expectedStatus int
 	}{
-		{"Empty Storage", make(NamespacedStorage), NewWatcher(), newResponseWriter(), fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%v/brokers", ns1), http.StatusOK},
-		{"Multiple Items", createMultipleItemStorage(), NewWatcher(), newResponseWriter(), fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%v/brokers", ns1), http.StatusOK},
+		{"Empty Storage", make(NamespacedStorage), NewWatcher(), newResponseWriter(), fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%v/servicebrokers", ns1), http.StatusOK},
+		{"Multiple Items", createMultipleItemStorage(), NewWatcher(), newResponseWriter(), fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%v/servicebrokers", ns1), http.StatusOK},
 	}
 
 	for _, tc := range testCases {
@@ -187,7 +187,7 @@ func TestGetItems(t *testing.T) {
 			}
 
 			router := getRouter(tc.storage, tc.watcher, func() runtime.Object {
-				return &servicecatalog.Instance{}
+				return &servicecatalog.ServiceInstance{}
 			})
 
 			router.ServeHTTP(tc.rw, request)
@@ -225,7 +225,7 @@ func TestCreateItem(t *testing.T) {
 			make(NamespacedStorage), NewWatcher(),
 			newResponseWriter(),
 			fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%s/%s", ns1, tipe1),
-			&servicecatalog.Broker{ObjectMeta: metav1.ObjectMeta{Name: name1}, TypeMeta: metav1.TypeMeta{Kind: "Broker", APIVersion: "servicecatalog.k8s.io/v1alpha1"}},
+			&servicecatalog.ServiceBroker{ObjectMeta: metav1.ObjectMeta{Name: name1}, TypeMeta: metav1.TypeMeta{Kind: "ServiceBroker", APIVersion: "servicecatalog.k8s.io/v1alpha1"}},
 			http.StatusCreated,
 			1,
 		},
@@ -235,7 +235,7 @@ func TestCreateItem(t *testing.T) {
 			NewWatcher(),
 			newResponseWriter(),
 			fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%s/%s", ns1, tipe1),
-			&servicecatalog.Broker{}, http.StatusInternalServerError,
+			&servicecatalog.ServiceBroker{}, http.StatusInternalServerError,
 			0,
 		},
 		{
@@ -243,7 +243,7 @@ func TestCreateItem(t *testing.T) {
 			createMultipleItemStorage(),
 			NewWatcher(),
 			newResponseWriter(),
-			fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%s/%s", ns1, tipe1), &servicecatalog.Broker{TypeMeta: metav1.TypeMeta{Kind: "Broker", APIVersion: "servicecatalog.k8s.io/v1alpha1"}},
+			fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%s/%s", ns1, tipe1), &servicecatalog.ServiceBroker{TypeMeta: metav1.TypeMeta{Kind: "ServiceBroker", APIVersion: "servicecatalog.k8s.io/v1alpha1"}},
 			http.StatusCreated,
 			2,
 		},

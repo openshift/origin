@@ -28,7 +28,7 @@ const (
 )
 
 func TestGetFinalizers(t *testing.T) {
-	obj := &sc.Instance{
+	obj := &sc.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Finalizers: []string{testFinalizer}},
 	}
 	finalizers, err := GetFinalizers(obj)
@@ -44,7 +44,7 @@ func TestGetFinalizers(t *testing.T) {
 }
 
 func TestAddFinalizer(t *testing.T) {
-	obj := &sc.Instance{
+	obj := &sc.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{},
 	}
 	if err := AddFinalizer(obj, testFinalizer); err != nil {
@@ -59,7 +59,7 @@ func TestAddFinalizer(t *testing.T) {
 }
 
 func TestRemoveFinalizer(t *testing.T) {
-	obj := &sc.Instance{
+	obj := &sc.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Finalizers: []string{testFinalizer}},
 	}
 	newFinalizers, err := RemoveFinalizer(obj, testFinalizer+"-noexist")

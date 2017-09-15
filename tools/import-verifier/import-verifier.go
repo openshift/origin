@@ -293,7 +293,8 @@ func mergePackages(existingPackages, currPackages []Package) []Package {
 			}
 		}
 		if !found {
-			log.Printf("-- Adding: %v", currPackage.ImportPath)
+			// this was super noisy.
+			//log.Printf("-- Adding: %v", currPackage.ImportPath)
 			existingPackages = append(existingPackages, currPackage)
 		}
 	}

@@ -25,14 +25,14 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-func validBinding() *servicecatalog.Binding {
-	return &servicecatalog.Binding{
+func validServiceInstanceCredential() *servicecatalog.ServiceInstanceCredential {
+	return &servicecatalog.ServiceInstanceCredential{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-binding",
 			Namespace: "test-ns",
 		},
-		Spec: servicecatalog.BindingSpec{
-			InstanceRef: v1.LocalObjectReference{
+		Spec: servicecatalog.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: "test-instance",
 			},
 			SecretName: "test-secret",
@@ -40,21 +40,21 @@ func validBinding() *servicecatalog.Binding {
 	}
 }
 
-func TestValidateBinding(t *testing.T) {
+func TestValidateServiceInstanceCredential(t *testing.T) {
 	cases := []struct {
 		name    string
-		binding *servicecatalog.Binding
+		binding *servicecatalog.ServiceInstanceCredential
 		valid   bool
 	}{
 		{
 			name:    "valid",
-			binding: validBinding(),
+			binding: validServiceInstanceCredential(),
 			valid:   true,
 		},
 		{
 			name: "missing namespace",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
+			binding: func() *servicecatalog.ServiceInstanceCredential {
+				b := validServiceInstanceCredential()
 				b.Namespace = ""
 				return b
 			}(),
@@ -62,26 +62,26 @@ func TestValidateBinding(t *testing.T) {
 		},
 		{
 			name: "missing instance name",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
-				b.Spec.InstanceRef.Name = ""
+			binding: func() *servicecatalog.ServiceInstanceCredential {
+				b := validServiceInstanceCredential()
+				b.Spec.ServiceInstanceRef.Name = ""
 				return b
 			}(),
 			valid: false,
 		},
 		{
 			name: "invalid instance name",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
-				b.Spec.InstanceRef.Name = "test-instance-)*!"
+			binding: func() *servicecatalog.ServiceInstanceCredential {
+				b := validServiceInstanceCredential()
+				b.Spec.ServiceInstanceRef.Name = "test-instance-)*!"
 				return b
 			}(),
 			valid: false,
 		},
 		{
 			name: "missing secretName",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
+			binding: func() *servicecatalog.ServiceInstanceCredential {
+				b := validServiceInstanceCredential()
 				b.Spec.SecretName = ""
 				return b
 			}(),
@@ -89,8 +89,8 @@ func TestValidateBinding(t *testing.T) {
 		},
 		{
 			name: "invalid secretName",
-			binding: func() *servicecatalog.Binding {
-				b := validBinding()
+			binding: func() *servicecatalog.ServiceInstanceCredential {
+				b := validServiceInstanceCredential()
 				b.Spec.SecretName = "T_T"
 				return b
 			}(),
@@ -99,7 +99,7 @@ func TestValidateBinding(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		errs := ValidateBinding(tc.binding)
+		errs := ValidateServiceInstanceCredential(tc.binding)
 		if len(errs) != 0 && tc.valid {
 			t.Errorf("%v: unexpected error: %v", tc.name, errs)
 			continue

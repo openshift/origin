@@ -47,10 +47,10 @@ NO_TTY=1 kubectl create -f contrib/examples/apiserver/serviceclass.yaml
 NO_TTY=1 kubectl create -f contrib/examples/apiserver/instance.yaml
 NO_TTY=1 kubectl create -f contrib/examples/apiserver/binding.yaml
 
-NO_TTY=1 kubectl get broker test-broker -o yaml
+NO_TTY=1 kubectl get servicebroker test-broker -o yaml
 NO_TTY=1 kubectl get serviceclass test-serviceclass -o yaml
-NO_TTY=1 kubectl get instance test-instance --namespace test-ns -o yaml
-NO_TTY=1 kubectl get binding test-binding --namespace test-ns -o yaml
+NO_TTY=1 kubectl get serviceinstance test-instance --namespace test-ns -o yaml
+NO_TTY=1 kubectl get serviceinstancecredential test-binding --namespace test-ns -o yaml
 
 NO_TTY=1 kubectl delete -f contrib/examples/apiserver/broker.yaml
 NO_TTY=1 kubectl delete -f contrib/examples/apiserver/serviceclass.yaml

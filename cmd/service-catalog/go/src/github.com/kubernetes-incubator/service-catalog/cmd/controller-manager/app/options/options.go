@@ -16,7 +16,7 @@ limitations under the License.
 
 // The controller is responsible for running control loops that reconcile
 // the state of service catalog API resources with service brokers, service
-// classes, service instances, and service bindings.
+// classes, service instances, and service instance credentials.
 
 package options
 
@@ -39,7 +39,7 @@ type ControllerManagerServer struct {
 
 const (
 	defaultResyncInterval               = 5 * time.Minute
-	defaultBrokerRelistInterval         = 24 * time.Hour
+	defaultServiceBrokerRelistInterval  = 24 * time.Hour
 	defaultContentType                  = "application/json"
 	defaultBindAddress                  = "0.0.0.0"
 	defaultPort                         = 10000
@@ -63,7 +63,7 @@ func NewControllerManagerServer() *ControllerManagerServer {
 			K8sKubeconfigPath:            defaultK8sKubeconfigPath,
 			ServiceCatalogKubeconfigPath: defaultServiceCatalogKubeconfigPath,
 			ResyncInterval:               defaultResyncInterval,
-			BrokerRelistInterval:         defaultBrokerRelistInterval,
+			ServiceBrokerRelistInterval:  defaultServiceBrokerRelistInterval,
 			OSBAPIContextProfile:         defaultOSBAPIContextProfile,
 			OSBAPIPreferredVersion:       defaultOSBAPIPreferredVersion,
 			ConcurrentSyncs:              defaultConcurrentSyncs,
@@ -88,7 +88,7 @@ func (s *ControllerManagerServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.ServiceCatalogKubeconfigPath, "service-catalog-kubeconfig", "", "Path to service-catalog kubeconfig")
 	fs.BoolVar(&s.ServiceCatalogInsecureSkipVerify, "service-catalog-insecure-skip-verify", s.ServiceCatalogInsecureSkipVerify, "Skip verification of the TLS certificate for the service-catalog API server")
 	fs.DurationVar(&s.ResyncInterval, "resync-interval", s.ResyncInterval, "The interval on which the controller will resync its informers")
-	fs.DurationVar(&s.BrokerRelistInterval, "broker-relist-interval", s.BrokerRelistInterval, "The interval on which a broker's catalog is relisted after the broker becomes ready")
+	fs.DurationVar(&s.ServiceBrokerRelistInterval, "broker-relist-interval", s.ServiceBrokerRelistInterval, "The interval on which a broker's catalog is relisted after the broker becomes ready")
 	fs.BoolVar(&s.OSBAPIContextProfile, "enable-osb-api-context-profile", s.OSBAPIContextProfile, "This does nothing.")
 	fs.MarkHidden("enable-osb-api-context-profile")
 	fs.StringVar(&s.OSBAPIPreferredVersion, "osb-api-preferred-version", s.OSBAPIPreferredVersion, "The string to send as the version header.")

@@ -47,7 +47,7 @@ func TestSignatureGet(t *testing.T) {
 	testImage.DockerImageManifest = ""
 	testImage.Signatures = append(testImage.Signatures, testSignature)
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, "user", "app", map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})

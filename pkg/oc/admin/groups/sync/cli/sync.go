@@ -195,12 +195,18 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 	}
 
 	var err error
+
+	o.Config, err = decodeSyncConfigFromFile(configFile)
+	if err != nil {
+		return err
+	}
+
 	if o.Source == GroupSyncSourceOpenShift {
-		o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile)
+		o.Whitelist, err = buildOpenShiftGroupNameList(args, whitelistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 		if err != nil {
 			return err
 		}
-		o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, blacklistFile)
+		o.Blacklist, err = buildOpenShiftGroupNameList([]string{}, blacklistFile, o.Config.LDAPGroupUIDToOpenShiftGroupNameMapping)
 		if err != nil {
 			return err
 		}
@@ -215,11 +221,6 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 		}
 	}
 
-	o.Config, err = decodeSyncConfigFromFile(configFile)
-	if err != nil {
-		return err
-	}
-
 	osClient, _, err := f.Clients()
 	if err != nil {
 		return err
@@ -230,13 +231,28 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 }
 
 // buildOpenShiftGroupNameList builds a list of OpenShift names from file and args
-func buildOpenShiftGroupNameList(args []string, file string) ([]string, error) {
+// nameMapping is used to override the OpenShift names built from file and args
+func buildOpenShiftGroupNameList(args []string, file string, nameMapping map[string]string) ([]string, error) {
 	rawList, err := buildNameList(args, file)
 	if err != nil {
 		return nil, err
 	}
 
-	return openshiftGroupNamesOnlyList(rawList)
+	namesList, err := openshiftGroupNamesOnlyList(rawList)
+	if err != nil {
+		return nil, err
+	}
+
+	// override items in namesList if present in mapping
+	if len(nameMapping) > 0 {
+		for i, name := range namesList {
+			if nameOverride, ok := nameMapping[name]; ok {
+				namesList[i] = nameOverride
+			}
+		}
+	}
+
+	return namesList, nil
 }
 
 // buildNameLists builds a list from file and args

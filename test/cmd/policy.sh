@@ -108,6 +108,7 @@ os::cmd::expect_success_and_text 'oc policy can-i --list --user harold --groups 
 
 os::cmd::expect_failure 'oc policy scc-subject-review'
 os::cmd::expect_failure 'oc policy scc-review'
+os::cmd::expect_failure 'oc policy scc-subject-review -u invalid --namespace=noexist'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z foo,bar -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -z system:serviceaccount:test:default,system:serviceaccount:test:builder -f ${OS_ROOT}/test/testdata/job.yaml'  'error: only one Service Account is supported'
@@ -132,6 +133,7 @@ os::cmd::expect_success_and_text 'oc policy scc-subject-review -z default -g sys
 os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -z default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'error: --user and --serviceaccount are mutually exclusive'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -z system:serviceaccount:alice:default -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
 os::cmd::expect_success_and_text 'oc policy scc-subject-review -u alice -g system:authenticated -f ${OS_ROOT}/test/testdata/job.yaml' 'restricted'
+os::cmd::expect_failure_and_text 'oc policy scc-subject-review -u alice -g system:authenticated -n noexist -f ${OS_ROOT}/test/testdata/job.yaml' 'error: unable to compute Pod Security Policy Subject Review for "hello": namespaces "noexist" not found'
 os::cmd::expect_success 'oc create -f ${OS_ROOT}/test/testdata/scc_lax.yaml'
 os::cmd::expect_success "oc login -u bob -p bobpassword"
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
@@ -139,6 +141,9 @@ os::cmd::expect_success_and_text 'oc policy scc-review -z default  -f ${OS_ROOT}
 os::cmd::expect_success_and_text 'oc policy scc-review -z system:serviceaccount:policy-second:default  -f ${OS_ROOT}/test/testdata/job.yaml --no-headers=true' 'Job/hello   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/extended/testdata/deployments/deployment-simple.yaml --no-headers=true' 'DeploymentConfig/deployment-simple   default   lax'
 os::cmd::expect_success_and_text 'oc policy scc-review -f ${OS_ROOT}/test/testdata/nginx_pod.yaml --no-headers=true' ''
+os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/job.yaml --namespace=no-exist' 'error: unable to compute Pod Security Policy Review for "hello": User "bob" cannot create podsecuritypolicyreviews in the namespace "no-exist"'
+os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/test/testdata/pspreview_unsupported_statefulset.yaml' 'error: StatefulSet "rd" with spec.volumeClaimTemplates currently not supported.'
+os::cmd::expect_failure_and_text 'oc policy scc-review -z no-exist -f ${OS_ROOT}/test/testdata/job.yaml' 'error: unable to compute Pod Security Policy Review for "hello": unable to retrieve ServiceAccount no-exist: serviceaccount "no-exist" not found'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success 'oc delete project policy-second'
 

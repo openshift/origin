@@ -69,7 +69,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsReadyFn,
 				3,
-				4*time.Minute,
+				8*time.Minute,
 			)
 			if err != nil {
 				desc, _ := oc.Run("describe").Args("statefulset").Output()
@@ -101,7 +101,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				func(pod kapiv1.Pod) bool { return pod.DeletionTimestamp != nil },
 				0,
-				2*time.Minute,
+				4*time.Minute,
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -111,7 +111,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
 				exutil.CheckPodIsReadyFn,
 				3,
-				2*time.Minute,
+				4*time.Minute,
 			)
 			o.Expect(err).NotTo(o.HaveOccurred())
 

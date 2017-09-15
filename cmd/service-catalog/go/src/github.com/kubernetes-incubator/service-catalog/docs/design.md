@@ -17,8 +17,8 @@ Kubernetes. It allows for:
   Services) to Kubernetes that should then be made available to Kubernetes'
   users
 - a user of Kubernetes to discover the Services that are available for use
-- a user of Kubernetes to request for a new Instance of a Service
-- a user of Kubernetes to link an Instance of a Service to a set of Pods
+- a user of Kubernetes to request for a new ServiceInstance of a Service
+- a user of Kubernetes to link an ServiceInstance of a Service to a set of Pods
 
 This infrastructure allows for a loose-coupling between Applications
 running in Kubernetes and the Services they use.
@@ -34,14 +34,14 @@ them.
   than Service Catalog does, so to avoid confusion the term *Application*
   will refer to the Kubernetes deployment artifact that will use a Service
   Instance.
-- **Binding**, or *Service Binding* : a link between a Service Instance
+- **ServiceInstanceCredential**, or *Service Instance Credential* : a link between a Service Instance
   and an Application. It expresses the intent for an Application to
   reference and use a particular Service Instance.
-- **Broker**, or *Service Broker* : a entity, available via a web endpoint,
+- **ServiceBroker**, or *Service Broker* : a entity, available via a web endpoint,
   that manages a set of one or more Services.
 - **Credentials** : Information needed by an Application to talk with a
   Service Instance.
-- **Instance**, or *Service Instance* : Each independent use of a Service
+- **ServiceInstance**, or *Service Instance* : Each independent use of a Service
   Class is called a Service Instance.
 - **Service Class**, or *Service* : one type of Service that a Service Broker
   offers.
@@ -116,21 +116,21 @@ a typical workflow:
 
 ### Registering a Service Broker
 
-**TODO** Talk about namespaces - Brokers, ServiceClasses are not in a ns.
-But Instances, Bindings, Secrets and ConfigMaps are. However, instances
+**TODO** Talk about namespaces - ServiceBrokers, ServiceClasses are not in a ns.
+But ServiceInstances, ServiceInstanceCredentials, Secrets and ConfigMaps are. However, instances
 can be in different NS's than the rest (which must all be in the same).
 
 Before a Service can be used by an Application it must first be registered
 with the Kubernetes platform. Since Services are managed by Service Brokers
 we must first register the Service Broker by creating an instance of a
-`Broker`:
+`ServiceBroker`:
 
     kubectl create -f broker.yaml
 
 where `broker.yaml` might look like:
 
     apiVersion: servicecatalog.k8s.io/v1alpha1
-    kind: Broker
+    kind: ServiceBroker
     metadata:
       name: BestDataBase
     spec:
@@ -138,7 +138,7 @@ where `broker.yaml` might look like:
 
 **TODO** beef-up theses sample resource snippets
 
-After a `Broker` resource is created the Service Catalog Controller will
+After a `ServiceBroker` resource is created the Service Catalog Controller will
 receive an event indicating its addition to the datastore. The Controller
 will then query the Service Broker (at the `url` specified) for the list
 of available Services. Each Service will then have a corresponding
@@ -161,28 +161,28 @@ Users can then query for the list of available Services:
 
 ### Creating a Service Instance
 
-Before a Service can be used, a new Instance of it must be created. This is
-done by creating a new `Instance` resource:
+Before a Service can be used, a new ServiceInstance of it must be created. This is
+done by creating a new `ServiceInstance` resource:
 
     kubectl create -f instance.yaml
 
 where `instance.yaml` might look like:
 
     apiVersion: servicecatalog.k8s.io/v1alpha1
-    kind: Instance
+    kind: ServiceInstance
     metadata:
       name: johnsDB
     spec:
       serviceClassName: smallDB
 
-Within the `Instance` resource is the specified Plan to be used. This allows
+Within the `ServiceInstance` resource is the specified Plan to be used. This allows
 for the user of the Service to indicate which variant of the Service they
 want - perhaps based on QoS type of variants.
 
 **TODO** Discuss the parameters that can be passed in
 
-Once an `Instance` resource is created, the Controller talks with the
-specified Service Broker to create a new Instance of the desired Service.
+Once an `ServiceInstance` resource is created, the Controller talks with the
+specified Service Broker to create a new ServiceInstance of the desired Service.
 
 There are two modes for provisioning:
 [synchronous and asynchronous](https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#synchronous-and-asynchronous-operations)
@@ -208,7 +208,7 @@ stop polling and mark the provisioning as failed.
 While a Service Instance has an asynchronous operation in progress, controller
 must ensure that there no other operations (provision,deprovision,update,bind,unbind).
 
-**TODO** test to see if we have checks to block people from using an Instance
+**TODO** test to see if we have checks to block people from using an ServiceInstance
 before its fully realized. We shouldn't let the SB be the one to detect this.
 
 ### Using a Service Instance
@@ -216,25 +216,25 @@ before its fully realized. We shouldn't let the SB be the one to detect this.
 Before a Service Instance can be used it must be "bound" to an Application.
 This means that a link, or usage intent, between an Application and the
 Service Instance must be established. This is done by creating a new
-`Binding` resource:
+`ServiceInstanceCredential` resource:
 
     kubectl create -f binding.yaml
 
 where `instance.yaml` might look like:
 
     apiVersion: servicecatalog.k8s.io/v1alpha1
-    kind: Binding
+    kind: ServiceInstanceCredential
     metadata:
-      name: johnsBinding
+      name: johnsServiceInstanceCredential
     spec:
       secretName: johnSecret
       ...Pod selector labels...
 
-The Controller, upon being notified of the new `Binding` resource, will
-then talk to the Service Broker to create a new Binding for the specified
+The Controller, upon being notified of the new `ServiceInstanceCredential` resource, will
+then talk to the Service Broker to create a new ServiceInstanceCredential for the specified
 Service Instance.
 
-Within the Binding object that is returned from the Service Broker are
+Within the ServiceInstanceCredential object that is returned from the Service Broker are
 a set of Credentials. These Credentials contain all of the information
 needed for the application to talk with the Service Instance. For example,
 it might include things such as:
@@ -248,11 +248,11 @@ by reading the documentation of the Service.
 
 The Credentials will not be stored in the Service Catalog's datastore.
 Rather, they will be stored in the Kubenetes core as Secrets and a reference
-to the Secret will be saved within the `Binding` resource. If the
-Binding `Spec.SecretName` is not specified then the Controller will
-use the Binding `Name` property as the name of the Secret.
+to the Secret will be saved within the `ServiceInstanceCredential` resource. If the
+ServiceInstanceCredential `Spec.SecretName` is not specified then the Controller will
+use the ServiceInstanceCredential `Name` property as the name of the Secret.
 
-Bindings are not required to be in the same Kubenetes Namespace
+ServiceInstanceCredentials are not required to be in the same Kubenetes Namespace
 as the Service Instance. This allows for sharing of Service Instances
 across Applications and Namespaces.
 
@@ -295,19 +295,19 @@ information to be placed into a ConfigMap instead of a Secret.
 
 Once the Secret is made available to the Application's Pods, it is then up
 to the Application code to use that information to talk to the Service
-Instance.
+ServiceInstance.
 
 ### Deleting Service Instances
 
 As with all resources in Kubernetes, you can delete any of the Service
 Catalog resource by doing an HTTP DELETE to the resource's URL. However,
 it is important to note the you can not delete a Service Instance while
-there are Bindings associated with it.  In other words, before a Service
-Instance can be delete, you must first delete all of its Bindings.
-Attempting to delete an Instance that still has a Binding will fail
+there are ServiceInstanceCredentials associated with it.  In other words, before a Service
+ServiceInstance can be delete, you must first delete all of its ServiceInstanceCredentials.
+Attempting to delete an ServiceInstance that still has a ServiceInstanceCredential will fail
 and generate an error.
 
-Deleting a Binding will also, automatically, delete any Secrets or ConfigMaps
+Deleting a ServiceInstanceCredential will also, automatically, delete any Secrets or ConfigMaps
 that might be associated with it.
 
 **TODO** what happens to the Pods using them?

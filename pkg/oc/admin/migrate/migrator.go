@@ -385,7 +385,6 @@ type migrateTracker struct {
 	dryRun    bool
 
 	found, ignored, unchanged, errors int
-	retries                           int
 
 	resourcesWithErrors sets.String
 }
@@ -408,8 +407,7 @@ func (t *migrateTracker) report(prefix string, info *resource.Info, err error) {
 // to retries times.
 func (t *migrateTracker) attempt(info *resource.Info, retries int) {
 	t.found++
-	t.retries = retries
-	result, err := t.try(info)
+	result, err := t.try(info, retries)
 	switch {
 	case err != nil:
 		t.resourcesWithErrors.Insert(info.Mapping.Resource)
@@ -438,7 +436,7 @@ func (t *migrateTracker) attempt(info *resource.Info, retries int) {
 
 // try will mutate the info and attempt to save, recalculating if there are any retries left.
 // The result of the attempt or an error will be returned.
-func (t *migrateTracker) try(info *resource.Info) (attemptResult, error) {
+func (t *migrateTracker) try(info *resource.Info, retries int) (attemptResult, error) {
 	reporter, err := t.migrateFn(info)
 	if err != nil {
 		return attemptResultError, err
@@ -455,11 +453,11 @@ func (t *migrateTracker) try(info *resource.Info) (attemptResult, error) {
 				return attemptResultUnchanged, nil
 			}
 			if canRetry(err) {
-				if t.retries > 0 {
+				if retries > 0 {
 					if bool(glog.V(1)) && err != ErrRecalculate {
 						t.report("retry:", info, err)
 					}
-					result, err := t.try(info)
+					result, err := t.try(info, retries-1)
 					switch result {
 					case attemptResultUnchanged, attemptResultIgnore:
 						result = attemptResultSuccess
@@ -487,7 +485,7 @@ func canRetry(err error) bool {
 // they define a Temporary() method that returns true.
 func DefaultRetriable(info *resource.Info, err error) error {
 	// tolerate the deletion of resources during migration
-	if err == nil || errors.IsNotFound(err) {
+	if err == nil || isNotFoundForInfo(info, err) {
 		return nil
 	}
 	switch {
@@ -502,4 +500,21 @@ func DefaultRetriable(info *resource.Info, err error) error {
 		return ErrRetriable{err}
 	}
 	return err
+}
+
+// isNotFoundForInfo returns true iff the error is a not found for the specific info object.
+func isNotFoundForInfo(info *resource.Info, err error) bool {
+	if err == nil || !errors.IsNotFound(err) {
+		return false
+	}
+	status, ok := err.(errors.APIStatus)
+	if !ok {
+		return false
+	}
+	details := status.Status().Details
+	if details == nil {
+		return false
+	}
+	gvk := info.Object.GetObjectKind().GroupVersionKind()
+	return details.Name == info.Name && details.Kind == gvk.Kind && (details.Group == "" || details.Group == gvk.Group)
 }

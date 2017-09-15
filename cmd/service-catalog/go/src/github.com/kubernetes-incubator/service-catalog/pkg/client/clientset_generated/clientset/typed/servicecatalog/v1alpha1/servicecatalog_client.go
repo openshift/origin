@@ -25,10 +25,10 @@ import (
 
 type ServicecatalogV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	BindingsGetter
-	BrokersGetter
-	InstancesGetter
+	ServiceBrokersGetter
 	ServiceClassesGetter
+	ServiceInstancesGetter
+	ServiceInstanceCredentialsGetter
 }
 
 // ServicecatalogV1alpha1Client is used to interact with features provided by the servicecatalog.k8s.io group.
@@ -36,20 +36,20 @@ type ServicecatalogV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *ServicecatalogV1alpha1Client) Bindings(namespace string) BindingInterface {
-	return newBindings(c, namespace)
-}
-
-func (c *ServicecatalogV1alpha1Client) Brokers() BrokerInterface {
-	return newBrokers(c)
-}
-
-func (c *ServicecatalogV1alpha1Client) Instances(namespace string) InstanceInterface {
-	return newInstances(c, namespace)
+func (c *ServicecatalogV1alpha1Client) ServiceBrokers() ServiceBrokerInterface {
+	return newServiceBrokers(c)
 }
 
 func (c *ServicecatalogV1alpha1Client) ServiceClasses() ServiceClassInterface {
 	return newServiceClasses(c)
+}
+
+func (c *ServicecatalogV1alpha1Client) ServiceInstances(namespace string) ServiceInstanceInterface {
+	return newServiceInstances(c, namespace)
+}
+
+func (c *ServicecatalogV1alpha1Client) ServiceInstanceCredentials(namespace string) ServiceInstanceCredentialInterface {
+	return newServiceInstanceCredentials(c, namespace)
 }
 
 // NewForConfig creates a new ServicecatalogV1alpha1Client for the given config.

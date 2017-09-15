@@ -18,7 +18,7 @@ func TestTagGet(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
@@ -107,7 +107,7 @@ func TestTagGetWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	_, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	_, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
@@ -134,7 +134,7 @@ func TestTagCreation(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
@@ -217,7 +217,7 @@ func TestTagCreationWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	anotherImage := registrytest.AddRandomImage(t, fos, namespace, repo+"-another", tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
@@ -247,7 +247,7 @@ func TestTagDeletion(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
@@ -329,7 +329,7 @@ func TestTagDeletionWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	_, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	_, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
@@ -356,7 +356,7 @@ func TestTagGetAll(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
@@ -416,7 +416,7 @@ func TestTagGetAllWithoutImageStream(t *testing.T) {
 	namespace := "user"
 	repo := "app"
 
-	_, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	_, imageClient := registrytest.NewFakeOpenShiftWithClient()
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
@@ -443,7 +443,7 @@ func TestTagLookup(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	testImage := registrytest.AddRandomImage(t, fos, namespace, repo, tag)
 
 	testcases := []struct {
@@ -522,7 +522,7 @@ func TestTagLookupWithoutImageStream(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	anotherImage := registrytest.AddRandomImage(t, fos, namespace, repo+"-another", tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{

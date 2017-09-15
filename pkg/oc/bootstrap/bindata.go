@@ -13723,18 +13723,18 @@ objects:
   - apiGroups:
     - servicecatalog.k8s.io
     resources:
-    - brokers/status
-    - instances/status
-    - bindings/status
-    - bindings/finalizers
+    - servicebrokers/status
+    - serviceinstances/status
+    - serviceinstancecredentials/status
+    - serviceinstancecredentials/finalizers
     verbs:
     - update
   - apiGroups:
     - servicecatalog.k8s.io
     resources:
-    - brokers
-    - instances
-    - bindings
+    - servicebrokers
+    - serviceinstances
+    - serviceinstancecredentials
     verbs:
     - list
     - watch
@@ -13875,7 +13875,8 @@ objects:
           - apiserver
           args:
           - --admission-control
-          - KubernetesNamespaceLifecycle
+          #- KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceInstanceCredentialsLifecycle
+          - KubernetesNamespaceLifecycle,DefaultServicePlan
           - --storage-type
           - etcd
           - --secure-port
@@ -14064,7 +14065,7 @@ parameters:
 objects:
 # register the tsb with the service catalog
 - apiVersion: servicecatalog.k8s.io/v1alpha1
-  kind: Broker
+  kind: ServiceBroker
   metadata:
     name: template-service-broker
   spec:

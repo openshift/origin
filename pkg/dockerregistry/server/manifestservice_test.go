@@ -19,7 +19,7 @@ func TestManifestServiceExists(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := testutil.NewFakeOpenShiftWithClient()
+	fos, imageClient := testutil.NewFakeOpenShiftWithClient()
 	testImage := testutil.AddRandomImage(t, fos, namespace, repo, tag)
 
 	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
@@ -51,7 +51,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 	repo := "app"
 	tag := "latest"
 
-	fos, _, imageClient := testutil.NewFakeOpenShiftWithClient()
+	fos, imageClient := testutil.NewFakeOpenShiftWithClient()
 
 	testImage, err := testutil.CreateRandomImage(namespace, repo)
 	if err != nil {
@@ -113,7 +113,7 @@ func TestManifestServicePut(t *testing.T) {
 	repo := "app"
 	repoName := fmt.Sprintf("%s/%s", namespace, repo)
 
-	_, _, imageClient := testutil.NewFakeOpenShiftWithClient()
+	_, imageClient := testutil.NewFakeOpenShiftWithClient()
 
 	bs := newTestBlobStore(map[digest.Digest][]byte{
 		"test:1": []byte("{}"),

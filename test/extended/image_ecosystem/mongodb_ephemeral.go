@@ -35,7 +35,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 				exutil.ParseLabelsOrDie("name=mongodb"),
 				exutil.CheckPodIsRunningFn,
 				1,
-				1*time.Minute,
+				4*time.Minute,
 			)
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 			o.Expect(podNames).Should(o.HaveLen(1))

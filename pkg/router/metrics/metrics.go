@@ -29,7 +29,7 @@ func Listen(listenAddr string, username, password string, checks ...healthz.Heal
 			protected.Handle("/metrics", prometheus.Handler())
 			mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 				if u, p, ok := req.BasicAuth(); !ok || u != username || p != password {
-					http.Error(w, "Forbidden", http.StatusForbidden)
+					http.Error(w, "Unauthorized", http.StatusUnauthorized)
 					return
 				}
 				protected.ServeHTTP(w, req)

@@ -256,14 +256,14 @@ func getItems(storage NamespacedStorage) func(http.ResponseWriter, *http.Request
 		var codec runtime.Codec
 		var err error
 		switch tipe {
-		case "brokers":
-			list = &sc.BrokerList{TypeMeta: newTypeMeta("broker-list")}
+		case "servicebrokers":
+			list = &sc.ServiceBrokerList{TypeMeta: newTypeMeta("broker-list")}
 			if err := meta.SetList(list, items); err != nil {
 				errStr := fmt.Sprintf("Error setting list items (%s)", err)
 				http.Error(rw, errStr, http.StatusInternalServerError)
 				return
 			}
-			codec, err = testapi.GetCodecForObject(&sc.BrokerList{})
+			codec, err = testapi.GetCodecForObject(&sc.ServiceBrokerList{})
 		case "serviceclasses":
 			list = &sc.ServiceClassList{TypeMeta: newTypeMeta("service-class-list")}
 			if err := meta.SetList(list, items); err != nil {
@@ -272,22 +272,22 @@ func getItems(storage NamespacedStorage) func(http.ResponseWriter, *http.Request
 				return
 			}
 			codec, err = testapi.GetCodecForObject(&sc.ServiceClassList{})
-		case "instances":
-			list = &sc.InstanceList{TypeMeta: newTypeMeta("instance-list")}
+		case "serviceinstances":
+			list = &sc.ServiceInstanceList{TypeMeta: newTypeMeta("instance-list")}
 			if err := meta.SetList(list, items); err != nil {
 				errStr := fmt.Sprintf("Error setting list items (%s)", err)
 				http.Error(rw, errStr, http.StatusInternalServerError)
 				return
 			}
-			codec, err = testapi.GetCodecForObject(&sc.InstanceList{})
-		case "bindings":
-			list = &sc.BindingList{TypeMeta: newTypeMeta("binding-list")}
+			codec, err = testapi.GetCodecForObject(&sc.ServiceInstanceList{})
+		case "serviceinstancecredentials":
+			list = &sc.ServiceInstanceCredentialList{TypeMeta: newTypeMeta("binding-list")}
 			if err := meta.SetList(list, items); err != nil {
 				errStr := fmt.Sprintf("Error setting list items (%s)", err)
 				http.Error(rw, errStr, http.StatusInternalServerError)
 				return
 			}
-			codec, err = testapi.GetCodecForObject(&sc.BindingList{})
+			codec, err = testapi.GetCodecForObject(&sc.ServiceInstanceCredentialList{})
 		default:
 			errStr := fmt.Sprintf("unrecognized resource type: %s", tipe)
 			http.Error(rw, errStr, http.StatusInternalServerError)

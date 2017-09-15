@@ -21,6 +21,9 @@ layout:
     ├── .glide                  # Glide cache (untracked)
     ├── bin                     # Destination for binaries compiled for linux/amd64 (untracked)
     ├── build                   # Contains build-related scripts and subdirectories containing Dockerfiles
+    ├── charts                  # Helm charts for deployment
+    │   └── catalog             # Helm chart for deploying the service catalog
+    │   └── ups-broker          # Helm chart for deploying the user-provided service broker
     ├── cmd                     # Contains "main" Go packages for each service catalog component binary
     │   └── apiserver           # The service catalog API server binary
     │   └── controller-manager  # The service catalog controller manager binary
@@ -31,11 +34,11 @@ layout:
     │   └── hack                # Non-build related scripts
     │   └── jenkins             # Jenkins configuration
     │   └── pkg                 # Contrib golang code
-    ├── charts                  # Helm charts for deployment
-    │   └── catalog             # Helm chart for deploying the catalog
-    │   └── ups-broker          # Helm chart for deploying the user-provided service broker
+    │   └── travis              # Travis configuration
     ├── docs                    # Documentation
     ├── pkg                     # Contains all non-"main" Go packages
+    ├── plugin                  # Plugins for API server
+    ├── test                    # Integration and e2e tests
     └── vendor                  # Glide-managed dependencies
 
 ## Working on Issues
@@ -264,5 +267,5 @@ the Kubernetes cluster as third party resources.
 
 ## Demo walkthrough
 
-Check out the [walk-through](walkthrough.md) for a detailed guide of an example
-deployment.
+Check out the [introduction](./introduction.md) to get started with 
+installation and a self-guided demo.

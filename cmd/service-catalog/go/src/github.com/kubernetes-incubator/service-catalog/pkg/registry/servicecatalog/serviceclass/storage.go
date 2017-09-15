@@ -77,7 +77,7 @@ func CheckObject(obj runtime.Object) error {
 	return nil
 }
 
-// Match determines whether an Instance matches a field and label
+// Match determines whether an ServiceInstance matches a field and label
 // selector.
 func Match(label labels.Selector, field fields.Selector) storage.SelectionPredicate {
 	return storage.SelectionPredicate{

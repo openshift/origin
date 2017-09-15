@@ -30,28 +30,28 @@ import (
 	time "time"
 )
 
-// BrokerInformer provides access to a shared informer and lister for
-// Brokers.
-type BrokerInformer interface {
+// ServiceBrokerInformer provides access to a shared informer and lister for
+// ServiceBrokers.
+type ServiceBrokerInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() internalversion.BrokerLister
+	Lister() internalversion.ServiceBrokerLister
 }
 
-type brokerInformer struct {
+type serviceBrokerInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newBrokerInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+func newServiceBrokerInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
 	sharedIndexInformer := cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Servicecatalog().Brokers().List(options)
+				return client.Servicecatalog().ServiceBrokers().List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Servicecatalog().Brokers().Watch(options)
+				return client.Servicecatalog().ServiceBrokers().Watch(options)
 			},
 		},
-		&servicecatalog.Broker{},
+		&servicecatalog.ServiceBroker{},
 		resyncPeriod,
 		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
 	)
@@ -59,10 +59,10 @@ func newBrokerInformer(client internalclientset.Interface, resyncPeriod time.Dur
 	return sharedIndexInformer
 }
 
-func (f *brokerInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog.Broker{}, newBrokerInformer)
+func (f *serviceBrokerInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&servicecatalog.ServiceBroker{}, newServiceBrokerInformer)
 }
 
-func (f *brokerInformer) Lister() internalversion.BrokerLister {
-	return internalversion.NewBrokerLister(f.Informer().GetIndexer())
+func (f *serviceBrokerInformer) Lister() internalversion.ServiceBrokerLister {
+	return internalversion.NewServiceBrokerLister(f.Informer().GetIndexer())
 }

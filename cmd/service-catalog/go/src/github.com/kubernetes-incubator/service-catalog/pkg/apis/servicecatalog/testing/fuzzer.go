@@ -192,7 +192,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			// Set the bytes field on the RawExtension
 			r.Raw = bytes
 		},
-		func(is *servicecatalog.InstanceSpec, c fuzz.Continue) {
+		func(is *servicecatalog.ServiceInstanceSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(is)
 			is.ExternalID = uuid.NewV4().String()
 			parameters, err := createParameter(c)
@@ -202,7 +202,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			}
 			is.Parameters = parameters
 		},
-		func(bs *servicecatalog.BindingSpec, c fuzz.Continue) {
+		func(bs *servicecatalog.ServiceInstanceCredentialSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
 			bs.ExternalID = uuid.NewV4().String()
 			// Don't allow the SecretName to be an empty string because
@@ -236,9 +236,9 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 				return
 			}
 			sp.ExternalMetadata = metadata
-			sp.AlphaBindingCreateParameterSchema = metadata
-			sp.AlphaInstanceCreateParameterSchema = metadata
-			sp.AlphaInstanceUpdateParameterSchema = metadata
+			sp.AlphaServiceInstanceCredentialCreateParameterSchema = metadata
+			sp.AlphaServiceInstanceCreateParameterSchema = metadata
+			sp.AlphaServiceInstanceUpdateParameterSchema = metadata
 		},
 	)
 	return f
