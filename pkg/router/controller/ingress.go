@@ -15,7 +15,6 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	"github.com/openshift/origin/pkg/api"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -133,7 +132,7 @@ func (it *IngressTranslator) TranslateIngressEvent(eventType watch.EventType, in
 
 // TranslateSecretEvent converts the given secret event into route events.
 func (it *IngressTranslator) TranslateSecretEvent(eventType watch.EventType, secret *kapi.Secret) (events []ingressRouteEvents) {
-	key := api.GetResourceKey(secret.ObjectMeta)
+	key := getResourceKey(secret.ObjectMeta)
 
 	events = []ingressRouteEvents{}
 
@@ -199,7 +198,7 @@ func (it *IngressTranslator) UpdateNamespaces(namespaces sets.String) {
 // unsafeTranslateIngressEvent converts an ingress event into route events without
 // applying a lock so that it can be called by both of the Translate methods.
 func (it *IngressTranslator) unsafeTranslateIngressEvent(eventType watch.EventType, ingress *extensions.Ingress) ingressRouteEvents {
-	ingressKey := api.GetResourceKey(ingress.ObjectMeta)
+	ingressKey := getResourceKey(ingress.ObjectMeta)
 
 	// Get a reference to an existing ingress before updating the cache
 	oldIngress := it.ingressMap[ingressKey]
@@ -219,7 +218,7 @@ func (it *IngressTranslator) unsafeTranslateIngressEvent(eventType watch.EventTy
 func (it *IngressTranslator) handleIngressEvent(eventType watch.EventType, ingress, oldIngress *extensions.Ingress) {
 	switch eventType {
 	case watch.Added, watch.Modified:
-		key := api.GetResourceKey(ingress.ObjectMeta)
+		key := getResourceKey(ingress.ObjectMeta)
 		it.ingressMap[key] = ingress
 		it.cacheTLS(ingress.Spec.TLS, ingress.Namespace, key)
 	case watch.Deleted:
@@ -333,7 +332,7 @@ func (it *IngressTranslator) cacheTLS(ingressTLS []extensions.IngressTLS, namesp
 // dereferenceIngress ensures the given ingress is removed from the cache.
 func (it *IngressTranslator) dereferenceIngress(ingress *extensions.Ingress) {
 	if ingress != nil {
-		key := api.GetResourceKey(ingress.ObjectMeta)
+		key := getResourceKey(ingress.ObjectMeta)
 		delete(it.ingressMap, key)
 		it.dereferenceTLS(ingress.Spec.TLS, ingress.Namespace, key)
 	}
@@ -422,7 +421,7 @@ func tlsFromSecret(secret *kapi.Secret) (*cachedTLS, error) {
 			privateKey: privateKey,
 		}, nil
 	} else {
-		secretKey := api.GetResourceKey(secret.ObjectMeta)
+		secretKey := getResourceKey(secret.ObjectMeta)
 		return nil, fmt.Errorf("Unable to read TLS configuration from secret %v: %v", secretKey, strings.Join(msgs, " and "))
 	}
 }
@@ -436,7 +435,7 @@ func ingressToRoutes(ingress *extensions.Ingress) (routes []*routeapi.Route, rou
 	routes = []*routeapi.Route{}
 
 	if ingress.Spec.Backend != nil {
-		key := api.GetResourceKey(ingress.ObjectMeta)
+		key := getResourceKey(ingress.ObjectMeta)
 		glog.V(4).Infof("The default backend defined for ingress %v will be ignored.  Default backends are not compatible with the OpenShift router.", key)
 	}
 
@@ -564,4 +563,12 @@ func GetSafeRouteName(name string) string {
 		return strings.Replace(name, "/", ":", -1)
 	}
 	return name
+}
+
+// TODO this should probably be removed and replaced with an upstream keyfunc
+// getResourceKey returns a string of the form [namespace]/[name] for
+// the given resource.  This is a common way of ensuring a key for a
+// resource that is unique across the cluster.
+func getResourceKey(obj metav1.ObjectMeta) string {
+	return fmt.Sprintf("%s/%s", obj.Namespace, obj.Name)
 }

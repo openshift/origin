@@ -11,8 +11,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
-
-	"github.com/openshift/origin/pkg/api"
 )
 
 func TestIngressTranslator_TranslateIngressEvent(t *testing.T) {
@@ -55,7 +53,7 @@ func TestIngressTranslator_TranslateSecretEvent(t *testing.T) {
 
 	// Cache an ingress that will reference cached tls
 	ingress := getTestIngress()
-	ingressKey := api.GetResourceKey(ingress.ObjectMeta)
+	ingressKey := getResourceKey(ingress.ObjectMeta)
 	it.ingressMap[ingressKey] = ingress
 
 	tls := &cachedTLS{
@@ -119,12 +117,12 @@ func TestIngressTranslator_UpdateNamespaces(t *testing.T) {
 	it := NewIngressTranslator(client.Core())
 
 	ingress := getTestIngress()
-	ingressKey := api.GetResourceKey(ingress.ObjectMeta)
+	ingressKey := getResourceKey(ingress.ObjectMeta)
 	it.ingressMap[ingressKey] = ingress
 
 	disallowed := getTestIngress()
 	disallowed.Namespace = "not-allowed"
-	disallowedKey := api.GetResourceKey(disallowed.ObjectMeta)
+	disallowedKey := getResourceKey(disallowed.ObjectMeta)
 	it.ingressMap[disallowedKey] = disallowed
 
 	namespaces := sets.NewString(ingress.Namespace)
@@ -152,7 +150,7 @@ func TestIngressTranslator_unsafeTranslateIngressEvent(t *testing.T) {
 	}
 
 	ingressRouteEvents := events[0]
-	if ingressRouteEvents.ingressKey != api.GetResourceKey(ingress.ObjectMeta) {
+	if ingressRouteEvents.ingressKey != getResourceKey(ingress.ObjectMeta) {
 		t.Fatal("expected the ingress key to be set")
 	}
 
@@ -166,7 +164,7 @@ func TestIngressTranslator_handleIngressEvents(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	it := NewIngressTranslator(client.Core())
 	ingress := getTestIngress()
-	ingressKey := api.GetResourceKey(ingress.ObjectMeta)
+	ingressKey := getResourceKey(ingress.ObjectMeta)
 	secretName := "my-secret"
 	ingress.Spec.TLS = []extensions.IngressTLS{
 		{

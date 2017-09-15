@@ -1,21 +1,22 @@
-package v1_test
+package v1
 
 import (
 	"testing"
 
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	testutil "github.com/openshift/origin/test/util/api"
+	"k8s.io/apimachinery/pkg/runtime"
 
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "Identity",
+	converter := runtime.NewScheme()
+	LegacySchemeBuilder.AddToScheme(converter)
+
+	apitesting.TestFieldLabelConversions(t, converter, "v1", "Identity",
 		// Ensure all currently returned labels are supported
 		userapi.IdentityToSelectableFields(&userapi.Identity{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"providerName", "providerUserName", "user.name", "user.uid",
 	)
-
 }
