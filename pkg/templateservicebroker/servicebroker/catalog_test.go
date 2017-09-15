@@ -71,8 +71,8 @@ func TestServiceFromTemplate(t *testing.T) {
 				Bindable:    true,
 				Schemas: api.Schema{
 					ServiceInstance: api.ServiceInstances{
-						Create: map[string]*schema.Schema{
-							"parameters": {
+						Create: map[string]interface{}{
+							"parameters": &schema.Schema{
 								Type:      schema.PrimitiveTypes{schema.ObjectType},
 								SchemaRef: "http://json-schema.org/draft-04/schema",
 								Required: []string{
@@ -103,11 +103,18 @@ func TestServiceFromTemplate(t *testing.T) {
 									},
 								},
 							},
+							"openshift_form_definition": []string{
+								"param1",
+								"param2",
+								"param3",
+								"param4",
+								"template.openshift.io/requester-username",
+							},
 						},
 					},
 					ServiceBinding: api.ServiceBindings{
-						Create: map[string]*schema.Schema{
-							"parameters": {
+						Create: map[string]interface{}{
+							"parameters": &schema.Schema{
 								Type:      schema.PrimitiveTypes{schema.ObjectType},
 								SchemaRef: "http://json-schema.org/draft-04/schema",
 								Required:  []string{},
@@ -119,6 +126,9 @@ func TestServiceFromTemplate(t *testing.T) {
 										Type:        schema.PrimitiveTypes{schema.StringType},
 									},
 								},
+							},
+							"openshift_form_definition": []string{
+								"template.openshift.io/requester-username",
 							},
 						},
 					},

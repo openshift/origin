@@ -54,6 +54,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 	}
 	//properties := map[string]*jsschema.Schema{}
 	required := []string{}
+	openshiftFormDefinition := []string{}
 	for _, param := range template.Parameters {
 		properties[param.Name] = &jsschema.Schema{
 			Title:       param.DisplayName,
@@ -64,7 +65,10 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		if param.Required && param.Generate == "" {
 			required = append(required, param.Name)
 		}
+		openshiftFormDefinition = append(openshiftFormDefinition, param.Name)
 	}
+	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, this block should be removed
+	openshiftFormDefinition = append(openshiftFormDefinition, templateapi.RequesterUsernameParameterKey)
 
 	plan := api.Plan{
 		ID:          string(template.UID), // TODO: this should be a unique value
@@ -74,18 +78,19 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 		Bindable:    true,
 		Schemas: api.Schema{
 			ServiceInstance: api.ServiceInstances{
-				Create: map[string]*jsschema.Schema{
-					"parameters": {
+				Create: map[string]interface{}{
+					"parameters": &jsschema.Schema{
 						SchemaRef:  jsschema.SchemaURL,
 						Type:       []jsschema.PrimitiveType{jsschema.ObjectType},
 						Properties: properties,
 						Required:   required,
 					},
+					"openshift_form_definition": openshiftFormDefinition,
 				},
 			},
 			ServiceBinding: api.ServiceBindings{
-				Create: map[string]*jsschema.Schema{
-					"parameters": {
+				Create: map[string]interface{}{
+					"parameters": &jsschema.Schema{
 						SchemaRef: jsschema.SchemaURL,
 						Type:      []jsschema.PrimitiveType{jsschema.ObjectType},
 						Properties: map[string]*jsschema.Schema{
@@ -98,6 +103,7 @@ func serviceFromTemplate(template *templateapi.Template) *api.Service {
 						},
 						Required: []string{},
 					},
+					"openshift_form_definition": []string{templateapi.RequesterUsernameParameterKey},
 				},
 			},
 		},
