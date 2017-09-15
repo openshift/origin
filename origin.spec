@@ -121,6 +121,7 @@ Requires:       socat
 Requires:       nfs-utils
 Requires:       ethtool
 Requires:       device-mapper-persistent-data >= 0.6.2
+Requires:       conntrack-tools
 Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
