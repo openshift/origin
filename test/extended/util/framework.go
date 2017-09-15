@@ -33,7 +33,7 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	kinternalcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
-	"k8s.io/kubernetes/test/e2e/framework"
+	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
@@ -52,16 +52,16 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	scan := func() bool {
 		for _, lang := range langs {
-			fmt.Fprintf(g.GinkgoWriter, "Checking language %v \n", lang)
+			e2e.Logf("Checking language %v \n", lang)
 			is, err := oc.Client().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "ImageStream Error: %#v \n", err)
+				e2e.Logf("ImageStream Error: %#v \n", err)
 				return false
 			}
 			for tag := range is.Spec.Tags {
-				fmt.Fprintf(g.GinkgoWriter, "Checking tag %v \n", tag)
+				e2e.Logf("Checking tag %v \n", tag)
 				if _, ok := is.Status.Tags[tag]; !ok {
-					fmt.Fprintf(g.GinkgoWriter, "Tag Error: %#v \n", ok)
+					e2e.Logf("Tag Error: %#v \n", ok)
 					return false
 				}
 			}
@@ -71,16 +71,16 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 
 	success := false
 	for i := 0; i < 10; i++ {
-		fmt.Fprintf(g.GinkgoWriter, "Running scan #%v \n", i)
+		e2e.Logf("Running scan #%v \n", i)
 		success = scan()
 		if success {
 			break
 		}
-		fmt.Fprintf(g.GinkgoWriter, "Sleeping for 3 seconds \n")
+		e2e.Logf("Sleeping for 3 seconds \n")
 		time.Sleep(3 * time.Second)
 	}
 	if success {
-		fmt.Fprintf(g.GinkgoWriter, "Success! \n")
+		e2e.Logf("Success! \n")
 		return nil
 	}
 	DumpImageStreams(oc)
@@ -118,22 +118,22 @@ func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
 func DumpImageStreams(oc *CLI) {
 	out, err := oc.Run("get").Args("is", "-n", "openshift", "-o", "yaml", "--config", KubeConfigPath()).Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in openshift namespace: \n%s\n", out)
+		e2e.Logf("\n  imagestreams in openshift namespace: \n%s\n", out)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in openshift namespace: %+v\n%#v\n", err, out)
+		e2e.Logf("\n  error on getting imagestreams in openshift namespace: %+v\n%#v\n", err, out)
 	}
 	out, err = oc.Run("get").Args("is", "-o", "yaml").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n  imagestreams in dynamic test namespace: \n%s\n", out)
+		e2e.Logf("\n  imagestreams in dynamic test namespace: \n%s\n", out)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n  error on getting imagestreams in dynamic test namespace: %+v\n%#v\n", err, out)
+		e2e.Logf("\n  error on getting imagestreams in dynamic test namespace: %+v\n%#v\n", err, out)
 	}
 	ids, err := ListImages()
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n  got error on docker images %+v\n", err)
+		e2e.Logf("\n  got error on docker images %+v\n", err)
 	} else {
 		for _, id := range ids {
-			fmt.Fprintf(g.GinkgoWriter, " found local image %s\n", id)
+			e2e.Logf(" found local image %s\n", id)
 		}
 	}
 }
@@ -142,9 +142,9 @@ func DumpImageStreams(oc *CLI) {
 func DumpBuildLogs(bc string, oc *CLI) {
 	buildOutput, err := oc.Run("logs").Args("-f", "bc/"+bc, "--timestamps").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  build logs : %s\n\n", buildOutput)
+		e2e.Logf("\n\n  build logs : %s\n\n", buildOutput)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on build logs %+v\n\n", err)
+		e2e.Logf("\n\n  got error on build logs %+v\n\n", err)
 	}
 
 	// if we suspect that we are filling up the registry file system, call ExamineDiskUsage / ExaminePodDiskUsage
@@ -163,11 +163,11 @@ func GetApplicationPods(oc *CLI, dcName string) (*kapiv1.PodList, error) {
 
 // DumpDeploymentLogs will dump the latest deployment logs for a DeploymentConfig for debug purposes
 func DumpDeploymentLogs(dcName string, version int64, oc *CLI) {
-	fmt.Fprintf(g.GinkgoWriter, "Dumping deployment logs for deploymentconfig %q\n", dcName)
+	e2e.Logf("Dumping deployment logs for deploymentconfig %q\n", dcName)
 
 	pods, err := GetDeploymentConfigPods(oc, dcName, version)
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Unable to retrieve pods for deploymentconfig %q: %v\n", dcName, err)
+		e2e.Logf("Unable to retrieve pods for deploymentconfig %q: %v\n", dcName, err)
 		return
 	}
 
@@ -176,15 +176,25 @@ func DumpDeploymentLogs(dcName string, version int64, oc *CLI) {
 
 // DumpApplicationPodLogs will dump the latest application logs for a DeploymentConfig for debug purposes
 func DumpApplicationPodLogs(dcName string, oc *CLI) {
-	fmt.Fprintf(g.GinkgoWriter, "Dumping application logs for deploymentconfig %q\n", dcName)
+	e2e.Logf("Dumping application logs for deploymentconfig %q\n", dcName)
 
 	pods, err := GetApplicationPods(oc, dcName)
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Unable to retrieve pods for deploymentconfig %q: %v\n", dcName, err)
+		e2e.Logf("Unable to retrieve pods for deploymentconfig %q: %v\n", dcName, err)
 		return
 	}
 
 	DumpPodLogs(pods.Items, oc)
+}
+
+func DumpPodStates(oc *CLI) {
+	e2e.Logf("Dumping pod state for namespace %s", oc.Namespace())
+	out, err := oc.Run("get").Args("pods", "-o yaml").Output()
+	if err != nil {
+		e2e.Logf("Error dumping pod states: %v", err)
+		return
+	}
+	e2e.Logf(out)
 }
 
 // DumpPodLogsStartingWith will dump any pod starting with the name prefix provided
@@ -192,7 +202,7 @@ func DumpPodLogsStartingWith(prefix string, oc *CLI) {
 	podsToDump := []kapiv1.Pod{}
 	podList, err := oc.KubeClient().CoreV1().Pods(oc.Namespace()).List(metav1.ListOptions{})
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Error listing pods: %v", err)
+		e2e.Logf("Error listing pods: %v", err)
 		return
 	}
 	for _, pod := range podList.Items {
@@ -209,16 +219,16 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 	for _, pod := range pods {
 		descOutput, err := oc.Run("describe").Args("pod/" + pod.Name).Output()
 		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "Describing pod %q\n%s\n\n", pod.Name, descOutput)
+			e2e.Logf("Describing pod %q\n%s\n\n", pod.Name, descOutput)
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "Error retrieving description for pod %q: %v\n\n", pod.Name, err)
+			e2e.Logf("Error retrieving description for pod %q: %v\n\n", pod.Name, err)
 		}
 
 		depOutput, err := oc.Run("logs").Args("pod/" + pod.Name).Output()
 		if err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "Log for pod %q\n---->\n%s\n<----end of log for %[1]q\n", pod.Name, depOutput)
+			e2e.Logf("Log for pod %q\n---->\n%s\n<----end of log for %[1]q\n", pod.Name, depOutput)
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "Error retrieving logs for pod %q: %v\n\n", pod.Name, err)
+			e2e.Logf("Error retrieving logs for pod %q: %v\n\n", pod.Name, err)
 		}
 	}
 
@@ -228,10 +238,10 @@ func DumpPodLogs(pods []kapiv1.Pod, oc *CLI) {
 func GetMasterThreadDump(oc *CLI) {
 	out, err := oc.AsAdmin().Run("get").Args("--raw", "/debug/pprof/goroutine?debug=2").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n Master thread stack dump:\n\n%s\n\n", string(out))
+		e2e.Logf("\n\n Master thread stack dump:\n\n%s\n\n", string(out))
 		return
 	}
-	fmt.Fprintf(g.GinkgoWriter, "\n\n got error on oc get --raw /debug/pprof/goroutine?godebug=2: %v\n\n", err)
+	e2e.Logf("\n\n got error on oc get --raw /debug/pprof/goroutine?godebug=2: %v\n\n", err)
 }
 
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
@@ -239,15 +249,15 @@ func GetMasterThreadDump(oc *CLI) {
 func ExamineDiskUsage() {
 	out, err := exec.Command("/bin/df", "-m").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n df -m output: %s\n\n", string(out))
+		e2e.Logf("\n\n df -m output: %s\n\n", string(out))
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on df %v\n\n", err)
+		e2e.Logf("\n\n got error on df %v\n\n", err)
 	}
 	out, err = exec.Command("/bin/docker", "info").Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n docker info output: \n%s\n\n", string(out))
+		e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on docker inspect %v\n\n", err)
+		e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
 	}
 }
 
@@ -262,34 +272,34 @@ func ExaminePodDiskUsage(oc *CLI) {
 		err = json.Unmarshal(b, &list)
 		if err == nil {
 			for _, pod := range list.Items {
-				fmt.Fprintf(g.GinkgoWriter, "\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
+				e2e.Logf("\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
 				if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
 					podName = pod.ObjectMeta.Name
 					break
 				}
 			}
 		} else {
-			fmt.Fprintf(g.GinkgoWriter, "\n\n got json unmarshal err: %v\n\n", err)
+			e2e.Logf("\n\n got json unmarshal err: %v\n\n", err)
 		}
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n  got error on get pods: %v\n\n", err)
+		e2e.Logf("\n\n  got error on get pods: %v\n\n", err)
 	}
 	if len(podName) == 0 {
-		fmt.Fprintf(g.GinkgoWriter, "Unable to determine registry pod name, so we can't examine its disk usage.")
+		e2e.Logf("Unable to determine registry pod name, so we can't examine its disk usage.")
 		return
 	}
 
 	out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n df from registry pod: \n%s\n\n", out)
+		e2e.Logf("\n\n df from registry pod: \n%s\n\n", out)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod df: %v\n", err)
+		e2e.Logf("\n\n got error on reg pod df: %v\n", err)
 	}
 	out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
 	if err == nil {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n du from registry pod: \n%s\n\n", out)
+		e2e.Logf("\n\n du from registry pod: \n%s\n\n", out)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "\n\n got error on reg pod du: %v\n", err)
+		e2e.Logf("\n\n got error on reg pod du: %v\n", err)
 	}
 }
 
@@ -312,7 +322,7 @@ func VarSubOnFile(srcFile string, destFile string, vars map[string]string) error
 // are returned as separate strings.
 func StartBuild(oc *CLI, args ...string) (stdout, stderr string, err error) {
 	stdout, stderr, err = oc.Run("start-build").Args(args...).Outputs()
-	fmt.Fprintf(g.GinkgoWriter, "\n\nstart-build output with args %v:\nError>%v\nStdOut>\n%s\nStdErr>\n%s\n\n", args, err, stdout, stderr)
+	e2e.Logf("\n\nstart-build output with args %v:\nError>%v\nStdOut>\n%s\nStdErr>\n%s\n\n", args, err, stdout, stderr)
 	return stdout, stderr, err
 }
 
@@ -362,33 +372,33 @@ type BuildResult struct {
 
 // DumpLogs sends logs associated with this BuildResult to the GinkgoWriter.
 func (t *BuildResult) DumpLogs() {
-	fmt.Fprintf(g.GinkgoWriter, "\n\n*****************************************\n")
-	fmt.Fprintf(g.GinkgoWriter, "Dumping Build Result: %#v\n", *t)
+	e2e.Logf("\n\n*****************************************\n")
+	e2e.Logf("Dumping Build Result: %#v\n", *t)
 
 	if t == nil {
-		fmt.Fprintf(g.GinkgoWriter, "No build result available!\n\n")
+		e2e.Logf("No build result available!\n\n")
 		return
 	}
 
 	desc, err := t.oc.Run("describe").Args(t.BuildPath).Output()
 
-	fmt.Fprintf(g.GinkgoWriter, "\n** Build Description:\n")
+	e2e.Logf("\n** Build Description:\n")
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Error during description retrieval: %+v\n", err)
+		e2e.Logf("Error during description retrieval: %+v\n", err)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "%s\n", desc)
+		e2e.Logf("%s\n", desc)
 	}
 
-	fmt.Fprintf(g.GinkgoWriter, "\n** Build Logs:\n")
+	e2e.Logf("\n** Build Logs:\n")
 
 	buildOuput, err := t.Logs()
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Error during log retrieval: %+v\n", err)
+		e2e.Logf("Error during log retrieval: %+v\n", err)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "%s\n", buildOuput)
+		e2e.Logf("%s\n", buildOuput)
 	}
 
-	fmt.Fprintf(g.GinkgoWriter, "\n\n")
+	e2e.Logf("\n\n")
 
 	t.dumpRegistryLogs()
 
@@ -397,28 +407,28 @@ func (t *BuildResult) DumpLogs() {
 	/*
 		ExamineDiskUsage()
 		ExaminePodDiskUsage(t.oc)
-		fmt.Fprintf(g.GinkgoWriter, "\n\n")
+		e2e.Logf( "\n\n")
 	*/
 }
 
 func (t *BuildResult) dumpRegistryLogs() {
 	var buildStarted *time.Time
 	oc := t.oc
-	fmt.Fprintf(g.GinkgoWriter, "\n** Registry Logs:\n")
+	e2e.Logf("\n** Registry Logs:\n")
 
 	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
 		buildStarted = &t.Build.CreationTimestamp.Time
 	} else {
 		proj, err := oc.Client().Projects().Get(oc.Namespace(), metav1.GetOptions{})
 		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "Failed to get project %s: %v\n", oc.Namespace(), err)
+			e2e.Logf("Failed to get project %s: %v\n", oc.Namespace(), err)
 		} else {
 			buildStarted = &proj.CreationTimestamp.Time
 		}
 	}
 
 	if buildStarted == nil {
-		fmt.Fprintf(g.GinkgoWriter, "Could not determine test' start time\n\n\n")
+		e2e.Logf("Could not determine test' start time\n\n\n")
 		return
 	}
 
@@ -431,13 +441,13 @@ func (t *BuildResult) dumpRegistryLogs() {
 	oadm := t.oc.AsAdmin().SetNamespace("default")
 	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Error during log retrieval: %+v\n", err)
+		e2e.Logf("Error during log retrieval: %+v\n", err)
 	} else {
-		fmt.Fprintf(g.GinkgoWriter, "%s\n", out)
+		e2e.Logf("%s\n", out)
 	}
 	t.oc.SetNamespace(savedNamespace)
 
-	fmt.Fprintf(g.GinkgoWriter, "\n\n")
+	e2e.Logf("\n\n")
 }
 
 // Logs returns the logs associated with this build.
@@ -528,7 +538,7 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 
 // WaitForBuildResult updates result wit the state of the build
 func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
-	fmt.Fprintf(g.GinkgoWriter, "Waiting for %s to complete\n", result.BuildName)
+	e2e.Logf("Waiting for %s to complete\n", result.BuildName)
 	err := WaitForABuild(c, result.BuildName,
 		func(b *buildapi.Build) bool {
 			result.Build = b
@@ -555,7 +565,7 @@ func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
 	result.BuildAttempt = true
 	result.BuildTimeout = !(result.BuildFailure || result.BuildSuccess || result.BuildCancelled)
 
-	fmt.Fprintf(g.GinkgoWriter, "Done waiting for %s: %#v\n with error: %v\n", result.BuildName, *result, err)
+	e2e.Logf("Done waiting for %s: %#v\n with error: %v\n", result.BuildName, *result, err)
 	return nil
 }
 
@@ -588,7 +598,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
 		list, err := c.List(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String()})
 		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "error listing builds: %v", err)
+			e2e.Logf("error listing builds: %v", err)
 			return false, err
 		}
 		for i := range list.Items {
@@ -605,7 +615,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 		return false, nil
 	})
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "WaitForABuild returning with error: %v", err)
+		e2e.Logf("WaitForABuild returning with error: %v", err)
 	}
 	if err == wait.ErrWaitTimeout {
 		return fmt.Errorf("Timed out waiting for build %q to complete", name)
@@ -747,7 +757,7 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
 // to a given version and report minimum availability.
 func WaitForDeploymentConfig(kc kclientset.Interface, oc client.Interface, namespace, name string, version int64, cli *CLI) error {
-	fmt.Fprintf(g.GinkgoWriter, "waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
+	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
 	var dc *deployapi.DeploymentConfig
 
 	start := time.Now()
@@ -795,7 +805,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, oc client.Interface, names
 	})
 
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "got error %q when waiting for deploymentconfig %s/%s to be available with version %d\n", err, namespace, name, version)
+		e2e.Logf("got error %q when waiting for deploymentconfig %s/%s to be available with version %d\n", err, namespace, name, version)
 		cli.Run("get").Args("dc", dc.Name, "-o", "yaml").Execute()
 
 		DumpDeploymentLogs(name, version, cli)
@@ -814,7 +824,7 @@ func WaitForDeploymentConfig(kc kclientset.Interface, oc client.Interface, names
 		return err
 	}
 
-	fmt.Fprintf(g.GinkgoWriter, "deploymentconfig %s/%s available after %s\npods: %s\n", namespace, name, time.Now().Sub(start), strings.Join(podnames, ", "))
+	e2e.Logf("deploymentconfig %s/%s available after %s\npods: %s\n", namespace, name, time.Now().Sub(start), strings.Join(podnames, ", "))
 
 	return nil
 }
@@ -1050,42 +1060,42 @@ func CreatePersistentVolume(name, capacity, hostPath string) *kapiv1.PersistentV
 func SetupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix, capacity string, count int) (volumes []*kapiv1.PersistentVolume, err error) {
 	rootDir, err := ioutil.TempDir(TestContext.OutputDir, "persistent-volumes")
 	if err != nil {
-		fmt.Fprintf(g.GinkgoWriter, "Error creating pv dir %s: %v\n", TestContext.OutputDir, err)
+		e2e.Logf("Error creating pv dir %s: %v\n", TestContext.OutputDir, err)
 		return volumes, err
 	}
-	fmt.Fprintf(g.GinkgoWriter, "Created pv dir %s\n", rootDir)
+	e2e.Logf("Created pv dir %s\n", rootDir)
 	for i := 0; i < count; i++ {
 		dir, err := ioutil.TempDir(rootDir, fmt.Sprintf("%0.4d", i))
 		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "Error creating pv subdir %s: %v\n", rootDir, err)
+			e2e.Logf("Error creating pv subdir %s: %v\n", rootDir, err)
 			return volumes, err
 		}
-		fmt.Fprintf(g.GinkgoWriter, "Created pv subdir %s\n", dir)
+		e2e.Logf("Created pv subdir %s\n", dir)
 		if _, err = exec.LookPath("chcon"); err == nil {
-			fmt.Fprintf(g.GinkgoWriter, "Found chcon in path\n")
+			e2e.Logf("Found chcon in path\n")
 			//err := exec.Command("chcon", "-t", "container_file_t", dir).Run()
 			out, err := exec.Command("chcon", "-t", "svirt_sandbox_file_t", dir).CombinedOutput()
 			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "Error running chcon on %s, %s, %v\n", dir, string(out), err)
+				e2e.Logf("Error running chcon on %s, %s, %v\n", dir, string(out), err)
 				return volumes, err
 			}
-			fmt.Fprintf(g.GinkgoWriter, "Ran chcon on %s\n", dir)
+			e2e.Logf("Ran chcon on %s\n", dir)
 		}
 		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "Error finding chcon in path: %v\n", err)
+			e2e.Logf("Error finding chcon in path: %v\n", err)
 			return volumes, err
 		}
 		if err = os.Chmod(dir, 0777); err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "Error running chmod on %s, %v\n", dir, err)
+			e2e.Logf("Error running chmod on %s, %v\n", dir, err)
 			return volumes, err
 		}
-		fmt.Fprintf(g.GinkgoWriter, "Ran chmod on %s\n", dir)
+		e2e.Logf("Ran chmod on %s\n", dir)
 		pv, err := c.Create(CreatePersistentVolume(fmt.Sprintf("%s%s-%0.4d", pvPrefix, prefix, i), capacity, dir))
 		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "Error defining PV %v\n", err)
+			e2e.Logf("Error defining PV %v\n", err)
 			return volumes, err
 		}
-		fmt.Fprintf(g.GinkgoWriter, "Created PVs\n")
+		e2e.Logf("Created PVs\n")
 		volumes = append(volumes, pv)
 	}
 	return volumes, err
@@ -1106,18 +1116,18 @@ func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix stri
 
 		pvInfo, err := c.Get(pv.Name, metav1.GetOptions{})
 		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't get meta info for PV %s: %v\n", pv.Name, err)
+			e2e.Logf("WARNING: couldn't get meta info for PV %s: %v\n", pv.Name, err)
 			continue
 		}
 
 		if err = c.Delete(pv.Name, nil); err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
+			e2e.Logf("WARNING: couldn't remove PV %s: %v\n", pv.Name, err)
 			continue
 		}
 
 		volumeDir := pvInfo.Spec.HostPath.Path
 		if err = os.RemoveAll(volumeDir); err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove directory %q: %v\n", volumeDir, err)
+			e2e.Logf("WARNING: couldn't remove directory %q: %v\n", volumeDir, err)
 			continue
 		}
 
@@ -1127,7 +1137,7 @@ func CleanupHostPathVolumes(c kcoreclient.PersistentVolumeInterface, prefix stri
 		}
 
 		if err = os.Remove(parentDir); err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "WARNING: couldn't remove directory %q: %v\n", parentDir, err)
+			e2e.Logf("WARNING: couldn't remove directory %q: %v\n", parentDir, err)
 			continue
 		}
 	}
@@ -1251,7 +1261,7 @@ func ParseLabelsOrDie(str string) labels.Selector {
 
 // GetEndpointAddress will return an "ip:port" string for the endpoint.
 func GetEndpointAddress(oc *CLI, name string) (string, error) {
-	err := framework.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), name)
+	err := e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), name)
 	if err != nil {
 		return "", err
 	}
@@ -1267,11 +1277,11 @@ func GetEndpointAddress(oc *CLI, name string) (string, error) {
 // Returns the name of the created pod.
 // TODO: expose upstream
 func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) string {
-	framework.Logf("Creating new exec pod")
-	execPod := framework.NewHostExecPodSpec(ns, name)
+	e2e.Logf("Creating new exec pod")
+	execPod := e2e.NewHostExecPodSpec(ns, name)
 	created, err := client.Pods(ns).Create(execPod)
 	o.Expect(err).NotTo(o.HaveOccurred())
-	err = wait.PollImmediate(framework.Poll, 5*time.Minute, func() (bool, error) {
+	err = wait.PollImmediate(e2e.Poll, 5*time.Minute, func() (bool, error) {
 		retrievedPod, err := client.Pods(execPod.Namespace).Get(created.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, nil
@@ -1286,13 +1296,13 @@ func CreateExecPodOrFail(client kcoreclient.CoreV1Interface, ns, name string) st
 // the specified reason and message template.
 func CheckForBuildEvent(client kcoreclient.CoreV1Interface, build *buildapi.Build, reason, message string) {
 	var expectedEvent *kapiv1.Event
-	err := wait.PollImmediate(framework.Poll, 1*time.Minute, func() (bool, error) {
+	err := wait.PollImmediate(e2e.Poll, 1*time.Minute, func() (bool, error) {
 		events, err := client.Events(build.Namespace).Search(kapi.Scheme, build)
 		if err != nil {
 			return false, err
 		}
 		for _, event := range events.Items {
-			framework.Logf("Found event %#v", event)
+			e2e.Logf("Found event %#v", event)
 			if reason == event.Reason {
 				expectedEvent = &event
 				return true, nil
