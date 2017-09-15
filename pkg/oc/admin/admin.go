@@ -22,6 +22,7 @@ import (
 	migrateauthorization "github.com/openshift/origin/pkg/oc/admin/migrate/authorization"
 	migrateetcd "github.com/openshift/origin/pkg/oc/admin/migrate/etcd"
 	migrateimages "github.com/openshift/origin/pkg/oc/admin/migrate/images"
+	migrateservingcert "github.com/openshift/origin/pkg/oc/admin/migrate/servingcert"
 	migratestorage "github.com/openshift/origin/pkg/oc/admin/migrate/storage"
 	"github.com/openshift/origin/pkg/oc/admin/network"
 	"github.com/openshift/origin/pkg/oc/admin/node"
@@ -98,6 +99,11 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 					migratestorage.NewCmdMigrateAPIStorage("storage", fullName+" "+migrate.MigrateRecommendedName+" storage", f, in, out, errout),
 					migrateauthorization.NewCmdMigrateAuthorization("authorization", fullName+" "+migrate.MigrateRecommendedName+" authorization", f, in, out, errout),
 					migrateetcd.NewCmdMigrateTTLs("etcd-ttl", fullName+" "+migrate.MigrateRecommendedName+" etcd-ttl", f, in, out, errout),
+					migrate.NewCommandMigrateAlpha(
+						migrate.MigrateAlphaRecommendedName, fullName+" "+migrate.MigrateRecommendedName+" alpha", f, out, errout,
+						// Alpha migration commands
+						migrateservingcert.NewCmdMigrate("serving-certs", fullName+" "+migrate.MigrateRecommendedName+" alpha serving-certs", f, in, out, errout),
+					),
 				),
 				top.NewCommandTop(top.TopRecommendedName, fullName+" "+top.TopRecommendedName, f, out, errout),
 				image.NewCmdVerifyImageSignature(name, fullName+" "+image.VerifyRecommendedName, f, out, errout),

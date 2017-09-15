@@ -159,7 +159,7 @@ VERBOSE=true os::cmd::expect_success "oc new-project service-serving-cert-genera
 
 os::cmd::expect_success 'oc create dc nginx --image=nginx -- sh -c "nginx -c /etc/nginx/nginx.conf && sleep 86400"'
 os::cmd::expect_success "oc expose dc/nginx --port=443"
-os::cmd::expect_success "oc annotate svc/nginx service.alpha.openshift.io/serving-cert-secret-name=nginx-ssl-key"
+os::cmd::expect_success "oc annotate svc/nginx service.openshift.io/serving-cert-secret-name=nginx-ssl-key"
 os::cmd::expect_success "oc volumes dc/nginx --add --secret-name=nginx-ssl-key  --mount-path=/etc/serving-cert"
 os::cmd::expect_success "oc create configmap default-conf --from-file=test/extended/testdata/service-serving-cert/nginx-serving-cert.conf"
 os::cmd::expect_success "oc set volumes dc/nginx --add --configmap-name=default-conf --mount-path=/etc/nginx/conf.d"
