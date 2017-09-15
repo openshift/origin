@@ -4,8 +4,6 @@ import (
 	"github.com/docker/distribution/context"
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
-	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
-	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
 )
 
 type contextKey string
@@ -18,12 +16,6 @@ const (
 	// to allow blobDescriptorService to stat remote blobs.
 	remoteBlobAccessCheckEnabledKey contextKey = "remoteBlobAccessCheckEnabled"
 
-	// registryClientKey is the key for RegistryClient values in Contexts.
-	registryClientKey contextKey = "registryClient"
-
-	// writeLimiterKey is the key for write limiters in Contexts.
-	writeLimiterKey contextKey = "writeLimiter"
-
 	// userClientKey is the key for a origin's client with the current user's
 	// credentials in Contexts.
 	userClientKey contextKey = "userClient"
@@ -34,9 +26,6 @@ const (
 
 	// deferredErrorsKey is the key for deferred errors in Contexts.
 	deferredErrorsKey contextKey = "deferredErrors"
-
-	// configurationKey is the key for Configuration in Context.
-	configurationKey contextKey = "configuration"
 )
 
 // withRepository returns a new Context that carries value repo.
@@ -62,28 +51,6 @@ func withRemoteBlobAccessCheckEnabled(parent context.Context, enable bool) conte
 func remoteBlobAccessCheckEnabledFrom(ctx context.Context) bool {
 	enabled, _ := ctx.Value(remoteBlobAccessCheckEnabledKey).(bool)
 	return enabled
-}
-
-// WithRegistryClient returns a new Context with provided registry client.
-func WithRegistryClient(ctx context.Context, client client.RegistryClient) context.Context {
-	return context.WithValue(ctx, registryClientKey, client)
-}
-
-// RegistryClientFrom returns the registry client stored in ctx if present.
-// It will panic otherwise.
-func RegistryClientFrom(ctx context.Context) client.RegistryClient {
-	return ctx.Value(registryClientKey).(client.RegistryClient)
-}
-
-// WithWriteLimiter returns a new Context with a write limiter.
-func WithWriteLimiter(ctx context.Context, writeLimiter maxconnections.Limiter) context.Context {
-	return context.WithValue(ctx, writeLimiterKey, writeLimiter)
-}
-
-// WriteLimiterFrom returns the write limiter if one is stored in ctx, or nil otherwise.
-func WriteLimiterFrom(ctx context.Context) maxconnections.Limiter {
-	writeLimiter, _ := ctx.Value(writeLimiterKey).(maxconnections.Limiter)
-	return writeLimiter
 }
 
 // withUserClient returns a new Context with the origin's client.
@@ -120,15 +87,4 @@ func withDeferredErrors(parent context.Context, errs deferredErrors) context.Con
 func deferredErrorsFrom(ctx context.Context) (deferredErrors, bool) {
 	errs, ok := ctx.Value(deferredErrorsKey).(deferredErrors)
 	return errs, ok
-}
-
-// WithConfiguration returns a new Context with provided configuration.
-func WithConfiguration(ctx context.Context, config *configuration.Configuration) context.Context {
-	return context.WithValue(ctx, configurationKey, config)
-}
-
-// ConfigurationFrom returns the configuration stored in ctx if present.
-// It will panic otherwise.
-func ConfigurationFrom(ctx context.Context) *configuration.Configuration {
-	return ctx.Value(configurationKey).(*configuration.Configuration)
 }
