@@ -35,7 +35,7 @@ RUN rm -f /etc/cni/net.d/*
 # with the newer release. (This can go away when the base image is upgraded to
 # OVS 2.8 prerelease or release versions and include OVN sub-packages)
 RUN dnf -y install dnf-plugins-core &&\
- dnf -y copr enable leifmadsen/ovs-master &&\
+ dnf -y copr enable danw/origin-dind-ovs &&\
  dnf -y update openvswitch &&\
  dnf -y install openvswitch-ovn-*
 
