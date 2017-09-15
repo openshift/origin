@@ -18,8 +18,6 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/distribution/registry/storage"
-	"github.com/docker/distribution/registry/storage/cache"
-	"github.com/docker/distribution/registry/storage/cache/memory"
 	"github.com/docker/distribution/registry/storage/driver"
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 	"github.com/docker/libtrust"
@@ -45,8 +43,6 @@ func init() {
 }
 
 func TestRepositoryBlobStat(t *testing.T) {
-	quotaEnforcing = &quotaEnforcingConfig{}
-
 	ctx := context.Background()
 	// this driver holds all the testing blobs in memory during the whole test run
 	driver := inmemory.New()
@@ -284,11 +280,6 @@ func TestRepositoryBlobStat(t *testing.T) {
 			continue
 		}
 
-		cachedLayers, err = newDigestToRepositoryCache(defaultDigestToRepositoryCacheSize)
-		if err != nil {
-			t.Fatal(err)
-		}
-
 		ctx := context.Background()
 		if !tc.skipAuth {
 			ctx = withAuthPerformed(ctx)
@@ -349,7 +340,6 @@ func TestRepositoryBlobStat(t *testing.T) {
 func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	const blobRepoCacheTTL = time.Millisecond * 500
 
-	quotaEnforcing = &quotaEnforcingConfig{}
 	ctx := withAuthPerformed(context.Background())
 
 	// this driver holds all the testing blobs in memory during the whole test run
@@ -369,11 +359,6 @@ func TestRepositoryBlobStatCacheEviction(t *testing.T) {
 	// remove repo layer repo link of the image's second blob
 	alg, hex := blob2Dgst.Algorithm(), blob2Dgst.Hex()
 	err = driver.Delete(ctx, fmt.Sprintf("/docker/registry/v2/repositories/%s/_layers/%s/%s", "nm/is", alg, hex))
-
-	cachedLayers, err = newDigestToRepositoryCache(defaultDigestToRepositoryCacheSize)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
 	registrytest.AddImageStream(t, fos, "nm", "is", nil)
@@ -684,100 +669,6 @@ func populateTestStorage(
 	}
 
 	return result, nil
-}
-
-func newTestRegistry(
-	ctx context.Context,
-	osClient registryclient.Interface,
-	storageDriver driver.StorageDriver,
-	blobrepositorycachettl time.Duration,
-	pullthrough bool,
-	useBlobDescriptorCacheProvider bool,
-) (*testRegistry, error) {
-	if storageDriver == nil {
-		storageDriver = inmemory.New()
-	}
-	dockerStorageDriver = storageDriver
-
-	opts := []storage.RegistryOption{
-		storage.BlobDescriptorServiceFactory(&blobDescriptorServiceFactory{}),
-		storage.EnableDelete,
-		storage.EnableRedirect,
-	}
-	if useBlobDescriptorCacheProvider {
-		cacheProvider := cache.BlobDescriptorCacheProvider(memory.NewInMemoryBlobDescriptorCacheProvider())
-		opts = append(opts, storage.BlobDescriptorCacheProvider(cacheProvider))
-	}
-
-	reg, err := storage.NewRegistry(ctx, dockerStorageDriver, opts...)
-	if err != nil {
-		return nil, err
-	}
-	dockerRegistry = reg
-
-	return &testRegistry{
-		Namespace:              dockerRegistry,
-		osClient:               osClient,
-		blobrepositorycachettl: blobrepositorycachettl,
-		pullthrough:            pullthrough,
-	}, nil
-}
-
-type testRegistry struct {
-	distribution.Namespace
-	osClient               registryclient.Interface
-	pullthrough            bool
-	blobrepositorycachettl time.Duration
-}
-
-var _ distribution.Namespace = &testRegistry{}
-
-func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (distribution.Repository, error) {
-	repo, err := reg.Namespace.Repository(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	parts := strings.SplitN(ref.Name(), "/", 3)
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("failed to parse repository name %q", ref.Name())
-	}
-
-	nm, name := parts[0], parts[1]
-
-	isGetter := &cachedImageStreamGetter{
-		ctx:          ctx,
-		namespace:    nm,
-		name:         name,
-		isNamespacer: reg.osClient,
-	}
-
-	r := &repository{
-		Repository: repo,
-
-		ctx:              ctx,
-		registryOSClient: reg.osClient,
-		registryAddr:     "localhost:5000",
-		namespace:        nm,
-		name:             name,
-		blobrepositorycachettl: reg.blobrepositorycachettl,
-		imageStreamGetter:      isGetter,
-		cachedImages:           make(map[digest.Digest]*imageapiv1.Image),
-		cachedLayers:           cachedLayers,
-		pullthrough:            reg.pullthrough,
-	}
-
-	if reg.pullthrough {
-		r.remoteBlobGetter = NewBlobGetterService(
-			nm,
-			name,
-			defaultBlobRepositoryCacheTTL,
-			isGetter.get,
-			reg.osClient,
-			cachedLayers)
-	}
-
-	return r, nil
 }
 
 func testNewDescriptorForLayer(layer imageapiv1.ImageLayer) distribution.Descriptor {

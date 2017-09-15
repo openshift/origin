@@ -55,7 +55,7 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 	ref := imageapi.DockerImageReference{
 		Namespace: m.repo.namespace,
 		Name:      m.repo.name,
-		Registry:  m.repo.registryAddr,
+		Registry:  m.repo.config.registryAddr,
 	}
 	if isImageManaged(image) {
 		// Reference without a registry part refers to repository containing locally managed images.
@@ -140,7 +140,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 					imageapi.ManagedByOpenShiftAnnotation: "true",
 				},
 			},
-			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", m.repo.registryAddr, m.repo.namespace, m.repo.name, dgst.String()),
+			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", m.repo.config.registryAddr, m.repo.namespace, m.repo.name, dgst.String()),
 			DockerImageManifest:          string(payload),
 			DockerImageManifestMediaType: mediaType,
 		},

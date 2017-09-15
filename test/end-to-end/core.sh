@@ -204,10 +204,10 @@ os::cmd::expect_success 'oc project cache'
 IMAGE_PREFIX="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 
 os::log::info "Docker registry start with GCS"
-os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"gcs: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No bucket parameter provided"
+os::cmd::expect_failure_and_text "docker run -e OPENSHIFT_DEFAULT_REGISTRY=localhost:5000 -e REGISTRY_STORAGE=\"gcs: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No bucket parameter provided"
 
 os::log::info "Docker registry start with OSS"
-os::cmd::expect_failure_and_text "docker run -e REGISTRY_STORAGE=\"oss: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No accesskeyid parameter provided"
+os::cmd::expect_failure_and_text "docker run -e OPENSHIFT_DEFAULT_REGISTRY=localhost:5000 -e REGISTRY_STORAGE=\"oss: {}\" ${IMAGE_PREFIX}-docker-registry:${TAG}" "No accesskeyid parameter provided"
 
 os::log::info "Docker pull from istag"
 os::cmd::expect_success "oc import-image --confirm --from=hello-world:latest -n test hello-world:pullthrough"

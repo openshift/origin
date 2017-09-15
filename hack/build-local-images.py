@@ -7,8 +7,8 @@ from subprocess import call
 from tempfile import mkdtemp
 
 from atexit import register
-from os import getenv, listdir, mkdir, remove
-from os.path import abspath, dirname, exists, isdir, join
+from os import getenv, mkdir, remove
+from os.path import abspath, dirname, isdir, join
 
 if len(sys.argv) > 1 and sys.argv[1] in ['-h', '--h', '-help', '--help']:
     print """Quickly re-build images depending on OpenShift Origin build artifacts.
@@ -127,7 +127,17 @@ image_config = {
             "openshift": "/usr/bin/openshift"
         },
         "files": {}
-    }
+    },
+    "service-catalog": {
+        "directory": "service-catalog",
+        "vendor_dir": "cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-catalog",
+        "binaries": {
+            "controller-manager": "/usr/bin/controller-manager",
+            "apiserver": "/usr/bin/apiserver",
+        },
+        "files": {},
+        "enable_default": False,
+    },
 }
 
 
@@ -138,12 +148,9 @@ def image_rebuild_requested(image):
     suffix explicitly or does not provide
     any explicit requests.
     """
-    return len(sys.argv) == 1 or (
-        len(sys.argv) > 1 and (
-            image in sys.argv or
-            full_name(image) in sys.argv
-        )
-    )
+    implicitly_triggered = len(sys.argv) == 1 and image_config[image].get("enable_default", True)
+    explicitly_triggered = len(sys.argv) > 1 and (image in sys.argv or full_name(image) in sys.argv)
+    return implicitly_triggered or explicitly_triggered
 
 
 def full_name(image):
@@ -166,10 +173,10 @@ def add_to_context(context_dir, source, destination, container_destination):
     sytem at the correct destination.
     """
     debug("Adding file:\n\tfrom {}\n\tto {}\n\tincluding in container at {}".format(
-    	source,
-    	join(context_dir, destination),
-		container_destination)
-   	)
+        source,
+        join(context_dir, destination),
+        container_destination)
+    )
     absolute_destination = abspath(join(context_dir, destination))
     if isdir(source):
         dir_util.copy_tree(source, absolute_destination)
@@ -185,7 +192,6 @@ def debug(message):
 
 
 os_root = abspath(join(dirname(__file__), ".."))
-os_bin_path = join(os_root, "_output", "local", "bin", "linux", "amd64")
 os_image_path = join(os_root, "images")
 
 context_dir = mkdtemp()
@@ -205,8 +211,14 @@ for image in image_config:
     with open(join(context_dir, "Dockerfile"), "w+") as dockerfile:
         dockerfile.write("FROM {}\n".format(full_name(image)))
 
+    binary_dir_args = ["_output", "local", "bin", "linux", "amd64"]
     config = image_config[image]
     for binary in config.get("binaries", []):
+        if "vendor_dir" in config:
+            os_bin_path = join(os_root, config.get("vendor_dir"), *binary_dir_args)
+        else:
+            os_bin_path = join(os_root, *binary_dir_args)
+
         add_to_context(
             context_dir,
             source=join(os_bin_path, binary),

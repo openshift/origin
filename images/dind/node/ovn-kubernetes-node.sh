@@ -16,7 +16,7 @@ function is-northd-running() {
 function have-token() {
   local master_dir=$1
 
-  cat ${master_dir}/ovn.token > /dev/null
+  [[ -s "${master_dir}/ovn.token" ]]
 }
 
 function ovn-kubernetes-node() {
@@ -44,6 +44,9 @@ EOF
   cluster_cidr=$(python -c "import yaml; stream = file('${master_config}', 'r'); y = yaml.load(stream); print y['networkConfig']['clusterNetworkCIDR']")
   apiserver=$(grep server ${kube_config} | cut -f 6 -d' ')
   ovn_master_ip=$(echo -n ${apiserver} | cut -d "/" -f 3 | cut -d ":" -f 1)
+
+  # Ensure GENEVE's UDP port isn't firewalled
+  /usr/share/openvswitch/scripts/ovs-ctl --protocol=udp --dport=6081 enable-protocol
 
   os::util::wait-for-condition "ovn-northd" "is-northd-running ${ovn_master_ip}" "120"
 

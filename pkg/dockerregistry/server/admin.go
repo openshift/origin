@@ -9,20 +9,49 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/distribution/registry/api/v2"
+	"github.com/docker/distribution/registry/auth"
 	"github.com/docker/distribution/registry/handlers"
 	"github.com/docker/distribution/registry/storage"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	gorillahandlers "github.com/gorilla/handlers"
+
+	"github.com/openshift/origin/pkg/dockerregistry/server/api"
 )
 
-// BlobDispatcher takes the request context and builds the appropriate handler
+func (app *App) registerBlobHandler(dockerApp *handlers.App) {
+	adminRouter := dockerApp.NewRoute().PathPrefix(api.AdminPrefix).Subrouter()
+	pruneAccessRecords := func(*http.Request) []auth.Access {
+		return []auth.Access{
+			{
+				Resource: auth.Resource{
+					Type: "admin",
+				},
+				Action: "prune",
+			},
+		}
+	}
+
+	dockerApp.RegisterRoute(
+		// DELETE /admin/blobs/<digest>
+		adminRouter.Path(api.AdminPath).Methods("DELETE"),
+		// handler
+		app.blobDispatcher,
+		// repo name not required in url
+		handlers.NameNotRequired,
+		// custom access records
+		pruneAccessRecords,
+	)
+}
+
+// blobDispatcher takes the request context and builds the appropriate handler
 // for handling blob requests.
-func BlobDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
+func (app *App) blobDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
 	reference := context.GetStringValue(ctx, "vars.digest")
 	dgst, _ := digest.ParseDigest(reference)
 
 	blobHandler := &blobHandler{
 		Context: ctx,
+		driver:  app.driver,
 		Digest:  dgst,
 	}
 
@@ -35,6 +64,7 @@ func BlobDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
 type blobHandler struct {
 	*handlers.Context
 
+	driver storagedriver.StorageDriver
 	Digest digest.Digest
 }
 
@@ -47,7 +77,7 @@ func (bh *blobHandler) Delete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	vacuum := storage.NewVacuum(bh.Context, dockerStorageDriver)
+	vacuum := storage.NewVacuum(bh.Context, bh.driver)
 
 	err := vacuum.RemoveBlob(bh.Digest.String())
 	if err != nil {

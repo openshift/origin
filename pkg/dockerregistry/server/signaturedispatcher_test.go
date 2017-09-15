@@ -14,7 +14,6 @@ import (
 
 	"github.com/docker/distribution/configuration"
 	"github.com/docker/distribution/context"
-	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
-	regconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -59,10 +58,8 @@ func TestSignatureGet(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(imageClient))
-	ctx = WithConfiguration(ctx, &regconfig.Configuration{})
 	ctx = withUserClient(ctx, osclient)
-	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
+	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -86,8 +83,7 @@ func TestSignatureGet(t *testing.T) {
 			"repository": {{Name: "openshift"}},
 			"storage":    {{Name: "openshift"}},
 		},
-	})
-	RegisterSignatureHandler(registryApp)
+	}, &registryconfig.Configuration{}, nil)
 	registryServer := httptest.NewServer(registryApp)
 	defer registryServer.Close()
 
@@ -168,10 +164,8 @@ func TestSignaturePut(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	ctx = WithRegistryClient(ctx, registryclient.NewFakeRegistryClient(imageClient))
-	ctx = WithConfiguration(ctx, &regconfig.Configuration{})
 	ctx = withUserClient(ctx, osclient)
-	registryApp := handlers.NewApp(ctx, &configuration.Configuration{
+	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
 		Loglevel: "debug",
 		Auth: map[string]configuration.Parameters{
 			fakeAuthorizerName: {"realm": fakeAuthorizerName},
@@ -195,8 +189,7 @@ func TestSignaturePut(t *testing.T) {
 			"repository": {{Name: "openshift"}},
 			"storage":    {{Name: "openshift"}},
 		},
-	})
-	RegisterSignatureHandler(registryApp)
+	}, &registryconfig.Configuration{}, nil)
 	registryServer := httptest.NewServer(registryApp)
 	defer registryServer.Close()
 

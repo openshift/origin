@@ -180,14 +180,14 @@ func copyContent(store BlobGetterService, ctx context.Context, dgst digest.Diges
 func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStore distribution.BlobStore, dgst digest.Digest) {
 	// leave only the essential entries in the context (logger)
 	newCtx := context.WithLogger(context.Background(), context.GetLogger(ctx))
-	writeLimiter := WriteLimiterFrom(ctx)
+	writeLimiter := repo.app.writeLimiter
 
 	// the blob getter service is not thread-safe, we need to setup a new one
 	// TODO: make it thread-safe instead of instantiating a new one
 	remoteGetter := NewBlobGetterService(
 		repo.namespace,
 		repo.name,
-		repo.blobrepositorycachettl,
+		repo.config.blobRepositoryCacheTTL,
 		repo.imageStreamGetter.get,
 		repo.registryOSClient,
 		repo.cachedLayers)

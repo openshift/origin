@@ -168,7 +168,7 @@ func statSourceRepository(
 	sourceRepoName reference.Named,
 	dgst digest.Digest,
 ) (desc distribution.Descriptor, err error) {
-	upstreamRepo, err := dockerRegistry.Repository(ctx, sourceRepoName)
+	upstreamRepo, err := destRepo.app.registry.Repository(ctx, sourceRepoName)
 	if err != nil {
 		return distribution.Descriptor{}, err
 	}

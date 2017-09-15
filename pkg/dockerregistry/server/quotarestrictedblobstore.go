@@ -134,7 +134,7 @@ func (bw *quotaRestrictedBlobWriter) Commit(ctx context.Context, provisional dis
 }
 
 // getLimitRangeList returns list of limit ranges for repo.
-func getLimitRangeList(ctx context.Context, limitClient client.LimitRangesGetter, namespace string) (*kapi.LimitRangeList, error) {
+func getLimitRangeList(ctx context.Context, limitClient client.LimitRangesGetter, namespace string, quotaEnforcing *quotaEnforcingConfig) (*kapi.LimitRangeList, error) {
 	if quotaEnforcing.limitRanges != nil {
 		obj, exists, _ := quotaEnforcing.limitRanges.get(namespace)
 		if exists {
@@ -167,7 +167,7 @@ func admitBlobWrite(ctx context.Context, repo *repository, size int64) error {
 		return nil
 	}
 
-	lrs, err := getLimitRangeList(ctx, repo.registryOSClient, repo.namespace)
+	lrs, err := getLimitRangeList(ctx, repo.registryOSClient, repo.namespace, repo.app.quotaEnforcing)
 	if err != nil {
 		return err
 	}
