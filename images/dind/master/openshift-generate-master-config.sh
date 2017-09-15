@@ -5,8 +5,7 @@ set -o nounset
 set -o pipefail
 
 # Should set OPENSHIFT_NETWORK_PLUGIN
-source /data/network-plugin
-source /data/additional-args
+source /data/dind-env
 
 function ensure-master-config() {
   local config_path="/data/openshift.local.config"

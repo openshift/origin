@@ -6,7 +6,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/openshift/origin/pkg/api/extension"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 )
@@ -363,13 +363,13 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 
 // convert_runtime_Object_To_runtime_RawExtension attempts to convert runtime.Objects to the appropriate target.
 func convert_runtime_Object_To_runtime_RawExtension(in *runtime.Object, out *runtime.RawExtension, s conversion.Scope) error {
-	return extension.Convert_runtime_Object_To_runtime_RawExtension(internal.Scheme, in, out, s)
+	return apihelpers.Convert_runtime_Object_To_runtime_RawExtension(internal.Scheme, in, out, s)
 }
 
 // convert_runtime_RawExtension_To_runtime_Object attempts to convert an incoming object into the
 // appropriate output type.
 func convert_runtime_RawExtension_To_runtime_Object(in *runtime.RawExtension, out *runtime.Object, s conversion.Scope) error {
-	return extension.Convert_runtime_RawExtension_To_runtime_Object(internal.Scheme, in, out, s)
+	return apihelpers.Convert_runtime_RawExtension_To_runtime_Object(internal.Scheme, in, out, s)
 }
 
 // SetDefaults_ClientConnectionOverrides defaults a client connection to the pre-1.3 settings of
@@ -391,18 +391,18 @@ func (c *MasterConfig) DecodeNestedObjects(d runtime.Decoder) error {
 	// decoding failures result in a runtime.Unknown object being created in Object and passed
 	// to conversion
 	for k, v := range c.AdmissionConfig.PluginConfig {
-		extension.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
+		apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
 		c.AdmissionConfig.PluginConfig[k] = v
 	}
 	if c.KubernetesMasterConfig != nil {
 		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			extension.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
+			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &v.Configuration)
 			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
 		}
 	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {
-			extension.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
+			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
 		}
 	}
 	return nil
@@ -414,14 +414,14 @@ var _ runtime.NestedObjectEncoder = &MasterConfig{}
 // objects are encoded with the provided encoder.
 func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
 	for k, v := range c.AdmissionConfig.PluginConfig {
-		if err := extension.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
+		if err := apihelpers.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
 			return err
 		}
 		c.AdmissionConfig.PluginConfig[k] = v
 	}
 	if c.KubernetesMasterConfig != nil {
 		for k, v := range c.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			if err := extension.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
+			if err := apihelpers.EncodeNestedRawExtension(e, &v.Configuration); err != nil {
 				return err
 			}
 			c.KubernetesMasterConfig.AdmissionConfig.PluginConfig[k] = v
@@ -429,7 +429,7 @@ func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
 	}
 	if c.OAuthConfig != nil {
 		for i := range c.OAuthConfig.IdentityProviders {
-			if err := extension.EncodeNestedRawExtension(e, &c.OAuthConfig.IdentityProviders[i].Provider); err != nil {
+			if err := apihelpers.EncodeNestedRawExtension(e, &c.OAuthConfig.IdentityProviders[i].Provider); err != nil {
 				return err
 			}
 		}

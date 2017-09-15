@@ -5,8 +5,7 @@ set -o nounset
 set -o pipefail
 
 source /usr/local/bin/openshift-dind-lib.sh
-source /data/network-plugin
-source /data/ovn-kubernetes
+source /data/dind-env
 
 function ovn-kubernetes-master() {
   local config_dir=$1

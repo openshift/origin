@@ -1,31 +1,33 @@
-package v1_test
+package v1
 
 import (
 	"testing"
 
-	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
-	testutil "github.com/openshift/origin/test/util/api"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
+	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
+	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthAccessToken",
+	converter := runtime.NewScheme()
+	LegacySchemeBuilder.AddToScheme(converter)
+
+	apitesting.TestFieldLabelConversions(t, converter, "v1", "OAuthAccessToken",
 		// Ensure all currently returned labels are supported
 		oauthapi.OAuthAccessTokenToSelectableFields(&oauthapi.OAuthAccessToken{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"clientName", "userName", "userUID", "authorizeToken",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthAuthorizeToken",
+	apitesting.TestFieldLabelConversions(t, converter, "v1", "OAuthAuthorizeToken",
 		// Ensure all currently returned labels are supported
 		oauthapi.OAuthAuthorizeTokenToSelectableFields(&oauthapi.OAuthAuthorizeToken{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		"clientName", "userName", "userUID",
 	)
 
-	testutil.CheckFieldLabelConversions(t, "v1", "OAuthClientAuthorization",
+	apitesting.TestFieldLabelConversions(t, converter, "v1", "OAuthClientAuthorization",
 		// Ensure all currently returned labels are supported
 		oauthapi.OAuthClientAuthorizationToSelectableFields(&oauthapi.OAuthClientAuthorization{}),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST

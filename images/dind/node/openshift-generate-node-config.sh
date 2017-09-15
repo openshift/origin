@@ -6,7 +6,7 @@ set -o pipefail
 
 source /usr/local/bin/openshift-dind-lib.sh
 # Should set OPENSHIFT_NETWORK_PLUGIN
-source /data/network-plugin
+source /data/dind-env
 
 function ensure-node-config() {
   local deployed_config_path="/var/lib/origin/openshift.local.config/node"
@@ -64,6 +64,15 @@ kubeletArguments:
   cgroups-per-qos: ["false"]
   enforce-node-allocatable: [""]
 EOF
+
+    if [[ "${OPENSHIFT_CONTAINER_RUNTIME}" != "dockershim" ]]; then
+      cat >> "${node_config_file}" <<EOF
+  container-runtime: ["remote"]
+  container-runtime-endpoint: ["${OPENSHIFT_REMOTE_RUNTIME_ENDPOINT}"]
+  image-service-endpoint: ["${OPENSHIFT_REMOTE_RUNTIME_ENDPOINT}"]
+EOF
+    fi
+
   fi
 
   # Ensure the configuration is readable outside of the container

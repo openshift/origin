@@ -25,7 +25,11 @@ RUN dnf -y update && dnf -y install\
  python-netaddr\
  python2-pyroute2\
  python2-requests\
- PyYAML
+ PyYAML\
+ cri-o
+
+# Remove the CRI-O CNI network configs so openshift-sdn's will be used instead
+RUN rm -f /etc/cni/net.d/*
 
 # Upgrade to a newer OVS and install OVN packages that are only available
 # with the newer release. (This can go away when the base image is upgraded to
@@ -90,3 +94,7 @@ RUN systemctl enable ovn-kubernetes-node-setup.service
 COPY ovn-kubernetes-node.service /etc/systemd/system/
 COPY ovn-kubernetes-node.sh /usr/local/bin/
 RUN systemctl enable ovn-kubernetes-node.service
+
+COPY crio-node.sh /usr/local/bin/
+COPY crio-node.service /etc/systemd/system/
+RUN systemctl enable crio-node.service
