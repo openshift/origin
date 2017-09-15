@@ -42,10 +42,13 @@ os::cmd::expect_failure_and_text 'oc adm router --dry-run --host-network=false -
 os::cmd::expect_failure_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --router-canonical-hostname=1.2.3.4 -o yaml' 'error: canonical hostname must not be an IP address'
 # max_conn
 os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --max-connections=14583 -o yaml' '14583'
-# ciphers 
+# ciphers
 os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --ciphers=modern -o yaml' 'modern'
 # strict-sni
 os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --strict-sni -o yaml' 'ROUTER_STRICT_SNI'
+
+# stats username and password
+os::cmd::expect_success_and_text 'oc adm router --dry-run --host-network=false --host-ports=false --stats-password="xxx" --stats-user="statman" -o yaml' 'name: router-stats'
 
 # mount tls crt as secret
 os::cmd::expect_success_and_not_text 'oc adm router --dry-run --host-network=false --host-ports=false -o yaml' 'value: /etc/pki/tls/private/tls.crt'
@@ -69,6 +72,7 @@ os::cmd::expect_success_and_text 'oc get dc/router -o yaml' 'readinessProbe'
 # delete the router and deployment config, leaving the clusterrolebinding and service account
 os::cmd::expect_success_and_text "oc delete svc/router" 'service "router" deleted'
 os::cmd::expect_success_and_text "oc delete dc/router" 'deploymentconfig "router" deleted'
+os::cmd::expect_success_and_text "oc delete secret/router-stats" 'secret "router-stats" deleted'
 # create a router and check for success with a warning about the existing clusterrolebinding
 os::cmd::expect_success_and_text "oc adm router" 'warning: clusterrolebindings "router-router-role" already exists'
 
