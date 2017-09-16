@@ -170,7 +170,7 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.LowDiskSpaceThresholdMB = 256 // this the previous default
 	server.CPUCFSQuota = true            // enable cpu cfs quota enforcement by default
 	server.MaxPods = 250
-	server.PodsPerCore = 10
+	server.PodsPerCore = 0
 	server.CgroupDriver = "systemd"
 	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
 	server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
