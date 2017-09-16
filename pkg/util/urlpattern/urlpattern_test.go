@@ -44,7 +44,7 @@ func TestMatchPattern(t *testing.T) {
 			expectedScheme:   `^(git|http|https|ssh)$`,
 			expectedHost:     `^.*$`,
 			expectedPath:     `^/.*$`,
-			expectedMatch:    []string{`https://github.com/`},
+			expectedMatch:    []string{`https://github.com/`, `https://user:password@github.com/`, `ssh://git@github.com/`},
 			expectedNotMatch: []string{`ftp://github.com/`},
 		},
 		{
@@ -80,7 +80,7 @@ func TestMatchPattern(t *testing.T) {
 			expectedScheme:   `^https$`,
 			expectedHost:     `^github\.com$`,
 			expectedPath:     `^/.*$`,
-			expectedMatch:    []string{`https://github.com/`},
+			expectedMatch:    []string{`https://github.com/`, `https://user:password@github.com/`},
 			expectedNotMatch: []string{`https://test.github.com/`},
 		},
 		{
@@ -88,7 +88,7 @@ func TestMatchPattern(t *testing.T) {
 			expectedScheme: `^https$`,
 			expectedHost:   `^(?:.*\.)?github\.com$`,
 			expectedPath:   `^/.*$`,
-			expectedMatch:  []string{`https://github.com/`, `https://test.github.com/`},
+			expectedMatch:  []string{`https://github.com/`, `https://user:password@github.com/`, `https://test.github.com/`},
 		},
 		{
 			pattern:        `https://\.+?()|[]{}^$/*`,
@@ -106,6 +106,10 @@ func TestMatchPattern(t *testing.T) {
 		},
 		{
 			pattern:     `https://git*hub.com/*`,
+			expectedErr: true,
+		},
+		{
+			pattern:     `*://git@github.com/*`,
 			expectedErr: true,
 		},
 		{
