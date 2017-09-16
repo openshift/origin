@@ -4,10 +4,19 @@ After=${OPENVSWITCH_SERVICE}
 Wants=${DOCKER_SERVICE}
 After=$NAME-dep.service
 After=${MASTER_SERVICE}
+Requires=dnsmasq.service
+After=dnsmasq.service
 
 [Service]
+Type=notify
 EnvironmentFile=/etc/sysconfig/$NAME
 EnvironmentFile=/etc/sysconfig/$NAME-dep
+
+ExecStartPre=/usr/bin/cp /etc/origin/node/node-dnsmasq.conf /etc/dnsmasq.d/
+ExecStartPre=/usr/bin/dbus-send --system --dest=uk.org.thekelleys.dnsmasq /uk/org/thekelleys/dnsmasq uk.org.thekelleys.SetDomainServers array:string:/in-addr.arpa/127.0.0.1,/${DNS_DOMAIN}/127.0.0.1
+ExecStopPost=/usr/bin/rm /etc/dnsmasq.d/node-dnsmasq.conf
+ExecStopPost=/usr/bin/dbus-send --system --dest=uk.org.thekelleys.dnsmasq /uk/org/thekelleys/dnsmasq uk.org.thekelleys.SetDomainServers array:string:
+
 ExecStartPre=/bin/bash -c 'export -p > /run/$NAME-env'
 ExecStart=$EXEC_START
 ExecStop=$EXEC_STOP
