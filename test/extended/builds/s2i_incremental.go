@@ -32,6 +32,12 @@ var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+		}
+	})
+
 	g.Describe("Building from a template", func() {
 		g.It(fmt.Sprintf("should create a build from %q template and run it", templateFixture), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
