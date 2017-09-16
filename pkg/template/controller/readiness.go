@@ -16,6 +16,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 // checkBuildReadiness determins if a Build is ready, failed or neither.
@@ -133,6 +134,15 @@ func checkStatefulSetReadiness(oc client.Interface, obj runtime.Object) (bool, b
 	return ready, failed, nil
 }
 
+// checkRouteReadiness checks if host field was prepopulated already.
+func checkRouteReadiness(oc client.Interface, obj runtime.Object) (bool, bool, error) {
+	route := obj.(*routeapi.Route)
+	ready := route.Spec.Host != ""
+	failed := false
+
+	return ready, failed, nil
+}
+
 // readinessCheckers maps GroupKinds to the appropriate function.  Note that in
 // some cases more than one GK maps to the same function.
 var readinessCheckers = map[schema.GroupKind]func(client.Interface, runtime.Object) (bool, bool, error){
@@ -146,6 +156,8 @@ var readinessCheckers = map[schema.GroupKind]func(client.Interface, runtime.Obje
 	deployapi.Kind("DeploymentConfig"):       checkDeploymentConfigReadiness,
 	batch.Kind("Job"):                        checkJobReadiness,
 	apps.Kind("StatefulSet"):                 checkStatefulSetReadiness,
+	routeapi.Kind("Route"):                   checkRouteReadiness,
+	routeapi.LegacyKind("Route"):             checkRouteReadiness,
 }
 
 // canCheckReadiness indicates whether a readiness check exists for a GK.

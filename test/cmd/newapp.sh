@@ -36,6 +36,10 @@ os::cmd::expect_success_and_text 'oc new-app mysql --dry-run' 'tag "5.7" for "my
 # test deployments are created with the boolean flag and printed in the UI
 os::cmd::expect_success_and_text 'oc new-app mysql --dry-run --as-test' 'This image will be test deployed'
 os::cmd::expect_success_and_text 'oc new-app mysql -o yaml --as-test' 'test: true'
+os::cmd::expect_success_and_text 'oc new-app test/testdata/template-minimal-expose.json --as-test' 'Access your application via route'
+os::cmd::expect_success 'oc delete all -l app=expose-output'
+os::cmd::expect_success_and_text 'oc new-app mysql --as-test' 'Application is not exposed'
+os::cmd::expect_success 'oc delete all -l app=mysql'
 
 # test that imagestream references across imagestreams do not cause an error
 os::cmd::try_until_success 'oc get imagestreamtags ruby:2.3'

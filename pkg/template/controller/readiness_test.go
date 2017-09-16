@@ -16,6 +16,7 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client/testclient"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
 func TestCheckReadiness(t *testing.T) {
@@ -220,6 +221,42 @@ func TestCheckReadiness(t *testing.T) {
 				Status: apps.StatefulSetStatus{
 					ObservedGeneration: &zero,
 					ReadyReplicas:      1,
+				},
+			},
+			expectedReady: true,
+		},
+		{
+			groupKind: routeapi.Kind("Route"),
+			object: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					Host: "",
+				},
+			},
+			expectedReady: false,
+		},
+		{
+			groupKind: routeapi.Kind("Route"),
+			object: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					Host: "app.example.com",
+				},
+			},
+			expectedReady: true,
+		},
+		{
+			groupKind: routeapi.LegacyKind("Route"),
+			object: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					Host: "",
+				},
+			},
+			expectedReady: false,
+		},
+		{
+			groupKind: routeapi.LegacyKind("Route"),
+			object: &routeapi.Route{
+				Spec: routeapi.RouteSpec{
+					Host: "app.example.com",
 				},
 			},
 			expectedReady: true,
