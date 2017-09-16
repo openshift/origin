@@ -136,19 +136,6 @@ items:
   kind: ClusterRoleBinding
   metadata:
     creationTimestamp: null
-    name: system:nodes
-  roleRef:
-    apiGroup: rbac.authorization.k8s.io
-    kind: ClusterRole
-    name: system:node
-  subjects:
-  - apiGroup: rbac.authorization.k8s.io
-    kind: Group
-    name: system:nodes
-- apiVersion: rbac.authorization.k8s.io/v1beta1
-  kind: ClusterRoleBinding
-  metadata:
-    creationTimestamp: null
     name: system:node-proxiers
   roleRef:
     apiGroup: rbac.authorization.k8s.io
@@ -271,6 +258,16 @@ items:
   - apiGroup: rbac.authorization.k8s.io
     kind: Group
     name: system:unauthenticated
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    creationTimestamp: null
+    name: system:nodes
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: ClusterRole
+    name: system:node
+  subjects: []
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRoleBinding
   metadata:
@@ -1056,9 +1053,6 @@ items:
     apiGroup: rbac.authorization.k8s.io
     kind: ClusterRole
     name: system:node
-  subjects:
-  - apiGroup: rbac.authorization.k8s.io
-    kind: Group
-    name: system:nodes
+  subjects: []
 kind: List
 metadata: {}
