@@ -70,8 +70,6 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, *compon
 	server.HTTPCheckFrequency = metav1.Duration{Duration: time.Duration(0)} // no remote HTTP pod creation access
 	server.FileCheckFrequency = metav1.Duration{Duration: time.Duration(fileCheckInterval) * time.Second}
 	server.KubeletFlags.ContainerRuntimeOptions.PodSandboxImage = imageTemplate.ExpandOrDie("pod")
-	server.LowDiskSpaceThresholdMB = 256 // this the previous default
-	server.CPUCFSQuota = true            // enable cpu cfs quota enforcement by default
 	server.MaxPods = 250
 	server.PodsPerCore = 10
 	server.CgroupDriver = "systemd"
