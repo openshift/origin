@@ -1,6 +1,6 @@
 // +build !linux
 
-package node
+package network
 
 import (
 	"fmt"

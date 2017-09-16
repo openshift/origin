@@ -1,4 +1,4 @@
-package node
+package network
 
 import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
