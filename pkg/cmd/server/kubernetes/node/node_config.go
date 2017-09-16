@@ -172,10 +172,19 @@ func BuildKubernetesNodeConfig(options configapi.NodeConfig, enableProxy, enable
 	server.MaxPods = 250
 	server.PodsPerCore = 10
 	server.CgroupDriver = "systemd"
-	server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
-	server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
-	server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
-	server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
+
+	// set options relevant to the configured container runtime
+	server.ContainerRuntime = string(options.ContainerRuntime)
+	switch (options.ContainerRuntime) {
+	case configapi.ContainerRuntimeDocker:
+		server.DockerExecHandlerName = string(options.DockerConfig.ExecHandlerName)
+		server.RemoteRuntimeEndpoint = options.DockerConfig.DockerShimSocket
+		server.RemoteImageEndpoint = options.DockerConfig.DockerShimSocket
+		server.DockershimRootDirectory = options.DockerConfig.DockershimRootDirectory
+	case configapi.ContainerRuntimeRemote:
+		server.RemoteRuntimeEndpoint = options.RemoteConfig.RemoteRuntimeEndpoint
+		server.RemoteImageEndpoint = options.RemoteConfig.RemoteImageEndpoint
+	}
 
 	if network.IsOpenShiftNetworkPlugin(server.NetworkPluginName) {
 		// set defaults for openshift-sdn

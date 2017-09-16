@@ -200,6 +200,16 @@ func (DockerConfig) SwaggerDoc() map[string]string {
 	return map_DockerConfig
 }
 
+var map_RemoteConfig = map[string]string{
+	"":                      "RemoteConfig holds remote (CRI) runtime related configuration options.",
+	"remoteRuntimeEndpoint": "RemoteRuntimeEndpoint is the URI to the CRI runtime interface.",
+	"remoteImageEndpoint":   "RemoteImageEndpoint is the URI to the CRI image interface. Defaults to \"RemoteRuntimeEndpoint\" if empty.",
+}
+
+func (RemoteConfig) SwaggerDoc() map[string]string {
+	return map_RemoteConfig
+}
+
 var map_EtcdConfig = map[string]string{
 	"":                 "EtcdConfig holds the necessary configuration options for connecting with an etcd database",
 	"servingInfo":      "ServingInfo describes how to start serving the etcd master",
@@ -591,7 +601,9 @@ var map_NodeConfig = map[string]string{
 	"allowDisabledDocker":             "AllowDisabledDocker if true, the Kubelet will ignore errors from Docker.  This means that a node can start on a machine that doesn't have docker started.",
 	"podManifestConfig":               "PodManifestConfig holds the configuration for enabling the Kubelet to create pods based from a manifest file(s) placed locally on the node",
 	"authConfig":                      "AuthConfig holds authn/authz configuration options",
+	"containerRuntime":                "ContainerRuntime specifies the container runtime that kubelet will use (docker, rkt or remote)",
 	"dockerConfig":                    "DockerConfig holds Docker related configuration options.",
+	"remoteConfig":                    "RemoteConfig holds remote (CRI) runtime related configuration options.",
 	"kubeletArguments":                "KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"proxyArguments":                  "ProxyArguments are key value pairs that will be passed directly to the Proxy that match the Proxy's command line arguments.  These are not migrated or validated, so if you use them they may become invalid. These values override other settings in NodeConfig which may cause invalid configurations.",
 	"iptablesSyncPeriod":              "IPTablesSyncPeriod is how often iptable rules are refreshed",

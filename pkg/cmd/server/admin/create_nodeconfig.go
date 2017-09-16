@@ -54,6 +54,10 @@ type CreateNodeConfigOptions struct {
 	APIServerURL      string
 	Output            io.Writer
 	NetworkPluginName string
+
+	ContainerRuntime      string
+	RemoteRuntimeEndpoint string
+	RemoteImageEndpoint   string
 }
 
 func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *cobra.Command {
@@ -100,6 +104,10 @@ func NewCommandNodeConfig(commandName string, fullName string, out io.Writer) *c
 	flags.StringVar(&options.APIServerURL, "master", options.APIServerURL, "The API server's URL.")
 	flags.StringSliceVar(&options.APIServerCAFiles, "certificate-authority", options.APIServerCAFiles, "Files containing signing authorities to use to verify the API server's serving certificate.")
 	flags.StringVar(&options.NetworkPluginName, "network-plugin", options.NetworkPluginName, "Name of the network plugin to hook to for pod networking.")
+
+	flags.StringVar(&options.ContainerRuntime, "container-runtime", options.ContainerRuntime, "The container runtime to be used on this node (docker, rkt or remote).")
+	flags.StringVar(&options.RemoteRuntimeEndpoint, "remote-runtime-endpoint", "", "When using \"remote\" as container runtime, this allows specifying the address for the remote runtime endpoint (CRI).")
+	flags.StringVar(&options.RemoteImageEndpoint, "remote-image-endpoint", "", "When using \"remote\" as container runtime, this allows specifying the address for the remote image endpoint (CRI).")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("node-dir")
@@ -395,6 +403,14 @@ func (o CreateNodeConfigOptions) MakeKubeConfig(clientCertFile, clientKeyFile, c
 }
 
 func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, nodeClientCAFile, kubeConfigFile, nodeConfigFile string) error {
+	containerRuntime := configapi.ContainerRuntimeDocker
+	switch o.ContainerRuntime {
+	case "remote":
+		containerRuntime = configapi.ContainerRuntimeRemote
+	case "rkt":
+		containerRuntime = configapi.ContainerRuntimeRkt
+	}
+
 	config := &configapi.NodeConfig{
 		NodeName: o.NodeName,
 
@@ -421,6 +437,13 @@ func (o CreateNodeConfigOptions) MakeNodeConfig(serverCertFile, serverKeyFile, n
 		},
 
 		EnableUnidling: true,
+
+		ContainerRuntime: containerRuntime,
+
+		RemoteConfig: configapi.RemoteConfig{
+			RemoteRuntimeEndpoint: o.RemoteRuntimeEndpoint,
+			RemoteImageEndpoint: o.RemoteImageEndpoint,
+		},
 	}
 
 	if o.UseTLS() {

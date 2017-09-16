@@ -80,8 +80,14 @@ type NodeConfig struct {
 	// AuthConfig holds authn/authz configuration options
 	AuthConfig NodeAuthConfig `json:"authConfig"`
 
+	// ContainerRuntime specifies the container runtime that kubelet will use (docker, rkt or remote).
+	ContainerRuntime ContainerRuntimeType `json:"containerRuntime"`
+
 	// DockerConfig holds Docker related configuration options.
 	DockerConfig DockerConfig `json:"dockerConfig"`
+
+	// RemoteConfig holds remote (CRI) runtime related configuration options.
+	RemoteConfig RemoteConfig `json:"remoteConfig"`
 
 	// KubeletArguments are key value pairs that will be passed directly to the Kubelet that match the Kubelet's
 	// command line arguments.  These are not migrated or validated, so if you use them they may become invalid.
@@ -148,6 +154,17 @@ type NodeNetworkConfig struct {
 	MTU uint32 `json:"mtu"`
 }
 
+type ContainerRuntimeType string
+
+const (
+	// ContainerRuntimeDocker uses Docker as container runtime.
+	ContainerRuntimeDocker ContainerRuntimeType = "docker"
+	// ContainerRuntimeRkt uses rkt as container runtime.
+	ContainerRuntimeRkt ContainerRuntimeType = "rkt"
+	// ContainerRuntimeRemote uses remote (CRI) as container runtime.
+	ContainerRuntimeRemote ContainerRuntimeType = "remote"
+)
+
 // DockerConfig holds Docker related configuration options.
 type DockerConfig struct {
 	// ExecHandlerName is the name of the handler to use for executing
@@ -172,6 +189,14 @@ const (
 	// ControllersAll indicates all controllers should be started.
 	ControllersAll = "*"
 )
+
+// RemoteConfig holds remote (CRI) runtime related configuration options.
+type RemoteConfig struct {
+	// RemoteRuntimeEndpoint is the URI to the CRI runtime interface.
+	RemoteRuntimeEndpoint string
+	// RemoteImageEndpoint is the URI to the CRI image interface. Defaults to "RemoteRuntimeEndpoint" if empty.
+	RemoteImageEndpoint string
+}
 
 // FeatureList contains a set of features
 type FeatureList []string

@@ -32,6 +32,7 @@ authConfig:
   authenticationCacheTTL: ""
   authorizationCacheSize: 0
   authorizationCacheTTL: ""
+containerRuntime: ""
 dnsBindAddress: ""
 dnsDomain: ""
 dnsIP: ""
@@ -57,6 +58,9 @@ nodeName: ""
 podManifestConfig:
   fileCheckIntervalSeconds: 0
   path: ""
+remoteConfig:
+  remoteRuntimeEndpoint: ""
+  remoteImageEndpoint: ""
 servingInfo:
   bindAddress: ""
   bindNetwork: ""

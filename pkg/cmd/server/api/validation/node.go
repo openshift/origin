@@ -46,6 +46,8 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 
 	validationResults.AddErrors(ValidateNetworkConfig(config.NetworkConfig, fldPath.Child("networkConfig"))...)
 
+	validationResults.AddErrors(ValidateRuntimeConfig(config.ContainerRuntime, fldPath.Child("containerRuntime"))...)
+
 	validationResults.AddErrors(ValidateDockerConfig(config.DockerConfig, fldPath.Child("dockerConfig"))...)
 
 	validationResults.AddErrors(ValidateNodeAuthConfig(config.AuthConfig, fldPath.Child("authConfig"))...)
@@ -99,6 +101,20 @@ func ValidateNetworkConfig(config api.NodeNetworkConfig, fldPath *field.Path) fi
 	if config.MTU == 0 {
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("mtu"), config.MTU, fmt.Sprintf("must be greater than zero")))
 	}
+	return allErrs
+}
+
+func ValidateRuntimeConfig(runtime api.ContainerRuntimeType, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	switch runtime {
+	case api.ContainerRuntimeDocker, api.ContainerRuntimeRkt, api.ContainerRuntimeRemote:
+		// ok
+	default:
+		validValues := strings.Join([]string{string(api.ContainerRuntimeDocker), string(api.ContainerRuntimeRkt), string(api.ContainerRuntimeRemote)}, ", ")
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("containerRuntime"), runtime, fmt.Sprintf("must be one of %s", validValues)))
+	}
+
 	return allErrs
 }
 

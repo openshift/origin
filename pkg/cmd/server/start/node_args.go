@@ -80,6 +80,10 @@ type NodeArgs struct {
 	ListenArg          *ListenArg
 	ImageFormatArgs    *ImageFormatArgs
 	KubeConnectionArgs *KubeConnectionArgs
+
+	ContainerRuntime      string
+	RemoteRuntimeEndpoint string
+	RemoteImageEndpoint   string
 }
 
 // BindNodeArgs binds the options to the flags with prefix + default flag names
@@ -95,6 +99,10 @@ func BindNodeArgs(args *NodeArgs, flags *pflag.FlagSet, prefix string, component
 	flags.StringVar(&args.VolumeDir, prefix+"volume-dir", "openshift.local.volumes", "The volume storage directory.")
 	// TODO rename this node-name and recommend uname -n
 	flags.StringVar(&args.NodeName, prefix+"hostname", args.NodeName, "The hostname to identify this node with the master.")
+
+	flags.StringVar(&args.ContainerRuntime, prefix+"container-runtime", args.ContainerRuntime, "The container runtime to be used on this node (docker, rkt or remote).")
+	flags.StringVar(&args.RemoteRuntimeEndpoint, prefix+"remote-runtime-endpoint", "", "When using \"remote\" as container runtime, this allows specifying the address for the remote runtime endpoint (CRI).")
+	flags.StringVar(&args.RemoteImageEndpoint, prefix+"remote-image-endpoint", "", "When using \"remote\" as container runtime, this allows specifying the address for the remote image endpoint (CRI).")
 
 	// set dynamic value annotation - allows man pages  to be generated and verified
 	flags.SetAnnotation(prefix+"hostname", "manpage-def-value", []string{"<hostname>"})
@@ -139,6 +147,10 @@ func NewDefaultNodeArgs() *NodeArgs {
 		ListenArg:          NewDefaultListenArg(),
 		ImageFormatArgs:    NewDefaultImageFormatArgs(),
 		KubeConnectionArgs: NewDefaultKubeConnectionArgs(),
+
+		ContainerRuntime:      string(configapi.ContainerRuntimeDocker),
+		RemoteRuntimeEndpoint: "",
+		RemoteImageEndpoint:   "",
 	}
 	config.ConfigDir.Default("openshift.local.config/node")
 
@@ -152,6 +164,14 @@ func (args NodeArgs) Validate() error {
 	if addr, _ := args.KubeConnectionArgs.GetKubernetesAddress(args.DefaultKubernetesURL); addr == nil {
 		return errors.New("--kubeconfig must be set to provide API server connection information")
 	}
+
+	switch args.ContainerRuntime {
+	case "docker", "rkt", "remote":
+		// ok
+	default:
+		return errors.New("--container-runtime must be one of \"docker, rkt or remote\"")
+	}
+
 	return nil
 }
 
@@ -173,6 +193,14 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 	var dnsIP string
 	if len(args.ClusterDNS) > 0 {
 		dnsIP = args.ClusterDNS.String()
+	}
+
+	containerRuntime := configapi.ContainerRuntimeDocker
+	switch args.ContainerRuntime {
+	case "remote":
+		containerRuntime = configapi.ContainerRuntimeRemote
+	case "rkt":
+		containerRuntime = configapi.ContainerRuntimeRkt
 	}
 
 	config := &configapi.NodeConfig{
@@ -205,6 +233,12 @@ func (args NodeArgs) BuildSerializeableNodeConfig() (*configapi.NodeConfig, erro
 		PodManifestConfig: nil,
 
 		EnableUnidling: true,
+
+		ContainerRuntime: containerRuntime,
+		RemoteConfig: configapi.RemoteConfig{
+			RemoteRuntimeEndpoint: args.RemoteRuntimeEndpoint,
+			RemoteImageEndpoint: args.RemoteImageEndpoint,
+		},
 	}
 
 	if args.ListenArg.UseTLS() {
