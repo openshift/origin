@@ -47,7 +47,7 @@ func (c *client) ProvisionInstance(r *ProvisionRequest) (*ProvisionResponse, err
 		requestBody.Context = r.Context
 	}
 
-	response, err := c.prepareAndDo(http.MethodPut, fullURL, params, requestBody)
+	response, err := c.prepareAndDo(http.MethodPut, fullURL, params, requestBody, r.OriginatingIdentity)
 	if err != nil {
 		return nil, err
 	}

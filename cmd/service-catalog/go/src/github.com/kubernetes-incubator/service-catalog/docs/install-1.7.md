@@ -6,7 +6,7 @@ which is a specialized proxy server that sits in front of the core API Server.
 
 The aggregator allows user-defined, Kubernetes compatible API servers to come 
 and go inside the cluster, and register themselves on demand to augment the 
-externally facing API that kubernetes offers.
+externally facing API that Kubernetes offers.
 
 Instead of requiring the end-user to access multiple API servers, the API 
 aggregation system allows many API servers to run inside the cluster, and combines
@@ -17,8 +17,6 @@ client to use a single API point with familiar, consistent tooling,
 authentication and authorization.
 
 The Service Catalog utilizes API aggregation to present its API.
-
-# Prerequisites
 
 # Step 1 - Prerequisites
 
@@ -46,6 +44,14 @@ and you should be done with Helm setup.
 If you don't already have an appropriate Helm version, see the
 [Helm installation instructions](https://github.com/kubernetes/helm/blob/master/docs/install.md).
 
+### Helm Charts
+
+You need to download the
+[charts/catalog](https://github.com/kubernetes-incubator/service-catalog/tree/master/charts/catalog)
+directory to your local machine. Please refer to
+[here](https://github.com/kubernetes-incubator/service-catalog/blob/master/docs/devguide.md#2-clone-fork-to-local-storage) 
+for the guide.
+
 ## RBAC
 
 Your Kubernetes cluster must have RBAC enabled, and your Tiller pod needs to
@@ -55,8 +61,14 @@ your `minikube start` command with this flag:
 ```console
 minikube start --extra-config=apiserver.Authorization.Mode=RBAC
 ```
+If you are using `hack/local-up-cluster.sh`, ensure the
+`AUTHORIZATION_MODE` environment variable is set as follows:
 
-AssumingBy default, `helm init` installs the Tiller pod into the `kube-system`
+```console
+AUTHORIZATION_MODE=Node,RBAC hack/local-up-cluster.sh -O
+```
+
+By default, `helm init` installs the Tiller pod into the `kube-system`
 namespace, with Tiller configured to use the `default` service account.
 
 Configure Tiller with `cluster-admin` access with the following command:
@@ -94,7 +106,7 @@ chmod +x ./kubectl
 We'll assume that all `kubectl` commands are using this newly-installed 
 executable.
 
-# Step 1 - Generate TLS Certificates
+# Step 2 - Generate TLS Certificates
 
 We provide a script to do all of the steps needed to set up TLS certificates
 that the aggregation system uses. If you'd like to read how to do this setup
@@ -125,11 +137,11 @@ Finally, create the certs:
 source ../../contrib/svc-cat-apiserver-aggregation-tls-setup.sh
 ```
 
-# Step 2 - Install the Helm Chart
+# Step 3 - Install Service Catalog with Helm Chart
 
 Use helm to install the Service Catalog, associating it with the
-configured name ${HELM_NAME}, and into the specified namespace." This
-command also enables authentication and aggregation and provides the
+configured name ${HELM_RELEASE_NAME}, and into the specified namespace." This
+command also enables authentication and authorization and provides the
 keys we just generated inline.
 
 The installation commands vary slightly between Linux and Mac OS X because of

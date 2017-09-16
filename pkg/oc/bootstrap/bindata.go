@@ -13875,8 +13875,7 @@ objects:
           - apiserver
           args:
           - --admission-control
-          #- KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceInstanceCredentialsLifecycle
-          - KubernetesNamespaceLifecycle,DefaultServicePlan
+          - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceInstanceCredentialsLifecycle,ServicePlanChangeValidator
           - --storage-type
           - etcd
           - --secure-port

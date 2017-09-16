@@ -22,6 +22,7 @@ package v1alpha1
 
 import (
 	servicecatalog "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
+	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1 "k8s.io/client-go/pkg/api/v1"
@@ -82,6 +83,8 @@ func RegisterConversions(scheme *runtime.Scheme) error {
 		Convert_servicecatalog_ServiceInstanceStatus_To_v1alpha1_ServiceInstanceStatus,
 		Convert_v1alpha1_ServicePlan_To_servicecatalog_ServicePlan,
 		Convert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan,
+		Convert_v1alpha1_UserInfo_To_servicecatalog_UserInfo,
+		Convert_servicecatalog_UserInfo_To_v1alpha1_UserInfo,
 	)
 }
 
@@ -306,6 +309,7 @@ func Convert_servicecatalog_ServiceBrokerSpec_To_v1alpha1_ServiceBrokerSpec(in *
 func autoConvert_v1alpha1_ServiceBrokerStatus_To_servicecatalog_ServiceBrokerStatus(in *ServiceBrokerStatus, out *servicecatalog.ServiceBrokerStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]servicecatalog.ServiceBrokerCondition)(unsafe.Pointer(&in.Conditions))
 	out.ReconciledGeneration = in.ReconciledGeneration
+	out.OperationStartTime = (*meta_v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	return nil
 }
 
@@ -321,6 +325,7 @@ func autoConvert_servicecatalog_ServiceBrokerStatus_To_v1alpha1_ServiceBrokerSta
 		out.Conditions = *(*[]ServiceBrokerCondition)(unsafe.Pointer(&in.Conditions))
 	}
 	out.ReconciledGeneration = in.ReconciledGeneration
+	out.OperationStartTime = (*meta_v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	return nil
 }
 
@@ -338,8 +343,8 @@ func autoConvert_v1alpha1_ServiceClass_To_servicecatalog_ServiceClass(in *Servic
 	out.PlanUpdatable = in.PlanUpdatable
 	out.ExternalID = in.ExternalID
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
-	out.AlphaTags = *(*[]string)(unsafe.Pointer(&in.AlphaTags))
-	out.AlphaRequires = *(*[]string)(unsafe.Pointer(&in.AlphaRequires))
+	out.Tags = *(*[]string)(unsafe.Pointer(&in.Tags))
+	out.Requires = *(*[]string)(unsafe.Pointer(&in.Requires))
 	return nil
 }
 
@@ -361,8 +366,8 @@ func autoConvert_servicecatalog_ServiceClass_To_v1alpha1_ServiceClass(in *servic
 	out.PlanUpdatable = in.PlanUpdatable
 	out.ExternalID = in.ExternalID
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
-	out.AlphaTags = *(*[]string)(unsafe.Pointer(&in.AlphaTags))
-	out.AlphaRequires = *(*[]string)(unsafe.Pointer(&in.AlphaRequires))
+	out.Tags = *(*[]string)(unsafe.Pointer(&in.Tags))
+	out.Requires = *(*[]string)(unsafe.Pointer(&in.Requires))
 	return nil
 }
 
@@ -549,6 +554,7 @@ func autoConvert_v1alpha1_ServiceInstanceCredentialSpec_To_servicecatalog_Servic
 	out.ParametersFrom = *(*[]servicecatalog.ParametersFromSource)(unsafe.Pointer(&in.ParametersFrom))
 	out.SecretName = in.SecretName
 	out.ExternalID = in.ExternalID
+	out.UserInfo = (*servicecatalog.UserInfo)(unsafe.Pointer(in.UserInfo))
 	return nil
 }
 
@@ -563,6 +569,7 @@ func autoConvert_servicecatalog_ServiceInstanceCredentialSpec_To_v1alpha1_Servic
 	out.ParametersFrom = *(*[]ParametersFromSource)(unsafe.Pointer(&in.ParametersFrom))
 	out.SecretName = in.SecretName
 	out.ExternalID = in.ExternalID
+	out.UserInfo = (*UserInfo)(unsafe.Pointer(in.UserInfo))
 	return nil
 }
 
@@ -573,7 +580,8 @@ func Convert_servicecatalog_ServiceInstanceCredentialSpec_To_v1alpha1_ServiceIns
 
 func autoConvert_v1alpha1_ServiceInstanceCredentialStatus_To_servicecatalog_ServiceInstanceCredentialStatus(in *ServiceInstanceCredentialStatus, out *servicecatalog.ServiceInstanceCredentialStatus, s conversion.Scope) error {
 	out.Conditions = *(*[]servicecatalog.ServiceInstanceCredentialCondition)(unsafe.Pointer(&in.Conditions))
-	out.Checksum = (*string)(unsafe.Pointer(in.Checksum))
+	out.ReconciledGeneration = in.ReconciledGeneration
+	out.OperationStartTime = (*meta_v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	return nil
 }
 
@@ -588,7 +596,8 @@ func autoConvert_servicecatalog_ServiceInstanceCredentialStatus_To_v1alpha1_Serv
 	} else {
 		out.Conditions = *(*[]ServiceInstanceCredentialCondition)(unsafe.Pointer(&in.Conditions))
 	}
-	out.Checksum = (*string)(unsafe.Pointer(in.Checksum))
+	out.ReconciledGeneration = in.ReconciledGeneration
+	out.OperationStartTime = (*meta_v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	return nil
 }
 
@@ -629,6 +638,7 @@ func autoConvert_v1alpha1_ServiceInstanceSpec_To_servicecatalog_ServiceInstanceS
 	out.Parameters = (*runtime.RawExtension)(unsafe.Pointer(in.Parameters))
 	out.ParametersFrom = *(*[]servicecatalog.ParametersFromSource)(unsafe.Pointer(&in.ParametersFrom))
 	out.ExternalID = in.ExternalID
+	out.UserInfo = (*servicecatalog.UserInfo)(unsafe.Pointer(in.UserInfo))
 	return nil
 }
 
@@ -643,6 +653,7 @@ func autoConvert_servicecatalog_ServiceInstanceSpec_To_v1alpha1_ServiceInstanceS
 	out.Parameters = (*runtime.RawExtension)(unsafe.Pointer(in.Parameters))
 	out.ParametersFrom = *(*[]ParametersFromSource)(unsafe.Pointer(&in.ParametersFrom))
 	out.ExternalID = in.ExternalID
+	out.UserInfo = (*UserInfo)(unsafe.Pointer(in.UserInfo))
 	return nil
 }
 
@@ -656,7 +667,8 @@ func autoConvert_v1alpha1_ServiceInstanceStatus_To_servicecatalog_ServiceInstanc
 	out.AsyncOpInProgress = in.AsyncOpInProgress
 	out.LastOperation = (*string)(unsafe.Pointer(in.LastOperation))
 	out.DashboardURL = (*string)(unsafe.Pointer(in.DashboardURL))
-	out.Checksum = (*string)(unsafe.Pointer(in.Checksum))
+	out.ReconciledGeneration = in.ReconciledGeneration
+	out.OperationStartTime = (*meta_v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	return nil
 }
 
@@ -674,7 +686,8 @@ func autoConvert_servicecatalog_ServiceInstanceStatus_To_v1alpha1_ServiceInstanc
 	out.AsyncOpInProgress = in.AsyncOpInProgress
 	out.LastOperation = (*string)(unsafe.Pointer(in.LastOperation))
 	out.DashboardURL = (*string)(unsafe.Pointer(in.DashboardURL))
-	out.Checksum = (*string)(unsafe.Pointer(in.Checksum))
+	out.ReconciledGeneration = in.ReconciledGeneration
+	out.OperationStartTime = (*meta_v1.Time)(unsafe.Pointer(in.OperationStartTime))
 	return nil
 }
 
@@ -690,9 +703,9 @@ func autoConvert_v1alpha1_ServicePlan_To_servicecatalog_ServicePlan(in *ServiceP
 	out.Bindable = (*bool)(unsafe.Pointer(in.Bindable))
 	out.Free = in.Free
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
-	out.AlphaServiceInstanceCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaServiceInstanceCreateParameterSchema))
-	out.AlphaServiceInstanceUpdateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaServiceInstanceUpdateParameterSchema))
-	out.AlphaServiceInstanceCredentialCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaServiceInstanceCredentialCreateParameterSchema))
+	out.ServiceInstanceCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.ServiceInstanceCreateParameterSchema))
+	out.ServiceInstanceUpdateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.ServiceInstanceUpdateParameterSchema))
+	out.ServiceInstanceCredentialCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.ServiceInstanceCredentialCreateParameterSchema))
 	return nil
 }
 
@@ -708,13 +721,39 @@ func autoConvert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan(in *servicec
 	out.Bindable = (*bool)(unsafe.Pointer(in.Bindable))
 	out.Free = in.Free
 	out.ExternalMetadata = (*runtime.RawExtension)(unsafe.Pointer(in.ExternalMetadata))
-	out.AlphaServiceInstanceCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaServiceInstanceCreateParameterSchema))
-	out.AlphaServiceInstanceUpdateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaServiceInstanceUpdateParameterSchema))
-	out.AlphaServiceInstanceCredentialCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.AlphaServiceInstanceCredentialCreateParameterSchema))
+	out.ServiceInstanceCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.ServiceInstanceCreateParameterSchema))
+	out.ServiceInstanceUpdateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.ServiceInstanceUpdateParameterSchema))
+	out.ServiceInstanceCredentialCreateParameterSchema = (*runtime.RawExtension)(unsafe.Pointer(in.ServiceInstanceCredentialCreateParameterSchema))
 	return nil
 }
 
 // Convert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan is an autogenerated conversion function.
 func Convert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan(in *servicecatalog.ServicePlan, out *ServicePlan, s conversion.Scope) error {
 	return autoConvert_servicecatalog_ServicePlan_To_v1alpha1_ServicePlan(in, out, s)
+}
+
+func autoConvert_v1alpha1_UserInfo_To_servicecatalog_UserInfo(in *UserInfo, out *servicecatalog.UserInfo, s conversion.Scope) error {
+	out.Username = in.Username
+	out.UID = in.UID
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	out.Extra = *(*map[string]servicecatalog.ExtraValue)(unsafe.Pointer(&in.Extra))
+	return nil
+}
+
+// Convert_v1alpha1_UserInfo_To_servicecatalog_UserInfo is an autogenerated conversion function.
+func Convert_v1alpha1_UserInfo_To_servicecatalog_UserInfo(in *UserInfo, out *servicecatalog.UserInfo, s conversion.Scope) error {
+	return autoConvert_v1alpha1_UserInfo_To_servicecatalog_UserInfo(in, out, s)
+}
+
+func autoConvert_servicecatalog_UserInfo_To_v1alpha1_UserInfo(in *servicecatalog.UserInfo, out *UserInfo, s conversion.Scope) error {
+	out.Username = in.Username
+	out.UID = in.UID
+	out.Groups = *(*[]string)(unsafe.Pointer(&in.Groups))
+	out.Extra = *(*map[string]ExtraValue)(unsafe.Pointer(&in.Extra))
+	return nil
+}
+
+// Convert_servicecatalog_UserInfo_To_v1alpha1_UserInfo is an autogenerated conversion function.
+func Convert_servicecatalog_UserInfo_To_v1alpha1_UserInfo(in *servicecatalog.UserInfo, out *UserInfo, s conversion.Scope) error {
+	return autoConvert_servicecatalog_UserInfo_To_v1alpha1_UserInfo(in, out, s)
 }

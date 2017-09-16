@@ -15,7 +15,7 @@ func (c *client) Unbind(r *UnbindRequest) (*UnbindResponse, error) {
 	params[serviceIDKey] = r.ServiceID
 	params[planIDKey] = r.PlanID
 
-	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, nil)
+	response, err := c.prepareAndDo(http.MethodDelete, fullURL, params, nil, r.OriginatingIdentity)
 	if err != nil {
 		return nil, err
 	}

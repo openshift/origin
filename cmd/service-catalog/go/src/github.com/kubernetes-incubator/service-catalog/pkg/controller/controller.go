@@ -67,19 +67,21 @@ func NewController(
 	brokerRelistInterval time.Duration,
 	osbAPIPreferredVersion string,
 	recorder record.EventRecorder,
+	reconciliationRetryDuration time.Duration,
 ) (Controller, error) {
 	controller := &controller{
-		kubeClient:             kubeClient,
-		serviceCatalogClient:   serviceCatalogClient,
-		brokerClientCreateFunc: brokerClientCreateFunc,
-		brokerRelistInterval:   brokerRelistInterval,
-		OSBAPIPreferredVersion: osbAPIPreferredVersion,
-		recorder:               recorder,
-		brokerQueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-broker"),
-		serviceClassQueue:      workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-class"),
-		instanceQueue:          workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-instance"),
-		bindingQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-instance-credential"),
-		pollingQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "poller"),
+		kubeClient:                  kubeClient,
+		serviceCatalogClient:        serviceCatalogClient,
+		brokerClientCreateFunc:      brokerClientCreateFunc,
+		brokerRelistInterval:        brokerRelistInterval,
+		OSBAPIPreferredVersion:      osbAPIPreferredVersion,
+		recorder:                    recorder,
+		reconciliationRetryDuration: reconciliationRetryDuration,
+		brokerQueue:                 workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-broker"),
+		serviceClassQueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-class"),
+		instanceQueue:               workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-instance"),
+		bindingQueue:                workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "service-instance-credential"),
+		pollingQueue:                workqueue.NewNamedRateLimitingQueue(workqueue.NewItemExponentialFailureRateLimiter(pollingStartInterval, pollingMaxBackoffDuration), "poller"),
 	}
 
 	brokerInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -124,20 +126,21 @@ type Controller interface {
 
 // controller is a concrete Controller.
 type controller struct {
-	kubeClient             kubernetes.Interface
-	serviceCatalogClient   servicecatalogclientset.ServicecatalogV1alpha1Interface
-	brokerClientCreateFunc osb.CreateFunc
-	brokerLister           listers.ServiceBrokerLister
-	serviceClassLister     listers.ServiceClassLister
-	instanceLister         listers.ServiceInstanceLister
-	bindingLister          listers.ServiceInstanceCredentialLister
-	brokerRelistInterval   time.Duration
-	OSBAPIPreferredVersion string
-	recorder               record.EventRecorder
-	brokerQueue            workqueue.RateLimitingInterface
-	serviceClassQueue      workqueue.RateLimitingInterface
-	instanceQueue          workqueue.RateLimitingInterface
-	bindingQueue           workqueue.RateLimitingInterface
+	kubeClient                  kubernetes.Interface
+	serviceCatalogClient        servicecatalogclientset.ServicecatalogV1alpha1Interface
+	brokerClientCreateFunc      osb.CreateFunc
+	brokerLister                listers.ServiceBrokerLister
+	serviceClassLister          listers.ServiceClassLister
+	instanceLister              listers.ServiceInstanceLister
+	bindingLister               listers.ServiceInstanceCredentialLister
+	brokerRelistInterval        time.Duration
+	OSBAPIPreferredVersion      string
+	recorder                    record.EventRecorder
+	reconciliationRetryDuration time.Duration
+	brokerQueue                 workqueue.RateLimitingInterface
+	serviceClassQueue           workqueue.RateLimitingInterface
+	instanceQueue               workqueue.RateLimitingInterface
+	bindingQueue                workqueue.RateLimitingInterface
 	// pollingQueue is separate from instanceQueue because we want
 	// it to have different backoff / timeout characteristics from
 	//  a reconciling of an instance.
@@ -452,9 +455,9 @@ func convertCatalog(in *osb.CatalogResponse) ([]*v1alpha1.ServiceClass, error) {
 			Plans:         plans,
 			PlanUpdatable: (svc.PlanUpdatable != nil && *svc.PlanUpdatable),
 			ExternalID:    svc.ID,
-			AlphaTags:     svc.Tags,
+			Tags:          svc.Tags,
 			Description:   svc.Description,
-			AlphaRequires: svc.Requires,
+			Requires:      svc.Requires,
 		}
 
 		if svc.Metadata != nil {
@@ -506,7 +509,7 @@ func convertServicePlans(plans []osb.Plan) ([]v1alpha1.ServicePlan, error) {
 						glog.Error(err)
 						return nil, err
 					}
-					ret[i].AlphaServiceInstanceCreateParameterSchema = &runtime.RawExtension{Raw: schema}
+					ret[i].ServiceInstanceCreateParameterSchema = &runtime.RawExtension{Raw: schema}
 				}
 				if instanceUpdateSchema := instanceSchemas.Update; instanceUpdateSchema != nil && instanceUpdateSchema.Parameters != nil {
 					schema, err := json.Marshal(instanceUpdateSchema.Parameters)
@@ -515,7 +518,7 @@ func convertServicePlans(plans []osb.Plan) ([]v1alpha1.ServicePlan, error) {
 						glog.Error(err)
 						return nil, err
 					}
-					ret[i].AlphaServiceInstanceUpdateParameterSchema = &runtime.RawExtension{Raw: schema}
+					ret[i].ServiceInstanceUpdateParameterSchema = &runtime.RawExtension{Raw: schema}
 				}
 			}
 			if bindingSchemas := schemas.ServiceBindings; bindingSchemas != nil {
@@ -526,7 +529,7 @@ func convertServicePlans(plans []osb.Plan) ([]v1alpha1.ServicePlan, error) {
 						glog.Error(err)
 						return nil, err
 					}
-					ret[i].AlphaServiceInstanceCredentialCreateParameterSchema = &runtime.RawExtension{Raw: schema}
+					ret[i].ServiceInstanceCredentialCreateParameterSchema = &runtime.RawExtension{Raw: schema}
 				}
 			}
 		}

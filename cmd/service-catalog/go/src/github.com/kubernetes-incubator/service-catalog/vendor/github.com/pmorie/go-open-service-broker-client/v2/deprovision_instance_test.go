@@ -39,14 +39,15 @@ func successDeprovisionResponseAsync() *DeprovisionResponse {
 
 func TestDeprovisionInstance(t *testing.T) {
 	cases := []struct {
-		name               string
-		enableAlpha        bool
-		request            *DeprovisionRequest
-		httpChecks         httpChecks
-		httpReaction       httpReaction
-		expectedResponse   *DeprovisionResponse
-		expectedErrMessage string
-		expectedErr        error
+		name                string
+		enableAlpha         bool
+		originatingIdentity *AlphaOriginatingIdentity
+		request             *DeprovisionRequest
+		httpChecks          httpChecks
+		httpReaction        httpReaction
+		expectedResponse    *DeprovisionResponse
+		expectedErrMessage  string
+		expectedErr         error
 	}{
 		{
 			name: "invalid request",
@@ -138,12 +139,65 @@ func TestDeprovisionInstance(t *testing.T) {
 			},
 			expectedErr: testHttpStatusCodeError(),
 		},
+		{
+			name:                "originating identity included",
+			enableAlpha:         true,
+			originatingIdentity: testOriginatingIdentity,
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successDeprovisionResponseBody,
+			},
+			httpChecks: httpChecks{
+				headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue},
+				params: map[string]string{
+					serviceIDKey: string(testServiceID),
+					planIDKey:    string(testPlanID),
+				},
+			},
+			expectedResponse: successDeprovisionResponse(),
+		},
+		{
+			name:                "originating identity excluded",
+			enableAlpha:         true,
+			originatingIdentity: nil,
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successDeprovisionResponseBody,
+			},
+			httpChecks: httpChecks{
+				headers: map[string]string{OriginatingIdentityHeader: ""},
+				params: map[string]string{
+					serviceIDKey: string(testServiceID),
+					planIDKey:    string(testPlanID),
+				},
+			},
+			expectedResponse: successDeprovisionResponse(),
+		},
+		{
+			name:                "originating identity not sent unless alpha enabled",
+			enableAlpha:         false,
+			originatingIdentity: testOriginatingIdentity,
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successDeprovisionResponseBody,
+			},
+			httpChecks: httpChecks{
+				headers: map[string]string{OriginatingIdentityHeader: ""},
+				params: map[string]string{
+					serviceIDKey: string(testServiceID),
+					planIDKey:    string(testPlanID),
+				},
+			},
+			expectedResponse: successDeprovisionResponse(),
+		},
 	}
 
 	for _, tc := range cases {
 		if tc.request == nil {
 			tc.request = defaultDeprovisionRequest()
 		}
+
+		tc.request.OriginatingIdentity = tc.originatingIdentity
 
 		if tc.httpChecks.URL == "" {
 			tc.httpChecks.URL = "/v2/service_instances/test-instance-id"

@@ -24,7 +24,6 @@ while [[ $# -gt 0 ]]; do
   case "${1}" in
     --registry)         REGISTRY="${2:-}"; shift ;;
     --version)          VERSION="${2:-}"; shift ;;
-    --with-tpr)         WITH_TPR=true ;;
     --cleanup)          CLEANUP=true ;;
     --create-artifacts) CREATE_ARTIFACTS=true ;;
     --fix-auth)         FIX_CONFIGMAP=true ;;
@@ -35,7 +34,6 @@ done
 
 REGISTRY="${REGISTRY:-}"
 VERSION="${VERSION:-"canary"}"
-WITH_TPR="${WITH_TPR:-false}"
 CLEANUP="${CLEANUP:-false}"
 CREATE_ARTIFACTS="${CREATE_ARTIFACTS:-false}"
 FIX_CONFIGMAP="${FIX_CONFIGMAP:-false}"
@@ -45,12 +43,7 @@ UPS_BROKER_IMAGE="${REGISTRY}user-broker:${VERSION}"
 function cleanup() {
   if [[ "${CREATE_ARTIFACTS}" == true ]]; then
     echo 'Creating artifacts...'
-    PREFIX='walkthrough_'
-    if [[ "${WITH_TPR}" == true ]]; then
-      PREFIX+='tpr-backed'
-    else
-      PREFIX+='etcd-backed'
-    fi
+    PREFIX='walkthrough'
 
     "${ROOT}/contrib/hack/create_artifacts.sh" \
         --prefix "${PREFIX}" --location "${ROOT}" \
@@ -122,7 +115,6 @@ echo 'Deploying service catalog...'
 FLAGS=()
 [[ -n "${REGISTRY}" ]]           && FLAGS+="--registry ${REGISTRY} "
 [[ -n "${VERSION}" ]]            && FLAGS+="--version ${VERSION} "
-[[ "${WITH_TPR}" == true ]]      && FLAGS+="--with-tpr "
 [[ "${FIX_CONFIGMAP}" == true ]] && FLAGS+="--fix-auth "
 
 ${ROOT}/contrib/jenkins/install_catalog.sh ${FLAGS} \
@@ -194,39 +186,36 @@ wait_for_expected_output -e 'InjectedBindResult' \
 [[ "$(kubectl get secrets -n test-ns)" == *ups-instance-credential* ]] \
   || error_exit '"ups-instance-credential" not present when listing secrets.'
 
-# TODO: TPR deletion currently is buggy; only delete if using an etcd-backed API server
-if [[ "${WITH_TPR}" != true ]]; then
-  #Unbind from the instance
+#Unbind from the instance
 
-  echo 'Unbinding from instance...'
+echo 'Unbinding from instance...'
 
-  kubectl --context=service-catalog delete -n test-ns serviceinstancecredentials ups-instance-credential \
-    || error_exit 'Error when deleting ups-instance-credential.'
+kubectl --context=service-catalog delete -n test-ns serviceinstancecredentials ups-instance-credential \
+  || error_exit 'Error when deleting ups-instance-credential.'
 
-  wait_for_expected_output -x -e "ups-instance-credential" \
-      kubectl get secrets -n test-ns \
-    || error_exit '"ups-instance-credential" secret not removed upon deleting ups-instance-credential.'
+wait_for_expected_output -x -e "ups-instance-credential" \
+    kubectl get secrets -n test-ns \
+  || error_exit '"ups-instance-credential" secret not removed upon deleting ups-instance-credential.'
 
-  # Deprovision the instance
+# Deprovision the instance
 
-  echo 'Deprovisioning instance...'
+echo 'Deprovisioning instance...'
 
-  kubectl --context=service-catalog delete -n test-ns serviceinstances ups-instance \
-    || error_exit 'Error when deleting ups-instance.'
+kubectl --context=service-catalog delete -n test-ns serviceinstances ups-instance \
+  || error_exit 'Error when deleting ups-instance.'
 
-  # Delete the broker
+# Delete the broker
 
-  echo 'Deleting broker...'
+echo 'Deleting broker...'
 
-  kubectl --context=service-catalog delete servicebrokers ups-broker \
-    || error_exit 'Error when deleting ups-broker.'
+kubectl --context=service-catalog delete servicebrokers ups-broker \
+  || error_exit 'Error when deleting ups-broker.'
 
-  wait_for_expected_output -x -e 'user-provided-service' \
-      kubectl --context=service-catalog get serviceclasses \
-    || {
-      kubectl --context=service-catalog get serviceclasses
-      error_exit 'Service classes not successfully removed upon deleting ups-broker.'
-    }
-fi
+wait_for_expected_output -x -e 'user-provided-service' \
+    kubectl --context=service-catalog get serviceclasses \
+  || {
+    kubectl --context=service-catalog get serviceclasses
+    error_exit 'Service classes not successfully removed upon deleting ups-broker.'
+  }
 
 echo 'Walkthrough completed successfully.'

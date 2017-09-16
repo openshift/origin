@@ -45,14 +45,15 @@ const failedLastOperationResponseBody = `{"state":"failed","description":"test d
 
 func TestPollLastOperation(t *testing.T) {
 	cases := []struct {
-		name               string
-		enableAlpha        bool
-		request            *LastOperationRequest
-		httpChecks         httpChecks
-		httpReaction       httpReaction
-		expectedResponse   *LastOperationResponse
-		expectedErrMessage string
-		expectedErr        error
+		name                string
+		enableAlpha         bool
+		originatingIdentity *AlphaOriginatingIdentity
+		request             *LastOperationRequest
+		httpChecks          httpChecks
+		httpReaction        httpReaction
+		expectedResponse    *LastOperationResponse
+		expectedErrMessage  string
+		expectedErr         error
 	}{
 		{
 			name: "op succeeded",
@@ -109,12 +110,55 @@ func TestPollLastOperation(t *testing.T) {
 			},
 			expectedErr: testHttpStatusCodeError(),
 		},
+		{
+			name: "op succeeded",
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successLastOperationResponseBody,
+			},
+			expectedResponse: successLastOperationResponse(),
+		},
+		{
+			name:                "originating identity included",
+			enableAlpha:         true,
+			originatingIdentity: testOriginatingIdentity,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successLastOperationResponseBody,
+			},
+			expectedResponse: successLastOperationResponse(),
+		},
+		{
+			name:                "originating identity excluded",
+			enableAlpha:         true,
+			originatingIdentity: nil,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successLastOperationResponseBody,
+			},
+			expectedResponse: successLastOperationResponse(),
+		},
+		{
+			name:                "originating identity not sent unless alpha enabled",
+			enableAlpha:         false,
+			originatingIdentity: testOriginatingIdentity,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
+			httpReaction: httpReaction{
+				status: http.StatusOK,
+				body:   successLastOperationResponseBody,
+			},
+			expectedResponse: successLastOperationResponse(),
+		},
 	}
 
 	for _, tc := range cases {
 		if tc.request == nil {
 			tc.request = defaultLastOperationRequest()
 		}
+
+		tc.request.OriginatingIdentity = tc.originatingIdentity
 
 		if tc.httpChecks.URL == "" {
 			tc.httpChecks.URL = "/v2/service_instances/test-instance-id/last_operation"

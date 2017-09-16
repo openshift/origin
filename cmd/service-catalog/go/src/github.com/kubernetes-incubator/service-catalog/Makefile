@@ -214,7 +214,7 @@ $(BINDIR)/e2e.test: .init
 .PHONY: verify verify-client-gen
 verify: .init .generate_files verify-client-gen
 	@echo Running gofmt:
-	@$(DOCKER_CMD) gofmt -l -s $(TOP_TEST_DIRS) $(TOP_SRC_DIRS) &> .out || true
+	@$(DOCKER_CMD) gofmt -l -s $(TOP_TEST_DIRS) $(TOP_SRC_DIRS)>.out 2>&1||true
 	@bash -c '[ "`cat .out`" == "" ] || \
 	  (echo -e "\n*** Please 'gofmt' the following:" ; cat .out ; echo ; false)'
 	@rm .out
@@ -237,8 +237,9 @@ verify: .init .generate_files verify-client-gen
 	@bash -c '[ "`cat .out`" == "" ] || (cat .out ; false)'
 	@rm .out
 	@#
-	@echo Running href checker:
-	@$(DOCKER_CMD) verify-links.sh .
+	#disabled because of so many flakes during PR verifications
+	#@echo Running href checker:
+	#@$(DOCKER_CMD) verify-links.sh .
 	@echo Running errexit checker:
 	@$(DOCKER_CMD) build/verify-errexit.sh
 
@@ -288,11 +289,11 @@ test-e2e: .generate_files $(BINDIR)/e2e.test
 clean: clean-bin clean-build-image clean-generated clean-coverage
 
 clean-bin:
-	rm -rf $(BINDIR)
+	$(DOCKER_CMD) rm -rf $(BINDIR)
 	rm -f .generate_exes
 
 clean-build-image:
-	rm -rf .pkg
+	$(DOCKER_CMD) rm -rf .pkg
 	rm -f .scBuildImage
 	docker rmi -f scbuildimage > /dev/null 2>&1 || true
 
@@ -397,4 +398,6 @@ endif
 
 release-push: $(addprefix release-push-,$(ALL_ARCH))
 release-push-%:
+	$(MAKE) clean-bin
+	$(MAKE) ARCH=$* build
 	$(MAKE) ARCH=$* push

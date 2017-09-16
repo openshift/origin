@@ -114,9 +114,13 @@ const (
 type ServiceBrokerStatus struct {
 	Conditions []ServiceBrokerCondition `json:"conditions"`
 
-	// ReconciledGeneration is the generation of the broker that was last
-	// successfully reconciled.
+	// ReconciledGeneration is the 'Generation' of the serviceBrokerSpec that
+	// was last processed by the controller. The reconciled generation is updated
+	// even if the controller failed to process the spec.
 	ReconciledGeneration int64 `json:"reconciledGeneration"`
+
+	// OperationStartTime is the time at which the current operation began.
+	OperationStartTime *metav1.Time `json:"operationStartTime,omitempty"`
 }
 
 // ServiceBrokerCondition contains condition information for a Broker.
@@ -147,6 +151,10 @@ const (
 	// ServiceBrokerConditionReady represents the fact that a given broker condition
 	// is in ready state.
 	ServiceBrokerConditionReady ServiceBrokerConditionType = "Ready"
+
+	// ServiceBrokerConditionFailed represents information about a final failure
+	// that should not be retried.
+	ServiceBrokerConditionFailed ServiceBrokerConditionType = "Failed"
 )
 
 // ConditionStatus represents a condition's status.
@@ -223,16 +231,16 @@ type ServiceClass struct {
 	// attributes of the ServiceClass.  These are used in Cloud Foundry in a
 	// way similar to Kubernetes labels, but they currently have no special
 	// meaning in Kubernetes.
-	AlphaTags []string `json:"alphaTags,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaRequires exposes a list of Cloud Foundry-specific 'permissions'
+	// Requires exposes a list of Cloud Foundry-specific 'permissions'
 	// that must be granted to an instance of this service within Cloud
 	// Foundry.  These 'permissions' have no meaning within Kubernetes and an
 	// ServiceInstance provisioned from this ServiceClass will not work correctly.
-	AlphaRequires []string `json:"alphaRequires,omitempty"`
+	Requires []string `json:"requires,omitempty"`
 }
 
 // ServicePlan represents a tier of a ServiceClass.
@@ -264,24 +272,24 @@ type ServicePlan struct {
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaServiceInstanceCreateParameterSchema is the schema for the parameters
+	// ServiceInstanceCreateParameterSchema is the schema for the parameters
 	// that may be supplied when provisioning a new ServiceInstance on this plan.
-	AlphaServiceInstanceCreateParameterSchema *runtime.RawExtension `json:"alphaInstanceCreateParameterSchema,omitempty"`
+	ServiceInstanceCreateParameterSchema *runtime.RawExtension `json:"instanceCreateParameterSchema,omitempty"`
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaServiceInstanceUpdateParameterSchema is the schema for the parameters
+	// ServiceInstanceUpdateParameterSchema is the schema for the parameters
 	// that may be updated once an ServiceInstance has been provisioned on this plan.
 	// This field only has meaning if the ServiceClass is PlanUpdatable.
-	AlphaServiceInstanceUpdateParameterSchema *runtime.RawExtension `json:"alphaInstanceUpdateParameterSchema,omitempty"`
+	ServiceInstanceUpdateParameterSchema *runtime.RawExtension `json:"instanceUpdateParameterSchema,omitempty"`
 
 	// Currently, this field is ALPHA: it may change or disappear at any time
 	// and its data will not be migrated.
 	//
-	// AlphaServiceInstanceCredentialCreateParameterSchema is the schema for the parameters that
+	// ServiceInstanceCredentialCreateParameterSchema is the schema for the parameters that
 	// may be supplied binding to an ServiceInstance on this plan.
-	AlphaServiceInstanceCredentialCreateParameterSchema *runtime.RawExtension `json:"alphaServiceInstanceCredentialCreateParameterSchema,omitempty"`
+	ServiceInstanceCredentialCreateParameterSchema *runtime.RawExtension `json:"serviceInstanceCredentialCreateParameterSchema,omitempty"`
 }
 
 // ServiceInstanceList is a list of instances.
@@ -292,9 +300,27 @@ type ServiceInstanceList struct {
 	Items []ServiceInstance `json:"items"`
 }
 
+// UserInfo holds information about the user that last changed a resource's spec.
+type UserInfo struct {
+	Username string                `json:"username"`
+	UID      string                `json:"uid"`
+	Groups   []string              `json:"groups,omitempty"`
+	Extra    map[string]ExtraValue `json:"extra,omitempty"`
+}
+
+// ExtraValue contains additional information about a user that may be
+// provided by the authenticator.
+type ExtraValue []string
+
 // +genclient=true
 
 // ServiceInstance represents a provisioned instance of a ServiceClass.
+// Currently, the spec field cannot be changed once a ServiceInstance is
+// created.  Spec changes submitted by users will be ignored.
+//
+// In the future, this will be allowed and will represent the intention that
+// the ServiceInstance should have the plan and/or parameters updated at the
+// ServiceBroker.
 type ServiceInstance struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -340,6 +366,15 @@ type ServiceInstanceSpec struct {
 	//
 	// Immutable.
 	ExternalID string `json:"externalID"`
+
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// UserInfo contains information about the user that last modified this
+	// instance. This field is set by the API server and not settable by the
+	// end-user. User-provided values for this field are not saved.
+	// +optional
+	UserInfo *UserInfo `json:"userInfo"`
 }
 
 // ServiceInstanceStatus represents the current status of an Instance.
@@ -361,9 +396,13 @@ type ServiceInstanceStatus struct {
 	// the service instance.
 	DashboardURL *string `json:"dashboardURL,omitempty"`
 
-	// Checksum is the checksum of the ServiceInstanceSpec that was last successfully
-	// reconciled against the broker.
-	Checksum *string `json:"checksum,omitempty"`
+	// ReconciledGeneration is the 'Generation' of the serviceInstanceSpec that
+	// was last processed by the controller. The reconciled generation is updated
+	// even if the controller failed to process the spec.
+	ReconciledGeneration int64 `json:"reconciledGeneration"`
+
+	// OperationStartTime is the time at which the current operation began.
+	OperationStartTime *metav1.Time `json:"operationStartTime,omitempty"`
 }
 
 // ServiceInstanceCondition contains condition information about an Instance.
@@ -420,7 +459,11 @@ type ServiceInstanceCredential struct {
 	Status ServiceInstanceCredentialStatus `json:"status"`
 }
 
-// ServiceInstanceCredentialSpec represents the desired state of a ServiceInstanceCredential.
+// ServiceInstanceCredentialSpec represents the desired state of a
+// ServiceInstanceCredential.
+//
+// The spec field cannot be changed after a ServiceInstanceCredential is
+// created.  Changes submitted to the spec field will be ignored.
 type ServiceInstanceCredentialSpec struct {
 	// ServiceInstanceRef is the reference to the Instance this ServiceInstanceCredential is to.
 	//
@@ -452,15 +495,29 @@ type ServiceInstanceCredentialSpec struct {
 	//
 	// Immutable.
 	ExternalID string `json:"externalID"`
+
+	// Currently, this field is ALPHA: it may change or disappear at any time
+	// and its data will not be migrated.
+	//
+	// UserInfo contains information about the user that last modified this
+	// ServiceInstanceCredential. This field is set by the API server and not
+	// settable by the end-user. User-provided values for this field are not saved.
+	// +optional
+	UserInfo *UserInfo `json:"userInfo"`
 }
 
 // ServiceInstanceCredentialStatus represents the current status of a ServiceInstanceCredential.
 type ServiceInstanceCredentialStatus struct {
 	Conditions []ServiceInstanceCredentialCondition `json:"conditions"`
 
-	// Checksum is the checksum of the ServiceInstanceCredentialSpec that was last successfully
-	// reconciled against the broker.
-	Checksum *string `json:"checksum,omitempty"`
+	// ReconciledGeneration is the 'Generation' of the
+	// serviceInstanceCredentialSpec that was last processed by the controller.
+	// The reconciled generation is updated even if the controller failed to
+	// process the spec.
+	ReconciledGeneration int64 `json:"reconciledGeneration"`
+
+	// OperationStartTime is the time at which the current operation began.
+	OperationStartTime *metav1.Time `json:"operationStartTime,omitempty"`
 }
 
 // ServiceInstanceCredentialCondition condition information for a ServiceInstanceCredential.

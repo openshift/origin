@@ -236,9 +236,9 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 				return
 			}
 			sp.ExternalMetadata = metadata
-			sp.AlphaServiceInstanceCredentialCreateParameterSchema = metadata
-			sp.AlphaServiceInstanceCreateParameterSchema = metadata
-			sp.AlphaServiceInstanceUpdateParameterSchema = metadata
+			sp.ServiceInstanceCredentialCreateParameterSchema = metadata
+			sp.ServiceInstanceCreateParameterSchema = metadata
+			sp.ServiceInstanceUpdateParameterSchema = metadata
 		},
 	)
 	return f
