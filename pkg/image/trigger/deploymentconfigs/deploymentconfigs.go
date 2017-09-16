@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/client"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
@@ -144,7 +144,7 @@ func (i deploymentConfigTriggerIndexer) Index(obj, old interface{}) (string, *tr
 
 // DeploymentConfigReactor converts image trigger changes into updates on deployments.
 type DeploymentConfigReactor struct {
-	Client client.DeploymentConfigsNamespacer
+	Client appsclientinternal.DeploymentConfigsGetter
 }
 
 // UpdateDeploymentConfigImages sets the latest image value from all triggers onto each container, returning false if

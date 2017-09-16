@@ -26,6 +26,9 @@ type BuildResourceInterface interface {
 	List(opts meta_v1.ListOptions) (*v1.BuildList, error)
 	Watch(opts meta_v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.Build, err error)
+	UpdateDetails(buildResourceName string, buildResource *v1.Build) (*v1.Build, error)
+	Clone(buildResourceName string, buildRequest *v1.BuildRequest) (*v1.Build, error)
+
 	BuildResourceExpansion
 }
 
@@ -150,6 +153,34 @@ func (c *builds) Patch(name string, pt types.PatchType, data []byte, subresource
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
+		Do().
+		Into(result)
+	return
+}
+
+// UpdateDetails takes the top resource name and the representation of a buildResource and updates it. Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *builds) UpdateDetails(buildResourceName string, buildResource *v1.Build) (result *v1.Build, err error) {
+	result = &v1.Build{}
+	err = c.client.Put().
+		Namespace(c.ns).
+		Resource("builds").
+		Name(buildResourceName).
+		SubResource("details").
+		Body(buildResource).
+		Do().
+		Into(result)
+	return
+}
+
+// Clone takes the representation of a buildRequest and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
+func (c *builds) Clone(buildResourceName string, buildRequest *v1.BuildRequest) (result *v1.Build, err error) {
+	result = &v1.Build{}
+	err = c.client.Post().
+		Namespace(c.ns).
+		Resource("builds").
+		Name(buildResourceName).
+		SubResource("clone").
+		Body(buildRequest).
 		Do().
 		Into(result)
 	return

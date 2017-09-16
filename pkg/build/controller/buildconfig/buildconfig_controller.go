@@ -22,9 +22,9 @@ import (
 	buildclient "github.com/openshift/origin/pkg/build/client"
 	buildutil "github.com/openshift/origin/pkg/build/controller/common"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"
+	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	osclient "github.com/openshift/origin/pkg/client"
 )
 
 const (
@@ -64,13 +64,13 @@ type BuildConfigController struct {
 	recorder record.EventRecorder
 }
 
-func NewBuildConfigController(openshiftClient osclient.Interface, kubeExternalClient kexternalclientset.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
+func NewBuildConfigController(buildInternalClient buildinternalclient.Interface, kubeExternalClient kexternalclientset.Interface, buildConfigInformer buildinformer.BuildConfigInformer, buildInformer buildinformer.BuildInformer) *BuildConfigController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(kubeExternalClient.Core().RESTClient()).Events("")})
 
-	buildClient := buildclient.NewOSClientBuildClient(openshiftClient)
+	buildClient := buildclient.NewClientBuildClient(buildInternalClient)
 	buildConfigGetter := buildConfigInformer.Lister()
-	buildConfigInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(openshiftClient)
+	buildConfigInstantiator := buildclient.NewClientBuildConfigInstantiatorClient(buildInternalClient)
 	buildLister := buildInformer.Lister()
 
 	c := &BuildConfigController{

@@ -13,7 +13,7 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/client/testclient"
+	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 )
 
 type fakeTagResponse struct {
@@ -389,7 +389,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 
 	for _, test := range testCases {
 		t.Run("", func(t *testing.T) {
-			c := &testclient.Fake{}
+			c := &appsfake.Clientset{}
 			var actualUpdate runtime.Object
 			if test.response != nil {
 				c.AddReactor("update", "*", func(action testingcore.Action) (handled bool, ret runtime.Object, err error) {
@@ -397,7 +397,7 @@ func TestDeploymentConfigReactor(t *testing.T) {
 					return true, test.response, nil
 				})
 			}
-			r := DeploymentConfigReactor{Client: c}
+			r := DeploymentConfigReactor{Client: c.Apps()}
 			initial, err := kapi.Scheme.DeepCopy(test.obj)
 			if err != nil {
 				t.Fatal(err)

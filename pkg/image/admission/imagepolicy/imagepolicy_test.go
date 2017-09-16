@@ -125,7 +125,7 @@ func TestDefaultPolicy(t *testing.T) {
 	})
 
 	store := setDefaultCache(plugin)
-	plugin.SetOpenshiftClient(client)
+	plugin.SetDeprecatedOpenshiftClient(client)
 	plugin.SetDefaultRegistryFunc(func() (string, bool) {
 		return "integrated.registry", true
 	})
@@ -1152,7 +1152,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 		}
 
 		setDefaultCache(p)
-		p.SetOpenshiftClient(test.client)
+		p.SetDeprecatedOpenshiftClient(test.client)
 		p.SetDefaultRegistryFunc(func() (string, bool) {
 			return "integrated.registry", true
 		})

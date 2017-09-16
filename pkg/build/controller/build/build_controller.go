@@ -37,9 +37,9 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/policy"
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion/build/internalversion"
+	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
@@ -161,7 +161,7 @@ type BuildControllerParams struct {
 	SecretInformer      kexternalcoreinformers.SecretInformer
 	KubeClientInternal  kclientset.Interface
 	KubeClientExternal  kexternalclientset.Interface
-	OpenshiftClient     osclient.Interface
+	BuildClientInternal buildinternalclient.Interface
 	DockerBuildStrategy *strategy.DockerBuildStrategy
 	SourceBuildStrategy *strategy.SourceBuildStrategy
 	CustomBuildStrategy *strategy.CustomBuildStrategy
@@ -174,7 +174,7 @@ func NewBuildController(params *BuildControllerParams) *BuildController {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartRecordingToSink(&v1core.EventSinkImpl{Interface: v1core.New(params.KubeClientExternal.Core().RESTClient()).Events("")})
 
-	buildClient := buildclient.NewOSClientBuildClient(params.OpenshiftClient)
+	buildClient := buildclient.NewClientBuildClient(params.BuildClientInternal)
 	buildLister := params.BuildInformer.Lister()
 	buildConfigGetter := params.BuildConfigInformer.Lister()
 	c := &BuildController{

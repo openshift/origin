@@ -17,8 +17,8 @@ import (
 	s2ifs "github.com/openshift/source-to-image/pkg/util/fs"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildfake "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
-	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate/git"
 )
 
@@ -314,10 +314,10 @@ func TestEmptySource(t *testing.T) {
 		},
 	}
 
-	client := testclient.Fake{}
+	client := buildfake.Clientset{}
 
 	dockerBuilder := &DockerBuilder{
-		client: client.Builds(""),
+		client: client.Build().Builds(""),
 		build:  build,
 	}
 
@@ -377,7 +377,7 @@ USER 1001`
 		},
 	}
 
-	client := testclient.Fake{}
+	client := buildfake.Clientset{}
 
 	buildDir, err := ioutil.TempDir("", "dockerfile-path")
 	if err != nil {
@@ -385,7 +385,7 @@ USER 1001`
 	}
 
 	dockerBuilder := &DockerBuilder{
-		client:       client.Builds(""),
+		client:       client.Build().Builds(""),
 		build:        build,
 		dockerClient: dockerClient,
 		tar:          tar.New(s2ifs.NewFileSystem()),

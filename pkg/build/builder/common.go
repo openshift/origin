@@ -24,10 +24,11 @@ import (
 	"github.com/openshift/origin/pkg/build/builder/timing"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	utilglog "github.com/openshift/origin/pkg/util/glog"
+
+	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 )
 
 // glog is a placeholder until the builders pass an output stream down
@@ -201,7 +202,7 @@ func GetSourceRevision(build *buildapi.Build, sourceInfo *git.SourceInfo) *build
 
 // HandleBuildStatusUpdate handles updating the build status
 // retries occur on update conflict and unreachable api server
-func HandleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface, sourceRev *buildapi.SourceRevision) {
+func HandleBuildStatusUpdate(build *buildapi.Build, client buildinternalversion.BuildResourceInterface, sourceRev *buildapi.SourceRevision) {
 	var latestBuild *buildapi.Build
 	var err error
 
@@ -231,7 +232,7 @@ func HandleBuildStatusUpdate(build *buildapi.Build, client client.BuildInterface
 		latestBuild.Status.Output.To = build.Status.Output.To
 		latestBuild.Status.Stages = buildapi.AppendStageAndStepInfo(latestBuild.Status.Stages, build.Status.Stages)
 
-		_, err = client.UpdateDetails(latestBuild)
+		_, err = client.UpdateDetails(latestBuild.Name, latestBuild)
 
 		switch {
 		case err == nil:

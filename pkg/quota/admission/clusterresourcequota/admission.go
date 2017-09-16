@@ -52,7 +52,7 @@ type clusterQuotaAdmission struct {
 }
 
 var _ oadmission.WantsInternalKubernetesInformers = &clusterQuotaAdmission{}
-var _ oadmission.WantsOpenshiftClient = &clusterQuotaAdmission{}
+var _ oadmission.WantsDeprecatedOpenshiftClient = &clusterQuotaAdmission{}
 var _ oadmission.WantsClusterQuota = &clusterQuotaAdmission{}
 
 const (
@@ -132,7 +132,7 @@ func (q *clusterQuotaAdmission) SetInternalKubernetesInformers(informers kintern
 	q.namespaceSynced = informers.Core().InternalVersion().Namespaces().Informer().HasSynced
 }
 
-func (q *clusterQuotaAdmission) SetOpenshiftClient(client oclient.Interface) {
+func (q *clusterQuotaAdmission) SetDeprecatedOpenshiftClient(client oclient.Interface) {
 	q.clusterQuotaClient = client
 }
 

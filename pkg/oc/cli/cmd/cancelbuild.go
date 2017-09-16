@@ -18,9 +18,11 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/client"
+	buildinternal "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildinternalclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -66,9 +68,12 @@ type CancelBuildOptions struct {
 	HasError    bool
 	ReportError func(error)
 	Mapper      meta.RESTMapper
-	Client      osclient.Interface
-	BuildClient osclient.BuildInterface
+	Client      buildinternalclient.Interface
+	BuildClient buildtypedclient.BuildResourceInterface
 	BuildLister buildlister.BuildLister
+
+	// timeout is used by unit tests to shorten the polling period
+	timeout time.Duration
 }
 
 // NewCmdCancelBuild implements the OpenShift cli cancel-build command
@@ -103,6 +108,10 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		fmt.Fprintf(o.ErrOut, "error: %s\n", err.Error())
 	}
 
+	if o.timeout.Seconds() == 0 {
+		o.timeout = 30 * time.Second
+	}
+
 	if len(args) == 0 {
 		return kcmdutil.UsageError(cmd, "Must pass a name of a build or a buildconfig to cancel")
 	}
@@ -124,14 +133,19 @@ func (o *CancelBuildOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		}
 	}
 
-	client, _, err := f.Clients()
+	config, err := f.BareClientConfig()
 	if err != nil {
 		return err
 	}
+	client, err := buildinternalclient.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
 	o.Namespace = namespace
 	o.Client = client
-	o.BuildLister = buildclient.NewOSClientBuildLister(client)
-	o.BuildClient = client.Builds(namespace)
+	o.BuildLister = buildclient.NewClientBuildLister(client)
+	o.BuildClient = client.Build().Builds(namespace)
 	o.Mapper, _ = f.Object()
 
 	for _, item := range args {
@@ -188,8 +202,9 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			if b.Status.Phase == buildapi.BuildPhaseNew {
 				continue
 			}
+			logClient := buildinternal.NewBuildLogClient(o.Client.Build().RESTClient(), o.Namespace)
 			opts := buildapi.BuildLogOptions{NoWait: true}
-			response, err := o.Client.BuildLogs(o.Namespace).Get(b.Name, opts).Do().Raw()
+			response, err := logClient.Logs(b.Name, opts).Do().Raw()
 			if err != nil {
 				o.ReportError(fmt.Errorf("unable to fetch logs for %s/%s: %v", b.Namespace, b.Name, err))
 				continue
@@ -204,7 +219,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 		wg.Add(1)
 		go func(build *buildapi.Build) {
 			defer wg.Done()
-			err := wait.Poll(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+			err := wait.Poll(500*time.Millisecond, o.timeout, func() (bool, error) {
 				build.Status.Cancelled = true
 				_, err := o.BuildClient.Update(build)
 				switch {
@@ -222,7 +237,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 			}
 
 			// Make sure the build phase is really cancelled.
-			err = wait.Poll(500*time.Millisecond, 30*time.Second, func() (bool, error) {
+			err = wait.Poll(500*time.Millisecond, o.timeout, func() (bool, error) {
 				updatedBuild, err := o.BuildClient.Get(build.Name, metav1.GetOptions{})
 				if err != nil {
 					return true, err
@@ -243,7 +258,7 @@ func (o *CancelBuildOptions) RunCancelBuild() error {
 	if o.Restart {
 		for _, b := range builds {
 			request := &buildapi.BuildRequest{ObjectMeta: metav1.ObjectMeta{Namespace: b.Namespace, Name: b.Name}}
-			build, err := o.BuildClient.Clone(request)
+			build, err := o.BuildClient.Clone(request.Name, request)
 			if err != nil {
 				o.ReportError(fmt.Errorf("build %s/%s failed to restart: %v", b.Namespace, b.Name, err))
 				continue

@@ -15,29 +15,34 @@ import (
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 )
 
 type PluginInitializer struct {
-	OpenshiftClient              client.Interface
-	ProjectCache                 *cache.ProjectCache
-	OriginQuotaRegistry          quota.Registry
-	Authorizer                   kauthorizer.Authorizer
-	JenkinsPipelineConfig        configapi.JenkinsPipelineConfig
-	RESTClientConfig             restclient.Config
-	Informers                    kinternalinformers.SharedInformerFactory
-	ClusterResourceQuotaInformer quotainformer.ClusterResourceQuotaInformer
-	ClusterQuotaMapper           clusterquotamapping.ClusterQuotaMapper
-	RegistryHostnameRetriever    imageapi.RegistryHostnameRetriever
-	SecurityInformers            securityinformer.SharedInformerFactory
-	UserInformers                userinformer.SharedInformerFactory
+	OpenshiftClient                 client.Interface
+	OpenshiftInternalTemplateClient templateclient.Interface
+	ProjectCache                    *cache.ProjectCache
+	OriginQuotaRegistry             quota.Registry
+	Authorizer                      kauthorizer.Authorizer
+	JenkinsPipelineConfig           configapi.JenkinsPipelineConfig
+	RESTClientConfig                restclient.Config
+	Informers                       kinternalinformers.SharedInformerFactory
+	ClusterResourceQuotaInformer    quotainformer.ClusterResourceQuotaInformer
+	ClusterQuotaMapper              clusterquotamapping.ClusterQuotaMapper
+	RegistryHostnameRetriever       imageapi.RegistryHostnameRetriever
+	SecurityInformers               securityinformer.SharedInformerFactory
+	UserInformers                   userinformer.SharedInformerFactory
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
 // and provide the appropriate initialization data
 func (i *PluginInitializer) Initialize(plugin admission.Interface) {
-	if wantsOpenshiftClient, ok := plugin.(WantsOpenshiftClient); ok {
-		wantsOpenshiftClient.SetOpenshiftClient(i.OpenshiftClient)
+	if wantsDeprecatedOpenshiftClient, ok := plugin.(WantsDeprecatedOpenshiftClient); ok {
+		wantsDeprecatedOpenshiftClient.SetDeprecatedOpenshiftClient(i.OpenshiftClient)
+	}
+	if WantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
+		WantsOpenshiftInternalTemplateClient.SetOpenShiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
 	}
 	if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 		wantsProjectCache.SetProjectCache(i.ProjectCache)
