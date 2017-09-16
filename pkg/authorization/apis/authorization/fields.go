@@ -1,13 +1,17 @@
 package authorization
 
-import "k8s.io/apimachinery/pkg/fields"
+import (
+	"fmt"
 
-// PolicyBindingToSelectableFields returns a label set that represents the object
-// changes to the returned keys require registering conversions for existing versions using Scheme.AddFieldLabelConversionFunc
-func PolicyBindingToSelectableFields(policyBinding *PolicyBinding) fields.Set {
-	return fields.Set{
-		"metadata.name":       policyBinding.Name,
-		"metadata.namespace":  policyBinding.Namespace,
-		"policyRef.namespace": policyBinding.PolicyRef.Namespace,
+	"k8s.io/apimachinery/pkg/fields"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+)
+
+func PolicyBindingFieldSelector(obj runtime.Object, fieldSet fields.Set) error {
+	policyBinding, ok := obj.(*PolicyBinding)
+	if !ok {
+		return fmt.Errorf("%T not a PolicyBinding", obj)
 	}
+	fieldSet["policyRef.namespace"] = policyBinding.PolicyRef.Namespace
+	return nil
 }

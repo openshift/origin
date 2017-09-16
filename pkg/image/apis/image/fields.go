@@ -1,13 +1,19 @@
 package image
 
-import "k8s.io/apimachinery/pkg/fields"
+import (
+	"fmt"
 
-// ImageStreamToSelectableFields returns a label set that represents the object.
-func ImageStreamToSelectableFields(ir *ImageStream) fields.Set {
-	return fields.Set{
-		"metadata.name":                ir.Name,
-		"metadata.namespace":           ir.Namespace,
-		"spec.dockerImageRepository":   ir.Spec.DockerImageRepository,
-		"status.dockerImageRepository": ir.Status.DockerImageRepository,
+	"k8s.io/apimachinery/pkg/fields"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+)
+
+func ImageStreamSelector(obj runtime.Object, fieldSet fields.Set) error {
+	imageStream, ok := obj.(*ImageStream)
+	if !ok {
+		return fmt.Errorf("%T not an ImageStream", obj)
 	}
+	fieldSet["spec.dockerImageRepository"] = imageStream.Spec.DockerImageRepository
+	fieldSet["status.dockerImageRepository"] = imageStream.Status.DockerImageRepository
+
+	return nil
 }

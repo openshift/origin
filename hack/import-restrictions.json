@@ -173,8 +173,7 @@
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/namespace"
+      "vendor/k8s.io/kubernetes/pkg/api/v1"
     ]
   },
 
