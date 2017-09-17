@@ -24,7 +24,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/certificates"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 	csrregistry "k8s.io/kubernetes/pkg/registry/certificates/certificates"
 )
 
@@ -41,7 +40,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Approva
 		NewListFunc:              func() runtime.Object { return &certificates.CertificateSigningRequestList{} },
 		PredicateFunc:            csrregistry.Matcher,
 		DefaultQualifiedResource: certificates.Resource("certificatesigningrequests"),
-		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("certificatesigningrequests"),
 
 		CreateStrategy: csrregistry.Strategy,
 		UpdateStrategy: csrregistry.Strategy,

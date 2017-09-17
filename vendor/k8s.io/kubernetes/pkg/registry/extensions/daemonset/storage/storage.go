@@ -25,7 +25,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/extensions/daemonset"
 )
 
@@ -42,7 +41,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		NewListFunc:              func() runtime.Object { return &extensions.DaemonSetList{} },
 		PredicateFunc:            daemonset.MatchDaemonSet,
 		DefaultQualifiedResource: extensions.Resource("daemonsets"),
-		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("daemonsets"),
 
 		CreateStrategy: daemonset.Strategy,
 		UpdateStrategy: daemonset.Strategy,
