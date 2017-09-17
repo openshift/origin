@@ -80,8 +80,6 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const DefaultWatchCacheSize = 1000
-
 // request paths that match this regular expression will be treated as long running
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
@@ -150,7 +148,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
 	server.Etcd.StorageConfig.CertFile = masterConfig.EtcdClientInfo.ClientCert.CertFile
 	server.Etcd.StorageConfig.CAFile = masterConfig.EtcdClientInfo.CA
-	server.Etcd.DefaultWatchCacheSize = DefaultWatchCacheSize
+	server.Etcd.DefaultWatchCacheSize = 0
 
 	server.GenericServerRunOptions.CorsAllowedOriginList = masterConfig.CORSAllowedOrigins
 	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
