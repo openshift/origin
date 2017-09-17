@@ -22,7 +22,6 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/extensions/thirdpartyresource"
 )
 
@@ -48,7 +47,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &extensions.ThirdPartyResourceList{} },
 		PredicateFunc:            thirdpartyresource.Matcher,
 		DefaultQualifiedResource: resource,
-		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource(resource.Resource),
 
 		CreateStrategy: thirdpartyresource.Strategy,
 		UpdateStrategy: thirdpartyresource.Strategy,
