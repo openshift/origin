@@ -5,7 +5,6 @@ package api
 // and https://github.com/avade/servicebroker/blob/9165f14ce6c54c3f81fba760cca53bd781febd6f/spec.md
 
 import (
-	jsschema "github.com/lestrrat/go-jsschema"
 	"k8s.io/apiserver/pkg/authentication/user"
 )
 
@@ -51,12 +50,12 @@ type Schema struct {
 }
 
 type ServiceInstances struct {
-	Create map[string]*jsschema.Schema `json:"create,omitempty"`
-	Update map[string]*jsschema.Schema `json:"update,omitempty"`
+	Create map[string]interface{} `json:"create,omitempty"`
+	Update map[string]interface{} `json:"update,omitempty"`
 }
 
 type ServiceBindings struct {
-	Create map[string]*jsschema.Schema `json:"create,omitempty"`
+	Create map[string]interface{} `json:"create,omitempty"`
 }
 
 type CatalogResponse struct {
