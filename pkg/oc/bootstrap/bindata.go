@@ -36,6 +36,16 @@
 // examples/prometheus/node-exporter.yaml
 // examples/prometheus/prometheus.yaml
 // examples/service-catalog/service-catalog.yaml
+// contrib/components/registry/deploy.yaml
+// contrib/components/registry/images.yaml
+// contrib/components/registry/policy.yaml
+// contrib/components/registry/secrets.yaml
+// contrib/components/registry/service.yaml
+// contrib/components/registry/storage/pvc/pvc.yaml
+// contrib/components/registry/storage/pvc/registry-deploy-pvc-patch.yaml
+// contrib/components/router/deploy.yaml
+// contrib/components/router/service.yaml
+// contrib/components/router/system/policy.yaml
 // install/service-catalog-broker-resources/template-service-broker-registration.yaml
 // install/templateservicebroker/apiserver-config.yaml
 // install/templateservicebroker/apiserver-template.yaml
@@ -14235,6 +14245,491 @@ func examplesServiceCatalogServiceCatalogYaml() (*asset, error) {
 	return a, nil
 }
 
+var _contribComponentsRegistryDeployYaml = []byte(`kind: DeploymentConfig
+apiVersion: apps.openshift.io/v1
+metadata:
+  labels:
+    docker-registry: default
+  name: registry
+spec:
+  replicas: 1
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChangeParams:
+      automatic: true
+      containerNames:
+      - registry
+      from: 
+        kind: ImageStreamTag
+        name: registry:stable
+  selector:
+    registry: default
+  template:
+    metadata:
+      labels:
+        registry: default
+    spec:
+      containers:
+      - name: registry
+        image: " "
+        env:
+        - name: REGISTRY_HTTP_ADDR
+          value: :5000
+        - name: REGISTRY_HTTP_NET
+          value: tcp
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          value: /etc/tls/tls.crt
+        - name: REGISTRY_HTTP_TLS_KEY
+          value: /etc/tls/tls.key
+        - name: REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA
+          value: "false"
+        - name: REGISTRY_HTTP_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: registry-secret
+              key: http-secret
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        ports:
+        - containerPort: 5000
+        readinessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /healthz
+            port: 5000
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: registry-storage
+          mountPath: /registry
+        - name: registry-tls
+          mountPath: /etc/tls
+      serviceAccountName: registry
+      volumes:
+      - name: registry-storage
+        emptyDir: {}
+      - name: registry-tls
+        secret:
+          secretName: registry-tls
+`)
+
+func contribComponentsRegistryDeployYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistryDeployYaml, nil
+}
+
+func contribComponentsRegistryDeployYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistryDeployYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/deploy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRegistryImagesYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+- name: IMAGE_TAG
+  value: v3.7.0-alpha.1
+- name: IMAGE_PREFIX
+  value: openshift/origin-
+objects:
+- kind: ImageStream
+  apiVersion: image.openshift.io/v1
+  metadata:
+    name: registry
+  spec:
+    tags:
+    - name: stable
+      from:
+        kind: DockerImage
+        name: ${IMAGE_PREFIX}docker-registry:${IMAGE_TAG}`)
+
+func contribComponentsRegistryImagesYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistryImagesYaml, nil
+}
+
+func contribComponentsRegistryImagesYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistryImagesYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/images.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRegistryPolicyYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+- name: NAMESPACE
+  required: true
+objects:
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: registry-registry-role-${NAMESPACE}
+  roleRef:
+    apiGroup: ""
+    kind: ClusterRole
+    name: system:registry
+  subjects:
+  - kind: ServiceAccount
+    name: registry
+    namespace: ${NAMESPACE}
+`)
+
+func contribComponentsRegistryPolicyYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistryPolicyYaml, nil
+}
+
+func contribComponentsRegistryPolicyYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistryPolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRegistrySecretsYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+- description: The session secret for the proxy
+  name: HTTP_SECRET
+  generate: expression
+  from: "[a-zA-Z0-9]{43}"
+objects:
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: registry-secret
+  stringData:
+    http-secret: "${HTTP_SECRET}="`)
+
+func contribComponentsRegistrySecretsYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistrySecretsYaml, nil
+}
+
+func contribComponentsRegistrySecretsYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistrySecretsYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/secrets.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRegistryServiceYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: registry
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      registry: default
+    annotations:
+      "service.alpha.openshift.io/serving-cert-secret-name": registry-tls
+    name: registry
+  spec:
+    ports:
+    - port: 5000
+      targetPort: 5000
+    selector:
+      registry: default
+`)
+
+func contribComponentsRegistryServiceYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistryServiceYaml, nil
+}
+
+func contribComponentsRegistryServiceYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistryServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRegistryStoragePvcPvcYaml = []byte(`kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: registry-storage
+spec:
+  accessModes: 
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi`)
+
+func contribComponentsRegistryStoragePvcPvcYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistryStoragePvcPvcYaml, nil
+}
+
+func contribComponentsRegistryStoragePvcPvcYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistryStoragePvcPvcYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/storage/pvc/pvc.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYaml = []byte(`kind: Patch
+apiVersion: meta.k8s.io/v1
+target:
+  kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
+  name: registry
+patchType: application/json-patch+json
+patch:
+- op: test
+  path: /spec/template/spec/volumes/0/name
+  value: registry-storage
+- op: replace
+  path: /spec/template/spec/volumes/0
+  value:
+    name: registry-storage
+    persistentVolumeClaim:
+      claimName: registry-storage`)
+
+func contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYamlBytes() ([]byte, error) {
+	return _contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYaml, nil
+}
+
+func contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYaml() (*asset, error) {
+	bytes, err := contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/registry/storage/pvc/registry-deploy-pvc-patch.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRouterDeployYaml = []byte(`apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    router: router
+  name: router
+spec:
+  replicas: 1
+  selector:
+    router: router
+  strategy:
+    rollingParams:
+      maxSurge: 0
+      maxUnavailable: 25%
+    type: Rolling
+  triggers:
+  - type: ConfigChange
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        router: router
+    spec:
+      containers:
+      - env:
+        - name: DEFAULT_CERTIFICATE_DIR
+          value: /etc/pki/tls/private
+        - name: ROUTER_CIPHERS
+        - name: ROUTER_SERVICE_HTTPS_PORT
+          value: "443"
+        - name: ROUTER_SERVICE_HTTP_PORT
+          value: "80"
+        - name: ROUTER_SERVICE_NAME
+          value: router
+        - name: ROUTER_SERVICE_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ROUTER_METRICS_TYPE
+          value: haproxy
+        - name: ROUTER_LISTEN_ADDR
+          value: 0.0.0.0:1936
+        - name: ROUTER_SUBDOMAIN
+        image: openshift/origin-haproxy-router:v3.7.0-rc.0
+        livenessProbe:
+          httpGet:
+            host: localhost
+            path: /healthz
+            port: 1936
+          initialDelaySeconds: 10
+        name: router
+        ports:
+        - containerPort: 80
+        - containerPort: 443
+        - containerPort: 1936
+          name: stats
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            host: localhost
+            path: /healthz
+            port: 1936
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /etc/pki/tls/private
+          name: server-certificate
+          readOnly: true
+      serviceAccountName: router
+      volumes:
+      - name: server-certificate
+        secret:
+          secretName: router-certs
+`)
+
+func contribComponentsRouterDeployYamlBytes() ([]byte, error) {
+	return _contribComponentsRouterDeployYaml, nil
+}
+
+func contribComponentsRouterDeployYaml() (*asset, error) {
+	bytes, err := contribComponentsRouterDeployYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/router/deploy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRouterServiceYaml = []byte(`kind: List
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: router
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/port: "1936"
+      prometheus.io/scrape: "true"
+    labels:
+      router: router
+    name: router
+  spec:
+    selector:
+      router: router
+    ports:
+    - port: 80
+      targetPort: 80
+    - port: 443
+      targetPort: 443
+    - port: 1936
+      targetPort: 1936
+`)
+
+func contribComponentsRouterServiceYamlBytes() ([]byte, error) {
+	return _contribComponentsRouterServiceYaml, nil
+}
+
+func contribComponentsRouterServiceYaml() (*asset, error) {
+	bytes, err := contribComponentsRouterServiceYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/router/service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _contribComponentsRouterSystemPolicyYaml = []byte(`kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+- name: NAMESPACE
+  required: true
+objects:
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: router-router-role-${NAMESPACE}
+  roleRef:
+    apiGroup: ""
+    kind: ClusterRole
+    name: system:router
+  subjects:
+  - kind: ServiceAccount
+    name: router
+    namespace: ${NAMESPACE}
+
+- kind: Patch
+  apiVersion: meta.k8s.io/v1
+  target:
+    kind: DeploymentConfig
+    apiVersion: apps.openshift.io/v1
+    name: router
+  patchType: application/json-patch+json
+  patch:
+  - op: test
+    path: /spec/template/spec/containers/0/name
+    value: router
+  - op: replace
+    path: /spec/template/spec/containers/0/hostNetwork
+    value: true
+
+- kind: Patch
+  apiVersion: meta.k8s.io/v1
+  target:
+    kind: SecurityContextConstraints
+    apiVersion: security.openshift.io/v1
+    name: hostnetwork
+  patchType: application/json-patch+json
+  patch:
+  - op: add
+    path: /users/-
+    value: system:serviceaccount:${NAMESPACE}:router`)
+
+func contribComponentsRouterSystemPolicyYamlBytes() ([]byte, error) {
+	return _contribComponentsRouterSystemPolicyYaml, nil
+}
+
+func contribComponentsRouterSystemPolicyYaml() (*asset, error) {
+	bytes, err := contribComponentsRouterSystemPolicyYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "contrib/components/router/system/policy.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
 var _installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml = []byte(`apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
@@ -14674,6 +15169,16 @@ var _bindata = map[string]func() (*asset, error){
 	"examples/prometheus/node-exporter.yaml": examplesPrometheusNodeExporterYaml,
 	"examples/prometheus/prometheus.yaml": examplesPrometheusPrometheusYaml,
 	"examples/service-catalog/service-catalog.yaml": examplesServiceCatalogServiceCatalogYaml,
+	"contrib/components/registry/deploy.yaml": contribComponentsRegistryDeployYaml,
+	"contrib/components/registry/images.yaml": contribComponentsRegistryImagesYaml,
+	"contrib/components/registry/policy.yaml": contribComponentsRegistryPolicyYaml,
+	"contrib/components/registry/secrets.yaml": contribComponentsRegistrySecretsYaml,
+	"contrib/components/registry/service.yaml": contribComponentsRegistryServiceYaml,
+	"contrib/components/registry/storage/pvc/pvc.yaml": contribComponentsRegistryStoragePvcPvcYaml,
+	"contrib/components/registry/storage/pvc/registry-deploy-pvc-patch.yaml": contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYaml,
+	"contrib/components/router/deploy.yaml": contribComponentsRouterDeployYaml,
+	"contrib/components/router/service.yaml": contribComponentsRouterServiceYaml,
+	"contrib/components/router/system/policy.yaml": contribComponentsRouterSystemPolicyYaml,
 	"install/service-catalog-broker-resources/template-service-broker-registration.yaml": installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml,
 	"install/templateservicebroker/apiserver-config.yaml": installTemplateservicebrokerApiserverConfigYaml,
 	"install/templateservicebroker/apiserver-template.yaml": installTemplateservicebrokerApiserverTemplateYaml,
@@ -14721,6 +15226,30 @@ type bintree struct {
 	Children map[string]*bintree
 }
 var _bintree = &bintree{nil, map[string]*bintree{
+	"contrib": &bintree{nil, map[string]*bintree{
+		"components": &bintree{nil, map[string]*bintree{
+			"registry": &bintree{nil, map[string]*bintree{
+				"deploy.yaml": &bintree{contribComponentsRegistryDeployYaml, map[string]*bintree{}},
+				"images.yaml": &bintree{contribComponentsRegistryImagesYaml, map[string]*bintree{}},
+				"policy.yaml": &bintree{contribComponentsRegistryPolicyYaml, map[string]*bintree{}},
+				"secrets.yaml": &bintree{contribComponentsRegistrySecretsYaml, map[string]*bintree{}},
+				"service.yaml": &bintree{contribComponentsRegistryServiceYaml, map[string]*bintree{}},
+				"storage": &bintree{nil, map[string]*bintree{
+					"pvc": &bintree{nil, map[string]*bintree{
+						"pvc.yaml": &bintree{contribComponentsRegistryStoragePvcPvcYaml, map[string]*bintree{}},
+						"registry-deploy-pvc-patch.yaml": &bintree{contribComponentsRegistryStoragePvcRegistryDeployPvcPatchYaml, map[string]*bintree{}},
+					}},
+				}},
+			}},
+			"router": &bintree{nil, map[string]*bintree{
+				"deploy.yaml": &bintree{contribComponentsRouterDeployYaml, map[string]*bintree{}},
+				"service.yaml": &bintree{contribComponentsRouterServiceYaml, map[string]*bintree{}},
+				"system": &bintree{nil, map[string]*bintree{
+					"policy.yaml": &bintree{contribComponentsRouterSystemPolicyYaml, map[string]*bintree{}},
+				}},
+			}},
+		}},
+	}},
 	"examples": &bintree{nil, map[string]*bintree{
 		"db-templates": &bintree{nil, map[string]*bintree{
 			"mariadb-ephemeral-template.json": &bintree{examplesDbTemplatesMariadbEphemeralTemplateJson, map[string]*bintree{}},

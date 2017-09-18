@@ -15,6 +15,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/cert"
+	"github.com/openshift/origin/pkg/oc/admin/component"
 	diagnostics "github.com/openshift/origin/pkg/oc/admin/diagnostics"
 	"github.com/openshift/origin/pkg/oc/admin/groups"
 	"github.com/openshift/origin/pkg/oc/admin/image"
@@ -60,6 +61,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 				router.NewCmdRouter(f, fullName, "router", out, errout),
 				exipfailover.NewCmdIPFailoverConfig(f, fullName, "ipfailover", out, errout),
 				registry.NewCmdRegistry(f, fullName, "registry", out, errout),
+				component.NewCmd("components", fullName, f, out, errout),
 			},
 		},
 		{

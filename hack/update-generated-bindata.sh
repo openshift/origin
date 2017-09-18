@@ -32,6 +32,7 @@ pushd "${OS_ROOT}" > /dev/null
     examples/heapster/... \
     examples/prometheus/... \
     examples/service-catalog/... \
+    contrib/components/... \
     install/... \
     pkg/image/admission/imagepolicy/api/v1/...
 

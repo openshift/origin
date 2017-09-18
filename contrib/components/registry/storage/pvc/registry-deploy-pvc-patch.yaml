@@ -1,0 +1,17 @@
+kind: Patch
+apiVersion: meta.k8s.io/v1
+target:
+  kind: DeploymentConfig
+  apiVersion: apps.openshift.io/v1
+  name: registry
+patchType: application/json-patch+json
+patch:
+- op: test
+  path: /spec/template/spec/volumes/0/name
+  value: registry-storage
+- op: replace
+  path: /spec/template/spec/volumes/0
+  value:
+    name: registry-storage
+    persistentVolumeClaim:
+      claimName: registry-storage

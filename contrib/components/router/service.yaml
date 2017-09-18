@@ -1,0 +1,26 @@
+kind: List
+apiVersion: v1
+items:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: router
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      prometheus.io/port: "1936"
+      prometheus.io/scrape: "true"
+    labels:
+      router: router
+    name: router
+  spec:
+    selector:
+      router: router
+    ports:
+    - port: 80
+      targetPort: 80
+    - port: 443
+      targetPort: 443
+    - port: 1936
+      targetPort: 1936

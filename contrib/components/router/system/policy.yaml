@@ -1,0 +1,46 @@
+kind: Template
+apiVersion: template.openshift.io/v1
+parameters:
+- name: NAMESPACE
+  required: true
+objects:
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: ClusterRoleBinding
+  metadata:
+    name: router-router-role-${NAMESPACE}
+  roleRef:
+    apiGroup: ""
+    kind: ClusterRole
+    name: system:router
+  subjects:
+  - kind: ServiceAccount
+    name: router
+    namespace: ${NAMESPACE}
+
+- kind: Patch
+  apiVersion: meta.k8s.io/v1
+  target:
+    kind: DeploymentConfig
+    apiVersion: apps.openshift.io/v1
+    name: router
+  patchType: application/json-patch+json
+  patch:
+  - op: test
+    path: /spec/template/spec/containers/0/name
+    value: router
+  - op: replace
+    path: /spec/template/spec/containers/0/hostNetwork
+    value: true
+
+- kind: Patch
+  apiVersion: meta.k8s.io/v1
+  target:
+    kind: SecurityContextConstraints
+    apiVersion: security.openshift.io/v1
+    name: hostnetwork
+  patchType: application/json-patch+json
+  patch:
+  - op: add
+    path: /users/-
+    value: system:serviceaccount:${NAMESPACE}:router

@@ -1,0 +1,75 @@
+kind: DeploymentConfig
+apiVersion: apps.openshift.io/v1
+metadata:
+  labels:
+    docker-registry: default
+  name: registry
+spec:
+  replicas: 1
+  triggers:
+  - type: ConfigChange
+  - type: ImageChange
+    imageChangeParams:
+      automatic: true
+      containerNames:
+      - registry
+      from: 
+        kind: ImageStreamTag
+        name: registry:stable
+  selector:
+    registry: default
+  template:
+    metadata:
+      labels:
+        registry: default
+    spec:
+      containers:
+      - name: registry
+        image: " "
+        env:
+        - name: REGISTRY_HTTP_ADDR
+          value: :5000
+        - name: REGISTRY_HTTP_NET
+          value: tcp
+        - name: REGISTRY_HTTP_TLS_CERTIFICATE
+          value: /etc/tls/tls.crt
+        - name: REGISTRY_HTTP_TLS_KEY
+          value: /etc/tls/tls.key
+        - name: REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_ENFORCEQUOTA
+          value: "false"
+        - name: REGISTRY_HTTP_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: registry-secret
+              key: http-secret
+        livenessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /healthz
+            port: 5000
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        ports:
+        - containerPort: 5000
+        readinessProbe:
+          httpGet:
+            scheme: HTTPS
+            path: /healthz
+            port: 5000
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: registry-storage
+          mountPath: /registry
+        - name: registry-tls
+          mountPath: /etc/tls
+      serviceAccountName: registry
+      volumes:
+      - name: registry-storage
+        emptyDir: {}
+      - name: registry-tls
+        secret:
+          secretName: registry-tls
