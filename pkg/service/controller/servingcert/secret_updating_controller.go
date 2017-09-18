@@ -19,6 +19,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
+	ocontroller "github.com/openshift/origin/pkg/controller"
 )
 
 // ServiceServingCertUpdateController is responsible for synchronizing Service objects stored
@@ -199,6 +200,7 @@ func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	if err != nil {
 		return err
 	}
+	ocontroller.EnsureOwnerRef(secret, ownerRef(service))
 
 	_, err = sc.secretClient.Secrets(secret.Namespace).Update(secret)
 	return err
@@ -224,6 +226,12 @@ func (sc *ServiceServingCertUpdateController) requiresRegeneration(secret *v1.Se
 	}
 	if secret.Annotations[ServiceUIDAnnotation] != string(service.UID) {
 		return false, nil
+	}
+
+	// if we don't have an ownerref, just go ahead and regenerate.  It's easier than writing a
+	// secondary logic flow.
+	if !ocontroller.HasOwnerRef(secret, ownerRef(service)) {
+		return true, service
 	}
 
 	// if we don't have the annotation for expiry, just go ahead and regenerate.  It's easier than writing a
