@@ -15,6 +15,10 @@ const (
 	// DEPRECATED: Use the OPENSHIFT_DEFAULT_REGISTRY instead.
 	DockerRegistryURLEnvVar = "DOCKER_REGISTRY_URL"
 
+	// DockerRegistryURLEnvVarOption is an optional environment that overrides the
+	// DOCKER_REGISTRY_URL.
+	DockerRegistryURLEnvVarOption = "REGISTRY_MIDDLEWARE_REPOSITORY_OPENSHIFT_DOCKERREGISTRYURL"
+
 	// OpenShiftDefaultRegistry overrides the DockerRegistryURLEnvVar as in OpenShift the
 	// default registry URL is controller by this environment variable.
 	OpenShiftDefaultRegistryEnvVar = "OPENSHIFT_DEFAULT_REGISTRY"
@@ -74,6 +78,13 @@ func newRepositoryConfig(ctx context.Context, options map[string]interface{}) (r
 	} else {
 		context.GetLogger(ctx).Infof("DEPRECATED: %q is deprecated, use the %q instead", DockerRegistryURLEnvVar, OpenShiftDefaultRegistryEnvVar)
 	}
+	if len(rc.registryAddr) == 0 {
+		rc.registryAddr, err = getStringOption(DockerRegistryURLEnvVarOption, "dockerregistryurl", rc.registryAddr, options)
+		if err != nil {
+			return
+		}
+	}
+
 	// TODO: This is a fallback to assuming there is a service named 'docker-registry'. This
 	// might change in the future and we should make this configurable.
 	if len(rc.registryAddr) == 0 {

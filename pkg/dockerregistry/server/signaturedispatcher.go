@@ -17,6 +17,7 @@ import (
 	"github.com/docker/distribution/registry/api/v2"
 	"github.com/docker/distribution/registry/handlers"
 
+	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 
@@ -60,18 +61,27 @@ var (
 )
 
 type signatureHandler struct {
-	ctx       *handlers.Context
-	reference imageapi.DockerImageReference
+	ctx           *handlers.Context
+	reference     imageapi.DockerImageReference
+	isImageClient client.ImageStreamImagesNamespacer
 }
 
-// SignatureDispatcher handles the GET and PUT requests for signature endpoint.
-func SignatureDispatcher(ctx *handlers.Context, r *http.Request) http.Handler {
-	signatureHandler := &signatureHandler{ctx: ctx}
-	signatureHandler.reference, _ = imageapi.ParseDockerImageReference(ctxu.GetStringValue(ctx, "vars.name") + "@" + ctxu.GetStringValue(ctx, "vars.digest"))
-
-	return gorillahandlers.MethodHandler{
-		"GET": http.HandlerFunc(signatureHandler.Get),
-		"PUT": http.HandlerFunc(signatureHandler.Put),
+// NewSignatureDispatcher provides a function that handles the GET and PUT
+// requests for signature endpoint.
+func NewSignatureDispatcher(isImageClient client.ImageStreamImagesNamespacer) func(*handlers.Context, *http.Request) http.Handler {
+	return func(ctx *handlers.Context, r *http.Request) http.Handler {
+		reference, _ := imageapi.ParseDockerImageReference(
+			ctxu.GetStringValue(ctx, "vars.name") + "@" + ctxu.GetStringValue(ctx, "vars.digest"),
+		)
+		signatureHandler := &signatureHandler{
+			ctx:           ctx,
+			isImageClient: isImageClient,
+			reference:     reference,
+		}
+		return gorillahandlers.MethodHandler{
+			"GET": http.HandlerFunc(signatureHandler.Get),
+			"PUT": http.HandlerFunc(signatureHandler.Put),
+		}
 	}
 }
 
@@ -142,18 +152,13 @@ func (s *signatureHandler) Get(w http.ResponseWriter, req *http.Request) {
 		s.handleError(s.ctx, v2.ErrorCodeNameInvalid.WithDetail("missing image name or image ID"), w)
 		return
 	}
-	client, ok := userClientFrom(s.ctx)
-	if !ok {
-		s.handleError(s.ctx, errcode.ErrorCodeUnknown.WithDetail("unable to get origin client"), w)
-		return
-	}
 
 	if len(s.reference.ID) == 0 {
 		s.handleError(s.ctx, v2.ErrorCodeNameInvalid.WithDetail("the image ID must be specified (sha256:<digest>"), w)
 		return
 	}
 
-	image, err := client.ImageStreamImages(s.reference.Namespace).Get(imageapi.MakeImageStreamImageName(s.reference.Name, s.reference.ID), metav1.GetOptions{})
+	image, err := s.isImageClient.ImageStreamImages(s.reference.Namespace).Get(imageapi.MakeImageStreamImageName(s.reference.Name, s.reference.ID), metav1.GetOptions{})
 	switch {
 	case err == nil:
 	case kapierrors.IsUnauthorized(err):

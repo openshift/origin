@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"reflect"
 	"testing"
 
@@ -80,7 +79,7 @@ func TestSignatureGet(t *testing.T) {
 		},
 		Middleware: map[string][]configuration.Middleware{
 			"registry":   {{Name: "openshift"}},
-			"repository": {{Name: "openshift"}},
+			"repository": {{Name: "openshift", Options: configuration.Parameters{"dockerregistryurl": "localhost:5000"}}},
 			"storage":    {{Name: "openshift"}},
 		},
 	}, &registryconfig.Configuration{}, nil)
@@ -91,7 +90,6 @@ func TestSignatureGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 
 	url := fmt.Sprintf("http://%s/extensions/v2/user/app/signatures/%s", serverURL.Host, testImage.Name)
 
@@ -186,7 +184,7 @@ func TestSignaturePut(t *testing.T) {
 		},
 		Middleware: map[string][]configuration.Middleware{
 			"registry":   {{Name: "openshift"}},
-			"repository": {{Name: "openshift"}},
+			"repository": {{Name: "openshift", Options: configuration.Parameters{"dockerregistryurl": "localhost:5000"}}},
 			"storage":    {{Name: "openshift"}},
 		},
 	}, &registryconfig.Configuration{}, nil)
@@ -197,7 +195,6 @@ func TestSignaturePut(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error parsing server url: %v", err)
 	}
-	os.Setenv("OPENSHIFT_DEFAULT_REGISTRY", serverURL.Host)
 
 	signData, err := json.Marshal(testSignature)
 	if err != nil {
