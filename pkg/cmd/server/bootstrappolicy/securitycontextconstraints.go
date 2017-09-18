@@ -205,7 +205,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
 			// drops unsafe caps
-			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT", "SETUID", "SETGID"},
+			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SETUID", "SETGID"},
 		},
 		// SecurityContextConstraintsAnyUID allows no host access and allocates SELinux.
 		{
@@ -234,7 +234,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			// prefer the anyuid SCC over ones that force a uid
 			Priority: &securityContextConstraintsAnyUIDPriority,
 			// drops unsafe caps
-			RequiredDropCapabilities: []kapi.Capability{"MKNOD", "SYS_CHROOT"},
+			RequiredDropCapabilities: []kapi.Capability{"MKNOD"},
 		},
 		// SecurityContextConstraintsHostNetwork allows host network and host ports
 		{
@@ -266,7 +266,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 				Type: securityapi.SupplementalGroupsStrategyMustRunAs,
 			},
 			// drops unsafe caps
-			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SYS_CHROOT", "SETUID", "SETGID"},
+			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SETUID", "SETGID"},
 		},
 	}
 
