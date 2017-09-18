@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/openshift/origin/pkg/authorization/util"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
@@ -75,7 +76,7 @@ func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.In
 		buildClient:      buildClient,
 		lister:           informer.Lister(),
 		informer:         informer.Informer(),
-		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TemplateInstanceController"),
+		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "openshift_template_instance_controller"),
 		readinessLimiter: workqueue.NewItemFastSlowRateLimiter(5*time.Second, 20*time.Second, 200),
 	}
 
@@ -89,6 +90,8 @@ func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.In
 		DeleteFunc: func(obj interface{}) {
 		},
 	})
+
+	prometheus.MustRegister(c)
 
 	return c
 }

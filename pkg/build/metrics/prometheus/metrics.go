@@ -24,7 +24,7 @@ var (
 	// vs. the other "finished" builds phases, where the reason is not set
 	terminalBuildCountDesc = prometheus.NewDesc(
 		buildSubsystem+separator+terminalBuildCount,
-		"Counts total teriminal builds by phase",
+		"Counts total terminal builds by phase",
 		[]string{"phase"},
 		nil,
 	)
