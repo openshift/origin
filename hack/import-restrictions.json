@@ -69,7 +69,6 @@
       "vendor/k8s.io/kubernetes/pkg/api/v1",
       "vendor/k8s.io/kubernetes/pkg/api/validation",
       "vendor/k8s.io/kubernetes/pkg/apis/rbac",
-      "github.com/openshift/origin/pkg/api/install",
       "vendor/k8s.io/kubernetes/pkg/api/helper",
       "github.com/openshift/origin/pkg/user/apis/user/validation",
       "vendor/k8s.io/apiserver/pkg/authentication/serviceaccount",
@@ -91,7 +90,6 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api/install",
       "github.com/openshift/origin/pkg/util/namer",
       "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/image/apis/image",
@@ -114,8 +112,6 @@
       "vendor/k8s.io/kubernetes/pkg/apis/extensions",
       "vendor/k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
       "vendor/k8s.io/kubernetes/pkg/api/helper",
-      "vendor/k8s.io/kubernetes/pkg/api/install",
-      "github.com/openshift/origin/pkg/apps/apis/apps/install",
       "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
@@ -189,8 +185,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "vendor/k8s.io/kubernetes/pkg/api/helper",
-      "github.com/openshift/origin/pkg/quota/apis/quota/install"
+      "vendor/k8s.io/kubernetes/pkg/api/helper"
     ]
   },
 

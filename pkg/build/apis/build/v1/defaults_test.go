@@ -1,17 +1,11 @@
-package v1_test
+package v1
 
 import (
 	"reflect"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
-
-	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-
-	// install all APIs
-	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 func TestDefaults(t *testing.T) {
@@ -20,17 +14,17 @@ func TestDefaults(t *testing.T) {
 		Ok       func(runtime.Object) bool
 	}{
 		{
-			External: &buildapiv1.Build{
-				Spec: buildapiv1.BuildSpec{
-					CommonSpec: buildapiv1.CommonSpec{
-						Strategy: buildapiv1.BuildStrategy{
-							Type: buildapiv1.DockerBuildStrategyType,
+			External: &Build{
+				Spec: BuildSpec{
+					CommonSpec: CommonSpec{
+						Strategy: BuildStrategy{
+							Type: DockerBuildStrategyType,
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*buildapiv1.Build)
+				obj, ok := out.(*Build)
 				if !ok {
 					return false
 				}
@@ -38,17 +32,17 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &buildapiv1.Build{
-				Spec: buildapiv1.BuildSpec{
-					CommonSpec: buildapiv1.CommonSpec{
-						Strategy: buildapiv1.BuildStrategy{
-							SourceStrategy: &buildapiv1.SourceBuildStrategy{},
+			External: &Build{
+				Spec: BuildSpec{
+					CommonSpec: CommonSpec{
+						Strategy: BuildStrategy{
+							SourceStrategy: &SourceBuildStrategy{},
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*buildapiv1.Build)
+				obj, ok := out.(*Build)
 				if !ok {
 					return false
 				}
@@ -56,11 +50,11 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &buildapiv1.Build{
-				Spec: buildapiv1.BuildSpec{
-					CommonSpec: buildapiv1.CommonSpec{
-						Strategy: buildapiv1.BuildStrategy{
-							DockerStrategy: &buildapiv1.DockerBuildStrategy{
+			External: &Build{
+				Spec: BuildSpec{
+					CommonSpec: CommonSpec{
+						Strategy: BuildStrategy{
+							DockerStrategy: &DockerBuildStrategy{
 								From: &kapiv1.ObjectReference{},
 							},
 						},
@@ -68,7 +62,7 @@ func TestDefaults(t *testing.T) {
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*buildapiv1.Build)
+				obj, ok := out.(*Build)
 				if !ok {
 					return false
 				}
@@ -76,17 +70,17 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &buildapiv1.Build{
-				Spec: buildapiv1.BuildSpec{
-					CommonSpec: buildapiv1.CommonSpec{
-						Strategy: buildapiv1.BuildStrategy{
-							CustomStrategy: &buildapiv1.CustomBuildStrategy{},
+			External: &Build{
+				Spec: BuildSpec{
+					CommonSpec: CommonSpec{
+						Strategy: BuildStrategy{
+							CustomStrategy: &CustomBuildStrategy{},
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*buildapiv1.Build)
+				obj, ok := out.(*Build)
 				if !ok {
 					return false
 				}
@@ -94,44 +88,44 @@ func TestDefaults(t *testing.T) {
 			},
 		},
 		{
-			External: &buildapiv1.BuildConfig{
-				Spec: buildapiv1.BuildConfigSpec{Triggers: []buildapiv1.BuildTriggerPolicy{{Type: buildapiv1.ImageChangeBuildTriggerType}}},
+			External: &BuildConfig{
+				Spec: BuildConfigSpec{Triggers: []BuildTriggerPolicy{{Type: ImageChangeBuildTriggerType}}},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*buildapiv1.BuildConfig)
+				obj, ok := out.(*BuildConfig)
 				if !ok {
 					return false
 				}
 				// conversion drops this trigger because it has no type
-				return (len(obj.Spec.Triggers) == 0) && (obj.Spec.RunPolicy == buildapiv1.BuildRunPolicySerial)
+				return (len(obj.Spec.Triggers) == 0) && (obj.Spec.RunPolicy == BuildRunPolicySerial)
 			},
 		},
 		{
-			External: &buildapiv1.BuildConfig{
-				Spec: buildapiv1.BuildConfigSpec{
-					CommonSpec: buildapiv1.CommonSpec{
-						Source: buildapiv1.BuildSource{
-							Type: buildapiv1.BuildSourceBinary,
+			External: &BuildConfig{
+				Spec: BuildConfigSpec{
+					CommonSpec: CommonSpec{
+						Source: BuildSource{
+							Type: BuildSourceBinary,
 						},
-						Strategy: buildapiv1.BuildStrategy{
-							Type: buildapiv1.DockerBuildStrategyType,
+						Strategy: BuildStrategy{
+							Type: DockerBuildStrategyType,
 						},
 					},
 				},
 			},
 			Ok: func(out runtime.Object) bool {
-				obj, ok := out.(*buildapiv1.BuildConfig)
+				obj, ok := out.(*BuildConfig)
 				if !ok {
 					return false
 				}
 				binary := obj.Spec.Source.Binary
-				if binary == (*buildapiv1.BinaryBuildSource)(nil) || *binary != (buildapiv1.BinaryBuildSource{}) {
+				if binary == (*BinaryBuildSource)(nil) || *binary != (BinaryBuildSource{}) {
 					return false
 				}
 
 				dockerStrategy := obj.Spec.Strategy.DockerStrategy
 				// DeepEqual needed because DockerBuildStrategy contains slices
-				if dockerStrategy == (*buildapiv1.DockerBuildStrategy)(nil) || !reflect.DeepEqual(*dockerStrategy, buildapiv1.DockerBuildStrategy{}) {
+				if dockerStrategy == (*DockerBuildStrategy)(nil) || !reflect.DeepEqual(*dockerStrategy, DockerBuildStrategy{}) {
 					return false
 				}
 				return true
@@ -148,19 +142,19 @@ func TestDefaults(t *testing.T) {
 }
 
 func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
-	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(buildapiv1.LegacySchemeGroupVersion), obj)
+	data, err := runtime.Encode(codecs.LegacyCodec(LegacySchemeGroupVersion), obj)
 	if err != nil {
 		t.Errorf("%v\n %#v", err, obj)
 		return nil
 	}
-	obj2, err := runtime.Decode(kapi.Codecs.UniversalDecoder(), data)
+	obj2, err := runtime.Decode(codecs.UniversalDecoder(), data)
 	if err != nil {
 		t.Errorf("%v\nData: %s\nSource: %#v", err, string(data), obj)
 		return nil
 	}
-	kapi.Scheme.Default(obj2)
+	scheme.Default(obj2)
 	obj3 := reflect.New(reflect.TypeOf(obj).Elem()).Interface().(runtime.Object)
-	err = kapi.Scheme.Convert(obj2, obj3, nil)
+	err = scheme.Convert(obj2, obj3, nil)
 	if err != nil {
 		t.Errorf("%v\nSource: %#v", err, obj2)
 		return nil
