@@ -7130,8 +7130,22 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
+						"egressIPs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "EgressIPs is the list of automatic egress IP addresses currently hosted by this node",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
 					},
-					Required: []string{"host", "hostIP", "subnet"},
+					Required: []string{"host", "hostIP", "subnet", "egressIPs"},
 				},
 			},
 			Dependencies: []string{
@@ -7219,6 +7233,20 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Description: "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
 								Type:        []string{"integer"},
 								Format:      "int64",
+							},
+						},
+						"egressIPs": {
+							SchemaProps: spec.SchemaProps{
+								Description: "EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
 							},
 						},
 					},
