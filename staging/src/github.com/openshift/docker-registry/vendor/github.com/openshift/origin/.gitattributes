@@ -1,0 +1,2 @@
+# Set unix LF EOL for shell scripts
+*.sh text eol=lf
