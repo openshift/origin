@@ -1,6 +1,8 @@
 package start
 
 import (
+	"io/ioutil"
+	"os"
 	"strconv"
 
 	"github.com/golang/glog"
@@ -11,7 +13,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	controllerapp "k8s.io/kubernetes/cmd/kube-controller-manager/app"
 	controlleroptions "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
-	"k8s.io/kubernetes/pkg/api/v1"
+	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
@@ -23,26 +25,6 @@ import (
 	cmdflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 )
-
-// newPersistentVolumeRecyclerPodTemplate provides a function which makes our recycler pod template for use in the kube-controller-manager
-// this is a stop-gap until the kube-controller-manager take a pod manifest
-func newPersistentVolumeRecyclerPodTemplate(recyclerImageName string) func() *v1.Pod {
-	oldTemplateFunc := volume.NewPersistentVolumeRecyclerPodTemplate
-	return func() *v1.Pod {
-		uid := int64(0)
-		defaultScrubPod := oldTemplateFunc()
-		// TODO: Move the recycler pods to dedicated namespace instead of polluting openshift-infra.
-		defaultScrubPod.Namespace = "openshift-infra"
-		defaultScrubPod.Spec.ServiceAccountName = bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName
-		defaultScrubPod.Spec.Containers[0].Image = recyclerImageName
-		defaultScrubPod.Spec.Containers[0].Command = []string{"/usr/bin/openshift-recycle"}
-		defaultScrubPod.Spec.Containers[0].Args = []string{"/scrub"}
-		defaultScrubPod.Spec.Containers[0].SecurityContext = &kapiv1.SecurityContext{RunAsUser: &uid}
-		defaultScrubPod.Spec.Containers[0].ImagePullPolicy = kapiv1.PullIfNotPresent
-
-		return defaultScrubPod
-	}
-}
 
 // newControllerContext provides a function which overrides the default and plugs a different set of informers in
 func newControllerContext(informers *informers) func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
@@ -67,10 +49,11 @@ func kubeControllerManagerAddFlags(cmserver *controlleroptions.CMServer) func(fl
 	}
 }
 
-func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string) (*controlleroptions.CMServer, error) {
+func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, recyclerImage string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string) (*controlleroptions.CMServer, []func(), error) {
 	if cmdLineArgs == nil {
 		cmdLineArgs = map[string][]string{}
 	}
+	cleanupFunctions := []func(){}
 
 	if _, ok := cmdLineArgs["controllers"]; !ok {
 		cmdLineArgs["controllers"] = []string{
@@ -126,10 +109,43 @@ func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, po
 		cmdLineArgs["leader-elect-resource-lock"] = []string{"configmaps"}
 	}
 
+	_, hostPathTemplateSet := cmdLineArgs["pv-recycler-pod-template-filepath-hostpath"]
+	_, nfsTemplateSet := cmdLineArgs["pv-recycler-pod-template-filepath-nfs"]
+	if !hostPathTemplateSet || !nfsTemplateSet {
+		// OpenShift uses a different default volume recycler template than
+		// Kubernetes. This default template is hardcoded in Kubernetes and it
+		// isn't possible to pass it via ControllerContext. Crate a temporary
+		// file with OpenShift's template and let's pretend it was set by user
+		// as --recycler-pod-template-filepath-hostpath and
+		// --pv-recycler-pod-template-filepath-nfs arguments.
+		// This template then needs to be deleted by caller!
+		templateFilename, err := createRecylerTemplate(recyclerImage)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		cleanupFunctions = append(cleanupFunctions, func() {
+			// Remove the template when it's not needed. This is called aftet
+			// controller is initialized
+			glog.V(4).Infof("Removing temporary file %s", templateFilename)
+			err := os.Remove(templateFilename)
+			if err != nil {
+				glog.Warningf("Failed to remove %s: %v", templateFilename, err)
+			}
+		})
+
+		if !hostPathTemplateSet {
+			cmdLineArgs["pv-recycler-pod-template-filepath-hostpath"] = []string{templateFilename}
+		}
+		if !nfsTemplateSet {
+			cmdLineArgs["pv-recycler-pod-template-filepath-nfs"] = []string{templateFilename}
+		}
+	}
+
 	// resolve arguments
 	controllerManager := controlleroptions.NewCMServer()
 	if err := cmdflags.Resolve(cmdLineArgs, kubeControllerManagerAddFlags(controllerManager)); len(err) > 0 {
-		return nil, kerrors.NewAggregate(err)
+		return nil, cleanupFunctions, kerrors.NewAggregate(err)
 	}
 
 	// TODO make this configurable or discoverable.  This is going to prevent us from running the stock GC controller
@@ -164,19 +180,60 @@ func newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, po
 		componentconfig.GroupResource{Group: "", Resource: "securitycontextconstraints"},
 	)
 
-	return controllerManager, nil
+	return controllerManager, cleanupFunctions, nil
+}
+
+func createRecylerTemplate(recyclerImage string) (string, error) {
+	uid := int64(0)
+	template := volume.NewPersistentVolumeRecyclerPodTemplate()
+	template.Namespace = "openshift-infra"
+	template.Spec.ServiceAccountName = bootstrappolicy.InfraPersistentVolumeRecyclerControllerServiceAccountName
+	template.Spec.Containers[0].Image = recyclerImage
+	template.Spec.Containers[0].Command = []string{"/usr/bin/openshift-recycle"}
+	template.Spec.Containers[0].Args = []string{"/scrub"}
+	template.Spec.Containers[0].SecurityContext = &kapiv1.SecurityContext{RunAsUser: &uid}
+	template.Spec.Containers[0].ImagePullPolicy = kapiv1.PullIfNotPresent
+
+	templateBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(kapiv1.SchemeGroupVersion), template)
+	if err != nil {
+		return "", err
+	}
+
+	f, err := ioutil.TempFile("", "openshift-recycler-template-")
+	if err != nil {
+		return "", err
+	}
+	filename := f.Name()
+	glog.V(4).Infof("Creating file %s with recycler templates", filename)
+
+	_, err = f.Write(templateBytes)
+	if err != nil {
+		f.Close()
+		os.Remove(filename)
+		return "", err
+	}
+	f.Close()
+	return filename, nil
 }
 
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string,
 	recyclerImage string, informers *informers) {
-	volume.NewPersistentVolumeRecyclerPodTemplate = newPersistentVolumeRecyclerPodTemplate(recyclerImage)
 	controllerapp.CreateControllerContext = newControllerContext(informers)
 	controllerapp.StartInformers = func(stop <-chan struct{}) {
 		informers.Start(stop)
 	}
 
 	// TODO we need a real identity for this.  Right now it's just using the loopback connection like it used to.
-	controllerManager, err := newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, dynamicProvisioningEnabled, cmdLineArgs)
+	controllerManager, cleanupFunctions, err := newKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout, recyclerImage, dynamicProvisioningEnabled, cmdLineArgs)
+	defer func() {
+		// Clean up any temporary files and similar stuff.
+		// TODO: Make sure this defer is actually called - controllerapp.Run()
+		// below never returns -> defer is not called.
+		for _, f := range cleanupFunctions {
+			f()
+		}
+	}()
+
 	if err != nil {
 		glog.Fatal(err)
 	}
