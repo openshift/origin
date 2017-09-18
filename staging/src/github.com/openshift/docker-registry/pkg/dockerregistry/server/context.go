@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/docker/distribution/context"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/client"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
 )
 
 type contextKey string

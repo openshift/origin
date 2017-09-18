@@ -10,8 +10,8 @@ import (
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
 
-	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
-	"github.com/openshift/origin/pkg/dockerregistry/testutil"
+	registryclient "github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/testutil"
 )
 
 func TestManifestServiceExists(t *testing.T) {

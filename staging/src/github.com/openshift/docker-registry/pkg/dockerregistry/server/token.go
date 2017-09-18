@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	context "github.com/docker/distribution/context"
-	"github.com/openshift/origin/pkg/dockerregistry/server/client"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

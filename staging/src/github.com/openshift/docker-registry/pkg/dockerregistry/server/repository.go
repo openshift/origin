@@ -17,9 +17,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
-	"github.com/openshift/origin/pkg/dockerregistry/server/client"
-	"github.com/openshift/origin/pkg/dockerregistry/server/metrics"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/audit"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/metrics"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 	quotautil "github.com/openshift/origin/pkg/quota/util"

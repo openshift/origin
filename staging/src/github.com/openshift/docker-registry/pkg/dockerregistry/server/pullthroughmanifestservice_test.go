@@ -16,8 +16,8 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	_ "github.com/docker/distribution/registry/storage/driver/inmemory"
 
-	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
-	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
+	registryclient "github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	registrytest "github.com/openshift/docker-registry/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )

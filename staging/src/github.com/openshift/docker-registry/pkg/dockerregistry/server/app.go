@@ -10,9 +10,9 @@ import (
 	"github.com/docker/distribution/registry/handlers"
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/client"
-	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
-	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	registryconfig "github.com/openshift/docker-registry/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/maxconnections"
 )
 
 // App is a global registry application object. Shared resources can be placed

@@ -15,7 +15,7 @@ import (
 	storagedriver "github.com/docker/distribution/registry/storage/driver"
 	gorillahandlers "github.com/gorilla/handlers"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/api"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/api"
 )
 
 func (app *App) registerBlobHandler(dockerApp *handlers.App) {

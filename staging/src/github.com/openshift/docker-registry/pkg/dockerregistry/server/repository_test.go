@@ -18,9 +18,9 @@ import (
 
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 
-	"github.com/openshift/origin/pkg/dockerregistry/server/client"
-	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
-	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	registryclient "github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/configuration"
 )
 
 type testRegistry struct {

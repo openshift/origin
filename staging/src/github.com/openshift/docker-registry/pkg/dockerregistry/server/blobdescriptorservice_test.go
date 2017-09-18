@@ -21,9 +21,9 @@ import (
 	"github.com/docker/distribution/registry/middleware/registry"
 	"github.com/docker/distribution/registry/storage"
 
-	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
-	srvconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
-	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
+	registryclient "github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	srvconfig "github.com/openshift/docker-registry/pkg/dockerregistry/server/configuration"
+	registrytest "github.com/openshift/docker-registry/pkg/dockerregistry/testutil"
 )
 
 const testPassthroughToUpstream = "openshift.test.passthrough-to-upstream"

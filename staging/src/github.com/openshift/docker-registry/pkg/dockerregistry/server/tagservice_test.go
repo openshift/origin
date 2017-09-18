@@ -8,8 +8,8 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 
-	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
-	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
+	registryclient "github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	registrytest "github.com/openshift/docker-registry/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
