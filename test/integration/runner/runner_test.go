@@ -16,9 +16,10 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
-var timeout = flag.Duration("sub.timeout", 0, "Specify the timeout for each sub test")
+var timeout = flag.Duration("sub.timeout", 5*time.Minute, "Specify the timeout for each sub test")
 
 func TestIntegration(t *testing.T) {
 	executeTests(t, "..", "github.com/openshift/origin/test/integration", 1)
