@@ -67,20 +67,49 @@ var expectedPolicy = &audit.Policy{
 }
 
 func TestParser(t *testing.T) {
-	// Create a policy file.
-	f, err := ioutil.TempFile("", "policy.yaml")
+	f, err := writePolicy(policyDef, t)
 	require.NoError(t, err)
-	defer os.Remove(f.Name())
+	defer os.Remove(f)
 
-	_, err = f.WriteString(policyDef)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-
-	policy, err := LoadPolicyFromFile(f.Name())
+	policy, err := LoadPolicyFromFile(f)
 	require.NoError(t, err)
 
 	assert.Len(t, policy.Rules, 3) // Sanity check.
 	if !reflect.DeepEqual(policy, expectedPolicy) {
 		t.Errorf("Unexpected policy! Diff:\n%s", diff.ObjectDiff(policy, expectedPolicy))
 	}
+}
+
+func TestPolicyCntCheck(t *testing.T) {
+	//a set of testCases
+	var testCases = []struct {
+		caseName, policy string
+	}{
+		{
+			"policyWithNoRule",
+			`apiVersion: audit.k8s.io/v1beta1
+kind: Policy`,
+		},
+		{"emptyPolicyFile", ""},
+	}
+
+	for _, tc := range testCases {
+		f, err := writePolicy(tc.policy, t)
+		require.NoError(t, err)
+		defer os.Remove(f)
+
+		_, err = LoadPolicyFromFile(f)
+		assert.Error(t, err, "loaded illegal policy with 0 rules from testCase %s", tc.caseName)
+	}
+}
+
+func writePolicy(policy string, t *testing.T) (string, error) {
+	f, err := ioutil.TempFile("", "policy.yaml")
+	require.NoError(t, err)
+
+	_, err = f.WriteString(policy)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	return f.Name(), nil
 }
