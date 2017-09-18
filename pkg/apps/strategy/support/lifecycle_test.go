@@ -25,8 +25,8 @@ import (
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/util/namer"
 
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
@@ -249,7 +249,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &kapi.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: namer.GetPodName(deploymentName, "hook"),
+					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -328,7 +328,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &kapi.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: namer.GetPodName(deploymentName, "hook"),
+					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -387,7 +387,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &kapi.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: namer.GetPodName(deploymentName, "hook"),
+					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,
@@ -453,7 +453,7 @@ func TestHookExecutor_makeHookPod(t *testing.T) {
 			},
 			expected: &kapi.Pod{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: namer.GetPodName(deploymentName, "hook"),
+					Name: apihelpers.GetPodName(deploymentName, "hook"),
 					Labels: map[string]string{
 						deployapi.DeploymentPodTypeLabel:        "hook",
 						deployapi.DeployerPodForDeploymentLabel: deploymentName,

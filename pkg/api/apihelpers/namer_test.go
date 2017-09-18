@@ -1,4 +1,4 @@
-package namer
+package apihelpers
 
 import (
 	"math/rand"

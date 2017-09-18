@@ -7,7 +7,6 @@ import (
 	osgraph "github.com/openshift/origin/pkg/api/graph"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
@@ -94,7 +93,7 @@ func AddInputEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigNod
 	if in := buildgraph.EnsureSourceRepositoryNode(g, node.BuildConfig.Spec.Source); in != nil {
 		g.AddEdge(in, node, BuildInputEdgeKind)
 	}
-	inputImage := buildutil.GetInputReference(node.BuildConfig.Spec.Strategy)
+	inputImage := buildapi.GetInputReference(node.BuildConfig.Spec.Strategy)
 	if input := imageRefNode(g, inputImage, node.BuildConfig); input != nil {
 		g.AddEdge(input, node, BuildInputImageEdgeKind)
 	}
@@ -108,7 +107,7 @@ func AddTriggerEdges(g osgraph.MutableUniqueGraph, node *buildgraph.BuildConfigN
 		}
 		from := trigger.ImageChange.From
 		if trigger.ImageChange.From == nil {
-			from = buildutil.GetInputReference(node.BuildConfig.Spec.Strategy)
+			from = buildapi.GetInputReference(node.BuildConfig.Spec.Strategy)
 		}
 		triggerNode := imageRefNode(g, from, node.BuildConfig)
 		g.AddEdge(triggerNode, node, BuildTriggerImageEdgeKind)
