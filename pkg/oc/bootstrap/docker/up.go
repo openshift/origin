@@ -210,6 +210,7 @@ type CommonStartConfig struct {
 	HostVolumesDir           string
 	HostConfigDir            string
 	HostDataDir              string
+	OpenShiftBinaryPath      string
 	UsePorts                 []int
 	DNSPort                  int
 	ServerIP                 string
@@ -259,6 +260,7 @@ func (config *CommonStartConfig) Bind(flags *pflag.FlagSet) {
 	flags.StringVar(&config.HostConfigDir, "host-config-dir", host.DefaultConfigDir, "Directory on Docker host for OpenShift configuration")
 	flags.StringVar(&config.HostVolumesDir, "host-volumes-dir", host.DefaultVolumesDir, "Directory on Docker host for OpenShift volumes")
 	flags.StringVar(&config.HostDataDir, "host-data-dir", "", "Directory on Docker host for OpenShift data. If not specified, etcd data will not be persisted on the host.")
+	flags.StringVar(&config.OpenShiftBinaryPath, "openshift-binary-path", "", "Experimental: Specify a path to local 'openshift' binary and run it instead of default one.")
 	flags.StringVar(&config.HostPersistentVolumesDir, "host-pv-dir", host.DefaultPersistentVolumesDir, "Directory on host for OpenShift persistent volumes")
 	flags.BoolVar(&config.PortForwarding, "forward-ports", config.PortForwarding, "Use Docker port-forwarding to communicate with origin container. Requires 'socat' locally.")
 	flags.IntVar(&config.ServerLogLevel, "server-loglevel", 0, "Log level for OpenShift server")
@@ -852,6 +854,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		HostVolumesDir:           c.HostVolumesDir,
 		HostConfigDir:            c.HostConfigDir,
 		HostDataDir:              c.HostDataDir,
+		OpenShiftBinaryPath:      c.OpenShiftBinaryPath,
 		HostPersistentVolumesDir: c.HostPersistentVolumesDir,
 		UseExistingConfig:        c.UseExistingConfig,
 		Environment:              c.Environment,

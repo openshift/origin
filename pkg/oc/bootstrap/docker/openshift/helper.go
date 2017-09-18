@@ -119,6 +119,7 @@ type StartOptions struct {
 	Images                   string
 	HostVolumesDir           string
 	HostConfigDir            string
+	OpenShiftBinaryPath      string
 	HostDataDir              string
 	HostPersistentVolumesDir string
 	UseExistingConfig        bool
@@ -294,6 +295,10 @@ func (h *Helper) Start(opt *StartOptions, out io.Writer) (string, error) {
 	env = append(env, opt.Environment...)
 	binds = append(binds, fmt.Sprintf("%[1]s:%[1]s", opt.DockerRoot))
 	binds = append(binds, fmt.Sprintf("%s:/var/lib/origin/openshift.local.config:z", opt.HostConfigDir))
+
+	if len(opt.OpenShiftBinaryPath) > 0 {
+		binds = append(binds, fmt.Sprintf("%s:/usr/bin/openshift:z", opt.OpenShiftBinaryPath))
+	}
 
 	// Kubelet needs to be able to write to
 	// /sys/devices/virtual/net/vethXXX/brport/hairpin_mode, so make this rw, not ro.
