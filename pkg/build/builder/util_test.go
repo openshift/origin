@@ -19,7 +19,7 @@ func TestCGroups_CentOS7_Docker1_7(t *testing.T) {
 1:name=systemd:/system.slice/docker.service
 `
 	buffer := bytes.NewBufferString(example)
-	containerId := readNetClsCGroup(buffer)
+	containerId, _ := readNetClsCGroup(buffer)
 
 	if containerId != "5617ed7e7e487d2c4dd2e013e361109b4eceabfe3fa8c7aea9e37498b1aed5fa" {
 		t.Errorf("got %s, expected 5617ed7e7e487d2c4dd2e013e361109b4eceabfe3fa8c7aea9e37498b1aed5fa", containerId)
@@ -38,7 +38,7 @@ func TestCGroups_Ubuntu_Docker1_9(t *testing.T) {
 3:cpuset:/docker/bfea6eb2d60179355e370a5d277d496eb0fe75d9a5a47c267221e87dbbbbc93b
 2:name=systemd:/`
 	buffer := bytes.NewBufferString(example)
-	containerId := readNetClsCGroup(buffer)
+	containerId, _ := readNetClsCGroup(buffer)
 
 	if containerId != "bfea6eb2d60179355e370a5d277d496eb0fe75d9a5a47c267221e87dbbbbc93b" {
 		t.Errorf("got %s, expected bfea6eb2d60179355e370a5d277d496eb0fe75d9a5a47c267221e87dbbbbc93b", containerId)
