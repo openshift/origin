@@ -236,6 +236,7 @@ openshift-cli-create-deployment.1
 openshift-cli-create-deploymentconfig.1
 openshift-cli-create-identity.1
 openshift-cli-create-imagestream.1
+openshift-cli-create-imagestreamtag.1
 openshift-cli-create-namespace.1
 openshift-cli-create-poddisruptionbudget.1
 openshift-cli-create-policybinding.1
