@@ -10,7 +10,6 @@ import (
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
-	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	"github.com/golang/glog"
@@ -24,7 +23,6 @@ import (
 	knetwork "k8s.io/kubernetes/pkg/kubelet/network"
 	kubehostport "k8s.io/kubernetes/pkg/kubelet/network/hostport"
 	kbandwidth "k8s.io/kubernetes/pkg/util/bandwidth"
-	kexec "k8s.io/kubernetes/pkg/util/exec"
 
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/ip"
@@ -454,12 +452,13 @@ func setupPodBandwidth(ovs *ovsController, pod *kapi.Pod, hostVeth string) error
 	if ingressVal != nil {
 		ingressBPS = ingressVal.Value()
 
-		// FIXME: doesn't seem possible to do this with the netlink library?
-		itx := ipcmd.NewTransaction(kexec.New(), hostVeth)
-		itx.SetLink("qlen", "1000")
-		err = itx.EndTransaction()
+		l, err := netlink.LinkByName(hostVeth)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to find host veth interface %s: %v", hostVeth, err)
+		}
+		err = netlink.LinkSetTxQLen(l, 1000)
+		if err != nil {
+			return fmt.Errorf("failed to set host veth txqlen: %v", err)
 		}
 	}
 	if egressVal != nil {

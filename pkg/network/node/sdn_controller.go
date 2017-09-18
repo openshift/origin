@@ -3,14 +3,13 @@ package node
 import (
 	"fmt"
 	"net"
-	"strings"
+	"syscall"
 	"time"
 
 	"github.com/golang/glog"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/util/ipcmd"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -21,6 +20,8 @@ import (
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 	"k8s.io/kubernetes/pkg/util/iptables"
 	"k8s.io/kubernetes/pkg/util/sysctl"
+
+	"github.com/vishvananda/netlink"
 )
 
 func (plugin *OsdnNode) getLocalSubnet() (string, error) {
@@ -62,16 +63,18 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR string) bool {
 	var found bool
 
-	exec := kexec.New()
-	itx := ipcmd.NewTransaction(exec, Tun0)
-	addrs, err := itx.GetAddresses()
-	itx.EndTransaction()
+	l, err := netlink.LinkByName(Tun0)
+	if err != nil {
+		return false
+	}
+
+	addrs, err := netlink.AddrList(l, syscall.AF_INET)
 	if err != nil {
 		return false
 	}
 	found = false
 	for _, addr := range addrs {
-		if strings.Contains(addr, localSubnetGatewayCIDR) {
+		if addr.IPNet.String() == localSubnetGatewayCIDR {
 			found = true
 			break
 		}
@@ -80,15 +83,13 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 		return false
 	}
 
-	itx = ipcmd.NewTransaction(exec, Tun0)
-	routes, err := itx.GetRoutes()
-	itx.EndTransaction()
+	routes, err := netlink.RouteList(l, syscall.AF_INET)
 	if err != nil {
 		return false
 	}
 	found = false
 	for _, route := range routes {
-		if strings.Contains(route, clusterNetworkCIDR+" ") {
+		if route.Dst != nil && route.Dst.String() == clusterNetworkCIDR {
 			found = true
 			break
 		}
@@ -111,15 +112,17 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 		Steps:    6,
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
-		itx := ipcmd.NewTransaction(kexec.New(), device)
-		routes, err := itx.GetRoutes()
+		l, err := netlink.LinkByName(device)
+		if err != nil {
+			return false, fmt.Errorf("could not get interface %s: %v", device, err)
+		}
+		routes, err := netlink.RouteList(l, syscall.AF_INET)
 		if err != nil {
 			return false, fmt.Errorf("could not get routes: %v", err)
 		}
 		for _, route := range routes {
-			if strings.Contains(route, localSubnetCIDR) {
-				itx.DeleteRoute(localSubnetCIDR)
-				err = itx.EndTransaction()
+			if route.Dst != nil && route.Dst.String() == localSubnetCIDR {
+				err = netlink.RouteDel(&route)
 				if err != nil {
 					return false, fmt.Errorf("could not delete route: %v", err)
 				}
@@ -167,14 +170,35 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		return false, err
 	}
 
-	itx := ipcmd.NewTransaction(exec, Tun0)
-	itx.AddAddress(gwCIDR)
-	defer deleteLocalSubnetRoute(Tun0, localSubnetCIDR)
-	itx.SetLink("mtu", fmt.Sprint(plugin.mtu))
-	itx.SetLink("up")
-	itx.AddRoute(clusterNetworkCIDR, "proto", "kernel", "scope", "link")
-	itx.AddRoute(serviceNetworkCIDR)
-	err = itx.EndTransaction()
+	l, err := netlink.LinkByName(Tun0)
+	if err == nil {
+		gwIP, _ := netlink.ParseIPNet(gwCIDR)
+		err = netlink.AddrAdd(l, &netlink.Addr{IPNet: gwIP})
+		if err == nil {
+			defer deleteLocalSubnetRoute(Tun0, localSubnetCIDR)
+		}
+	}
+	if err == nil {
+		err = netlink.LinkSetMTU(l, int(plugin.mtu))
+	}
+	if err == nil {
+		err = netlink.LinkSetUp(l)
+	}
+	if err == nil {
+		route := &netlink.Route{
+			LinkIndex: l.Attrs().Index,
+			Scope:     netlink.SCOPE_LINK,
+			Dst:       plugin.networkInfo.ClusterNetwork,
+		}
+		err = netlink.RouteAdd(route)
+	}
+	if err == nil {
+		route := &netlink.Route{
+			LinkIndex: l.Attrs().Index,
+			Dst:       plugin.networkInfo.ServiceNetwork,
+		}
+		err = netlink.RouteAdd(route)
+	}
 	if err != nil {
 		return false, err
 	}
