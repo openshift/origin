@@ -1,4 +1,4 @@
-package v1_test
+package v1
 
 import (
 	"reflect"
@@ -14,10 +14,6 @@ import (
 	newer "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/image/apis/image/dockerpre012"
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
-
-	// some side-effect of this import is causing TestRoundTripVersionedObject to pass.  I don't see it.
-	_ "github.com/openshift/origin/pkg/image/apis/image/install"
 )
 
 func TestRoundTripVersionedObject(t *testing.T) {
@@ -27,9 +23,9 @@ func TestRoundTripVersionedObject(t *testing.T) {
 	newer.AddToSchemeInCoreGroup(scheme)
 	docker10.AddToScheme(scheme)
 	dockerpre012.AddToScheme(scheme)
-	imageapiv1.AddToSchemeInCoreGroup(scheme)
+	AddToSchemeInCoreGroup(scheme)
 	newer.AddToScheme(scheme)
-	imageapiv1.AddToScheme(scheme)
+	AddToScheme(scheme)
 	codecs := serializer.NewCodecFactory(scheme)
 
 	d := &newer.DockerImage{
@@ -45,7 +41,7 @@ func TestRoundTripVersionedObject(t *testing.T) {
 		DockerImageReference: "foo/bar/baz",
 	}
 
-	data, err := runtime.Encode(codecs.LegacyCodec(imageapiv1.SchemeGroupVersion), i)
+	data, err := runtime.Encode(codecs.LegacyCodec(SchemeGroupVersion), i)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -66,16 +62,16 @@ func TestRoundTripVersionedObject(t *testing.T) {
 
 func TestFieldSelectors(t *testing.T) {
 	apitesting.FieldKeyCheck{
-		SchemeBuilder: []func(*runtime.Scheme) error{imageapiv1.LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
-		Kind:          imageapiv1.LegacySchemeGroupVersion.WithKind("ImageStream"),
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("ImageStream"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		AllowedExternalFieldKeys: []string{"name", "spec.dockerImageRepository", "status.dockerImageRepository"},
 		FieldKeyEvaluatorFn:      newer.ImageStreamSelector,
 	}.Check(t)
 
 	apitesting.FieldKeyCheck{
-		SchemeBuilder: []func(*runtime.Scheme) error{imageapiv1.SchemeBuilder.AddToScheme, newer.SchemeBuilder.AddToScheme},
-		Kind:          imageapiv1.SchemeGroupVersion.WithKind("ImageStream"),
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, newer.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("ImageStream"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
 		AllowedExternalFieldKeys: []string{"spec.dockerImageRepository", "status.dockerImageRepository"},
 		FieldKeyEvaluatorFn:      newer.ImageStreamSelector,
@@ -85,8 +81,8 @@ func TestFieldSelectors(t *testing.T) {
 func TestImageImportSpecDefaulting(t *testing.T) {
 	scheme := runtime.NewScheme()
 	codecs := serializer.NewCodecFactory(scheme)
-	imageapiv1.LegacySchemeBuilder.AddToScheme(scheme)
-	imageapiv1.SchemeBuilder.AddToScheme(scheme)
+	LegacySchemeBuilder.AddToScheme(scheme)
+	SchemeBuilder.AddToScheme(scheme)
 	newer.LegacySchemeBuilder.AddToScheme(scheme)
 	newer.SchemeBuilder.AddToScheme(scheme)
 
@@ -97,7 +93,7 @@ func TestImageImportSpecDefaulting(t *testing.T) {
 			},
 		},
 	}
-	data, err := runtime.Encode(codecs.LegacyCodec(imageapiv1.SchemeGroupVersion), i)
+	data, err := runtime.Encode(codecs.LegacyCodec(SchemeGroupVersion), i)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -138,12 +138,10 @@
       "vendor/k8s.io/kubernetes/pkg/api/helper",
       "vendor/github.com/golang/glog",
       "vendor/github.com/fsouza/go-dockerclient",
-      "vendor/github.com/golang/glog",
       "vendor/github.com/docker/distribution/digest",
       "vendor/github.com/docker/distribution/manifest/schema1",
       "vendor/github.com/docker/distribution/manifest/schema2",
       "vendor/github.com/blang/semver",
-      "github.com/openshift/origin/pkg/image/apis/image/install",
       "github.com/openshift/origin/pkg/image/reference"
     ]
   },
