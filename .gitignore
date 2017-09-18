@@ -26,3 +26,4 @@ origin.iml
 *.go~
 tags
 .envrc
+staging/pkg
