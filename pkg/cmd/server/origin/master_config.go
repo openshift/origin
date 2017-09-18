@@ -43,10 +43,12 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/auth/nodeidentifier"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+	coreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/core/internalversion"
 	rbacinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion/rbac/internalversion"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	sacontroller "k8s.io/kubernetes/pkg/controller/serviceaccount"
@@ -54,9 +56,12 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/pkg/serviceaccount"
+	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
+	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
 	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
+	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/request/paramtoken"
 	authnregistry "github.com/openshift/origin/pkg/auth/oauth/registry"
@@ -233,6 +238,8 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		kubeAuthorizer,
 		kubeSubjectLocator,
 		informers.GetInternalKubeInformers().Rbac().InternalVersion().ClusterRoles().Lister(),
+		informers.GetInternalKubeInformers().Core().InternalVersion().Pods(),
+		informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes(),
 		options.ProjectConfig.ProjectRequestMessage,
 	)
 
@@ -404,6 +411,7 @@ var (
 		"PodPreset",
 		"LimitRanger",
 		"ServiceAccount",
+		noderestriction.PluginName,
 		"SecurityContextConstraint",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
@@ -415,7 +423,6 @@ var (
 		"DefaultTolerationSeconds",
 		"Initializers",
 		"GenericAdmissionWebhook",
-		"NodeRestriction",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -448,6 +455,7 @@ var (
 		"PodPreset",
 		"LimitRanger",
 		"ServiceAccount",
+		noderestriction.PluginName,
 		"SecurityContextConstraint",
 		storageclassdefaultadmission.PluginName,
 		"AlwaysPullImages",
@@ -459,7 +467,6 @@ var (
 		"DefaultTolerationSeconds",
 		"Initializers",
 		"GenericAdmissionWebhook",
-		"NodeRestriction",
 		"PodTolerationRestriction",
 		// NOTE: ResourceQuota and ClusterResourceQuota must be the last 2 plugins.
 		// DO NOT ADD ANY PLUGINS AFTER THIS LINE!
@@ -786,14 +793,27 @@ func buildKubeAuth(r rbacinformers.Interface) (kauthorizer.Authorizer, rbacregis
 	return kubeAuthorizer, ruleResolver, kubeSubjectLocator
 }
 
-func newAuthorizer(kubeAuthorizer kauthorizer.Authorizer, kubeSubjectLocator rbacauthorizer.SubjectLocator, clusterRoleGetter rbaclisters.ClusterRoleLister, projectRequestDenyMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
+func newAuthorizer(
+	kubeAuthorizer kauthorizer.Authorizer,
+	kubeSubjectLocator rbacauthorizer.SubjectLocator,
+	clusterRoleGetter rbaclisters.ClusterRoleLister,
+	podInformer coreinformers.PodInformer,
+	pvInformer coreinformers.PersistentVolumeInformer,
+	projectRequestDenyMessage string,
+) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
 	roleBasedAuthorizer := authorizer.NewAuthorizer(kubeAuthorizer, messageMaker)
 	subjectLocator := authorizer.NewSubjectLocator(kubeSubjectLocator)
+
 	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, clusterRoleGetter, messageMaker)
+
+	graph := node.NewGraph()
+	node.AddGraphEventHandlers(graph, podInformer, pvInformer)
+	nodeAuthorizer := node.NewAuthorizer(graph, nodeidentifier.NewDefaultNodeIdentifier(), kbootstrappolicy.NodeRules())
 
 	authorizer := authorizerunion.New(
 		authorizerfactory.NewPrivilegedGroups(user.SystemPrivilegedGroup), // authorizes system:masters to do anything, just like upstream
+		nodeAuthorizer,
 		scopeLimitedAuthorizer)
 
 	return authorizer, subjectLocator

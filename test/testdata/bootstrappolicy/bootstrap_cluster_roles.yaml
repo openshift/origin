@@ -2161,14 +2161,6 @@ items:
     verbs:
     - create
   - apiGroups:
-    - ""
-    - authorization.openshift.io
-    resources:
-    - localsubjectaccessreviews
-    - subjectaccessreviews
-    verbs:
-    - create
-  - apiGroups:
     - authorization.k8s.io
     resources:
     - localsubjectaccessreviews
@@ -2192,6 +2184,14 @@ items:
     - get
     - list
     - watch
+  - apiGroups:
+    - ""
+    resources:
+    - nodes
+    verbs:
+    - delete
+    - patch
+    - update
   - apiGroups:
     - ""
     resources:
@@ -2256,6 +2256,8 @@ items:
     verbs:
     - create
     - get
+    - list
+    - watch
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:

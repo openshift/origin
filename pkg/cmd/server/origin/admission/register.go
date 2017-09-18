@@ -28,6 +28,7 @@ import (
 	securityadmission "github.com/openshift/origin/pkg/security/admission"
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 
+	"k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
 	imagepolicyapi "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
@@ -83,6 +84,7 @@ var (
 		serviceadmit.RestrictedEndpointsPluginName,
 		"LimitRanger",
 		"ServiceAccount",
+		noderestriction.PluginName,
 		"SecurityContextConstraint",
 		"SCCExecRestrictions",
 		"PersistentVolumeLabel",
@@ -111,7 +113,6 @@ var (
 		// these are new, reassess post-rebase
 		"Initializers",
 		"GenericAdmissionWebhook",
-		"NodeRestriction",
 		"PodTolerationRestriction",
 	)
 )
