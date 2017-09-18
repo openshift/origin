@@ -13,6 +13,7 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/kubernetes/pkg/api/install"
 	"k8s.io/kubernetes/pkg/controller"
 
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
@@ -42,6 +43,15 @@ var (
 		&metav1.APIResourceList{},
 	}
 )
+
+func init() {
+	install.Install(groupFactoryRegistry, registry, Scheme)
+
+	// we need to add the options to empty v1
+	metav1.AddToGroupVersion(Scheme, schema.GroupVersion{Group: "", Version: "v1"})
+
+	Scheme.AddUnversionedTypes(unversionedVersion, unversionedTypes...)
+}
 
 type TemplateServiceBrokerConfig struct {
 	GenericConfig *genericapiserver.Config

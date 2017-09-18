@@ -97,7 +97,8 @@ objects:
     selector:
       apiserver: "true"
     ports:
-    - port: 443
+    - name: https
+      port: 443
       targetPort: 8443
 
 # This service account will be granted permission to call the TSB.
