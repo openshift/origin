@@ -71,6 +71,7 @@ function start() {
   local wait_for_cluster=$8
   local node_count=$9
   local additional_args=${10}
+  local crio_root=${11}
 
   # docker-in-docker's use of volumes is not compatible with SELinux
   check-selinux
@@ -116,6 +117,10 @@ function start() {
     ovn_kubernetes=1
   fi
   echo "OPENSHIFT_OVN_KUBERNETES=${ovn_kubernetes}" >> "${config_root}/dind-env"
+
+  if [[ "${container_runtime}" = "crio" ]]; then
+    copy-crio-runtime "${crio_root}" "${config_root}/"
+  fi
 
   # Create containers
   start-container "${config_root}" "${deployed_config_root}" "${MASTER_IMAGE}" "${MASTER_NAME}"
@@ -509,6 +514,19 @@ function copy-ovn-runtime() {
   cp -R "${ovn_k8s_python_module_path}" "${target}/"
 }
 
+function copy-crio-runtime() {
+  local crio_root=$1
+  local target=$2
+
+  cp "${crio_root}/crio" "${target}"
+  cp "${crio_root}/crioctl" "${target}"
+  cp "${crio_root}/kpod" "${target}"
+  cp "${crio_root}/conmon/conmon" "${target}"
+  cp "${crio_root}/pause/pause" "${target}"
+  cp "${crio_root}/crio.conf" "${target}"
+  cp "${crio_root}/seccomp.json" "${target}"
+}
+
 function wait-for-cluster() {
   local config_root=$1
   local expected_node_count=$2
@@ -619,6 +637,7 @@ ADDITIONAL_ARGS=""
 
 OVN_ROOT="${OVN_ROOT:-}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-dockershim}"
+CRIO_ROOT="${CRIO_ROOT:-}"
 
 case "${1:-""}" in
   start)
@@ -700,7 +719,7 @@ case "${1:-""}" in
 
     start "${OS_ROOT}" "${OVN_ROOT}" "${CONFIG_ROOT}" "${DEPLOYED_CONFIG_ROOT}" \
           "${CLUSTER_ID}" "${NETWORK_PLUGIN}" "${CONTAINER_RUNTIME}" \
-          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ADDITIONAL_ARGS}"
+          "${WAIT_FOR_CLUSTER}" "${NODE_COUNT}" "${ADDITIONAL_ARGS}" "${CRIO_ROOT}"
     ;;
   add-node)
     WAIT_FOR_CLUSTER=1
