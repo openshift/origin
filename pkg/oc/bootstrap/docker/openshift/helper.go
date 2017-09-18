@@ -846,7 +846,6 @@ func (h *Helper) updateConfig(configDir string, opt *StartOptions) error {
 
 		extension := `
 window.OPENSHIFT_CONSTANTS.ENABLE_TECH_PREVIEW_FEATURE = {
-  service_catalog_landing_page: true,
   template_service_broker: true
 };
 `
