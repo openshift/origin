@@ -11,10 +11,12 @@ import (
 	"time"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	clientgotesting "k8s.io/client-go/testing"
+	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
@@ -512,6 +514,7 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 	serviceUID := "some-uid"
 	expectedServiceAnnotations := map[string]string{ServingCertSecretAnnotation: expectedSecretName, ServingCertCreatedByAnnotation: caName}
 	expectedSecretAnnotations := map[string]string{ServiceUIDAnnotation: serviceUID, ServiceNameAnnotation: serviceName}
+	expectedOwnerRef := []metav1.OwnerReference{{APIVersion: "v1", Kind: "Service", Name: serviceName, UID: types.UID(serviceUID)}}
 	namespace := "ns"
 
 	serviceToAdd := &v1.Service{}
@@ -551,6 +554,10 @@ func TestRecreateSecretControllerFlow(t *testing.T) {
 			delete(newSecret.Annotations, ServingCertExpiryAnnotation)
 			if !reflect.DeepEqual(newSecret.Annotations, expectedSecretAnnotations) {
 				t.Errorf("expected %v, got %v", expectedSecretAnnotations, newSecret.Annotations)
+				continue
+			}
+			if !kapihelper.Semantic.DeepEqual(expectedOwnerRef, newSecret.OwnerReferences) {
+				t.Errorf("expected %v, got %v", expectedOwnerRef, newSecret.OwnerReferences)
 				continue
 			}
 

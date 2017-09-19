@@ -23,6 +23,7 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/crypto/extensions"
+	ocontroller "github.com/openshift/origin/pkg/controller"
 )
 
 const (
@@ -263,6 +264,7 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 			v1.TLSPrivateKeyKey: keyBytes,
 		},
 	}
+	ocontroller.EnsureOwnerRef(secret, ownerRef(service))
 
 	_, err = sc.secretClient.Secrets(service.Namespace).Create(secret)
 	if err != nil && !kapierrors.IsAlreadyExists(err) {
@@ -344,4 +346,13 @@ func (sc *ServiceServingCertController) requiresCertGeneration(service *v1.Servi
 		return true
 	}
 	return true
+}
+
+func ownerRef(service *v1.Service) metav1.OwnerReference {
+	return metav1.OwnerReference{
+		APIVersion: "v1",
+		Kind:       "Service",
+		Name:       service.Name,
+		UID:        service.UID,
+	}
 }
