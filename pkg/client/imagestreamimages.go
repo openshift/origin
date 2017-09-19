@@ -31,6 +31,6 @@ func newImageStreamImages(c *Client, namespace string) *imageStreamImages {
 // Get finds the specified image by name of an image repository and id.
 func (c *imageStreamImages) Get(name, id string) (result *imageapi.ImageStreamImage, err error) {
 	result = &imageapi.ImageStreamImage{}
-	err = c.r.Get().Namespace(c.ns).Resource("imageStreamImages").Name(imageapi.MakeImageStreamImageName(name, id)).Do().Into(result)
+	err = c.r.Get().Namespace(c.ns).Resource("imageStreamImages").Name(imageapi.JoinImageStreamImage(name, id)).Do().Into(result)
 	return
 }

@@ -158,7 +158,7 @@ func (s *signatureHandler) Get(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	image, err := s.isImageClient.ImageStreamImages(s.reference.Namespace).Get(imageapi.MakeImageStreamImageName(s.reference.Name, s.reference.ID), metav1.GetOptions{})
+	image, err := s.isImageClient.ImageStreamImages(s.reference.Namespace).Get(imageapi.JoinImageStreamImage(s.reference.Name, s.reference.ID), metav1.GetOptions{})
 	switch {
 	case err == nil:
 	case kapierrors.IsUnauthorized(err):

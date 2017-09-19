@@ -29,8 +29,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
@@ -900,13 +900,13 @@ func pruneManifests(
 
 // imageDeleter removes an image from OpenShift.
 type imageDeleter struct {
-	images client.ImageInterface
+	images imageclient.ImagesGetter
 }
 
 var _ ImageDeleter = &imageDeleter{}
 
 // NewImageDeleter creates a new imageDeleter.
-func NewImageDeleter(images client.ImageInterface) ImageDeleter {
+func NewImageDeleter(images imageclient.ImagesGetter) ImageDeleter {
 	return &imageDeleter{
 		images: images,
 	}
@@ -914,18 +914,18 @@ func NewImageDeleter(images client.ImageInterface) ImageDeleter {
 
 func (p *imageDeleter) DeleteImage(image *imageapi.Image) error {
 	glog.V(4).Infof("Deleting image %q", image.Name)
-	return p.images.Delete(image.Name)
+	return p.images.Images().Delete(image.Name, metav1.NewDeleteOptions(0))
 }
 
 // imageStreamDeleter updates an image stream in OpenShift.
 type imageStreamDeleter struct {
-	streams client.ImageStreamsNamespacer
+	streams imageclient.ImageStreamsGetter
 }
 
 var _ ImageStreamDeleter = &imageStreamDeleter{}
 
 // NewImageStreamDeleter creates a new imageStreamDeleter.
-func NewImageStreamDeleter(streams client.ImageStreamsNamespacer) ImageStreamDeleter {
+func NewImageStreamDeleter(streams imageclient.ImageStreamsGetter) ImageStreamDeleter {
 	return &imageStreamDeleter{
 		streams: streams,
 	}

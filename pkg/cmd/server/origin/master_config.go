@@ -81,6 +81,7 @@ import (
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
@@ -201,6 +202,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
+	imageClient, err := imageclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
@@ -277,6 +282,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		quotaRegistry)
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		OpenshiftClient:                 privilegedLoopbackOpenShiftClient,
+		OpenshiftInternalImageClient:    imageClient,
 		OpenshiftInternalTemplateClient: templateClient,
 		ProjectCache:                    projectCache,
 		OriginQuotaRegistry:             quotaRegistry,

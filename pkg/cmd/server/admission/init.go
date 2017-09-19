@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
@@ -21,6 +22,7 @@ import (
 
 type PluginInitializer struct {
 	OpenshiftClient                 client.Interface
+	OpenshiftInternalImageClient    imageclient.Interface
 	OpenshiftInternalTemplateClient templateclient.Interface
 	ProjectCache                    *cache.ProjectCache
 	OriginQuotaRegistry             quota.Registry
@@ -40,6 +42,9 @@ type PluginInitializer struct {
 func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsDeprecatedOpenshiftClient, ok := plugin.(WantsDeprecatedOpenshiftClient); ok {
 		wantsDeprecatedOpenshiftClient.SetDeprecatedOpenshiftClient(i.OpenshiftClient)
+	}
+	if wantsOpenshiftImageClient, ok := plugin.(WantsOpenshiftInternalImageClient); ok {
+		wantsOpenshiftImageClient.SetOpenshiftInternalImageClient(i.OpenshiftInternalImageClient)
 	}
 	if WantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
 		WantsOpenshiftInternalTemplateClient.SetOpenShiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)

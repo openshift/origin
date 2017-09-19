@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/openshift/origin/pkg/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // ResolveImagePullSpec resolves the provided source which can be "docker", "istag" or
 // "isimage" and returns the full Docker pull spec.
-func ResolveImagePullSpec(images client.ImageStreamImagesNamespacer, tags client.ImageStreamTagsNamespacer, source, name, defaultNamespace string) (string, error) {
+func ResolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, defaultNamespace string) (string, error) {
 	// for Docker source, just passtrough the image name
 	if IsDocker(source) {
 		return name, nil
@@ -24,24 +26,16 @@ func ResolveImagePullSpec(images client.ImageStreamImagesNamespacer, tags client
 	dockerImageReference := ""
 
 	if IsImageStreamTag(source) {
-		name, tag, ok := imageapi.SplitImageStreamTag(image)
-		if !ok {
-			return "", fmt.Errorf("invalid image stream tag %q, must be of the form [NAMESPACE/]NAME:TAG", name)
-		}
-		if resolved, err := tags.ImageStreamTags(namespace).Get(name, tag); err != nil {
-			return "", fmt.Errorf("failed to get image stream tag %q: %v", name, err)
+		if resolved, err := imageClient.ImageStreamTags(namespace).Get(image, metav1.GetOptions{}); err != nil {
+			return "", fmt.Errorf("failed to get image stream tag %q: %v", image, err)
 		} else {
 			dockerImageReference = resolved.Image.DockerImageReference
 		}
 	}
 
 	if IsImageStreamImage(source) {
-		name, digest, ok := imageapi.SplitImageStreamImage(image)
-		if !ok {
-			return "", fmt.Errorf("invalid image stream image %q, must be of the form [NAMESPACE/]NAME@DIGEST", name)
-		}
-		if resolved, err := images.ImageStreamImages(namespace).Get(name, digest); err != nil {
-			return "", fmt.Errorf("failed to get image stream image %q: %v", name, err)
+		if resolved, err := imageClient.ImageStreamImages(namespace).Get(image, metav1.GetOptions{}); err != nil {
+			return "", fmt.Errorf("failed to get image stream image %q: %v", image, err)
 		} else {
 			dockerImageReference = resolved.Image.DockerImageReference
 		}

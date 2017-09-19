@@ -132,11 +132,6 @@ func ParseImageStreamTagName(istag string) (name string, tag string, err error) 
 	return
 }
 
-// MakeImageStreamImageName creates a name for image stream image object from an image stream name and an id.
-func MakeImageStreamImageName(name, id string) string {
-	return fmt.Sprintf("%s@%s", name, id)
-}
-
 // IsRegistryDockerHub returns true if the given registry name belongs to
 // Docker hub.
 func IsRegistryDockerHub(registry string) bool {
@@ -353,6 +348,11 @@ func JoinImageStreamTag(name, tag string) string {
 		tag = DefaultImageTag
 	}
 	return fmt.Sprintf("%s:%s", name, tag)
+}
+
+// JoinImageStreamImage creates a name for image stream image object from an image stream name and an id.
+func JoinImageStreamImage(name, id string) string {
+	return fmt.Sprintf("%s@%s", name, id)
 }
 
 // NormalizeImageStreamTag normalizes an image stream tag by defaulting to 'latest'
