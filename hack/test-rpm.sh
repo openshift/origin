@@ -150,9 +150,9 @@ function test_install()
     rpm -ivh --test $RPM_DIR/$SERVICE_PREFIX-$rpm_version*.rpm $RPM_DIR/$SERVICE_PREFIX-master*.rpm
     fail_out $? "Unable to install main and master"
 
-    info "Testing install of main, node and tuned"
-    rpm -ivh --test $RPM_DIR/$SERVICE_PREFIX-$rpm_version*.rpm $RPM_DIR/$SERVICE_PREFIX-node*.rpm $RPM_DIR/tuned-profiles-$SERVICE_PREFIX-node*rpm
-    fail_out $? "Unable to install main, node and tuned"
+    info "Testing install of main and tuned"
+    rpm -ivh --test $RPM_DIR/$SERVICE_PREFIX-$rpm_version*.rpm $RPM_DIR/$SERVICE_PREFIX-node*.rpm
+    fail_out $? "Unable to install main and tuned"
     pass "Test Install"
 }
 

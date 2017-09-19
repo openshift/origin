@@ -10,8 +10,6 @@
 
 # docker_version is the version of docker requires by packages
 %global docker_version 1.12
-# tuned_version is the version of tuned requires by packages
-%global tuned_version  2.3
 # openvswitch_version is the version of openvswitch requires by packages
 %global openvswitch_version 2.6.1
 # this is the version we obsolete up to. The packaging changed for Origin
@@ -132,7 +130,6 @@ Summary: %{product_name} Test Suite
 Summary:        %{product_name} Node
 Requires:       %{name} = %{version}-%{release}
 Requires:       docker >= %{docker_version}
-Requires:       tuned-profiles-%{name}-node = %{version}-%{release}
 Requires:       util-linux
 Requires:       socat
 Requires:       nfs-utils
@@ -143,16 +140,10 @@ Requires(post):   systemd
 Requires(preun):  systemd
 Requires(postun): systemd
 Obsoletes:      openshift-node < %{package_refector_version}
+Obsoletes:      tuned-profiles-%{name}-node
+Provides:       tuned-profiles-%{name}-node
 
 %description node
-%{summary}
-
-%package -n tuned-profiles-%{name}-node
-Summary:        Tuned profiles for %{product_name} Node hosts
-Requires:       tuned >= %{tuned_version}
-Obsoletes:      tuned-profiles-openshift-node < %{package_refector_version}
-
-%description -n tuned-profiles-%{name}-node
 %{summary}
 
 %package clients
@@ -352,23 +343,10 @@ install -m 0644 contrib/systemd/%{name}-node.service %{buildroot}%{_unitdir}/%{n
 # same sysconfig files for origin vs aos
 install -m 0644 contrib/systemd/origin-master.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-master
 install -m 0644 contrib/systemd/origin-node.sysconfig %{buildroot}%{_sysconfdir}/sysconfig/%{name}-node
-install -d -m 0755 %{buildroot}%{_prefix}/lib/tuned/%{name}-node-{guest,host}
-install -m 0644 contrib/tuned/origin-node-guest/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-guest/tuned.conf
-install -m 0644 contrib/tuned/origin-node-host/tuned.conf %{buildroot}%{_prefix}/lib/tuned/%{name}-node-host/tuned.conf
 
 # Install man1 man pages
 install -d -m 0755 %{buildroot}%{_mandir}/man1
 install -m 0644 docs/man/man1/* %{buildroot}%{_mandir}/man1/
-
-# Patch and install the manpage for tuned profiles on aos
-install -d -m 0755 %{buildroot}%{_mandir}/man7
-%if "%{dist}" == ".el7aos"
-%{__sed} -e 's|origin-node|atomic-openshift-node|g' \
- -e 's|ORIGIN_NODE|ATOMIC_OPENSHIFT_NODE|' \
- contrib/tuned/man/tuned-profiles-origin-node.7 > %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
-%else
-install -m 0644 contrib/tuned/man/tuned-profiles-origin-node.7 %{buildroot}%{_mandir}/man7/tuned-profiles-%{name}-node.7
-%endif
 
 mkdir -p %{buildroot}%{_sharedstatedir}/origin
 
@@ -405,7 +383,7 @@ mkdir -p $RPM_BUILD_ROOT/usr/sbin
 
 # Install openshift-excluder script
 sed "s|@@CONF_FILE-VARIABLE@@|${OS_CONF_FILE}|" contrib/excluder/excluder-template > $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
-sed -i "s|@@PACKAGE_LIST-VARIABLE@@|%{name} %{name}-clients %{name}-clients-redistributable %{name}-master %{name}-node %{name}-pod %{name}-recycle %{name}-sdn-ovs %{name}-tests tuned-profiles-%{name}-node|" $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
+sed -i "s|@@PACKAGE_LIST-VARIABLE@@|%{name} %{name}-clients %{name}-clients-redistributable %{name}-master %{name}-node %{name}-pod %{name}-recycle %{name}-sdn-ovs %{name}-tests|" $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
 chmod 0744 $RPM_BUILD_ROOT/usr/sbin/%{name}-excluder
 
 # Install docker-excluder script
@@ -561,28 +539,6 @@ fi
 
 %files service-catalog
 %{_bindir}/service-catalog
-
-%files -n tuned-profiles-%{name}-node
-%license LICENSE
-%{_prefix}/lib/tuned/%{name}-node-host
-%{_prefix}/lib/tuned/%{name}-node-guest
-%{_mandir}/man7/tuned-profiles-%{name}-node.7*
-
-%post -n tuned-profiles-%{name}-node
-recommended=`/usr/sbin/tuned-adm recommend`
-if [[ "${recommended}" =~ guest ]] ; then
-  /usr/sbin/tuned-adm profile %{name}-node-guest > /dev/null 2>&1
-else
-  /usr/sbin/tuned-adm profile %{name}-node-host > /dev/null 2>&1
-fi
-
-%preun -n tuned-profiles-%{name}-node
-# reset the tuned profile to the recommended profile
-# $1 = 0 when we're being removed > 0 during upgrades
-if [ "$1" = 0 ]; then
-  recommended=`/usr/sbin/tuned-adm recommend`
-  /usr/sbin/tuned-adm profile $recommended > /dev/null 2>&1
-fi
 
 %files clients
 %license LICENSE
