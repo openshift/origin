@@ -287,7 +287,7 @@ func (fos *FakeOpenShift) GetImageStreamImage(namespace string, id string) (*ima
 	isi := imageapiv1.ImageStreamImage{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:         namespace,
-			Name:              imageapi.JoinImageStreamImage(name, imageID),
+			Name:              imageapi.MakeImageStreamImageName(name, imageID),
 			CreationTimestamp: image.ObjectMeta.CreationTimestamp,
 			Annotations:       repo.Annotations,
 		},
