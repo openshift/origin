@@ -1004,38 +1004,3 @@ func TestPrintDefaults(t *testing.T) {
 		t.Errorf("got %q want %q\n", got, defaultOutput)
 	}
 }
-
-func TestVisitAllFlagOrder(t *testing.T) {
-	fs := NewFlagSet("TestVisitAllFlagOrder", ContinueOnError)
-	fs.SortFlags = false
-	names := []string{"C", "B", "A", "D"}
-	for _, name := range names {
-		fs.Bool(name, false, "")
-	}
-
-	i := 0
-	fs.VisitAll(func(f *Flag) {
-		if names[i] != f.Name {
-			t.Errorf("Incorrect order. Expected %v, got %v", names[i], f.Name)
-		}
-		i++
-	})
-}
-
-func TestVisitFlagOrder(t *testing.T) {
-	fs := NewFlagSet("TestVisitFlagOrder", ContinueOnError)
-	fs.SortFlags = false
-	names := []string{"C", "B", "A", "D"}
-	for _, name := range names {
-		fs.Bool(name, false, "")
-		fs.Set(name, "true")
-	}
-
-	i := 0
-	fs.Visit(func(f *Flag) {
-		if names[i] != f.Name {
-			t.Errorf("Incorrect order. Expected %v, got %v", names[i], f.Name)
-		}
-		i++
-	})
-}

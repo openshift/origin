@@ -6,6 +6,7 @@ import:
 - package: github.com/spf13/cobra
 - package: github.com/spf13/pflag
 - package: k8s.io/client-go
+  version: e356aa2e77ab4a5914c216c12ba14cce25a25ab0 # kube 1.7.0
   subpackages:
   - tools/clientcmd
   - tools/cache
@@ -13,10 +14,12 @@ import:
   - rest
   - util/flowcontrol
 - package: k8s.io/apiserver
+  version: ab57ed5a72c3b67058f665d660e23bae18339fc2
   subpackages:
   - pkg/admission
   - pkg/endpoints/request
 - package: k8s.io/apimachinery
+  version: abe34e4f5b4413c282a83011892cbeea5b32223b # kube 1.7.0
   subpackages:
   - pkg/runtime
   - pkg/api/meta
@@ -29,7 +32,7 @@ import:
   - pkg/types
   - pkg/conversion
 - package: k8s.io/kubernetes
-  version: v1.6.0
+  version: ebb8d6e0fadfc95f3d64ccecc36c8ed2ac9224ef # kube 1.7.0
   subpackages:
   - pkg/api
   - pkg/api/testapi

@@ -95,7 +95,7 @@ func getTestNode(nodeName string) *v1.Node {
 				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Addresses: []v1.NodeAddress{
-				{Type: v1.NodeLegacyHostIP, Address: "127.0.0.1"},
+				{Type: v1.NodeExternalIP, Address: "127.0.0.1"},
 				{Type: v1.NodeInternalIP, Address: "127.0.0.1"},
 			},
 			Images: []v1.ContainerImage{},

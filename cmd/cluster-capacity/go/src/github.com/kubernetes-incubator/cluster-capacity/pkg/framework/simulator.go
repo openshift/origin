@@ -18,8 +18,6 @@ package framework
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"sync"
 	"time"
 
@@ -34,12 +32,10 @@ import (
 	externalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/clientset/fake"
 	einformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
+	sapps "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app"
 	soptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	"k8s.io/kubernetes/plugin/pkg/scheduler"
-	schedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api"
-	latestschedulerapi "k8s.io/kubernetes/plugin/pkg/scheduler/api/latest"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/core"
-	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
 
 	// register algorithm providers
 	_ "k8s.io/kubernetes/plugin/pkg/scheduler/algorithmprovider"
@@ -178,7 +174,6 @@ func (c *ClusterCapacity) Bind(binding *v1.Binding, schedulerName string) error 
 	c.status.Pods = append(c.status.Pods, &updatedPod)
 	go func() {
 		<-c.schedulerConfigs[schedulerName].Recorder.(*record.Recorder).Events
-		//fmt.Printf("Scheduling event: %v\n", event)
 	}()
 
 	if c.maxSimulated > 0 && c.simulated >= c.maxSimulated {
@@ -290,7 +285,7 @@ func (b *localBinderPodConditionUpdater) Update(pod *v1.Pod, podCondition *v1.Po
 	return b.C.Update(pod, podCondition, b.SchedulerName)
 }
 
-func (c *ClusterCapacity) createSchedulerConfig(s *soptions.SchedulerServer) (*scheduler.Config, error) {
+func (c *ClusterCapacity) createScheduler(s *soptions.SchedulerServer) (*scheduler.Scheduler, error) {
 	// TODO improve this
 	if c.informerFactory == nil {
 		c.informerFactory = einformers.NewSharedInformerFactory(c.externalkubeclient, 0)
@@ -298,72 +293,51 @@ func (c *ClusterCapacity) createSchedulerConfig(s *soptions.SchedulerServer) (*s
 
 	fakeClient := fake.NewSimpleClientset()
 	fakeInformerFactory := einformers.NewSharedInformerFactory(fakeClient, 0)
-	configFactory := factory.NewConfigFactory(s.SchedulerName,
+
+	scheduler, err := sapps.CreateScheduler(s,
 		c.externalkubeclient,
 		c.informerFactory.Core().V1().Nodes(),
+		c.informerFactory.Core().V1().Pods(),
 		c.informerFactory.Core().V1().PersistentVolumes(),
 		c.informerFactory.Core().V1().PersistentVolumeClaims(),
 		fakeInformerFactory.Core().V1().ReplicationControllers(),
 		fakeInformerFactory.Extensions().V1beta1().ReplicaSets(),
 		fakeInformerFactory.Apps().V1beta1().StatefulSets(),
 		c.informerFactory.Core().V1().Services(),
-		s.HardPodAffinitySymmetricWeight)
-	config, err := createConfig(s, configFactory)
+		record.NewRecorder(10))
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create scheduler configuration: %v", err)
+		return nil, fmt.Errorf("error creating scheduler: %v", err)
 	}
-
-	// Collect scheduler succesfully/failed scheduled pod
-	config.Recorder = record.NewRecorder(10)
+	schedulerConfig := scheduler.Config()
 	// Replace the binder with simulator pod counter
 	lbpcu := &localBinderPodConditionUpdater{
 		SchedulerName: s.SchedulerName,
 		C:             c,
 	}
-	config.Binder = lbpcu
-	config.PodConditionUpdater = lbpcu
+	schedulerConfig.Binder = lbpcu
+	schedulerConfig.PodConditionUpdater = lbpcu
 	// pending merge of https://github.com/kubernetes/kubernetes/pull/44115
 	// we wrap how error handling is done to avoid extraneous logging
-	errorFn := config.Error
+	errorFn := schedulerConfig.Error
 	wrappedErrorFn := func(pod *v1.Pod, err error) {
 		if _, ok := err.(*core.FitError); !ok {
 			errorFn(pod, err)
 		}
 	}
-	config.Error = wrappedErrorFn
-	return config, nil
+	schedulerConfig.Error = wrappedErrorFn
+	return scheduler, nil
 }
 
 func (c *ClusterCapacity) AddScheduler(s *soptions.SchedulerServer) error {
-	config, err := c.createSchedulerConfig(s)
+	scheduler, err := c.createScheduler(s)
 	if err != nil {
 		return err
 	}
 
-	c.schedulers[s.SchedulerName] = scheduler.New(config)
-	c.schedulerConfigs[s.SchedulerName] = config
+	c.schedulers[s.SchedulerName] = scheduler
+	c.schedulerConfigs[s.SchedulerName] = scheduler.Config()
 	return nil
-}
-
-func createConfig(s *soptions.SchedulerServer, configFactory scheduler.Configurator) (*scheduler.Config, error) {
-	if _, err := os.Stat(s.PolicyConfigFile); err == nil {
-		var (
-			policy     schedulerapi.Policy
-			configData []byte
-		)
-		configData, err := ioutil.ReadFile(s.PolicyConfigFile)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read policy config: %v", err)
-		}
-		if err := runtime.DecodeInto(latestschedulerapi.Codec, configData, &policy); err != nil {
-			return nil, fmt.Errorf("invalid configuration: %v", err)
-		}
-		return configFactory.CreateFromConfig(policy)
-	}
-
-	// if the config file isn't provided, use the specified (or default) provider
-	return configFactory.CreateFromProvider(s.AlgorithmProvider)
 }
 
 // Create new cluster capacity analysis
@@ -404,16 +378,14 @@ func New(s *soptions.SchedulerServer, simulatedPod *v1.Pod, maxPods int) (*Clust
 	cc.schedulers = make(map[string]*scheduler.Scheduler)
 	cc.schedulerConfigs = make(map[string]*scheduler.Config)
 
-	// read the default scheduler name from configuration
-	config, err := cc.createSchedulerConfig(s)
+	scheduler, err := cc.createScheduler(s)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to create cluster capacity analyzer: %v", err)
+		return nil, err
 	}
 
-	cc.schedulers[s.SchedulerName] = scheduler.New(config)
-	cc.schedulerConfigs[s.SchedulerName] = config
+	cc.schedulers[s.SchedulerName] = scheduler
+	cc.schedulerConfigs[s.SchedulerName] = scheduler.Config()
 	cc.defaultScheduler = s.SchedulerName
-
 	cc.stop = make(chan struct{})
 	cc.informerStopCh = make(chan struct{})
 	return cc, nil

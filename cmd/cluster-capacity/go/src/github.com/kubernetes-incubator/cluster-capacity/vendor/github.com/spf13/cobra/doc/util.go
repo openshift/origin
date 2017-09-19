@@ -13,11 +13,7 @@
 
 package doc
 
-import (
-	"strings"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 // Test to see if we have a reason to print See Also information in docs
 // Basically this is a test for a parent commend or a subcommand which is
@@ -27,21 +23,12 @@ func hasSeeAlso(cmd *cobra.Command) bool {
 		return true
 	}
 	for _, c := range cmd.Commands() {
-		if !c.IsAvailableCommand() || c.IsAdditionalHelpTopicCommand() {
+		if !c.IsAvailableCommand() || c.IsHelpCommand() {
 			continue
 		}
 		return true
 	}
 	return false
-}
-
-// Temporary workaround for yaml lib generating incorrect yaml with long strings
-// that do not contain \n.
-func forceMultiLine(s string) string {
-	if len(s) > 60 && !strings.Contains(s, "\n") {
-		s = s + "\n"
-	}
-	return s
 }
 
 type byName []*cobra.Command

@@ -26,6 +26,7 @@ import (
 	apitesting "k8s.io/kubernetes/pkg/api/testing"
 	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	kubeletapis "k8s.io/kubernetes/pkg/kubelet/apis"
 	"k8s.io/kubernetes/pkg/version"
 	soptions "k8s.io/kubernetes/plugin/cmd/kube-scheduler/app/options"
 	"k8s.io/kubernetes/plugin/pkg/scheduler/factory"
@@ -97,7 +98,7 @@ func getGeneralNode(nodeName string) *v1.Node {
 				v1.ResourceNvidiaGPU: *resource.NewQuantity(0, resource.DecimalSI),
 			},
 			Addresses: []v1.NodeAddress{
-				{Type: v1.NodeLegacyHostIP, Address: "127.0.0.1"},
+				{Type: v1.NodeExternalIP, Address: "127.0.0.1"},
 				{Type: v1.NodeInternalIP, Address: "127.0.0.1"},
 			},
 			Images: []v1.ContainerImage{},
@@ -195,7 +196,7 @@ func TestPrediction(t *testing.T) {
 		KubeSchedulerConfiguration: componentconfig.KubeSchedulerConfiguration{
 			SchedulerName:                  v1.DefaultSchedulerName,
 			HardPodAffinitySymmetricWeight: v1.DefaultHardPodAffinitySymmetricWeight,
-			FailureDomains:                 v1.DefaultFailureDomains,
+			FailureDomains:                 kubeletapis.DefaultFailureDomains,
 			AlgorithmProvider:              factory.DefaultProvider,
 		},
 		Master:     "http://localhost:8080",
