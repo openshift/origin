@@ -28,6 +28,17 @@ const (
 	// ExcludeImageSecretAnnotation indicates that a secret should not be returned by imagestream/secrets.
 	ExcludeImageSecretAnnotation = "openshift.io/image.excludeSecret"
 
+	// DockerImageLayersOrderAnnotation describes layers order in the docker image.
+	DockerImageLayersOrderAnnotation = "openshift.io/image.dockerLayersOrder"
+
+	// DockerImageLayersOrderAscending indicates that image layers are sorted in
+	// the order of their addition (from oldest to latest)
+	DockerImageLayersOrderAscending = "ascending"
+
+	// DockerImageLayersOrderDescending indicates that layers are sorted in
+	// reversed order of their addition (from newest to oldest).
+	DockerImageLayersOrderDescending = "descending"
+
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
 

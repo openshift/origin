@@ -427,6 +427,39 @@ func ImageConfigMatchesImage(image *Image, imageConfig []byte) (bool, error) {
 	return v.Verified(), nil
 }
 
+// ReorderImageLayers mutates the given image. It reorders the layers in ascending order.
+// Ascending order matches the order of layers in schema 2. Schema 1 has reversed (descending) order of layers.
+func ReorderImageLayers(image *Image) {
+	if len(image.DockerImageLayers) == 0 {
+		return
+	}
+
+	layersOrder, ok := image.Annotations[DockerImageLayersOrderAnnotation]
+	if !ok {
+		switch image.DockerImageManifestMediaType {
+		case schema1.MediaTypeManifest:
+			layersOrder = DockerImageLayersOrderAscending
+		case schema2.MediaTypeManifest:
+			layersOrder = DockerImageLayersOrderDescending
+		default:
+			return
+		}
+	}
+
+	if layersOrder == DockerImageLayersOrderDescending {
+		// reverse order of the layers (lowest = 0, highest = i)
+		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
+			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
+		}
+	}
+
+	if image.Annotations == nil {
+		image.Annotations = map[string]string{}
+	}
+
+	image.Annotations[DockerImageLayersOrderAnnotation] = DockerImageLayersOrderAscending
+}
+
 // ImageWithMetadata mutates the given image. It parses raw DockerImageManifest data stored in the image and
 // fills its DockerImageMetadata and other fields.
 func ImageWithMetadata(image *Image) error {
@@ -436,6 +469,9 @@ func ImageWithMetadata(image *Image) error {
 
 	if len(image.DockerImageLayers) > 0 && image.DockerImageMetadata.Size > 0 && len(image.DockerImageManifestMediaType) > 0 {
 		glog.V(5).Infof("Image metadata already filled for %s", image.Name)
+
+		ReorderImageLayers(image)
+
 		// don't update image already filled
 		return nil
 	}
@@ -445,6 +481,10 @@ func ImageWithMetadata(image *Image) error {
 	manifest := DockerImageManifest{}
 	if err := json.Unmarshal([]byte(manifestData), &manifest); err != nil {
 		return err
+	}
+
+	if image.Annotations == nil {
+		image.Annotations = map[string]string{}
 	}
 
 	switch manifest.SchemaVersion {
@@ -487,6 +527,7 @@ func ImageWithMetadata(image *Image) error {
 		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
 			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
 		}
+		image.Annotations[DockerImageLayersOrderAnnotation] = DockerImageLayersOrderAscending
 
 		image.DockerImageMetadata.ID = v1Metadata.ID
 		image.DockerImageMetadata.Parent = v1Metadata.Parent
@@ -523,16 +564,15 @@ func ImageWithMetadata(image *Image) error {
 			return fmt.Errorf("failed to parse dockerImageConfig: %v", err)
 		}
 
+		// The layer list is ordered starting from the base image (opposite order of schema1).
+		// So, we do not need to change the order of layers.
 		image.DockerImageLayers = make([]ImageLayer, len(manifest.Layers))
 		for i, layer := range manifest.Layers {
 			image.DockerImageLayers[i].Name = layer.Digest
 			image.DockerImageLayers[i].LayerSize = layer.Size
 			image.DockerImageLayers[i].MediaType = layer.MediaType
 		}
-		// reverse order of the layers for v1 (lowest = 0, highest = i)
-		for i, j := 0, len(image.DockerImageLayers)-1; i < j; i, j = i+1, j-1 {
-			image.DockerImageLayers[i], image.DockerImageLayers[j] = image.DockerImageLayers[j], image.DockerImageLayers[i]
-		}
+		image.Annotations[DockerImageLayersOrderAnnotation] = DockerImageLayersOrderAscending
 
 		image.DockerImageMetadata.ID = manifest.Config.Digest
 		image.DockerImageMetadata.Parent = config.Parent
