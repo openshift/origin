@@ -552,12 +552,16 @@ func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kp
 	}
 
 	var timeCreated time.Time = oAuthAccessToken.ObjectMeta.CreationTimestamp.Time
-	var timeExpired time.Time = timeCreated.Add(time.Duration(oAuthAccessToken.ExpiresIn) * time.Second)
+	expires := "never"
+	if oAuthAccessToken.ExpiresIn > 0 {
+		var timeExpired time.Time = timeCreated.Add(time.Duration(oAuthAccessToken.ExpiresIn) * time.Second)
+		expires = formatToHumanDuration(timeExpired.Sub(time.Now()))
+	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, oAuthAccessToken.ObjectMeta)
 		formatString(out, "Scopes", oAuthAccessToken.Scopes)
-		formatString(out, "Expires In", formatToHumanDuration(timeExpired.Sub(time.Now())))
+		formatString(out, "Expires In", expires)
 		formatString(out, "User Name", oAuthAccessToken.UserName)
 		formatString(out, "User UID", oAuthAccessToken.UserUID)
 		formatString(out, "Client Name", oAuthAccessToken.ClientName)

@@ -7658,6 +7658,13 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								},
 							},
 						},
+						"accessTokenMaxAgeSeconds": {
+							SchemaProps: spec.SchemaProps{
+								Description: "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration.",
+								Type:        []string{"integer"},
+								Format:      "int32",
+							},
+						},
 					},
 				},
 			},

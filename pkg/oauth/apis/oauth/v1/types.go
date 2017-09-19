@@ -110,6 +110,10 @@ type OAuthClient struct {
 	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
 	// If no restriction matches, then the scope is denied.
 	ScopeRestrictions []ScopeRestriction `json:"scopeRestrictions,omitempty" protobuf:"bytes,7,rep,name=scopeRestrictions"`
+
+	// AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
+	// 0 means no expiration.
+	AccessTokenMaxAgeSeconds *int32 `json:"accessTokenMaxAgeSeconds,omitempty" protobuf:"varint,8,opt,name=accessTokenMaxAgeSeconds"`
 }
 
 type GrantHandlerType string

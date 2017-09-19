@@ -212,6 +212,7 @@ func autoConvert_v1_OAuthClient_To_oauth_OAuthClient(in *OAuthClient, out *oauth
 	out.RedirectURIs = *(*[]string)(unsafe.Pointer(&in.RedirectURIs))
 	out.GrantMethod = oauth.GrantHandlerType(in.GrantMethod)
 	out.ScopeRestrictions = *(*[]oauth.ScopeRestriction)(unsafe.Pointer(&in.ScopeRestrictions))
+	out.AccessTokenMaxAgeSeconds = (*int32)(unsafe.Pointer(in.AccessTokenMaxAgeSeconds))
 	return nil
 }
 
@@ -228,6 +229,7 @@ func autoConvert_oauth_OAuthClient_To_v1_OAuthClient(in *oauth.OAuthClient, out 
 	out.RedirectURIs = *(*[]string)(unsafe.Pointer(&in.RedirectURIs))
 	out.GrantMethod = GrantHandlerType(in.GrantMethod)
 	out.ScopeRestrictions = *(*[]ScopeRestriction)(unsafe.Pointer(&in.ScopeRestrictions))
+	out.AccessTokenMaxAgeSeconds = (*int32)(unsafe.Pointer(in.AccessTokenMaxAgeSeconds))
 	return nil
 }
 
