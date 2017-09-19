@@ -44,13 +44,13 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/dockerregistry/server"
-	"github.com/openshift/origin/pkg/dockerregistry/server/api"
-	"github.com/openshift/origin/pkg/dockerregistry/server/audit"
-	"github.com/openshift/origin/pkg/dockerregistry/server/client"
-	registryconfig "github.com/openshift/origin/pkg/dockerregistry/server/configuration"
-	"github.com/openshift/origin/pkg/dockerregistry/server/maxconnections"
-	"github.com/openshift/origin/pkg/dockerregistry/server/prune"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/api"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/audit"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/client"
+	registryconfig "github.com/openshift/docker-registry/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/maxconnections"
+	"github.com/openshift/docker-registry/pkg/dockerregistry/server/prune"
 	"github.com/openshift/origin/pkg/version"
 )
 

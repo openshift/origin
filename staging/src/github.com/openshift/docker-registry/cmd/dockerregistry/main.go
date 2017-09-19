@@ -13,7 +13,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	"k8s.io/kubernetes/pkg/util/logs"
 
-	"github.com/openshift/origin/pkg/cmd/dockerregistry"
+	"github.com/openshift/docker-registry/pkg/cmd/dockerregistry"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/serviceability"
 
