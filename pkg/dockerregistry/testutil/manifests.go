@@ -27,6 +27,7 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 type ManifestSchemaVersion int
@@ -344,7 +345,7 @@ func NewImageForManifest(repoName string, rawManifest string, manifestConfig str
 		DockerImageManifest:  rawManifest,
 		DockerImageConfig:    manifestConfig,
 	}
-	if err := imageapi.ImageWithMetadata(&img); err != nil {
+	if err := util.ImageWithMetadata(&img); err != nil {
 		return nil, err
 	}
 	newImage := imageapiv1.Image{}

@@ -129,12 +129,9 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "vendor/k8s.io/kubernetes/pkg/api/helper",
       "vendor/github.com/golang/glog",
       "vendor/github.com/fsouza/go-dockerclient",
       "vendor/github.com/docker/distribution/digest",
-      "vendor/github.com/docker/distribution/manifest/schema1",
-      "vendor/github.com/docker/distribution/manifest/schema2",
       "vendor/github.com/blang/semver",
       "github.com/openshift/origin/pkg/image/reference"
     ]
@@ -318,6 +315,7 @@
       "vendor/k8s.io/kubernetes/pkg/apis/authorization/v1",
       "github.com/openshift/origin/pkg/image/apis/image",
       "github.com/openshift/origin/pkg/image/apis/image/v1",
+      "github.com/openshift/origin/pkg/image/util",
       "github.com/openshift/origin/pkg/user/apis/user",
       "github.com/openshift/origin/pkg/user/apis/user/v1"
     ]

@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/util"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
@@ -484,7 +485,7 @@ func (r *REST) importSuccessful(
 	updated, err := r.images.Create(ctx, image, false)
 	switch {
 	case kapierrors.IsAlreadyExists(err):
-		if err := imageapi.ImageWithMetadata(image); err != nil {
+		if err := util.ImageWithMetadata(image); err != nil {
 			glog.V(4).Infof("Unable to update image metadata during image import when image already exists %q: err", image.Name, err)
 		}
 		updated = image
