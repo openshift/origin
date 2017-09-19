@@ -25,6 +25,7 @@ go_library(
     srcs = [
         "cadvisor_linux.go",
         "doc.go",
+        "helpers_linux.go",
         "types.go",
         "util.go",
     ],
