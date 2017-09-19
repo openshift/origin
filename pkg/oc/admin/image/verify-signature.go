@@ -35,7 +35,7 @@ var (
 	This command verifies if the image identity contained in the image signature can be trusted
 	by using the public GPG key to verify the signature itself and matching the provided expected identity
 	with the identity (pull spec) of the given image.
-	By default, this command will use the public GPG keyring located in "$GNUPGHOME/.gnupg/pubring.gpg"
+	By default, this command will use the public GPG keyring located in "$GNUPGHOME/pubring.gpg", typically in path "~/.gnupg".
 
 	By default, this command will not save the result of the verification back to the image object, to do so
 	user have to specify the "--save" flag. Note that to modify the image signature verification status,
@@ -56,8 +56,9 @@ var (
 	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 \
 			--expected-identity=registry.local:5000/foo/bar:v1
 
-	# Verify the image signature and identity using the local GPG keychain and save the status
+	# Verify the image signature and identity using a specific public key and save the status
 	%[1]s sha256:c841e9b64e4579bd56c794bdd7c36e1c257110fd2404bebbb8b613e4935228c4 \
+	    --public-key=/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release \
 			--expected-identity=registry.local:5000/foo/bar:v1 --save
 
 	# Verify the image signature and identity via exposed registry route
@@ -115,10 +116,10 @@ func NewCmdVerifyImageSignature(name, fullName string, f *clientcmd.Factory, out
 		},
 	}
 
-	cmd.Flags().StringVar(&opts.ExpectedIdentity, "expected-identity", opts.ExpectedIdentity, "An expected image docker reference to verify (required).")
+	cmd.Flags().StringVar(&opts.ExpectedIdentity, "expected-identity", opts.ExpectedIdentity, "An expected image docker reference (pull spec) to verify (required).")
 	cmd.Flags().BoolVar(&opts.Save, "save", opts.Save, "If true, the result of the verification will be saved to an image object.")
 	cmd.Flags().BoolVar(&opts.RemoveAll, "remove-all", opts.RemoveAll, "If set, all signature verifications will be removed from the given image.")
-	cmd.Flags().StringVar(&opts.PublicKeyFilename, "public-key", opts.PublicKeyFilename, fmt.Sprintf("A path to a public GPG key to be used for verification. (defaults to %q)", opts.PublicKeyFilename))
+	cmd.Flags().StringVar(&opts.PublicKeyFilename, "public-key", opts.PublicKeyFilename, fmt.Sprintf("A relative or absolute path to a public GPG key file to be used for verification. (defaults to %q)", opts.PublicKeyFilename))
 	cmd.Flags().StringVar(&opts.RegistryURL, "registry-url", opts.RegistryURL, "The address to use when contacting the registry, instead of using the internal cluster address. This is useful if you can't resolve or reach the internal registry address.")
 	cmd.Flags().BoolVar(&opts.Insecure, "insecure", opts.Insecure, "If set, use the insecure protocol for registry communication.")
 	return cmd
