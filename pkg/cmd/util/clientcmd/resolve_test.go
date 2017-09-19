@@ -1,4 +1,4 @@
-package util
+package clientcmd
 
 import (
 	"testing"
@@ -86,7 +86,7 @@ func TestResolveImagePullSpec(t *testing.T) {
 
 	for i, test := range testCases {
 		t.Logf("[%d] trying to resolve %q %s and expecting %q (expectErr=%t)", i, test.source, test.input, test.expect, test.expectErr)
-		result, err := ResolveImagePullSpec(test.client.Image(), test.source, test.input, "default")
+		result, err := resolveImagePullSpec(test.client.Image(), test.source, test.input, "default")
 		if err != nil && !test.expectErr {
 			t.Errorf("[%d] unexpected error: %v", i, err)
 		} else if err == nil && test.expectErr {
