@@ -8,6 +8,18 @@ load(
     "go_test",
 )
 
+go_test(
+    name = "go_default_test",
+    srcs = ["cadvisor_linux_test.go"],
+    library = ":go_default_library",
+    tags = ["automanaged"],
+    deps = [
+        "//pkg/kubelet/types:go_default_library",
+        "//vendor/github.com/google/cadvisor/info/v1:go_default_library",
+        "//vendor/github.com/google/cadvisor/metrics:go_default_library",
+    ],
+)
+
 go_library(
     name = "go_default_library",
     srcs = [
@@ -33,18 +45,6 @@ go_library(
         "//vendor/github.com/google/cadvisor/utils/sysfs:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/api/resource:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/runtime:go_default_library",
-    ],
-)
-
-go_test(
-    name = "go_default_test",
-    srcs = ["cadvisor_linux_test.go"],
-    library = ":go_default_library",
-    tags = ["automanaged"],
-    deps = [
-        "//pkg/kubelet/types:go_default_library",
-        "//vendor/github.com/google/cadvisor/info/v1:go_default_library",
-        "//vendor/github.com/google/cadvisor/metrics:go_default_library",
     ],
 )
 
