@@ -121,6 +121,7 @@ func TestExampleObjectSchemas(t *testing.T) {
 		"../test/integration/testdata": {
 			// TODO fix this test to  handle json and yaml
 			"project-request-template-with-quota": nil, // skip a yaml file
+			"test-replication-controller":         nil, // skip &api.ReplicationController
 			"test-deployment-config":              &deployapi.DeploymentConfig{},
 			"test-image":                          &imageapi.Image{},
 			"test-image-stream":                   &imageapi.ImageStream{},

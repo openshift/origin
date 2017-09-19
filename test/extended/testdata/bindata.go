@@ -200,6 +200,7 @@
 // test/integration/testdata/test-image-stream-mapping.json
 // test/integration/testdata/test-image-stream.json
 // test/integration/testdata/test-image.json
+// test/integration/testdata/test-replication-controller.yaml
 // test/integration/testdata/test-route.json
 // test/integration/testdata/test-service-with-finalizer.json
 // test/integration/testdata/test-service.json
@@ -11685,6 +11686,54 @@ func testIntegrationTestdataTestImageJson() (*asset, error) {
 	}
 
 	info := bindataFileInfo{name: "test/integration/testdata/test-image.json", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testIntegrationTestdataTestReplicationControllerYaml = []byte(`apiVersion: v1
+kind: ReplicationController
+metadata:
+  annotations:
+    openshift.io/deployment-config.latest-version: "1"
+    openshift.io/deployment-config.name: test-deployment
+    openshift.io/deployment.phase: Complete
+    optnshift.io/deployment.replicas: "1"
+  name: test-replication-controller
+spec:
+  replicas: 1
+  selector:
+    deployment: test-deployment
+    deploymentconfig: test-deployment
+  template:
+    metadata:
+      labels:
+        deployment: test-deployment
+        deploymentconfig: test-deployment
+    spec:
+      containers:
+      - image: openshift/origin-pod
+        imagePullPolicy: IfNotPresent
+        name: ruby-helloworld
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources: {}
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+status: {}
+`)
+
+func testIntegrationTestdataTestReplicationControllerYamlBytes() ([]byte, error) {
+	return _testIntegrationTestdataTestReplicationControllerYaml, nil
+}
+
+func testIntegrationTestdataTestReplicationControllerYaml() (*asset, error) {
+	bytes, err := testIntegrationTestdataTestReplicationControllerYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/integration/testdata/test-replication-controller.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28647,6 +28696,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/integration/testdata/test-image-stream-mapping.json": testIntegrationTestdataTestImageStreamMappingJson,
 	"test/integration/testdata/test-image-stream.json": testIntegrationTestdataTestImageStreamJson,
 	"test/integration/testdata/test-image.json": testIntegrationTestdataTestImageJson,
+	"test/integration/testdata/test-replication-controller.yaml": testIntegrationTestdataTestReplicationControllerYaml,
 	"test/integration/testdata/test-route.json": testIntegrationTestdataTestRouteJson,
 	"test/integration/testdata/test-service-with-finalizer.json": testIntegrationTestdataTestServiceWithFinalizerJson,
 	"test/integration/testdata/test-service.json": testIntegrationTestdataTestServiceJson,
@@ -29118,6 +29168,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-image-stream-mapping.json": &bintree{testIntegrationTestdataTestImageStreamMappingJson, map[string]*bintree{}},
 				"test-image-stream.json": &bintree{testIntegrationTestdataTestImageStreamJson, map[string]*bintree{}},
 				"test-image.json": &bintree{testIntegrationTestdataTestImageJson, map[string]*bintree{}},
+				"test-replication-controller.yaml": &bintree{testIntegrationTestdataTestReplicationControllerYaml, map[string]*bintree{}},
 				"test-route.json": &bintree{testIntegrationTestdataTestRouteJson, map[string]*bintree{}},
 				"test-service-with-finalizer.json": &bintree{testIntegrationTestdataTestServiceWithFinalizerJson, map[string]*bintree{}},
 				"test-service.json": &bintree{testIntegrationTestdataTestServiceJson, map[string]*bintree{}},
