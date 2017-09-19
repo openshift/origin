@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion/queryparams"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	knewer "k8s.io/kubernetes/pkg/api"
 	kolder "k8s.io/kubernetes/pkg/api/v1"
 
@@ -13,7 +14,16 @@ import (
 	newer "github.com/openshift/origin/pkg/build/apis/build"
 )
 
-var Convert = knewer.Scheme.Convert
+var scheme = runtime.NewScheme()
+var Convert = scheme.Convert
+var codecs = serializer.NewCodecFactory(scheme)
+
+func init() {
+	LegacySchemeBuilder.AddToScheme(scheme)
+	newer.LegacySchemeBuilder.AddToScheme(scheme)
+	SchemeBuilder.AddToScheme(scheme)
+	newer.SchemeBuilder.AddToScheme(scheme)
+}
 
 func TestFieldSelectorConversions(t *testing.T) {
 	apitesting.FieldKeyCheck{
@@ -42,11 +52,12 @@ func TestFieldSelectorConversions(t *testing.T) {
 }
 
 func TestBinaryBuildRequestOptions(t *testing.T) {
+
 	r := &newer.BinaryBuildRequestOptions{
 		AsFile: "Dockerfile",
 		Commit: "abcdef",
 	}
-	versioned, err := knewer.Scheme.ConvertToVersion(r, kolder.SchemeGroupVersion)
+	versioned, err := scheme.ConvertToVersion(r, kolder.SchemeGroupVersion)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +66,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	decoded := &BinaryBuildRequestOptions{}
-	if err := knewer.Scheme.Convert(&params, decoded, nil); err != nil {
+	if err := scheme.Convert(&params, decoded, nil); err != nil {
 		t.Fatal(err)
 	}
 	if decoded.Commit != "abcdef" || decoded.AsFile != "Dockerfile" {
