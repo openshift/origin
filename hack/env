@@ -39,4 +39,6 @@ relative_script_path="$( os::util::repository_relative_path "${OS_OUTPUT_SCRIPTP
 default_preserve_paths="${relative_bin_path}:${relative_release_path}:${relative_script_path}"
 export OS_BUILD_ENV_PRESERVE="${OS_BUILD_ENV_PRESERVE:-"${default_preserve_paths}"}"
 
+export OS_BUILD_ENV_TMP_VOLUME=/tmp
+
 os::build::environment::run "$@"
