@@ -764,7 +764,11 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kprinte
 func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
-		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
+		if len(imageStream.Status.PublicDockerImageRepository) > 0 {
+			formatString(out, "Docker Pull Spec", imageStream.Status.PublicDockerImageRepository)
+		} else {
+			formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
+		}
 		formatString(out, "Image Lookup", fmt.Sprintf("local=%t", imageStream.Spec.LookupPolicy.Local))
 		formatImageStreamTags(out, imageStream)
 		return nil
