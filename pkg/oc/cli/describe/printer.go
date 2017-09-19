@@ -501,6 +501,9 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kprinters.
 	if len(repo) == 0 {
 		repo = stream.Status.DockerImageRepository
 	}
+	if len(stream.Status.PublicDockerImageRepository) > 0 {
+		repo = stream.Status.PublicDockerImageRepository
+	}
 	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, repo, tags, latestTime); err != nil {
 		return err
 	}
