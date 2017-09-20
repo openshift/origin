@@ -30,7 +30,10 @@ func main() {
 	// TODO: ...along with subtree merges.
 	nonbumpCommits := []util.Commit{}
 	for _, commit := range commits {
-		lastDescriptionLine := commit.Description[len(commit.Description)-1]
+		var lastDescriptionLine string
+		if descriptionLen := len(commit.Description); descriptionLen > 0 {
+			lastDescriptionLine = commit.Description[descriptionLen-1]
+		}
 		if !strings.HasPrefix(commit.Summary, "bump(") && !strings.HasPrefix(lastDescriptionLine, "git-subtree-split:") {
 			nonbumpCommits = append(nonbumpCommits, commit)
 		}
