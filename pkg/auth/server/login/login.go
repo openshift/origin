@@ -14,6 +14,7 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/authenticator"
 	"github.com/openshift/origin/pkg/auth/oauth/handlers"
+	"github.com/openshift/origin/pkg/auth/prometheus"
 	"github.com/openshift/origin/pkg/auth/server/csrf"
 	"github.com/openshift/origin/pkg/auth/server/errorpage"
 )
@@ -164,19 +165,26 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		failed(errorCodeUserRequired, w, req)
 		return
 	}
+	var result string
+	defer func() {
+		metrics.Record(result)
+	}()
 	user, ok, err := l.auth.AuthenticatePassword(username, password)
 	if err != nil {
 		glog.Errorf(`Error authenticating %q with provider %q: %v`, username, l.provider, err)
 		failed(errorpage.AuthenticationErrorCode(err), w, req)
+		result = "error"
 		return
 	}
 	if !ok {
 		glog.V(4).Infof(`Login with provider %q failed for %q`, l.provider, username)
 		failed(errorCodeAccessDenied, w, req)
+		result = "failure"
 		return
 	}
 	glog.V(4).Infof(`Login with provider %q succeeded for %q: %#v`, l.provider, username, user)
 	l.auth.AuthenticationSucceeded(user, then, w, req)
+	result = "success"
 }
 
 // NewLoginFormRenderer creates a login form renderer that takes in an optional custom template to
