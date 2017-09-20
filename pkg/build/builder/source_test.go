@@ -24,7 +24,7 @@ func TestCheckRemoteGit(t *testing.T) {
 		w.WriteHeader(http.StatusUnauthorized)
 	}))
 	defer server.Close()
-	gitRepo := git.NewRepositoryWithEnv([]string{"GIT_ASKPASS=true"})
+	gitRepo := git.NewRepositoryWithEnv([]string{"GIT_ASKPASS=true", fmt.Sprintf("HOME=%s", os.TempDir())})
 
 	var err error
 	err = checkRemoteGit(gitRepo, server.URL, 10*time.Second)
