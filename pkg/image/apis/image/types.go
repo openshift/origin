@@ -29,7 +29,7 @@ const (
 	ExcludeImageSecretAnnotation = "openshift.io/image.excludeSecret"
 
 	// DockerImageLayersOrderAnnotation describes layers order in the docker image.
-	DockerImageLayersOrderAnnotation = "openshift.io/image.dockerLayersOrder"
+	DockerImageLayersOrderAnnotation = "image.openshift.io/dockerLayersOrder"
 
 	// DockerImageLayersOrderAscending indicates that image layers are sorted in
 	// the order of their addition (from oldest to latest)
