@@ -1,4 +1,4 @@
-package authorization_test // prevent import cycle between authorizationapi and rulevalidation
+package rbacconversion
 
 import (
 	"fmt"
@@ -28,10 +28,10 @@ func TestOriginClusterRoleFidelity(t *testing.T) {
 		ocr2 := &authorizationapi.ClusterRole{}
 		rcr := &rbac.ClusterRole{}
 		fuzzer.Fuzz(ocr)
-		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
+		if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
+		if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(ocr, ocr2) {
@@ -46,10 +46,10 @@ func TestOriginRoleFidelity(t *testing.T) {
 		or2 := &authorizationapi.Role{}
 		rr := &rbac.Role{}
 		fuzzer.Fuzz(or)
-		if err := authorizationapi.Convert_authorization_Role_To_rbac_Role(or, rr, nil); err != nil {
+		if err := Convert_authorization_Role_To_rbac_Role(or, rr, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_rbac_Role_To_authorization_Role(rr, or2, nil); err != nil {
+		if err := Convert_rbac_Role_To_authorization_Role(rr, or2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(or, or2) {
@@ -64,10 +64,10 @@ func TestOriginClusterRoleBindingFidelity(t *testing.T) {
 		ocrb2 := &authorizationapi.ClusterRoleBinding{}
 		rcrb := &rbac.ClusterRoleBinding{}
 		fuzzer.Fuzz(ocrb)
-		if err := authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(ocrb, rcrb, nil); err != nil {
+		if err := Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(ocrb, rcrb, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(rcrb, ocrb2, nil); err != nil {
+		if err := Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(rcrb, ocrb2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(ocrb, ocrb2) {
@@ -82,10 +82,10 @@ func TestOriginRoleBindingFidelity(t *testing.T) {
 		orb2 := &authorizationapi.RoleBinding{}
 		rrb := &rbac.RoleBinding{}
 		fuzzer.Fuzz(orb)
-		if err := authorizationapi.Convert_authorization_RoleBinding_To_rbac_RoleBinding(orb, rrb, nil); err != nil {
+		if err := Convert_authorization_RoleBinding_To_rbac_RoleBinding(orb, rrb, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_rbac_RoleBinding_To_authorization_RoleBinding(rrb, orb2, nil); err != nil {
+		if err := Convert_rbac_RoleBinding_To_authorization_RoleBinding(rrb, orb2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(orb, orb2) {
@@ -100,10 +100,10 @@ func TestRBACClusterRoleFidelity(t *testing.T) {
 		rcr2 := &rbac.ClusterRole{}
 		ocr := &authorizationapi.ClusterRole{}
 		fuzzer.Fuzz(rcr)
-		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr, nil); err != nil {
+		if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr2, nil); err != nil {
+		if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(rcr, rcr2) {
@@ -118,10 +118,10 @@ func TestRBACRoleFidelity(t *testing.T) {
 		rr2 := &rbac.Role{}
 		or := &authorizationapi.Role{}
 		fuzzer.Fuzz(rr)
-		if err := authorizationapi.Convert_rbac_Role_To_authorization_Role(rr, or, nil); err != nil {
+		if err := Convert_rbac_Role_To_authorization_Role(rr, or, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_authorization_Role_To_rbac_Role(or, rr2, nil); err != nil {
+		if err := Convert_authorization_Role_To_rbac_Role(or, rr2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(rr, rr2) {
@@ -136,10 +136,10 @@ func TestRBACClusterRoleBindingFidelity(t *testing.T) {
 		rcrb2 := &rbac.ClusterRoleBinding{}
 		ocrb := &authorizationapi.ClusterRoleBinding{}
 		fuzzer.Fuzz(rcrb)
-		if err := authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(rcrb, ocrb, nil); err != nil {
+		if err := Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(rcrb, ocrb, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(ocrb, rcrb2, nil); err != nil {
+		if err := Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(ocrb, rcrb2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(rcrb, rcrb2) {
@@ -154,10 +154,10 @@ func TestRBACRoleBindingFidelity(t *testing.T) {
 		rrb2 := &rbac.RoleBinding{}
 		orb := &authorizationapi.RoleBinding{}
 		fuzzer.Fuzz(rrb)
-		if err := authorizationapi.Convert_rbac_RoleBinding_To_authorization_RoleBinding(rrb, orb, nil); err != nil {
+		if err := Convert_rbac_RoleBinding_To_authorization_RoleBinding(rrb, orb, nil); err != nil {
 			t.Fatal(err)
 		}
-		if err := authorizationapi.Convert_authorization_RoleBinding_To_rbac_RoleBinding(orb, rrb2, nil); err != nil {
+		if err := Convert_authorization_RoleBinding_To_rbac_RoleBinding(orb, rrb2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(rrb, rrb2) {
@@ -176,7 +176,7 @@ func TestConversionErrors(t *testing.T) {
 			name:     "invalid origin role ref",
 			expected: `invalid origin role binding rolebindingname: attempts to reference role in namespace "ns1" instead of current namespace "ns0"`,
 			f: func() error {
-				return authorizationapi.Convert_authorization_RoleBinding_To_rbac_RoleBinding(&authorizationapi.RoleBinding{
+				return Convert_authorization_RoleBinding_To_rbac_RoleBinding(&authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "rolebindingname", Namespace: "ns0"},
 					RoleRef:    api.ObjectReference{Namespace: "ns1"},
 				}, &rbac.RoleBinding{}, nil)
@@ -186,7 +186,7 @@ func TestConversionErrors(t *testing.T) {
 			name:     "invalid origin subject kind",
 			expected: `invalid kind for origin subject: "fancyuser"`,
 			f: func() error {
-				return authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
+				return Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
 					Subjects: []api.ObjectReference{
 						{Kind: "fancyuser"},
 					},
@@ -197,7 +197,7 @@ func TestConversionErrors(t *testing.T) {
 			name:     "invalid origin rol ref namespace",
 			expected: `invalid origin cluster role binding clusterrolebindingname: attempts to reference role in namespace "fancyns" instead of cluster scope`,
 			f: func() error {
-				return authorizationapi.Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
+				return Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(&authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "clusterrolebindingname"},
 					RoleRef: api.ObjectReference{
 						Namespace: "fancyns",
@@ -209,7 +209,7 @@ func TestConversionErrors(t *testing.T) {
 			name:     "invalid RBAC subject kind",
 			expected: `invalid kind for rbac subject: "evenfancieruser"`,
 			f: func() error {
-				return authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
+				return Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
 					Subjects: []rbac.Subject{
 						{Kind: "evenfancieruser"},
 					},
@@ -220,7 +220,7 @@ func TestConversionErrors(t *testing.T) {
 			name:     "invalid RBAC rol ref kind",
 			expected: `invalid kind "anewfancykind" for rbac role ref "fancyrolref"`,
 			f: func() error {
-				return authorizationapi.Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
+				return Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(&rbac.ClusterRoleBinding{
 					RoleRef: rbac.RoleRef{
 						Name: "fancyrolref",
 						Kind: "anewfancykind",
@@ -247,10 +247,10 @@ func TestAttributeRestrictionsRuleLoss(t *testing.T) {
 	}
 	ocr2 := &authorizationapi.ClusterRole{}
 	rcr := &rbac.ClusterRole{}
-	if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
+	if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
+	if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
 		t.Fatal(err)
 	}
 	if covered, uncoveredRules := rulevalidation.Covers(ocr.Rules, ocr2.Rules); !covered {
@@ -276,10 +276,10 @@ func TestResourceAndNonResourceRuleSplit(t *testing.T) {
 	}
 	ocr2 := &authorizationapi.ClusterRole{}
 	rcr := &rbac.ClusterRole{}
-	if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
+	if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, rcr, nil); err != nil {
 		t.Fatal(err)
 	}
-	if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
+	if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, ocr2, nil); err != nil {
 		t.Fatal(err)
 	}
 	// We need to break down the input rules so Covers does not get confused by ResourceNames
@@ -303,7 +303,7 @@ func TestAnnotationsConversion(t *testing.T) {
 		ocr.Annotations = map[string]string{"openshift.io/reconcile-protect": boolval}
 		ocr2 := &authorizationapi.ClusterRole{}
 		crcr := &rbac.ClusterRole{}
-		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, crcr, nil); err != nil {
+		if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(ocr, crcr, nil); err != nil {
 			t.Fatal(err)
 		}
 		value, ok := crcr.Annotations[rbac.AutoUpdateAnnotationKey]
@@ -314,7 +314,7 @@ func TestAnnotationsConversion(t *testing.T) {
 		} else {
 			t.Fatal(fmt.Errorf("Missing converted Annotation"))
 		}
-		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(crcr, ocr2, nil); err != nil {
+		if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(crcr, ocr2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(ocr, ocr2) {
@@ -327,7 +327,7 @@ func TestAnnotationsConversion(t *testing.T) {
 		rcr.Annotations = map[string]string{rbac.AutoUpdateAnnotationKey: boolval}
 		rcr2 := &rbac.ClusterRole{}
 		cocr := &authorizationapi.ClusterRole{}
-		if err := authorizationapi.Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, cocr, nil); err != nil {
+		if err := Convert_rbac_ClusterRole_To_authorization_ClusterRole(rcr, cocr, nil); err != nil {
 			t.Fatal(err)
 		}
 		value, ok = cocr.Annotations["openshift.io/reconcile-protect"]
@@ -338,7 +338,7 @@ func TestAnnotationsConversion(t *testing.T) {
 		} else {
 			t.Fatal(fmt.Errorf("Missing converted Annotation"))
 		}
-		if err := authorizationapi.Convert_authorization_ClusterRole_To_rbac_ClusterRole(cocr, rcr2, nil); err != nil {
+		if err := Convert_authorization_ClusterRole_To_rbac_ClusterRole(cocr, rcr2, nil); err != nil {
 			t.Fatal(err)
 		}
 		if !reflect.DeepEqual(rcr, rcr2) {
@@ -511,13 +511,4 @@ func sortAndDeduplicateRBACRulesFields(in []rbac.PolicyRule) {
 		rule.ResourceNames = sets.NewString(rule.ResourceNames...).List()
 		rule.NonResourceURLs = sets.NewString(rule.NonResourceURLs...).List()
 	}
-}
-
-// copied from authorizationapi since it is a private helper and we need to test in a different package to prevent an import cycle
-func getRBACRoleRefKind(namespace string) string {
-	kind := "ClusterRole"
-	if len(namespace) != 0 {
-		kind = "Role"
-	}
-	return kind
 }

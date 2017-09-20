@@ -1,4 +1,4 @@
-package authorization
+package rbacconversion
 
 import (
 	"fmt"
@@ -9,7 +9,13 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/user/apis/user/validation"
+)
+
+var (
+	SchemeBuilder = runtime.NewSchemeBuilder(addConversionFuncs)
+	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
 // reconcileProtectAnnotation is the name of an annotation which prevents reconciliation if set to "true"
@@ -32,20 +38,20 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	return nil
 }
 
-func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *ClusterRole, out *rbac.ClusterRole, _ conversion.Scope) error {
+func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *authorizationapi.ClusterRole, out *rbac.ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	return nil
 }
 
-func Convert_authorization_Role_To_rbac_Role(in *Role, out *rbac.Role, _ conversion.Scope) error {
+func Convert_authorization_Role_To_rbac_Role(in *authorizationapi.Role, out *rbac.Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	return nil
 }
 
-func Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(in *ClusterRoleBinding, out *rbac.ClusterRoleBinding, _ conversion.Scope) error {
+func Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(in *authorizationapi.ClusterRoleBinding, out *rbac.ClusterRoleBinding, _ conversion.Scope) error {
 	if len(in.RoleRef.Namespace) != 0 {
 		return fmt.Errorf("invalid origin cluster role binding %s: attempts to reference role in namespace %q instead of cluster scope", in.Name, in.RoleRef.Namespace)
 	}
@@ -58,7 +64,7 @@ func Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(in *Clu
 	return nil
 }
 
-func Convert_authorization_RoleBinding_To_rbac_RoleBinding(in *RoleBinding, out *rbac.RoleBinding, _ conversion.Scope) error {
+func Convert_authorization_RoleBinding_To_rbac_RoleBinding(in *authorizationapi.RoleBinding, out *rbac.RoleBinding, _ conversion.Scope) error {
 	if len(in.RoleRef.Namespace) != 0 && in.RoleRef.Namespace != in.Namespace {
 		return fmt.Errorf("invalid origin role binding %s: attempts to reference role in namespace %q instead of current namespace %q", in.Name, in.RoleRef.Namespace, in.Namespace)
 	}
@@ -71,7 +77,7 @@ func Convert_authorization_RoleBinding_To_rbac_RoleBinding(in *RoleBinding, out 
 	return nil
 }
 
-func convert_api_PolicyRules_To_rbac_PolicyRules(in []PolicyRule) []rbac.PolicyRule {
+func convert_api_PolicyRules_To_rbac_PolicyRules(in []authorizationapi.PolicyRule) []rbac.PolicyRule {
 	rules := make([]rbac.PolicyRule, 0, len(in))
 	for _, rule := range in {
 		// Origin's authorizer's RuleMatches func ignores rules that have AttributeRestrictions.
@@ -106,11 +112,11 @@ func convert_api_PolicyRules_To_rbac_PolicyRules(in []PolicyRule) []rbac.PolicyR
 	return rules
 }
 
-func isResourceRule(rule *PolicyRule) bool {
+func isResourceRule(rule *authorizationapi.PolicyRule) bool {
 	return len(rule.APIGroups) > 0 || len(rule.Resources) > 0 || len(rule.ResourceNames) > 0
 }
 
-func isNonResourceRule(rule *PolicyRule) bool {
+func isNonResourceRule(rule *authorizationapi.PolicyRule) bool {
 	return len(rule.NonResourceURLs) > 0
 }
 
@@ -122,13 +128,13 @@ func convert_api_Subjects_To_rbac_Subjects(in []api.ObjectReference) ([]rbac.Sub
 		}
 
 		switch subject.Kind {
-		case ServiceAccountKind:
+		case authorizationapi.ServiceAccountKind:
 			s.Kind = rbac.ServiceAccountKind
 			s.Namespace = subject.Namespace
-		case UserKind, SystemUserKind:
+		case authorizationapi.UserKind, authorizationapi.SystemUserKind:
 			s.APIGroup = rbac.GroupName
 			s.Kind = rbac.UserKind
-		case GroupKind, SystemGroupKind:
+		case authorizationapi.GroupKind, authorizationapi.SystemGroupKind:
 			s.APIGroup = rbac.GroupName
 			s.Kind = rbac.GroupKind
 		default:
@@ -157,20 +163,20 @@ func getRBACRoleRefKind(namespace string) string {
 	return kind
 }
 
-func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole, out *ClusterRole, _ conversion.Scope) error {
+func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole, out *authorizationapi.ClusterRole, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
 	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
 
-func Convert_rbac_Role_To_authorization_Role(in *rbac.Role, out *Role, _ conversion.Scope) error {
+func Convert_rbac_Role_To_authorization_Role(in *rbac.Role, out *authorizationapi.Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
 	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
 
-func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rbac.ClusterRoleBinding, out *ClusterRoleBinding, _ conversion.Scope) error {
+func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rbac.ClusterRoleBinding, out *authorizationapi.ClusterRoleBinding, _ conversion.Scope) error {
 	var err error
 	if out.Subjects, err = Convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
@@ -182,7 +188,7 @@ func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rba
 	return nil
 }
 
-func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding, out *RoleBinding, _ conversion.Scope) error {
+func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding, out *authorizationapi.RoleBinding, _ conversion.Scope) error {
 	var err error
 	if out.Subjects, err = Convert_rbac_Subjects_To_authorization_Subjects(in.Subjects); err != nil {
 		return err
@@ -203,12 +209,12 @@ func Convert_rbac_Subjects_To_authorization_Subjects(in []rbac.Subject) ([]api.O
 
 		switch subject.Kind {
 		case rbac.ServiceAccountKind:
-			s.Kind = ServiceAccountKind
+			s.Kind = authorizationapi.ServiceAccountKind
 			s.Namespace = subject.Namespace
 		case rbac.UserKind:
-			s.Kind = determineUserKind(subject.Name, validation.ValidateUserName)
+			s.Kind = determineUserKind(subject.Name)
 		case rbac.GroupKind:
-			s.Kind = determineGroupKind(subject.Name, validation.ValidateGroupName)
+			s.Kind = determineGroupKind(subject.Name)
 		default:
 			return nil, fmt.Errorf("invalid kind for rbac subject: %q", subject.Kind)
 		}
@@ -233,10 +239,10 @@ func convert_rbac_RoleRef_To_authorization_RoleRef(in *rbac.RoleRef, namespace s
 	}
 }
 
-func Convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule) []PolicyRule {
-	rules := make([]PolicyRule, 0, len(in))
+func Convert_rbac_PolicyRules_To_authorization_PolicyRules(in []rbac.PolicyRule) []authorizationapi.PolicyRule {
+	rules := make([]authorizationapi.PolicyRule, 0, len(in))
 	for _, rule := range in {
-		r := PolicyRule{
+		r := authorizationapi.PolicyRule{
 			APIGroups:       rule.APIGroups,
 			Verbs:           sets.NewString(rule.Verbs...),
 			Resources:       sets.NewString(rule.Resources...),
@@ -284,4 +290,20 @@ func convert_rbac_Annotations_To_authorization_Annotations(in map[string]string)
 		return out
 	}
 	return in
+}
+
+func determineUserKind(user string) string {
+	kind := authorizationapi.UserKind
+	if len(validation.ValidateUserName(user, false)) != 0 {
+		kind = authorizationapi.SystemUserKind
+	}
+	return kind
+}
+
+func determineGroupKind(group string) string {
+	kind := authorizationapi.GroupKind
+	if len(validation.ValidateGroupName(group, false)) != 0 {
+		kind = authorizationapi.SystemGroupKind
+	}
+	return kind
 }

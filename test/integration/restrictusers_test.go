@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -141,7 +142,7 @@ func TestRestrictUsers(t *testing.T) {
 	// Creating a RBAC rolebinding when the subject is not already bound
 	// should also fail.
 	rbacRolebindingBob := &rbac.RoleBinding{}
-	if err := authorizationapi.Convert_authorization_RoleBinding_To_rbac_RoleBinding(rolebindingBob, rbacRolebindingBob, nil); err != nil {
+	if err := rbacconversion.Convert_authorization_RoleBinding_To_rbac_RoleBinding(rolebindingBob, rbacRolebindingBob, nil); err != nil {
 		t.Fatalf("failed to convert RoleBinding: %v", err)
 	}
 	if _, err := clusterAdminKubeClient.Rbac().RoleBindings("namespace").Create(rbacRolebindingBob); !kapierrors.IsForbidden(err) {

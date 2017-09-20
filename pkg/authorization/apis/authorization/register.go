@@ -17,7 +17,7 @@ var (
 	LegacySchemeBuilder    = runtime.NewSchemeBuilder(addLegacyKnownTypes)
 	AddToSchemeInCoreGroup = LegacySchemeBuilder.AddToScheme
 
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, addConversionFuncs)
+	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 	AddToScheme   = SchemeBuilder.AddToScheme
 )
 
