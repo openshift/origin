@@ -1,6 +1,8 @@
 package network
 
 import (
+	"strings"
+
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -22,6 +24,11 @@ func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Clien
 		}
 	}
 
+	// dockershim + kube CNI driver delegates hostport handling to plugins,
+	// while CRI-O handles hostports itself. Thus we need to disable the
+	// SDN's hostport handling when run under CRI-O.
+	enableHostports := !strings.Contains(runtimeEndpoint, "crio")
+
 	node, err := sdnnode.New(&sdnnode.OsdnNodeConfig{
 		PluginName:         options.NetworkConfig.NetworkPluginName,
 		Hostname:           options.NodeName,
@@ -33,6 +40,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Clien
 		KubeInformers:      internalKubeInformers,
 		IPTablesSyncPeriod: proxyconfig.IPTables.SyncPeriod.Duration,
 		ProxyMode:          proxyconfig.Mode,
+		EnableHostports:    enableHostports,
 	})
 	if err != nil {
 		return nil, nil, err

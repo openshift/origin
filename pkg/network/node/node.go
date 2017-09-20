@@ -70,6 +70,7 @@ type OsdnNodeConfig struct {
 	SelfIP          string
 	RuntimeEndpoint string
 	MTU             uint32
+	EnableHostports bool
 
 	OSClient *osclient.Client
 	KClient  kclientset.Interface
@@ -178,7 +179,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		kClient:            c.KClient,
 		osClient:           c.OSClient,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, oc),
+		podManager:         newPodManager(c.KClient, policy, c.MTU, oc, c.EnableHostports),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,

@@ -67,6 +67,8 @@ type podManager struct {
 	mtu     uint32
 	ovs     *ovsController
 
+	enableHostports bool
+
 	// Things only accessed through the processCNIRequests() goroutine
 	// and thus can be set from Start()
 	ipamConfig     []byte
@@ -74,13 +76,14 @@ type podManager struct {
 }
 
 // Creates a new live podManager; used by node code0
-func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, ovs *ovsController) *podManager {
+func newPodManager(kClient kclientset.Interface, policy osdnPolicy, mtu uint32, ovs *ovsController, enableHostports bool) *podManager {
 	pm := newDefaultPodManager()
 	pm.kClient = kClient
 	pm.policy = policy
 	pm.mtu = mtu
 	pm.podHandler = pm
 	pm.ovs = ovs
+	pm.enableHostports = enableHostports
 	return pm
 }
 
@@ -150,7 +153,9 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 
 // Start the CNI server and start processing requests from it
 func (m *podManager) Start(socketPath string, localSubnetCIDR string, clusterNetwork *net.IPNet) error {
-	m.hostportSyncer = kubehostport.NewHostportSyncer()
+	if m.enableHostports {
+		m.hostportSyncer = kubehostport.NewHostportSyncer()
+	}
 
 	var err error
 	if m.ipamConfig, err = getIPAMConfig(clusterNetwork, localSubnetCIDR); err != nil {
@@ -499,8 +504,10 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 	defer func() {
 		if !success {
 			m.ipamDel(req.SandboxID)
-			if err := m.hostportSyncer.SyncHostports(Tun0, m.getRunningPods()); err != nil {
-				glog.Warningf("failed syncing hostports: %v", err)
+			if m.hostportSyncer != nil {
+				if err := m.hostportSyncer.SyncHostports(Tun0, m.getRunningPods()); err != nil {
+					glog.Warningf("failed syncing hostports: %v", err)
+				}
 			}
 		}
 	}()
@@ -511,8 +518,10 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		return nil, nil, err
 	}
 	podPortMapping := kubehostport.ConstructPodPortMapping(&v1Pod, podIP)
-	if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, m.getRunningPods()); err != nil {
-		return nil, nil, err
+	if m.hostportSyncer != nil {
+		if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, m.getRunningPods()); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	var hostVethName, contVethMac string
@@ -631,8 +640,10 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		errList = append(errList, err)
 	}
 
-	if err := m.hostportSyncer.SyncHostports(Tun0, m.getRunningPods()); err != nil {
-		errList = append(errList, err)
+	if m.hostportSyncer != nil {
+		if err := m.hostportSyncer.SyncHostports(Tun0, m.getRunningPods()); err != nil {
+			errList = append(errList, err)
+		}
 	}
 
 	return kerrors.NewAggregate(errList)
