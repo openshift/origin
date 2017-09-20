@@ -28,14 +28,15 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/template/generated/informers/internalversion/template/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
-	internalversiontemplate "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	templatelister "github.com/openshift/origin/pkg/template/generated/listers/template/internalversion"
+	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 const readinessTimeout = time.Hour
@@ -48,9 +49,13 @@ const readinessTimeout = time.Hour
 type TemplateInstanceController struct {
 	restmapper     meta.RESTMapper
 	config         *rest.Config
-	oc             client.Interface
-	kc             kclientsetinternal.Interface
-	templateclient internalversiontemplate.TemplateInterface
+	templateClient templateclient.Interface
+
+	// FIXME: Remove then cient when the build configs are able to report the
+	//				status of the last build.
+	buildClient buildclient.Interface
+
+	kc kclientsetinternal.Interface
 
 	lister   templatelister.TemplateInstanceLister
 	informer cache.SharedIndexInformer
@@ -61,13 +66,13 @@ type TemplateInstanceController struct {
 }
 
 // NewTemplateInstanceController returns a new TemplateInstanceController.
-func NewTemplateInstanceController(config *rest.Config, oc client.Interface, kc kclientsetinternal.Interface, templateclient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
+func NewTemplateInstanceController(config *rest.Config, kc kclientsetinternal.Interface, buildClient buildclient.Interface, templateClient templateclient.Interface, informer internalversion.TemplateInstanceInformer) *TemplateInstanceController {
 	c := &TemplateInstanceController{
-		restmapper:       client.DefaultMultiRESTMapper(),
+		restmapper:       restutil.DefaultMultiRESTMapper(),
 		config:           config,
-		oc:               oc,
 		kc:               kc,
-		templateclient:   templateclient.Template(),
+		templateClient:   templateClient,
+		buildClient:      buildClient,
 		lister:           informer.Lister(),
 		informer:         informer.Informer(),
 		queue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "TemplateInstanceController"),
@@ -192,7 +197,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 		}
 	}
 
-	_, err = c.templateclient.TemplateInstances(templateInstance.Namespace).UpdateStatus(templateInstance)
+	_, err = c.templateClient.Template().TemplateInstances(templateInstance.Namespace).UpdateStatus(templateInstance)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("TemplateInstance status update failed: %v", err))
 		return err
@@ -258,7 +263,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			continue
 		}
 
-		ready, failed, err := checkReadiness(c.oc, object.Ref, obj)
+		ready, failed, err := checkReadiness(c.buildClient, object.Ref, obj)
 		if err != nil {
 			return false, err
 		}
@@ -415,7 +420,8 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	glog.V(4).Infof("TemplateInstance controller: creating TemplateConfig for %s/%s", templateInstance.Namespace, templateInstance.Name)
 
-	template, err = c.oc.TemplateConfigs(templateInstance.Namespace).Create(template)
+	tc := templateinternalclient.NewTemplateProcessorClient(c.templateClient.Template().RESTClient(), templateInstance.Namespace)
+	template, err = tc.Process(template)
 	if err != nil {
 		return err
 	}

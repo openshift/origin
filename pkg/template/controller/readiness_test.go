@@ -15,7 +15,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client/testclient"
+	fakebuild "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
 
@@ -71,6 +71,9 @@ func TestCheckReadiness(t *testing.T) {
 			},
 			build: buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						buildapi.BuildConfigLabel: "",
+					},
 					Annotations: map[string]string{
 						buildapi.BuildNumberAnnotation: "1",
 					},
@@ -90,6 +93,9 @@ func TestCheckReadiness(t *testing.T) {
 			},
 			build: buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						buildapi.BuildConfigLabel: "",
+					},
 					Annotations: map[string]string{
 						buildapi.BuildNumberAnnotation: "1",
 					},
@@ -264,7 +270,7 @@ func TestCheckReadiness(t *testing.T) {
 	}
 
 	for i, test := range tests {
-		cli := testclient.NewSimpleFake(&buildapi.BuildList{Items: []buildapi.Build{test.build}})
+		buildClient := fakebuild.NewSimpleClientset(&test.build)
 		ref := kapi.ObjectReference{
 			Kind:       test.groupKind.Kind,
 			APIVersion: test.groupKind.WithVersion("v1").GroupVersion().String(),
@@ -273,7 +279,7 @@ func TestCheckReadiness(t *testing.T) {
 			t.Errorf("%d: unexpected canCheckReadiness value %v", i, can)
 			continue
 		}
-		ready, failed, err := checkReadiness(cli, ref, test.object)
+		ready, failed, err := checkReadiness(buildClient, ref, test.object)
 		if err != nil {
 			t.Errorf("%d: unexpected err value %v", i, err)
 			continue

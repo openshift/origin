@@ -229,7 +229,7 @@ func TestSimpleAllocationPluginViaController(t *testing.T) {
 	}
 
 	plugin, _ := NewSimpleAllocationPlugin("www.example.org")
-	fac := &rac.RouteAllocationControllerFactory{OSClient: nil, KubeClient: nil}
+	fac := &rac.RouteAllocationControllerFactory{KubeClient: nil}
 	sac := fac.Create(plugin)
 
 	for _, tc := range tests {

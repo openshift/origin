@@ -63,9 +63,9 @@ func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, e
 
 type projectRequestLimit struct {
 	*admission.Handler
-	client usertypedclient.UsersGetter
-	config *requestlimitapi.ProjectRequestLimitConfig
-	cache  *projectcache.ProjectCache
+	userClient usertypedclient.UsersGetter
+	config     *requestlimitapi.ProjectRequestLimitConfig
+	cache      *projectcache.ProjectCache
 }
 
 // ensure that the required Openshift admission interfaces are implemented
@@ -124,7 +124,7 @@ func (o *projectRequestLimit) maxProjectsByRequester(userName string) (int, bool
 		return 0, false, nil
 	}
 
-	user, err := o.client.Users().Get(userName, metav1.GetOptions{})
+	user, err := o.userClient.Users().Get(userName, metav1.GetOptions{})
 	if err != nil {
 		return 0, false, err
 	}
@@ -168,7 +168,7 @@ func (o *projectRequestLimit) projectCountByRequester(userName string) (int, err
 }
 
 func (o *projectRequestLimit) SetOpenshiftInternalUserClient(client userclient.Interface) {
-	o.client = client.User()
+	o.userClient = client.User()
 }
 
 func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) {
@@ -176,7 +176,7 @@ func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) 
 }
 
 func (o *projectRequestLimit) Validate() error {
-	if o.client == nil {
+	if o.userClient == nil {
 		return fmt.Errorf("ProjectRequestLimit plugin requires an Openshift client")
 	}
 	if o.cache == nil {

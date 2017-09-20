@@ -10,6 +10,7 @@ import (
 	imagetest "github.com/openshift/origin/pkg/image/admission/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imageinternal "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
@@ -199,12 +200,14 @@ func TestImageStreamTagEvaluatorUsage(t *testing.T) {
 			expectedISCount: 1,
 		},
 	} {
+		fakeClient := &imagefake.Clientset{}
+		fakeClient.AddReactor("get", "imagestreams", imagetest.GetFakeImageStreamGetHandler(t, tc.iss...))
 		imageInformers := imageinformer.NewSharedInformerFactory(imageinternal.NewSimpleClientset(), 0)
 		isInformer := imageInformers.Image().InternalVersion().ImageStreams()
 		for _, is := range tc.iss {
 			isInformer.Informer().GetIndexer().Add(&is)
 		}
-		evaluator := NewImageStreamTagEvaluator(isInformer.Lister())
+		evaluator := NewImageStreamTagEvaluator(isInformer.Lister(), fakeClient.Image())
 
 		usage, err := evaluator.Usage(&tc.ist)
 		if err != nil {

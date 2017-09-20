@@ -150,7 +150,7 @@ func (q *jenkinsBootstrapper) SetInternalKubeClientSet(c kclientset.Interface) {
 	q.serviceClient = c.Core()
 }
 
-func (a *jenkinsBootstrapper) SetOpenShiftInternalTemplateClient(c templateclient.Interface) {
+func (a *jenkinsBootstrapper) SetOpenshiftInternalTemplateClient(c templateclient.Interface) {
 	a.templateClient = c
 }
 

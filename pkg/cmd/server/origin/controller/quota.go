@@ -22,6 +22,7 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 
 	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image(),
 	)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
@@ -51,6 +52,7 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(
 		ctx.ExternalKubeInformers,
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image(),
 		ctx.ClientBuilder.ClientOrDie(saName),
 	)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
