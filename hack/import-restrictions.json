@@ -68,7 +68,6 @@
       "vendor/k8s.io/kubernetes/pkg/api/v1",
       "vendor/k8s.io/kubernetes/pkg/apis/rbac",
       "vendor/k8s.io/kubernetes/pkg/api/helper",
-      "github.com/openshift/origin/pkg/user/apis/user/validation",
       "vendor/k8s.io/apiserver/pkg/authentication/serviceaccount",
       "vendor/k8s.io/apiserver/pkg/authentication/user"
     ]

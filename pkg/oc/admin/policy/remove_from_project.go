@@ -15,7 +15,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 const (
@@ -108,7 +107,7 @@ func (o *RemoveFromProjectOptions) Run() error {
 	sasRemoved := sets.String{}
 	othersRemoved := sets.String{}
 
-	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups)
 
 	for _, currBinding := range roleBindings.Items {
 		originalSubjects := make([]kapi.ObjectReference, len(currBinding.Subjects))
