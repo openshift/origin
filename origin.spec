@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f960ba543508b830e613cd02510809cbd7dfcc66
+%global commit 1cb8f33e15e52c1d67bccda7c9b4298bb1f9f2f7
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.4 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f960ba5
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.5 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1cb8f33
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.126.5%{?dist}
+Release:        0.126.6%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,22 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Sep 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.6
+- move some naming helpers to apihelpers (deads@redhat.com)
+- Fix image layers order (agladkov@redhat.com)
+- hack/build-images.sh: fix image build order (jdetiber@redhat.com)
+- Add Prometheus metrics for authentication attempts (mrogers@redhat.com)
+- UPSTREAM: revert: bc8249cc6f35fabffff5ccf4e13978ff9a6a2e32: "UPSTREAM:
+  <carry>: allow PV controller recycler template override"
+  (jsafrane@redhat.com)
+- UPSTREAM: <carry>: increase timeout in TestCancelAndReadd even more
+  (maszulik@redhat.com)
+- Add OpenShift's recycler templates to Kubernetes controller config
+  (jsafrane@redhat.com)
+- UPSTREAM: 51553: Expose PVC metrics via kubelet prometheus
+  (mawong@redhat.com)
+- UPSTREAM: 51448: Add PVCRef to VolumeStats (mawong@redhat.com)
+
 * Wed Sep 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.5
 - bump(github.com/openshift/origin-web-console):
   1ceb0ff2382a33f7548741192b8e2c93c790ad22 (eparis+openshiftbot@redhat.com)
