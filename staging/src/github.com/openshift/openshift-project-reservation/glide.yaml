@@ -1,0 +1,20 @@
+package: github.com/openshift/openshift-project-reservation
+import:
+- package: k8s.io/gengo
+  version: master
+- package: k8s.io/code-generator
+  version: master
+- package: k8s.io/client-go
+  version: master
+- package: k8s.io/apimachinery
+  version: master
+- package: k8s.io/kube-openapi
+  version: master
+- package: k8s.io/apiserver
+  version: master
+- package: k8s.io/api
+  version: master
+- package: github.com/spf13/cobra
+  version: master
+- package: github.com/spf13/pflag
+  version: master
