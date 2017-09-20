@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 7058ce51d17626c88b0b7189a6d342497f40e41d
+%global commit f960ba543508b830e613cd02510809cbd7dfcc66
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.3 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=7058ce5
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.4 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f960ba5
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.126.4%{?dist}
+Release:        0.126.5%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,100 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Sep 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.5
+- bump(github.com/openshift/origin-web-console):
+  1ceb0ff2382a33f7548741192b8e2c93c790ad22 (eparis+openshiftbot@redhat.com)
+- catalog: RBAC - added get for service-catalog-controller role for brokers,
+  instances and credentials (jaboyd@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  6f40623444af501083edb4979a9b833ccfc5f026 (eparis+openshiftbot@redhat.com)
+- cli: prefer public docker image repository (mfojtik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  e1ba88dcfd8e36525631d0ed676d8bd073a292ef (eparis+openshiftbot@redhat.com)
+- Switch pkg/image to use clientsets (maszulik@redhat.com)
+- Rename MakeImageStreamImageName to be consistent with JoingImageStreamTag
+  (maszulik@redhat.com)
+- Switch imageimport to use k8s SAR client (maszulik@redhat.com)
+- UPSTREAM: google/cadvisor: 1706: oomparser: don't get stuck for certain
+  processes (sjenning@redhat.com)
+- Use writeable HOME directory for builder unit test (cewong@redhat.com)
+- provide a specific order for template parameters in the TSB
+  (bparees@redhat.com)
+- UPSTREAM: opencontainers/runc: 1378: Expose memory.use_hierarchy in
+  MemoryStats (sjenning@redhat.com)
+- UPSTREAM: google/cadvisor: 1741: add CRI-O handler (sjenning@redhat.com)
+- UPSTREAM: google/cadvisor: 1728: Expose total_rss when hierarchy is enabled
+  (sjenning@redhat.com)
+- remove install dependencies from api packages (deads@redhat.com)
+- Generated files (jliggitt@redhat.com)
+- Per-client access token expiration (jliggitt@redhat.com)
+- Allow running a subset of the integration tests (mkhan@redhat.com)
+- registry: add dockerregistryurl optional to middleware config
+  (mfojtik@redhat.com)
+- add ownerrefs to SSCS (deads@redhat.com)
+- remove install dependency from images (deads@redhat.com)
+- registry: use the privileged client to get signatures (mfojtik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1b695d8c30d0638a78facc397693a38f26d7efdf (eparis+openshiftbot@redhat.com)
+- Wire node authorizer (jliggitt@redhat.com)
+- Enable NodeRestriction admission (jliggitt@redhat.com)
+- UPSTREAM: 49638: Remove default binding of system:node role to system:nodes
+  group (jliggitt@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  5bf079c931b132c88b53521eddb60328023ceaa9 (eparis+openshiftbot@redhat.com)
+- Add `oc create imagestreamtag` (ccoleman@redhat.com)
+- only install component specific templates when requested (bparees@redhat.com)
+- UPSTREAM: 52221: Always populate volume status from node (hekumar@redhat.com)
+- Split networking out from node initialization into its own package
+  (ccoleman@redhat.com)
+- Separate config and options specific code for node from start
+  (ccoleman@redhat.com)
+- UPSTREAM: 48583: Record 429 and timeout errors to prometheus
+  (ccoleman@redhat.com)
+- dump pod state and logs on failure (bparees@redhat.com)
+- node,syscontainer: enable Type=notify (gscrivan@redhat.com)
+- node,syscontainer: initialize dnsmasq (gscrivan@redhat.com)
+- Convert subjectchecker to use rbac.Subject (simo@redhat.com)
+- update field selectors for all resources (deads@redhat.com)
+- update route field selectors (deads@redhat.com)
+- dump pod state on test failure (bparees@redhat.com)
+- Use discovery based version gating for policy commands (mrogers@redhat.com)
+- handle build describer edge-case (jvallejo@redhat.com)
+- catalog: added new admission controllers and updated bindata
+  (jaboyd@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from ef63307bdb..ae6b643caf (jaboyd@redhat.com)
+- build: replace legacy client with internal client set (mfojtik@redhat.com)
+- UPSTREAM: 48226: Log get PVC/PV errors in MaxPD predicate only at high
+  verbosity. (avagarwa@redhat.com)
+- bump(github.com/gophercloud/gophercloud):
+  ed590d9afe113c6107cd60717b196155e6579e78 (ppospisi@redhat.com)
+- template: add special purpose process template client (mfojtik@redhat.com)
+- build: add special purpose client for build logs (mfojtik@redhat.com)
+- build: generate missing client methods (mfojtik@redhat.com)
+- apps: add rollouts metrics (mfojtik@redhat.com)
+- UPSTREAM: 50334: Support iscsi volume attach and detach
+  (mitsuhiro.tanino@hds.com)
+- Re-enable NodePort test (danw@redhat.com)
+- UPSTREAM: <drop>: add debugging to NodePort test (danw@redhat.com)
+- UPSTREAM: 49025: fix NodePort test on baremetal installs (danw@redhat.com)
+- Disallow @ character in URL patterns, so that people don't mistakenly try to
+  add URL patterns of the form username@hostname/path. (jminter@redhat.com)
+- run kube controllers separately based on their command (deads@redhat.com)
+- Promote image trigger annotation to GA and correct syntax
+  (ccoleman@redhat.com)
+- UPSTREAM: <carry>: allow controller context injection to share informers
+  (deads@redhat.com)
+- Drop pkg/util/ipcmd, port to vishvananda/netlink (danw@redhat.com)
+- bump(github.com/vishvananda/netlink):
+  933b978eae8c18daa1077a0eb7186b689cd9f82d (danw@redhat.com)
+- UPSTREAM: <carry>: Fix to avoid REST API calls at log level 2.
+  (avagarwa@redhat.com)
+- UPSTREAM: 49420: Fix c-m crash while verifying attached volumes
+  (hekumar@redhat.com)
+- allow sys_chroot cap on SCCs (pweil@redhat.com)
+- Change git command for description extraction (jpeeler@redhat.com)
+
 * Fri Sep 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.4
 - Fix some minor syntax warnings (jpeeler@redhat.com)
 - Teach build-local-images to build service-catalog (jpeeler@redhat.com)
