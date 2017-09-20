@@ -37,6 +37,8 @@ import (
 	"k8s.io/kubernetes/pkg/util/slice"
 )
 
+const MaxCellContentLen = 80
+
 type TablePrinter interface {
 	PrintTable(obj runtime.Object, options PrintOptions) (*metav1alpha1.Table, error)
 }
@@ -336,16 +338,18 @@ func (h *HumanReadablePrinter) PrintObj(obj runtime.Object, output io.Writer) er
 					}
 
 					for i, cell := range row.Cells {
+						trimmed := trimCellContent(cell)
+
 						if i != 0 {
 							fmt.Fprint(output, "\t")
 						} else {
 							// TODO: remove this once we drop the legacy printers
 							if h.options.WithKind && len(h.options.Kind) > 0 {
-								fmt.Fprintf(output, "%s/%s", h.options.Kind, cell)
+								fmt.Fprintf(output, "%s/%s", h.options.Kind, trimmed)
 								continue
 							}
 						}
-						fmt.Fprint(output, cell)
+						fmt.Fprint(output, trimmed)
 					}
 
 					hasLabels := len(h.options.ColumnLabels) > 0
@@ -485,12 +489,30 @@ func PrintTable(table *metav1alpha1.Table, output io.Writer, options PrintOption
 				fmt.Fprint(output, "\t")
 			}
 			if cell != nil {
-				fmt.Fprint(output, cell)
+				trimmed := trimCellContent(cell)
+				fmt.Fprint(output, trimmed)
 			}
 		}
 		fmt.Fprintln(output)
 	}
 	return nil
+}
+
+func trimCellContent(cell interface{}) interface{} {
+	trimmed, ok := cell.(string)
+	if !ok {
+		return cell
+	}
+
+	// only print the first line (if more than one line)
+	if lines := strings.SplitN(trimmed, "\n", 2); len(lines) > 1 {
+		trimmed = lines[0] + "..."
+	}
+	if len(trimmed) > MaxCellContentLen {
+		trimmed = strings.TrimSpace(trimmed[:MaxCellContentLen-3]) + "..."
+	}
+
+	return trimmed
 }
 
 // DecorateTable takes a table and attempts to add label columns and the
@@ -729,7 +751,7 @@ func printUnstructured(unstructured runtime.Unstructured, w io.Writer, additiona
 			default:
 				formattedValue = fmt.Sprintf("%v", value)
 			}
-			if _, err := fmt.Fprintf(w, "\t%s", formattedValue); err != nil {
+			if _, err := fmt.Fprintf(w, "\t%s", trimCellContent(formattedValue)); err != nil {
 				return err
 			}
 		}
