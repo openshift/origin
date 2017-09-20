@@ -173,7 +173,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
-	err = plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.localIP)
+	err = plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway)
 	if err != nil {
 		return false, err
 	}
