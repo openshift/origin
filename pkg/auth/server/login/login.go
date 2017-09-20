@@ -107,7 +107,7 @@ func (l *Login) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 	uri, err := getBaseURL(req)
 	if err != nil {
-		glog.Errorf("Unable to generate base URL: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Unable to generate base URL: %v", err))
 		http.Error(w, "Unable to determine URL", http.StatusInternalServerError)
 		return
 	}
@@ -150,7 +150,7 @@ func (l *Login) handleLoginForm(w http.ResponseWriter, req *http.Request) {
 
 func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 	if ok, err := l.csrf.Check(req, req.FormValue("csrf")); !ok || err != nil {
-		glog.Errorf("Unable to check CSRF token: %v", err)
+		utilruntime.HandleError(fmt.Errorf("Unable to check CSRF token: %v", err))
 		failed(errorCodeTokenExpired, w, req)
 		return
 	}
@@ -166,7 +166,7 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 	}
 	user, ok, err := l.auth.AuthenticatePassword(username, password)
 	if err != nil {
-		glog.Errorf(`Error authenticating %q with provider %q: %v`, username, l.provider, err)
+		utilruntime.HandleError(fmt.Errorf(`Error authenticating %q with provider %q: %v`, username, l.provider, err))
 		failed(errorpage.AuthenticationErrorCode(err), w, req)
 		return
 	}
