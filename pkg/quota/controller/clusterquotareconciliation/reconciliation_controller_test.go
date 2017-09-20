@@ -15,10 +15,10 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotafake "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 )
 
 func defaultQuota() *quotaapi.ClusterResourceQuota {
@@ -224,13 +224,13 @@ func TestSyncFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		client := testclient.NewSimpleFake(tc.startingQuota())
+		client := quotafake.NewSimpleClientset(tc.startingQuota())
 
 		quotaUsageCalculationFunc = tc.calculationFunc
 		// we only need these fields to test the sync func
 		controller := ClusterQuotaReconcilationController{
 			clusterQuotaMapper: tc.mapperFunc(),
-			clusterQuotaClient: client,
+			clusterQuotaClient: client.Quota(),
 		}
 
 		actualErr, actualRetries := controller.syncQuotaForNamespaces(tc.startingQuota(), tc.workItems)

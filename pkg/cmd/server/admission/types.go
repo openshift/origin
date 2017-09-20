@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
@@ -29,6 +30,13 @@ type WantsDeprecatedOpenshiftClient interface {
 // an Openshift internal template client
 type WantsOpenshiftInternalTemplateClient interface {
 	SetOpenShiftInternalTemplateClient(templateclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalQuotaClient should be implemented by admission plugins that need
+// an Openshift internal quota client
+type WantsOpenshiftInternalQuotaClient interface {
+	SetOpenShiftInternalQuotaClient(quotaclient.Interface)
 	admission.Validator
 }
 

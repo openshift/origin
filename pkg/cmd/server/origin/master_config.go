@@ -234,7 +234,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(
 		informers.GetExternalKubeInformers(),
 		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
-		privilegedLoopbackOpenShiftClient,
+		imageClient.Image(),
 		privilegedLoopbackKubeClientsetExternal,
 	)
 
