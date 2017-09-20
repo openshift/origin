@@ -53,6 +53,7 @@ kind: Node
 metadata:
   labels:
       kubernetes.io/hostname: fake-node
+      test: label
   name: fake-node
 spec:
   externalID: fake-node
@@ -73,6 +74,21 @@ status:
     pods: \"110\"
 ' | oc create -f -"
 
+# create a simple pod resource
+os::cmd::expect_success "echo 'apiVersion: v1
+kind: Pod
+metadata:
+  name: simple-pod
+  creationTimestamp: null
+spec:
+  nodeName: fake-node
+  containers:
+  - name: container-1
+    resources: {}
+    image: openshift/origin:latest
+status: {}
+' | oc create -f -"
+
 os::cmd::expect_success_and_text 'oc adm manage-node --selector= --schedulable=true' 'Ready'
 os::cmd::expect_success_and_not_text 'oc adm manage-node --selector= --schedulable=true' 'SchedulingDisabled'
 os::cmd::expect_success_and_not_text 'oc get node -o yaml' 'unschedulable: true'
@@ -82,6 +98,21 @@ os::cmd::expect_success_and_text 'oc get node -o yaml' 'unschedulable: true'
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector= -o jsonpath='{ .kind }'" 'List'
 os::cmd::expect_success_and_text "oc adm manage-node --list-pods --selector=" 'NAMESPACE'
 echo "manage-node: ok"
+os::test::junit::declare_suite_end
+
+os::test::junit::declare_suite_start "cmd/admin/certs"
+# check node-management cmds: drain,cordon,uncordon
+# ensure drain fails when both a nodeName and --selector are given
+os::cmd::expect_failure_and_text 'oc adm drain fake-node --selector fake=label' 'cannot specify both a node name and a \-\-selector option'
+# ensure command failure when no args are passed
+os::cmd::expect_failure_and_text 'oc adm cordon' 'error\: USAGE\: cordon'
+# a --selector test=label selects our node
+os::cmd::expect_success 'oc adm uncordon --selector test=label'
+os::cmd::expect_success_and_text 'oc adm cordon --selector test=label' 'node "fake-node" cordoned'
+os::cmd::expect_success_and_text 'oc adm uncordon --selector test=label' 'node "fake-node" uncordoned'
+os::cmd::expect_success_and_text 'oc adm uncordon fake-node' 'node "fake-node" already uncordoned'
+os::cmd::expect_failure_and_text 'oc adm cordon pod/simple-pod' 'error: expected resource of type node, got "pods"'
+echo "drain, cordon, uncordon: ok"
 os::test::junit::declare_suite_end
 
 os::test::junit::declare_suite_start "cmd/admin/certs"
