@@ -13737,6 +13737,7 @@ objects:
     - serviceinstancecredentials
     verbs:
     - list
+    - get
     - watch
   - apiGroups:
     - ""
