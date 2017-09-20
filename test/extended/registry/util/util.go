@@ -15,7 +15,7 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 
-	dockerregistryserver "github.com/openshift/origin/pkg/dockerregistry/server"
+	dockerregistryserver "github.com/openshift/docker-registry/pkg/dockerregistry/server"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 

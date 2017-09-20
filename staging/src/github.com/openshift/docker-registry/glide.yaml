@@ -1,0 +1,29 @@
+package: github.com/openshift/docker-registry
+import:
+- package: github.com/docker/distribution
+  repo: https://github.com/openshift/docker-distribution
+  version: release-2.6.2
+- package: k8s.io/client-go
+  repo: https://github.com/openshift/kubernetes-client-go
+  version: release-1.7.0
+- package: k8s.io/apimachinery
+  repo: https://github.com/openshift/kubernetes-apimachinery
+  version: release-1.7.0
+- package: k8s.io/apiserver
+  repo: https://github.com/openshift/kubernetes-apiserver
+  version: release-1.7.0
+- package: k8s.io/metrics
+  repo: https://github.com/openshift/kubernetes-metrics
+  version: release-1.7.0
+- package: github.com/emicklei/go-restful-swagger12
+  repo: https://github.com/openshift/emicklei-go-restful-swagger12
+  version: release-1.0.1
+- package: k8s.io/kubernetes
+  repo: https://github.com/openshift/kubernetes
+  version: release-1.7.0
+- package: github.com/openshift/client-go
+  version: master
+- package: github.com/openshift/origin
+  version: 8f8b25b74a12b40073ee222d06154769bea05390
+- package: github.com/golang/glog
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed

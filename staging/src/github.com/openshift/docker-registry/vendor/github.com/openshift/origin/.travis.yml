@@ -1,0 +1,16 @@
+language: go
+
+go:
+  - 1.7
+
+install:
+  - export PATH=$GOPATH/bin:./_output/tools/etcd/bin:$PATH
+  - make install-travis
+
+script:
+  - make verify-commits
+
+notifications:
+  irc: "chat.freenode.net#openshift-dev"
+
+sudo: false
