@@ -1,4 +1,4 @@
-package client
+package rest
 
 import (
 	"k8s.io/apimachinery/pkg/api/meta"

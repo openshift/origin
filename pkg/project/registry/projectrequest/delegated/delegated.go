@@ -29,6 +29,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 type REST struct {
@@ -176,7 +177,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 
 	bulk := configcmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:   client.DefaultMultiRESTMapper(),
+			RESTMapper:   restutil.DefaultMultiRESTMapper(),
 			ObjectTyper:  kapi.Scheme,
 			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
 		},
