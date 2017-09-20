@@ -262,27 +262,47 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		}
 		return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
 	case userapi.IsKindOrLegacy("User", gk):
-		oc, kc, err := f.clientAccessFactory.Clients()
+		_, kc, err := f.clientAccessFactory.Clients()
+		if err != nil {
+			return nil, err
+		}
+		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
+		if err != nil {
+			return nil, err
+		}
+		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
+		if err != nil {
+			return nil, err
+		}
+		oauthClient, err := f.clientAccessFactory.OpenshiftInternalOAuthClient()
 		if err != nil {
 			return nil, err
 		}
 		return authenticationreaper.NewUserReaper(
-			client.UsersInterface(oc),
-			client.GroupsInterface(oc),
-			client.ClusterRoleBindingsInterface(oc),
-			client.RoleBindingsNamespacer(oc),
-			client.OAuthClientAuthorizationsInterface(oc),
+			userClient,
+			userClient,
+			authClient,
+			authClient,
+			oauthClient,
 			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case userapi.IsKindOrLegacy("Group", gk):
-		oc, kc, err := f.clientAccessFactory.Clients()
+		_, kc, err := f.clientAccessFactory.Clients()
+		if err != nil {
+			return nil, err
+		}
+		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
+		if err != nil {
+			return nil, err
+		}
+		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
 		if err != nil {
 			return nil, err
 		}
 		return authenticationreaper.NewGroupReaper(
-			client.GroupsInterface(oc),
-			client.ClusterRoleBindingsInterface(oc),
-			client.RoleBindingsNamespacer(oc),
+			userClient,
+			authClient,
+			authClient,
 			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case buildapi.IsKindOrLegacy("BuildConfig", gk):
