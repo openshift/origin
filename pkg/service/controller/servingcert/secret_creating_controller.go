@@ -19,6 +19,7 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 	informers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
+	listers "k8s.io/kubernetes/pkg/client/listers/core/v1"
 	"k8s.io/kubernetes/pkg/controller"
 
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
@@ -58,10 +59,10 @@ type ServiceServingCertController struct {
 	queue      workqueue.RateLimitingInterface
 	maxRetries int
 
-	serviceCache     cache.Store
+	serviceLister    listers.ServiceLister
 	serviceHasSynced cache.InformerSynced
 
-	secretCache     cache.Store
+	secretLister    listers.SecretLister
 	secretHasSynced cache.InformerSynced
 
 	ca         *crypto.CA
@@ -86,7 +87,6 @@ func NewServiceServingCertController(services informers.ServiceInformer, secrets
 		dnsSuffix: dnsSuffix,
 	}
 
-	sc.serviceCache = services.Informer().GetStore()
 	services.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			AddFunc: func(obj interface{}) {
@@ -103,9 +103,9 @@ func NewServiceServingCertController(services informers.ServiceInformer, secrets
 		},
 		resyncInterval,
 	)
+	sc.serviceLister = services.Lister()
 	sc.serviceHasSynced = services.Informer().GetController().HasSynced
 
-	sc.secretCache = secrets.Informer().GetIndexer()
 	secrets.Informer().AddEventHandlerWithResyncPeriod(
 		cache.ResourceEventHandlerFuncs{
 			DeleteFunc: sc.deleteSecret,
@@ -113,6 +113,7 @@ func NewServiceServingCertController(services informers.ServiceInformer, secrets
 		resyncInterval,
 	)
 	sc.secretHasSynced = services.Informer().GetController().HasSynced
+	sc.secretLister = secrets.Lister()
 
 	sc.syncHandler = sc.syncService
 
@@ -146,17 +147,16 @@ func (sc *ServiceServingCertController) deleteSecret(obj interface{}) {
 	if _, exists := secret.Annotations[ServiceNameAnnotation]; !exists {
 		return
 	}
-	serviceObj, exists, err := sc.serviceCache.GetByKey(secret.Namespace + "/" + secret.Annotations[ServiceNameAnnotation])
-	if !exists {
+	service, err := sc.serviceLister.Services(secret.Namespace).Get(secret.Annotations[ServiceNameAnnotation])
+	if kapierrors.IsNotFound(err) {
 		return
 	}
 	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Unable to get service %s/%s: %v", secret.Namespace, secret.Annotations[ServiceNameAnnotation], err))
 		return
 	}
-	service := serviceObj.(*v1.Service)
 	glog.V(4).Infof("Recreating secret for service %q", service.Namespace+"/"+service.Name)
-
-	sc.enqueueService(serviceObj)
+	sc.enqueueService(service)
 }
 
 func (sc *ServiceServingCertController) enqueueService(obj interface{}) {
@@ -208,37 +208,39 @@ func (sc *ServiceServingCertController) work() bool {
 // syncService will sync the service with the given key.
 // This function is not meant to be invoked concurrently with the same key.
 func (sc *ServiceServingCertController) syncService(key string) error {
-	obj, exists, err := sc.serviceCache.GetByKey(key)
+	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
-		glog.V(4).Infof("Unable to retrieve service %v from store: %v", key, err)
 		return err
 	}
-	if !exists {
-		glog.V(4).Infof("Service has been deleted %v", key)
+	sharedService, err := sc.serviceLister.Services(namespace).Get(name)
+	if kapierrors.IsNotFound(err) {
 		return nil
 	}
+	if err != nil {
+		return err
+	}
 
-	if !sc.requiresCertGeneration(obj.(*v1.Service)) {
+	if !sc.requiresCertGeneration(sharedService) {
 		return nil
 	}
 
 	// make a copy to avoid mutating cache state
-	t, err := kapi.Scheme.DeepCopy(obj)
+	t, err := kapi.Scheme.DeepCopy(sharedService)
 	if err != nil {
 		return err
 	}
-	service := t.(*v1.Service)
-	if service.Annotations == nil {
-		service.Annotations = map[string]string{}
+	serviceCopy := t.(*v1.Service)
+	if serviceCopy.Annotations == nil {
+		serviceCopy.Annotations = map[string]string{}
 	}
 
-	dnsName := service.Name + "." + service.Namespace + ".svc"
+	dnsName := serviceCopy.Name + "." + serviceCopy.Namespace + ".svc"
 	fqDNSName := dnsName + "." + sc.dnsSuffix
 	certificateLifetime := 365 * 2 // 2 years
 	servingCert, err := sc.ca.MakeServerCert(
 		sets.NewString(dnsName, fqDNSName),
 		certificateLifetime,
-		extensions.ServiceServerCertificateExtensionV1(service),
+		extensions.ServiceServerCertificateExtensionV1(serviceCopy),
 	)
 	if err != nil {
 		return err
@@ -250,11 +252,11 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: service.Namespace,
-			Name:      service.Annotations[ServingCertSecretAnnotation],
+			Namespace: serviceCopy.Namespace,
+			Name:      serviceCopy.Annotations[ServingCertSecretAnnotation],
 			Annotations: map[string]string{
-				ServiceUIDAnnotation:        string(service.UID),
-				ServiceNameAnnotation:       service.Name,
+				ServiceUIDAnnotation:        string(serviceCopy.UID),
+				ServiceNameAnnotation:       serviceCopy.Name,
 				ServingCertExpiryAnnotation: servingCert.Certs[0].NotAfter.Format(time.RFC3339),
 			},
 		},
@@ -264,55 +266,55 @@ func (sc *ServiceServingCertController) syncService(key string) error {
 			v1.TLSPrivateKeyKey: keyBytes,
 		},
 	}
-	ocontroller.EnsureOwnerRef(secret, ownerRef(service))
+	ocontroller.EnsureOwnerRef(secret, ownerRef(serviceCopy))
 
-	_, err = sc.secretClient.Secrets(service.Namespace).Create(secret)
+	_, err = sc.secretClient.Secrets(serviceCopy.Namespace).Create(secret)
 	if err != nil && !kapierrors.IsAlreadyExists(err) {
 		// if we have an error creating the secret, then try to update the service with that information.  If it fails,
 		// then we'll just try again later on  re-list or because the service had already been updated and we'll get triggered again.
-		service.Annotations[ServingCertErrorAnnotation] = err.Error()
-		service.Annotations[ServingCertErrorNumAnnotation] = strconv.Itoa(getNumFailures(service) + 1)
-		_, updateErr := sc.serviceClient.Services(service.Namespace).Update(service)
+		serviceCopy.Annotations[ServingCertErrorAnnotation] = err.Error()
+		serviceCopy.Annotations[ServingCertErrorNumAnnotation] = strconv.Itoa(getNumFailures(serviceCopy) + 1)
+		_, updateErr := sc.serviceClient.Services(serviceCopy.Namespace).Update(serviceCopy)
 
 		// if we're past the max retries and we successfully updated, then the sync loop successfully handled this service and we want to forget it
-		if updateErr == nil && getNumFailures(service) >= sc.maxRetries {
+		if updateErr == nil && getNumFailures(serviceCopy) >= sc.maxRetries {
 			return nil
 		}
 		return err
 	}
 	if kapierrors.IsAlreadyExists(err) {
-		actualSecret, err := sc.secretClient.Secrets(service.Namespace).Get(secret.Name, metav1.GetOptions{})
+		actualSecret, err := sc.secretClient.Secrets(serviceCopy.Namespace).Get(secret.Name, metav1.GetOptions{})
 		if err != nil {
 			// if we have an error creating the secret, then try to update the service with that information.  If it fails,
 			// then we'll just try again later on  re-list or because the service had already been updated and we'll get triggered again.
-			service.Annotations[ServingCertErrorAnnotation] = err.Error()
-			service.Annotations[ServingCertErrorNumAnnotation] = strconv.Itoa(getNumFailures(service) + 1)
-			_, updateErr := sc.serviceClient.Services(service.Namespace).Update(service)
+			serviceCopy.Annotations[ServingCertErrorAnnotation] = err.Error()
+			serviceCopy.Annotations[ServingCertErrorNumAnnotation] = strconv.Itoa(getNumFailures(serviceCopy) + 1)
+			_, updateErr := sc.serviceClient.Services(serviceCopy.Namespace).Update(serviceCopy)
 
 			// if we're past the max retries and we successfully updated, then the sync loop successfully handled this service and we want to forget it
-			if updateErr == nil && getNumFailures(service) >= sc.maxRetries {
+			if updateErr == nil && getNumFailures(serviceCopy) >= sc.maxRetries {
 				return nil
 			}
 			return err
 		}
 
-		if actualSecret.Annotations[ServiceUIDAnnotation] != string(service.UID) {
-			service.Annotations[ServingCertErrorAnnotation] = fmt.Sprintf("secret/%v references serviceUID %v, which does not match %v", actualSecret.Name, actualSecret.Annotations[ServiceUIDAnnotation], service.UID)
-			service.Annotations[ServingCertErrorNumAnnotation] = strconv.Itoa(getNumFailures(service) + 1)
-			_, updateErr := sc.serviceClient.Services(service.Namespace).Update(service)
+		if actualSecret.Annotations[ServiceUIDAnnotation] != string(serviceCopy.UID) {
+			serviceCopy.Annotations[ServingCertErrorAnnotation] = fmt.Sprintf("secret/%v references serviceUID %v, which does not match %v", actualSecret.Name, actualSecret.Annotations[ServiceUIDAnnotation], serviceCopy.UID)
+			serviceCopy.Annotations[ServingCertErrorNumAnnotation] = strconv.Itoa(getNumFailures(serviceCopy) + 1)
+			_, updateErr := sc.serviceClient.Services(serviceCopy.Namespace).Update(serviceCopy)
 
 			// if we're past the max retries and we successfully updated, then the sync loop successfully handled this service and we want to forget it
-			if updateErr == nil && getNumFailures(service) >= sc.maxRetries {
+			if updateErr == nil && getNumFailures(serviceCopy) >= sc.maxRetries {
 				return nil
 			}
-			return errors.New(service.Annotations[ServingCertErrorAnnotation])
+			return errors.New(serviceCopy.Annotations[ServingCertErrorAnnotation])
 		}
 	}
 
-	service.Annotations[ServingCertCreatedByAnnotation] = sc.ca.Config.Certs[0].Subject.CommonName
-	delete(service.Annotations, ServingCertErrorAnnotation)
-	delete(service.Annotations, ServingCertErrorNumAnnotation)
-	_, err = sc.serviceClient.Services(service.Namespace).Update(service)
+	serviceCopy.Annotations[ServingCertCreatedByAnnotation] = sc.ca.Config.Certs[0].Subject.CommonName
+	delete(serviceCopy.Annotations, ServingCertErrorAnnotation)
+	delete(serviceCopy.Annotations, ServingCertErrorNumAnnotation)
+	_, err = sc.serviceClient.Services(serviceCopy.Namespace).Update(serviceCopy)
 
 	return err
 }
@@ -341,9 +343,13 @@ func (sc *ServiceServingCertController) requiresCertGeneration(service *v1.Servi
 	if service.Annotations[ServingCertCreatedByAnnotation] == sc.ca.Config.Certs[0].Subject.CommonName {
 		return false
 	}
-	// TODO: use the lister here
-	if _, exists, _ := sc.secretCache.GetByKey(service.Namespace + "/" + secretName); !exists {
+	_, err := sc.secretLister.Secrets(service.Namespace).Get(secretName)
+	if kapierrors.IsNotFound(err) {
 		return true
+	}
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("Unable to get the secret %s/%s: %v", service.Namespace, secretName, err))
+		return false
 	}
 	return true
 }
