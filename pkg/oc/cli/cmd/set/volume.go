@@ -135,6 +135,7 @@ type VolumeOptions struct {
 type AddVolumeOptions struct {
 	Type          string
 	MountPath     string
+	SubPath       string
 	DefaultMode   string
 	Overwrite     bool
 	Path          string
@@ -191,6 +192,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 
 	cmd.Flags().StringVarP(&addOpts.Type, "type", "t", "", "Type of the volume source for add operation. Supported options: emptyDir, hostPath, secret, configmap, persistentVolumeClaim")
 	cmd.Flags().StringVarP(&addOpts.MountPath, "mount-path", "m", "", "Mount path inside the container. Optional param for --add or --remove")
+	cmd.Flags().StringVar(&addOpts.SubPath, "sub-path", "", "Path within the local volume from which the container's volume should be mounted. Optional param for --add or --remove")
 	cmd.Flags().StringVarP(&addOpts.DefaultMode, "default-mode", "", "", "The default mode bits to create files with. Can be between 0000 and 0777. Defaults to 0644.")
 	cmd.Flags().BoolVar(&addOpts.Overwrite, "overwrite", false, "If true, replace existing volume source with the provided name and/or volume mount for the given resource")
 	cmd.Flags().StringVar(&addOpts.Path, "path", "", "Host path. Must be provided for hostPath volume type")
@@ -669,6 +671,9 @@ func (v *VolumeOptions) setVolumeMount(spec *kapi.PodSpec, info *resource.Info) 
 		volumeMount := &kapi.VolumeMount{
 			Name:      v.Name,
 			MountPath: path.Clean(opts.MountPath),
+		}
+		if len(opts.SubPath) > 0 {
+			volumeMount.SubPath = path.Clean(opts.SubPath)
 		}
 		c.VolumeMounts = append(c.VolumeMounts, *volumeMount)
 	}
