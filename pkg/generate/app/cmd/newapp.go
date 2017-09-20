@@ -1017,7 +1017,7 @@ func (c *AppConfig) checkCircularReferences(objects app.Objects) error {
 		}
 
 		if bc, ok := obj.(*buildapi.BuildConfig); ok {
-			input := buildutil.GetInputReference(bc.Spec.Strategy)
+			input := buildapi.GetInputReference(bc.Spec.Strategy)
 			output := bc.Spec.Output.To
 
 			if output == nil || input == nil {

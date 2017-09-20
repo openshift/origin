@@ -596,6 +596,9 @@ func TestImageWithMetadata(t *testing.T) {
 			expectedImage: Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
+					Annotations: map[string]string{
+						DockerImageLayersOrderAnnotation: DockerImageLayersOrderAscending,
+					},
 				},
 				DockerImageManifest: validImageWithManifestData().DockerImageManifest,
 				DockerImageLayers: []ImageLayer{
@@ -675,15 +678,18 @@ func TestImageWithMetadata(t *testing.T) {
 			expectedImage: Image{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "id",
+					Annotations: map[string]string{
+						DockerImageLayersOrderAnnotation: DockerImageLayersOrderAscending,
+					},
 				},
 				DockerImageConfig:            validImageWithManifestV2Data().DockerImageConfig,
 				DockerImageManifest:          validImageWithManifestV2Data().DockerImageManifest,
 				DockerImageManifestMediaType: "application/vnd.docker.distribution.manifest.v2+json",
 				DockerImageLayers: []ImageLayer{
-					{Name: "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 639152},
-					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
-					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
 					{Name: "sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 5312},
+					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
+					{Name: "sha256:86e0e091d0da6bde2456dbb48306f3956bbeb2eae1b5b9a43045843f69fe4aaa", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 235231},
+					{Name: "sha256:b4ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4", MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip", LayerSize: 639152},
 				},
 				DockerImageMetadata: DockerImage{
 					ID:            "sha256:815d06b56f4138afacd0009b8e3799fcdce79f0507bf8d0588e219b93ab6fd4d",

@@ -5,7 +5,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -32,7 +31,7 @@ func ImageStreamReferenceIndexFunc(obj interface{}) ([]string, error) {
 			// explicit image reference, use the image referenced by the strategy
 			// because this is the default ICT.
 			if from == nil {
-				from = buildutil.GetInputReference(t.Spec.Strategy)
+				from = buildapi.GetInputReference(t.Spec.Strategy)
 				if from == nil || from.Kind != "ImageStreamTag" {
 					continue
 				}

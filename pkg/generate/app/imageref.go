@@ -14,11 +14,11 @@ import (
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // ImageRefGenerator is an interface for generating ImageRefs
@@ -378,7 +378,7 @@ func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []
 
 		// Create volume mounts with names based on container name
 		maxDigits := len(fmt.Sprintf("%d", len(r.Info.Config.Volumes)))
-		baseName := namer.GetName(container.Name, volumeNameInfix, kvalidation.LabelValueMaxLength-maxDigits-1)
+		baseName := apihelpers.GetName(container.Name, volumeNameInfix, kvalidation.LabelValueMaxLength-maxDigits-1)
 		i := 1
 		for volume := range r.Info.Config.Volumes {
 			r.HasEmptyDir = true
