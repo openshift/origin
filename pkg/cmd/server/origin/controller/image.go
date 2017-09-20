@@ -36,14 +36,19 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 	//streamInformer := ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer()
 	informer := ctx.ImageInformers.Image().InternalVersion().ImageStreams()
 
-	oclient, err := ctx.ClientBuilder.DeprecatedOpenshiftClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	buildClient, err := ctx.ClientBuilder.OpenshiftInternalBuildClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
+	if err != nil {
+		return true, err
+	}
+
+	appsClient, err := ctx.ClientBuilder.OpenshiftInternalAppsClient(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 	if err != nil {
 		return true, err
 	}
 	kclient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraImageTriggerControllerServiceAccountName)
 
 	updater := podSpecUpdater{kclient}
-	bcInstantiator := buildclient.NewOSClientBuildConfigInstantiatorClient(oclient)
+	bcInstantiator := buildclient.NewClientBuildConfigInstantiatorClient(buildClient)
 	broadcaster := imagetriggercontroller.NewTriggerEventBroadcaster(kv1core.New(kclient.CoreV1().RESTClient()))
 
 	sources := []imagetriggercontroller.TriggerSource{
@@ -52,7 +57,7 @@ func (c *ImageTriggerControllerConfig) RunController(ctx ControllerContext) (boo
 			Informer:  ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
 			Store:     ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer().GetIndexer(),
 			TriggerFn: triggerdeploymentconfigs.NewDeploymentConfigTriggerIndexer,
-			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: oclient},
+			Reactor:   &triggerdeploymentconfigs.DeploymentConfigReactor{Client: appsClient.Apps()},
 		},
 	}
 	if !c.HasBuilderEnabled {

@@ -63,15 +63,16 @@ func TestProvisionInstance(t *testing.T) {
 	v2_12 := Version2_12()
 
 	cases := []struct {
-		name               string
-		version            *APIVersion
-		enableAlpha        bool
-		request            *ProvisionRequest
-		httpChecks         httpChecks
-		httpReaction       httpReaction
-		expectedResponse   *ProvisionResponse
-		expectedErrMessage string
-		expectedErr        error
+		name                string
+		version             *APIVersion
+		enableAlpha         bool
+		originatingIdentity *AlphaOriginatingIdentity
+		request             *ProvisionRequest
+		httpChecks          httpChecks
+		httpReaction        httpReaction
+		expectedResponse    *ProvisionResponse
+		expectedErrMessage  string
+		expectedErr         error
 	}{
 		{
 			name: "invalid request",
@@ -180,12 +181,47 @@ func TestProvisionInstance(t *testing.T) {
 			},
 			expectedResponse: successProvisionResponse(),
 		},
+		{
+			name:                "originating identity included",
+			enableAlpha:         true,
+			originatingIdentity: testOriginatingIdentity,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: testOriginatingIdentityHeaderValue}},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successProvisionResponseBody,
+			},
+			expectedResponse: successProvisionResponse(),
+		},
+		{
+			name:                "originating identity excluded",
+			enableAlpha:         true,
+			originatingIdentity: nil,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successProvisionResponseBody,
+			},
+			expectedResponse: successProvisionResponse(),
+		},
+		{
+			name:                "originating identity not sent unless alpha enabled",
+			enableAlpha:         false,
+			originatingIdentity: testOriginatingIdentity,
+			httpChecks:          httpChecks{headers: map[string]string{OriginatingIdentityHeader: ""}},
+			httpReaction: httpReaction{
+				status: http.StatusCreated,
+				body:   successProvisionResponseBody,
+			},
+			expectedResponse: successProvisionResponse(),
+		},
 	}
 
 	for _, tc := range cases {
 		if tc.request == nil {
 			tc.request = defaultProvisionRequest()
 		}
+
+		tc.request.OriginatingIdentity = tc.originatingIdentity
 
 		if tc.httpChecks.URL == "" {
 			tc.httpChecks.URL = "/v2/service_instances/test-instance-id"

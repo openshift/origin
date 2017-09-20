@@ -21,6 +21,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	metrics "github.com/openshift/origin/pkg/apps/metrics/prometheus"
 )
 
 const (
@@ -92,6 +93,8 @@ func (c *DeploymentConfigController) Run(workers int, stopCh <-chan struct{}) {
 	for i := 0; i < workers; i++ {
 		go wait.Until(c.worker, time.Second, stopCh)
 	}
+
+	metrics.IntializeMetricsCollector(c.rcLister)
 
 	<-stopCh
 

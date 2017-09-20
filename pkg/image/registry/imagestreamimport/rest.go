@@ -19,12 +19,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/image/importer"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
@@ -44,12 +46,12 @@ type REST struct {
 	streams           imagestream.Registry
 	internalStreams   rest.CreaterUpdater
 	images            rest.Creater
-	secrets           client.ImageStreamSecretsNamespacer
+	isClient          imageclient.ImageStreamsGetter
 	transport         http.RoundTripper
 	insecureTransport http.RoundTripper
 	clientFn          ImporterDockerRegistryFunc
 	strategy          *strategy
-	sarClient         client.SubjectAccessReviewInterface
+	sarClient         authorizationclient.SubjectAccessReviewInterface
 }
 
 var _ rest.Creater = &REST{}
@@ -58,19 +60,19 @@ var _ rest.Creater = &REST{}
 // if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
 // include client certs unless you wish to allow the entire cluster to import using those certs.
 func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStreams rest.CreaterUpdater,
-	images rest.Creater, secrets client.ImageStreamSecretsNamespacer,
+	images rest.Creater, isClient imageclient.ImageStreamsGetter,
 	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
 	allowedImportRegistries *serverapi.AllowedRegistries,
 	registryFn imageapi.RegistryHostnameRetriever,
-	sarClient client.SubjectAccessReviewInterface,
+	sarClient authorizationclient.SubjectAccessReviewInterface,
 ) *REST {
 	return &REST{
 		importFn:          importFn,
 		streams:           streams,
 		internalStreams:   internalStreams,
 		images:            images,
-		secrets:           secrets,
+		isClient:          isClient,
 		transport:         transport,
 		insecureTransport: insecureTransport,
 		clientFn:          clientFn,
@@ -104,33 +106,35 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 	if !ok {
 		return nil, kapierrors.NewBadRequest("unable to get user from context")
 	}
-	isCreateImage, err := r.sarClient.Create(authorizationapi.AddUserToSAR(user,
-		&authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{
+	createImageSAR := authorizationutil.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Verb:     "create",
 				Group:    imageapi.GroupName,
 				Resource: "images",
 			},
 		},
-	))
+	})
+	isCreateImage, err := r.sarClient.Create(createImageSAR)
 	if err != nil {
 		return nil, err
 	}
 
-	isCreateImageStreamMapping, err := r.sarClient.Create(authorizationapi.AddUserToSAR(user,
-		&authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{
+	createImageStreamMappingSAR := authorizationutil.AddUserToSAR(user, &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Verb:     "create",
 				Group:    imageapi.GroupName,
 				Resource: "imagestreammapping",
 			},
 		},
-	))
+	})
+	isCreateImageStreamMapping, err := r.sarClient.Create(createImageStreamMappingSAR)
 	if err != nil {
 		return nil, err
 	}
 
-	if !isCreateImage.Allowed && !isCreateImageStreamMapping.Allowed {
+	if !isCreateImage.Status.Allowed && !isCreateImageStreamMapping.Status.Allowed {
 		if errs := r.strategy.ValidateAllowedRegistries(isi); len(errs) != 0 {
 			return nil, kapierrors.NewInvalid(imageapi.Kind("ImageStreamImport"), isi.Name, errs)
 		}
@@ -149,7 +153,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 	// only load secrets if we need them
 	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapiv1.Secret, error) {
-		secrets, err := r.secrets.ImageStreamSecrets(namespace).Secrets(isi.Name, metav1.ListOptions{})
+		secrets, err := r.isClient.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}

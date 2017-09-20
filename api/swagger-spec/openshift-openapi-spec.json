@@ -91358,6 +91358,11 @@
    "com.github.openshift.origin.pkg.oauth.apis.oauth.v1.OAuthClient": {
     "description": "OAuthClient describes an OAuth client",
     "properties": {
+     "accessTokenMaxAgeSeconds": {
+      "description": "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration.",
+      "type": "integer",
+      "format": "int32"
+     },
      "additionalSecrets": {
       "description": "AdditionalSecrets holds other secrets that may be used to identify the client.  This is useful for rotation and for service account token validation",
       "type": "array",

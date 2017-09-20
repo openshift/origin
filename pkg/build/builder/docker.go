@@ -25,7 +25,8 @@ import (
 	"github.com/openshift/origin/pkg/build/controller/strategy"
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/build/util/dockerfile"
-	"github.com/openshift/origin/pkg/client"
+
+	buildinternalversion "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 )
 
 // defaultDockerfilePath is the default path of the Dockerfile
@@ -36,13 +37,13 @@ type DockerBuilder struct {
 	dockerClient DockerClient
 	tar          tar.Tar
 	build        *buildapi.Build
-	client       client.BuildInterface
+	client       buildinternalversion.BuildResourceInterface
 	cgLimits     *s2iapi.CGroupLimits
 	inputDir     string
 }
 
 // NewDockerBuilder creates a new instance of DockerBuilder
-func NewDockerBuilder(dockerClient DockerClient, buildsClient client.BuildInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
+func NewDockerBuilder(dockerClient DockerClient, buildsClient buildinternalversion.BuildResourceInterface, build *buildapi.Build, cgLimits *s2iapi.CGroupLimits) *DockerBuilder {
 	return &DockerBuilder{
 		dockerClient: dockerClient,
 		build:        build,

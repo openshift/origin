@@ -1,7 +1,7 @@
 # Service Catalog Introduction
 
 The Kubernetes Service Catalog provides a Kubernetes-native interface to one
-or more [Open Service Broker API](https://openservicebrokerapi.org/) compatible
+or more [Open Service Broker API](https://www.openservicebrokerapi.org/) compatible
 service brokers.
 
 # Concepts

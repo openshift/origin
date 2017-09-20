@@ -78,7 +78,7 @@ func findContainerBySelector(spec ometa.PodSpecReferenceMutator, init bool, sele
 		return spec.GetContainerByIndex(init, i)
 	}
 	// TODO: potentially make this more flexible, like whitespace
-	if name := strings.TrimSuffix(strings.TrimPrefix(selector, "?(@.name='"), "')"); name != selector {
+	if name := strings.TrimSuffix(strings.TrimPrefix(selector, "?(@.name==\""), "\")"); name != selector {
 		return spec.GetContainerByName(name)
 	}
 	return nil, false

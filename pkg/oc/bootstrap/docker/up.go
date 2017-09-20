@@ -115,15 +115,20 @@ var (
 		"jenkins pipeline persistent": "examples/jenkins/jenkins-persistent-template.json",
 		"sample pipeline":             "examples/jenkins/pipeline/samplepipeline.yaml",
 	}
-	// internalTemplateLocations are templates that will be registered in an internal namespace
-	// instead of the openshift namespace.
-	internalTemplateLocations = map[string]string{
-		"logging":                              "examples/logging/logging-deployer.yaml",
+	// serviceCatalogTemplateLocations are templates that will be registered in an internal namespace
+	// when the service catalog is requested
+	serviceCatalogTemplateLocations = map[string]string{
 		"service catalog":                      "examples/service-catalog/service-catalog.yaml",
 		"template service broker apiserver":    "install/templateservicebroker/apiserver-template.yaml",
 		"template service broker rbac":         "install/templateservicebroker/rbac-template.yaml",
 		"template service broker registration": "install/service-catalog-broker-resources/template-service-broker-registration.yaml",
 	}
+	// loggingTemplateLocations are templates that will be registered in an internal namespace
+	// when logging is requested
+	loggingTemplateLocations = map[string]string{
+		"logging": "examples/logging/logging-deployer.yaml",
+	}
+
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
@@ -405,6 +410,16 @@ func (c *ClientStartConfig) Complete(f *osclientcmd.Factory, cmd *cobra.Command)
 
 	// Import templates
 	c.addTask(conditionalTask("Importing templates", c.ImportTemplates, c.ShouldInitializeData))
+
+	// Import catalog templates
+	c.addTask(conditionalTask("Importing service catalog templates", c.ImportServiceCatalogTemplates, func() bool {
+		return c.ShouldInstallServiceCatalog && c.ShouldInitializeData()
+	}))
+
+	// Import logging templates
+	c.addTask(conditionalTask("Importing logging templates", c.ImportLoggingTemplates, func() bool {
+		return c.ShouldInstallLogging && c.ShouldInitializeData()
+	}))
 
 	// Install logging
 	c.addTask(conditionalTask("Installing logging", c.InstallLogging, func() bool {
@@ -950,15 +965,28 @@ func (c *ClientStartConfig) ImportTemplates(out io.Writer) error {
 	if err := c.importObjects(out, openshift.OpenshiftNamespace, templateLocations); err != nil {
 		return err
 	}
-	if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, internalTemplateLocations); err != nil {
-		return err
-	}
 	version, err := c.OpenShiftHelper().ServerVersion()
 	if err != nil {
 		return err
 	}
 	if shouldImportAdminTemplates(version) {
 		return c.importObjects(out, "kube-system", adminTemplateLocations)
+	}
+	return nil
+}
+
+// ImportServiceCatalogTemplates imports service catalog templates into the server
+func (c *ClientStartConfig) ImportServiceCatalogTemplates(out io.Writer) error {
+	if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, serviceCatalogTemplateLocations); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ImportLoggingTemplates imports service catalog templates into the server
+func (c *ClientStartConfig) ImportLoggingTemplates(out io.Writer) error {
+	if err := c.importObjects(out, openshift.OpenshiftInfraNamespace, loggingTemplateLocations); err != nil {
+		return err
 	}
 	return nil
 }

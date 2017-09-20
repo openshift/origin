@@ -106,6 +106,13 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	for image, tcs := range GetTestCaseForImages() {
 		for _, t := range tcs {
 			defineTest(image, t, oc)

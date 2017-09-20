@@ -9,17 +9,33 @@ import (
 
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 )
 
-// WantsOpenshiftClient should be implemented by admission plugins that need
+// WantDeprecatedOpenshiftClient should be implemented by admission plugins that need
 // an Openshift client
-type WantsOpenshiftClient interface {
-	SetOpenshiftClient(client.Interface)
+type WantsDeprecatedOpenshiftClient interface {
+	SetDeprecatedOpenshiftClient(client.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
+// an Openshift internal template client
+type WantsOpenshiftInternalTemplateClient interface {
+	SetOpenShiftInternalTemplateClient(templateclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
+// an Openshift internal image client
+type WantsOpenshiftInternalImageClient interface {
+	SetOpenshiftInternalImageClient(imageclient.Interface)
 	admission.Validator
 }
 

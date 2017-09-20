@@ -25,12 +25,14 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/apiserver/pkg/authorization/authorizerfactory"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kubeinformers "k8s.io/client-go/informers"
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 
 	scadmission "github.com/kubernetes-incubator/service-catalog/pkg/apiserver/admission"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver/authenticator"
 	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/internalversion"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
@@ -76,7 +78,9 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 		}
 	} else {
 		// always warn when auth is disabled, since this should only be used for testing
-		glog.Infof("Authentication and authorization disabled for testing purposes")
+		glog.Warning("Authentication and authorization disabled for testing purposes")
+		genericConfig.Authenticator = &authenticator.AnyUserAuthenticator{}
+		genericConfig.Authorizer = authorizerfactory.NewAlwaysAllowAuthorizer()
 	}
 
 	if err := s.AuditOptions.ApplyTo(genericConfig); err != nil {

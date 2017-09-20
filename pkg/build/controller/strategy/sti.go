@@ -33,7 +33,6 @@ var DefaultDropCaps = []string{
 	"MKNOD",
 	"SETGID",
 	"SETUID",
-	"SYS_CHROOT",
 }
 
 // CreateBuildPod creates a pod that will execute the STI build

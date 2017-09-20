@@ -27218,6 +27218,11 @@
        "$ref": "v1.ScopeRestriction"
       },
       "description": "ScopeRestrictions describes which scopes this client can request.  Each requested scope is checked against each restriction.  If any restriction matches, then the scope is allowed. If no restriction matches, then the scope is denied."
+     },
+     "accessTokenMaxAgeSeconds": {
+      "type": "integer",
+      "format": "int32",
+      "description": "AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client. 0 means no expiration."
      }
     }
    },

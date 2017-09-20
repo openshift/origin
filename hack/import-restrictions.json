@@ -60,7 +60,8 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/github.com/google/gofuzz",
@@ -68,9 +69,6 @@
       "vendor/k8s.io/kubernetes/pkg/api/v1",
       "vendor/k8s.io/kubernetes/pkg/api/validation",
       "vendor/k8s.io/kubernetes/pkg/apis/rbac",
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
-      "github.com/openshift/origin/pkg/api/apihelpers",
-      "github.com/openshift/origin/pkg/api/install",
       "vendor/k8s.io/kubernetes/pkg/api/helper",
       "github.com/openshift/origin/pkg/user/apis/user/validation",
       "vendor/k8s.io/apiserver/pkg/authentication/serviceaccount",
@@ -86,14 +84,12 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
-      "github.com/openshift/origin/pkg/api/apihelpers",
-      "github.com/openshift/origin/pkg/api/install",
       "github.com/openshift/origin/pkg/util/namer",
       "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/image/apis/image",
@@ -116,8 +112,6 @@
       "vendor/k8s.io/kubernetes/pkg/apis/extensions",
       "vendor/k8s.io/kubernetes/pkg/apis/extensions/v1beta1",
       "vendor/k8s.io/kubernetes/pkg/api/helper",
-      "vendor/k8s.io/kubernetes/pkg/api/install",
-      "github.com/openshift/origin/pkg/apps/apis/apps/install",
       "github.com/openshift/origin/pkg/image/apis/image"
     ]
   },
@@ -131,7 +125,8 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
@@ -139,14 +134,10 @@
       "vendor/k8s.io/kubernetes/pkg/api/helper",
       "vendor/github.com/golang/glog",
       "vendor/github.com/fsouza/go-dockerclient",
-      "vendor/github.com/golang/glog",
       "vendor/github.com/docker/distribution/digest",
       "vendor/github.com/docker/distribution/manifest/schema1",
       "vendor/github.com/docker/distribution/manifest/schema2",
       "vendor/github.com/blang/semver",
-      "github.com/openshift/origin/pkg/api/apihelpers",
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
-      "github.com/openshift/origin/pkg/image/apis/image/install",
       "github.com/openshift/origin/pkg/image/reference"
     ]
   },
@@ -158,12 +149,10 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
-    ],
-    "allowedImportPackages": [
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
+      "vendor/github.com/gogo/protobuf",
       "github.com/openshift/origin/pkg/api/apihelpers"
-    ]
+    ],
+    "allowedImportPackages": []
   },
 
   {
@@ -173,14 +162,12 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
-      "github.com/openshift/origin/pkg/api/apihelpers",
-      "vendor/k8s.io/kubernetes/pkg/registry/core/namespace"
+      "vendor/k8s.io/kubernetes/pkg/api/v1"
     ]
   },
 
@@ -196,8 +183,7 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "vendor/k8s.io/kubernetes/pkg/api/helper",
-      "github.com/openshift/origin/pkg/quota/apis/quota/install"
+      "vendor/k8s.io/kubernetes/pkg/api/helper"
     ]
   },
 
@@ -208,14 +194,12 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api/apihelpers",
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
-      "github.com/openshift/origin/pkg/api/install"
+      "vendor/k8s.io/kubernetes/pkg/api/v1"
     ]
   },
 
@@ -238,12 +222,12 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api/apihelpers"
+      "vendor/k8s.io/kubernetes/pkg/api/v1"
     ]
   },
 
@@ -254,19 +238,18 @@
     ],
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
-      "vendor/github.com/gogo/protobuf"
+      "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
-      "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/api/apihelpers/apitesting",
-      "github.com/openshift/origin/pkg/api/apihelpers"
+      "vendor/k8s.io/kubernetes/pkg/api/v1"
     ]
   },
 
 
   {
-    "checkedPackages": [
+    "checkedPackageRoots": [
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackageRoots": [

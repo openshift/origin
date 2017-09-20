@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -11,6 +13,18 @@ import (
 
 	newer "github.com/openshift/origin/pkg/apps/apis/apps"
 )
+
+var scheme = runtime.NewScheme()
+var codecs = serializer.NewCodecFactory(scheme)
+
+func init() {
+	kapi.AddToScheme(scheme)
+	kapiv1.AddToScheme(scheme)
+	LegacySchemeBuilder.AddToScheme(scheme)
+	newer.LegacySchemeBuilder.AddToScheme(scheme)
+	SchemeBuilder.AddToScheme(scheme)
+	newer.SchemeBuilder.AddToScheme(scheme)
+}
 
 func TestTriggerRoundTrip(t *testing.T) {
 	tests := []struct {
@@ -42,7 +56,7 @@ func TestTriggerRoundTrip(t *testing.T) {
 			},
 		}
 		out := &newer.DeploymentTriggerImageChangeParams{}
-		if err := kapi.Scheme.Convert(&p, out, nil); err != nil {
+		if err := scheme.Convert(&p, out, nil); err != nil {
 			t.Errorf("%s: unexpected error: %v", test.testName, err)
 		}
 		if out.From.Name != "golang:latest" {
@@ -136,7 +150,7 @@ func Test_convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentSt
 	for i, test := range tests {
 		t.Logf("running test case #%d", i)
 		out := &newer.RollingDeploymentStrategyParams{}
-		if err := kapi.Scheme.Convert(test.in, out, nil); err != nil {
+		if err := scheme.Convert(test.in, out, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {
@@ -202,7 +216,7 @@ func Test_convert_api_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStr
 
 	for _, test := range tests {
 		out := &RollingDeploymentStrategyParams{}
-		if err := kapi.Scheme.Convert(test.in, out, nil); err != nil {
+		if err := scheme.Convert(test.in, out, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		if !reflect.DeepEqual(out, test.out) {

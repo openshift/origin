@@ -196,6 +196,7 @@ func NewCmdCreate(parentName string, f *clientcmd.Factory, out, errOut io.Writer
 	cmd.AddCommand(create.NewCmdCreateIdentity(create.IdentityRecommendedName, parentName+" create "+create.IdentityRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateUserIdentityMapping(create.UserIdentityMappingRecommendedName, parentName+" create "+create.UserIdentityMappingRecommendedName, f, out))
 	cmd.AddCommand(create.NewCmdCreateImageStream(create.ImageStreamRecommendedName, parentName+" create "+create.ImageStreamRecommendedName, f, out))
+	cmd.AddCommand(create.NewCmdCreateImageStreamTag(create.ImageStreamTagRecommendedName, parentName+" create "+create.ImageStreamTagRecommendedName, f, out))
 
 	adjustCmdExamples(cmd, parentName, "create")
 

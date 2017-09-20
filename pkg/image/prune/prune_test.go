@@ -26,8 +26,8 @@ import (
 	"github.com/openshift/origin/pkg/api/graph"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
@@ -1086,11 +1086,11 @@ func TestImageDeleter(t *testing.T) {
 	}
 
 	for name, test := range tests {
-		imageClient := testclient.Fake{}
+		imageClient := imageclient.Clientset{}
 		imageClient.AddReactor("delete", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, test.imageDeletionError
 		})
-		imageDeleter := NewImageDeleter(imageClient.Images())
+		imageDeleter := NewImageDeleter(imageClient.Image())
 		err := imageDeleter.DeleteImage(&imageapi.Image{ObjectMeta: metav1.ObjectMeta{Name: "sha256:0000000000000000000000000000000000000000000000000000000000000002"}})
 		if test.imageDeletionError != nil {
 			if e, a := test.imageDeletionError, err; e != a {

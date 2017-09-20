@@ -8,6 +8,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapirest "k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/route"
@@ -30,7 +31,6 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &routeapi.Route{} },
 		NewListFunc:              func() runtime.Object { return &routeapi.RouteList{} },
-		PredicateFunc:            routeregistry.Matcher,
 		DefaultQualifiedResource: routeapi.Resource("routes"),
 
 		CreateStrategy: strategy,
@@ -38,7 +38,10 @@ func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarC
 		DeleteStrategy: strategy,
 	}
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: routeregistry.GetAttrs}
+	options := &generic.StoreOptions{
+		RESTOptions: optsGetter,
+		AttrFunc:    storage.AttrFunc(storage.DefaultNamespaceScopedAttr).WithFieldMutation(routeapi.RouteFieldSelector),
+	}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, err
 	}

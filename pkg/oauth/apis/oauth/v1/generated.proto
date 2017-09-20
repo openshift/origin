@@ -9,6 +9,7 @@ import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 import "k8s.io/apimachinery/pkg/util/intstr/generated.proto";
+import "k8s.io/kubernetes/pkg/api/v1/generated.proto";
 
 // Package-wide variables from generator "generated".
 option go_package = "v1";
@@ -137,6 +138,10 @@ message OAuthClient {
   // is checked against each restriction.  If any restriction matches, then the scope is allowed.
   // If no restriction matches, then the scope is denied.
   repeated ScopeRestriction scopeRestrictions = 7;
+
+  // AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
+  // 0 means no expiration.
+  optional int32 accessTokenMaxAgeSeconds = 8;
 }
 
 // OAuthClientAuthorization describes an authorization created by an OAuth client

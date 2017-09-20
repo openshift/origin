@@ -29,7 +29,7 @@ type buildByStrategy struct {
 	client client.Interface
 }
 
-var _ = oadmission.WantsOpenshiftClient(&buildByStrategy{})
+var _ = oadmission.WantsDeprecatedOpenshiftClient(&buildByStrategy{})
 
 // NewBuildByStrategy returns an admission control for builds that checks
 // on policy based on the build strategy type
@@ -69,7 +69,7 @@ func (a *buildByStrategy) Admit(attr admission.Attributes) error {
 	}
 }
 
-func (a *buildByStrategy) SetOpenshiftClient(c client.Interface) {
+func (a *buildByStrategy) SetDeprecatedOpenshiftClient(c client.Interface) {
 	a.client = c
 }
 

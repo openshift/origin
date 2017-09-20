@@ -226,7 +226,12 @@ func describeBuildDuration(build *buildapi.Build) string {
 		// time a still running build has been running in a pod
 		duration := metav1.Now().Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
 		return fmt.Sprintf("running for %v", duration)
+	} else if build.Status.CompletionTimestamp == nil &&
+		build.Status.StartTimestamp == nil &&
+		build.Status.Phase == buildapi.BuildPhaseCancelled {
+		return "<none>"
 	}
+
 	duration := build.Status.CompletionTimestamp.Rfc3339Copy().Time.Sub(build.Status.StartTimestamp.Rfc3339Copy().Time)
 	return fmt.Sprintf("%v", duration)
 }
@@ -547,12 +552,16 @@ func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kp
 	}
 
 	var timeCreated time.Time = oAuthAccessToken.ObjectMeta.CreationTimestamp.Time
-	var timeExpired time.Time = timeCreated.Add(time.Duration(oAuthAccessToken.ExpiresIn) * time.Second)
+	expires := "never"
+	if oAuthAccessToken.ExpiresIn > 0 {
+		var timeExpired time.Time = timeCreated.Add(time.Duration(oAuthAccessToken.ExpiresIn) * time.Second)
+		expires = formatToHumanDuration(timeExpired.Sub(time.Now()))
+	}
 
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, oAuthAccessToken.ObjectMeta)
 		formatString(out, "Scopes", oAuthAccessToken.Scopes)
-		formatString(out, "Expires In", formatToHumanDuration(timeExpired.Sub(time.Now())))
+		formatString(out, "Expires In", expires)
 		formatString(out, "User Name", oAuthAccessToken.UserName)
 		formatString(out, "User UID", oAuthAccessToken.UserUID)
 		formatString(out, "Client Name", oAuthAccessToken.ClientName)
@@ -755,7 +764,11 @@ func (d *ImageStreamDescriber) Describe(namespace, name string, settings kprinte
 func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, imageStream.ObjectMeta)
-		formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
+		if len(imageStream.Status.PublicDockerImageRepository) > 0 {
+			formatString(out, "Docker Pull Spec", imageStream.Status.PublicDockerImageRepository)
+		} else {
+			formatString(out, "Docker Pull Spec", imageStream.Status.DockerImageRepository)
+		}
 		formatString(out, "Image Lookup", fmt.Sprintf("local=%t", imageStream.Spec.LookupPolicy.Local))
 		formatImageStreamTags(out, imageStream)
 		return nil

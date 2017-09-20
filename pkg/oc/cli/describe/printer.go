@@ -47,7 +47,7 @@ var (
 	roleBindingColumns      = []string{"NAME", "ROLE", "USERS", "GROUPS", "SERVICE ACCOUNTS", "SUBJECTS"}
 	roleColumns             = []string{"NAME"}
 
-	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "REDIRECT URIS"}
+	oauthClientColumns              = []string{"NAME", "SECRET", "WWW-CHALLENGE", "TOKEN-MAX-AGE", "REDIRECT URIS"}
 	oauthClientAuthorizationColumns = []string{"NAME", "USER NAME", "CLIENT NAME", "SCOPES"}
 	oauthAccessTokenColumns         = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
 	oauthAuthorizeTokenColumns      = []string{"NAME", "USER NAME", "CLIENT NAME", "CREATED", "EXPIRES", "REDIRECT URI", "SCOPES"}
@@ -501,6 +501,9 @@ func printImageStream(stream *imageapi.ImageStream, w io.Writer, opts kprinters.
 	if len(repo) == 0 {
 		repo = stream.Status.DockerImageRepository
 	}
+	if len(stream.Status.PublicDockerImageRepository) > 0 {
+		repo = stream.Status.PublicDockerImageRepository
+	}
 	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s", name, repo, tags, latestTime); err != nil {
 		return err
 	}
@@ -885,7 +888,19 @@ func printOAuthClient(client *oauthapi.OAuthClient, w io.Writer, opts kprinters.
 	if client.RespondWithChallenges {
 		challenge = "TRUE"
 	}
-	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%v", name, client.Secret, challenge, strings.Join(client.RedirectURIs, ",")); err != nil {
+
+	var maxAge string
+	switch {
+	case client.AccessTokenMaxAgeSeconds == nil:
+		maxAge = "default"
+	case *client.AccessTokenMaxAgeSeconds == 0:
+		maxAge = "unexpiring"
+	default:
+		duration := time.Duration(*client.AccessTokenMaxAgeSeconds) * time.Second
+		maxAge = duration.String()
+	}
+
+	if _, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%v", name, client.Secret, challenge, maxAge, strings.Join(client.RedirectURIs, ",")); err != nil {
 		return err
 	}
 	if err := appendItemLabels(client.Labels, w, opts.ColumnLabels, opts.ShowLabels); err != nil {
@@ -921,7 +936,10 @@ func printOAuthClientAuthorizationList(list *oauthapi.OAuthClientAuthorizationLi
 func printOAuthAccessToken(token *oauthapi.OAuthAccessToken, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, token.Name, opts.WithKind)
 	created := token.CreationTimestamp
-	expires := created.Add(time.Duration(token.ExpiresIn) * time.Second)
+	expires := "never"
+	if token.ExpiresIn > 0 {
+		expires = created.Add(time.Duration(token.ExpiresIn) * time.Second).String()
+	}
 	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\n", name, token.UserName, token.ClientName, created, expires, token.RedirectURI, strings.Join(token.Scopes, ","))
 	return err
 }

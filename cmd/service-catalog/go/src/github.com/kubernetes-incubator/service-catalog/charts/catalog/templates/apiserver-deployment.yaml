@@ -38,7 +38,7 @@ spec:
         - {{ .Values.apiserver.audit.logPath }}
         {{- end}}
         - --admission-control
-        - "KubernetesNamespaceLifecycle,DefaultServicePlan"
+        - "KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceInstanceCredentialsLifecycle,ServicePlanChangeValidator"
         - --secure-port
         - "8443"
         - --storage-type

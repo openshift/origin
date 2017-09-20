@@ -229,7 +229,7 @@ func init() {
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraServiceServingCertServiceAccountName},
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("list", "watch", "update").Groups(kapiGroup).Resources("services").RuleOrDie(),
-			rbac.NewRule("get", "list", "watch", "create", "update").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("get", "list", "watch", "create", "update", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
 			eventsRule(),
 		},
 	})

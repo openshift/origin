@@ -11,11 +11,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/admission"
-	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -45,7 +43,7 @@ type restrictUsersAdmission struct {
 	groupCache GroupCache
 }
 
-var _ = oadmission.WantsOpenshiftClient(&restrictUsersAdmission{})
+var _ = oadmission.WantsDeprecatedOpenshiftClient(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
@@ -61,7 +59,7 @@ func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface
 	q.kclient = c
 }
 
-func (q *restrictUsersAdmission) SetOpenshiftClient(c oclient.Interface) {
+func (q *restrictUsersAdmission) SetDeprecatedOpenshiftClient(c oclient.Interface) {
 	q.oclient = c
 }
 
@@ -71,8 +69,7 @@ func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.Shar
 
 // subjectsDelta returns the relative complement of elementsToIgnore in
 // elements (i.e., elements∖elementsToIgnore).
-// TODO return []rbac.Subject{} once we convert subjectchecker to RBAC types
-func subjectsDelta(elementsToIgnore, elements []rbac.Subject) ([]kapi.ObjectReference, error) {
+func subjectsDelta(elementsToIgnore, elements []rbac.Subject) []rbac.Subject {
 	result := []rbac.Subject{}
 
 	for _, el := range elements {
@@ -88,7 +85,7 @@ func subjectsDelta(elementsToIgnore, elements []rbac.Subject) ([]kapi.ObjectRefe
 		}
 	}
 
-	return authorizationapi.Convert_rbac_Subjects_To_authorization_Subjects(result)
+	return result
 }
 
 // Admit makes admission decisions that enforce restrictions on adding
@@ -140,11 +137,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 	glog.V(4).Infof("Handling rolebinding %s/%s",
 		rolebinding.Namespace, rolebinding.Name)
 
-	newSubjects, err := subjectsDelta(oldSubjects, rolebinding.Subjects)
-	if err != nil {
-		return admission.NewForbidden(a,
-			fmt.Errorf("failed to select Subjects: %v", err))
-	}
+	newSubjects := subjectsDelta(oldSubjects, rolebinding.Subjects)
 	if len(newSubjects) == 0 {
 		glog.V(4).Infof("No new subjects; admitting")
 		return nil

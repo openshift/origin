@@ -6,19 +6,25 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/openshift/origin/pkg/api/apihelpers/apitesting"
-	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	"github.com/openshift/origin/pkg/route/apis/route"
 )
 
 func TestFieldSelectorConversions(t *testing.T) {
-	converter := runtime.NewScheme()
-	LegacySchemeBuilder.AddToScheme(converter)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "Route",
-		// Ensure all currently returned labels are supported
-		routeapi.RouteToSelectableFields(&routeapi.Route{}),
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, route.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("Route"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"spec.host", "spec.path", "spec.to.name",
-	)
+		AllowedExternalFieldKeys: []string{"spec.host", "spec.path", "spec.to.name"},
+		FieldKeyEvaluatorFn:      route.RouteFieldSelector,
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, route.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("Route"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"spec.host", "spec.path", "spec.to.name"},
+		FieldKeyEvaluatorFn:      route.RouteFieldSelector,
+	}.Check(t)
 }
 
 func TestSupportingCamelConstants(t *testing.T) {

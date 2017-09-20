@@ -3,7 +3,7 @@ package trigger
 // TriggerAnnotationKey is the annotation used on resources to signal they wish to have
 // container image references changed when an image stream tag is updated. Today, only
 // containers can be specified by fieldPath.
-const TriggerAnnotationKey = "image.alpha.openshift.io/triggers"
+const TriggerAnnotationKey = "image.openshift.io/triggers"
 
 // ObjectFieldTrigger links a field on the current object to another object for mutation.
 type ObjectFieldTrigger struct {

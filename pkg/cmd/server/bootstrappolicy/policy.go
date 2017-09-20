@@ -696,13 +696,13 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			Rules: []rbac.PolicyRule{
 				// Needed to check API access.  These creates are non-mutating
 				rbac.NewRule("create").Groups(kAuthnGroup).Resources("tokenreviews").RuleOrDie(),
-				rbac.NewRule("create").Groups(authzGroup, legacyAuthzGroup).Resources("subjectaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
 				rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews", "localsubjectaccessreviews").RuleOrDie(),
 				// Needed to build serviceLister, to populate env vars for services
 				rbac.NewRule(read...).Groups(kapiGroup).Resources("services").RuleOrDie(),
 				// Nodes can register themselves
-				// TODO: restrict to creating a node with the same name they announce
+				// Use the NodeRestriction admission plugin to limit a node to creating/updating its own API object.
 				rbac.NewRule("create", "get", "list", "watch").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
+				rbac.NewRule("update", "patch", "delete").Groups(kapiGroup).Resources("nodes").RuleOrDie(),
 				// TODO: restrict to the bound node once supported
 				rbac.NewRule("update", "patch").Groups(kapiGroup).Resources("nodes/status").RuleOrDie(),
 
@@ -731,7 +731,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				// Needed for glusterfs volumes
 				rbac.NewRule("get").Groups(kapiGroup).Resources("endpoints").RuleOrDie(),
 				// Nodes are allowed to request CSRs (specifically, request serving certs)
-				rbac.NewRule("get", "create").Groups(certificates.GroupName).Resources("certificatesigningrequests").RuleOrDie(),
+				rbac.NewRule("get", "create", "list", "watch").Groups(certificates.GroupName).Resources("certificatesigningrequests").RuleOrDie(),
 			},
 		},
 
@@ -966,9 +966,6 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 		newOriginClusterBinding(StatusCheckerRoleBindingName, StatusCheckerRoleName).
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
-		newOriginClusterBinding(NodeRoleBindingName, NodeRoleName).
-			Groups(NodesGroup).
-			BindingOrDie(),
 		newOriginClusterBinding(NodeProxierRoleBindingName, NodeProxierRoleName).
 			// Allow node identities to run node proxies
 			Groups(NodesGroup).
@@ -1009,6 +1006,10 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 
 func GetBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 	openshiftClusterRoleBindings := GetOpenshiftBootstrapClusterRoleBindings()
+	// dead cluster roles need to be checked for conflicts (in case something new comes up)
+	// so add them to this list.
+	openshiftClusterRoleBindings = append(openshiftClusterRoleBindings, GetDeadClusterRoleBindings()...)
+
 	kubeClusterRoleBindings := bootstrappolicy.ClusterRoleBindings()
 	kubeControllerClusterRoleBindings := bootstrappolicy.ControllerRoleBindings()
 	openshiftControllerClusterRoleBindings := ControllerRoleBindings()

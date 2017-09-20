@@ -6,9 +6,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	builds "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildlister "github.com/openshift/origin/pkg/build/generated/listers/build/internalversion"
-	osclient "github.com/openshift/origin/pkg/client"
 )
 
 // BuildConfigGetter provides methods for getting BuildConfigs
@@ -21,24 +21,24 @@ type BuildConfigUpdater interface {
 	Update(buildConfig *buildapi.BuildConfig) error
 }
 
-// OSClientBuildConfigClient delegates get and update operations to the OpenShift client interface
-type OSClientBuildConfigClient struct {
-	Client osclient.Interface
+// ClientBuildConfigClient delegates get and update operations to the OpenShift client interface
+type ClientBuildConfigClient struct {
+	Client builds.Interface
 }
 
-// NewOSClientBuildConfigClient creates a new build config client that uses an openshift client to create and get BuildConfigs
-func NewOSClientBuildConfigClient(client osclient.Interface) *OSClientBuildConfigClient {
-	return &OSClientBuildConfigClient{Client: client}
+// NewClientBuildConfigClient creates a new build config client that uses an openshift client to create and get BuildConfigs
+func NewClientBuildConfigClient(client builds.Interface) *ClientBuildConfigClient {
+	return &ClientBuildConfigClient{Client: client}
 }
 
 // Get returns a BuildConfig using the OpenShift client.
-func (c OSClientBuildConfigClient) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
-	return c.Client.BuildConfigs(namespace).Get(name, options)
+func (c ClientBuildConfigClient) Get(namespace, name string, options metav1.GetOptions) (*buildapi.BuildConfig, error) {
+	return c.Client.Build().BuildConfigs(namespace).Get(name, options)
 }
 
 // Update updates a BuildConfig using the OpenShift client.
-func (c OSClientBuildConfigClient) Update(buildConfig *buildapi.BuildConfig) error {
-	_, err := c.Client.BuildConfigs(buildConfig.Namespace).Update(buildConfig)
+func (c ClientBuildConfigClient) Update(buildConfig *buildapi.BuildConfig) error {
+	_, err := c.Client.Build().BuildConfigs(buildConfig.Namespace).Update(buildConfig)
 	return err
 }
 
@@ -62,70 +62,70 @@ type BuildDeleter interface {
 	DeleteBuild(build *buildapi.Build) error
 }
 
-// OSClientBuildClient delegates build create and update operations to the OpenShift client interface
-type OSClientBuildClient struct {
-	Client osclient.Interface
+// ClientBuildClient delegates build create and update operations to the OpenShift client interface
+type ClientBuildClient struct {
+	Client builds.Interface
 }
 
-// NewOSClientBuildClient creates a new build client that uses an openshift client to update builds
-func NewOSClientBuildClient(client osclient.Interface) *OSClientBuildClient {
-	return &OSClientBuildClient{Client: client}
+// NewClientBuildClient creates a new build client that uses an openshift client to update builds
+func NewClientBuildClient(client builds.Interface) *ClientBuildClient {
+	return &ClientBuildClient{Client: client}
 }
 
 // Update updates builds using the OpenShift client.
-func (c OSClientBuildClient) Update(namespace string, build *buildapi.Build) error {
-	_, e := c.Client.Builds(namespace).Update(build)
+func (c ClientBuildClient) Update(namespace string, build *buildapi.Build) error {
+	_, e := c.Client.Build().Builds(namespace).Update(build)
 	return e
 }
 
 // Patch patches builds using the OpenShift client.
-func (c OSClientBuildClient) Patch(namespace, name string, patch []byte) (*buildapi.Build, error) {
-	return c.Client.Builds(namespace).Patch(name, types.StrategicMergePatchType, patch)
+func (c ClientBuildClient) Patch(namespace, name string, patch []byte) (*buildapi.Build, error) {
+	return c.Client.Build().Builds(namespace).Patch(name, types.StrategicMergePatchType, patch)
 }
 
 // List lists the builds using the OpenShift client.
-func (c OSClientBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
-	return c.Client.Builds(namespace).List(opts)
+func (c ClientBuildClient) List(namespace string, opts metav1.ListOptions) (*buildapi.BuildList, error) {
+	return c.Client.Build().Builds(namespace).List(opts)
 }
 
 // DeleteBuild deletes a build from OpenShift.
-func (c OSClientBuildClient) DeleteBuild(build *buildapi.Build) error {
-	return c.Client.Builds(build.Namespace).Delete(build.Name)
+func (c ClientBuildClient) DeleteBuild(build *buildapi.Build) error {
+	return c.Client.Build().Builds(build.Namespace).Delete(build.Name, &metav1.DeleteOptions{})
 }
 
-// OSClientBuildLister implements the build lister interface over a client
-type OSClientBuildLister struct {
-	client osclient.BuildsNamespacer
+// ClientBuildLister implements the build lister interface over a client
+type ClientBuildLister struct {
+	client buildclient.BuildsGetter
 }
 
-// NewOSClientBuildClient creates a new build client that uses an openshift client to update builds
-func NewOSClientBuildLister(client osclient.BuildsNamespacer) buildlister.BuildLister {
-	return &OSClientBuildLister{client: client}
+// NewClientBuildClient creates a new build client that uses an openshift client to update builds
+func NewClientBuildLister(client buildclient.BuildsGetter) buildlister.BuildLister {
+	return &ClientBuildLister{client: client}
 }
 
 // List lists the builds using the OpenShift client.
-func (c *OSClientBuildLister) List(label labels.Selector) ([]*buildapi.Build, error) {
-	list, err := c.client.Builds("").List(metav1.ListOptions{LabelSelector: label.String()})
+func (c *ClientBuildLister) List(label labels.Selector) ([]*buildapi.Build, error) {
+	list, err := c.client.Builds(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: label.String()})
 	return buildListToPointerArray(list), err
 }
 
-func (c *OSClientBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
-	return &OSClientBuildListerNamespacer{client: c.client, ns: ns}
+func (c *ClientBuildLister) Builds(ns string) buildlister.BuildNamespaceLister {
+	return &ClientBuildListerNamespacer{client: c.client, ns: ns}
 }
 
-// osClientBuildClientNamespacer implements internalversion lister
-type OSClientBuildListerNamespacer struct {
-	client osclient.BuildsNamespacer
+// ClientBuildClientNamespacer implements internalversion lister
+type ClientBuildListerNamespacer struct {
+	client buildclient.BuildsGetter
 	ns     string
 }
 
 // List lists the builds using the OpenShift client.
-func (c OSClientBuildListerNamespacer) List(label labels.Selector) ([]*buildapi.Build, error) {
+func (c ClientBuildListerNamespacer) List(label labels.Selector) ([]*buildapi.Build, error) {
 	list, err := c.client.Builds(c.ns).List(metav1.ListOptions{LabelSelector: label.String()})
 	return buildListToPointerArray(list), err
 }
 
-func (c OSClientBuildListerNamespacer) Get(name string) (*buildapi.Build, error) {
+func (c ClientBuildListerNamespacer) Get(name string) (*buildapi.Build, error) {
 	return c.client.Builds(c.ns).Get(name, metav1.GetOptions{})
 }
 
@@ -140,39 +140,39 @@ func buildListToPointerArray(list *buildapi.BuildList) []*buildapi.Build {
 	return result
 }
 
-// OSClientBuildLister implements the build lister interface over a client
-type OSClientBuildConfigLister struct {
-	client osclient.BuildConfigsNamespacer
+// ClientBuildLister implements the build lister interface over a client
+type ClientBuildConfigLister struct {
+	client buildclient.BuildConfigsGetter
 }
 
-// NewOSClientBuildConfigLister creates a new build config client that uses an openshift client.
-func NewOSClientBuildConfigLister(client osclient.BuildConfigsNamespacer) buildlister.BuildConfigLister {
-	return &OSClientBuildConfigLister{client: client}
+// NewClientBuildConfigLister creates a new build config client that uses an openshift client.
+func NewClientBuildConfigLister(client buildclient.BuildConfigsGetter) buildlister.BuildConfigLister {
+	return &ClientBuildConfigLister{client: client}
 }
 
 // List lists the builds using the OpenShift client.
-func (c *OSClientBuildConfigLister) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
-	list, err := c.client.BuildConfigs("").List(metav1.ListOptions{LabelSelector: label.String()})
+func (c *ClientBuildConfigLister) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
+	list, err := c.client.BuildConfigs(metav1.NamespaceAll).List(metav1.ListOptions{LabelSelector: label.String()})
 	return buildConfigListToPointerArray(list), err
 }
 
-func (c *OSClientBuildConfigLister) BuildConfigs(ns string) buildlister.BuildConfigNamespaceLister {
-	return &OSClientBuildConfigListerNamespacer{client: c.client, ns: ns}
+func (c *ClientBuildConfigLister) BuildConfigs(ns string) buildlister.BuildConfigNamespaceLister {
+	return &ClientBuildConfigListerNamespacer{client: c.client, ns: ns}
 }
 
-// osClientBuildConfigListerNamespacer implements internalversion lister
-type OSClientBuildConfigListerNamespacer struct {
-	client osclient.BuildConfigsNamespacer
+// ClientBuildConfigListerNamespacer implements internalversion lister
+type ClientBuildConfigListerNamespacer struct {
+	client buildclient.BuildConfigsGetter
 	ns     string
 }
 
 // List lists the builds using the OpenShift client.
-func (c OSClientBuildConfigListerNamespacer) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
+func (c ClientBuildConfigListerNamespacer) List(label labels.Selector) ([]*buildapi.BuildConfig, error) {
 	list, err := c.client.BuildConfigs(c.ns).List(metav1.ListOptions{LabelSelector: label.String()})
 	return buildConfigListToPointerArray(list), err
 }
 
-func (c OSClientBuildConfigListerNamespacer) Get(name string) (*buildapi.BuildConfig, error) {
+func (c ClientBuildConfigListerNamespacer) Get(name string) (*buildapi.BuildConfig, error) {
 	return c.client.BuildConfigs(c.ns).Get(name, metav1.GetOptions{})
 }
 
@@ -193,18 +193,18 @@ type BuildCloner interface {
 }
 
 // OSClientBuildClonerClient creates a new build client that uses an openshift client to clone builds
-type OSClientBuildClonerClient struct {
-	Client osclient.Interface
+type ClientBuildClonerClient struct {
+	Client builds.Interface
 }
 
 // NewOSClientBuildClonerClient creates a new build client that uses an openshift client to clone builds
-func NewOSClientBuildClonerClient(client osclient.Interface) *OSClientBuildClonerClient {
-	return &OSClientBuildClonerClient{Client: client}
+func NewClientBuildClonerClient(client builds.Interface) *ClientBuildClonerClient {
+	return &ClientBuildClonerClient{Client: client}
 }
 
 // Clone generates new build for given build name
-func (c OSClientBuildClonerClient) Clone(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
-	return c.Client.Builds(namespace).Clone(request)
+func (c ClientBuildClonerClient) Clone(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	return c.Client.Build().Builds(namespace).Clone(request.Name, request)
 }
 
 // BuildConfigInstantiator provides methods for instantiating builds from build configs
@@ -212,27 +212,26 @@ type BuildConfigInstantiator interface {
 	Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error)
 }
 
-// OSClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create builds
-type OSClientBuildConfigInstantiatorClient struct {
-	Client osclient.Interface
+// ClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create builds
+type ClientBuildConfigInstantiatorClient struct {
+	Client builds.Interface
 }
 
-// NewOSClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create builds
-func NewOSClientBuildConfigInstantiatorClient(client osclient.Interface) *OSClientBuildConfigInstantiatorClient {
-	return &OSClientBuildConfigInstantiatorClient{Client: client}
+// NewClientBuildConfigInstantiatorClient creates a new build client that uses an openshift client to create builds
+func NewClientBuildConfigInstantiatorClient(client builds.Interface) *ClientBuildConfigInstantiatorClient {
+	return &ClientBuildConfigInstantiatorClient{Client: client}
 }
 
 // Instantiate generates new build for given buildConfig
-func (c OSClientBuildConfigInstantiatorClient) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
-	return c.Client.BuildConfigs(namespace).Instantiate(request)
+func (c ClientBuildConfigInstantiatorClient) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
+	return c.Client.Build().BuildConfigs(namespace).Instantiate(request.Name, request)
 }
 
+// TODO: Why we need this, seems like an copy of the client above
 type BuildConfigInstantiatorClient struct {
-	BuildClient buildclient.BuildInterface
+	Client buildclient.BuildInterface
 }
 
 func (c BuildConfigInstantiatorClient) Instantiate(namespace string, request *buildapi.BuildRequest) (*buildapi.Build, error) {
-	newBuild := &buildapi.Build{}
-	err := c.BuildClient.RESTClient().Post().Namespace(namespace).Resource("buildconfigs").Name(request.Name).SubResource("instantiate").Body(request).Do().Into(newBuild)
-	return newBuild, err
+	return c.Client.BuildConfigs(namespace).Instantiate(request.Name, request)
 }

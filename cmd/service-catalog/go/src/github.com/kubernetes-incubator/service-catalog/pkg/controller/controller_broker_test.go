@@ -339,10 +339,13 @@ func TestReconcileServiceBrokerErrorFetchingCatalog(t *testing.T) {
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
+	assertNumberOfActions(t, actions, 2)
 
 	updatedServiceBroker := assertUpdateStatus(t, actions[0], broker)
 	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
+
+	updatedServiceBroker = assertUpdateStatus(t, actions[1], broker)
+	assertServiceBrokerOperationStartTimeSet(t, updatedServiceBroker, true)
 
 	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
 
@@ -596,6 +599,93 @@ func TestReconcileServiceBrokerWithReconcileError(t *testing.T) {
 	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): error creating serviceclass`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
+	}
+}
+
+// TestReconcileServiceBrokerSuccessOnFinalRetry verifies that reconciliation can
+// succeed on the last attempt before timing out of the retry loop
+func TestReconcileServiceBrokerSuccessOnFinalRetry(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+
+	testServiceClass := getTestServiceClass()
+	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
+
+	broker := getTestServiceBroker()
+	startTime := metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
+	broker.Status.OperationStartTime = &startTime
+
+	if err := testController.reconcileServiceBroker(broker); err != nil {
+		t.Fatalf("This should not fail : %v", err)
+	}
+
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
+	assertGetCatalog(t, brokerActions[0])
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 3)
+
+	// first action should be an update action to clear OperationStartTime
+	updatedServiceBroker := assertUpdateStatus(t, actions[0], getTestServiceBroker())
+	assertServiceBrokerOperationStartTimeSet(t, updatedServiceBroker, false)
+
+	// first action should be an update action for a service class
+	assertUpdate(t, actions[1], testServiceClass)
+
+	// second action should be an update action for broker status subresource
+	updatedServiceBroker = assertUpdateStatus(t, actions[2], getTestServiceBroker())
+	assertServiceBrokerReadyTrue(t, updatedServiceBroker)
+
+	// verify no kube resources created
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
+}
+
+// TestReconcileServiceBrokerFailureOnFinalRetry verifies that reconciliation
+// completes in the event of an error after the retry duration elapses.
+func TestReconcileServiceBrokerFailureOnFinalRetry(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, _ := newTestController(t, fakeosb.FakeClientConfiguration{
+		CatalogReaction: &fakeosb.CatalogReaction{
+			Error: errors.New("ooops"),
+		},
+	})
+
+	broker := getTestServiceBroker()
+	startTime := metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
+	broker.Status.OperationStartTime = &startTime
+
+	if err := testController.reconcileServiceBroker(broker); err != nil {
+		t.Fatalf("Should have return no error because the retry duration has elapsed: %v", err)
+	}
+
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
+	assertGetCatalog(t, brokerActions[0])
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 2)
+
+	updatedServiceBroker := assertUpdateStatus(t, actions[0], broker)
+	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
+
+	updatedServiceBroker = assertUpdateStatus(t, actions[1], broker)
+	assertServiceBrokerCondition(t, updatedServiceBroker, v1alpha1.ServiceBrokerConditionFailed, v1alpha1.ConditionTrue)
+	assertServiceBrokerOperationStartTimeSet(t, updatedServiceBroker, false)
+
+	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
+
+	expectedEventPrefixes := []string{
+		api.EventTypeWarning + " " + errorFetchingCatalogReason,
+		api.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
+	}
+	events := getRecordedEvents(testController)
+	assertNumEvents(t, events, len(expectedEventPrefixes))
+
+	for i, e := range expectedEventPrefixes {
+		a := events[i]
+		if !strings.HasPrefix(a, e) {
+			t.Fatalf("Received unexpected event:\n  expected prefix: %v\n  got: %v", e, a)
+		}
 	}
 }
 

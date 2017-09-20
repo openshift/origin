@@ -115,6 +115,10 @@ func (og *operationGenerator) GenerateVolumesAreAttachedFunc(
 	volumeSpecMap := make(map[*volume.Spec]v1.UniqueVolumeName)
 	// Iterate each volume spec and put them into a map index by the pluginName
 	for _, volumeAttached := range attachedVolumes {
+		if volumeAttached.VolumeSpec == nil {
+			glog.Errorf("VerifyVolumesAreAttached.GenerateVolumesAreAttachedFunc: nil spec for volume %s", volumeAttached.VolumeName)
+			continue
+		}
 		volumePlugin, err :=
 			og.volumePluginMgr.FindPluginBySpec(volumeAttached.VolumeSpec)
 		if err != nil || volumePlugin == nil {
@@ -404,7 +408,7 @@ func (og *operationGenerator) GenerateMountVolumeFunc(
 			glog.Infof(volumeToMount.GenerateMsgDetailed("MountVolume.WaitForAttach entering", fmt.Sprintf("DevicePath %q", volumeToMount.DevicePath)))
 
 			devicePath, err := volumeAttacher.WaitForAttach(
-				volumeToMount.VolumeSpec, volumeToMount.DevicePath, waitForAttachTimeout)
+				volumeToMount.VolumeSpec, volumeToMount.DevicePath, volumeToMount.Pod, waitForAttachTimeout)
 			if err != nil {
 				// On failure, return error. Caller will log and retry.
 				return volumeToMount.GenerateErrorDetailed("MountVolume.WaitForAttach failed", err)

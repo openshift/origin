@@ -11,34 +11,35 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client"
 	serverapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateinternal "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 // PipelineTemplate stores the configuration of the
 // PipelineStrategy template, used to instantiate the Jenkins service in
 // given namespace.
 type PipelineTemplate struct {
-	Config    serverapi.JenkinsPipelineConfig
-	Namespace string
-	osClient  client.Interface
+	Config         serverapi.JenkinsPipelineConfig
+	Namespace      string
+	templateClient templateclient.Interface
 }
 
 // NewPipelineTemplate returns a new PipelineTemplate.
-func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, osClient client.Interface) *PipelineTemplate {
+func NewPipelineTemplate(ns string, conf serverapi.JenkinsPipelineConfig, templateClient templateclient.Interface) *PipelineTemplate {
 	return &PipelineTemplate{
-		Config:    conf,
-		Namespace: ns,
-		osClient:  osClient,
+		Config:         conf,
+		Namespace:      ns,
+		templateClient: templateClient,
 	}
 }
 
 // Process processes the Jenkins template. If an error occurs
 func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 	var errors []error
-	jenkinsTemplate, err := t.osClient.Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName, metav1.GetOptions{})
+	jenkinsTemplate, err := t.templateClient.Template().Templates(t.Config.TemplateNamespace).Get(t.Config.TemplateName, metav1.GetOptions{})
 	if err != nil {
 		if kerrs.IsNotFound(err) {
 			errors = append(errors, fmt.Errorf("Jenkins pipeline template %s/%s not found", t.Config.TemplateNamespace, t.Config.TemplateName))
@@ -48,7 +49,8 @@ func (t *PipelineTemplate) Process() (*kapi.List, []error) {
 		return nil, errors
 	}
 	errors = append(errors, substituteTemplateParameters(t.Config.Parameters, jenkinsTemplate)...)
-	pTemplate, err := t.osClient.TemplateConfigs(t.Namespace).Create(jenkinsTemplate)
+	processorClient := templateinternal.NewTemplateProcessorClient(t.templateClient.Template().RESTClient(), t.Namespace)
+	pTemplate, err := processorClient.Process(jenkinsTemplate)
 	if err != nil {
 		errors = append(errors, fmt.Errorf("processing Jenkins template %s/%s failed: %v", t.Config.TemplateNamespace, t.Config.TemplateName, err))
 		return nil, errors

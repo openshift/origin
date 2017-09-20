@@ -100,6 +100,10 @@ type OAuthClient struct {
 	// is checked against each restriction.  If any restriction matches, then the scope is allowed.
 	// If no restriction matches, then the scope is denied.
 	ScopeRestrictions []ScopeRestriction
+
+	// AccessTokenMaxAgeSeconds overrides the default access token max age for tokens granted to this client.
+	// 0 means no expiration.
+	AccessTokenMaxAgeSeconds *int32
 }
 
 type GrantHandlerType string

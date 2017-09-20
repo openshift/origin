@@ -6,6 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion/queryparams"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	knewer "k8s.io/kubernetes/pkg/api"
 	kolder "k8s.io/kubernetes/pkg/api/v1"
 
@@ -13,26 +14,50 @@ import (
 	newer "github.com/openshift/origin/pkg/build/apis/build"
 )
 
-var Convert = knewer.Scheme.Convert
+var scheme = runtime.NewScheme()
+var Convert = scheme.Convert
+var codecs = serializer.NewCodecFactory(scheme)
+
+func init() {
+	LegacySchemeBuilder.AddToScheme(scheme)
+	newer.LegacySchemeBuilder.AddToScheme(scheme)
+	SchemeBuilder.AddToScheme(scheme)
+	newer.SchemeBuilder.AddToScheme(scheme)
+}
 
 func TestFieldSelectorConversions(t *testing.T) {
-	converter := runtime.NewScheme()
-	LegacySchemeBuilder.AddToScheme(converter)
-
-	apitesting.TestFieldLabelConversions(t, converter, "v1", "Build",
-		// Ensure all currently returned labels are supported
-		newer.BuildToSelectableFields(&newer.Build{}),
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("Build"),
 		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
-		"name", "status", "podName",
-	)
+		AllowedExternalFieldKeys: []string{"name", "status", "podName"},
+		FieldKeyEvaluatorFn:      newer.BuildFieldSelector,
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{LegacySchemeBuilder.AddToScheme, newer.LegacySchemeBuilder.AddToScheme},
+		Kind:          LegacySchemeGroupVersion.WithKind("BuildConfig"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"name"},
+	}.Check(t)
+
+	apitesting.FieldKeyCheck{
+		SchemeBuilder: []func(*runtime.Scheme) error{SchemeBuilder.AddToScheme, newer.SchemeBuilder.AddToScheme},
+		Kind:          SchemeGroupVersion.WithKind("Build"),
+		// Ensure previously supported labels have conversions. DO NOT REMOVE THINGS FROM THIS LIST
+		AllowedExternalFieldKeys: []string{"status", "podName"},
+		FieldKeyEvaluatorFn:      newer.BuildFieldSelector,
+	}.Check(t)
+
 }
 
 func TestBinaryBuildRequestOptions(t *testing.T) {
+
 	r := &newer.BinaryBuildRequestOptions{
 		AsFile: "Dockerfile",
 		Commit: "abcdef",
 	}
-	versioned, err := knewer.Scheme.ConvertToVersion(r, kolder.SchemeGroupVersion)
+	versioned, err := scheme.ConvertToVersion(r, kolder.SchemeGroupVersion)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +66,7 @@ func TestBinaryBuildRequestOptions(t *testing.T) {
 		t.Fatal(err)
 	}
 	decoded := &BinaryBuildRequestOptions{}
-	if err := knewer.Scheme.Convert(&params, decoded, nil); err != nil {
+	if err := scheme.Convert(&params, decoded, nil); err != nil {
 		t.Fatal(err)
 	}
 	if decoded.Commit != "abcdef" || decoded.AsFile != "Dockerfile" {

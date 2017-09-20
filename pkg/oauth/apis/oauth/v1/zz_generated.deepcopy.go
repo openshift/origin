@@ -162,6 +162,11 @@ func DeepCopy_v1_OAuthClient(in interface{}, out interface{}, c *conversion.Clon
 				}
 			}
 		}
+		if in.AccessTokenMaxAgeSeconds != nil {
+			in, out := &in.AccessTokenMaxAgeSeconds, &out.AccessTokenMaxAgeSeconds
+			*out = new(int32)
+			**out = **in
+		}
 		return nil
 	}
 }

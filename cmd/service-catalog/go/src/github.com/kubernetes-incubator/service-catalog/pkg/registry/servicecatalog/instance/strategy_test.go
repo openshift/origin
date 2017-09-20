@@ -17,34 +17,29 @@ limitations under the License.
 package instance
 
 import (
+	"fmt"
 	"testing"
 
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
+
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
-	checksum "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/checksum/unversioned"
+	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apiserver/pkg/authentication/user"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
-func instanceWithFalseReadyCondition() *servicecatalog.ServiceInstance {
+func getTestInstance() *servicecatalog.ServiceInstance {
 	return &servicecatalog.ServiceInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Generation: 1,
+		},
 		Spec: servicecatalog.ServiceInstanceSpec{
 			ServiceClassName: "test-serviceclass",
 			PlanName:         "test-plan",
-		},
-		Status: servicecatalog.ServiceInstanceStatus{
-			Conditions: []servicecatalog.ServiceInstanceCondition{
-				{
-					Type:   servicecatalog.ServiceInstanceConditionReady,
-					Status: servicecatalog.ConditionFalse,
-				},
+			UserInfo: &servicecatalog.UserInfo{
+				Username: "some-user",
 			},
-		},
-	}
-}
-
-func instanceWithTrueReadyCondition() *servicecatalog.ServiceInstance {
-	return &servicecatalog.ServiceInstance{
-		Spec: servicecatalog.ServiceInstanceSpec{
-			ServiceClassName: "test-serviceclass",
-			PlanName:         "test-plan",
 		},
 		Status: servicecatalog.ServiceInstanceStatus{
 			Conditions: []servicecatalog.ServiceInstanceCondition{
@@ -57,56 +52,90 @@ func instanceWithTrueReadyCondition() *servicecatalog.ServiceInstance {
 	}
 }
 
-func TestValidateUpdateStatusPrepareForUpdate(t *testing.T) {
+func contextWithUserName(userName string) genericapirequest.Context {
+	ctx := genericapirequest.NewContext()
+	userInfo := &user.DefaultInfo{
+		Name: userName,
+	}
+	return genericapirequest.WithUser(ctx, userInfo)
+}
+
+// TODO: Un-comment "spec-change" test case when there is a field
+// in the spec to which the reconciler allows a change.
+
+// TestInstanceUpdate tests that generation is incremented correctly when the
+// spec of a Instance is updated.
+func TestInstanceUpdate(t *testing.T) {
 	cases := []struct {
-		name                string
-		old                 *servicecatalog.ServiceInstance
-		newer               *servicecatalog.ServiceInstance
-		shouldChecksum      bool
-		checksumShouldBeSet bool
+		name                      string
+		older                     *servicecatalog.ServiceInstance
+		newer                     *servicecatalog.ServiceInstance
+		shouldGenerationIncrement bool
 	}{
 		{
-			name:                "not ready -> not ready",
-			old:                 instanceWithFalseReadyCondition(),
-			newer:               instanceWithFalseReadyCondition(),
-			shouldChecksum:      false,
-			checksumShouldBeSet: false,
+			name:  "no spec change",
+			older: getTestInstance(),
+			newer: getTestInstance(),
 		},
-		{
-			name: "not ready -> not ready, checksum already set",
-			old: func() *servicecatalog.ServiceInstance {
-				i := instanceWithFalseReadyCondition()
-				cs := "22081-9471-471"
-				i.Status.Checksum = &cs
-				return i
-			}(),
-			newer:               instanceWithFalseReadyCondition(),
-			shouldChecksum:      false,
-			checksumShouldBeSet: true,
-		},
-		{
-			name:           "not ready -> ready",
-			old:            instanceWithFalseReadyCondition(),
-			newer:          instanceWithTrueReadyCondition(),
-			shouldChecksum: true,
-		},
+		//		{
+		//			name:  "spec change",
+		//			older: getTestInstance(),
+		//			newer: func() *servicecatalog.ServiceInstance {
+		//				i := getTestInstance()
+		//				i.Spec.ServiceClassName = "new-serviceclass"
+		//				return i
+		//			},
+		//			shouldGenerationIncrement: true,
+		//		},
 	}
 
 	for _, tc := range cases {
-		strategy := instanceStatusUpdateStrategy
-		strategy.PrepareForUpdate(nil /* api context */, tc.newer, tc.old)
+		instanceRESTStrategies.PrepareForUpdate(nil, tc.newer, tc.older)
 
-		if tc.shouldChecksum {
-			if tc.newer.Status.Checksum == nil {
-				t.Errorf("%v: Checksum should have been set", tc.name)
-				continue
-			}
-
-			if e, a := checksum.ServiceInstanceSpecChecksum(tc.newer.Spec), *tc.newer.Status.Checksum; e != a {
-				t.Errorf("%v: Checksum was incorrect; expected %v got %v", tc.name, e, a)
-			}
-		} else if tc.checksumShouldBeSet != (tc.newer.Status.Checksum != nil) {
-			t.Errorf("%v: expected checksum to be populated, but was nil", tc.name)
+		expectedGeneration := tc.older.Generation
+		if tc.shouldGenerationIncrement {
+			expectedGeneration = expectedGeneration + 1
 		}
+		if e, a := expectedGeneration, tc.newer.Generation; e != a {
+			t.Errorf("%v: expected %v, got %v for generation", tc.name, e, a)
+		}
+	}
+}
+
+// TestInstanceUserInfo tests that the user info is set properly
+// as the user changes for different modifications of the instance.
+func TestInstanceUserInfo(t *testing.T) {
+	// Enable the OriginatingIdentity feature
+	utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.OriginatingIdentity))
+	defer utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=false", scfeatures.OriginatingIdentity))
+
+	creatorUserName := "creator"
+	createdInstance := getTestInstance()
+	createContext := contextWithUserName(creatorUserName)
+	instanceRESTStrategies.PrepareForCreate(createContext, createdInstance)
+
+	if e, a := creatorUserName, createdInstance.Spec.UserInfo.Username; e != a {
+		t.Errorf("unexpected user info in created spec: expected %v, got %v", e, a)
+	}
+
+	// TODO: Un-comment the following portion of this test when there is a field
+	// in the spec to which the reconciler allows a change.
+
+	//  updaterUserName := "updater"
+	//	updatedInstance := getTestInstance()
+	//	updateContext := contextWithUserName(updaterUserName)
+	//	instanceRESTStrategies.PrepareForUpdate(updateContext, updatedInstance, createdInstance)
+
+	//	if e, a := updaterUserName, updatedInstance.Spec.UserInfo.Username; e != a {
+	//		t.Errorf("unexpected user info in updated spec: expected %v, got %v", e, a)
+	//	}
+
+	deleterUserName := "deleter"
+	deletedInstance := getTestInstance()
+	deleteContext := contextWithUserName(deleterUserName)
+	instanceRESTStrategies.CheckGracefulDelete(deleteContext, deletedInstance, nil)
+
+	if e, a := deleterUserName, deletedInstance.Spec.UserInfo.Username; e != a {
+		t.Errorf("unexpected user info in deleted spec: expected %v, got %v", e, a)
 	}
 }

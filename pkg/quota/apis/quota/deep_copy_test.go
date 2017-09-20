@@ -5,11 +5,11 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/conversion"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
-	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
 )
 
 func TestDeepCopy(t *testing.T) {
@@ -32,11 +32,11 @@ func TestDeepCopy(t *testing.T) {
 		t.Error("before mutation of copy, check and original should be identical but are not, likely failure in deepequal")
 	}
 
-	copiedObj, err := kapi.Scheme.Copy(original)
+	copied := &quotaapi.ClusterResourceQuota{}
+	err := quotaapi.DeepCopy_quota_ClusterResourceQuota(original, copied, conversion.NewCloner())
 	if err != nil {
 		t.Fatal(err)
 	}
-	copied := copiedObj.(*quotaapi.ClusterResourceQuota)
 	if !reflect.DeepEqual(copied, original) {
 		t.Error("before mutation of copy, copied and original should be identical but are not, likely failure in deepequal")
 	}

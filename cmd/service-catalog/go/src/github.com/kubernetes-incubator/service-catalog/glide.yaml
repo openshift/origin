@@ -1,42 +1,67 @@
 package: github.com/kubernetes-incubator/service-catalog
 import:
 - package: github.com/emicklei/go-restful
+  version: ff4f55a206334ef123e4f79bbf348980da81ca46
   subpackages:
   - swagger
 - package: github.com/PuerkitoBio/purell
+  version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - package: github.com/spf13/pflag
+  version: 9ff6c6923cfffbcd502984b8e0c80539a94968b7
 - package: github.com/golang/glog
+  # We want Nov 4, 2014 version as the Jul 24, 2015 version (latest version)
+  # introduces bug documented in issue 1187
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - package: github.com/davecgh/go-spew
+  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
   subpackages:
   - spew
 - package: github.com/PuerkitoBio/urlesc
+  version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - package: github.com/go-openapi/jsonreference
+  version: 13c6e3589ad90f49bd3e3bbe2c2cb3d7a4142272
 - package: github.com/go-openapi/jsonpointer
+  version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
 - package: github.com/go-openapi/spec
+  version: 6aced65f8501fe1217321abf0749d354824ba2ff
 - package: github.com/go-openapi/swag
+  version: 1d0bd113de87027671077d3c71eb3ac5d7dbba72
 - package: github.com/mailru/easyjson
+  version: d5b7844b561a7bc640052f1b935f7b800330d7e0
   subpackages:
   - jlexer
 - package: golang.org/x/text
+  version: 2910a502d2bf9e43193af9d68ca516529614eed3
   subpackages:
   - secure/precis
 - package: github.com/gogo/protobuf
+  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
   subpackages:
   - proto
 - package: golang.org/x/net
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   subpackages:
   - http2
 - package: github.com/golang/protobuf
+  version: 4bd1920723d7b7c925de087aa32e2187708897f7
   subpackages:
   - proto
 - package: gopkg.in/natefinch/lumberjack.v2
+  version: 20b71e5b60d756d3d2f80def009790325acc2b23
 - package: github.com/pkg/errors
+  version: a22138067af1c4942683050411a841ade67fe1eb
 - package: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - package: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
 - package: github.com/gorilla/handlers
+  version: a4d79d4487c2430a17d9dc8a1f74d1a6ed6908ca
 - package: github.com/gorilla/mux
+  version: ac112f7d75a0714af1bd86ab17749b31f7809640
 - package: github.com/satori/go.uuid
+  version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - package: github.com/jteeuwen/go-bindata
+  version: a0ff2567cfb70903282db057e799fd826784d41d
 - package: github.com/spf13/cobra
   version: f62e98d28ab7ad31d707ba837a966378465c7b57
 - package: k8s.io/gengo
@@ -54,6 +79,7 @@ import:
 - package: k8s.io/apiserver
   version: ab57ed5a72c3b67058f665d660e23bae18339fc2 # June 23, similar to client-go. No 1.7 branch yet BUT this version is perfectly compatible it seems
 - package: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
   - codec/codecgen
 - package: github.com/onsi/gomega
@@ -64,4 +90,4 @@ import:
 - package: code.cloudfoundry.org/lager
   version: dfcbcba2dd4a5228c43b0292d219d5c010daed3a
 - package: github.com/pmorie/go-open-service-broker-client
-  version: 48d1e069bbc4a7ec3fe52dee77a48046fbbf48e4
+  version: 962a416798366b37a20a06fdb0a09180589ca964

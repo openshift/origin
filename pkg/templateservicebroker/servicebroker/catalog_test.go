@@ -69,6 +69,21 @@ func TestServiceFromTemplate(t *testing.T) {
 				Description: "Default plan",
 				Free:        true,
 				Bindable:    true,
+				Metadata: map[string]interface{}{
+					"schemas": api.ParameterSchemas{
+						ServiceInstance: api.ParameterSchema{
+							Create: api.OpenShiftMetadata{
+								OpenShiftFormDefinition: []string{
+									"param1",
+									"param2",
+									"param3",
+									"param4",
+									templateapi.RequesterUsernameParameterKey,
+								},
+							},
+						},
+					},
+				},
 				Schemas: api.Schema{
 					ServiceInstance: api.ServiceInstances{
 						Create: map[string]*schema.Schema{

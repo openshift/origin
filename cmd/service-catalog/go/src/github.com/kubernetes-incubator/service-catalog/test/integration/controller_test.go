@@ -17,6 +17,7 @@ limitations under the License.
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -24,8 +25,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/pkg/api/v1"
+	restclient "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
 
@@ -43,6 +46,7 @@ import (
 	scinformers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/externalversions"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/externalversions/servicecatalog/v1alpha1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/controller"
+	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
 )
@@ -58,6 +62,9 @@ const (
 	testBrokerURL        = "https://example.com"
 	testExternalID       = "9737b6ed-ca95-4439-8219-c53fcad118ab"
 	testDashboardURL     = "http://test-dashboard.example.com"
+	testCreatorUsername  = "create-username"
+	testUpdaterUsername  = "update-username"
+	testDeleterUsername  = "delete-username"
 )
 
 func truePtr() *bool {
@@ -77,7 +84,7 @@ func truePtr() *bool {
 //
 // ...using purely synchronous provision/deprovision.
 func TestBasicFlowsSync(t *testing.T) {
-	_, catalogClient, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Response: &osb.CatalogResponse{
 				Services: []osb.Service{
@@ -257,7 +264,7 @@ func TestBasicFlowsSync(t *testing.T) {
 // TestBasicFlowsAsync tests the same flows as TestBasicFlowsSync, using
 // asynchronous provision/deprovision.
 func TestBasicFlowsAsync(t *testing.T) {
-	_, catalogClient, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Response: &osb.CatalogResponse{
 				Services: []osb.Service{
@@ -445,7 +452,7 @@ func TestBasicFlowsAsync(t *testing.T) {
 // TODO: additional tests for scenarios like this will be needed once we
 // implement orphan mitigation.
 func TestProvisionFailure(t *testing.T) {
-	_, catalogClient, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Response: &osb.CatalogResponse{
 				Services: []osb.Service{
@@ -578,7 +585,7 @@ func TestProvisionFailure(t *testing.T) {
 // TestBindingFailure tests that a binding gets a failure condition when the
 // broker returns a failure response for a bind operation.
 func TestBindingFailure(t *testing.T) {
-	_, fakeCatalogClient, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, fakeCatalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Response: &osb.CatalogResponse{
 				Services: []osb.Service{
@@ -621,6 +628,7 @@ func TestBindingFailure(t *testing.T) {
 	defer shutdownServer()
 
 	client := fakeCatalogClient.ServicecatalogV1alpha1()
+
 	broker := &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
 		Spec: v1alpha1.ServiceBrokerSpec{
@@ -753,6 +761,256 @@ func TestBindingFailure(t *testing.T) {
 	}
 }
 
+// TestBasicFlowsWithOriginatingIdentity test the same flow as TestBasicFlowsSync, with OriginatingIdentity
+// feature enabled.
+func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
+	// Enable the OriginatingIdentity feature
+	utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.OriginatingIdentity))
+	defer utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=false", scfeatures.OriginatingIdentity))
+
+	_, catalogClient, catalogClientConfig, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+		CatalogReaction: &fakeosb.CatalogReaction{
+			Response: &osb.CatalogResponse{
+				Services: []osb.Service{
+					{
+						Name:        testServiceClassName,
+						ID:          "12345",
+						Description: "a test service",
+						Bindable:    true,
+						Plans: []osb.Plan{
+							{
+								Name:        testPlanName,
+								Free:        truePtr(),
+								ID:          "34567",
+								Description: "a test plan",
+							},
+						},
+					},
+				},
+			},
+		},
+		ProvisionReaction: &fakeosb.ProvisionReaction{
+			Response: &osb.ProvisionResponse{
+				Async: false,
+			},
+		},
+		BindReaction: &fakeosb.BindReaction{
+			Response: &osb.BindResponse{
+				Credentials: map[string]interface{}{
+					"foo": "bar",
+					"baz": "zap",
+				},
+			},
+		},
+		UnbindReaction: &fakeosb.UnbindReaction{},
+		DeprovisionReaction: &fakeosb.DeprovisionReaction{
+			Response: &osb.DeprovisionResponse{
+				Async: false,
+			},
+		},
+	})
+	defer shutdownServer()
+
+	client := catalogClient.ServicecatalogV1alpha1()
+
+	broker := &v1alpha1.ServiceBroker{
+		ObjectMeta: metav1.ObjectMeta{Name: testBrokerName},
+		Spec: v1alpha1.ServiceBrokerSpec{
+			URL: testBrokerURL,
+		},
+	}
+
+	_, err := client.ServiceBrokers().Create(broker)
+	if nil != err {
+		t.Fatalf("error creating the broker %v (%q)", broker, err)
+	}
+
+	err = util.WaitForBrokerCondition(client,
+		testBrokerName,
+		v1alpha1.ServiceBrokerCondition{
+			Type:   v1alpha1.ServiceBrokerConditionReady,
+			Status: v1alpha1.ConditionTrue,
+		})
+	if err != nil {
+		t.Fatalf("error waiting for broker to become ready: %v", err)
+	}
+
+	err = util.WaitForServiceClassToExist(client, testServiceClassName)
+	if nil != err {
+		t.Fatalf("error waiting from ServiceClass to exist: %v", err)
+	}
+
+	// TODO: find some way to compose scenarios; extract method here for real
+	// logic for this test.
+
+	//-----------------
+
+	catalogClient, err = changeUsernameForCatalogClient(catalogClient, catalogClientConfig, testCreatorUsername)
+	if err != nil {
+		t.Fatalf("could not change the username for the catalog client: %v", err)
+	}
+
+	client = catalogClient.ServicecatalogV1alpha1()
+
+	instance := &v1alpha1.ServiceInstance{
+		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
+		Spec: v1alpha1.ServiceInstanceSpec{
+			ServiceClassName: testServiceClassName,
+			PlanName:         testPlanName,
+			ExternalID:       testExternalID,
+		},
+	}
+
+	// Create Instance
+	if _, err := client.ServiceInstances(testNamespace).Create(instance); err != nil {
+		t.Fatalf("error creating Instance: %v", err)
+	}
+
+	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.ServiceInstanceCondition{
+		Type:   v1alpha1.ServiceInstanceConditionReady,
+		Status: v1alpha1.ConditionTrue,
+	}); err != nil {
+		t.Fatalf("error waiting for instance to become ready: %v", err)
+	}
+
+	retInst, err := client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
+	}
+	if retInst.Spec.UserInfo == nil {
+		t.Fatalf("instance spec does not include creating user info")
+	}
+	if e, a := testCreatorUsername, retInst.Spec.UserInfo.Username; e != a {
+		t.Fatalf("unexpected creating user name in instance spec: expected %v, got %v", e, a)
+	}
+
+	// Update Instance
+	// TODO: Un-comment the update instance part of this test when we support updates
+	//	catalogClient, err = changeUsernameForCatalogClient(catalogClient, catalogClientConfig, testUpdaterUsername)
+	//	if err != nil {
+	//		t.Fatalf("could not change the username for the catalog client: %v", err)
+	//	}
+
+	//	client = catalogClient.ServicecatalogV1alpha1()
+
+	//	if _, err := client.ServiceInstances(testNamespace).Update(retInst); err != nil {
+	//		t.Fatalf("error updating Instance: %v", err)
+	//	}
+
+	//	if err := util.WaitForInstanceCondition(client, testNamespace, testInstanceName, v1alpha1.ServiceInstanceCondition{
+	//		Type:   v1alpha1.ServiceInstanceConditionReady,
+	//		Status: v1alpha1.ConditionTrue,
+	//	}); err != nil {
+	//		t.Fatalf("error waiting for instance to become ready: %v", err)
+	//	}
+
+	//	retInst, err = client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	//	if err != nil {
+	//		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
+	//	}
+	//	if retInst.Spec.UserInfo == nil {
+	//		t.Fatalf("instance spec does not include creating user info")
+	//	}
+	//	if e, a := testUpdaterUsername, retInst.Spec.UserInfo.Username; e != a {
+	//		t.Fatalf("unexpected updating user name in instance spec: expected %v, got %v", e, a)
+	//	}
+
+	// Binding test begins here
+	//-----------------
+
+	// Create InstanceCredential
+	catalogClient, err = changeUsernameForCatalogClient(catalogClient, catalogClientConfig, testCreatorUsername)
+	if err != nil {
+		t.Fatalf("could not change the username for the catalog client: %v", err)
+	}
+
+	client = catalogClient.ServicecatalogV1alpha1()
+
+	binding := &v1alpha1.ServiceInstanceCredential{
+		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testBindingName},
+		Spec: v1alpha1.ServiceInstanceCredentialSpec{
+			ServiceInstanceRef: v1.LocalObjectReference{
+				Name: testInstanceName,
+			},
+		},
+	}
+
+	_, err = client.ServiceInstanceCredentials(testNamespace).Create(binding)
+	if err != nil {
+		t.Fatalf("error creating Binding: %v", binding)
+	}
+
+	err = util.WaitForBindingCondition(client, testNamespace, testBindingName, v1alpha1.ServiceInstanceCredentialCondition{
+		Type:   v1alpha1.ServiceInstanceCredentialConditionReady,
+		Status: v1alpha1.ConditionTrue,
+	})
+	if err != nil {
+		t.Fatalf("error waiting for binding to become ready: %v", err)
+	}
+
+	retBinding, err := client.ServiceInstanceCredentials(testNamespace).Get(testBindingName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting binding %s/%s back", testNamespace, testBindingName)
+	}
+	if retBinding.Spec.UserInfo == nil {
+		t.Fatalf("binding spec does not include creating user info")
+	}
+	if e, a := testCreatorUsername, retBinding.Spec.UserInfo.Username; e != a {
+		t.Fatalf("unexpected creating user name in binding spec: expected %v, got %v", e, a)
+	}
+
+	// Delete InstanceCredential
+	catalogClient, err = changeUsernameForCatalogClient(catalogClient, catalogClientConfig, testDeleterUsername)
+	if err != nil {
+		t.Fatalf("could not change the username for the catalog client: %v", err)
+	}
+
+	client = catalogClient.ServicecatalogV1alpha1()
+
+	deleteGracePeriod := int64(60)
+	deleteOptions := &metav1.DeleteOptions{GracePeriodSeconds: &deleteGracePeriod}
+	if err := client.ServiceInstances(testNamespace).Delete(instance.Name, deleteOptions); err != nil {
+		t.Fatalf("error updating Instance: %v", err)
+	}
+
+	retInst, err = client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
+	}
+	if retInst.Spec.UserInfo == nil {
+		t.Fatalf("instance spec does not include creating user info")
+	}
+	if e, a := testDeleterUsername, retInst.Spec.UserInfo.Username; e != a {
+		t.Fatalf("unexpected deleting user name in instance spec: expected %v, got %v", e, a)
+	}
+
+	//-----------------
+	// End binding test
+
+	// Delete Instance
+	catalogClient, err = changeUsernameForCatalogClient(catalogClient, catalogClientConfig, testDeleterUsername)
+	if err != nil {
+		t.Fatalf("could not change the username for the catalog client: %v", err)
+	}
+
+	client = catalogClient.ServicecatalogV1alpha1()
+
+	if err := client.ServiceInstances(testNamespace).Delete(instance.Name, deleteOptions); err != nil {
+		t.Fatalf("error updating Instance: %v", err)
+	}
+
+	retInst, err = client.ServiceInstances(instance.Namespace).Get(instance.Name, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("error getting instance %s/%s back", instance.Namespace, instance.Name)
+	}
+	if retInst.Spec.UserInfo == nil {
+		t.Fatalf("instance spec does not include creating user info")
+	}
+	if e, a := testDeleterUsername, retInst.Spec.UserInfo.Username; e != a {
+		t.Fatalf("unexpected deleting user name in instance spec: expected %v, got %v", e, a)
+	}
+}
+
 // newTestController creates a new test controller injected with fake clients
 // and returns:
 //
@@ -767,6 +1025,7 @@ func TestBindingFailure(t *testing.T) {
 func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	*fake.Clientset,
 	clientset.Interface,
+	*restclient.Config,
 	*fakeosb.FakeClient,
 	controller.Controller,
 	informers.Interface,
@@ -777,7 +1036,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	addGetSecretNotFoundReaction(fakeKubeClient)
 
 	// create an sc client and running server
-	catalogClient, shutdownServer := getFreshApiserverAndClient(t, server.StorageTypeEtcd.String(), func() runtime.Object {
+	catalogClient, catalogClientConfig, shutdownServer := getFreshApiserverAndClient(t, server.StorageTypeEtcd.String(), func() runtime.Object {
 		return &servicecatalog.ServiceBroker{}
 	})
 
@@ -788,7 +1047,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	informerFactory := scinformers.NewSharedInformerFactory(catalogClient, 10*time.Second)
 	serviceCatalogSharedInformers := informerFactory.Servicecatalog().V1alpha1()
 
-	fakeRecorder := record.NewFakeRecorder(5)
+	fakeRecorder := record.NewFakeRecorder(10)
 
 	// create a test controller
 	testController, err := controller.NewController(
@@ -802,6 +1061,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 		24*time.Hour,
 		osb.LatestAPIVersion().HeaderValue(),
 		fakeRecorder,
+		7*24*time.Hour,
 	)
 	t.Log("controller start")
 	if err != nil {
@@ -812,7 +1072,17 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	go testController.Run(1, stopCh)
 	informerFactory.Start(stopCh)
 	t.Log("informers start")
-	return fakeKubeClient, catalogClient, fakeOSBClient, testController, serviceCatalogSharedInformers, shutdownServer
+	return fakeKubeClient, catalogClient, catalogClientConfig, fakeOSBClient, testController, serviceCatalogSharedInformers, shutdownServer
+}
+
+func changeUsernameForCatalogClient(catalogClient clientset.Interface, catalogClientConfig *restclient.Config, username string) (clientset.Interface, error) {
+	catalogClientConfig.Username = username
+	var err error
+	catalogClient, err = clientset.NewForConfig(catalogClientConfig)
+	if nil != err {
+		return nil, fmt.Errorf("can't make the client from the config: %v", err)
+	}
+	return catalogClient, nil
 }
 
 func addGetSecretNotFoundReaction(fakeKubeClient *fake.Clientset) {

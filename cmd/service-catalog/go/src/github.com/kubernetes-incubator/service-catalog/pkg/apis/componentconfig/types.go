@@ -92,4 +92,8 @@ type ControllerManagerConfiguration struct {
 
 	// enableContentionProfiling enables lock contention profiling, if enableProfiling is true.
 	EnableContentionProfiling bool
+
+	// ReconciliationRetryDuration is the longest time to attempt reconciliation
+	// on a given resource before failing the reconciliation
+	ReconciliationRetryDuration time.Duration
 }

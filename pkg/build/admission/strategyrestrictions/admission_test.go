@@ -167,7 +167,7 @@ func TestBuildAdmission(t *testing.T) {
 		for _, op := range ops {
 			client := fakeClient(test.expectedResource, test.reviewResponse, test.responseObject)
 			c := NewBuildByStrategy()
-			c.(oadmission.WantsOpenshiftClient).SetOpenshiftClient(client)
+			c.(oadmission.WantsDeprecatedOpenshiftClient).SetDeprecatedOpenshiftClient(client)
 			attrs := admission.NewAttributesRecord(test.object, test.oldObject, test.kind.WithVersion("version"), "default", "name", test.resource.WithVersion("version"), test.subResource, op, fakeUser())
 			err := c.Admit(attrs)
 			if err != nil && test.expectAccept {

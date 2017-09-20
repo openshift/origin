@@ -22,6 +22,17 @@ const conventionalFailureResponseBody = `{
 	"description": "test error description"
 }`
 
+const (
+	testOriginatingIdentityPlatform    = "fakeplatform"
+	testOriginatingIdentityValue       = "{\"user\":\"name\"}"
+	testOriginatingIdentityHeaderValue = "fakeplatform eyJ1c2VyIjoibmFtZSJ9"
+)
+
+var testOriginatingIdentity *AlphaOriginatingIdentity = &AlphaOriginatingIdentity{
+	Platform: testOriginatingIdentityPlatform,
+	Value:    testOriginatingIdentityValue,
+}
+
 func testHttpStatusCodeError() error {
 	errorMessage := "TestError"
 	description := "test error description"
@@ -53,9 +64,10 @@ type nopCloser struct {
 func (nopCloser) Close() error { return nil }
 
 type httpChecks struct {
-	URL    string
-	body   string
-	params map[string]string
+	URL     string
+	body    string
+	params  map[string]string
+	headers map[string]string
 }
 
 type httpReaction struct {
@@ -84,13 +96,19 @@ func doHTTP(t *testing.T, name string, checks httpChecks, reaction httpReaction)
 			return nil, walkingGhostErr
 		}
 
-		if len(checks.params) > 0 {
-			for k, v := range checks.params {
-				actualValue := request.URL.Query().Get(k)
-				if e, a := v, actualValue; e != a {
-					t.Errorf("%v: unexpected parameter value for key %v; expected %v, got %v", name, k, e, a)
-					return nil, walkingGhostErr
-				}
+		for k, v := range checks.headers {
+			actualValue := request.Header.Get(k)
+			if e, a := v, actualValue; e != a {
+				t.Errorf("%v: unexpected header value for key %q; expected %v, got %v", name, k, e, a)
+				return nil, walkingGhostErr
+			}
+		}
+
+		for k, v := range checks.params {
+			actualValue := request.URL.Query().Get(k)
+			if e, a := v, actualValue; e != a {
+				t.Errorf("%v: unexpected parameter value for key %q; expected %v, got %v", name, k, e, a)
+				return nil, walkingGhostErr
 			}
 		}
 
@@ -131,5 +149,58 @@ func doResponseChecks(t *testing.T, name string, response interface{}, err error
 	if e, a := expectedResponse, response; !reflect.DeepEqual(e, a) {
 		t.Errorf("%v: unexpected diff in response; expected %+v, got %+v", name, e, a)
 		return
+	}
+}
+
+func TestBuildOriginatingIdentityHeaderValue(t *testing.T) {
+	cases := []struct {
+		name                string
+		platform            string
+		value               string
+		expectedHeaderValue string
+		expectedError       bool
+	}{
+		{
+			name:                "valid originating identity",
+			platform:            testOriginatingIdentityPlatform,
+			value:               testOriginatingIdentityValue,
+			expectedHeaderValue: testOriginatingIdentityHeaderValue,
+		},
+		{
+			name:          "empty platform",
+			platform:      "",
+			value:         testOriginatingIdentityValue,
+			expectedError: true,
+		},
+		{
+			name:          "empty value",
+			platform:      testOriginatingIdentityPlatform,
+			value:         "",
+			expectedError: true,
+		},
+		{
+			name:          "invalid value json",
+			platform:      testOriginatingIdentityPlatform,
+			value:         "{\"user\":name}",
+			expectedError: true,
+		},
+	}
+	for _, tc := range cases {
+		originatingIdentity := &AlphaOriginatingIdentity{
+			Platform: tc.platform,
+			Value:    tc.value,
+		}
+		headerValue, err := buildOriginatingIdentityHeaderValue(originatingIdentity)
+		if e, a := tc.expectedError, err != nil; e != a {
+			if e {
+				t.Errorf("%v: expected error not found", tc.name)
+			} else {
+				t.Errorf("%v: unexpected error: got %v", tc.name, a)
+			}
+			continue
+		}
+		if e, a := tc.expectedHeaderValue, headerValue; e != a {
+			t.Errorf("%v: unexpected header value: expected %v, got %v", tc.name, e, a)
+		}
 	}
 }

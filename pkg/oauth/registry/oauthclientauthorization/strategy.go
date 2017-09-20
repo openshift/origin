@@ -4,14 +4,11 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
-	kstorage "k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
@@ -113,29 +110,6 @@ func (strategy) AllowCreateOnUpdate() bool {
 
 func (strategy) AllowUnconditionalUpdate() bool {
 	return false
-}
-
-// GetAttrs returns labels and fields of a given object for filtering purposes
-func GetAttrs(o runtime.Object) (labels.Set, fields.Set, bool, error) {
-	obj, ok := o.(*oauthapi.OAuthClientAuthorization)
-	if !ok {
-		return nil, nil, false, fmt.Errorf("not a OAuthClientAuthorization")
-	}
-	return labels.Set(obj.Labels), SelectableFields(obj), obj.Initializers != nil, nil
-}
-
-// Matcher returns a generic matcher for a given label and field selector.
-func Matcher(label labels.Selector, field fields.Selector) kstorage.SelectionPredicate {
-	return kstorage.SelectionPredicate{
-		Label:    label,
-		Field:    field,
-		GetAttrs: GetAttrs,
-	}
-}
-
-// SelectableFields returns a field set that can be used for filter selection
-func SelectableFields(obj *oauthapi.OAuthClientAuthorization) fields.Set {
-	return oauthapi.OAuthClientAuthorizationToSelectableFields(obj)
 }
 
 // ClientAuthorizationName creates the computed name for a given username, clientName tuple

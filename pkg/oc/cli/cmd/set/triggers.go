@@ -813,7 +813,7 @@ func (t *TriggerDefinition) Apply(obj runtime.Object) error {
 						Name:      trigger.From,
 						Namespace: ns,
 					},
-					FieldPath: fmt.Sprintf(path.Child("containers").String()+"[?(@.name='%s')].image", name),
+					FieldPath: fmt.Sprintf(path.Child("containers").String()+"[?(@.name==\"%s\")].image", name),
 					Paused:    !trigger.Auto,
 				})
 			}

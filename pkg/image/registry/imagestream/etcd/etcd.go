@@ -7,6 +7,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/apiserver/pkg/storage"
 	kapi "k8s.io/kubernetes/pkg/api"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
@@ -29,7 +30,6 @@ func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHo
 		Copier:                   kapi.Scheme,
 		NewFunc:                  func() runtime.Object { return &imageapi.ImageStream{} },
 		NewListFunc:              func() runtime.Object { return &imageapi.ImageStreamList{} },
-		PredicateFunc:            imagestream.Matcher,
 		DefaultQualifiedResource: imageapi.Resource("imagestreams"),
 	}
 
@@ -44,7 +44,10 @@ func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHo
 	store.DeleteStrategy = strategy
 	store.Decorator = strategy.Decorate
 
-	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: imagestream.GetAttrs}
+	options := &generic.StoreOptions{
+		RESTOptions: optsGetter,
+		AttrFunc:    storage.AttrFunc(storage.DefaultNamespaceScopedAttr).WithFieldMutation(imageapi.ImageStreamSelector),
+	}
 	if err := store.CompleteWithOptions(options); err != nil {
 		return nil, nil, nil, err
 	}
