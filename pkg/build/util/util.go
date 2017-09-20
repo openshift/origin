@@ -45,21 +45,6 @@ func GetBuildName(pod metav1.Object) string {
 	return pod.GetAnnotations()[buildapi.BuildAnnotation]
 }
 
-// GetInputReference returns the From ObjectReference associated with the
-// BuildStrategy.
-func GetInputReference(strategy buildapi.BuildStrategy) *kapi.ObjectReference {
-	switch {
-	case strategy.SourceStrategy != nil:
-		return &strategy.SourceStrategy.From
-	case strategy.DockerStrategy != nil:
-		return strategy.DockerStrategy.From
-	case strategy.CustomStrategy != nil:
-		return &strategy.CustomStrategy.From
-	default:
-		return nil
-	}
-}
-
 // IsBuildComplete returns whether the provided build is complete or not
 func IsBuildComplete(build *buildapi.Build) bool {
 	return IsTerminalPhase(build.Status.Phase)

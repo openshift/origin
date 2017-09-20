@@ -129,3 +129,18 @@ func AppendStageAndStepInfo(stages []StageInfo, stagesToMerge []StageInfo) []Sta
 	}
 	return stages
 }
+
+// GetInputReference returns the From ObjectReference associated with the
+// BuildStrategy.
+func GetInputReference(strategy BuildStrategy) *kapi.ObjectReference {
+	switch {
+	case strategy.SourceStrategy != nil:
+		return &strategy.SourceStrategy.From
+	case strategy.DockerStrategy != nil:
+		return strategy.DockerStrategy.From
+	case strategy.CustomStrategy != nil:
+		return &strategy.CustomStrategy.From
+	default:
+		return nil
+	}
+}

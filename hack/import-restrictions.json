@@ -90,8 +90,6 @@
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
-      "github.com/openshift/origin/pkg/util/namer",
-      "github.com/openshift/origin/pkg/build/util",
       "github.com/openshift/origin/pkg/image/apis/image",
       "vendor/github.com/golang/glog"
     ]

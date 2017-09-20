@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
-
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 // the opposite of kvalidation.DNS1123LabelFmt
@@ -81,6 +80,6 @@ func (ung *uniqueNameGenerator) ensureValidName(name string) (string, error) {
 	}
 	count++
 	names[name] = count
-	newName := namer.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
+	newName := apihelpers.GetName(name, strconv.Itoa(count), kvalidation.DNS1123SubdomainMaxLength)
 	return newName, nil
 }

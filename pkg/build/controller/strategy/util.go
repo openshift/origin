@@ -12,11 +12,11 @@ import (
 	"k8s.io/kubernetes/pkg/api/v1"
 
 	"github.com/golang/glog"
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	"github.com/openshift/origin/pkg/build/builder/cmd/dockercfg"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/util/namer"
 	"github.com/openshift/origin/pkg/version"
 )
 
@@ -94,7 +94,7 @@ func setupDockerSocket(pod *v1.Pod) {
 // mountSecretVolume is a helper method responsible for actual mounting secret
 // volumes into a pod.
 func mountSecretVolume(pod *v1.Pod, container *v1.Container, secretName, mountPath, volumeSuffix string) {
-	volumeName := namer.GetName(secretName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
+	volumeName := apihelpers.GetName(secretName, volumeSuffix, kvalidation.DNS1123LabelMaxLength)
 
 	// coerce from RFC1123 subdomain to RFC1123 label.
 	volumeName = strings.Replace(volumeName, ".", "-", -1)

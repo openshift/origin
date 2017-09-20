@@ -35,13 +35,13 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	"github.com/openshift/origin/pkg/util/namer"
 	"github.com/openshift/origin/test/extended/testdata"
 )
 
@@ -1010,7 +1010,7 @@ func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (s
 
 // GetPodForContainer creates a new Pod that runs specified container
 func GetPodForContainer(container kapiv1.Container) *kapiv1.Pod {
-	name := namer.GetPodName("test-pod", string(uuid.NewUUID()))
+	name := apihelpers.GetPodName("test-pod", string(uuid.NewUUID()))
 	return &kapiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",

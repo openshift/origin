@@ -27,7 +27,6 @@ import (
 	ometa "github.com/openshift/origin/pkg/api/meta"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -887,7 +886,7 @@ Outer:
 // strategyTrigger returns a synthetic ImageChangeTrigger that represents the image stream tag the build strategy
 // points to, or nil if no such strategy trigger is possible (if the build doesn't point to an ImageStreamTag).
 func strategyTrigger(config *buildapi.BuildConfig) *ImageChangeTrigger {
-	if from := buildutil.GetInputReference(config.Spec.Strategy); from != nil {
+	if from := buildapi.GetInputReference(config.Spec.Strategy); from != nil {
 		if from.Kind == "ImageStreamTag" {
 			// normalize the strategy object reference
 			from.Namespace = defaultNamespace(from.Namespace, config.Namespace)

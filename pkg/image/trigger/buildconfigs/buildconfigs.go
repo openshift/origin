@@ -11,7 +11,6 @@ import (
 
 	"github.com/golang/glog"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	buildutil "github.com/openshift/origin/pkg/build/util"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	"github.com/openshift/origin/pkg/image/trigger"
 )
@@ -32,7 +31,7 @@ func calculateBuildConfigTriggers(bc *buildapi.BuildConfig) []triggerapi.ObjectF
 			from = t.ImageChange.From
 			fieldPath = "spec.triggers"
 		} else {
-			from = buildutil.GetInputReference(bc.Spec.Strategy)
+			from = buildapi.GetInputReference(bc.Spec.Strategy)
 			fieldPath = "spec.strategy.*.from"
 		}
 		if from == nil || from.Kind != "ImageStreamTag" || len(from.Name) == 0 {
@@ -132,7 +131,7 @@ func (r *BuildConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.
 		if p.From != nil {
 			from = p.From
 		} else {
-			from = buildutil.GetInputReference(bc.Spec.Strategy)
+			from = buildapi.GetInputReference(bc.Spec.Strategy)
 		}
 		namespace := from.Namespace
 		if len(namespace) == 0 {

@@ -17,6 +17,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
@@ -25,7 +26,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
-	"github.com/openshift/origin/pkg/util/namer"
 )
 
 const conflictRetries = 3
@@ -157,7 +157,7 @@ func findImageChangeTrigger(bc *buildapi.BuildConfig, ref *kapi.ObjectReference)
 		imageChange := trigger.ImageChange
 		triggerRef := imageChange.From
 		if triggerRef == nil {
-			triggerRef = buildutil.GetInputReference(bc.Spec.Strategy)
+			triggerRef = buildapi.GetInputReference(bc.Spec.Strategy)
 			if triggerRef == nil || triggerRef.Kind != "ImageStreamTag" {
 				continue
 			}
@@ -353,7 +353,7 @@ func (g *BuildGenerator) updateImageTriggers(ctx apirequest.Context, bc *buildap
 
 		triggerImageRef := trigger.ImageChange.From
 		if triggerImageRef == nil {
-			triggerImageRef = buildutil.GetInputReference(bc.Spec.Strategy)
+			triggerImageRef = buildapi.GetInputReference(bc.Spec.Strategy)
 		}
 		if triggerImageRef == nil {
 			glog.Warningf("Could not get ImageStream reference for default ImageChangeTrigger on BuildConfig %s/%s", bc.Namespace, bc.Name)
@@ -536,7 +536,7 @@ func (g *BuildGenerator) setBuildSourceImage(ctx apirequest.Context, builderSecr
 		var sourceImageSpec string
 		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
 		// use the imageid from the trigger rather than resolving it.
-		if strategyFrom := buildutil.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
+		if strategyFrom := buildapi.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
 			reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
 			strategyImageChangeTrigger != nil {
 			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
@@ -787,7 +787,7 @@ func resolveError(kind string, namespace string, name string, err error) error {
 // getNextBuildName returns name of the next build and increments BuildConfig's LastVersion.
 func getNextBuildName(buildConfig *buildapi.BuildConfig) string {
 	buildConfig.Status.LastVersion++
-	return namer.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
+	return apihelpers.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
 }
 
 //updateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
@@ -875,7 +875,7 @@ func getNextBuildNameFromBuild(build *buildapi.Build, buildConfig *buildapi.Buil
 	if len(suffix) > 10 {
 		suffix = suffix[len(suffix)-10:]
 	}
-	return namer.GetName(buildName, suffix, kvalidation.DNS1123SubdomainMaxLength)
+	return apihelpers.GetName(buildName, suffix, kvalidation.DNS1123SubdomainMaxLength)
 
 }
 

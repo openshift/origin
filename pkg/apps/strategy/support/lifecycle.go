@@ -19,13 +19,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
+	"github.com/openshift/origin/pkg/api/apihelpers"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	strategyutil "github.com/openshift/origin/pkg/apps/strategy/util"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/pkg/util"
-	namer "github.com/openshift/origin/pkg/util/namer"
 )
 
 // hookContainerName is the name used for the container that runs inside hook pods.
@@ -398,7 +398,7 @@ func makeHookPod(hook *deployapi.LifecycleHook, rc *kapi.ReplicationController, 
 
 	pod := &kapi.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: namer.GetPodName(rc.Name, suffix),
+			Name: apihelpers.GetPodName(rc.Name, suffix),
 			Annotations: map[string]string{
 				deployapi.DeploymentAnnotation: rc.Name,
 			},
