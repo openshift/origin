@@ -143,7 +143,7 @@ func NewTemplatePlugin(cfg TemplatePluginConfig, lookupSvc ServiceLookup) (*Temp
 func (p *TemplatePlugin) HandleEndpoints(eventType watch.EventType, endpoints *kapi.Endpoints) error {
 	key := endpointsKey(endpoints)
 
-	glog.V(4).Infof("Processing %d Endpoints for Name: %v (%v)", len(endpoints.Subsets), endpoints.Name, eventType)
+	glog.V(4).Infof("Processing %d Endpoints for %s/%s (%v)", len(endpoints.Subsets), endpoints.Namespace, endpoints.Name, eventType)
 
 	for i, s := range endpoints.Subsets {
 		glog.V(4).Infof("  Subset %d : %#v", i, s)
