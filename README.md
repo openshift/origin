@@ -100,7 +100,10 @@ We have weekly meetings - see
 [Kubernetes SIGs](https://github.com/kubernetes/community/blob/master/sig-list.md)
 (search for "Service Catalog") for the exact date and time. Our agenda/notes
 doc can be found
-[here](https://docs.google.com/document/d/10VsJjstYfnqeQKCgXGgI43kQWnWFSx8JTH7wFh8CmPA/edit).
+[here](https://docs.google.com/document/d/17xlpkoEbPR5M6P5VDzNx17q6-IPFxKyebEekCGYiIKM/edit)
+
+Previous Agenda notes are also available:
+[2016-08-29 through 2017-09-17](https://docs.google.com/document/d/10VsJjstYfnqeQKCgXGgI43kQWnWFSx8JTH7wFh8CmPA/edit).
 
 ### Kubernetes Incubator
 

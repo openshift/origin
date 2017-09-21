@@ -216,6 +216,11 @@ func DeepCopy_v1alpha1_ServiceBrokerSpec(in interface{}, out interface{}, c *con
 			*out = make([]byte, len(*in))
 			copy(*out, *in)
 		}
+		if in.RelistDuration != nil {
+			in, out := &in.RelistDuration, &out.RelistDuration
+			*out = new(meta_v1.Duration)
+			**out = **in
+		}
 		return nil
 	}
 }

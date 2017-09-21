@@ -296,12 +296,32 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "byte",
 							},
 						},
+						"relistBehavior": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RelistBehavior specifies the type of relist behavior the catalog should exhibit when relisting ServiceClasses available from a broker.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"relistDuration": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RelistDuration is the frequency by which a controller will relist the broker when the RelistBehavior is set to ServiceBrokerRelistBehaviorDuration.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+							},
+						},
+						"relistRequests": {
+							SchemaProps: spec.SchemaProps{
+								Description: "RelistRequests is a strictly increasing, non-negative integer counter that can be manually incremented by a user to manually trigger a relist.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
 					},
-					Required: []string{"url"},
+					Required: []string{"url", "relistBehavior", "relistDuration", "relistRequests"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ServiceBrokerAuthInfo"},
+				"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ServiceBrokerAuthInfo", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 		},
 		"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1.ServiceBrokerStatus": {
 			Schema: spec.Schema{

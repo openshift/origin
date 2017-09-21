@@ -60,7 +60,32 @@ type ServiceBrokerSpec struct {
 	// CABundle is a PEM encoded CA bundle which will be used to validate a Broker's serving certificate.
 	// +optional
 	CABundle []byte
+
+	// RelistBehavior specifies the type of relist behavior the catalog should
+	// exhibit when relisting ServiceClasses available from a broker.
+	RelistBehavior ServiceBrokerRelistBehavior
+
+	// RelistDuration is the frequency by which a controller will relist the
+	// broker when the RelistBehavior is set to ServiceBrokerRelistBehaviorDuration.
+	RelistDuration *metav1.Duration
+
+	// RelistRequests is a strictly increasing, non-negative integer counter that
+	// can be manually incremented by a user to manually trigger a relist.
+	RelistRequests int64
 }
+
+// ServiceBrokerRelistBehavior represents a type of broker relist behavior.
+type ServiceBrokerRelistBehavior string
+
+const (
+	// ServiceBrokerRelistBehaviorDuration indicates that the broker will be
+	// relisted automatically after the specified duration has passed.
+	ServiceBrokerRelistBehaviorDuration ServiceBrokerRelistBehavior = "Duration"
+
+	// ServiceBrokerRelistBehaviorManual indicates that the broker is only
+	// relisted when the spec of the broker changes.
+	ServiceBrokerRelistBehaviorManual ServiceBrokerRelistBehavior = "Manual"
+)
 
 // ServiceBrokerAuthInfo is a union type that contains information on one of the authentication methods
 // the the service catalog and brokers may support, according to the OpenServiceBroker API

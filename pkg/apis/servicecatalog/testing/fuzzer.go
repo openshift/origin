@@ -21,6 +21,7 @@ import (
 	"math/rand"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/google/gofuzz"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
@@ -191,6 +192,11 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 
 			// Set the bytes field on the RawExtension
 			r.Raw = bytes
+		},
+		func(bs *servicecatalog.ServiceBrokerSpec, c fuzz.Continue) {
+			c.FuzzNoCustom(bs)
+			bs.RelistBehavior = servicecatalog.ServiceBrokerRelistBehaviorDuration
+			bs.RelistDuration = &metav1.Duration{Duration: 15 * time.Minute}
 		},
 		func(is *servicecatalog.ServiceInstanceSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(is)

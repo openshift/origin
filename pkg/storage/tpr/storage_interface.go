@@ -145,10 +145,7 @@ func (t *store) Create(
 		return err
 	}
 
-	if err := decode(t.codec, unknown.Raw, out); err != nil {
-		return err
-	}
-	return nil
+	return decode(t.codec, unknown.Raw, out)
 }
 
 // Delete fetches the resource at key, removes its finalizer, updates it, and returns the
