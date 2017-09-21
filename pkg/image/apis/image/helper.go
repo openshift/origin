@@ -14,10 +14,9 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/blang/semver"
-	"github.com/docker/distribution/digest"
 	"github.com/golang/glog"
 
-	"github.com/openshift/origin/pkg/image/reference"
+	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
 )
 
 const (
@@ -145,7 +144,7 @@ func IsRegistryDockerHub(registry string) bool {
 func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	var ref DockerImageReference
 
-	namedRef, err := reference.ParseNamedDockerImageReference(spec)
+	namedRef, err := parseNamedDockerImageReference(spec)
 	if err != nil {
 		return ref, err
 	}
