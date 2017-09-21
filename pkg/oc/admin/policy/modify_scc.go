@@ -15,7 +15,6 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/security/legacyclient"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 const (
@@ -139,7 +138,7 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, args []stri
 	}
 
 	o.SCCName = args[0]
-	o.Subjects = authorizationapi.BuildSubjects(args[1:], []string{}, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	o.Subjects = authorizationapi.BuildSubjects(args[1:], []string{})
 
 	if (len(o.Subjects) == 0) && (len(saNames) == 0) {
 		return errors.New("you must specify at least one user or service account")
@@ -169,7 +168,7 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, args []str
 	}
 
 	o.SCCName = args[0]
-	o.Subjects = authorizationapi.BuildSubjects([]string{}, args[1:], uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	o.Subjects = authorizationapi.BuildSubjects([]string{}, args[1:])
 
 	_, kc, err := f.Clients()
 	if err != nil {

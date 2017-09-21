@@ -10,7 +10,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	newer "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 func Convert_v1_SubjectAccessReview_To_authorization_SubjectAccessReview(in *SubjectAccessReview, out *newer.SubjectAccessReview, s conversion.Scope) error {
@@ -152,7 +151,7 @@ func Convert_v1_RoleBinding_To_authorization_RoleBinding(in *RoleBinding, out *n
 		return nil
 	}
 
-	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames)
 
 	return nil
 }
@@ -198,7 +197,7 @@ func Convert_v1_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *Clust
 		return nil
 	}
 
-	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	out.Subjects = newer.BuildSubjects(in.UserNames, in.GroupNames)
 
 	return nil
 }

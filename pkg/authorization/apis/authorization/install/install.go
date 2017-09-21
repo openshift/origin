@@ -9,6 +9,7 @@ import (
 
 	"github.com/openshift/origin/pkg/api/legacy"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
 )
 
@@ -26,7 +27,7 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  authorizationapi.GroupName,
 			VersionPreferenceOrder:     []string{authorizationapiv1.SchemeGroupVersion.Version},
-			AddInternalObjectsToScheme: authorizationapi.AddToScheme,
+			AddInternalObjectsToScheme: internalObjectsToScheme,
 			RootScopedKinds:            sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "SubjectAccessReview", "ResourceAccessReview"),
 		},
 		announced.VersionToSchemeFunc{
@@ -35,4 +36,11 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)
 	}
+}
+
+func internalObjectsToScheme(scheme *runtime.Scheme) error {
+	if err := authorizationapi.AddToScheme(scheme); err != nil {
+		return err
+	}
+	return rbacconversion.AddToScheme(scheme)
 }
