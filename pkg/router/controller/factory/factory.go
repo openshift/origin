@@ -21,7 +21,7 @@ import (
 
 	oscache "github.com/openshift/origin/pkg/client/cache"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	osclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
 	routercontroller "github.com/openshift/origin/pkg/router/controller"
 )
@@ -31,7 +31,7 @@ import (
 // If Namespace is empty, it means "all namespaces".
 type RouterControllerFactory struct {
 	KClient        kcoreclient.EndpointsGetter
-	OSClient       osclient.RoutesGetter
+	RouteClient    routeclient.RoutesGetter
 	IngressClient  kextensionsclient.IngressesGetter
 	SecretClient   kcoreclient.SecretsGetter
 	NodeClient     kcoreclient.NodesGetter
@@ -43,10 +43,10 @@ type RouterControllerFactory struct {
 }
 
 // NewDefaultRouterControllerFactory initializes a default router controller factory.
-func NewDefaultRouterControllerFactory(oc osclient.RoutesGetter, kc kclientset.Interface) *RouterControllerFactory {
+func NewDefaultRouterControllerFactory(routeClient routeclient.RoutesGetter, kc kclientset.Interface) *RouterControllerFactory {
 	return &RouterControllerFactory{
 		KClient:        kc.Core(),
-		OSClient:       oc,
+		RouteClient:    routeClient,
 		IngressClient:  kc.Extensions(),
 		SecretClient:   kc.Core(),
 		NodeClient:     kc.Core(),
@@ -80,7 +80,7 @@ func routerKeyFn(obj interface{}) (string, error) {
 func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *routercontroller.RouterController {
 	routeEventQueue := oscache.NewEventQueue(routerKeyFn)
 	rLW := &routeLW{
-		client:    factory.OSClient,
+		client:    factory.RouteClient,
 		namespace: factory.Namespace,
 		field:     factory.Fields,
 		label:     factory.Labels,
@@ -218,7 +218,7 @@ func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByH
 	routeStore := cache.NewIndexer(keyFn, cache.Indexers{"host": hostIndexFunc})
 	routeEventQueue := oscache.NewEventQueueForStore(keyFn, routeStore)
 	rLW := &routeLW{
-		client:    factory.OSClient,
+		client:    factory.RouteClient,
 		namespace: factory.Namespace,
 		field:     factory.Fields,
 		label:     factory.Labels,
@@ -321,7 +321,7 @@ func hostIndexFunc(obj interface{}) ([]string, error) {
 // routeLW is a ListWatcher for routes that can be filtered to a label, field, or
 // namespace.
 type routeLW struct {
-	client    osclient.RoutesGetter
+	client    routeclient.RoutesGetter
 	label     labels.Selector
 	field     fields.Selector
 	namespace string
