@@ -13,7 +13,6 @@ import (
 	groupscmd "github.com/openshift/origin/pkg/oc/admin/groups"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -89,7 +88,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, valerieGroups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, valerieGroups)
 	_, err = clusterAdminClient.RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -150,7 +149,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	roleBinding := &authorizationapi.RoleBinding{}
 	roleBinding.Name = "admins"
 	roleBinding.RoleRef.Name = "admin"
-	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name}, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	roleBinding.Subjects = authorizationapi.BuildSubjects([]string{}, []string{theGroup.Name})
 	_, err = clusterAdminClient.RoleBindings("empty").Create(roleBinding)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

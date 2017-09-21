@@ -24,6 +24,7 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // Add a dockerregistry.Client to the passed context with this key to support v1 Docker registry importing
@@ -501,7 +502,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			continue
 		}
 
-		if err := imageapi.ImageWithMetadata(importDigest.Image); err != nil {
+		if err := util.ImageWithMetadata(importDigest.Image); err != nil {
 			importDigest.Err = err
 			continue
 		}
@@ -560,7 +561,7 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 			importTag.Err = err
 			continue
 		}
-		if err := imageapi.ImageWithMetadata(importTag.Image); err != nil {
+		if err := util.ImageWithMetadata(importTag.Image); err != nil {
 			importTag.Err = err
 			continue
 		}

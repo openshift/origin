@@ -9,14 +9,15 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client"
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/security/legacyclient"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 func NewGroupReaper(
-	groupClient client.GroupsInterface,
-	clusterBindingClient client.ClusterRoleBindingsInterface,
-	bindingClient client.RoleBindingsNamespacer,
+	groupClient userclient.Interface,
+	clusterBindingClient authclient.Interface,
+	bindingClient authclient.Interface,
 	sccClient legacyclient.SecurityContextConstraintInterface,
 ) kubectl.Reaper {
 	return &GroupReaper{
@@ -28,9 +29,9 @@ func NewGroupReaper(
 }
 
 type GroupReaper struct {
-	groupClient          client.GroupsInterface
-	clusterBindingClient client.ClusterRoleBindingsInterface
-	bindingClient        client.RoleBindingsNamespacer
+	groupClient          userclient.Interface
+	clusterBindingClient authclient.Interface
+	bindingClient        authclient.Interface
 	sccClient            legacyclient.SecurityContextConstraintInterface
 }
 
@@ -69,7 +70,7 @@ func (r *GroupReaper) Stop(namespace, name string, timeout time.Duration, graceP
 	}
 
 	// Remove the group
-	if err := r.groupClient.Groups().Delete(name); err != nil && !kerrors.IsNotFound(err) {
+	if err := r.groupClient.User().Groups().Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 		return err
 	}
 

@@ -16,6 +16,7 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/limitranger"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -123,7 +124,7 @@ func (a *imageLimitRangerPlugin) Limit(limitRange *kapi.LimitRange, kind string,
 	}
 
 	image := &isObj.Image
-	if err := imageapi.ImageWithMetadata(image); err != nil {
+	if err := util.ImageWithMetadata(image); err != nil {
 		return err
 	}
 

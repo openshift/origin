@@ -1,4 +1,4 @@
-package util
+package image
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"github.com/openshift/origin/pkg/image/importer"
 )
 
-// GetImageManifestByIDFromRegistry retrieves the image manifest from the registry using the basic
+// getImageManifestByIDFromRegistry retrieves the image manifest from the registry using the basic
 // authentication using the image ID.
-func GetImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID, username, password string, insecure bool) ([]byte, error) {
+func getImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID, username, password string, insecure bool) ([]byte, error) {
 	ctx := context.Background()
 
 	credentials := importer.NewBasicCredentials()

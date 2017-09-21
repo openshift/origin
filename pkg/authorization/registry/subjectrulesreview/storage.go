@@ -15,6 +15,7 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
@@ -57,7 +58,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 
 	ret := &authorizationapi.SubjectRulesReview{
 		Status: authorizationapi.SubjectRulesReviewStatus{
-			Rules: authorizationapi.Convert_rbac_PolicyRules_To_authorization_PolicyRules(rules), //TODO can we fix this ?
+			Rules: rbacconversion.Convert_rbac_PolicyRules_To_authorization_PolicyRules(rules), //TODO can we fix this ?
 		},
 	}
 

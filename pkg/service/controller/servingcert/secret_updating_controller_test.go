@@ -8,18 +8,19 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/kubernetes/pkg/api/v1"
+	listers "k8s.io/kubernetes/pkg/client/listers/core/v1"
 )
 
 func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 	tests := []struct {
 		name          string
-		primeServices func(cache.Store)
+		primeServices func(cache.Indexer)
 		secret        *v1.Secret
 		expected      bool
 	}{
 		{
 			name:          "no service annotation",
-			primeServices: func(serviceCache cache.Store) {},
+			primeServices: func(serviceCache cache.Indexer) {},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
@@ -30,7 +31,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name:          "missing service",
-			primeServices: func(serviceCache cache.Store) {},
+			primeServices: func(serviceCache cache.Indexer) {},
 			secret: &v1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "ns1", Name: "mysecret",
@@ -43,7 +44,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "service-uid-mismatch",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-2"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
@@ -62,7 +63,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "service secret name mismatch",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret2"}},
 				})
@@ -81,7 +82,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "no expiry",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
@@ -100,7 +101,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "bad expiry",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
@@ -120,7 +121,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "expired expiry",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
@@ -140,7 +141,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "distant expiry",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
@@ -160,7 +161,7 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 		},
 		{
 			name: "missing ownerref",
-			primeServices: func(serviceCache cache.Store) {
+			primeServices: func(serviceCache cache.Indexer) {
 				serviceCache.Add(&v1.Service{
 					ObjectMeta: metav1.ObjectMeta{Namespace: "ns1", Name: "foo", UID: types.UID("uid-1"), Annotations: map[string]string{ServingCertSecretAnnotation: "mysecret"}},
 				})
@@ -181,16 +182,17 @@ func TestRequiresRegenerationServiceUIDMismatch(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			index := cache.NewIndexer(cache.DeletionHandlingMetaNamespaceKeyFunc, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 			c := &ServiceServingCertUpdateController{
-				serviceCache: cache.NewStore(cache.DeletionHandlingMetaNamespaceKeyFunc),
+				serviceLister: listers.NewServiceLister(index),
 			}
-			tc.primeServices(c.serviceCache)
+			tc.primeServices(index)
 			actual, service := c.requiresRegeneration(tc.secret)
 			if tc.expected != actual {
-				t.Errorf("expected %v, got %v", tc.expected, actual)
+				t.Errorf("%s: expected %v, got %v", tc.name, tc.expected, actual)
 			}
 			if service == nil && tc.expected {
-				t.Errorf("should have returned service")
+				t.Errorf("%s: should have returned service", tc.name)
 			}
 		})
 	}

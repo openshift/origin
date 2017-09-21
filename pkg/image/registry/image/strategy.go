@@ -13,6 +13,7 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/apis/image/validation"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // imageStrategy implements behavior for Images.
@@ -39,7 +40,7 @@ func (imageStrategy) NamespaceScoped() bool {
 func (s imageStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	newImage := obj.(*imageapi.Image)
 	// ignore errors, change in place
-	if err := imageapi.ImageWithMetadata(newImage); err != nil {
+	if err := util.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 }
@@ -89,7 +90,7 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 	if newImage.DockerImageManifest != oldImage.DockerImageManifest {
 		ok := true
 		if len(newImage.DockerImageManifest) > 0 {
-			ok, err = imageapi.ManifestMatchesImage(oldImage, []byte(newImage.DockerImageManifest))
+			ok, err = util.ManifestMatchesImage(oldImage, []byte(newImage.DockerImageManifest))
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("attempted to validate that a manifest change to %q matched the signature, but failed: %v", oldImage.Name, err))
 			}
@@ -102,7 +103,7 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 	if newImage.DockerImageConfig != oldImage.DockerImageConfig {
 		ok := true
 		if len(newImage.DockerImageConfig) > 0 {
-			ok, err = imageapi.ImageConfigMatchesImage(newImage, []byte(newImage.DockerImageConfig))
+			ok, err = util.ImageConfigMatchesImage(newImage, []byte(newImage.DockerImageConfig))
 			if err != nil {
 				utilruntime.HandleError(fmt.Errorf("attempted to validate that a new config for %q mentioned in the manifest, but failed: %v", oldImage.Name, err))
 			}
@@ -112,7 +113,7 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 		}
 	}
 
-	if err = imageapi.ImageWithMetadata(newImage); err != nil {
+	if err = util.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
 }

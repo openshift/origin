@@ -22,8 +22,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 // ReconcileClusterRoleBindingsRecommendedName is the recommended command name
@@ -125,7 +123,7 @@ func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *cl
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
-	o.ExcludeSubjects = authorizationapi.BuildSubjects(excludeUsers, excludeGroups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	o.ExcludeSubjects = authorizationapi.BuildSubjects(excludeUsers, excludeGroups)
 
 	mapper, _ := f.Object()
 	for _, resourceString := range args {

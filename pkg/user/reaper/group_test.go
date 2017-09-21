@@ -13,18 +13,20 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/client/testclient"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
+	userfake "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
 var (
-	groupsResource              = schema.GroupVersionResource{Group: "", Version: "", Resource: "groups"}
-	clusterRoleBindingsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "clusterrolebindings"}
-	roleBindingsResource        = schema.GroupVersionResource{Group: "", Version: "", Resource: "rolebindings"}
+	groupsResource              = schema.GroupVersionResource{Group: "user.openshift.io", Version: "", Resource: "groups"}
+	clusterRoleBindingsResource = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "clusterrolebindings"}
+	roleBindingsResource        = schema.GroupVersionResource{Group: "authorization.openshift.io", Version: "", Resource: "rolebindings"}
 )
 
 func TestGroupReaper(t *testing.T) {
@@ -130,7 +132,9 @@ func TestGroupReaper(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tc := testclient.NewSimpleFake(testclient.OriginObjects(test.objects)...)
+		authFake := authfake.NewSimpleClientset(testclient.OriginObjects(test.objects)...)
+		userFake := userfake.NewSimpleClientset()
+
 		ktc := legacyclient.NewSimpleFake(test.sccs...)
 
 		actual := []interface{}{}
@@ -143,12 +147,14 @@ func TestGroupReaper(t *testing.T) {
 			return false, nil, nil
 		}
 
-		tc.PrependReactor("update", "*", oreactor)
-		tc.PrependReactor("delete", "*", oreactor)
+		authFake.PrependReactor("update", "*", oreactor)
+		userFake.PrependReactor("update", "*", oreactor)
+		authFake.PrependReactor("delete", "*", oreactor)
+		userFake.PrependReactor("delete", "*", oreactor)
 		ktc.Fake.PrependReactor("update", "*", kreactor)
 		ktc.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewGroupReaper(tc, tc, tc, ktc)
+		reaper := NewGroupReaper(userFake, authFake, authFake, ktc)
 		err := reaper.Stop("", test.group, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

@@ -14,7 +14,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 const (
@@ -402,7 +401,7 @@ func (o *RoleModificationOptions) AddRole() error {
 	roleBinding.RoleRef.Namespace = o.RoleNamespace
 	roleBinding.RoleRef.Name = o.RoleName
 
-	newSubjects := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	newSubjects := authorizationapi.BuildSubjects(o.Users, o.Groups)
 	newSubjects = append(newSubjects, o.Subjects...)
 
 subjectCheck:
@@ -443,7 +442,7 @@ func (o *RoleModificationOptions) RemoveRole() error {
 		return fmt.Errorf("unable to locate RoleBinding for %v/%v", o.RoleNamespace, o.RoleName)
 	}
 
-	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups, uservalidation.ValidateUserName, uservalidation.ValidateGroupName)
+	subjectsToRemove := authorizationapi.BuildSubjects(o.Users, o.Groups)
 	subjectsToRemove = append(subjectsToRemove, o.Subjects...)
 
 	for _, roleBinding := range roleBindings {

@@ -13,31 +13,35 @@ import (
 	"github.com/davecgh/go-spew/spew"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/client/testclient"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	authenticationapi "github.com/openshift/origin/pkg/user/apis/user"
+	userfake "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 var (
-	usersResource                     = schema.GroupVersionResource{Group: "", Version: "", Resource: "users"}
+	usersResource                     = schema.GroupVersionResource{Group: "user.openshift.io", Version: "", Resource: "users"}
 	securityContextContraintsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
-	oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "oauthclientauthorizations"}
+	oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "", Resource: "oauthclientauthorizations"}
 )
 
 func TestUserReaper(t *testing.T) {
 	tests := []struct {
-		name     string
-		user     string
-		objects  []runtime.Object
-		sccs     []runtime.Object
-		expected []interface{}
+		name         string
+		user         string
+		authObjects  []runtime.Object
+		oauthObjects []runtime.Object
+		userObjects  []runtime.Object
+		sccs         []runtime.Object
+		expected     []interface{}
 	}{
 		{
-			name:    "no objects",
-			user:    "bob",
-			objects: []runtime.Object{},
+			name: "no objects",
+			user: "bob",
 			expected: []interface{}{
 				clientgotesting.DeleteActionImpl{ActionImpl: clientgotesting.ActionImpl{Verb: "delete", Resource: usersResource}, Name: "bob"},
 			},
@@ -45,7 +49,7 @@ func TestUserReaper(t *testing.T) {
 		{
 			name: "cluster bindings",
 			user: "bob",
-			objects: []runtime.Object{
+			authObjects: []runtime.Object{
 				&authorizationapi.ClusterRoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
@@ -74,7 +78,7 @@ func TestUserReaper(t *testing.T) {
 		{
 			name: "namespaced bindings",
 			user: "bob",
-			objects: []runtime.Object{
+			authObjects: []runtime.Object{
 				&authorizationapi.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{Name: "binding-no-subjects", Namespace: "ns1"},
 					RoleRef:    kapi.ObjectReference{Name: "role"},
@@ -129,7 +133,7 @@ func TestUserReaper(t *testing.T) {
 		{
 			name: "identities",
 			user: "bob",
-			objects: []runtime.Object{
+			userObjects: []runtime.Object{
 				&authenticationapi.Identity{
 					ObjectMeta: metav1.ObjectMeta{Name: "identity-no-user"},
 					User:       kapi.ObjectReference{},
@@ -155,7 +159,7 @@ func TestUserReaper(t *testing.T) {
 		{
 			name: "groups",
 			user: "bob",
-			objects: []runtime.Object{
+			userObjects: []runtime.Object{
 				&authenticationapi.Group{
 					ObjectMeta: metav1.ObjectMeta{Name: "group-no-users"},
 					Users:      []string{},
@@ -188,7 +192,7 @@ func TestUserReaper(t *testing.T) {
 		{
 			name: "oauth client authorizations",
 			user: "bob",
-			objects: []runtime.Object{
+			oauthObjects: []runtime.Object{
 				&oauthapi.OAuthClientAuthorization{
 					ObjectMeta: metav1.ObjectMeta{Name: "other-user"},
 					UserName:   "alice",
@@ -214,7 +218,10 @@ func TestUserReaper(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		tc := testclient.NewSimpleFake(testclient.OriginObjects(test.objects)...)
+		authFake := authfake.NewSimpleClientset(testclient.OriginObjects(test.authObjects)...)
+		userFake := userfake.NewSimpleClientset(testclient.OriginObjects(test.userObjects)...)
+		oauthFake := oauthfake.NewSimpleClientset(testclient.OriginObjects(test.oauthObjects)...)
+
 		ktc := legacyclient.NewSimpleFake(test.sccs...)
 
 		actual := []interface{}{}
@@ -227,12 +234,16 @@ func TestUserReaper(t *testing.T) {
 			return false, nil, nil
 		}
 
-		tc.PrependReactor("update", "*", oreactor)
-		tc.PrependReactor("delete", "*", oreactor)
+		authFake.PrependReactor("update", "*", oreactor)
+		userFake.PrependReactor("update", "*", oreactor)
+		oauthFake.PrependReactor("update", "*", oreactor)
+		authFake.PrependReactor("delete", "*", oreactor)
+		userFake.PrependReactor("delete", "*", oreactor)
+		oauthFake.PrependReactor("delete", "*", oreactor)
 		ktc.Fake.PrependReactor("update", "*", kreactor)
 		ktc.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewUserReaper(tc, tc, tc, tc, tc, ktc)
+		reaper := NewUserReaper(userFake, userFake, authFake, authFake, oauthFake, ktc)
 		err := reaper.Stop("", test.user, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
