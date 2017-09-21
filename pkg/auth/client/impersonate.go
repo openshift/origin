@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apiserver/pkg/authentication/user"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/util/flowcontrol"
@@ -12,8 +13,6 @@ import (
 
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
-	utilnet "k8s.io/apimachinery/pkg/util/net"
 )
 
 type impersonatingRoundTripper struct {
@@ -21,8 +20,8 @@ type impersonatingRoundTripper struct {
 	delegate http.RoundTripper
 }
 
-// NewImpersonatingRoundTripper will add headers to impersonate a user, including user, groups, and scopes
-func NewImpersonatingRoundTripper(user user.Info, delegate http.RoundTripper) http.RoundTripper {
+// newImpersonatingRoundTripper will add headers to impersonate a user, including user, groups, and scopes
+func newImpersonatingRoundTripper(user user.Info, delegate http.RoundTripper) http.RoundTripper {
 	return &impersonatingRoundTripper{user: user, delegate: delegate}
 }
 
@@ -46,25 +45,15 @@ func (rt *impersonatingRoundTripper) RoundTrip(req *http.Request) (*http.Respons
 func NewImpersonatingConfig(user user.Info, config restclient.Config) restclient.Config {
 	oldWrapTransport := config.WrapTransport
 	config.WrapTransport = func(rt http.RoundTripper) http.RoundTripper {
-		return NewImpersonatingRoundTripper(user, oldWrapTransport(rt))
+		return newImpersonatingRoundTripper(user, oldWrapTransport(rt))
 	}
 	return config
-}
-
-// NewImpersonatingOpenShiftClient returns an OpenShift client that will impersonate a user, including user, groups, and scopes
-func NewImpersonatingOpenShiftClient(user user.Info, config restclient.Config) (client.Interface, error) {
-	impersonatingConfig := NewImpersonatingConfig(user, config)
-	return client.New(&impersonatingConfig)
 }
 
 // NewImpersonatingKubernetesClientset returns a Kubernetes clientset that will impersonate a user, including user, groups, and scopes
 func NewImpersonatingKubernetesClientset(user user.Info, config restclient.Config) (kclientset.Interface, error) {
 	impersonatingConfig := NewImpersonatingConfig(user, config)
 	return kclientset.NewForConfig(&impersonatingConfig)
-}
-
-func NewImpersonatingKubernetesClientsetFromRESTClient(user user.Info, client restclient.Interface) kclientset.Interface {
-	return kclientset.New(NewImpersonatingRESTClient(user, client))
 }
 
 // impersonatingRESTClient sets impersonating user, groups, and scopes headers per request

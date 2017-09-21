@@ -14,7 +14,6 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client/testclient"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
@@ -29,7 +28,7 @@ func TestAdmission(t *testing.T) {
 		attributes  admission.Attributes
 		expectedErr string
 
-		validateClients func(kubeClient *fake.Clientset, originClient *testclient.Fake, templateClient *templatefake.Clientset) string
+		validateClients func(kubeClient *fake.Clientset, templateClient *templatefake.Clientset) string
 	}{
 		{
 			name:            "disabled",
@@ -68,7 +67,7 @@ func TestAdmission(t *testing.T) {
 			objects: []runtime.Object{
 				&kapi.Service{ObjectMeta: metav1.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
-			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake, templateClient *templatefake.Clientset) string {
+			validateClients: func(kubeClient *fake.Clientset, templateClient *templatefake.Clientset) string {
 				if len(kubeClient.Actions()) == 1 && kubeClient.Actions()[0].Matches("get", "services") {
 					return ""
 				}
@@ -82,7 +81,7 @@ func TestAdmission(t *testing.T) {
 				&kapi.Service{ObjectMeta: metav1.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
 			jenkinsEnabled: boolptr(true),
-			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake, templateClient *templatefake.Clientset) string {
+			validateClients: func(kubeClient *fake.Clientset, templateClient *templatefake.Clientset) string {
 				if len(kubeClient.Actions()) == 1 && kubeClient.Actions()[0].Matches("get", "services") {
 					return ""
 				}
@@ -95,7 +94,7 @@ func TestAdmission(t *testing.T) {
 			objects: []runtime.Object{
 				&kapi.Service{ObjectMeta: metav1.ObjectMeta{Namespace: "namespace", Name: "jenkins"}},
 			},
-			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake, templateClient *templatefake.Clientset) string {
+			validateClients: func(kubeClient *fake.Clientset, templateClient *templatefake.Clientset) string {
 				if len(kubeClient.Actions()) == 1 && kubeClient.Actions()[0].Matches("get", "services") {
 					return ""
 				}
@@ -107,7 +106,7 @@ func TestAdmission(t *testing.T) {
 			attributes:     admission.NewAttributesRecord(enableBuild, nil, schema.GroupVersionKind{}, "namespace", "name", buildapi.LegacySchemeGroupVersion.WithResource("builds"), "", admission.Create, &user.DefaultInfo{}),
 			jenkinsEnabled: boolptr(true),
 			objects:        []runtime.Object{},
-			validateClients: func(kubeClient *fake.Clientset, originClient *testclient.Fake, templateClient *templatefake.Clientset) string {
+			validateClients: func(kubeClient *fake.Clientset, templateClient *templatefake.Clientset) string {
 				if len(kubeClient.Actions()) == 0 {
 					return fmt.Sprintf("missing get service in: %v", kubeClient.Actions())
 				}
@@ -128,11 +127,9 @@ func TestAdmission(t *testing.T) {
 
 	for _, tc := range testCases {
 		kubeClient := fake.NewSimpleClientset(tc.objects...)
-		originClient := testclient.NewSimpleFake(tc.objects...)
 		templateClient := templatefake.NewSimpleClientset()
 
 		admission := NewJenkinsBootstrapper().(*jenkinsBootstrapper)
-		admission.openshiftClient = originClient
 		admission.templateClient = templateClient
 		admission.jenkinsConfig = configapi.JenkinsPipelineConfig{
 			AutoProvisionEnabled: tc.jenkinsEnabled,
@@ -153,21 +150,18 @@ func TestAdmission(t *testing.T) {
 		}
 
 		if tc.validateClients != nil {
-			if err := tc.validateClients(kubeClient, originClient, templateClient); len(err) != 0 {
+			if err := tc.validateClients(kubeClient, templateClient); len(err) != 0 {
 				t.Errorf("%s: unexpected error: %v", tc.name, err)
 			}
 		}
 	}
 }
-func noAction(kubeClient *fake.Clientset, originClient *testclient.Fake, templateClient *templatefake.Clientset) string {
+func noAction(kubeClient *fake.Clientset, templateClient *templatefake.Clientset) string {
 	if len(kubeClient.Actions()) != 0 {
 		return fmt.Sprintf("unexpected kubernetes client actions: %v", kubeClient.Actions())
 	}
-	if len(originClient.Actions()) != 0 {
-		return fmt.Sprintf("unexpected openshift client actions: %v", originClient.Actions())
-	}
 	if len(templateClient.Actions()) != 0 {
-		return fmt.Sprintf("unexpected openshift template client actions: %v", originClient.Actions())
+		return fmt.Sprintf("unexpected openshift template client actions: %v", templateClient.Actions())
 	}
 	return ""
 }
