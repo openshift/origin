@@ -20,11 +20,13 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	_ "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/install"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
 	versioned "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/pkg/api"
@@ -66,6 +68,64 @@ func roundTrip(t *testing.T, obj runtime.Object) runtime.Object {
 		t.Fatalf("%v\nSource: %#v", err, obj2)
 	}
 	return obj3
+}
+
+func TestSetDefaultServiceBroker(t *testing.T) {
+	cases := []struct {
+		name     string
+		broker   *versioned.ServiceBroker
+		behavior versioned.ServiceBrokerRelistBehavior
+		duration *metav1.Duration
+	}{
+		{
+			name:     "neither duration or behavior set",
+			broker:   &versioned.ServiceBroker{},
+			behavior: versioned.ServiceBrokerRelistBehaviorDuration,
+			duration: &metav1.Duration{Duration: 15 * time.Minute},
+		},
+		{
+			name: "behavior set to manual",
+			broker: func() *versioned.ServiceBroker {
+				b := &versioned.ServiceBroker{}
+				b.Spec.RelistBehavior = versioned.ServiceBrokerRelistBehaviorManual
+				return b
+			}(),
+			behavior: versioned.ServiceBrokerRelistBehaviorManual,
+			duration: nil,
+		},
+		{
+			name: "behavior set to duration but no duration provided",
+			broker: func() *versioned.ServiceBroker {
+				b := &versioned.ServiceBroker{}
+				b.Spec.RelistBehavior = versioned.ServiceBrokerRelistBehaviorDuration
+				return b
+			}(),
+			behavior: versioned.ServiceBrokerRelistBehaviorDuration,
+			duration: &metav1.Duration{Duration: 15 * time.Minute},
+		},
+	}
+
+	for _, tc := range cases {
+		o := roundTrip(t, runtime.Object(tc.broker))
+		ab := o.(*versioned.ServiceBroker)
+		actualSpec := ab.Spec
+
+		if tc.behavior != actualSpec.RelistBehavior {
+			t.Errorf(
+				"%v: unexpected default RelistBehavior: expected %v, got %v",
+				tc.name, tc.behavior, actualSpec.RelistBehavior,
+			)
+		}
+
+		if tc.duration == nil && actualSpec.RelistDuration == nil {
+			continue
+		} else if *tc.duration != *actualSpec.RelistDuration {
+			t.Errorf(
+				"%v: unexpected RelistDuration: expected %v, got %v",
+				tc.name, tc.duration, actualSpec.RelistDuration,
+			)
+		}
+	}
 }
 
 func TestSetDefaultServiceInstance(t *testing.T) {

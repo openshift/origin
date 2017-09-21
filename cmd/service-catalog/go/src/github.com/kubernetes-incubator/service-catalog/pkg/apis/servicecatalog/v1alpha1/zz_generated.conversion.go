@@ -285,6 +285,9 @@ func autoConvert_v1alpha1_ServiceBrokerSpec_To_servicecatalog_ServiceBrokerSpec(
 	out.AuthInfo = (*servicecatalog.ServiceBrokerAuthInfo)(unsafe.Pointer(in.AuthInfo))
 	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
+	out.RelistBehavior = servicecatalog.ServiceBrokerRelistBehavior(in.RelistBehavior)
+	out.RelistDuration = (*meta_v1.Duration)(unsafe.Pointer(in.RelistDuration))
+	out.RelistRequests = in.RelistRequests
 	return nil
 }
 
@@ -298,6 +301,9 @@ func autoConvert_servicecatalog_ServiceBrokerSpec_To_v1alpha1_ServiceBrokerSpec(
 	out.AuthInfo = (*ServiceBrokerAuthInfo)(unsafe.Pointer(in.AuthInfo))
 	out.InsecureSkipTLSVerify = in.InsecureSkipTLSVerify
 	out.CABundle = *(*[]byte)(unsafe.Pointer(&in.CABundle))
+	out.RelistBehavior = ServiceBrokerRelistBehavior(in.RelistBehavior)
+	out.RelistDuration = (*meta_v1.Duration)(unsafe.Pointer(in.RelistDuration))
+	out.RelistRequests = in.RelistRequests
 	return nil
 }
 

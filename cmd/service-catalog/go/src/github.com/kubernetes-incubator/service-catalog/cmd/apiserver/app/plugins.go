@@ -20,7 +20,8 @@ package app
 // This should probably be part of some configuration fed into the build for a
 // given binary target.
 import (
-	// Admission policies
+	// Admission controllers
+	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/broker/authsarcheck"
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/namespace/lifecycle"
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceinstancecredentials/lifecycle"
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/changevalidator"

@@ -406,11 +406,7 @@ func (c *controller) reconcileServiceInstanceDelete(instance *v1alpha1.ServiceIn
 
 	// Clear the finalizer
 	finalizers.Delete(v1alpha1.FinalizerServiceCatalog)
-	if err = c.updateServiceInstanceFinalizers(instance, finalizers.List()); err != nil {
-		return err
-	}
-
-	return nil
+	return c.updateServiceInstanceFinalizers(instance, finalizers.List())
 }
 
 // isServiceInstanceFailed returns whether the instance has a failed condition with
@@ -746,10 +742,7 @@ func (c *controller) pollServiceInstance(serviceClass *v1alpha1.ServiceClass, se
 		if err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 			return err
 		}
-		if err := c.finishPollingServiceInstance(instance); err != nil {
-			return err
-		}
-		return nil
+		return c.finishPollingServiceInstance(instance)
 	}
 
 	request := &osb.LastOperationRequest{
@@ -852,17 +845,10 @@ func (c *controller) pollServiceInstance(serviceClass *v1alpha1.ServiceClass, se
 			if err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
-			if err := c.finishPollingServiceInstance(instance); err != nil {
-				return err
-			}
-			return nil
+			return c.finishPollingServiceInstance(instance)
 		}
 
-		err = c.continuePollingServiceInstance(instance)
-		if err != nil {
-			return err
-		}
-		return nil
+		return c.continuePollingServiceInstance(instance)
 	}
 
 	glog.V(4).Infof("Poll for %v/%v returned %q : %q", instance.Namespace, instance.Name, response.State, response.Description)
@@ -883,14 +869,15 @@ func (c *controller) pollServiceInstance(serviceClass *v1alpha1.ServiceClass, se
 			var message string
 			var reason string
 			if deleting {
-				reason = asyncDeprovisioningMessage
+				reason = asyncDeprovisioningReason
+				message = asyncDeprovisioningMessage
 			} else {
 				reason = asyncProvisioningReason
-			}
-			if response.Description != nil {
-				message = fmt.Sprintf("%s (%s)", asyncProvisioningMessage, *response.Description)
-			} else {
 				message = asyncProvisioningMessage
+			}
+
+			if response.Description != nil {
+				message = fmt.Sprintf("%s (%s)", message, *response.Description)
 			}
 			c.updateServiceInstanceCondition(
 				toUpdate,
@@ -921,10 +908,8 @@ func (c *controller) pollServiceInstance(serviceClass *v1alpha1.ServiceClass, se
 			if err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
-			if err := c.finishPollingServiceInstance(instance); err != nil {
-				return err
-			}
-			return nil
+
+			return c.finishPollingServiceInstance(instance)
 		}
 
 		err = c.continuePollingServiceInstance(instance)
@@ -1050,10 +1035,7 @@ func (c *controller) pollServiceInstance(serviceClass *v1alpha1.ServiceClass, se
 			if err := c.updateServiceInstanceStatus(toUpdate); err != nil {
 				return err
 			}
-			if err := c.finishPollingServiceInstance(instance); err != nil {
-				return err
-			}
-			return nil
+			return c.finishPollingServiceInstance(instance)
 		}
 		return fmt.Errorf("Got invalid state in LastOperationResponse: %q", response.State)
 	}
