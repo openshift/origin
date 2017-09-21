@@ -22,14 +22,14 @@ CNI_RELEASE?=0799f5732f2a11b329d9e3d51b9c8f2e3759f2ff
 CNI_TARBALL=cni-$(ARCH)-$(CNI_RELEASE).tar.gz
 CUR_DIR=$(shell pwd)
 OUTPUT_DIR=$(CUR_DIR)/output
-GOLANG_VERSION=1.7.5
+GOLANG_VERSION=1.7.6
 
 all: build
 
 build:
 	mkdir -p $(OUTPUT_DIR)
 
-	docker run -it -v $(OUTPUT_DIR):/output golang:$(GOLANG_VERSION) /bin/bash -c "\
+	docker run -it -v $(OUTPUT_DIR):/output:Z golang:$(GOLANG_VERSION) /bin/bash -c "\
 	git clone https://github.com/containernetworking/cni\
 	&& cd cni \
 	&& git checkout $(CNI_RELEASE) \

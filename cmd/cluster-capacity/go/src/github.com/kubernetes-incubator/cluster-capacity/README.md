@@ -1,4 +1,5 @@
 # Cluster capacity analysis framework
+[![Build Status](https://travis-ci.org/kubernetes-incubator/cluster-capacity.svg?branch=master)](https://travis-ci.org/kubernetes-incubator/cluster-capacity)
 
 Implementation of [cluster capacity analysis](https://github.com/kubernetes-incubator/cluster-capacity/blob/master/doc/cluster-capacity.md).
 
@@ -106,6 +107,147 @@ $ ./cluster-capacity --kubeconfig <path to kubeconfig> --podspec=pod.yaml -o yam
 ```
 
 The json or yaml output is not versioned and is not guaranteed to be stable across various releases.
+
+## Running Cluster Capacity as a Job Inside of a Pod
+
+Running the cluster capacity tool as a job inside of a pod has the advantage of
+being able to be run multiple times without needing user intervention. 
+
+Follow these example steps to run Cluster Capacity as a job:
+
+### 1.  Create a Container that runs Cluster Capacity
+In this example we create a simple Docker image utilizing the Dockerfile found in the root directory and tag it with `cluster-capacity-image`:
+```
+$ docker build -t cluster-capacity-image .
+```
+
+### 2. Setup an authorized user with the necessary permissions
+
+#### A. Create a role:
+```
+$ cat << EOF| kubectl create -f -
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: cluster-capacity-role
+rules:
+- apiGroups: [""]
+  resources: ["pods", "nodes", "persistentvolumeclaims", "persistentvolumes", "services"]
+  verbs: ["get", "watch", "list"]
+EOF
+```
+
+#### B. Create the service account which will be used to run the job:
+
+```
+$ kubectl create sa cluster-capacity-sa
+```
+
+#### C. Add the role to the service account:
+
+```
+$ kubectl create clusterrolebinding cluster-capacity-role \
+    --clusterrole=cluster-capacity-role \
+    --serviceaccount=default:cluster-capacity-sa
+```
+
+### 3. Define and create the pod specification (pod.yaml):
+
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: small-pod
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  containers:
+  - name: php-redis
+    image: gcr.io/google-samples/gb-frontend:v4
+    imagePullPolicy: Always
+    resources:
+      limits:
+        cpu: 150m
+        memory: 100Mi
+      requests:
+        cpu: 150m
+        memory: 100Mi
+```
+
+The cluster capacity analysis is mounted in a volume using a
+`ConfigMap` named `cluster-capacity-configmap` to mount input pod spec file
+`pod.yaml` into a volume `test-volume` at the path `/test-pod`.
+
+```
+$ kubectl create configmap cluster-capacity-configmap \
+    --from-file pod.yaml
+```
+
+### 4. Create the job specification (cluster-capacity-job.yaml):
+
+```
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cluster-capacity-job
+spec:
+  parallelism: 1
+  completions: 1
+  template:
+    metadata:
+      name: cluster-capacity-pod
+    spec:
+        containers:
+        - name: cluster-capacity
+          image: cluster-capacity-image
+          imagePullPolicy: "Never"
+          volumeMounts:
+          - mountPath: /test-pod
+            name: test-volume
+          env:
+          - name: CC_INCLUSTER
+            value: "true"
+          command:
+          - "/bin/sh"
+          - "-ec"
+          - |
+            /bin/cluster-capacity --podspec=/test-pod/pod.yaml --verbose
+        restartPolicy: "Never"
+        serviceAccountName: cluster-capacity-sa
+        volumes:
+        - name: test-volume
+          configMap:
+            name: cluster-capacity-configmap
+```
+ Note the environment variable `CC_INCLUSTER` the example above is required.  This is used to indicate to the cluster capacity tool that it is running inside a cluster as a pod.
+
+The `pod.yaml` key of the `ConfigMap` is the same as the pod specification file
+name, though it is not required. By doing this, the input pod spec file can be
+accessed inside the pod as `/test-pod/pod.yaml`.
+
+### 5. Run the cluster capacity image as a job in a pod:
+```
+$ kubectl create -f cluster-capacity-job.yaml
+```
+
+### 6. Check the job logs to find the number of pods that can be scheduled in the cluster:
+```
+$ kubectl logs jobs/cluster-capacity-job
+small-pod pod requirements:
+        - CPU: 150m
+        - Memory: 100Mi
+
+The cluster can schedule 52 instance(s) of the pod small-pod.
+
+Termination reason: Unschedulable: No nodes are available that match all of the
+following predicates:: Insufficient cpu (2).
+
+Pod distribution among nodes:
+small-pod
+        - 192.168.124.214: 26 instance(s)
+        - 192.168.124.120: 26 instance(s)
+```
 
 
 ## Pod spec generator: genpod

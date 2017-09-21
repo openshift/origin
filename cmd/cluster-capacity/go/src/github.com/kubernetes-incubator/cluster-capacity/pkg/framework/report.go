@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/kubernetes/pkg/api/unversioned"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/api/v1/helper"
 )
 
 type ClusterCapacityReview struct {
@@ -126,7 +127,7 @@ func getResourceRequest(pod *v1.Pod) *Resources {
 				rQuantity.Add(*(result.PrimaryResources.NvidiaGPU()))
 				result.PrimaryResources[v1.ResourceNvidiaGPU] = rQuantity
 			default:
-				if v1.IsOpaqueIntResourceName(rName) {
+				if helper.IsOpaqueIntResourceName(rName) {
 					// Lazily allocate this map only if required.
 					if result.OpaqueIntResources == nil {
 						result.OpaqueIntResources = map[v1.ResourceName]int64{}
