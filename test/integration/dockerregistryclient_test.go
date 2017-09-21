@@ -128,7 +128,7 @@ func TestRegistryClientConnectPulpRegistry(t *testing.T) {
 		t.Skip("pulp is failing")
 		//t.Fatal(err)
 	}
-	if len(image.ID) == 0 {
+	if len(image.Image.ID) == 0 {
 		t.Fatalf("image had no ID: %#v", image)
 	}
 }
@@ -148,7 +148,7 @@ func TestRegistryClientDockerHubV2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(image.ID) == 0 {
+	if len(image.Image.ID) == 0 {
 		t.Fatalf("image had no ID: %#v", image)
 	}
 }
@@ -169,7 +169,7 @@ func TestRegistryClientDockerHubV1(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(image.ID) == 0 {
+	if len(image.Image.ID) == 0 {
 		t.Fatalf("image had no ID: %#v", image)
 	}
 }
@@ -207,27 +207,27 @@ func doTestRegistryClientImage(t *testing.T, registry, reponame, version string)
 		t.Fatal(err)
 	}
 
-	if image.Comment != "Imported from -" {
+	if image.Image.Comment != "Imported from -" {
 		t.Errorf("%s: unexpected image comment", version)
 	}
 
-	if image.Architecture != "amd64" {
+	if image.Image.Architecture != "amd64" {
 		t.Errorf("%s: unexpected image architecture", version)
 	}
 
 	if version == "v2" && !image.PullByID {
-		t.Errorf("%s: should be able to pull by ID %s", version, image.ID)
+		t.Errorf("%s: should be able to pull by ID %s", version, image.Image.ID)
 	}
 
 	var other *dockerregistry.Image
 	err = retryWhenUnreachable(t, func() error {
-		other, err = conn.ImageByID("openshift", reponame, image.ID)
+		other, err = conn.ImageByID("openshift", reponame, image.Image.ID)
 		return err
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !reflect.DeepEqual(other.ContainerConfig.Entrypoint, image.ContainerConfig.Entrypoint) {
+	if !reflect.DeepEqual(other.Image.ContainerConfig.Entrypoint, image.Image.ContainerConfig.Entrypoint) {
 		t.Errorf("%s: unexpected image: %#v", version, other)
 	}
 }

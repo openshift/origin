@@ -303,7 +303,7 @@ func TestGetTagFallback(t *testing.T) {
 		t.Errorf("unexpected error getting tag: %v", err)
 		return
 	}
-	if img.ID != "image2" {
+	if img.Image.ID != "image2" {
 		t.Errorf("unexpected image for tag: %v", img)
 	}
 	// Case when tag is not found

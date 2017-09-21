@@ -31,6 +31,7 @@ import (
 	registrytest "github.com/openshift/origin/pkg/dockerregistry/testutil"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 const (
@@ -606,7 +607,7 @@ func storeTestImage(
 		}
 	}
 
-	if err := imageapi.ImageWithMetadata(image); err != nil {
+	if err := util.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	newImage := imageapiv1.Image{}

@@ -10,6 +10,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // REST implements the RESTStorage interface in terms of an image registry and
@@ -70,7 +71,7 @@ func (r *REST) Get(ctx apirequest.Context, id string, options *metav1.GetOptions
 	if err != nil {
 		return nil, err
 	}
-	if err := imageapi.ImageWithMetadata(image); err != nil {
+	if err := util.ImageWithMetadata(image); err != nil {
 		return nil, err
 	}
 	image.DockerImageManifest = ""

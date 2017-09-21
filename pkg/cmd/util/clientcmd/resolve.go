@@ -1,4 +1,4 @@
-package util
+package clientcmd
 
 import (
 	"fmt"
@@ -10,11 +10,11 @@ import (
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
-// ResolveImagePullSpec resolves the provided source which can be "docker", "istag" or
+// resolveImagePullSpec resolves the provided source which can be "docker", "istag" or
 // "isimage" and returns the full Docker pull spec.
-func ResolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, defaultNamespace string) (string, error) {
+func resolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, defaultNamespace string) (string, error) {
 	// for Docker source, just passtrough the image name
-	if IsDocker(source) {
+	if isDockerImageSource(source) {
 		return name, nil
 	}
 	// parse the namespace from the provided image
@@ -25,7 +25,7 @@ func ResolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, 
 
 	dockerImageReference := ""
 
-	if IsImageStreamTag(source) {
+	if isImageStreamTag(source) {
 		if resolved, err := imageClient.ImageStreamTags(namespace).Get(image, metav1.GetOptions{}); err != nil {
 			return "", fmt.Errorf("failed to get image stream tag %q: %v", image, err)
 		} else {
@@ -33,7 +33,7 @@ func ResolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, 
 		}
 	}
 
-	if IsImageStreamImage(source) {
+	if isImageStreamImage(source) {
 		if resolved, err := imageClient.ImageStreamImages(namespace).Get(image, metav1.GetOptions{}); err != nil {
 			return "", fmt.Errorf("failed to get image stream image %q: %v", image, err)
 		} else {
@@ -52,15 +52,15 @@ func ResolveImagePullSpec(imageClient imageclient.ImageInterface, source, name, 
 	return reference.String(), nil
 }
 
-func IsDocker(source string) bool {
+func isDockerImageSource(source string) bool {
 	return source == "docker"
 }
 
-func IsImageStreamTag(source string) bool {
+func isImageStreamTag(source string) bool {
 	return source == "istag" || source == "imagestreamtag"
 }
 
-func IsImageStreamImage(source string) bool {
+func isImageStreamImage(source string) bool {
 	return source == "isimage" || source == "imagestreamimage"
 }
 

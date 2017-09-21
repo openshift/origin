@@ -16,7 +16,6 @@ import (
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageutil "github.com/openshift/origin/pkg/image/util"
 
 	sigtypes "github.com/containers/image/types"
 	"github.com/spf13/cobra"
@@ -251,7 +250,7 @@ func (o *VerifyImageSignatureOptions) getImageManifest(img *imageapi.Image) ([]b
 			registryURL.Scheme = "http"
 		}
 	}
-	return imageutil.GetImageManifestByIDFromRegistry(registryURL, parsed.RepositoryName(), img.Name, o.CurrentUser, o.CurrentUserToken, o.Insecure)
+	return getImageManifestByIDFromRegistry(registryURL, parsed.RepositoryName(), img.Name, o.CurrentUser, o.CurrentUserToken, o.Insecure)
 }
 
 // verifySignature takes policy, image and the image signature blob and verifies that the

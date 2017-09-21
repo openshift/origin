@@ -14,6 +14,7 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	"github.com/openshift/origin/pkg/image/registry/image"
 	"github.com/openshift/origin/pkg/image/registry/imagestream"
+	"github.com/openshift/origin/pkg/image/util"
 )
 
 // REST implements the RESTStorage interface for ImageStreamTag
@@ -379,7 +380,7 @@ func newISTag(tag string, imageStream *imageapi.ImageStream, image *imageapi.Ima
 	}
 
 	if image != nil {
-		if err := imageapi.ImageWithMetadata(image); err != nil {
+		if err := util.ImageWithMetadata(image); err != nil {
 			return nil, err
 		}
 		image.DockerImageManifest = ""

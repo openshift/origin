@@ -270,7 +270,7 @@ func schema0ToImage(dockerImage *dockerregistry.Image) (*imageapi.Image, error) 
 
 	image := &imageapi.Image{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: dockerImage.ID,
+			Name: dockerImage.Image.ID,
 		},
 		DockerImageMetadata:        baseImage,
 		DockerImageMetadataVersion: "1.0",

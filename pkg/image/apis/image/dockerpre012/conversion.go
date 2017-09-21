@@ -1,8 +1,6 @@
 package dockerpre012
 
 import (
-	"github.com/fsouza/go-dockerclient"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -11,7 +9,7 @@ import (
 )
 
 // Convert docker client object to internal object, but only when this package is included
-func Convert_dockerpre012_ImagePre_012_to_api_DockerImage(in *docker.ImagePre012, out *newer.DockerImage, s conversion.Scope) error {
+func Convert_dockerpre012_ImagePre_012_to_api_DockerImage(in *ImagePre012, out *newer.DockerImage, s conversion.Scope) error {
 	if err := s.Convert(in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}
@@ -29,7 +27,7 @@ func Convert_dockerpre012_ImagePre_012_to_api_DockerImage(in *docker.ImagePre012
 	out.Size = in.Size
 	return nil
 }
-func Convert_api_DockerImage_to_dockerpre012_ImagePre_012(in *newer.DockerImage, out *docker.ImagePre012, s conversion.Scope) error {
+func Convert_api_DockerImage_to_dockerpre012_ImagePre_012(in *newer.DockerImage, out *ImagePre012, s conversion.Scope) error {
 	if err := s.Convert(&in.Config, &out.Config, conversion.AllowDifferentFieldTypeNames); err != nil {
 		return err
 	}

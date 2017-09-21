@@ -37,7 +37,6 @@ import (
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
 	"github.com/openshift/origin/pkg/client"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
-	imageutil "github.com/openshift/origin/pkg/image/util"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	routegen "github.com/openshift/origin/pkg/route/generator"
@@ -318,7 +317,7 @@ func (f *ring0Factory) ImageResolutionOptions() FlagBinder {
 
 func (f *ring0Factory) ResolveImage(image string) (string, error) {
 	options := f.imageResolutionOptions.(*imageResolutionOptions)
-	if imageutil.IsDocker(options.Source) {
+	if isDockerImageSource(options.Source) {
 		return f.kubeClientAccessFactory.ResolveImage(image)
 	}
 	config, err := f.OpenShiftClientConfig().ClientConfig()
@@ -334,7 +333,7 @@ func (f *ring0Factory) ResolveImage(image string) (string, error) {
 		return "", err
 	}
 
-	return imageutil.ResolveImagePullSpec(imageClient.Image(), options.Source, image, namespace)
+	return resolveImagePullSpec(imageClient.Image(), options.Source, image, namespace)
 }
 
 func (f *ring0Factory) Resumer(info *resource.Info) ([]byte, error) {
