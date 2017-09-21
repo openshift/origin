@@ -169,7 +169,7 @@ func (s *SecretCredentialStore) init() credentialprovider.DockerKeyring {
 func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, target *url.URL) (string, string) {
 	// TODO: compare this logic to Docker authConfig in v2 configuration
 	var value string
-	if len(target.Scheme) == 0 || target.Scheme == "https" {
+	if len(target.Scheme) == 0 || target.Scheme == "https" || target.Scheme == "http" {
 		value = target.Host + target.Path
 	} else {
 		// only lookup credential for http that say they are for http

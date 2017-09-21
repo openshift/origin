@@ -8,8 +8,6 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
-
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 var (
@@ -32,20 +30,6 @@ type manifestSchema2Handler struct {
 }
 
 var _ ManifestHandler = &manifestSchema2Handler{}
-
-func (h *manifestSchema2Handler) FillImageMetadata(ctx context.Context, image *imageapiv1.Image) error {
-	// The manifest.Config references a configuration object for a container by its digest.
-	// It needs to be fetched in order to fill an image object metadata below.
-	configBytes, err := h.repo.Blobs(ctx).Get(ctx, h.manifest.Config.Digest)
-	if err != nil {
-		context.GetLogger(ctx).Errorf("failed to get image config %s: %v", h.manifest.Config.Digest.String(), err)
-		return err
-	}
-	image.DockerImageConfig = string(configBytes)
-
-	// We need to populate the image metadata using the manifest.
-	return imageMetadataFromManifest(image)
-}
 
 func (h *manifestSchema2Handler) Manifest() distribution.Manifest {
 	return h.manifest

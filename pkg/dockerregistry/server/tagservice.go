@@ -1,15 +1,17 @@
 package server
 
 import (
+	"fmt"
+
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kapi "k8s.io/kubernetes/pkg/api/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 type tagService struct {
@@ -150,39 +152,38 @@ func (t tagService) Lookup(ctx context.Context, desc distribution.Descriptor) ([
 }
 
 func (t tagService) Tag(ctx context.Context, tag string, dgst distribution.Descriptor) error {
-	imageStream, err := t.repo.imageStreamGetter.get()
-	if err != nil {
-		context.GetLogger(ctx).Errorf("error retrieving ImageStream %s/%s: %v", t.repo.namespace, t.repo.name, err)
-		return distribution.ErrRepositoryUnknown{Name: t.repo.Named().Name()}
-	}
+	dockerImageReference := fmt.Sprintf("%s/%s/%s@%s", t.repo.config.registryAddr, t.repo.namespace, t.repo.name, dgst.Digest.String())
 
-	image, err := t.repo.registryOSClient.Images().Get(dgst.Digest.String(), metav1.GetOptions{})
-	if err != nil {
-		context.GetLogger(ctx).Errorf("unable to get image: %s", dgst.Digest.String())
-		return err
-	}
-	image.SetResourceVersion("")
-
-	if !t.repo.config.pullthrough && !isImageManaged(image) {
-		return distribution.ErrRepositoryUnknown{Name: t.repo.Named().Name()}
-	}
-
-	ism := imageapiv1.ImageStreamMapping{
+	isi := imageapiv1.ImageStreamImport{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: imageStream.Namespace,
-			Name:      imageStream.Name,
+			Namespace: t.repo.namespace,
+			Name:      t.repo.name,
 		},
-		Tag:   tag,
-		Image: *image,
+		Spec: imageapiv1.ImageStreamImportSpec{
+			Import: true,
+			Images: []imageapiv1.ImageImportSpec{
+				{
+					From: kapi.ObjectReference{Kind: "DockerImage", Name: dockerImageReference},
+					To:   &kapi.LocalObjectReference{Name: tag},
+
+					ImportPolicy: imageapiv1.TagImportPolicy{
+						Insecure: true,
+					},
+				},
+			},
+		},
 	}
 
-	_, err = t.repo.registryOSClient.ImageStreamMappings(imageStream.Namespace).Create(&ism)
-	if quotautil.IsErrorQuotaExceeded(err) {
-		context.GetLogger(ctx).Errorf("denied creating ImageStreamMapping: %v", err)
-		return distribution.ErrAccessDenied
+	userClient, ok := userClientFrom(ctx)
+	if !ok {
+		return fmt.Errorf("no user client in context")
 	}
 
-	return err
+	if _, err := userClient.ImageStreamImports(t.repo.namespace).Create(&isi); err != nil {
+		return fmt.Errorf("image stream import: %s", err)
+	}
+
+	return nil
 }
 
 func (t tagService) Untag(ctx context.Context, tag string) error {
