@@ -90,9 +90,11 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	userclientinternal "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
@@ -212,6 +214,16 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		return nil, err
 	}
 
+	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	userClient, err := userclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+
 	defaultRegistry := env("OPENSHIFT_DEFAULT_REGISTRY", "${DOCKER_REGISTRY_SERVICE_HOST}:${DOCKER_REGISTRY_SERVICE_PORT}")
 	svcCache := service.NewServiceResolverCache(privilegedLoopbackKubeClientsetInternal.Core().Services(metav1.NamespaceDefault).Get)
 	defaultRegistryFunc, err := svcCache.Defer(defaultRegistry)
@@ -284,6 +296,8 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		OpenshiftClient:                 privilegedLoopbackOpenShiftClient,
 		OpenshiftInternalImageClient:    imageClient,
 		OpenshiftInternalTemplateClient: templateClient,
+		OpenshiftInternalQuotaClient:    quotaClient,
+		OpenshiftInternalUserClient:     userClient,
 		ProjectCache:                    projectCache,
 		OriginQuotaRegistry:             quotaRegistry,
 		Authorizer:                      authorizer,
@@ -306,10 +320,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(privilegedLoopbackKubeClientsetExternal)
-	userClient, err := userclient.NewForConfig(privilegedLoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	oauthClient, err := oauthclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -703,7 +713,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	return admission.NewChainHandler(plugins...), nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclientinternal.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
 

@@ -17,6 +17,7 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 // WantDeprecatedOpenshiftClient should be implemented by admission plugins that need
@@ -37,6 +38,13 @@ type WantsOpenshiftInternalTemplateClient interface {
 // an Openshift internal quota client
 type WantsOpenshiftInternalQuotaClient interface {
 	SetOpenShiftInternalQuotaClient(quotaclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalUserClient should be implemented by admission plugins that need
+// an Openshift internal user client
+type WantsOpenshiftInternalUserClient interface {
+	SetOpenShiftInternalUserClient(userclient.Interface)
 	admission.Validator
 }
 
