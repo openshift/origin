@@ -17,6 +17,8 @@ const (
 	ResolveNamesAnnotation = "alpha.image.policy.openshift.io/resolve-names"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ImagePolicyConfig is the configuration for controlling how images are used in the cluster.
 type ImagePolicyConfig struct {
 	metav1.TypeMeta

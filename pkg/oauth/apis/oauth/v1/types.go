@@ -6,6 +6,7 @@ import (
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OAuthAccessToken describes an OAuth access token
 type OAuthAccessToken struct {
@@ -40,6 +41,7 @@ type OAuthAccessToken struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OAuthAuthorizeToken describes an OAuth authorization token
 type OAuthAuthorizeToken struct {
@@ -78,6 +80,7 @@ type OAuthAuthorizeToken struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OAuthClient describes an OAuth client
 type OAuthClient struct {
@@ -148,6 +151,7 @@ type ClusterRoleScopeRestriction struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OAuthClientAuthorization describes an authorization created by an OAuth client
 type OAuthClientAuthorization struct {
@@ -169,6 +173,8 @@ type OAuthClientAuthorization struct {
 	Scopes []string `json:"scopes,omitempty" protobuf:"bytes,5,rep,name=scopes"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // OAuthAccessTokenList is a collection of OAuth access tokens
 type OAuthAccessTokenList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -177,6 +183,8 @@ type OAuthAccessTokenList struct {
 	// Items is the list of OAuth access tokens
 	Items []OAuthAccessToken `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OAuthAuthorizeTokenList is a collection of OAuth authorization tokens
 type OAuthAuthorizeTokenList struct {
@@ -187,6 +195,8 @@ type OAuthAuthorizeTokenList struct {
 	Items []OAuthAuthorizeToken `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // OAuthClientList is a collection of OAuth clients
 type OAuthClientList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -196,6 +206,8 @@ type OAuthClientList struct {
 	Items []OAuthClient `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // OAuthClientAuthorizationList is a collection of OAuth client authorizations
 type OAuthClientAuthorizationList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -204,6 +216,8 @@ type OAuthClientAuthorizationList struct {
 	// Items is the list of OAuth client authorizations
 	Items []OAuthClientAuthorization `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // OAuthRedirectReference is a reference to an OAuth redirect object.
 type OAuthRedirectReference struct {

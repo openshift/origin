@@ -5,6 +5,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ProjectList is a list of Project objects.
 type ProjectList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -33,6 +35,7 @@ type ProjectStatus struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Projects are the unit of isolation and collaboration in OpenShift. A project has one or more members,
 // a quota on the resources that the project may consume, and the security controls on the resources in
@@ -57,6 +60,8 @@ type Project struct {
 	// Status describes the current status of a Namespace
 	Status ProjectStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ProjecRequest is the set of options necessary to fully qualify a project request
 type ProjectRequest struct {

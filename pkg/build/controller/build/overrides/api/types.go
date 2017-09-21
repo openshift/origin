@@ -8,6 +8,8 @@ import (
 
 const BuildOverridesPlugin = "BuildOverrides"
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // BuildOverridesConfig controls override settings for builds
 type BuildOverridesConfig struct {
 	metav1.TypeMeta

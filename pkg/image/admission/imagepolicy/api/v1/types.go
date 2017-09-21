@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ImagePolicyConfig is the configuration for control of images running on the platform.
 type ImagePolicyConfig struct {
 	metav1.TypeMeta `json:",inline"`

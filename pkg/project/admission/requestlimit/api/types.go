@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ProjectRequestLimitConfig is the configuration for the project request limit plug-in
 // It contains an ordered list of limits based on user label selectors. Selectors will
 // be checked in order and the first one that applies will be used as the limit.

@@ -6,6 +6,7 @@ import (
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthAccessToken struct {
 	metav1.TypeMeta
@@ -38,6 +39,7 @@ type OAuthAccessToken struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthAuthorizeToken struct {
 	metav1.TypeMeta
@@ -74,6 +76,7 @@ type OAuthAuthorizeToken struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthClient struct {
 	metav1.TypeMeta
@@ -138,6 +141,7 @@ type ClusterRoleScopeRestriction struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthClientAuthorization struct {
 	metav1.TypeMeta
@@ -157,11 +161,15 @@ type OAuthClientAuthorization struct {
 	Scopes []string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type OAuthAccessTokenList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
 	Items []OAuthAccessToken
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthAuthorizeTokenList struct {
 	metav1.TypeMeta
@@ -169,17 +177,23 @@ type OAuthAuthorizeTokenList struct {
 	Items []OAuthAuthorizeToken
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type OAuthClientList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
 	Items []OAuthClient
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type OAuthClientAuthorizationList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
 	Items []OAuthClientAuthorization
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OAuthRedirectReference struct {
 	metav1.TypeMeta

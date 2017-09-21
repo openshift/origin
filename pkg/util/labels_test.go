@@ -13,6 +13,8 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type FakeLabelsResource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

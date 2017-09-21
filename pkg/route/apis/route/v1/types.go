@@ -7,6 +7,7 @@ import (
 )
 
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // A route allows developers to expose services through an HTTP(S) aware load balancing and proxy
 // layer via a public DNS entry. The route may further specify TLS options and a certificate, or
@@ -35,6 +36,8 @@ type Route struct {
 	// status is the current state of the route
 	Status RouteStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // RouteList is a collection of Routes.
 type RouteList struct {

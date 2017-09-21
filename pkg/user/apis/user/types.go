@@ -10,6 +10,7 @@ import (
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type User struct {
 	metav1.TypeMeta
@@ -22,6 +23,8 @@ type User struct {
 	Groups []string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type UserList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
@@ -30,6 +33,7 @@ type UserList struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type Identity struct {
 	metav1.TypeMeta
@@ -48,6 +52,8 @@ type Identity struct {
 	Extra map[string]string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type IdentityList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
@@ -57,6 +63,7 @@ type IdentityList struct {
 // +genclient
 // +genclient:nonNamespaced
 // +genclient:onlyVerbs=get,create,update,delete
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type UserIdentityMapping struct {
 	metav1.TypeMeta
@@ -68,6 +75,7 @@ type UserIdentityMapping struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Group represents a referenceable set of Users
 type Group struct {
@@ -76,6 +84,8 @@ type Group struct {
 
 	Users []string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type GroupList struct {
 	metav1.TypeMeta
