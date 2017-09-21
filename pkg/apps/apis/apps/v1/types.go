@@ -13,6 +13,7 @@ import (
 // +genclient:method=Rollback,verb=create,subresource=rollback,input=DeploymentConfigRollback
 // +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
 // +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Deployment Configs define the template for a pod and manages deploying new images or configuration changes.
 // A single deployment configuration is usually analogous to a single micro-service. Can support many different
@@ -379,6 +380,8 @@ type DeploymentCondition struct {
 	Message string `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -388,6 +391,8 @@ type DeploymentConfigList struct {
 	// Items is a list of deployment configs
 	Items []DeploymentConfig `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
@@ -416,6 +421,8 @@ type DeploymentConfigRollbackSpec struct {
 	IncludeStrategy bool `json:"includeStrategy" protobuf:"varint,6,opt,name=includeStrategy"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DeploymentRequest is a request to a deployment config for a new deployment.
 type DeploymentRequest struct {
 	metav1.TypeMeta `json:",inline"`
@@ -432,10 +439,14 @@ type DeploymentRequest struct {
 	ExcludeTriggers []DeploymentTriggerType `json:"excludeTriggers,omitempty" protobuf:"bytes,4,rep,name=excludeTriggers,casttype=DeploymentTriggerType"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DeploymentLog represents the logs for a deployment
 type DeploymentLog struct {
 	metav1.TypeMeta `json:",inline"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DeploymentLogOptions is the REST options for a deployment log
 type DeploymentLogOptions struct {
