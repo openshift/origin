@@ -70,6 +70,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -208,6 +209,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
+	buildClient, err := buildclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	imageClient, err := imageclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -292,6 +297,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
 		OpenshiftClient:                      privilegedLoopbackOpenShiftClient,
 		OpenshiftInternalAuthorizationClient: authorizationClient,
+		OpenshiftInternalBuildClient:         buildClient,
 		OpenshiftInternalImageClient:         imageClient,
 		OpenshiftInternalTemplateClient:      templateClient,
 		OpenshiftInternalUserClient:          userClient,

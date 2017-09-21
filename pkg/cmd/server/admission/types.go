@@ -8,6 +8,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -29,6 +30,11 @@ type WantsDeprecatedOpenshiftClient interface {
 
 type WantsOpenshiftInternalAuthorizationClient interface {
 	SetOpenshiftInternalAuthorizationClient(authorizationclient.Interface)
+	admission.Validator
+}
+
+type WantsOpenshiftInternalBuildClient interface {
+	SetOpenshiftInternalBuildClient(buildclient.Interface)
 	admission.Validator
 }
 

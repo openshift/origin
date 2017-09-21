@@ -9,6 +9,7 @@ import (
 	"k8s.io/kubernetes/pkg/quota"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -25,6 +26,7 @@ import (
 type PluginInitializer struct {
 	OpenshiftClient                      client.Interface
 	OpenshiftInternalAuthorizationClient authorizationclient.Interface
+	OpenshiftInternalBuildClient         buildclient.Interface
 	OpenshiftInternalImageClient         imageclient.Interface
 	OpenshiftInternalTemplateClient      templateclient.Interface
 	OpenshiftInternalUserClient          userclient.Interface
@@ -49,6 +51,9 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	}
 	if wantsOpenshiftAuthorizationClient, ok := plugin.(WantsOpenshiftInternalAuthorizationClient); ok {
 		wantsOpenshiftAuthorizationClient.SetOpenshiftInternalAuthorizationClient(i.OpenshiftInternalAuthorizationClient)
+	}
+	if wantsOpenshiftBuildClient, ok := plugin.(WantsOpenshiftInternalBuildClient); ok {
+		wantsOpenshiftBuildClient.SetOpenshiftInternalBuildClient(i.OpenshiftInternalBuildClient)
 	}
 	if wantsOpenshiftImageClient, ok := plugin.(WantsOpenshiftInternalImageClient); ok {
 		wantsOpenshiftImageClient.SetOpenshiftInternalImageClient(i.OpenshiftInternalImageClient)
