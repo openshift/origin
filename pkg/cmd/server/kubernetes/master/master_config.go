@@ -384,6 +384,13 @@ func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.C
 		return nil, nil, err
 	}
 	if cloud != nil {
+		if cloud.HasClusterID() == false {
+			if cmserver.AllowUntaggedCloud == true {
+				glog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
+			} else {
+				return nil, nil, fmt.Errorf("no ClusterID Found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
+			}
+		}
 		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", cmserver.CloudProvider, cmserver.CloudConfigFile)
 	}
 

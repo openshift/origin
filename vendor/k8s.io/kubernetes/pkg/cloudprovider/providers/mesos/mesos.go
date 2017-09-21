@@ -313,3 +313,8 @@ func (c *MesosCloud) NodeAddresses(nodeName types.NodeName) ([]v1.NodeAddress, e
 func (c *MesosCloud) NodeAddressesByProviderID(providerID string) ([]v1.NodeAddress, error) {
 	return []v1.NodeAddress{}, errors.New("unimplemented")
 }
+
+// HasClusterID returns true if the cluster has a clusterID
+func (c *MesosCloud) HasClusterID() bool {
+	return true
+}
