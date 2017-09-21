@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1cb8f33e15e52c1d67bccda7c9b4298bb1f9f2f7
+%global commit 529328f37a7015a6c9cb4f52113de8f99c33a83f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.5 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1cb8f33
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.6 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=529328f
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.126.6%{?dist}
+Release:        0.127.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Sep 21 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.127.0
+- bump(github.com/openshift/origin-web-console):
+  444e25c4351d52160eef428f1b526cf37d0519a2 (eparis+openshiftbot@redhat.com)
+- remove dependency on github.com/fsouza/go-dockerclient from imageapi
+  (deads@redhat.com)
+- remove image api dependency on docker/distribution/schemaX (deads@redhat.com)
+- move existing image utils to the single point where they are used
+  (deads@redhat.com)
+- Add security team to reviewers for security pkgs (mkhan@redhat.com)
+- remove authorization dependency on validation (deads@redhat.com)
+- cli: provide generated clients via ClientAccessFactory (maszulik@redhat.com)
+- move authorization conversion out to fix dependencies (deads@redhat.com)
+- servcert: switch to listers (mfojtik@redhat.com)
+
 * Wed Sep 20 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.126.6
 - move some naming helpers to apihelpers (deads@redhat.com)
 - Fix image layers order (agladkov@redhat.com)
