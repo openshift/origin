@@ -1,27 +1,15 @@
 package interfaces
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 )
-
-type Policy interface {
-	Name() string
-	Namespace() string
-
-	Roles() map[string]Role
-}
-
-type PolicyBinding interface {
-	Name() string
-	Namespace() string
-
-	PolicyRef() kapi.ObjectReference
-	RoleBindings() map[string]RoleBinding
-}
 
 type Role interface {
 	Name() string
@@ -42,34 +30,6 @@ type RoleBinding interface {
 	AppliesToUser(user.Info) bool
 }
 
-func NewClusterPolicyAdapter(policy *authorizationapi.ClusterPolicy) Policy {
-	return ClusterPolicyAdapter{policy: policy}
-}
-func NewLocalPolicyAdapter(policy *authorizationapi.Policy) Policy {
-	return PolicyAdapter{policy: policy}
-}
-
-func NewClusterPolicyBindingAdapter(policyBinding *authorizationapi.ClusterPolicyBinding) PolicyBinding {
-	return ClusterPolicyBindingAdapter{policyBinding: policyBinding}
-}
-func NewLocalPolicyBindingAdapter(policyBinding *authorizationapi.PolicyBinding) PolicyBinding {
-	return PolicyBindingAdapter{policyBinding: policyBinding}
-}
-func NewClusterPolicyBindingAdapters(list *authorizationapi.ClusterPolicyBindingList) []PolicyBinding {
-	ret := make([]PolicyBinding, 0, len(list.Items))
-	for i := range list.Items {
-		ret = append(ret, NewClusterPolicyBindingAdapter(&list.Items[i]))
-	}
-	return ret
-}
-func NewLocalPolicyBindingAdapters(list *authorizationapi.PolicyBindingList) []PolicyBinding {
-	ret := make([]PolicyBinding, 0, len(list.Items))
-	for i := range list.Items {
-		ret = append(ret, NewLocalPolicyBindingAdapter(&list.Items[i]))
-	}
-	return ret
-}
-
 func NewClusterRoleBindingAdapter(roleBinding *authorizationapi.ClusterRoleBinding) RoleBinding {
 	return ClusterRoleBindingAdapter{roleBinding: roleBinding}
 }
@@ -82,31 +42,6 @@ func NewClusterRoleAdapter(role *authorizationapi.ClusterRole) Role {
 }
 func NewLocalRoleAdapter(role *authorizationapi.Role) Role {
 	return RoleAdapter{role: role}
-}
-
-type PolicyAdapter struct {
-	policy *authorizationapi.Policy
-
-	adaptedRoles map[string]Role
-}
-
-func (a PolicyAdapter) Name() string {
-	return a.policy.Name
-}
-
-func (a PolicyAdapter) Namespace() string {
-	return a.policy.Namespace
-}
-
-func (a PolicyAdapter) Roles() map[string]Role {
-	if a.adaptedRoles == nil {
-		adaptedRoles := map[string]Role{}
-		for key := range a.policy.Roles {
-			adaptedRoles[key] = RoleAdapter{a.policy.Roles[key]}
-		}
-		a.adaptedRoles = adaptedRoles
-	}
-	return a.adaptedRoles
 }
 
 type RoleAdapter struct {
@@ -125,31 +60,6 @@ func (a RoleAdapter) Rules() []authorizationapi.PolicyRule {
 	return a.role.Rules
 }
 
-type ClusterPolicyAdapter struct {
-	policy *authorizationapi.ClusterPolicy
-
-	adaptedRoles map[string]Role
-}
-
-func (a ClusterPolicyAdapter) Name() string {
-	return a.policy.Name
-}
-
-func (a ClusterPolicyAdapter) Namespace() string {
-	return a.policy.Namespace
-}
-
-func (a ClusterPolicyAdapter) Roles() map[string]Role {
-	if a.adaptedRoles == nil {
-		adaptedRoles := map[string]Role{}
-		for key := range a.policy.Roles {
-			adaptedRoles[key] = ClusterRoleAdapter{a.policy.Roles[key]}
-		}
-		a.adaptedRoles = adaptedRoles
-	}
-	return a.adaptedRoles
-}
-
 type ClusterRoleAdapter struct {
 	role *authorizationapi.ClusterRole
 }
@@ -164,35 +74,6 @@ func (a ClusterRoleAdapter) Namespace() string {
 
 func (a ClusterRoleAdapter) Rules() []authorizationapi.PolicyRule {
 	return a.role.Rules
-}
-
-type PolicyBindingAdapter struct {
-	policyBinding *authorizationapi.PolicyBinding
-
-	adaptedRoleBindings map[string]RoleBinding
-}
-
-func (a PolicyBindingAdapter) Name() string {
-	return a.policyBinding.Name
-}
-
-func (a PolicyBindingAdapter) Namespace() string {
-	return a.policyBinding.Namespace
-}
-
-func (a PolicyBindingAdapter) PolicyRef() kapi.ObjectReference {
-	return a.policyBinding.PolicyRef
-}
-
-func (a PolicyBindingAdapter) RoleBindings() map[string]RoleBinding {
-	if a.adaptedRoleBindings == nil {
-		adaptedRoleBindings := map[string]RoleBinding{}
-		for key := range a.policyBinding.RoleBindings {
-			adaptedRoleBindings[key] = RoleBindingAdapter{a.policyBinding.RoleBindings[key]}
-		}
-		a.adaptedRoleBindings = adaptedRoleBindings
-	}
-	return a.adaptedRoleBindings
 }
 
 type RoleBindingAdapter struct {
@@ -225,42 +106,13 @@ func (a RoleBindingAdapter) Groups() sets.String {
 
 // AppliesToUser returns true if this binding applies to the provided user.
 func (a RoleBindingAdapter) AppliesToUser(user user.Info) bool {
-	if authorizationapi.SubjectsContainUser(a.roleBinding.Subjects, a.roleBinding.Namespace, user.GetName()) {
+	if subjectsContainUser(a.roleBinding.Subjects, a.roleBinding.Namespace, user.GetName()) {
 		return true
 	}
-	if authorizationapi.SubjectsContainAnyGroup(a.roleBinding.Subjects, user.GetGroups()) {
+	if subjectsContainAnyGroup(a.roleBinding.Subjects, user.GetGroups()) {
 		return true
 	}
 	return false
-}
-
-type ClusterPolicyBindingAdapter struct {
-	policyBinding *authorizationapi.ClusterPolicyBinding
-
-	adaptedRoleBindings map[string]RoleBinding
-}
-
-func (a ClusterPolicyBindingAdapter) Name() string {
-	return a.policyBinding.Name
-}
-
-func (a ClusterPolicyBindingAdapter) Namespace() string {
-	return a.policyBinding.Namespace
-}
-
-func (a ClusterPolicyBindingAdapter) PolicyRef() kapi.ObjectReference {
-	return a.policyBinding.PolicyRef
-}
-
-func (a ClusterPolicyBindingAdapter) RoleBindings() map[string]RoleBinding {
-	if a.adaptedRoleBindings == nil {
-		adaptedRoleBindings := map[string]RoleBinding{}
-		for key := range a.policyBinding.RoleBindings {
-			adaptedRoleBindings[key] = ClusterRoleBindingAdapter{a.policyBinding.RoleBindings[key]}
-		}
-		a.adaptedRoleBindings = adaptedRoleBindings
-	}
-	return a.adaptedRoleBindings
 }
 
 type ClusterRoleBindingAdapter struct {
@@ -292,11 +144,64 @@ func (a ClusterRoleBindingAdapter) Groups() sets.String {
 
 // AppliesToUser returns true if this binding applies to the provided user.
 func (a ClusterRoleBindingAdapter) AppliesToUser(user user.Info) bool {
-	if authorizationapi.SubjectsContainUser(a.roleBinding.Subjects, a.roleBinding.Namespace, user.GetName()) {
+	if subjectsContainUser(a.roleBinding.Subjects, a.roleBinding.Namespace, user.GetName()) {
 		return true
 	}
-	if authorizationapi.SubjectsContainAnyGroup(a.roleBinding.Subjects, user.GetGroups()) {
+	if subjectsContainAnyGroup(a.roleBinding.Subjects, user.GetGroups()) {
 		return true
+	}
+	return false
+}
+
+// subjectsContainUser returns true if the provided subjects contain the named user. currentNamespace
+// is used to identify service accounts that are defined in a relative fashion.
+func subjectsContainUser(subjects []kapi.ObjectReference, currentNamespace string, user string) bool {
+	if !strings.HasPrefix(user, serviceaccount.ServiceAccountUsernamePrefix) {
+		for _, subject := range subjects {
+			switch subject.Kind {
+			case authorizationapi.UserKind, authorizationapi.SystemUserKind:
+				if user == subject.Name {
+					return true
+				}
+			}
+		}
+		return false
+	}
+
+	for _, subject := range subjects {
+		switch subject.Kind {
+		case authorizationapi.ServiceAccountKind:
+			namespace := currentNamespace
+			if len(subject.Namespace) > 0 {
+				namespace = subject.Namespace
+			}
+			if len(namespace) == 0 {
+				continue
+			}
+			if user == serviceaccount.MakeUsername(namespace, subject.Name) {
+				return true
+			}
+
+		case authorizationapi.UserKind, authorizationapi.SystemUserKind:
+			if user == subject.Name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// subjectsContainAnyGroup returns true if the provided subjects any of the named groups.
+func subjectsContainAnyGroup(subjects []kapi.ObjectReference, groups []string) bool {
+	for _, subject := range subjects {
+		switch subject.Kind {
+		case authorizationapi.GroupKind, authorizationapi.SystemGroupKind:
+			for _, group := range groups {
+				if group == subject.Name {
+					return true
+				}
+			}
+		}
 	}
 	return false
 }
