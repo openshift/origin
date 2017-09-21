@@ -3,6 +3,7 @@ package importer
 import (
 	"fmt"
 	"net/url"
+	"runtime"
 	"strings"
 
 	"github.com/golang/glog"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest/manifestlist"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/reference"
@@ -32,7 +34,7 @@ const ContextKeyV1RegistryClient = "v1-registry-client"
 
 // Interface loads images into an image stream import request.
 type Interface interface {
-	Import(ctx gocontext.Context, isi *imageapi.ImageStreamImport) error
+	Import(ctx gocontext.Context, isi *imageapi.ImageStreamImport, stream *imageapi.ImageStream) error
 }
 
 // RepositoryRetriever fetches a Docker distribution.Repository.
@@ -77,7 +79,7 @@ func NewImageStreamImporter(retriever RepositoryRetriever, maximumTagsPerRepo in
 }
 
 // Import tries to complete the provided isi object with images loaded from remote registries.
-func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *imageapi.ImageStreamImport) error {
+func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *imageapi.ImageStreamImport, stream *imageapi.ImageStream) error {
 	// Initialize layer size cache if not given.
 	if i.digestToLayerSizeCache == nil {
 		cache, err := NewImageStreamLayerCache(DefaultImageStreamLayerCacheSize)
@@ -91,14 +93,14 @@ func (i *ImageStreamImporter) Import(ctx gocontext.Context, isi *imageapi.ImageS
 		i.digestToRepositoryCache[ctx] = make(map[manifestKey]*imageapi.Image)
 	}
 
-	i.importImages(ctx, i.retriever, isi, i.limiter)
+	i.importImages(ctx, i.retriever, isi, stream, i.limiter)
 	i.importFromRepository(ctx, i.retriever, isi, i.maximumTagsPerRepo, i.limiter)
 	return nil
 }
 
 // importImages updates the passed ImageStreamImport object and sets Status for each image based on whether the import
 // succeeded or failed. Cache is updated with any loaded images. Limiter is optional and controls how fast images are updated.
-func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *imageapi.ImageStreamImport, limiter flowcontrol.RateLimiter) {
+func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever RepositoryRetriever, isi *imageapi.ImageStreamImport, stream *imageapi.ImageStream, limiter flowcontrol.RateLimiter) {
 	tags := make(map[manifestKey][]int)
 	ids := make(map[manifestKey][]int)
 	repositories := make(map[repositoryKey]*importRepository)
@@ -153,13 +155,26 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 				})
 			}
 		} else {
-			tag := manifestKey{repositoryKey: key}
+			var toName string
+			if spec.To != nil {
+				toName = spec.To.Name
+			} else {
+				toName = defaultRef.Tag
+			}
+			tagReference := stream.Spec.Tags[toName]
+
+			preferArch := tagReference.Annotations[imageapi.ImporterPreferArchAnnotation]
+			preferOS := tagReference.Annotations[imageapi.ImporterPreferOSAnnotation]
+
+			tag := manifestKey{repositoryKey: key, preferArch: preferArch, preferOS: preferOS}
 			tag.value = defaultRef.Tag
 			tags[tag] = append(tags[tag], i)
 			if len(tags[tag]) == 1 {
 				repo.Tags = append(repo.Tags, importTag{
-					Name:  defaultRef.Tag,
-					Image: cache[tag],
+					Name:       defaultRef.Tag,
+					PreferArch: preferArch,
+					PreferOS:   preferOS,
+					Image:      cache[tag],
 				})
 			}
 		}
@@ -169,7 +184,7 @@ func (i *ImageStreamImporter) importImages(ctx gocontext.Context, retriever Repo
 	for key, repo := range repositories {
 		i.importRepositoryFromDocker(ctx, retriever, repo, limiter)
 		for _, tag := range repo.Tags {
-			j := manifestKey{repositoryKey: key}
+			j := manifestKey{repositoryKey: key, preferArch: tag.PreferArch, preferOS: tag.PreferOS}
 			j.value = tag.Name
 			if tag.Image != nil {
 				cache[j] = tag.Image
@@ -317,26 +332,21 @@ func applyErrorToRepository(repository *importRepository, err error) {
 	}
 }
 
-func formatRepositoryError(repository *importRepository, refName string, refID string, defErr error) (err error) {
-	err = defErr
+func formatRepositoryError(ref imageapi.DockerImageReference, err error) error {
 	switch {
 	case isDockerError(err, v2.ErrorCodeManifestUnknown):
-		ref := repository.Ref
-		ref.Tag, ref.ID = refName, refID
 		err = kapierrors.NewNotFound(imageapi.Resource("dockerimage"), ref.Exact())
 	case isDockerError(err, errcode.ErrorCodeUnauthorized):
-		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
+		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
 	case strings.HasSuffix(err.Error(), "no basic auth credentials"):
-		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", repository.Ref.Exact()))
+		err = kapierrors.NewUnauthorized(fmt.Sprintf("you may not have access to the Docker image %q", ref.Exact()))
 	}
-	return
+	return err
 }
 
 // calculateImageSize gets and updates size of each image layer. If manifest v2 is converted to v1,
 // then it loses information about layers size. We have to get this information from server again.
-func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, repo distribution.Repository, image *imageapi.Image) error {
-	bs := repo.Blobs(ctx)
-
+func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, bs distribution.BlobStore, image *imageapi.Image) error {
 	blobSet := sets.NewString()
 	size := int64(0)
 	for i := range image.DockerImageLayers {
@@ -371,6 +381,75 @@ func (isi *ImageStreamImporter) calculateImageSize(ctx gocontext.Context, repo d
 
 	image.DockerImageMetadata.Size = size
 	return nil
+}
+
+func manifestFromManifestList(ctx gocontext.Context, manifestList *manifestlist.DeserializedManifestList, ref imageapi.DockerImageReference, s distribution.ManifestService, preferArch, preferOS string) (distribution.Manifest, error) {
+	if len(manifestList.Manifests) == 0 {
+		return nil, fmt.Errorf("no manifests in manifest list %s", ref.Exact())
+	}
+
+	if preferArch == "" {
+		preferArch = runtime.GOARCH
+	}
+	if preferOS == "" {
+		preferOS = runtime.GOOS
+	}
+
+	var manifestDigest digest.Digest
+	for _, manifestDescriptor := range manifestList.Manifests {
+		if manifestDescriptor.Platform.Architecture == preferArch && manifestDescriptor.Platform.OS == preferOS {
+			manifestDigest = manifestDescriptor.Digest
+			break
+		}
+	}
+	if manifestDigest == "" {
+		glog.V(5).Infof("unable to find %s/%s manifest in manifest list %s, doing conservative fail by switching to the first one: %#+v", preferOS, preferArch, ref.Exact(), manifestList.Manifests[0])
+		manifestDigest = manifestList.Manifests[0].Digest
+	}
+
+	manifest, err := s.Get(ctx, manifestDigest)
+	if err != nil {
+		glog.V(5).Infof("unable to get %s/%s manifest by digest %q for image %s: %#v", preferOS, preferArch, manifestDigest, ref.Exact(), err)
+		return nil, formatRepositoryError(ref, err)
+	}
+	return manifest, err
+}
+
+func (isi *ImageStreamImporter) importManifest(ctx gocontext.Context, manifest distribution.Manifest, ref imageapi.DockerImageReference, d digest.Digest, s distribution.ManifestService, b distribution.BlobStore, preferArch, preferOS string) (image *imageapi.Image, err error) {
+	if manifestList, ok := manifest.(*manifestlist.DeserializedManifestList); ok {
+		manifest, err = manifestFromManifestList(ctx, manifestList, ref, s, preferArch, preferOS)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if signedManifest, isSchema1 := manifest.(*schema1.SignedManifest); isSchema1 {
+		image, err = schema1ToImage(signedManifest, d)
+	} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
+		imageConfig, getImportConfigErr := b.Get(ctx, deserializedManifest.Config.Digest)
+		if getImportConfigErr != nil {
+			glog.V(5).Infof("unable to get image config by digest %q for image %s: %#v", d, ref.Exact(), getImportConfigErr)
+			return image, formatRepositoryError(ref, getImportConfigErr)
+		}
+		image, err = schema2ToImage(deserializedManifest, imageConfig, d)
+	} else {
+		err = fmt.Errorf("unsupported image manifest type: %T", manifest)
+		glog.V(5).Info(err)
+	}
+	if err != nil {
+		return
+	}
+
+	if err := util.ImageWithMetadata(image); err != nil {
+		return image, err
+	}
+
+	if image.DockerImageMetadata.Size == 0 {
+		if err := isi.calculateImageSize(ctx, b, image); err != nil {
+			return image, err
+		}
+	}
+	return
 }
 
 // importRepositoryFromDocker loads the tags and images requested in the passed importRepository, obeying the
@@ -460,58 +539,27 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		if importDigest.Err != nil || importDigest.Image != nil {
 			continue
 		}
+
 		d, err := digest.ParseDigest(importDigest.Name)
 		if err != nil {
 			importDigest.Err = err
 			continue
 		}
+
+		ref := repository.Ref
+		ref.Tag = ""
+		ref.ID = string(d)
+
 		limiter.Accept()
+
 		manifest, err := s.Get(ctx, d)
 		if err != nil {
-			glog.V(5).Infof("unable to access digest %q for repository %#v: %#v", d, repository, err)
-			importDigest.Err = formatRepositoryError(repository, "", importDigest.Name, err)
+			glog.V(5).Infof("unable to get manifest by digest %q for image %s: %#v", d, ref.Exact(), err)
+			importDigest.Err = formatRepositoryError(ref, err)
 			continue
 		}
 
-		if signedManifest, isSchema1 := manifest.(*schema1.SignedManifest); isSchema1 {
-			importDigest.Image, err = schema1ToImage(signedManifest, d)
-		} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
-			imageConfig, getImportConfigErr := b.Get(ctx, deserializedManifest.Config.Digest)
-			if getImportConfigErr != nil {
-				glog.V(5).Infof("unable to access the image config using digest %q for repository %#v: %#v", d, repository, getImportConfigErr)
-				if isDockerError(getImportConfigErr, v2.ErrorCodeManifestUnknown) {
-					ref := repository.Ref
-					ref.ID = deserializedManifest.Config.Digest.String()
-					importDigest.Err = kapierrors.NewNotFound(imageapi.Resource("dockerimage"), ref.Exact())
-				} else {
-					importDigest.Err = formatRepositoryError(repository, "", importDigest.Name, getImportConfigErr)
-				}
-				continue
-			}
-
-			importDigest.Image, err = schema2ToImage(deserializedManifest, imageConfig, d)
-		} else {
-			// TODO: Current this error means the imported received the manifest list
-			// which we don't support yet.
-			err = fmt.Errorf("unsupported image manifest schema: %T", manifest)
-			glog.V(5).Infof("unsupported manifest type: %T", manifest)
-		}
-
-		if err != nil {
-			importDigest.Err = err
-			continue
-		}
-
-		if err := util.ImageWithMetadata(importDigest.Image); err != nil {
-			importDigest.Err = err
-			continue
-		}
-		if importDigest.Image.DockerImageMetadata.Size == 0 {
-			if err := isi.calculateImageSize(ctx, repo, importDigest.Image); err != nil {
-				importDigest.Err = err
-				continue
-			}
-		}
+		importDigest.Image, importDigest.Err = isi.importManifest(ctx, manifest, ref, d, s, b, "", "")
 	}
 
 	for i := range repository.Tags {
@@ -519,58 +567,21 @@ func (isi *ImageStreamImporter) importRepositoryFromDocker(ctx gocontext.Context
 		if importTag.Err != nil || importTag.Image != nil {
 			continue
 		}
+
+		ref := repository.Ref
+		ref.Tag = importTag.Name
+		ref.ID = ""
+
 		limiter.Accept()
 
 		manifest, err := s.Get(ctx, "", distribution.WithTag(importTag.Name))
 		if err != nil {
-			glog.V(5).Infof("unable to get manifest by tag %q for repository %#v: %#v", importTag.Name, repository, err)
-			// try to resolve the tag and fetch manifest by digest instead
-			desc, getTagErr := repo.Tags(ctx).Get(ctx, importTag.Name)
-			if getTagErr != nil {
-				glog.V(5).Infof("unable to get tag %q for repository %#v: %#v", importTag.Name, repository, getTagErr)
-				importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
-				continue
-			}
-			m, getManifestErr := s.Get(ctx, desc.Digest)
-			if getManifestErr != nil {
-				glog.V(5).Infof("unable to access digest %q for tag %q for repository %#v: %#v", desc.Digest, importTag.Name, repository, getManifestErr)
-				importTag.Err = formatRepositoryError(repository, importTag.Name, "", err)
-				continue
-			}
-			manifest = m
-		}
-
-		if signedManifest, isSchema1 := manifest.(*schema1.SignedManifest); isSchema1 {
-			importTag.Image, err = schema1ToImage(signedManifest, "")
-		} else if deserializedManifest, isSchema2 := manifest.(*schema2.DeserializedManifest); isSchema2 {
-			imageConfig, getImportConfigErr := b.Get(ctx, deserializedManifest.Config.Digest)
-			if getImportConfigErr != nil {
-				glog.V(5).Infof("unable to access image config using digest %q for tag %q for repository %#v: %#v", deserializedManifest.Config.Digest, importTag.Name, repository, getImportConfigErr)
-				importTag.Err = formatRepositoryError(repository, importTag.Name, "", getImportConfigErr)
-				continue
-			}
-			importTag.Image, err = schema2ToImage(deserializedManifest, imageConfig, "")
-		} else {
-			// TODO: Current this error means the imported received the manifest list
-			// which we don't support yet.
-			err = fmt.Errorf("unsupported image manifest schema: %T", manifest)
-			glog.V(5).Infof("unsupported manifest type: %T", manifest)
-		}
-
-		if err != nil {
-			importTag.Err = err
+			glog.V(5).Infof("unable to get manifest by tag %q for image %s: %#v", importTag.Name, ref.Exact(), err)
+			importTag.Err = formatRepositoryError(ref, err)
 			continue
 		}
-		if err := util.ImageWithMetadata(importTag.Image); err != nil {
-			importTag.Err = err
-			continue
-		}
-		if importTag.Image.DockerImageMetadata.Size == 0 {
-			if err := isi.calculateImageSize(ctx, repo, importTag.Image); err != nil {
-				importTag.Err = err
-				continue
-			}
-		}
+
+		importTag.Image, importTag.Err = isi.importManifest(ctx, manifest, ref, "", s, b, importTag.PreferArch, importTag.PreferOS)
 	}
 }
 
@@ -667,9 +678,11 @@ func importRepositoryFromDockerV1(ctx gocontext.Context, repository *importRepos
 }
 
 type importTag struct {
-	Name  string
-	Image *imageapi.Image
-	Err   error
+	Name       string
+	PreferArch string
+	PreferOS   string
+	Image      *imageapi.Image
+	Err        error
 }
 
 type importDigest struct {
@@ -706,6 +719,10 @@ type manifestKey struct {
 	repositoryKey
 	// The tag or ID of the image, not used within the same map
 	value string
+	// An architecture of the image which should be selected from a manifest list.
+	preferArch string
+	// An operation system of the image which should be selected from a manifest list.
+	preferOS string
 }
 
 func imageImportStatus(err error, kind, position string) metav1.Status {
