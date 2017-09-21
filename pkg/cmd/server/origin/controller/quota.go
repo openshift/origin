@@ -22,7 +22,6 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 
 	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 	)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
@@ -34,7 +33,6 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 		ControllerFactory: quotacontroller.NewAllResourceReplenishmentControllerFactory(
 			ctx.ExternalKubeInformers,
 			ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-			ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 		),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
@@ -53,7 +51,6 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(
 		ctx.ExternalKubeInformers,
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 		ctx.ClientBuilder.ClientOrDie(saName),
 	)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
@@ -64,14 +61,13 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
 		ClusterQuotaInformer: ctx.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:   clusterQuotaMappingController.GetClusterQuotaMapper(),
-		ClusterQuotaClient:   ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
+		ClusterQuotaClient:   ctx.ClientBuilder.OpenshiftInternalQuotaClientOrDie(saName).Quota().ClusterResourceQuotas(),
 
 		Registry:     resourceQuotaRegistry,
 		ResyncPeriod: c.DefaultResyncPeriod,
 		ControllerFactory: quotacontroller.NewAllResourceReplenishmentControllerFactory(
 			ctx.ExternalKubeInformers,
 			ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-			ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 		),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(c.DefaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,

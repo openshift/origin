@@ -15,10 +15,10 @@ import (
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	fakequotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
@@ -105,9 +105,9 @@ func TestUpdateQuota(t *testing.T) {
 		}
 		quotaLister := quotalister.NewClusterResourceQuotaLister(quotaIndexer)
 
-		client := testclient.NewSimpleFake(objs...)
+		client := fakequotaclient.NewSimpleClientset(objs...)
 
-		accessor := newQuotaAccessor(quotaLister, nil, client, nil)
+		accessor := newQuotaAccessor(quotaLister, nil, client.Quota(), nil)
 
 		actualErr := accessor.UpdateQuotaStatus(tc.quotaToUpdate)
 		switch {
@@ -296,9 +296,9 @@ func TestGetQuota(t *testing.T) {
 		}
 		namespaceLister := kcorelisters.NewNamespaceLister(namespaceIndexer)
 
-		client := testclient.NewSimpleFake()
+		client := fakequotaclient.NewSimpleClientset()
 
-		accessor := newQuotaAccessor(quotaLister, namespaceLister, client, tc.mapperFunc())
+		accessor := newQuotaAccessor(quotaLister, namespaceLister, client.Quota(), tc.mapperFunc())
 
 		actualQuotas, actualErr := accessor.GetQuotas(tc.requestedNamespace)
 		switch {

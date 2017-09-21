@@ -8,7 +8,6 @@ import (
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kresourcequota "k8s.io/kubernetes/pkg/controller/resourcequota"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 )
@@ -54,7 +53,7 @@ func ImageStreamReplenishmentUpdateFunc(options *kresourcequota.ReplenishmentCon
 }
 
 // NewAllResourceReplenishmentControllerFactory returns a ReplenishmentControllerFactory  that knows how to replenish all known resources
-func NewAllResourceReplenishmentControllerFactory(informerFactory kexternalinformers.SharedInformerFactory, imageStreamInformer imageinternalversion.ImageStreamInformer, osClient osclient.Interface) kresourcequota.ReplenishmentControllerFactory {
+func NewAllResourceReplenishmentControllerFactory(informerFactory kexternalinformers.SharedInformerFactory, imageStreamInformer imageinternalversion.ImageStreamInformer) kresourcequota.ReplenishmentControllerFactory {
 	return kresourcequota.UnionReplenishmentControllerFactory{
 		kresourcequota.NewReplenishmentControllerFactory(informerFactory),
 		NewReplenishmentControllerFactory(imageStreamInformer),

@@ -92,6 +92,7 @@ import (
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
@@ -217,6 +218,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
+	quotaClient, err := quotaclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -248,7 +253,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	quotaRegistry := quota.NewAllResourceQuotaRegistryForAdmission(
 		informers.GetExternalKubeInformers(),
 		informers.GetImageInformers().Image().InternalVersion().ImageStreams(),
-		privilegedLoopbackOpenShiftClient,
 		privilegedLoopbackKubeClientsetExternal,
 	)
 
@@ -295,10 +299,10 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		restMapper,
 		quotaRegistry)
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
-		OpenshiftClient:                      privilegedLoopbackOpenShiftClient,
 		OpenshiftInternalAuthorizationClient: authorizationClient,
 		OpenshiftInternalBuildClient:         buildClient,
 		OpenshiftInternalImageClient:         imageClient,
+		OpenshiftInternalQuotaClient:         quotaClient,
 		OpenshiftInternalTemplateClient:      templateClient,
 		OpenshiftInternalUserClient:          userClient,
 		ProjectCache:                         projectCache,

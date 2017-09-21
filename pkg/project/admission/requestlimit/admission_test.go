@@ -19,7 +19,7 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	userfake "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
+	fakeuserclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	// install all APIs
@@ -152,8 +152,8 @@ func TestMaxProjectByRequester(t *testing.T) {
 			t.Fatalf("Unexpected error: %v", err)
 		}
 		user := fakeUser("testuser", tc.userLabels)
-		client := userfake.NewSimpleClientset(user)
-		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenShiftInternalUserClient(client)
+		client := fakeuserclient.NewSimpleClientset(user)
+		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(client)
 
 		maxProjects, hasLimit, err := reqLimit.(*projectRequestLimit).maxProjectsByRequester("testuser")
 		if err != nil {
@@ -266,8 +266,9 @@ func TestAdmit(t *testing.T) {
 			"user3": {5, 3},
 			"user4": {1, 0},
 		})
-		client := &userfake.Clientset{}
-		client.AddReactor("get", "users", userFn(map[string]labels.Set{
+
+		client := fakeuserclient.NewSimpleClientset()
+		client.PrependReactor("get", "users", userFn(map[string]labels.Set{
 			"user2": {"bronze": "yes"},
 			"user3": {"platinum": "yes"},
 			"user4": {"unknown": "yes"},
@@ -276,7 +277,7 @@ func TestAdmit(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		}
-		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenShiftInternalUserClient(client)
+		reqLimit.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(client)
 		reqLimit.(oadmission.WantsProjectCache).SetProjectCache(pCache)
 		if err = reqLimit.(admission.Validator).Validate(); err != nil {
 			t.Fatalf("validation error: %v", err)
