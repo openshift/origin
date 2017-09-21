@@ -14,11 +14,13 @@ import (
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
-	oclient "github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	usercache "github.com/openshift/origin/pkg/user/cache"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 func Register(plugins *admission.Plugins) {
@@ -38,12 +40,14 @@ type GroupCache interface {
 type restrictUsersAdmission struct {
 	*admission.Handler
 
-	oclient    oclient.Interface
-	kclient    kclientset.Interface
-	groupCache GroupCache
+	roleBindingRestrictionsGetter authorizationtypedclient.RoleBindingRestrictionsGetter
+	userClient                    userclient.Interface
+	kclient                       kclientset.Interface
+	groupCache                    GroupCache
 }
 
-var _ = oadmission.WantsDeprecatedOpenshiftClient(&restrictUsersAdmission{})
+var _ = oadmission.WantsOpenshiftInternalAuthorizationClient(&restrictUsersAdmission{})
+var _ = oadmission.WantsOpenshiftInternalUserClient(&restrictUsersAdmission{})
 var _ = oadmission.WantsUserInformer(&restrictUsersAdmission{})
 var _ = kadmission.WantsInternalKubeClientSet(&restrictUsersAdmission{})
 
@@ -59,8 +63,12 @@ func (q *restrictUsersAdmission) SetInternalKubeClientSet(c kclientset.Interface
 	q.kclient = c
 }
 
-func (q *restrictUsersAdmission) SetDeprecatedOpenshiftClient(c oclient.Interface) {
-	q.oclient = c
+func (q *restrictUsersAdmission) SetOpenshiftInternalAuthorizationClient(roleBindingRestrictionsGetter authorizationclient.Interface) {
+	q.roleBindingRestrictionsGetter = roleBindingRestrictionsGetter.Authorization()
+}
+
+func (q *restrictUsersAdmission) SetOpenshiftInternalUserClient(userClient userclient.Interface) {
+	q.userClient = userClient
 }
 
 func (q *restrictUsersAdmission) SetUserInformer(userInformers userinformer.SharedInformerFactory) {
@@ -144,7 +152,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 	}
 
 	// TODO: Cache rolebinding restrictions.
-	roleBindingRestrictionList, err := q.oclient.RoleBindingRestrictions(ns).
+	roleBindingRestrictionList, err := q.roleBindingRestrictionsGetter.RoleBindingRestrictions(ns).
 		List(metav1.ListOptions{})
 	if err != nil {
 		return admission.NewForbidden(a, err)
@@ -164,7 +172,7 @@ func (q *restrictUsersAdmission) Admit(a admission.Attributes) (err error) {
 	}
 
 	roleBindingRestrictionContext, err := NewRoleBindingRestrictionContext(ns,
-		q.kclient, q.oclient, q.groupCache)
+		q.kclient, q.userClient.User(), q.groupCache)
 	if err != nil {
 		return admission.NewForbidden(a, err)
 	}
@@ -196,8 +204,11 @@ func (q *restrictUsersAdmission) Validate() error {
 	if q.kclient == nil {
 		return errors.New("RestrictUsersAdmission plugin requires a Kubernetes client")
 	}
-	if q.oclient == nil {
+	if q.roleBindingRestrictionsGetter == nil {
 		return errors.New("RestrictUsersAdmission plugin requires an OpenShift client")
+	}
+	if q.userClient == nil {
+		return errors.New("RestrictUsersAdmission plugin requires an OpenShift user client")
 	}
 	if q.groupCache == nil {
 		return errors.New("RestrictUsersAdmission plugin requires a group cache")

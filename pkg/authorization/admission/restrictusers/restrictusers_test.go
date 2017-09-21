@@ -6,21 +6,20 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/rbac"
-	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
-	//kcache "k8s.io/client-go/tools/cache"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kadmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	otestclient "github.com/openshift/origin/pkg/client/testclient"
+	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
-	//"github.com/openshift/origin/pkg/project/cache"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	fakeuserclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 func TestAdmission(t *testing.T) {
@@ -75,13 +74,15 @@ func TestAdmission(t *testing.T) {
 		name        string
 		expectedErr string
 
-		object      runtime.Object
-		oldObject   runtime.Object
-		kind        schema.GroupVersionKind
-		resource    schema.GroupVersionResource
-		namespace   string
-		subresource string
-		objects     []runtime.Object
+		object               runtime.Object
+		oldObject            runtime.Object
+		kind                 schema.GroupVersionKind
+		resource             schema.GroupVersionResource
+		namespace            string
+		subresource          string
+		kubeObjects          []runtime.Object
+		authorizationObjects []runtime.Object
+		userObjects          []runtime.Object
 	}{
 		{
 			name: "ignore (allow) if subresource is nonempty",
@@ -103,7 +104,7 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "subresource",
-			objects: []runtime.Object{
+			kubeObjects: []runtime.Object{
 				&kapi.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
@@ -132,7 +133,7 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "",
 			subresource: "",
-			objects: []runtime.Object{
+			kubeObjects: []runtime.Object{
 				&kapi.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
@@ -167,7 +168,7 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "",
-			objects: []runtime.Object{
+			kubeObjects: []runtime.Object{
 				&kapi.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
@@ -205,12 +206,14 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "",
-			objects: []runtime.Object{
+			kubeObjects: []runtime.Object{
 				&kapi.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
 				},
+			},
+			authorizationObjects: []runtime.Object{
 				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "bogus-matcher",
@@ -248,12 +251,14 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "",
-			objects: []runtime.Object{
+			kubeObjects: []runtime.Object{
 				&kapi.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
 				},
+			},
+			authorizationObjects: []runtime.Object{
 				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-users",
@@ -320,14 +325,14 @@ func TestAdmission(t *testing.T) {
 			resource:    rbac.Resource("rolebindings").WithVersion("version"),
 			namespace:   "namespace",
 			subresource: "",
-			objects: []runtime.Object{
+			kubeObjects: []runtime.Object{
 				&kapi.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "namespace",
 					},
 				},
-				&userAlice,
-				&userBob,
+			},
+			authorizationObjects: []runtime.Object{
 				&authorizationapi.RoleBindingRestriction{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "match-users-bob",
@@ -340,6 +345,10 @@ func TestAdmission(t *testing.T) {
 					},
 				},
 			},
+			userObjects: []runtime.Object{
+				&userAlice,
+				&userBob,
+			},
 		},
 	}
 
@@ -347,8 +356,9 @@ func TestAdmission(t *testing.T) {
 	defer close(stopCh)
 
 	for _, tc := range testCases {
-		kclientset := fake.NewSimpleClientset(otestclient.UpstreamObjects(tc.objects)...)
-		oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(tc.objects)...)
+		kclientset := fake.NewSimpleClientset(tc.kubeObjects...)
+		fakeUserClient := fakeuserclient.NewSimpleClientset(tc.userObjects...)
+		fakeAuthorizationClient := fakeauthorizationclient.NewSimpleClientset(tc.authorizationObjects...)
 
 		plugin, err := NewRestrictUsersAdmission()
 		if err != nil {
@@ -356,7 +366,8 @@ func TestAdmission(t *testing.T) {
 		}
 
 		plugin.(kadmission.WantsInternalKubeClientSet).SetInternalKubeClientSet(kclientset)
-		plugin.(oadmission.WantsDeprecatedOpenshiftClient).SetDeprecatedOpenshiftClient(oclient)
+		plugin.(oadmission.WantsOpenshiftInternalAuthorizationClient).SetOpenshiftInternalAuthorizationClient(fakeAuthorizationClient)
+		plugin.(oadmission.WantsOpenshiftInternalUserClient).SetOpenshiftInternalUserClient(fakeUserClient)
 		plugin.(*restrictUsersAdmission).groupCache = fakeGroupCache{}
 
 		err = admission.Validate(plugin)

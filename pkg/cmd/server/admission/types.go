@@ -7,6 +7,7 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -16,12 +17,25 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 // WantDeprecatedOpenshiftClient should be implemented by admission plugins that need
 // an Openshift client
 type WantsDeprecatedOpenshiftClient interface {
 	SetDeprecatedOpenshiftClient(client.Interface)
+	admission.Validator
+}
+
+type WantsOpenshiftInternalAuthorizationClient interface {
+	SetOpenshiftInternalAuthorizationClient(authorizationclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
+// an Openshift internal image client
+type WantsOpenshiftInternalImageClient interface {
+	SetOpenshiftInternalImageClient(imageclient.Interface)
 	admission.Validator
 }
 
@@ -32,10 +46,8 @@ type WantsOpenshiftInternalTemplateClient interface {
 	admission.Validator
 }
 
-// WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
-// an Openshift internal image client
-type WantsOpenshiftInternalImageClient interface {
-	SetOpenshiftInternalImageClient(imageclient.Interface)
+type WantsOpenshiftInternalUserClient interface {
+	SetOpenshiftInternalUserClient(userclient.Interface)
 	admission.Validator
 }
 

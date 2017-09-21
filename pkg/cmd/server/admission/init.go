@@ -8,6 +8,7 @@ import (
 	kubeapiserveradmission "k8s.io/kubernetes/pkg/kubeapiserver/admission"
 	"k8s.io/kubernetes/pkg/quota"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -18,23 +19,26 @@ import (
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 type PluginInitializer struct {
-	OpenshiftClient                 client.Interface
-	OpenshiftInternalImageClient    imageclient.Interface
-	OpenshiftInternalTemplateClient templateclient.Interface
-	ProjectCache                    *cache.ProjectCache
-	OriginQuotaRegistry             quota.Registry
-	Authorizer                      kauthorizer.Authorizer
-	JenkinsPipelineConfig           configapi.JenkinsPipelineConfig
-	RESTClientConfig                restclient.Config
-	Informers                       kinternalinformers.SharedInformerFactory
-	ClusterResourceQuotaInformer    quotainformer.ClusterResourceQuotaInformer
-	ClusterQuotaMapper              clusterquotamapping.ClusterQuotaMapper
-	RegistryHostnameRetriever       imageapi.RegistryHostnameRetriever
-	SecurityInformers               securityinformer.SharedInformerFactory
-	UserInformers                   userinformer.SharedInformerFactory
+	OpenshiftClient                      client.Interface
+	OpenshiftInternalAuthorizationClient authorizationclient.Interface
+	OpenshiftInternalImageClient         imageclient.Interface
+	OpenshiftInternalTemplateClient      templateclient.Interface
+	OpenshiftInternalUserClient          userclient.Interface
+	ProjectCache                         *cache.ProjectCache
+	OriginQuotaRegistry                  quota.Registry
+	Authorizer                           kauthorizer.Authorizer
+	JenkinsPipelineConfig                configapi.JenkinsPipelineConfig
+	RESTClientConfig                     restclient.Config
+	Informers                            kinternalinformers.SharedInformerFactory
+	ClusterResourceQuotaInformer         quotainformer.ClusterResourceQuotaInformer
+	ClusterQuotaMapper                   clusterquotamapping.ClusterQuotaMapper
+	RegistryHostnameRetriever            imageapi.RegistryHostnameRetriever
+	SecurityInformers                    securityinformer.SharedInformerFactory
+	UserInformers                        userinformer.SharedInformerFactory
 }
 
 // Initialize will check the initialization interfaces implemented by each plugin
@@ -43,11 +47,17 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	if wantsDeprecatedOpenshiftClient, ok := plugin.(WantsDeprecatedOpenshiftClient); ok {
 		wantsDeprecatedOpenshiftClient.SetDeprecatedOpenshiftClient(i.OpenshiftClient)
 	}
+	if wantsOpenshiftAuthorizationClient, ok := plugin.(WantsOpenshiftInternalAuthorizationClient); ok {
+		wantsOpenshiftAuthorizationClient.SetOpenshiftInternalAuthorizationClient(i.OpenshiftInternalAuthorizationClient)
+	}
 	if wantsOpenshiftImageClient, ok := plugin.(WantsOpenshiftInternalImageClient); ok {
 		wantsOpenshiftImageClient.SetOpenshiftInternalImageClient(i.OpenshiftInternalImageClient)
 	}
 	if WantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
 		WantsOpenshiftInternalTemplateClient.SetOpenShiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
+	}
+	if WantsOpenshiftInternalUserClient, ok := plugin.(WantsOpenshiftInternalUserClient); ok {
+		WantsOpenshiftInternalUserClient.SetOpenshiftInternalUserClient(i.OpenshiftInternalUserClient)
 	}
 	if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 		wantsProjectCache.SetProjectCache(i.ProjectCache)
