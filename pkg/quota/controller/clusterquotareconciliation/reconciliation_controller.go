@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/controller"
 	"k8s.io/kubernetes/pkg/controller/resourcequota"
 	utilquota "k8s.io/kubernetes/pkg/quota"
@@ -256,7 +256,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 
 	// get the list of namespaces that match this cluster quota
 	matchingNamespaceNamesList, quotaSelector := c.clusterQuotaMapper.GetNamespacesFor(quota.Name)
-	if !kapihelper.Semantic.DeepEqual(quotaSelector, quota.Spec.Selector) {
+	if !equality.Semantic.DeepEqual(quotaSelector, quota.Spec.Selector) {
 		return fmt.Errorf("mapping not up to date, have=%v need=%v", quotaSelector, quota.Spec.Selector), workItems
 	}
 	matchingNamespaceNames := sets.NewString(matchingNamespaceNamesList...)
@@ -276,7 +276,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 		}
 
 		// if there's no work for us to do, do nothing
-		if !item.forceRecalculation && namespaceLoaded && kapihelper.Semantic.DeepEqual(namespaceTotals.Hard, quota.Spec.Quota.Hard) {
+		if !item.forceRecalculation && namespaceLoaded && equality.Semantic.DeepEqual(namespaceTotals.Hard, quota.Spec.Quota.Hard) {
 			continue
 		}
 
@@ -312,7 +312,7 @@ func (c *ClusterQuotaReconcilationController) syncQuotaForNamespaces(originalQuo
 	quota.Status.Total.Hard = quota.Spec.Quota.Hard
 
 	// if there's no change, no update, return early.  NewAggregate returns nil on empty input
-	if kapihelper.Semantic.DeepEqual(quota, originalQuota) {
+	if equality.Semantic.DeepEqual(quota, originalQuota) {
 		return kutilerrors.NewAggregate(reconcilationErrors), retryItems
 	}
 
