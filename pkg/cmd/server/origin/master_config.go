@@ -69,6 +69,7 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -92,7 +93,8 @@ import (
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
-	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	"github.com/openshift/origin/pkg/service"
@@ -202,12 +204,19 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
+	authorizationClient, err := authorizationclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	imageClient, err := imageclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
-
 	templateClient, err := templateclient.NewForConfig(privilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	userClient, err := userclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -281,20 +290,22 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		restMapper,
 		quotaRegistry)
 	openshiftPluginInitializer := &oadmission.PluginInitializer{
-		OpenshiftClient:                 privilegedLoopbackOpenShiftClient,
-		OpenshiftInternalImageClient:    imageClient,
-		OpenshiftInternalTemplateClient: templateClient,
-		ProjectCache:                    projectCache,
-		OriginQuotaRegistry:             quotaRegistry,
-		Authorizer:                      authorizer,
-		JenkinsPipelineConfig:           options.JenkinsPipelineConfig,
-		RESTClientConfig:                *privilegedLoopbackClientConfig,
-		Informers:                       informers.GetInternalKubeInformers(),
-		ClusterResourceQuotaInformer:    informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
-		ClusterQuotaMapper:              clusterQuotaMappingController.GetClusterQuotaMapper(),
-		RegistryHostnameRetriever:       imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
-		SecurityInformers:               informers.GetSecurityInformers(),
-		UserInformers:                   informers.GetUserInformers(),
+		OpenshiftClient:                      privilegedLoopbackOpenShiftClient,
+		OpenshiftInternalAuthorizationClient: authorizationClient,
+		OpenshiftInternalImageClient:         imageClient,
+		OpenshiftInternalTemplateClient:      templateClient,
+		OpenshiftInternalUserClient:          userClient,
+		ProjectCache:                         projectCache,
+		OriginQuotaRegistry:                  quotaRegistry,
+		Authorizer:                           authorizer,
+		JenkinsPipelineConfig:                options.JenkinsPipelineConfig,
+		RESTClientConfig:                     *privilegedLoopbackClientConfig,
+		Informers:                            informers.GetInternalKubeInformers(),
+		ClusterResourceQuotaInformer:         informers.GetQuotaInformers().Quota().InternalVersion().ClusterResourceQuotas(),
+		ClusterQuotaMapper:                   clusterQuotaMappingController.GetClusterQuotaMapper(),
+		RegistryHostnameRetriever:            imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
+		SecurityInformers:                    informers.GetSecurityInformers(),
+		UserInformers:                        informers.GetUserInformers(),
 	}
 	initializersChain := admission.PluginInitializers{genericInitializer, kubePluginInitializer, openshiftPluginInitializer}
 
@@ -306,10 +317,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	// this is safe because the server does a quorum read and we're hitting a "magic" authorizer to get permissions based on system:masters
 	// once the cache is added, we won't be paying a double hop cost to etcd on each request, so the simplification will help.
 	serviceAccountTokenGetter := sacontroller.NewGetterFromClient(privilegedLoopbackKubeClientsetExternal)
-	userClient, err := userclient.NewForConfig(privilegedLoopbackClientConfig)
-	if err != nil {
-		return nil, err
-	}
 	oauthClient, err := oauthclient.NewForConfig(privilegedLoopbackClientConfig)
 	if err != nil {
 		return nil, err
@@ -703,7 +710,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 	return admission.NewChainHandler(plugins...), nil
 }
 
-func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter userclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
+func newAuthenticator(config configapi.MasterConfig, accessTokenGetter oauthclient.OAuthAccessTokenInterface, tokenGetter serviceaccount.ServiceAccountTokenGetter, userGetter usertypedclient.UserResourceInterface, apiClientCAs *x509.CertPool, groupMapper identitymapper.UserToGroupMapper) (authenticator.Request, error) {
 	authenticators := []authenticator.Request{}
 	tokenAuthenticators := []authenticator.Token{}
 
