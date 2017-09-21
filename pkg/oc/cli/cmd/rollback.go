@@ -17,9 +17,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/client"
+	appsapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appsutil "github.com/openshift/origin/pkg/apps/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	describe "github.com/openshift/origin/pkg/oc/cli/describe"
 )
@@ -108,8 +108,8 @@ type RollbackOptions struct {
 
 	// out is a place to write user-facing output.
 	out io.Writer
-	// oc is an openshift client.
-	oc client.Interface
+	// appsClient is an Openshift apps client.
+	appsClient appsinternalversion.AppsInterface
 	// kc is a kube client.
 	kc kclientset.Interface
 	// getBuilder returns a new builder each time it is called. A
@@ -138,11 +138,15 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		return f.NewBuilder(true)
 	}
 
-	oClient, kClient, err := f.Clients()
+	_, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
-	o.oc = oClient
+	appsClient, err := f.OpenshiftInternalAppsClient()
+	if err != nil {
+		return err
+	}
+	o.appsClient = appsClient.Apps()
 	o.kc = kClient
 
 	o.out = out
@@ -169,7 +173,7 @@ func (o *RollbackOptions) Validate() error {
 	if o.out == nil {
 		return fmt.Errorf("out must not be nil")
 	}
-	if o.oc == nil {
+	if o.appsClient == nil {
 		return fmt.Errorf("oc must not be nil")
 	}
 	if o.kc == nil {
@@ -203,8 +207,8 @@ func (o *RollbackOptions) Run() error {
 	var target *kapi.ReplicationController
 	switch r := obj.(type) {
 	case *kapi.ReplicationController:
-		dcName := deployutil.DeploymentConfigNameFor(r)
-		dc, err := o.oc.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
+		dcName := appsutil.DeploymentConfigNameFor(r)
+		dc, err := o.appsClient.DeploymentConfigs(r.Namespace).Get(dcName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -214,8 +218,8 @@ func (o *RollbackOptions) Run() error {
 
 		// A specific deployment was used.
 		target = r
-		configName = deployutil.DeploymentConfigNameFor(obj)
-	case *deployapi.DeploymentConfig:
+		configName = appsutil.DeploymentConfigNameFor(obj)
+	case *appsapi.DeploymentConfig:
 		if r.Spec.Paused {
 			return fmt.Errorf("cannot rollback a paused deployment config")
 		}
@@ -234,9 +238,9 @@ func (o *RollbackOptions) Run() error {
 	}
 
 	// Set up the rollback and generate a new rolled back config.
-	rollback := &deployapi.DeploymentConfigRollback{
+	rollback := &appsapi.DeploymentConfigRollback{
 		Name: configName,
-		Spec: deployapi.DeploymentConfigRollbackSpec{
+		Spec: appsapi.DeploymentConfigRollbackSpec{
 			From: kapi.ObjectReference{
 				Name: target.Name,
 			},
@@ -247,18 +251,14 @@ func (o *RollbackOptions) Run() error {
 			IncludeReplicationMeta: o.IncludeScalingSettings,
 		},
 	}
-	newConfig, err := o.oc.DeploymentConfigs(o.Namespace).Rollback(rollback)
-	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
-		// Fallback to the old path for new clients talking to old servers.
-		newConfig, err = o.oc.DeploymentConfigs(o.Namespace).RollbackDeprecated(rollback)
-	}
+	newConfig, err := o.appsClient.DeploymentConfigs(o.Namespace).Rollback(configName, rollback)
 	if err != nil {
 		return err
 	}
 
 	// If this is a dry run, print and exit.
 	if o.DryRun {
-		describer := describe.NewDeploymentConfigDescriber(o.oc, o.kc, newConfig)
+		describer := describe.NewDeploymentConfigDescriber(o.appsClient, o.kc, newConfig)
 		description, err := describer.Describe(newConfig.Namespace, newConfig.Name, kprinters.DescriberSettings{})
 		if err != nil {
 			return err
@@ -275,7 +275,7 @@ func (o *RollbackOptions) Run() error {
 	}
 
 	// Perform a real rollback.
-	rolledback, err := o.oc.DeploymentConfigs(newConfig.Namespace).Update(newConfig)
+	rolledback, err := o.appsClient.DeploymentConfigs(newConfig.Namespace).Update(newConfig)
 	if err != nil {
 		return err
 	}
@@ -284,7 +284,7 @@ func (o *RollbackOptions) Run() error {
 	fmt.Fprintf(o.out, "#%d rolled back to %s\n", rolledback.Status.LatestVersion, rollback.Spec.From.Name)
 	for _, trigger := range rolledback.Spec.Triggers {
 		disabled := []string{}
-		if trigger.Type == deployapi.DeploymentTriggerOnImageChange && !trigger.ImageChangeParams.Automatic {
+		if trigger.Type == appsapi.DeploymentTriggerOnImageChange && !trigger.ImageChangeParams.Automatic {
 			disabled = append(disabled, trigger.ImageChangeParams.From.Name)
 		}
 		if len(disabled) > 0 {
@@ -339,9 +339,9 @@ func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error
 // the deployment matching desiredVersion will be returned. If desiredVersion
 // is <=0, the last completed deployment which is older than the config's
 // version will be returned.
-func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
+func (o *RollbackOptions) findTargetDeployment(config *appsapi.DeploymentConfig, desiredVersion int64) (*kapi.ReplicationController, error) {
 	// Find deployments for the config sorted by version descending.
-	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: deployutil.ConfigSelector(config.Name).String()})
+	deploymentList, err := o.kc.Core().ReplicationControllers(config.Namespace).List(metav1.ListOptions{LabelSelector: appsutil.ConfigSelector(config.Name).String()})
 	if err != nil {
 		return nil, err
 	}
@@ -349,21 +349,21 @@ func (o *RollbackOptions) findTargetDeployment(config *deployapi.DeploymentConfi
 	for i := range deploymentList.Items {
 		deployments = append(deployments, &deploymentList.Items[i])
 	}
-	sort.Sort(deployutil.ByLatestVersionDesc(deployments))
+	sort.Sort(appsutil.ByLatestVersionDesc(deployments))
 
 	// Find the target deployment for rollback. If a version was specified,
 	// use the version for a search. Otherwise, use the last completed
 	// deployment.
 	var target *kapi.ReplicationController
 	for _, deployment := range deployments {
-		version := deployutil.DeploymentVersionFor(deployment)
+		version := appsutil.DeploymentVersionFor(deployment)
 		if desiredVersion > 0 {
 			if version == desiredVersion {
 				target = deployment
 				break
 			}
 		} else {
-			if version < config.Status.LatestVersion && deployutil.IsCompleteDeployment(deployment) {
+			if version < config.Status.LatestVersion && appsutil.IsCompleteDeployment(deployment) {
 				target = deployment
 				break
 			}

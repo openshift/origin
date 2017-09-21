@@ -27,6 +27,7 @@ import (
 
 	oapi "github.com/openshift/origin/pkg/api"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -69,11 +70,15 @@ func describerMap(clientConfig *rest.Config, c *client.Client, kclient kclientse
 	if err != nil {
 		glog.V(1).Info(err)
 	}
+	appsClient, err := appsclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
 		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
-		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{c, kclient, nil},
+		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{appsClient, kclient, nil},
 		imageapi.Kind("Image"):                          &ImageDescriber{imageClient},
 		imageapi.Kind("ImageStream"):                    &ImageStreamDescriber{imageClient},
 		imageapi.Kind("ImageStreamTag"):                 &ImageStreamTagDescriber{imageClient},

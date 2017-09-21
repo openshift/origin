@@ -10,17 +10,17 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/openshift/origin/pkg/client"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
-	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-
-	"github.com/openshift/origin/pkg/cmd/util/term"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	restclient "k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kterm "k8s.io/kubernetes/pkg/util/term"
+
+	"github.com/openshift/origin/pkg/cmd/util/term"
+	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 // getMatchingClusters examines the kubeconfig for all clusters that point to the same server
@@ -125,9 +125,9 @@ func getHostPort(hostURL string) (string, string, *url.URL, error) {
 }
 
 func whoAmI(clientConfig *restclient.Config) (*userapi.User, error) {
-	client, err := client.New(clientConfig)
+	client, err := userclient.NewForConfig(clientConfig)
 
-	me, err := client.Users().Get("~", metav1.GetOptions{})
+	me, err := client.User().Users().Get("~", metav1.GetOptions{})
 
 	// if we're talking to kube (or likely talking to kube),
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {

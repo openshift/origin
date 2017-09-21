@@ -11,8 +11,8 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 type testAction struct {
@@ -164,7 +164,7 @@ func TestTag(t *testing.T) {
 	}
 
 	for name, test := range testCases {
-		client := testclient.NewSimpleFake(test.data...)
+		client := imagefake.NewSimpleClientset(test.data...)
 		client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, nil, kapierrors.NewMethodNotSupported(imageapi.Resource("imagestreamtags"), "create")
 		})
@@ -173,7 +173,8 @@ func TestTag(t *testing.T) {
 		})
 
 		test.opts.out = os.Stdout
-		test.opts.osClient = client
+		test.opts.isGetter = client.Image()
+		test.opts.isTagGetter = client.Image()
 
 		err := test.opts.Validate()
 		if (err == nil && len(test.validateErr) != 0) || (err != nil && err.Error() != test.validateErr) {
@@ -203,7 +204,7 @@ func TestTag(t *testing.T) {
 
 func TestRunTag_DeleteOld(t *testing.T) {
 	streams := testData()
-	client := testclient.NewSimpleFake(streams[1])
+	client := imagefake.NewSimpleClientset(streams[1])
 	client.PrependReactor("delete", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, kapierrors.NewForbidden(imageapi.Resource("imagestreamtags"), "rails:tip", fmt.Errorf("dne"))
 	})
@@ -221,7 +222,8 @@ func TestRunTag_DeleteOld(t *testing.T) {
 	}{
 		opts: &TagOptions{
 			out:            os.Stdout,
-			osClient:       client,
+			isGetter:       client.Image(),
+			isTagGetter:    client.Image(),
 			deleteTag:      true,
 			destNamespace:  []string{"yourproject"},
 			destNameAndTag: []string{"rails:tip"},
@@ -251,7 +253,7 @@ func TestRunTag_DeleteOld(t *testing.T) {
 }
 
 func TestRunTag_AddNew(t *testing.T) {
-	client := testclient.NewSimpleFake(
+	client := imagefake.NewSimpleClientset(
 		&imageapi.ImageStreamTag{
 			ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "10", CreationTimestamp: metav1.Now()},
 		},
@@ -263,8 +265,9 @@ func TestRunTag_AddNew(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			out:      os.Stdout,
-			osClient: client,
+			out:         os.Stdout,
+			isGetter:    client.Image(),
+			isTagGetter: client.Image(),
 			ref: imageapi.DockerImageReference{
 				Namespace: "openshift",
 				Name:      "ruby",
@@ -297,7 +300,7 @@ func TestRunTag_AddNew(t *testing.T) {
 }
 
 func TestRunTag_AddRestricted(t *testing.T) {
-	client := testclient.NewSimpleFake()
+	client := imagefake.NewSimpleClientset()
 	client.PrependReactor("create", "imagestreamtags", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, action.(clientgotesting.CreateAction).GetObject(), nil
 	})
@@ -311,8 +314,9 @@ func TestRunTag_AddRestricted(t *testing.T) {
 		expectedErr     error
 	}{
 		opts: &TagOptions{
-			out:      os.Stdout,
-			osClient: client,
+			out:         os.Stdout,
+			isGetter:    client.Image(),
+			isTagGetter: client.Image(),
 			ref: imageapi.DockerImageReference{
 				Namespace: "openshift",
 				Name:      "ruby",
@@ -349,7 +353,7 @@ func TestRunTag_DeleteNew(t *testing.T) {
 	is := &imageapi.ImageStreamTag{
 		ObjectMeta: metav1.ObjectMeta{Name: "rails:tip", Namespace: "yourproject", ResourceVersion: "11", CreationTimestamp: metav1.Now()},
 	}
-	client := testclient.NewSimpleFake(is)
+	client := imagefake.NewSimpleClientset(is)
 
 	test := struct {
 		opts            *TagOptions
@@ -358,7 +362,8 @@ func TestRunTag_DeleteNew(t *testing.T) {
 	}{
 		opts: &TagOptions{
 			out:            os.Stdout,
-			osClient:       client,
+			isGetter:       client.Image(),
+			isTagGetter:    client.Image(),
 			deleteTag:      true,
 			destNamespace:  []string{"yourproject"},
 			destNameAndTag: []string{"rails:tip"},

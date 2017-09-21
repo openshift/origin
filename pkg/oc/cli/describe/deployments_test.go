@@ -13,8 +13,8 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployapitest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/client/testclient"
 )
 
 func TestDeploymentConfigDescriber(t *testing.T) {
@@ -22,7 +22,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	deployment, _ := deployutil.MakeDeployment(config, kapi.Codecs.LegacyCodec(deployapi.LegacySchemeGroupVersion))
 	podList := &kapi.PodList{}
 
-	fake := &testclient.Fake{}
+	fake := &appsfake.Clientset{}
 	fake.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, config, nil
 	})
@@ -47,7 +47,7 @@ func TestDeploymentConfigDescriber(t *testing.T) {
 	})
 
 	d := &DeploymentConfigDescriber{
-		osClient:   fake,
+		appsClient: fake.Apps(),
 		kubeClient: kFake,
 	}
 

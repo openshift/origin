@@ -18,15 +18,17 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // TagOptions contains all the necessary options for the cli tag command.
 type TagOptions struct {
-	out      io.Writer
-	osClient client.Interface
+	out io.Writer
+
+	isGetter    imageclient.ImageStreamsGetter
+	isTagGetter imageclient.ImageStreamTagsGetter
 
 	deleteTag    bool
 	aliasTag     bool
@@ -155,12 +157,13 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 	// Setup writer.
 	o.out = out
 
-	// Setup client.
-	var err error
-	o.osClient, _, err = f.Clients()
+	// Setup clients.
+	client, err := f.OpenshiftInternalImageClient()
 	if err != nil {
 		return err
 	}
+	o.isGetter = client.Image()
+	o.isTagGetter = client.Image()
 
 	// Setup namespace.
 	if len(o.namespace) == 0 {
@@ -229,7 +232,7 @@ func (o *TagOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []s
 			if len(srcNamespace) == 0 {
 				srcNamespace = o.namespace
 			}
-			is, err := o.osClient.ImageStreams(srcNamespace).Get(ref.Name, metav1.GetOptions{})
+			is, err := o.isGetter.ImageStreams(srcNamespace).Get(ref.Name, metav1.GetOptions{})
 			if err != nil {
 				return err
 			}
@@ -293,7 +296,7 @@ func isCrossImageStream(namespace string, srcRef imageapi.DockerImageReference, 
 // Validate validates all the required options for the tag command.
 func (o TagOptions) Validate() error {
 	// Validate client and writer
-	if o.osClient == nil {
+	if o.isGetter == nil || o.isTagGetter == nil {
 		return errors.New("a client is required")
 	}
 	if o.out == nil {
@@ -370,11 +373,11 @@ func (o TagOptions) Run() error {
 		}
 
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-			isc := o.osClient.ImageStreams(o.destNamespace[i])
+			isc := o.isGetter.ImageStreams(o.destNamespace[i])
 
 			if o.deleteTag {
 				// new server support
-				err := o.osClient.ImageStreamTags(o.destNamespace[i]).Delete(destName, destTag)
+				err := o.isTagGetter.ImageStreamTags(o.destNamespace[i]).Delete(imageapi.JoinImageStreamTag(destName, destTag), &metav1.DeleteOptions{})
 				switch {
 				case err == nil:
 					fmt.Fprintf(o.out, "Deleted tag %s/%s.\n", o.destNamespace[i], destNameAndTag)
@@ -474,7 +477,7 @@ func (o TagOptions) Run() error {
 			}
 
 			// supported by new servers.
-			_, err := o.osClient.ImageStreamTags(o.destNamespace[i]).Update(istag)
+			_, err := o.isTagGetter.ImageStreamTags(o.destNamespace[i]).Update(istag)
 			switch {
 			case err == nil:
 				fmt.Fprintln(o.out, msg)
@@ -482,7 +485,7 @@ func (o TagOptions) Run() error {
 
 			case kerrors.IsMethodNotSupported(err), kerrors.IsForbidden(err), kerrors.IsNotFound(err):
 				// if we got one of these errors, it possible that a Create will do what we need.  Try that
-				_, err := o.osClient.ImageStreamTags(o.destNamespace[i]).Create(istag)
+				_, err := o.isTagGetter.ImageStreamTags(o.destNamespace[i]).Create(istag)
 				switch {
 				case err == nil:
 					fmt.Fprintln(o.out, msg)

@@ -12,9 +12,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 const ImageStreamRecommendedName = "imagestream"
@@ -39,7 +39,7 @@ var (
 
 type CreateImageStreamOptions struct {
 	IS     *imageapi.ImageStream
-	Client client.ImageStreamsNamespacer
+	Client imageclient.ImageStreamsGetter
 
 	DryRun bool
 
@@ -96,10 +96,11 @@ func (o *CreateImageStreamOptions) Complete(cmd *cobra.Command, f *clientcmd.Fac
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	client, err := f.OpenshiftInternalImageClient()
 	if err != nil {
 		return err
 	}
+	o.Client = client.Image()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")

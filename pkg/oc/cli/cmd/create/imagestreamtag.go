@@ -14,10 +14,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	ocmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 const ImageStreamTagRecommendedName = "imagestreamtag"
@@ -43,7 +43,7 @@ var (
 
 type CreateImageStreamTagOptions struct {
 	ISTag  *imageapi.ImageStreamTag
-	Client client.ImageStreamTagsNamespacer
+	Client imageclient.ImageStreamTagsGetter
 
 	FromImage   string
 	From        string
@@ -121,10 +121,11 @@ func (o *CreateImageStreamTagOptions) Complete(cmd *cobra.Command, f *clientcmd.
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	client, err := f.OpenshiftInternalImageClient()
 	if err != nil {
 		return err
 	}
+	o.Client = client.Image()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")

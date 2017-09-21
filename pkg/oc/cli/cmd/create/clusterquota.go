@@ -16,9 +16,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 )
 
 const ClusterQuotaRecommendedName = "clusterresourcequota"
@@ -36,7 +36,7 @@ var (
 
 type CreateClusterQuotaOptions struct {
 	ClusterQuota *quotaapi.ClusterResourceQuota
-	Client       client.ClusterResourceQuotasInterface
+	Client       quotaclient.ClusterResourceQuotasGetter
 
 	DryRun bool
 
@@ -117,11 +117,11 @@ func (o *CreateClusterQuotaOptions) Complete(cmd *cobra.Command, f *clientcmd.Fa
 		}
 		o.ClusterQuota.Spec.Quota.Hard[kapi.ResourceName(tokens[0])] = quantity
 	}
-
-	o.Client, _, err = f.Clients()
+	quotaClient, err := f.OpenshiftInternalQuotaClient()
 	if err != nil {
 		return err
 	}
+	o.Client = quotaClient.Quota()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")

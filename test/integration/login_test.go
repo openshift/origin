@@ -16,7 +16,9 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	"github.com/openshift/origin/pkg/oc/cli/config"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -63,8 +65,11 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)
 	}
 
-	oClient, _ := client.New(loginOptions.Config)
-	p, err := oClient.Projects().Get(project, metav1.GetOptions{})
+	projectClient, err := projectclient.NewForConfig(loginOptions.Config)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	p, err := projectClient.Project().Projects().Get(project, metav1.GetOptions{})
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
@@ -94,8 +99,16 @@ func TestLogin(t *testing.T) {
 	// if _, err = loginOptions.SaveConfig(configFile.Name()); err != nil {
 	// 	t.Fatalf("unexpected error: %v", err)
 	// }
+	userClient, err := userclient.NewForConfig(loginOptions.Config)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	adminUserClient, err := userclient.NewForConfig(clusterAdminClientConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: oClient.Users(), Out: ioutil.Discard}
+	userWhoamiOptions := cmd.WhoAmIOptions{UserInterface: userClient.Users(), Out: ioutil.Discard}
 	retrievedUser, err := userWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
@@ -104,7 +117,7 @@ func TestLogin(t *testing.T) {
 		t.Errorf("expected %v, got %v", retrievedUser.Name, username)
 	}
 
-	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: clusterAdminClient.Users(), Out: ioutil.Discard}
+	adminWhoamiOptions := cmd.WhoAmIOptions{UserInterface: adminUserClient.Users(), Out: ioutil.Discard}
 	retrievedAdmin, err := adminWhoamiOptions.WhoAmI()
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)

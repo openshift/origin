@@ -12,7 +12,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -30,7 +30,7 @@ type CreatePolicyBindingOptions struct {
 	BindingNamespace string
 	PolicyNamespace  string
 
-	BindingClient client.PolicyBindingsNamespacer
+	BindingClient authorizationclient.PolicyBindingsGetter
 
 	Mapper       meta.RESTMapper
 	OutputFormat string
@@ -71,7 +71,7 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	}
 	o.BindingNamespace = namespace
 
-	client, kclient, err := f.Clients()
+	_, kclient, err := f.Clients()
 	if err != nil {
 		return err
 	}
@@ -79,8 +79,12 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	if err := clientcmd.LegacyPolicyResourceGate(kclient.Discovery()); err != nil {
 		return err
 	}
+	client, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return err
+	}
 
-	o.BindingClient = client
+	o.BindingClient = client.Authorization()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
