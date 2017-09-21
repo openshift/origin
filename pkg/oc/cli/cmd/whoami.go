@@ -10,9 +10,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const WhoAmIRecommendedCommandName = "whoami"
@@ -25,7 +25,7 @@ var whoamiLong = templates.LongDesc(`
 	user context.`)
 
 type WhoAmIOptions struct {
-	UserInterface osclient.UserInterface
+	UserInterface userclient.UserResourceInterface
 
 	Out io.Writer
 }
@@ -91,12 +91,12 @@ func RunWhoAmI(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []s
 		return nil
 	}
 
-	client, _, err := f.Clients()
+	client, err := f.OpenshiftInternalUserClient()
 	if err != nil {
 		return err
 	}
 
-	o.UserInterface = client.Users()
+	o.UserInterface = client.User().Users()
 	o.Out = out
 
 	_, err = o.WhoAmI()

@@ -22,8 +22,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinternalclient "github.com/openshift/origin/pkg/apps/client/internalversion"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 )
@@ -31,7 +32,7 @@ import (
 // DeployOptions holds all the options for the `deploy` command
 type DeployOptions struct {
 	out             io.Writer
-	osClient        client.Interface
+	appsClient      appsclient.AppsInterface
 	kubeClient      kclientset.Interface
 	builder         *resource.Builder
 	namespace       string
@@ -140,10 +141,15 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 	var err error
 
-	o.osClient, o.kubeClient, err = f.Clients()
+	_, o.kubeClient, err = f.Clients()
 	if err != nil {
 		return err
 	}
+	client, err := f.OpenshiftInternalAppsClient()
+	if err != nil {
+		return err
+	}
+	o.appsClient = client.Apps()
 	o.namespace, _, err = f.DefaultNamespace()
 	if err != nil {
 		return err
@@ -217,7 +223,7 @@ func (o DeployOptions) RunDeploy() error {
 		if o.follow {
 			return o.getLogs(config)
 		}
-		describer := describe.NewLatestDeploymentsDescriber(o.osClient, o.kubeClient, -1)
+		describer := describe.NewLatestDeploymentsDescriber(o.appsClient, o.kubeClient, -1)
 		desc, err := describer.Describe(config.Namespace, config.Name)
 		if err != nil {
 			return err
@@ -256,12 +262,12 @@ func (o DeployOptions) deploy(config *deployapi.DeploymentConfig) error {
 		Force:  true,
 	}
 
-	dc, err := o.osClient.DeploymentConfigs(config.Namespace).Instantiate(request)
+	dc, err := o.appsClient.DeploymentConfigs(config.Namespace).Instantiate(config.Name, request)
 	// Pre 1.4 servers don't support the instantiate endpoint. Fallback to incrementing
 	// latestVersion on them.
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		config.Status.LatestVersion++
-		dc, err = o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+		dc, err = o.appsClient.DeploymentConfigs(config.Namespace).Update(config)
 	}
 	if err != nil {
 		if kerrors.IsBadRequest(err) {
@@ -416,7 +422,7 @@ func (o DeployOptions) reenableTriggers(config *deployapi.DeploymentConfig) erro
 		fmt.Fprintln(o.out, "No image triggers found to enable")
 		return nil
 	}
-	_, err := o.osClient.DeploymentConfigs(config.Namespace).Update(config)
+	_, err := o.appsClient.DeploymentConfigs(config.Namespace).Update(config)
 	if err != nil {
 		return err
 	}
@@ -428,7 +434,8 @@ func (o DeployOptions) getLogs(config *deployapi.DeploymentConfig) error {
 	opts := deployapi.DeploymentLogOptions{
 		Follow: true,
 	}
-	readCloser, err := o.osClient.DeploymentLogs(config.Namespace).Get(config.Name, opts).Stream()
+	logClient := appsinternalclient.NewRolloutLogClient(o.appsClient.RESTClient(), config.Namespace)
+	readCloser, err := logClient.Logs(config.Name, opts).Stream()
 	if err != nil {
 		return err
 	}

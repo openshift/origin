@@ -93,9 +93,8 @@ type ImportImageOptions struct {
 	// helpers
 	out         io.Writer
 	errout      io.Writer
-	osClient    client.Interface
-	isClient    client.ImageStreamInterface
 	imageClient imageclient.ImageInterface
+	isClient    imageclient.ImageStreamInterface
 }
 
 // Complete turns a partially defined ImportImageOptions into a solvent structure
@@ -120,24 +119,15 @@ func (o *ImportImageOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 	}
 	o.Namespace = namespace
 
-	osClient, _, err := f.Clients()
+	client, err := f.OpenshiftInternalImageClient()
 	if err != nil {
 		return err
 	}
-	o.osClient = osClient
-	o.isClient = osClient.ImageStreams(namespace)
+	o.imageClient = client.Image()
+	o.isClient = client.Image().ImageStreams(namespace)
+
 	o.out = out
 	o.errout = errout
-
-	clientConfig, err := f.ClientConfig()
-	if err != nil {
-		return err
-	}
-	imageClient, err := imageclient.NewForConfig(clientConfig)
-	if err != nil {
-		return err
-	}
-	o.imageClient = imageClient
 
 	return nil
 }
@@ -176,7 +166,7 @@ func (o *ImportImageOptions) Run() error {
 	}
 
 	// Attempt the new, direct import path
-	result, err := o.isClient.Import(isi)
+	result, err := o.imageClient.ImageStreamImports(isi.Namespace).Create(isi)
 	switch {
 	case err == client.ErrImageStreamImportUnsupported:
 	case err != nil:

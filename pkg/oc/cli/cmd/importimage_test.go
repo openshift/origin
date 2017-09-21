@@ -10,8 +10,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 )
 
 func TestCreateImageImport(t *testing.T) {
@@ -515,11 +515,11 @@ func TestCreateImageImport(t *testing.T) {
 	}
 
 	for name, test := range testCases {
-		var fake *testclient.Fake
+		var fake *imagefake.Clientset
 		if test.stream == nil {
-			fake = testclient.NewSimpleFake()
+			fake = imagefake.NewSimpleClientset()
 		} else {
-			fake = testclient.NewSimpleFake(test.stream)
+			fake = imagefake.NewSimpleClientset(test.stream)
 		}
 		o := ImportImageOptions{
 			Target:          test.name,
@@ -529,7 +529,7 @@ func TestCreateImageImport(t *testing.T) {
 			Insecure:        test.insecure,
 			ReferencePolicy: test.referencePolicy,
 			Confirm:         test.confirm,
-			isClient:        fake.ImageStreams("other"),
+			isClient:        fake.Image().ImageStreams("other"),
 		}
 		// we need to run Validate, because it sets appropriate Name and Tag
 		if err := o.Validate(&cobra.Command{}); err != nil {
