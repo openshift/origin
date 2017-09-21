@@ -493,7 +493,7 @@ func verifyWithSAR(ctx context.Context, resource, namespace, name, verb string, 
 	sar := authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{
 			Verb:         verb,
-			Group:        imageapi.GroupName,
+			Group:        imageapi.LegacyGroupName,
 			Resource:     resource,
 			ResourceName: name,
 		},
@@ -528,7 +528,7 @@ func verifyPruneAccess(ctx context.Context, client client.SubjectAccessReviews) 
 	sar := authorizationapi.SubjectAccessReview{
 		Action: authorizationapi.Action{
 			Verb:     "delete",
-			Group:    imageapi.GroupName,
+			Group:    imageapi.LegacyGroupName,
 			Resource: "images",
 		},
 	}
