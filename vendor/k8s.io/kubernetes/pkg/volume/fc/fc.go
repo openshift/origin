@@ -63,7 +63,7 @@ func (plugin *fcPlugin) GetVolumeName(spec *volume.Spec) (string, error) {
 	}
 
 	//  TargetWWNs are the FibreChannel target worldwide names
-	return fmt.Sprintf("%v", volumeSource.TargetWWNs), nil
+	return fmt.Sprintf("%v:%v", volumeSource.TargetWWNs, *volumeSource.Lun), nil
 }
 
 func (plugin *fcPlugin) CanSupport(spec *volume.Spec) bool {
