@@ -25,7 +25,7 @@
 {{/* cookie name pattern: */}}
 {{- $cookieNamePattern := `[a-zA-Z0-9_-]+` -}}
 
-{{- $timeSpecRE := "[1-9][0-9]*(us|ms|s|m|h|d)?" }}
+{{- $timeSpecPattern := `[1-9][0-9]*(us|ms|s|m|h|d)?` }}
 global
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
 
@@ -96,16 +96,16 @@ defaults
   # server openshift_backend 127.0.0.1:8080
   errorfile 503 /var/lib/haproxy/conf/error-page-503.http
 
-  timeout connect {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_CONNECT_TIMEOUT") "5s"}}
-  timeout client {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_CLIENT_TIMEOUT") "30s"}}
-  timeout client-fin {{firstMatch $timeSpecRE (env "ROUTER_CLIENT_FIN_TIMEOUT") "1s"}}
-  timeout server {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_SERVER_TIMEOUT") "30s"}}
-  timeout server-fin {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT") "1s"}}
-  timeout http-request {{firstMatch $timeSpecRE (env "ROUTER_SLOWLORIS_TIMEOUT") "10s" }}
-  timeout http-keep-alive {{firstMatch $timeSpecRE (env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE") "300s" }}
+  timeout connect {{firstMatch $timeSpecPattern (env "ROUTER_DEFAULT_CONNECT_TIMEOUT") "5s"}}
+  timeout client {{firstMatch $timeSpecPattern (env "ROUTER_DEFAULT_CLIENT_TIMEOUT") "30s"}}
+  timeout client-fin {{firstMatch $timeSpecPattern (env "ROUTER_CLIENT_FIN_TIMEOUT") "1s"}}
+  timeout server {{firstMatch $timeSpecPattern (env "ROUTER_DEFAULT_SERVER_TIMEOUT") "30s"}}
+  timeout server-fin {{firstMatch $timeSpecPattern (env "ROUTER_DEFAULT_SERVER_FIN_TIMEOUT") "1s"}}
+  timeout http-request {{firstMatch $timeSpecPattern (env "ROUTER_SLOWLORIS_TIMEOUT") "10s" }}
+  timeout http-keep-alive {{firstMatch $timeSpecPattern (env "ROUTER_SLOWLORIS_HTTP_KEEPALIVE") "300s" }}
 
   # Long timeout for WebSocket connections.
-  timeout tunnel {{firstMatch $timeSpecRE (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT") "1h" }}
+  timeout tunnel {{firstMatch $timeSpecPattern (env "ROUTER_DEFAULT_TUNNEL_TIMEOUT") "1h" }}
 
 {{- if isTrue (env "ROUTER_ENABLE_COMPRESSION") }}
   compression algo gzip
@@ -337,11 +337,11 @@ backend be_secure:{{$cfgIdx}}
   acl whitelist src {{ $ip_whiteList }}
   tcp-request content reject if !whitelist
     {{- end }}
-    {{- with $value := firstMatch $timeSpecRE (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
+    {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
   timeout server  {{$value}}
     {{- end }} {{/* end balance algorithm setting. */}}
 
-    {{- with $value := firstMatch $timeSpecRE (index $cfg.Annotations "haproxy.router.openshift.io/timeout") }}
+    {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout") }}
   timeout server  {{$value}}
     {{- end }}
 
@@ -404,7 +404,7 @@ backend be_secure:{{$cfgIdx}}
           {{- else if or (eq $cfg.TLSTermination "") (eq $cfg.TLSTermination "edge") }}
           {{- end }}{{/* end type specific options*/}}
 
-            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecRE (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
+            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
 
 
@@ -431,7 +431,7 @@ backend be_tcp:{{$cfgIdx}}
   acl whitelist src {{$ip_whiteList}}
   tcp-request content reject if !whitelist
     {{- end }}
-    {{- with $value := firstMatch $timeSpecRE (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
+    {{- with $value := firstMatch $timeSpecPattern (index $cfg.Annotations "haproxy.router.openshift.io/timeout")}}
   timeout tunnel  {{$value}}
     {{- end }}
 
@@ -458,7 +458,7 @@ backend be_tcp:{{$cfgIdx}}
         {{- with $serviceUnit := index $.ServiceUnits $serviceUnitName }}
           {{- range $idx, $endpoint := processEndpointsForAlias $cfg $serviceUnit (env "ROUTER_BACKEND_PROCESS_ENDPOINTS" "") }}
   server {{$endpoint.ID}} {{$endpoint.IP}}:{{$endpoint.Port}} weight {{$weight}}
-            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecRE (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
+            {{- if not $endpoint.NoHealthCheck }} check inter {{firstMatch $timeSpecPattern (index $cfg.Annotations "router.openshift.io/haproxy.health.check.interval") (env "ROUTER_BACKEND_CHECK_INTERVAL") "5000ms"}}
             {{- end }}{{/* end else no health check */}}
           {{- end }}{{/* end range processEndpointsForAlias */}}
         {{- end }}{{/* end get ServiceUnit from serviceUnitName */}}
