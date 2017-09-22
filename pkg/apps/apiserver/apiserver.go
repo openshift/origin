@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -81,7 +80,8 @@ func (c completedConfig) New(delegationTarget genericapiserver.DelegationTarget)
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(appsapiv1.GroupName, c.Registry, c.Scheme, metav1.ParameterCodec, c.Codecs)
+	parameterCodec := runtime.NewParameterCodec(c.Scheme)
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(appsapiv1.GroupName, c.Registry, c.Scheme, parameterCodec, c.Codecs)
 	apiGroupInfo.GroupMeta.GroupVersion = appsapiv1.SchemeGroupVersion
 	apiGroupInfo.VersionedResourcesStorageMap[appsapiv1.SchemeGroupVersion.Version] = v1Storage
 	if err := s.GenericAPIServer.InstallAPIGroup(&apiGroupInfo); err != nil {
