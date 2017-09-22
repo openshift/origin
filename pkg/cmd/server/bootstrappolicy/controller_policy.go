@@ -77,10 +77,12 @@ func addControllerRoleToSA(saNamespace, saName string, role rbac.ClusterRole) {
 		}
 	}
 
+	addDefaultMetadata(&role)
 	controllerRoles = append(controllerRoles, role)
 
-	controllerRoleBindings = append(controllerRoleBindings,
-		rbac.NewClusterBinding(role.Name).SAs(saNamespace, saName).BindingOrDie())
+	roleBinding := rbac.NewClusterBinding(role.Name).SAs(saNamespace, saName).BindingOrDie()
+	addDefaultMetadata(&roleBinding)
+	controllerRoleBindings = append(controllerRoleBindings, roleBinding)
 }
 
 func eventsRule() rbac.PolicyRule {
@@ -167,8 +169,9 @@ func init() {
 	})
 
 	// template-instance-controller
-	controllerRoleBindings = append(controllerRoleBindings,
-		rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie())
+	templateInstanceController := rbac.NewClusterBinding(AdminRoleName).SAs(DefaultOpenShiftInfraNamespace, InfraTemplateInstanceControllerServiceAccountName).BindingOrDie()
+	addDefaultMetadata(&templateInstanceController)
+	controllerRoleBindings = append(controllerRoleBindings, templateInstanceController)
 
 	// origin-namespace-controller
 	addControllerRole(rbac.ClusterRole{
