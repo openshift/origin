@@ -164,7 +164,6 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 		Stop:               wait.NeverStop,
 	}
 	openshiftControllerContext := origincontrollers.ControllerContext{
-		KubeControllerContext: controllerContext,
 		ClientBuilder: origincontrollers.OpenshiftControllerClientBuilder{
 			ControllerClientBuilder: controller.SAControllerClientBuilder{
 				ClientConfig:         restclient.AnonymousClientConfig(&openshiftConfig.PrivilegedLoopbackClientConfig),

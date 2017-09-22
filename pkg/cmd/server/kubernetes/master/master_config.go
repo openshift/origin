@@ -19,7 +19,6 @@ import (
 	"github.com/golang/glog"
 	"gopkg.in/natefinch/lumberjack.v2"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	openapicommon "k8s.io/apimachinery/pkg/openapi"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,16 +47,13 @@ import (
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
-	cmapp "k8s.io/kubernetes/cmd/kube-controller-manager/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/apis/autoscaling"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	batchv2alpha1 "k8s.io/kubernetes/pkg/apis/batch/v2alpha1"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/apis/networking"
-	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/master"
 	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/endpoint"
@@ -71,7 +67,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/server/cm"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -324,78 +319,6 @@ func buildUpstreamClientCARegistrationHook(s *kapiserveroptions.ServerRunOptions
 		RequestHeaderCA:                  requestHeaderProxyCA,
 		RequestHeaderAllowedNames:        s.Authentication.RequestHeader.AllowedNames,
 	}, nil
-}
-
-func BuildControllerManagerServer(masterConfig configapi.MasterConfig) (*cmapp.CMServer, cloudprovider.Interface, error) {
-	podEvictionTimeout, err := time.ParseDuration(masterConfig.KubernetesMasterConfig.PodEvictionTimeout)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to parse PodEvictionTimeout: %v", err)
-	}
-
-	// Defaults are tested in TestCMServerDefaults
-	cmserver := cmapp.NewCMServer()
-	// Adjust defaults
-	cmserver.ClusterSigningCertFile = ""
-	cmserver.ClusterSigningKeyFile = ""
-	cmserver.LeaderElection.RetryPeriod = metav1.Duration{Duration: 3 * time.Second}
-	cmserver.ClusterSigningDuration = metav1.Duration{Duration: 0}
-	cmserver.Address = "" // no healthz endpoint
-	cmserver.Port = 0     // no healthz endpoint
-	cmserver.EnableGarbageCollector = true
-	cmserver.PodEvictionTimeout = metav1.Duration{Duration: podEvictionTimeout}
-	cmserver.VolumeConfiguration.EnableDynamicProvisioning = masterConfig.VolumeConfig.DynamicProvisioningEnabled
-
-	// IF YOU ADD ANYTHING TO THIS LIST, MAKE SURE THAT YOU UPDATE THEIR STRATEGIES TO PREVENT GC FINALIZERS
-	cmserver.GCIgnoredResources = append(cmserver.GCIgnoredResources,
-		// explicitly disabled from GC for now - not enough value to track them
-		componentconfig.GroupResource{Group: "authorization.openshift.io", Resource: "rolebindingrestrictions"},
-		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "clusternetworks"},
-		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "egressnetworkpolicies"},
-		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "hostsubnets"},
-		componentconfig.GroupResource{Group: "network.openshift.io", Resource: "netnamespaces"},
-		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthclientauthorizations"},
-		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthclients"},
-		componentconfig.GroupResource{Group: "quota.openshift.io", Resource: "clusterresourcequotas"},
-		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "groups"},
-		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "identities"},
-		componentconfig.GroupResource{Group: "user.openshift.io", Resource: "users"},
-		componentconfig.GroupResource{Group: "image.openshift.io", Resource: "images"},
-
-		// virtual resource
-		componentconfig.GroupResource{Group: "project.openshift.io", Resource: "projects"},
-		// these resources contain security information in their names, and we don't need to track them
-		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthaccesstokens"},
-		componentconfig.GroupResource{Group: "oauth.openshift.io", Resource: "oauthauthorizetokens"},
-		// exposed already as cronjobs
-		componentconfig.GroupResource{Group: "batch", Resource: "scheduledjobs"},
-		// exposed already as extensions v1beta1 by other controllers
-		componentconfig.GroupResource{Group: "apps", Resource: "deployments"},
-		// exposed as autoscaling v1
-		componentconfig.GroupResource{Group: "extensions", Resource: "horizontalpodautoscalers"},
-	)
-
-	// resolve extended arguments
-	// TODO: this should be done in config validation (along with the above) so we can provide
-	// proper errors
-	if err := cmdflags.Resolve(masterConfig.KubernetesMasterConfig.ControllerArguments, cm.OriginControllerManagerAddFlags(cmserver)); len(err) > 0 {
-		return nil, nil, kerrors.NewAggregate(err)
-	}
-	cloud, err := cloudprovider.InitCloudProvider(cmserver.CloudProvider, cmserver.CloudConfigFile)
-	if err != nil {
-		return nil, nil, err
-	}
-	if cloud != nil {
-		if cloud.HasClusterID() == false {
-			if cmserver.AllowUntaggedCloud == true {
-				glog.Warning("detected a cluster without a ClusterID.  A ClusterID will be required in the future.  Please tag your cluster to avoid any future issues")
-			} else {
-				return nil, nil, fmt.Errorf("no ClusterID Found.  A ClusterID is required for the cloud provider to function properly.  This check can be bypassed by setting the allow-untagged-cloud option")
-			}
-		}
-		glog.V(2).Infof("Successfully initialized cloud provider: %q from the config file: %q\n", cmserver.CloudProvider, cmserver.CloudConfigFile)
-	}
-
-	return cmserver, cloud, nil
 }
 
 func buildProxyClientCerts(masterConfig configapi.MasterConfig) ([]tls.Certificate, error) {

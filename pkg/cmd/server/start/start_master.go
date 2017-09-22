@@ -421,11 +421,11 @@ func (m *Master) Start() error {
 			}
 		}
 
-		kubeControllerManagerConfig, cloudProvider, err := kubernetes.BuildControllerManagerServer(*m.config)
+		openshiftLeaderElectionArgs, err := getLeaderElectionOptions(m.config.KubernetesMasterConfig.ControllerArguments)
 		if err != nil {
 			return err
 		}
-		kubeExternal, _, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+		kubeExternal, privilegedLoopbackConfig, err := configapi.GetExternalKubeClient(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 		if err != nil {
 			return err
 		}
@@ -434,7 +434,7 @@ func (m *Master) Start() error {
 		var controllerPlugStart func()
 		controllerPlug, controllerPlugStart, err = origin.NewLeaderElection(
 			*m.config,
-			kubeControllerManagerConfig.KubeControllerManagerConfiguration.LeaderElection,
+			openshiftLeaderElectionArgs,
 			kubeExternal,
 			clientGoKubeExternal.Core().Events(""),
 		)
@@ -469,6 +469,9 @@ func (m *Master) Start() error {
 
 		go func() {
 			controllerPlug.WaitForStart()
+			if err := waitForHealthyAPIServer(kubeExternal.Discovery().RESTClient()); err != nil {
+				glog.Fatal(err)
+			}
 
 			// continuously run the scheduler while we have the primary lease
 			go runEmbeddedScheduler(m.config.MasterClients.OpenShiftLoopbackKubeConfig, m.config.KubernetesMasterConfig.SchedulerConfigFile, m.config.KubernetesMasterConfig.SchedulerArguments)
@@ -483,11 +486,11 @@ func (m *Master) Start() error {
 				recyclerImage,
 				informers)
 
-			controllerContext, err := getControllerContext(*m.config, kubeControllerManagerConfig, cloudProvider, informers, utilwait.NeverStop)
+			openshiftControllerOptions, err := getOpenshiftControllerOptions(m.config.KubernetesMasterConfig.ControllerArguments)
 			if err != nil {
 				glog.Fatal(err)
 			}
-
+			controllerContext := newControllerContext(openshiftControllerOptions, privilegedLoopbackConfig, kubeExternal, informers, utilwait.NeverStop)
 			if err := startControllers(*m.config, allocationController, controllerContext); err != nil {
 				glog.Fatal(err)
 			}
@@ -643,7 +646,7 @@ func startControllers(options configapi.MasterConfig, allocationController origi
 	// In 3.7, we will be fixed by the post start hook that prevents readiness unless policy is in place
 	// for 3.6, just make sure we don't proceed until the garbage collector can hit discovery
 	// wait for bootstrap permissions to be established.  This check isn't perfect, but it ensures that at least the controllers checking discovery can succeed
-	gcClientset := controllerContext.KubeControllerContext.ClientBuilder.ClientOrDie("generic-garbage-collector")
+	gcClientset := controllerContext.ClientBuilder.ClientOrDie("generic-garbage-collector")
 	err = wait.PollImmediate(500*time.Millisecond, 30*time.Second, func() (bool, error) {
 		result := gcClientset.Discovery().RESTClient().Get().AbsPath("/apis").Do()
 		var statusCode int

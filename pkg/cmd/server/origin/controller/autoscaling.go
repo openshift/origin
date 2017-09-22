@@ -19,9 +19,10 @@ type HorizontalPodAutoscalerControllerConfig struct {
 }
 
 func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx ControllerContext) (bool, error) {
-	ctx := originCtx.KubeControllerContext
-
-	hpaClientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraHorizontalPodAutoscalerControllerServiceAccountName)
+	hpaClientConfig, err := originCtx.ClientBuilder.Config(bootstrappolicy.InfraHorizontalPodAutoscalerControllerServiceAccountName)
+	if err != nil {
+		return true, err
+	}
 
 	hpaClient, err := kubeclientset.NewForConfig(hpaClientConfig)
 	if err != nil {
@@ -52,11 +53,11 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 		delegatingScalesGetter,
 		hpaClient.Autoscaling(),
 		replicaCalc,
-		ctx.InformerFactory.Autoscaling().V1().HorizontalPodAutoscalers(),
-		ctx.Options.HorizontalPodAutoscalerSyncPeriod.Duration,
-		ctx.Options.HorizontalPodAutoscalerUpscaleForbiddenWindow.Duration,
-		ctx.Options.HorizontalPodAutoscalerDownscaleForbiddenWindow.Duration,
-	).Run(ctx.Stop)
+		originCtx.ExternalKubeInformers.Autoscaling().V1().HorizontalPodAutoscalers(),
+		originCtx.OpenshiftControllerOptions.HPAControllerOptions.SyncPeriod.Duration,
+		originCtx.OpenshiftControllerOptions.HPAControllerOptions.UpscaleForbiddenWindow.Duration,
+		originCtx.OpenshiftControllerOptions.HPAControllerOptions.DownscaleForbiddenWindow.Duration,
+	).Run(originCtx.Stop)
 
 	return true, nil
 }
