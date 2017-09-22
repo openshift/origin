@@ -5,14 +5,14 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/network"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	sdnnode "github.com/openshift/origin/pkg/network/node"
 	sdnproxy "github.com/openshift/origin/pkg/network/proxy"
 )
 
-func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Client, kubeClient kclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
+func NewSDNInterfaces(options configapi.NodeConfig, networkClient networkclient.Interface, kubeClient kclientset.Interface, internalKubeInformers kinternalinformers.SharedInformerFactory, proxyconfig *componentconfig.KubeProxyConfiguration) (network.NodeInterface, network.ProxyInterface, error) {
 	runtimeEndpoint := options.DockerConfig.DockerShimSocket
 	runtime, ok := options.KubeletArguments["container-runtime"]
 	if ok && len(runtime) == 1 && runtime[0] == "remote" {
@@ -28,7 +28,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Clien
 		SelfIP:             options.NodeIP,
 		RuntimeEndpoint:    runtimeEndpoint,
 		MTU:                options.NetworkConfig.MTU,
-		OSClient:           originClient,
+		NetworkClient:      networkClient,
 		KClient:            kubeClient,
 		KubeInformers:      internalKubeInformers,
 		IPTablesSyncPeriod: proxyconfig.IPTables.SyncPeriod.Duration,
@@ -38,7 +38,7 @@ func NewSDNInterfaces(options configapi.NodeConfig, originClient *osclient.Clien
 		return nil, nil, err
 	}
 
-	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, originClient, kubeClient)
+	proxy, err := sdnproxy.New(options.NetworkConfig.NetworkPluginName, networkClient, kubeClient)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -9,10 +9,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/client"
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 )
 
-func NewClusterRoleReaper(roleClient client.ClusterRolesInterface, clusterBindingClient client.ClusterRoleBindingsInterface, bindingClient client.RoleBindingsNamespacer) kubectl.Reaper {
+func NewClusterRoleReaper(roleClient authclient.ClusterRolesGetter, clusterBindingClient authclient.ClusterRoleBindingsGetter, bindingClient authclient.RoleBindingsGetter) kubectl.Reaper {
 	return &ClusterRoleReaper{
 		roleClient:           roleClient,
 		clusterBindingClient: clusterBindingClient,
@@ -21,9 +21,9 @@ func NewClusterRoleReaper(roleClient client.ClusterRolesInterface, clusterBindin
 }
 
 type ClusterRoleReaper struct {
-	roleClient           client.ClusterRolesInterface
-	clusterBindingClient client.ClusterRoleBindingsInterface
-	bindingClient        client.RoleBindingsNamespacer
+	roleClient           authclient.ClusterRolesGetter
+	clusterBindingClient authclient.ClusterRoleBindingsGetter
+	bindingClient        authclient.RoleBindingsGetter
 }
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing clusterroleclusterBindings
@@ -35,7 +35,7 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 	}
 	for _, clusterBinding := range clusterBindings.Items {
 		if clusterBinding.RoleRef.Name == name {
-			if err := r.clusterBindingClient.ClusterRoleBindings().Delete(clusterBinding.Name); err != nil && !kerrors.IsNotFound(err) {
+			if err := r.clusterBindingClient.ClusterRoleBindings().Delete(clusterBinding.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 				glog.Infof("Cannot delete clusterrolebinding/%s: %v", clusterBinding.Name, err)
 			}
 		}
@@ -47,13 +47,13 @@ func (r *ClusterRoleReaper) Stop(namespace, name string, timeout time.Duration, 
 	}
 	for _, namespacedBinding := range namespacedBindings.Items {
 		if namespacedBinding.RoleRef.Namespace == kapi.NamespaceNone && namespacedBinding.RoleRef.Name == name {
-			if err := r.bindingClient.RoleBindings(namespacedBinding.Namespace).Delete(namespacedBinding.Name); err != nil && !kerrors.IsNotFound(err) {
+			if err := r.bindingClient.RoleBindings(namespacedBinding.Namespace).Delete(namespacedBinding.Name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 				glog.Infof("Cannot delete rolebinding/%s in %s: %v", namespacedBinding.Name, namespacedBinding.Namespace, err)
 			}
 		}
 	}
 
-	if err := r.roleClient.ClusterRoles().Delete(name); err != nil && !kerrors.IsNotFound(err) {
+	if err := r.roleClient.ClusterRoles().Delete(name, &metav1.DeleteOptions{}); err != nil && !kerrors.IsNotFound(err) {
 		return err
 	}
 

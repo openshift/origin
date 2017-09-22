@@ -9,14 +9,15 @@ import (
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // NewImageQuotaRegistry returns a registry for quota evaluation of OpenShift resources related to images in
 // internal registry. It evaluates only image streams and related virtual resources that can cause a creation
 // of new image stream objects.
-func NewImageQuotaRegistry(isInformer imageinternalversion.ImageStreamInformer) quota.Registry {
+func NewImageQuotaRegistry(isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) quota.Registry {
 	imageStream := NewImageStreamEvaluator(isInformer.Lister())
-	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister())
+	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), imageClient)
 	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())
 	return &generic.GenericRegistry{
 		InternalEvaluators: map[schema.GroupKind]quota.Evaluator{
@@ -32,9 +33,9 @@ func NewImageQuotaRegistry(isInformer imageinternalversion.ImageStreamInformer) 
 // of new image stream objects.
 // This is different that is used for reconciliation because admission has to check all forms of a resource (legacy and groupified), but
 // reconciliation only has to check one.
-func NewImageQuotaRegistryForAdmission(isInformer imageinternalversion.ImageStreamInformer) quota.Registry {
+func NewImageQuotaRegistryForAdmission(isInformer imageinternalversion.ImageStreamInformer, imageClient imageclient.ImageStreamTagsGetter) quota.Registry {
 	imageStream := NewImageStreamEvaluator(isInformer.Lister())
-	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister())
+	imageStreamTag := NewImageStreamTagEvaluator(isInformer.Lister(), imageClient)
 	imageStreamImport := NewImageStreamImportEvaluator(isInformer.Lister())
 	return &generic.GenericRegistry{
 		// TODO remove the LegacyKind entries below when the legacy api group is no longer supported

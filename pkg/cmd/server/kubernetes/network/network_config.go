@@ -16,11 +16,11 @@ import (
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/dns"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 // NetworkConfig represents the required parameters to start OpenShift networking
@@ -49,10 +49,6 @@ type NetworkConfig struct {
 
 // New creates a new network config object for running the networking components of the OpenShift node.
 func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *componentconfig.KubeProxyConfiguration, enableProxy, enableDNS bool) (*NetworkConfig, error) {
-	originClient, _, err := configapi.GetOpenShiftClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
 	internalKubeClient, kubeConfig, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
@@ -65,8 +61,12 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 	if err != nil {
 		return nil, err
 	}
+	networkClient, err := networkclient.NewForConfig(kubeConfig)
+	if err != nil {
+		return nil, err
+	}
 
-	if err = validateNetworkPluginName(originClient, options.NetworkConfig.NetworkPluginName); err != nil {
+	if err = validateNetworkPluginName(networkClient, options.NetworkConfig.NetworkPluginName); err != nil {
 		return nil, err
 	}
 
@@ -75,7 +75,7 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 	var sdnNode network.NodeInterface
 	var sdnProxy network.ProxyInterface
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
-		sdnNode, sdnProxy, err = NewSDNInterfaces(options, originClient, internalKubeClient, internalKubeInformers, proxyConfig)
+		sdnNode, sdnProxy, err = NewSDNInterfaces(options, networkClient, internalKubeClient, internalKubeInformers, proxyConfig)
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
 		}
@@ -147,10 +147,10 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 	return config, nil
 }
 
-func validateNetworkPluginName(originClient *osclient.Client, pluginName string) error {
+func validateNetworkPluginName(networkClient networkclient.Interface, pluginName string) error {
 	if network.IsOpenShiftNetworkPlugin(pluginName) {
 		// Detect any plugin mismatches between node and master
-		clusterNetwork, err := originClient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+		clusterNetwork, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
 		} else if err != nil {

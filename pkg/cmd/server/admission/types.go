@@ -31,6 +31,20 @@ type WantsOpenshiftInternalBuildClient interface {
 	admission.Validator
 }
 
+// WantsOpenshiftInternalQuotaClient should be implemented by admission plugins that need
+// an Openshift internal quota client
+type WantsOpenshiftInternalQuotaClient interface {
+	SetOpenshiftInternalQuotaClient(quotaclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalUserClient should be implemented by admission plugins that need
+// an Openshift internal user client
+type WantsOpenshiftInternalUserClient interface {
+	SetOpenshiftInternalUserClient(userclient.Interface)
+	admission.Validator
+}
+
 // WantsOpenshiftInternalImageClient should be implemented by admission plugins that need
 // an Openshift internal image client
 type WantsOpenshiftInternalImageClient interface {
@@ -38,20 +52,10 @@ type WantsOpenshiftInternalImageClient interface {
 	admission.Validator
 }
 
-type WantsOpenshiftInternalQuotaClient interface {
-	SetOpenshiftInternalQuotaClient(quotaclient.Interface)
-	admission.Validator
-}
-
 // WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
 // an Openshift internal template client
 type WantsOpenshiftInternalTemplateClient interface {
-	SetOpenShiftInternalTemplateClient(templateclient.Interface)
-	admission.Validator
-}
-
-type WantsOpenshiftInternalUserClient interface {
-	SetOpenshiftInternalUserClient(userclient.Interface)
+	SetOpenshiftInternalTemplateClient(templateclient.Interface)
 	admission.Validator
 }
 

@@ -39,7 +39,7 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 	}
 	err := utilwait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		subnet, err = plugin.osClient.HostSubnets().Get(plugin.hostName, metav1.GetOptions{})
+		subnet, err = plugin.networkClient.Network().HostSubnets().Get(plugin.hostName, metav1.GetOptions{})
 		if err == nil {
 			return true, nil
 		} else if kapierrors.IsNotFound(err) {

@@ -59,7 +59,7 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 		wantsOpenshiftQuotaClient.SetOpenshiftInternalQuotaClient(i.OpenshiftInternalQuotaClient)
 	}
 	if WantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
-		WantsOpenshiftInternalTemplateClient.SetOpenShiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
+		WantsOpenshiftInternalTemplateClient.SetOpenshiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
 	}
 	if WantsOpenshiftInternalUserClient, ok := plugin.(WantsOpenshiftInternalUserClient); ok {
 		WantsOpenshiftInternalUserClient.SetOpenshiftInternalUserClient(i.OpenshiftInternalUserClient)

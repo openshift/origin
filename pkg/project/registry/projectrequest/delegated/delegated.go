@@ -27,7 +27,6 @@ import (
 
 	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
@@ -35,6 +34,7 @@ import (
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 type REST struct {
@@ -187,7 +187,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 
 	bulk := configcmd.Bulk{
 		Mapper: &resource.Mapper{
-			RESTMapper:   client.DefaultMultiRESTMapper(),
+			RESTMapper:   restutil.DefaultMultiRESTMapper(),
 			ObjectTyper:  kapi.Scheme,
 			ClientMapper: configcmd.ClientMapperFromConfig(r.restConfig),
 		},

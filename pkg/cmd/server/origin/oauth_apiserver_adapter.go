@@ -4,11 +4,13 @@ import (
 	"net"
 	"strconv"
 
+	apiserveroptions "k8s.io/apiserver/pkg/server/options"
+	utilflag "k8s.io/apiserver/pkg/util/flag"
+
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
-	apiserveroptions "k8s.io/apiserver/pkg/server/options"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
 
 // TODO this is taking a very large config for a small piece of it.  The information must be broken up at some point so that
@@ -54,8 +56,12 @@ func NewOAuthServerConfigFromMasterConfig(masterConfig *MasterConfig) (*oauthapi
 	oauthServerConfig.GenericConfig.SecureServingInfo.MinTLSVersion = crypto.TLSVersionOrDie(servingConfig.MinTLSVersion)
 	oauthServerConfig.GenericConfig.SecureServingInfo.CipherSuites = crypto.CipherSuitesOrDie(servingConfig.CipherSuites)
 
+	routeClient, err := routeclient.NewForConfig(&masterConfig.PrivilegedLoopbackClientConfig)
+	if err != nil {
+		return nil, err
+	}
 	// TODO pass a privileged client config through during construction.  It is NOT a loopback client.
-	oauthServerConfig.OpenShiftClient = masterConfig.PrivilegedLoopbackOpenShiftClient
+	oauthServerConfig.RouteClient = routeClient
 	oauthServerConfig.KubeClient = masterConfig.PrivilegedLoopbackKubernetesClientsetInternal
 
 	// Build the list of valid redirect_uri prefixes for a login using the openshift-web-console client to redirect to

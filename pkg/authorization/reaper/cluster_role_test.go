@@ -12,7 +12,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
-	"github.com/openshift/origin/pkg/client/testclient"
+	authorizationfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 )
 
 func TestClusterRoleReaper(t *testing.T) {
@@ -67,7 +67,7 @@ func TestClusterRoleReaper(t *testing.T) {
 		for _, binding := range test.bindings {
 			startingObjects = append(startingObjects, binding)
 		}
-		tc := testclient.NewSimpleFake(startingObjects...)
+		tc := authorizationfake.NewSimpleClientset(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
 		tc.PrependReactor("delete", "clusterrolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -75,7 +75,7 @@ func TestClusterRoleReaper(t *testing.T) {
 			return true, nil, nil
 		})
 
-		reaper := NewClusterRoleReaper(tc, tc, tc)
+		reaper := NewClusterRoleReaper(tc.Authorization(), tc.Authorization(), tc.Authorization())
 		err := reaper.Stop("", test.role.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
@@ -136,7 +136,7 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 		for _, binding := range test.bindings {
 			startingObjects = append(startingObjects, binding)
 		}
-		tc := testclient.NewSimpleFake(startingObjects...)
+		tc := authorizationfake.NewSimpleClientset(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
 		tc.PrependReactor("delete", "rolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -144,7 +144,7 @@ func TestClusterRoleReaperAgainstNamespacedBindings(t *testing.T) {
 			return true, nil, nil
 		})
 
-		reaper := NewClusterRoleReaper(tc, tc, tc)
+		reaper := NewClusterRoleReaper(tc.Authorization(), tc.Authorization(), tc.Authorization())
 		err := reaper.Stop("", test.role.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
