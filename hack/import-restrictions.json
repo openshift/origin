@@ -120,15 +120,14 @@
     "allowedImportPackageRoots": [
       "vendor/k8s.io/apimachinery",
       "vendor/github.com/gogo/protobuf",
+      "github.com/openshift/origin/pkg/image/apis/image/internal",
       "github.com/openshift/origin/pkg/api/apihelpers"
     ],
     "allowedImportPackages": [
       "vendor/k8s.io/kubernetes/pkg/api",
       "vendor/k8s.io/kubernetes/pkg/api/v1",
       "vendor/github.com/golang/glog",
-      "vendor/github.com/docker/distribution/digest",
-      "vendor/github.com/blang/semver",
-      "github.com/openshift/origin/pkg/image/reference"
+      "vendor/github.com/blang/semver"
     ]
   },
 
