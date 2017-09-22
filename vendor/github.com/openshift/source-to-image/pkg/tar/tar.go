@@ -294,11 +294,7 @@ func (t *stiTar) writeTarHeader(tarWriter Writer, dir string, path string, info 
 	header.Linkname = filepath.ToSlash(header.Linkname)
 	logFile(logger, header.Name)
 	glog.V(5).Infof("Adding to tar: %s as %s", path, header.Name)
-	if err = tarWriter.WriteHeader(header); err != nil {
-		return err
-	}
-
-	return nil
+	return tarWriter.WriteHeader(header)
 }
 
 // ExtractTarStream calls ExtractTarStreamFromTarReader with a default reader and nil logger

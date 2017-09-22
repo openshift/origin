@@ -35,13 +35,16 @@ func ValidateConfig(config *api.Config) []Error {
 }
 
 // validateDockerNetworkMode checks wether the network mode conforms to the docker remote API specification (v1.19)
-// Supported values are: bridge, host, and container:<name|id>
+// Supported values are: bridge, host, container:<name|id>, and netns:/proc/<pid>/ns/net
 func validateDockerNetworkMode(mode api.DockerNetworkMode) bool {
 	switch mode {
 	case api.DockerNetworkModeBridge, api.DockerNetworkModeHost:
 		return true
 	}
 	if strings.HasPrefix(string(mode), api.DockerNetworkModeContainerPrefix) {
+		return true
+	}
+	if strings.HasPrefix(string(mode), api.DockerNetworkModeNetworkNamespacePrefix) {
 		return true
 	}
 	return false
