@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -12,7 +13,6 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 
 	"github.com/openshift/origin/pkg/client/testclient"
@@ -145,7 +145,7 @@ func TestUpdateQuota(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", tc.name, err)
 			continue
 		}
-		if !kapihelper.Semantic.DeepEqual(expectedV1, actualV1) {
+		if !equality.Semantic.DeepEqual(expectedV1, actualV1) {
 			t.Errorf("%s: %v", tc.name, utildiff.ObjectDiff(expectedV1, actualV1))
 			continue
 		}
@@ -324,7 +324,7 @@ func TestGetQuota(t *testing.T) {
 		}
 
 		expectedQuotas := tc.expectedQuotas()
-		if !kapihelper.Semantic.DeepEqual(expectedQuotas, actualQuotaPointers) {
+		if !equality.Semantic.DeepEqual(expectedQuotas, actualQuotaPointers) {
 			t.Errorf("%s: expectedLen: %v actualLen: %v", tc.name, len(expectedQuotas), len(actualQuotas))
 			for i := range expectedQuotas {
 				expectedV1, err := kapi.Scheme.ConvertToVersion(expectedQuotas[i], quotaapiv1.SchemeGroupVersion)
@@ -337,7 +337,7 @@ func TestGetQuota(t *testing.T) {
 					t.Errorf("%s: unexpected error: %v", tc.name, err)
 					continue
 				}
-				t.Errorf("%s: %v equal? %v", tc.name, utildiff.ObjectDiff(expectedV1, actualV1), kapihelper.Semantic.DeepEqual(expectedV1, actualV1))
+				t.Errorf("%s: %v equal? %v", tc.name, utildiff.ObjectDiff(expectedV1, actualV1), equality.Semantic.DeepEqual(expectedV1, actualV1))
 			}
 			continue
 		}
