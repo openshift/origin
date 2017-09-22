@@ -338,7 +338,9 @@ func getTestServiceBroker() *v1alpha1.ServiceBroker {
 	return &v1alpha1.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: testServiceBrokerName},
 		Spec: v1alpha1.ServiceBrokerSpec{
-			URL: "https://example.com",
+			URL:            "https://example.com",
+			RelistBehavior: v1alpha1.ServiceBrokerRelistBehaviorDuration,
+			RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
 		},
 	}
 }

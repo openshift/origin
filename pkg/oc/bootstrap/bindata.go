@@ -13876,7 +13876,7 @@ objects:
           - apiserver
           args:
           - --admission-control
-          - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceInstanceCredentialsLifecycle,ServicePlanChangeValidator
+          - KubernetesNamespaceLifecycle,DefaultServicePlan,ServiceInstanceCredentialsLifecycle,ServicePlanChangeValidator,BrokerAuthSarCheck
           - --storage-type
           - etcd
           - --secure-port
@@ -13887,6 +13887,8 @@ objects:
           - "10"
           - --cors-allowed-origins
           - ${CORS_ALLOWED_ORIGIN}
+          - --feature-gates
+          - OriginatingIdentity=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: apiserver
@@ -13977,6 +13979,8 @@ objects:
           - kube-service-catalog
           - --broker-relist-interval
           - "5m"
+          - --feature-gates
+          - OriginatingIdentity=true
           image: ${SERVICE_CATALOG_IMAGE}
           imagePullPolicy: IfNotPresent
           name: controller-manager

@@ -31,10 +31,7 @@ func FromUnstructured(in runtime.Unstructured, out runtime.Object) error {
 		return err
 	}
 
-	if err := json.Unmarshal(b, out); err != nil {
-		return err
-	}
-	return nil
+	return json.Unmarshal(b, out)
 }
 
 // ToUnstructured converts in (which should be a Service Catalog third party object type) into a
