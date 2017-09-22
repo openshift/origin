@@ -4,9 +4,9 @@ import (
 	"reflect"
 	"sync"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 )
@@ -193,7 +193,7 @@ func (m *clusterQuotaMapper) removeNamespace(namespaceName string) {
 }
 
 func selectorMatches(selector quotaapi.ClusterResourceQuotaSelector, exists bool, quota *quotaapi.ClusterResourceQuota) bool {
-	return exists && kapihelper.Semantic.DeepEqual(selector, quota.Spec.Selector)
+	return exists && equality.Semantic.DeepEqual(selector, quota.Spec.Selector)
 }
 func selectionFieldsMatch(selectionFields SelectionFields, exists bool, namespace metav1.Object) bool {
 	return exists && reflect.DeepEqual(selectionFields, GetSelectionFields(namespace))

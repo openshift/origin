@@ -18,6 +18,7 @@ import (
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -57,6 +58,12 @@ type ControllerClientBuilder interface {
 	DeprecatedOpenshiftClient(name string) (osclient.Interface, error)
 	DeprecatedOpenshiftClientOrDie(name string) osclient.Interface
 
+	OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error)
+	OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface
+
+	OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error)
+	OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface
+
 	// OpenShift clients based on generated internal clientsets
 	OpenshiftInternalTemplateClient(name string) (templateclient.Interface, error)
 	OpenshiftInternalTemplateClientOrDie(name string) templateclient.Interface
@@ -64,11 +71,8 @@ type ControllerClientBuilder interface {
 	OpenshiftInternalImageClient(name string) (imageclientinternal.Interface, error)
 	OpenshiftInternalImageClientOrDie(name string) imageclientinternal.Interface
 
-	OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error)
-	OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface
-
-	OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error)
-	OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface
+	OpenshiftInternalQuotaClient(name string) (quotaclient.Interface, error)
+	OpenshiftInternalQuotaClientOrDie(name string) quotaclient.Interface
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -200,9 +204,21 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClientOrDie(name
 	return client
 }
 
-// FromKubeInitFunc adapts a kube init func to an openshift one
-func FromKubeInitFunc(initFn kubecontroller.InitFunc) InitFunc {
-	return func(ctx ControllerContext) (bool, error) {
-		return initFn(ctx.KubeControllerContext)
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalQuotaClient(name string) (quotaclient.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
 	}
+	return quotaclient.NewForConfig(clientConfig)
+}
+
+// OpenshiftInternalBuildClientOrDie provides a REST client for the build API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalQuotaClientOrDie(name string) quotaclient.Interface {
+	client, err := b.OpenshiftInternalQuotaClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
 }

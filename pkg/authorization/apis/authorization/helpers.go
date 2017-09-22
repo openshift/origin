@@ -6,10 +6,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/validation/path"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apiserver/pkg/authentication/serviceaccount"
-	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
-	// uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+
+	"github.com/openshift/origin/pkg/authorization/apis/authorization/internal/serviceaccount"
 )
 
 func (r PolicyRule) String() string {
@@ -206,80 +205,6 @@ func SubjectsStrings(currentNamespace string, subjects []kapi.ObjectReference) (
 	}
 
 	return users, groups, sas, others
-}
-
-// SubjectsContainUser returns true if the provided subjects contain the named user. currentNamespace
-// is used to identify service accounts that are defined in a relative fashion.
-func SubjectsContainUser(subjects []kapi.ObjectReference, currentNamespace string, user string) bool {
-	if !strings.HasPrefix(user, serviceaccount.ServiceAccountUsernamePrefix) {
-		for _, subject := range subjects {
-			switch subject.Kind {
-			case UserKind, SystemUserKind:
-				if user == subject.Name {
-					return true
-				}
-			}
-		}
-		return false
-	}
-
-	for _, subject := range subjects {
-		switch subject.Kind {
-		case ServiceAccountKind:
-			namespace := currentNamespace
-			if len(subject.Namespace) > 0 {
-				namespace = subject.Namespace
-			}
-			if len(namespace) == 0 {
-				continue
-			}
-			if user == serviceaccount.MakeUsername(namespace, subject.Name) {
-				return true
-			}
-
-		case UserKind, SystemUserKind:
-			if user == subject.Name {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// SubjectsContainAnyGroup returns true if the provided subjects any of the named groups.
-func SubjectsContainAnyGroup(subjects []kapi.ObjectReference, groups []string) bool {
-	for _, subject := range subjects {
-		switch subject.Kind {
-		case GroupKind, SystemGroupKind:
-			for _, group := range groups {
-				if group == subject.Name {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func AddUserToSAR(user user.Info, sar *SubjectAccessReview) *SubjectAccessReview {
-	origScopes := user.GetExtra()[ScopesKey]
-	scopes := make([]string, len(origScopes), len(origScopes))
-	copy(scopes, origScopes)
-
-	sar.User = user.GetName()
-	sar.Groups = sets.NewString(user.GetGroups()...)
-	sar.Scopes = scopes
-	return sar
-}
-func AddUserToLSAR(user user.Info, lsar *LocalSubjectAccessReview) *LocalSubjectAccessReview {
-	origScopes := user.GetExtra()[ScopesKey]
-	scopes := make([]string, len(origScopes), len(origScopes))
-	copy(scopes, origScopes)
-
-	lsar.User = user.GetName()
-	lsar.Groups = sets.NewString(user.GetGroups()...)
-	lsar.Scopes = scopes
-	return lsar
 }
 
 // +gencopy=false

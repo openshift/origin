@@ -11,8 +11,8 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	otestclient "github.com/openshift/origin/pkg/client/testclient"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	fakeuserclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 func mustNewSubjectChecker(t *testing.T, spec *authorizationapi.RoleBindingRestrictionSpec) SubjectChecker {
@@ -50,7 +50,7 @@ func TestSubjectCheckers(t *testing.T) {
 			},
 			Users: []string{userBobRef.Name},
 		}
-		objects = []runtime.Object{
+		userObjects = []runtime.Object{
 			&userapi.User{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "Alice",
@@ -62,6 +62,8 @@ func TestSubjectCheckers(t *testing.T) {
 				Groups:     []string{"group"},
 			},
 			&group,
+		}
+		kubeObjects = []runtime.Object{
 			&kapi.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "namespace",
@@ -313,8 +315,8 @@ func TestSubjectCheckers(t *testing.T) {
 	stopCh := make(chan struct{})
 	defer close(stopCh)
 
-	kclient := fake.NewSimpleClientset(otestclient.UpstreamObjects(objects)...)
-	oclient := otestclient.NewSimpleFake(otestclient.OriginObjects(objects)...)
+	kclient := fake.NewSimpleClientset(kubeObjects...)
+	fakeUserClient := fakeuserclient.NewSimpleClientset(userObjects...)
 	groupCache := fakeGroupCache{groups: []userapi.Group{group}}
 	// This is a terrible, horrible, no-good, very bad hack to avoid a race
 	// condition between the test "allow regular user by group membership"
@@ -327,7 +329,7 @@ func TestSubjectCheckers(t *testing.T) {
 	}
 
 	ctx, err := NewRoleBindingRestrictionContext("namespace",
-		kclient, oclient, groupCache)
+		kclient, fakeUserClient.User(), groupCache)
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}

@@ -18,17 +18,23 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
+	authorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
 	"k8s.io/kubernetes/pkg/apis/rbac"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	osauthorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclientinternal "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectrequestregistry "github.com/openshift/origin/pkg/project/registry/projectrequest"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 type REST struct {
@@ -36,8 +42,10 @@ type REST struct {
 	templateNamespace string
 	templateName      string
 
-	openshiftClient *client.Client
-	restConfig      *restclient.Config
+	sarClient      authorizationclient.SubjectAccessReviewInterface
+	projectGetter  projectclientinternal.ProjectsGetter
+	templateClient templateclient.Interface
+	restConfig     *restclient.Config
 
 	// policyBindings is an auth cache that is shared with the authorizer for the API server.
 	// we use this cache to detect when the authorizer has observed the change for the auth rules
@@ -47,12 +55,14 @@ type REST struct {
 var _ rest.Lister = &REST{}
 var _ rest.Creater = &REST{}
 
-func NewREST(message, templateNamespace, templateName string, openshiftClient *client.Client, restConfig *restclient.Config, roleBindings rbaclisters.RoleBindingLister) *REST {
+func NewREST(message, templateNamespace, templateName string, projectClient projectclientinternal.ProjectsGetter, templateClient templateclient.Interface, sarClient authorizationclient.SubjectAccessReviewInterface, restConfig *restclient.Config, roleBindings rbaclisters.RoleBindingLister) *REST {
 	return &REST{
 		message:           message,
 		templateNamespace: templateNamespace,
 		templateName:      templateName,
-		openshiftClient:   openshiftClient,
+		projectGetter:     projectClient,
+		templateClient:    templateClient,
+		sarClient:         sarClient,
 		restConfig:        restConfig,
 		roleBindings:      roleBindings,
 	}
@@ -91,7 +101,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 		}
 	}
 
-	if _, err := r.openshiftClient.Projects().Get(projectRequest.Name, metav1.GetOptions{}); err == nil {
+	if _, err := r.projectGetter.Projects().Get(projectRequest.Name, metav1.GetOptions{}); err == nil {
 		return nil, kapierror.NewAlreadyExists(projectapi.Resource("project"), projectRequest.Name)
 	}
 
@@ -123,7 +133,8 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 		}
 	}
 
-	list, err := r.openshiftClient.TemplateConfigs(metav1.NamespaceDefault).Create(template)
+	tc := templateinternalclient.NewTemplateProcessorClient(r.templateClient.Template().RESTClient(), metav1.NamespaceDefault)
+	list, err := tc.Process(template)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +157,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 			continue
 		case *rbac.RoleBinding:
 			lastRoleBindingName = t.Name
-		case *authorizationapi.RoleBinding:
+		case *osauthorizationapi.RoleBinding:
 			lastRoleBindingName = t.Name
 		default:
 			// noop, we care only for special handling projects and roles
@@ -160,7 +171,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	}
 
 	// we split out project creation separately so that in a case of racers for the same project, only one will win and create the rest of their template objects
-	createdProject, err := r.openshiftClient.Projects().Create(projectFromTemplate)
+	createdProject, err := r.projectGetter.Projects().Create(projectFromTemplate)
 	if err != nil {
 		// log errors other than AlreadyExists and Forbidden
 		if !kapierror.IsAlreadyExists(err) && !kapierror.IsForbidden(err) {
@@ -186,7 +197,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	if err := utilerrors.NewAggregate(bulk.Run(objectsToCreate, createdProject.Name)); err != nil {
 		utilruntime.HandleError(fmt.Errorf("error creating items in requested project %q: %v", createdProject.Name, err))
 		// We have to clean up the project if any part of the project request template fails
-		if deleteErr := r.openshiftClient.Projects().Delete(createdProject.Name); deleteErr != nil {
+		if deleteErr := r.projectGetter.Projects().Delete(createdProject.Name, &metav1.DeleteOptions{}); deleteErr != nil {
 			utilruntime.HandleError(fmt.Errorf("error cleaning up requested project %q: %v", createdProject.Name, deleteErr))
 		}
 		return nil, kapierror.NewInternalError(err)
@@ -197,7 +208,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 		r.waitForRoleBinding(createdProject.Name, lastRoleBindingName)
 	}
 
-	return r.openshiftClient.Projects().Get(createdProject.Name, metav1.GetOptions{})
+	return r.projectGetter.Projects().Get(createdProject.Name, metav1.GetOptions{})
 }
 
 func (r *REST) waitForRoleBinding(namespace, name string) {
@@ -221,7 +232,7 @@ func (r *REST) getTemplate() (*templateapi.Template, error) {
 		return DefaultTemplate(), nil
 	}
 
-	return r.openshiftClient.Templates(r.templateNamespace).Get(r.templateName, metav1.GetOptions{})
+	return r.templateClient.Template().Templates(r.templateNamespace).Get(r.templateName, metav1.GetOptions{})
 }
 
 var _ = rest.Lister(&REST{})
@@ -234,19 +245,20 @@ func (r *REST) List(ctx apirequest.Context, options *metainternal.ListOptions) (
 
 	// the caller might not have permission to run a subject access review (he has it by default, but it could have been removed).
 	// So we'll escalate for the subject access review to determine rights
-	accessReview := authorizationapi.AddUserToSAR(userInfo,
-		&authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{
+	accessReview := authorizationutil.AddUserToSAR(userInfo, &authorizationapi.SubjectAccessReview{
+		Spec: authorizationapi.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorizationapi.ResourceAttributes{
 				Verb:     "create",
 				Group:    projectapi.GroupName,
 				Resource: "projectrequests",
 			},
-		})
-	accessReviewResponse, err := r.openshiftClient.SubjectAccessReviews().Create(accessReview)
+		},
+	})
+	accessReviewResponse, err := r.sarClient.Create(accessReview)
 	if err != nil {
 		return nil, err
 	}
-	if accessReviewResponse.Allowed {
+	if accessReviewResponse.Status.Allowed {
 		return &metav1.Status{Status: metav1.StatusSuccess}, nil
 	}
 
