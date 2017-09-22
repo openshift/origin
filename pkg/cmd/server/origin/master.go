@@ -339,9 +339,8 @@ func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Han
 
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
-	osclient, kclient := c.RouteAllocatorClients()
+	_, kclient := c.RouteAllocatorClients()
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		OSClient:   osclient,
 		KubeClient: kclient,
 	}
 

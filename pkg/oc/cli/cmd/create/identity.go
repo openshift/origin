@@ -12,9 +12,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const IdentityRecommendedName = "identity"
@@ -39,7 +39,7 @@ type CreateIdentityOptions struct {
 	ProviderName     string
 	ProviderUserName string
 
-	IdentityClient client.IdentityInterface
+	IdentityClient userclient.IdentityInterface
 
 	DryRun bool
 
@@ -87,11 +87,11 @@ func (o *CreateIdentityOptions) Complete(cmd *cobra.Command, f *clientcmd.Factor
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
-	client, _, err := f.Clients()
+	client, err := f.OpenshiftInternalUserClient()
 	if err != nil {
 		return err
 	}
-	o.IdentityClient = client.Identities()
+	o.IdentityClient = client.User().Identities()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")

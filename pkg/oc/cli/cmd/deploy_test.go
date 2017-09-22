@@ -16,8 +16,8 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	tc "github.com/openshift/origin/pkg/client/testclient"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -44,21 +44,24 @@ func TestCmdDeploy_latestOk(t *testing.T) {
 		config := deploytest.OkDeploymentConfig(1)
 		updatedConfig := config
 
-		osClient := &tc.Fake{}
-		osClient.AddReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		osClient := &appsfake.Clientset{}
+		osClient.PrependReactor("get", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, config, nil
 		})
-		osClient.AddReactor("update", "deploymentconfigs/instantiate", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		osClient.PrependReactor("create", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+			if action.GetSubresource() != "instantiate" {
+				return false, nil, nil
+			}
 			updatedConfig.Status.LatestVersion++
 			return true, updatedConfig, nil
 		})
 
 		kubeClient := fake.NewSimpleClientset()
-		kubeClient.AddReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+		kubeClient.PrependReactor("get", "replicationcontrollers", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 			return true, deploymentFor(config, status), nil
 		})
 
-		o := &DeployOptions{osClient: osClient, kubeClient: kubeClient, out: ioutil.Discard}
+		o := &DeployOptions{appsClient: osClient.Apps(), kubeClient: kubeClient, out: ioutil.Discard}
 		err := o.deploy(config)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
@@ -295,7 +298,7 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 
 	var updated *deployapi.DeploymentConfig
 
-	osClient := &tc.Fake{}
+	osClient := &appsfake.Clientset{}
 	osClient.AddReactor("update", "deploymentconfigs", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		updated = action.(clientgotesting.UpdateAction).GetObject().(*deployapi.DeploymentConfig)
 		return true, updated, nil
@@ -308,7 +311,7 @@ func TestDeploy_reenableTriggers(t *testing.T) {
 		config.Spec.Triggers = append(config.Spec.Triggers, mktrigger())
 	}
 
-	o := &DeployOptions{osClient: osClient, out: ioutil.Discard}
+	o := &DeployOptions{appsClient: osClient.Apps(), out: ioutil.Discard}
 	err := o.reenableTriggers(config)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

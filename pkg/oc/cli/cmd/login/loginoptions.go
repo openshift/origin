@@ -20,7 +20,6 @@ import (
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kterm "k8s.io/kubernetes/pkg/util/term"
 
-	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/term"
@@ -29,6 +28,7 @@ import (
 	loginutil "github.com/openshift/origin/pkg/oc/cli/cmd/login/util"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	cmderr "github.com/openshift/origin/pkg/oc/errors"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 )
 
@@ -261,12 +261,12 @@ func (o *LoginOptions) gatherProjectInfo() error {
 		return fmt.Errorf("current user, %v, does not match expected user %v", me.Name, o.Username)
 	}
 
-	oClient, err := client.New(o.Config)
+	projectClient, err := projectclient.NewForConfig(o.Config)
 	if err != nil {
 		return err
 	}
 
-	projectsList, err := oClient.Projects().List(metav1.ListOptions{})
+	projectsList, err := projectClient.Project().Projects().List(metav1.ListOptions{})
 	// if we're running on kube (or likely kube), just set it to "default"
 	if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 		fmt.Fprintf(o.Out, "Using \"default\".  You can switch projects with:\n\n '%s project <projectname>'\n", o.CommandName)
@@ -285,7 +285,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 
 	if len(o.DefaultNamespace) > 0 && !projects.Has(o.DefaultNamespace) {
 		// Attempt a direct get of our current project in case it hasn't appeared in the list yet
-		if currentProject, err := oClient.Projects().Get(o.DefaultNamespace, metav1.GetOptions{}); err == nil {
+		if currentProject, err := projectClient.Project().Projects().Get(o.DefaultNamespace, metav1.GetOptions{}); err == nil {
 			// If we get it successfully, add it to the list
 			projectsItems = append(projectsItems, *currentProject)
 			projects.Insert(currentProject.Name)
@@ -317,7 +317,7 @@ func (o *LoginOptions) gatherProjectInfo() error {
 			}
 		}
 
-		current, err := oClient.Projects().Get(namespace, metav1.GetOptions{})
+		current, err := projectClient.Project().Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil && !kerrors.IsNotFound(err) && !clientcmd.IsForbidden(err) {
 			return err
 		}
