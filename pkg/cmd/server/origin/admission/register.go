@@ -1,7 +1,10 @@
 package admission
 
 import (
+	"bytes"
 	"io"
+	"io/ioutil"
+	"reflect"
 
 	"github.com/golang/glog"
 
@@ -117,24 +120,47 @@ var (
 	)
 )
 
-func init() {
-	admission.PluginEnabledFn = IsAdmissionPluginActivated
-}
+// IsAdmissionPluginActivated returns true if the admission plugin has to be enabled otherwise false.
+// It also returns plugin config reader as nill if DefaultAdmissionConfig is passed, otherwise it
+// returns the same copy of passed plugin config reader.
+func IsAdmissionPluginActivated(name string, pluginConfigReader io.Reader) (bool, io.Reader) {
+	input, output, err := splitStream(pluginConfigReader)
+	if err != nil {
+		return false, nil
+	}
 
-func IsAdmissionPluginActivated(name string, config io.Reader) bool {
 	// only intercept if we have an explicit enable or disable.  If the check fails in any way,
 	// assume that the config was a different type and let the actual admission plugin check it
+	var initMode configlatest.AdmissionPluginInitMode
 	if DefaultOnPlugins.Has(name) {
-		if enabled, err := configlatest.IsAdmissionPluginActivated(config, true); err == nil && !enabled {
+		if initMode = configlatest.IsAdmissionPluginActivated(input, true); initMode == configlatest.Disabled {
 			glog.V(2).Infof("Admission plugin %v is disabled.  It will not be started.", name)
-			return false
 		}
 	} else if DefaultOffPlugins.Has(name) {
-		if enabled, err := configlatest.IsAdmissionPluginActivated(config, false); err == nil && !enabled {
+		if initMode = configlatest.IsAdmissionPluginActivated(input, false); initMode == configlatest.Disabled {
 			glog.V(2).Infof("Admission plugin %v is not enabled.  It will not be started.", name)
-			return false
 		}
 	}
 
-	return true
+	if initMode == configlatest.EnabledWithDefaultAdmissionConfig {
+		output = nil
+	}
+
+	return initMode == configlatest.Disabled, output
+}
+
+// splitStream reads the stream bytes and constructs two copies of it.
+// This is copied from kubernetes
+func splitStream(config io.Reader) (io.Reader, io.Reader, error) {
+	if config == nil || reflect.ValueOf(config).IsNil() {
+		return nil, nil, nil
+	}
+
+	configBytes, err := ioutil.ReadAll(config)
+	if err != nil {
+		glog.Errorf("error reading admission plugin config: %v", err)
+		return nil, nil, err
+	}
+
+	return bytes.NewBuffer(configBytes), bytes.NewBuffer(configBytes), nil
 }
