@@ -79,7 +79,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 	// pass through all other requests
 	mux.Handle("/", handler)
 
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient.Core(), c.KubeClient.Core(), c.OpenShiftClient, c.OAuthClientClient, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(c.KubeClient.Core(), c.KubeClient.Core(), c.RouteClient.Route(), c.OAuthClientClient, oauthapi.GrantHandlerType(c.Options.GrantConfig.ServiceAccountMethod))
 
 	errorPageHandler, err := c.getErrorHandler()
 	if err != nil {

@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang/glog"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -142,8 +142,8 @@ func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods
 	return kerrors.NewAggregate(errList)
 }
 
-func GetNetworkInfo(osClient *osclient.Client) (*NetworkInfo, error) {
-	cn, err := osClient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error) {
+	cn, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

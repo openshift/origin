@@ -11,7 +11,6 @@ import (
 	restclient "k8s.io/client-go/rest"
 	coreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiv1 "github.com/openshift/origin/pkg/oauth/apis/oauth/v1"
@@ -20,6 +19,7 @@ import (
 	authorizetokenetcd "github.com/openshift/origin/pkg/oauth/registry/oauthauthorizetoken/etcd"
 	clientetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclient/etcd"
 	clientauthetcd "github.com/openshift/origin/pkg/oauth/registry/oauthclientauthorization/etcd"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
 	"k8s.io/apimachinery/pkg/apimachinery/registered"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,12 +117,12 @@ func (c *OAuthAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, erro
 	if err != nil {
 		return nil, err
 	}
-	deprecatedClient, err := osclient.New(c.CoreAPIServerClientConfig)
+	routeClient, err := routeclient.NewForConfig(c.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(coreClient, coreClient, deprecatedClient, oauthClient.OAuthClients(), saAccountGrantMethod)
+	combinedOAuthClientGetter := saoauth.NewServiceAccountOAuthClientGetter(coreClient, coreClient, routeClient, oauthClient.OAuthClients(), saAccountGrantMethod)
 	authorizeTokenStorage, err := authorizetokenetcd.NewREST(c.GenericConfig.RESTOptionsGetter, combinedOAuthClientGetter)
 	if err != nil {
 		return nil, fmt.Errorf("error building REST storage: %v", err)

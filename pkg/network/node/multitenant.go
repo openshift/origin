@@ -33,7 +33,7 @@ func (mp *multiTenantPlugin) Name() string {
 
 func (mp *multiTenantPlugin) Start(node *OsdnNode) error {
 	mp.node = node
-	mp.vnids = newNodeVNIDMap(mp, node.osClient)
+	mp.vnids = newNodeVNIDMap(mp, node.networkClient)
 	if err := mp.vnids.Start(); err != nil {
 		return err
 	}

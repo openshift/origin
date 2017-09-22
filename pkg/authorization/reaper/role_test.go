@@ -11,7 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client/testclient"
+	authorizationfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 )
 
 func TestRoleReaper(t *testing.T) {
@@ -89,7 +89,7 @@ func TestRoleReaper(t *testing.T) {
 		for _, binding := range test.bindings {
 			startingObjects = append(startingObjects, binding)
 		}
-		tc := testclient.NewSimpleFake(startingObjects...)
+		tc := authorizationfake.NewSimpleClientset(startingObjects...)
 
 		actualDeletedBindingNames := []string{}
 		tc.PrependReactor("delete", "rolebindings", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -97,7 +97,7 @@ func TestRoleReaper(t *testing.T) {
 			return true, nil, nil
 		})
 
-		reaper := NewRoleReaper(tc, tc)
+		reaper := NewRoleReaper(tc.Authorization(), tc.Authorization())
 		err := reaper.Stop(test.role.Namespace, test.role.Name, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

@@ -17,8 +17,8 @@ import (
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
-	"github.com/openshift/origin/pkg/client"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	restutil "github.com/openshift/origin/pkg/util/rest"
 )
 
 type roundtripper func(*http.Request) (*http.Response, error)
@@ -63,7 +63,7 @@ func TestControllerCheckReadiness(t *testing.T) {
 	// fakeclient, respond "allowed" to any subjectaccessreview
 	fakeclientset := &fake.Clientset{}
 	c := &TemplateInstanceController{
-		restmapper: client.DefaultMultiRESTMapper(),
+		restmapper: restutil.DefaultMultiRESTMapper(),
 		kc:         fakeclientset,
 		config:     fakerestconfig,
 	}

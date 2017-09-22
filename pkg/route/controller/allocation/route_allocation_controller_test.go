@@ -83,7 +83,7 @@ func TestRouteAllocationController(t *testing.T) {
 	}
 
 	plugin := &TestAllocationPlugin{Name: "test allocation plugin"}
-	fac := &RouteAllocationControllerFactory{nil, nil}
+	fac := &RouteAllocationControllerFactory{nil}
 	allocator := fac.Create(plugin)
 	for _, tc := range tests {
 		shard, err := allocator.AllocateRouterShard(tc.route)

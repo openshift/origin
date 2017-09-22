@@ -17,7 +17,9 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion"
+	quotaclientinternal "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateinformer "github.com/openshift/origin/pkg/template/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
@@ -69,6 +71,12 @@ type ControllerClientBuilder interface {
 
 	OpenshiftInternalBuildClient(name string) (buildclientinternal.Interface, error)
 	OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface
+
+	OpenshiftInternalQuotaClient(name string) (quotaclientinternal.Interface, error)
+	OpenshiftInternalQuotaClientOrDie(name string) quotaclientinternal.Interface
+
+	OpenshiftInternalNetworkClient(name string) (networkclientinternal.Interface, error)
+	OpenshiftInternalNetworkClientOrDie(name string) networkclientinternal.Interface
 }
 
 // InitFunc is used to launch a particular controller.  It may run additional "should I activate checks".
@@ -194,6 +202,50 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClient(name stri
 // will panic.
 func (b OpenshiftControllerClientBuilder) OpenshiftInternalBuildClientOrDie(name string) buildclientinternal.Interface {
 	client, err := b.OpenshiftInternalBuildClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
+}
+
+// OpenshiftInternalQuotaClient provides a REST client for the quota API.
+// If the client cannot be created because of configuration error, this function
+// will error.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalQuotaClient(name string) (quotaclientinternal.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return quotaclientinternal.NewForConfig(clientConfig)
+}
+
+// OpenshiftInternalQuotaClientOrDie provides a REST client for the quota API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalQuotaClientOrDie(name string) quotaclientinternal.Interface {
+	client, err := b.OpenshiftInternalQuotaClient(name)
+	if err != nil {
+		glog.Fatal(err)
+	}
+	return client
+}
+
+// OpenshiftInternalNetworkClient provides a REST client for the network API.
+// If the client cannot be created because of configuration error, this function
+// will error.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalNetworkClient(name string) (networkclientinternal.Interface, error) {
+	clientConfig, err := b.Config(name)
+	if err != nil {
+		return nil, err
+	}
+	return networkclientinternal.NewForConfig(clientConfig)
+}
+
+// OpenshiftInternalNetworkClientOrDie provides a REST client for the network API.
+// If the client cannot be created because of configuration error, this function
+// will panic.
+func (b OpenshiftControllerClientBuilder) OpenshiftInternalNetworkClientOrDie(name string) networkclientinternal.Interface {
+	client, err := b.OpenshiftInternalNetworkClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

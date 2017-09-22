@@ -15,15 +15,19 @@ import (
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 type PluginInitializer struct {
 	OpenshiftClient                 client.Interface
 	OpenshiftInternalImageClient    imageclient.Interface
 	OpenshiftInternalTemplateClient templateclient.Interface
+	OpenshiftInternalUserClient     userclient.Interface
+	OpenshiftInternalQuotaClient    quotaclient.Interface
 	ProjectCache                    *cache.ProjectCache
 	OriginQuotaRegistry             quota.Registry
 	Authorizer                      kauthorizer.Authorizer
@@ -48,6 +52,12 @@ func (i *PluginInitializer) Initialize(plugin admission.Interface) {
 	}
 	if WantsOpenshiftInternalTemplateClient, ok := plugin.(WantsOpenshiftInternalTemplateClient); ok {
 		WantsOpenshiftInternalTemplateClient.SetOpenShiftInternalTemplateClient(i.OpenshiftInternalTemplateClient)
+	}
+	if WantsOpenshiftInternalQuotaClient, ok := plugin.(WantsOpenshiftInternalQuotaClient); ok {
+		WantsOpenshiftInternalQuotaClient.SetOpenShiftInternalQuotaClient(i.OpenshiftInternalQuotaClient)
+	}
+	if WantsOpenshiftInternalUserClient, ok := plugin.(WantsOpenshiftInternalUserClient); ok {
+		WantsOpenshiftInternalUserClient.SetOpenShiftInternalUserClient(i.OpenshiftInternalUserClient)
 	}
 	if wantsProjectCache, ok := plugin.(WantsProjectCache); ok {
 		wantsProjectCache.SetProjectCache(i.ProjectCache)

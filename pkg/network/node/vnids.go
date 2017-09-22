@@ -12,14 +12,14 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 type nodeVNIDMap struct {
-	policy   osdnPolicy
-	osClient *osclient.Client
+	policy        osdnPolicy
+	networkClient networkclient.Interface
 
 	// Synchronizes add or remove ids/namespaces
 	lock       sync.Mutex
@@ -28,13 +28,13 @@ type nodeVNIDMap struct {
 	namespaces map[uint32]sets.String
 }
 
-func newNodeVNIDMap(policy osdnPolicy, osClient *osclient.Client) *nodeVNIDMap {
+func newNodeVNIDMap(policy osdnPolicy, networkClient networkclient.Interface) *nodeVNIDMap {
 	return &nodeVNIDMap{
-		policy:     policy,
-		osClient:   osClient,
-		ids:        make(map[string]uint32),
-		mcEnabled:  make(map[string]bool),
-		namespaces: make(map[uint32]sets.String),
+		policy:        policy,
+		networkClient: networkClient,
+		ids:           make(map[string]uint32),
+		mcEnabled:     make(map[string]bool),
+		namespaces:    make(map[uint32]sets.String),
 	}
 }
 
@@ -153,7 +153,7 @@ func netnsIsMulticastEnabled(netns *networkapi.NetNamespace) bool {
 }
 
 func (vmap *nodeVNIDMap) populateVNIDs() error {
-	nets, err := vmap.osClient.NetNamespaces().List(metav1.ListOptions{})
+	nets, err := vmap.networkClient.Network().NetNamespaces().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -176,7 +176,7 @@ func (vmap *nodeVNIDMap) Start() error {
 }
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
-	common.RunEventQueue(vmap.osClient, common.NetNamespaces, func(delta cache.Delta) error {
+	common.RunEventQueue(vmap.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*networkapi.NetNamespace)
 
 		log.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)

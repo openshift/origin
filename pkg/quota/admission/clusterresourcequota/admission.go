@@ -16,10 +16,11 @@ import (
 	"k8s.io/kubernetes/plugin/pkg/admission/resourcequota"
 	resourcequotaapi "k8s.io/kubernetes/plugin/pkg/admission/resourcequota/apis/resourcequota"
 
-	oclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	quotaclientset "github.com/openshift/origin/pkg/quota/generated/internalclientset"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
@@ -39,7 +40,7 @@ type clusterQuotaAdmission struct {
 	namespaceLister    kcorelisters.NamespaceLister
 	clusterQuotaSynced func() bool
 	namespaceSynced    func() bool
-	clusterQuotaClient oclient.ClusterResourceQuotasInterface
+	clusterQuotaClient quotaclient.ClusterResourceQuotasGetter
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
 
 	lockFactory LockFactory
@@ -52,7 +53,7 @@ type clusterQuotaAdmission struct {
 }
 
 var _ oadmission.WantsInternalKubernetesInformers = &clusterQuotaAdmission{}
-var _ oadmission.WantsDeprecatedOpenshiftClient = &clusterQuotaAdmission{}
+var _ oadmission.WantsOpenshiftInternalQuotaClient = &clusterQuotaAdmission{}
 var _ oadmission.WantsClusterQuota = &clusterQuotaAdmission{}
 
 const (
@@ -132,8 +133,8 @@ func (q *clusterQuotaAdmission) SetInternalKubernetesInformers(informers kintern
 	q.namespaceSynced = informers.Core().InternalVersion().Namespaces().Informer().HasSynced
 }
 
-func (q *clusterQuotaAdmission) SetDeprecatedOpenshiftClient(client oclient.Interface) {
-	q.clusterQuotaClient = client
+func (q *clusterQuotaAdmission) SetOpenShiftInternalQuotaClient(quotaClient quotaclientset.Interface) {
+	q.clusterQuotaClient = quotaClient.Quota()
 }
 
 func (q *clusterQuotaAdmission) SetClusterQuota(clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper, informers quotainformer.ClusterResourceQuotaInformer) {
