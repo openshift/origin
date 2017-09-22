@@ -87,32 +87,6 @@ var (
 	legacyNetworkGroup  = networkapi.LegacyGroupName
 )
 
-func GetBootstrapOpenshiftRoles(openshiftNamespace string) []rbac.Role {
-	return []rbac.Role{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      OpenshiftSharedResourceViewRoleName,
-				Namespace: openshiftNamespace,
-			},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule(read...).
-					Groups(templateGroup, legacyTemplateGroup).
-					Resources("templates").
-					RuleOrDie(),
-				rbac.NewRule(read...).
-					Groups(imageGroup, legacyImageGroup).
-					Resources("imagestreams", "imagestreamtags", "imagestreamimages").
-					RuleOrDie(),
-				// so anyone can pull from openshift/* image streams
-				rbac.NewRule("get").
-					Groups(imageGroup, legacyImageGroup).
-					Resources("imagestreams/layers").
-					RuleOrDie(),
-			},
-		},
-	}
-}
-
 func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 	// four resource can be a single line
 	// up to ten-ish resources per line otherwise
