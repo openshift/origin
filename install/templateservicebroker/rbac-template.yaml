@@ -50,6 +50,21 @@ objects:
 
 # to read the config for terminating authentication
 - apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: Role
+  metadata:
+    name: extension-apiserver-authentication-reader
+    namespace: ${KUBE_SYSTEM}
+  rules:
+  - apiGroups:
+    - ""
+    resourceNames:
+    - extension-apiserver-authentication
+    resources:
+    - configmaps
+    verbs:
+    - get
+
+- apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: RoleBinding
   metadata:
     namespace: ${KUBE_SYSTEM}
