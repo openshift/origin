@@ -14,7 +14,6 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authfake "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
-	"github.com/openshift/origin/pkg/client/testclient"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	userfake "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
@@ -132,7 +131,7 @@ func TestGroupReaper(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		authFake := authfake.NewSimpleClientset(testclient.OriginObjects(test.objects)...)
+		authFake := authfake.NewSimpleClientset(test.objects...)
 		userFake := userfake.NewSimpleClientset()
 
 		ktc := legacyclient.NewSimpleFake(test.sccs...)

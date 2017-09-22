@@ -20,7 +20,6 @@ import (
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
-	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 )
 
@@ -379,30 +378,6 @@ func GetExternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOve
 	return clientset, kubeConfig, nil
 }
 
-// TODO: clients should be copied and instantiated from a common client config, tweaked, then
-// given to individual controllers and other infrastructure components. Overrides are optional
-// and may alter the default configuration.
-func GetOpenShiftClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (*client.Client, *restclient.Config, error) {
-	loadingRules := &clientcmd.ClientConfigLoadingRules{}
-	loadingRules.ExplicitPath = kubeConfigFile
-	loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
-
-	kubeConfig, err := loader.ClientConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	applyClientConnectionOverrides(overrides, kubeConfig)
-
-	kubeConfig.WrapTransport = DefaultClientTransport
-	openshiftClient, err := client.New(kubeConfig)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return openshiftClient, kubeConfig, nil
-}
-
 // applyClientConnectionOverrides updates a kubeConfig with the overrides from the config.
 func applyClientConnectionOverrides(overrides *ClientConnectionOverrides, kubeConfig *restclient.Config) {
 	if overrides == nil {
@@ -455,31 +430,6 @@ func GetNamedCertificateMap(namedCertificates []NamedCertificate) (map[string]*t
 	return namedCerts, nil
 }
 
-// GetClientCertCAPool returns a cert pool containing all client CAs that could be presented (union of API and OAuth)
-func GetClientCertCAPool(options MasterConfig) (*x509.CertPool, error) {
-	roots := x509.NewCertPool()
-
-	// Add CAs for OAuth
-	certs, err := GetOAuthClientCertCAs(options)
-	if err != nil {
-		return nil, err
-	}
-	for _, root := range certs {
-		roots.AddCert(root)
-	}
-
-	// Add CAs for API
-	certs, err = getAPIClientCertCAs(options)
-	if err != nil {
-		return nil, err
-	}
-	for _, root := range certs {
-		roots.AddCert(root)
-	}
-
-	return roots, nil
-}
-
 func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	allCerts := []*x509.Certificate{}
 
@@ -502,22 +452,6 @@ func GetOAuthClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
 	}
 
 	return allCerts, nil
-}
-
-func GetRequestHeaderClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	if options.AuthConfig.RequestHeader == nil {
-		return nil, nil
-	}
-
-	certs, err := cmdutil.CertificatesFromFile(options.AuthConfig.RequestHeader.ClientCA)
-	if err != nil {
-		return nil, fmt.Errorf("Error reading %s: %s", options.AuthConfig.RequestHeader.ClientCA, err)
-	}
-	return certs, nil
-}
-
-func getAPIClientCertCAs(options MasterConfig) ([]*x509.Certificate, error) {
-	return cmdutil.CertificatesFromFile(options.ServingInfo.ClientCA)
 }
 
 func GetKubeletClientConfig(options MasterConfig) *kubeletclient.KubeletClientConfig {
@@ -593,11 +527,6 @@ func IsOAuthIdentityProvider(provider IdentityProvider) bool {
 	}
 
 	return false
-}
-
-func HasOpenShiftAPILevel(config MasterConfig, apiLevel string) bool {
-	apiLevelSet := sets.NewString(config.APILevels...)
-	return apiLevelSet.Has(apiLevel)
 }
 
 const kubeAPIEnablementFlag = "runtime-config"

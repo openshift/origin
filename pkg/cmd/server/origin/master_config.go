@@ -71,7 +71,6 @@ import (
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	osclient "github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -154,11 +153,6 @@ type MasterConfig struct {
 	// different access control to a system component, create a separate client/config specifically for
 	// that component.
 	PrivilegedLoopbackKubernetesClientsetExternal kclientsetexternal.Interface
-	// PrivilegedLoopbackOpenShiftClient is the client used to call OpenShift APIs from system components,
-	// built from PrivilegedLoopbackClientConfig. It should only be accessed via the *TestingClient() helper methods.
-	// To apply different access control to a system component, create a separate client/config specifically
-	// for that component.
-	PrivilegedLoopbackOpenShiftClient *osclient.Client
 
 	AuditBackend audit.Backend
 
@@ -194,11 +188,7 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 	if err != nil {
 		return nil, err
 	}
-	privilegedLoopbackKubeClientsetExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, err
-	}
-	privilegedLoopbackOpenShiftClient, privilegedLoopbackClientConfig, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
+	privilegedLoopbackKubeClientsetExternal, privilegedLoopbackClientConfig, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +361,6 @@ func BuildMasterConfig(options configapi.MasterConfig, informers InformerAccess)
 		KubeletClientConfig: kubeletClientConfig,
 
 		PrivilegedLoopbackClientConfig:                *privilegedLoopbackClientConfig,
-		PrivilegedLoopbackOpenShiftClient:             privilegedLoopbackOpenShiftClient,
 		PrivilegedLoopbackKubernetesClientsetInternal: privilegedLoopbackKubeClientsetInternal,
 		PrivilegedLoopbackKubernetesClientsetExternal: privilegedLoopbackKubeClientsetExternal,
 
@@ -851,18 +840,6 @@ func (c *MasterConfig) KubeClientsetInternal() kclientsetinternal.Interface {
 // KubeClientsetInternal returns the kubernetes client object
 func (c *MasterConfig) KubeClientsetExternal() kclientsetexternal.Interface {
 	return c.PrivilegedLoopbackKubernetesClientsetExternal
-}
-
-// ServiceAccountRoleBindingClient returns the client object used to bind roles to service accounts
-// It must have the following capabilities:
-//  get, list, update, create policyBindings and clusterPolicyBindings in all namespaces
-func (c *MasterConfig) ServiceAccountRoleBindingClient() *osclient.Client {
-	return c.PrivilegedLoopbackOpenShiftClient
-}
-
-// RouteAllocatorClients returns the route allocator client objects
-func (c *MasterConfig) RouteAllocatorClients() (*osclient.Client, kclientsetinternal.Interface) {
-	return c.PrivilegedLoopbackOpenShiftClient, c.PrivilegedLoopbackKubernetesClientsetInternal
 }
 
 // WebConsoleEnabled says whether web ui is not a disabled feature and asset service is configured.

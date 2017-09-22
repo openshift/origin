@@ -14,7 +14,6 @@ import (
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	osclient "github.com/openshift/origin/pkg/client"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclientinternal "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	networkclientinternal "github.com/openshift/origin/pkg/network/generated/internalclientset"
@@ -55,10 +54,6 @@ type ControllerClientBuilder interface {
 	KubeInternalClient(name string) (kclientsetinternal.Interface, error)
 	KubeInternalClientOrDie(name string) kclientsetinternal.Interface
 
-	// Legacy OpenShift client (pkg/client)
-	DeprecatedOpenshiftClient(name string) (osclient.Interface, error)
-	DeprecatedOpenshiftClientOrDie(name string) osclient.Interface
-
 	OpenshiftInternalAppsClient(name string) (appsclientinternal.Interface, error)
 	OpenshiftInternalAppsClientOrDie(name string) appsclientinternal.Interface
 
@@ -98,22 +93,6 @@ func (b OpenshiftControllerClientBuilder) KubeInternalClient(name string) (kclie
 
 func (b OpenshiftControllerClientBuilder) KubeInternalClientOrDie(name string) kclientsetinternal.Interface {
 	client, err := b.KubeInternalClient(name)
-	if err != nil {
-		glog.Fatal(err)
-	}
-	return client
-}
-
-func (b OpenshiftControllerClientBuilder) DeprecatedOpenshiftClient(name string) (osclient.Interface, error) {
-	clientConfig, err := b.Config(name)
-	if err != nil {
-		return nil, err
-	}
-	return osclient.New(clientConfig)
-}
-
-func (b OpenshiftControllerClientBuilder) DeprecatedOpenshiftClientOrDie(name string) osclient.Interface {
-	client, err := b.DeprecatedOpenshiftClient(name)
 	if err != nil {
 		glog.Fatal(err)
 	}

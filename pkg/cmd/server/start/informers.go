@@ -17,7 +17,6 @@ import (
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -50,7 +49,7 @@ type informers struct {
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(options configapi.MasterConfig) (*informers, error) {
-	clientConfig, kubeInternal, kubeExternal, kubeClientGoExternal, _, err := getAllClients(options)
+	clientConfig, kubeInternal, kubeExternal, kubeClientGoExternal, err := getAllClients(options)
 	if err != nil {
 		return nil, err
 	}
@@ -156,23 +155,19 @@ func (i *informers) Start(stopCh <-chan struct{}) {
 	i.userInformers.Start(stopCh)
 }
 
-func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, kubeclientgoclient.Interface, *osclient.Client, error) {
+func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, kubeclientgoclient.Interface, error) {
 	kubeInternal, clientConfig, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	kubeExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
-	deprecatedOpenshiftClient, _, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	kubeClientGoClientSet, err := kubeclientgoclient.NewForConfig(clientConfig)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return clientConfig, kubeInternal, kubeExternal, kubeClientGoClientSet, deprecatedOpenshiftClient, nil
+	return clientConfig, kubeInternal, kubeExternal, kubeClientGoClientSet, nil
 }

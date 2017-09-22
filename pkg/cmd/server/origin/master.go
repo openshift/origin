@@ -338,9 +338,8 @@ func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Han
 
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
-	_, kclient := c.RouteAllocatorClients()
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		KubeClient: kclient,
+		KubeClient: c.PrivilegedLoopbackKubernetesClientsetInternal,
 	}
 
 	plugin, err := routeplugin.NewSimpleAllocationPlugin(c.Options.RoutingConfig.Subdomain)
