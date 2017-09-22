@@ -40,11 +40,15 @@ import (
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/git"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util"
 )
 
 // NewAppRecommendedCommandName is the recommended command name.
 const NewAppRecommendedCommandName = "new-app"
+
+// RoutePollTimoutSeconds sets how long new-app command waits for route host to be prepopulated
+const RoutePollTimeout = 5 * time.Second
 
 var (
 	newAppLong = templates.LongDesc(`
@@ -345,6 +349,7 @@ func (o *NewAppOptions) RunNewApp() error {
 	hasMissingRepo := false
 	installing := []*kapi.Pod{}
 	indent := o.Action.DefaultIndent()
+	containsRoute := false
 	for _, item := range result.List.Items {
 		switch t := item.(type) {
 		case *kapi.Pod:
@@ -373,6 +378,27 @@ func (o *NewAppOptions) RunNewApp() error {
 				hasMissingRepo = true
 				fmt.Fprintf(out, "%sWARNING: No Docker registry has been configured with the server. Automatic builds and deployments may not function.\n", indent)
 			}
+		case *routeapi.Route:
+			containsRoute = true
+			if len(t.Spec.Host) > 0 {
+				var route *routeapi.Route
+				//check if route processing was completed and host field is prepopulated by router
+				err := wait.PollImmediate(500*time.Millisecond, RoutePollTimeout, func() (bool, error) {
+					route, err = config.OSClient.Routes(t.Namespace).Get(t.Name, metav1.GetOptions{})
+					if err != nil {
+						return false, fmt.Errorf("Error while polling route %s", t.Name)
+					}
+					if route.Spec.Host != "" {
+						return true, nil
+					}
+					return false, nil
+				})
+				if err != nil {
+					glog.V(4).Infof("Failed to poll route %s host field: %s", t.Name, err)
+				} else {
+					fmt.Fprintf(out, "%sAccess your application via route '%s' \n", indent, route.Spec.Host)
+				}
+			}
 		}
 	}
 
@@ -385,12 +411,34 @@ func (o *NewAppOptions) RunNewApp() error {
 			fmt.Fprintf(out, "%sTrack installation of %s with '%s logs %s'.\n", indent, installing[i].Name, o.BaseName, installing[i].Name)
 		}
 	case len(result.List.Items) > 0:
+		//if we don't find a route we give a message to expose it
+		if !containsRoute {
+			//we if don't have any routes, but we have services - we suggest commands to expose those
+			svc := getServices(result.List.Items)
+			if len(svc) > 0 {
+				fmt.Fprintf(out, "%sApplication is not exposed. You can expose services to the outside world by executing one or more of the commands below:\n", indent)
+				for _, s := range svc {
+					fmt.Fprintf(out, "%s '%s %s svc/%s' \n", indent, o.BaseName, ExposeRecommendedName, s.Name)
+				}
+			}
+		}
 		fmt.Fprintf(out, "%sRun '%s %s' to view your app.\n", indent, o.BaseName, StatusRecommendedName)
 	}
 	return nil
 }
 
 type LogsForObjectFunc func(object, options runtime.Object, timeout time.Duration) (*restclient.Request, error)
+
+func getServices(items []runtime.Object) []*kapi.Service {
+	var svc []*kapi.Service
+	for _, i := range items {
+		switch i.(type) {
+		case *kapi.Service:
+			svc = append(svc, i.(*kapi.Service))
+		}
+	}
+	return svc
+}
 
 func followInstallation(config *newcmd.AppConfig, input string, pod *kapi.Pod, logsForObjectFn LogsForObjectFunc) error {
 	fmt.Fprintf(config.Out, "--> Installing ...\n")
