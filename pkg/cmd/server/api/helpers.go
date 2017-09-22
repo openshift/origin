@@ -271,6 +271,7 @@ func GetMasterFileReferences(config *MasterConfig) []*string {
 	}
 
 	refs = append(refs, &config.AuditConfig.AuditFilePath)
+	refs = append(refs, &config.AuditConfig.PolicyFile)
 
 	return refs
 }
