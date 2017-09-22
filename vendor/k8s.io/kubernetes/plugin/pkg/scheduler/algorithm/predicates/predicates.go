@@ -699,6 +699,7 @@ func PodMatchNodeSelector(pod *v1.Pod, meta interface{}, nodeInfo *schedulercach
 	if podMatchesNodeLabels(pod, node) {
 		return true, nil, nil
 	}
+	glog.Infof("JIM node %#v pod %#v", node, pod)
 	return false, []algorithm.PredicateFailureReason{ErrNodeSelectorNotMatch}, nil
 }
 
