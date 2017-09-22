@@ -20,15 +20,15 @@ func isTrue(s string) bool {
 }
 
 func firstMatch(pattern string, values ...string) string {
-	glog.V(5).Infof("firstMatch called with %s and %v", pattern, values)
+	glog.V(7).Infof("firstMatch called with %s and %v", pattern, values)
 	if re, err := regexp.Compile(`\A(?:` + pattern + `)\z`); err == nil {
 		for _, value := range values {
 			if re.MatchString(value) {
-				glog.V(5).Infof("firstMatch returning string: %s", value)
+				glog.V(7).Infof("firstMatch returning string: %s", value)
 				return value
 			}
 		}
-		glog.V(5).Infof("firstMatch returning empty string")
+		glog.V(7).Infof("firstMatch returning empty string")
 	} else {
 		glog.Errorf("Error with regex pattern in call to firstMatch: %v", err)
 	}
@@ -55,22 +55,22 @@ func isInteger(s string) bool {
 }
 
 func matchValues(s string, allowedValues ...string) bool {
-	glog.V(5).Infof("matchValues called with %s and %v", s, allowedValues)
+	glog.V(7).Infof("matchValues called with %s and %v", s, allowedValues)
 	for _, value := range allowedValues {
 		if value == s {
-			glog.V(5).Infof("matchValues finds matching string: %s", s)
+			glog.V(7).Infof("matchValues finds matching string: %s", s)
 			return true
 		}
 	}
-	glog.V(5).Infof("matchValues cannot match string: %s", s)
+	glog.V(7).Infof("matchValues cannot match string: %s", s)
 	return false
 }
 
 func matchPattern(pattern, s string) bool {
-	glog.V(5).Infof("matchPattern called with %s and %s", pattern, s)
+	glog.V(7).Infof("matchPattern called with %s and %s", pattern, s)
 	status, err := regexp.MatchString(`\A(?:`+pattern+`)\z`, s)
 	if err == nil {
-		glog.V(5).Infof("matchPattern returning status: %v", status)
+		glog.V(7).Infof("matchPattern returning status: %v", status)
 		return status
 	}
 	glog.Errorf("Error with regex pattern in call to matchPattern: %v", err)
