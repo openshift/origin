@@ -31,6 +31,8 @@ os::cmd::expect_failure_and_text 'oc secrets new bad-name .docker=cfg=${HOME}/do
 workingdir="$( mktemp -d )"
 os::cmd::try_until_success "oc get secret/dockercfg"
 os::cmd::expect_success_and_text "oc extract secret/dockercfg --to '${workingdir}'" '.dockercfg'
+os::cmd::expect_success_and_text "oc extract secret/dockercfg --to=-" 'sample-user'
+os::cmd::expect_success_and_text "oc extract secret/dockercfg --to=-" 'sample-password'
 os::cmd::expect_success_and_text "cat '${workingdir}/.dockercfg'" 'sample-user'
 os::cmd::expect_failure_and_text "oc extract secret/dockercfg --to '${workingdir}'" 'error: .dockercfg: file exists, pass --confirm to overwrite'
 os::cmd::expect_failure_and_text "oc extract secret/dockercfg secret/dockercfg --to '${workingdir}'" 'error: .dockercfg: file exists, pass --confirm to overwrite'

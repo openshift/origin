@@ -28,6 +28,9 @@ var (
 		Each key in the config map or secret is created as a separate file with the name of the key, as it
 		is when you mount a secret or config map into a container.
 
+		You may extract the contents of a secret or config map to standard out by passing '-' to --to. The
+		names of each key will be written to stdandard error.
+
 		You can limit which keys are extracted with the --keys=NAME flag, or set the directory to extract to
 		with --to=DIRECTORY.`)
 
@@ -37,6 +40,9 @@ var (
 
 	  # extract the config map "nginx" to the /tmp directory
 	  %[1]s extract configmap/nginx --to=/tmp
+
+		# extract the config map "nginx" to STDOUT
+	  %[1]s extract configmap/nginx --to=-
 
 	  # extract only the key "nginx.conf" from config map "nginx" to the /tmp directory
 	  %[1]s extract configmap/nginx --to=/tmp --keys=nginx.conf`)
@@ -105,9 +111,11 @@ func (o *ExtractOptions) Complete(f *clientcmd.Factory, in io.Reader, out io.Wri
 }
 
 func (o *ExtractOptions) Validate() error {
-	// determine if output location is valid before continuing
-	if _, err := os.Stat(o.TargetDirectory); err != nil {
-		return err
+	if o.TargetDirectory != "-" {
+		// determine if output location is valid before continuing
+		if _, err := os.Stat(o.TargetDirectory); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -135,12 +143,21 @@ func (o *ExtractOptions) Run() error {
 		var errs []error
 		for k, v := range contents {
 			if contains.Len() == 0 || contains.Has(k) {
-				target := filepath.Join(o.TargetDirectory, k)
-				if err := writeToDisk(target, v, o.Overwrite, o.Out); err != nil {
-					if os.IsExist(err) {
-						err = fmt.Errorf("file exists, pass --confirm to overwrite")
+				switch {
+				case o.TargetDirectory == "-":
+					fmt.Fprintf(o.Err, "# %s\n", k)
+					o.Out.Write(v)
+					if !bytes.HasSuffix(v, []byte("\n")) {
+						fmt.Fprintln(o.Out)
 					}
-					errs = append(errs, fmt.Errorf("%s: %v", k, err))
+				default:
+					target := filepath.Join(o.TargetDirectory, k)
+					if err := writeToDisk(target, v, o.Overwrite, o.Out); err != nil {
+						if os.IsExist(err) {
+							err = fmt.Errorf("file exists, pass --confirm to overwrite")
+						}
+						errs = append(errs, fmt.Errorf("%s: %v", k, err))
+					}
 				}
 			}
 		}
