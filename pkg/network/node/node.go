@@ -200,6 +200,8 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		return nil, err
 	}
 
+	RegisterMetrics()
+
 	return plugin, nil
 }
 
@@ -372,6 +374,9 @@ func (node *OsdnNode) Start() error {
 	}
 
 	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
+	go kwait.Forever(func() {
+		gatherPeriodicMetrics(node.oc.ovs)
+	}, time.Minute*2)
 
 	log.V(5).Infof("openshift-sdn network plugin ready")
 
