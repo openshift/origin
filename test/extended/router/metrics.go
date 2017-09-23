@@ -23,7 +23,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][networking][router] openshift router metrics", func() {
+var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift router metrics", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("router-metrics", exutil.KubeConfigPath())

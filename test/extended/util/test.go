@@ -14,6 +14,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/types"
 	"github.com/onsi/gomega"
 
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -53,7 +54,7 @@ func InitTest() {
 
 	e2e.RegisterCommonFlags()
 	e2e.RegisterClusterFlags()
-	flag.StringVar(&syntheticSuite, "suite", "", "Optional suite selector to filter which tests are run.")
+	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
 
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
@@ -103,15 +104,54 @@ func ExecuteTest(t *testing.T, suite string) {
 		defer e2e.CoreDump(reportDir)
 	}
 
-	// Disable density test unless it's explicitly requested.
+	switch syntheticSuite {
+	case "parallel.conformance.openshift.io":
+		if len(config.GinkgoConfig.FocusString) > 0 {
+			config.GinkgoConfig.FocusString += "|"
+		}
+		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/parallel\\]"
+	case "serial.conformance.openshift.io":
+		if len(config.GinkgoConfig.FocusString) > 0 {
+			config.GinkgoConfig.FocusString += "|"
+		}
+		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/serial\\]"
+	}
 	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
 		config.GinkgoConfig.SkipString = "Skipped"
 	}
+
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
 	if reportDir != "" {
 		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
+
+	ginkgo.WalkTests(func(name string, node types.TestNode) {
+		isSerial := serialTestsFilter.MatchString(name)
+		if isSerial {
+			if !strings.Contains(name, "[Serial]") {
+				node.SetText(node.Text() + " [Serial]")
+			}
+		}
+
+		if !excludedTestsFilter.MatchString(name) {
+			include := conformanceTestsFilter.MatchString(name)
+			switch {
+			case !include:
+				// do nothing
+			case isSerial:
+				node.SetText(node.Text() + " [Suite:openshift/conformance/serial]")
+			case include:
+				node.SetText(node.Text() + " [Suite:openshift/conformance/parallel]")
+			}
+		}
+		if strings.Contains(node.CodeLocation().FileName, "/origin/test/") && !strings.Contains(node.Text(), "[Suite:openshift") {
+			node.SetText(node.Text() + " [Suite:openshift]")
+		}
+		if strings.Contains(node.CodeLocation().FileName, "/kubernetes/test/e2e/") {
+			node.SetText(node.Text() + " [Suite:k8s]")
+		}
+	})
 
 	if quiet {
 		r = append(r, NewSimpleReporter())
@@ -210,7 +250,6 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 var (
 	excludedTests = []string{
 		`\[Skipped\]`,
-		`\[Disruptive\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
 		`\[Compatibility\]`,
@@ -311,7 +350,10 @@ var (
 	}
 	excludedTestsFilter = regexp.MustCompile(strings.Join(excludedTests, `|`))
 
-	parallelConformanceTests = []string{
+	// The list of tests to run for the OpenShift conformance suite. Any test
+	// in this group which cannot be run in parallel must be identified with the
+	// [Serial] tag or added to the serialTests filter.
+	conformanceTests = []string{
 		`\[Conformance\]`,
 		`Services.*NodePort`,
 		`ResourceQuota should`,
@@ -327,7 +369,7 @@ var (
 		`Job should run a job to completion when tasks succeed`,
 		`Variable Expansion`,
 		`init containers`,
-		`Clean up pods on node kubelet`,
+		`Clean up pods on node kubelet`, // often catches issues
 		`\[Feature\:SecurityContext\]`,
 		`should create a LimitRange with defaults`,
 		`Generated release_1_2 clientset`,
@@ -336,46 +378,28 @@ var (
 		`ImageLookup`,
 		`DNS for pods for Hostname and Subdomain Annotation`,
 	}
-	parallelConformanceTestsFilter = regexp.MustCompile(strings.Join(parallelConformanceTests, `|`))
+	conformanceTestsFilter = regexp.MustCompile(strings.Join(conformanceTests, `|`))
 
-	serialConformanceTests = []string{
+	// Identifies any tests that by nature must be run in isolation. Every test in this
+	// category will be given the [Serial] tag if it does not already have it.
+	serialTests = []string{
 		`\[Serial\]`,
+		`\[Disruptive\]`,
 		`\[Feature:ManualPerformance\]`,      // requires isolation
-		`Service endpoints latency`,          // requires low latency
 		`\[Feature:HighDensityPerformance\]`, // requires no other namespaces
-		`Clean up pods on node`,              // schedules max pods per node
+		`Service endpoints latency`,          // requires low latency
+		`Clean up pods on node`,              // schedules up to max pods per node
 	}
-	serialConformanceTestsFilter = regexp.MustCompile(strings.Join(serialConformanceTests, `|`))
+	serialTestsFilter = regexp.MustCompile(strings.Join(serialTests, `|`))
 )
 
 // checkSyntheticInput selects tests based on synthetic skips or focuses
 func checkSyntheticInput() {
-	checkSuiteFocuses()
 	checkSuiteSkips()
 }
 
-// checkSuiteFocuses ensures Origin conformance suite synthetic labels are applied
-func checkSuiteFocuses() {
-	if !strings.Contains(syntheticSuite, "conformance.openshift.io") {
-		return
-	}
-
-	testName := []byte(ginkgo.CurrentGinkgoTestDescription().FullTestText)
-	testFocused := false
-	textExcluded := excludedTestsFilter.Match(testName)
-	if syntheticSuite == "parallel.conformance.openshift.io" {
-		testFocused = parallelConformanceTestsFilter.Match(testName)
-		textExcluded = textExcluded || serialConformanceTestsFilter.Match(testName)
-	} else if syntheticSuite == "serial.conformance.openshift.io" {
-		testFocused = serialConformanceTestsFilter.Match(testName)
-	}
-
-	if !testFocused || textExcluded {
-		ginkgo.Skip("skipping tests not in the Origin conformance suite")
-	}
-}
-
 // checkSuiteSkips ensures Origin/Kubernetes synthetic skip labels are applied
+// DEPRECATED: remove in a future release
 func checkSuiteSkips() {
 	switch {
 	case isOriginTest():

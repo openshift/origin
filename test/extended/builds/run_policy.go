@@ -17,7 +17,7 @@ import (
 )
 
 // this test is very latency sensitive so run it by itself (serially).
-var _ = g.Describe("[builds][Slow][Serial] using build configuration runPolicy", func() {
+var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration runPolicy", func() {
 	defer g.GinkgoRecover()
 	var (
 		// Use invalid source here as we don't care about the result

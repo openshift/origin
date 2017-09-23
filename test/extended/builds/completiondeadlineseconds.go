@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] builds should have deadlines", func() {
+var _ = g.Describe("[Feature:Builds][Slow] builds should have deadlines", func() {
 	defer g.GinkgoRecover()
 	var (
 		sourceFixture = exutil.FixturePath("testdata", "test-cds-sourcebuild.json")

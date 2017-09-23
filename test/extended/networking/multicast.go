@@ -16,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("[networking] multicast", func() {
+var _ = Describe("[Area:Networking] multicast", func() {
 	InSingleTenantContext(func() {
 		oc := testexutil.NewCLI("multicast", testexutil.KubeConfigPath())
 		f := oc.KubeFramework()

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("[networking] services", func() {
+var _ = Describe("[Area:Networking] services", func() {
 	Context("basic functionality", func() {
 		f1 := e2e.NewDefaultFramework("net-services1")
 

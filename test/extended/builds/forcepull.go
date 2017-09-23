@@ -69,7 +69,7 @@ while this test is running and compare results.  Restarting your docker daemon, 
 be a quick fix.
 */
 
-var _ = g.Describe("[builds] forcePull should affect pulling builder images", func() {
+var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder images", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
 
