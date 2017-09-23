@@ -37,10 +37,16 @@ const (
 	NetworkDiagDefaultTestPodPort     = 8080
 )
 
-var (
-	NetworkDiagDefaultPodImage     = variable.DefaultImagePrefix
-	NetworkDiagDefaultTestPodImage = variable.DefaultImagePrefix + "-deployer"
-)
+func GetNetworkDiagDefaultPodImage() string {
+	imageTemplate := variable.NewDefaultImageTemplate()
+	imageTemplate.Format = variable.DefaultImagePrefix + ":${version}"
+	return imageTemplate.ExpandOrDie("")
+}
+
+func GetNetworkDiagDefaultTestPodImage() string {
+	imageTemplate := variable.NewDefaultImageTemplate()
+	return imageTemplate.ExpandOrDie("deployer")
+}
 
 func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) {
 	cn, err := osClient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})

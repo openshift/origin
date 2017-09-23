@@ -151,8 +151,8 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, options.FlagLatestImageName, false, "If true, when expanding the image template, use latest version, not release version")
 	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "If true, may be set to prevent diagnostics making any changes via the API")
 	cmd.Flags().StringVar(&o.NetworkOptions.LogDir, options.FlagNetworkDiagLogDir, netutil.NetworkDiagDefaultLogDir, "Path to store network diagnostic results in case of errors")
-	cmd.Flags().StringVar(&o.NetworkOptions.PodImage, options.FlagNetworkDiagPodImage, netutil.NetworkDiagDefaultPodImage, "Image to use for network diagnostic pod")
-	cmd.Flags().StringVar(&o.NetworkOptions.TestPodImage, options.FlagNetworkDiagTestPodImage, netutil.NetworkDiagDefaultTestPodImage, "Image to use for network diagnostic test pod")
+	cmd.Flags().StringVar(&o.NetworkOptions.PodImage, options.FlagNetworkDiagPodImage, netutil.GetNetworkDiagDefaultPodImage(), "Image to use for network diagnostic pod")
+	cmd.Flags().StringVar(&o.NetworkOptions.TestPodImage, options.FlagNetworkDiagTestPodImage, netutil.GetNetworkDiagDefaultTestPodImage(), "Image to use for network diagnostic test pod")
 	cmd.Flags().StringVar(&o.NetworkOptions.TestPodProtocol, options.FlagNetworkDiagTestPodProtocol, netutil.NetworkDiagDefaultTestPodProtocol, "Protocol used to connect to network diagnostic test pod")
 	cmd.Flags().IntVar(&o.NetworkOptions.TestPodPort, options.FlagNetworkDiagTestPodPort, netutil.NetworkDiagDefaultTestPodPort, "Serving port on the network diagnostic test pod")
 	flagtypes.GLog(cmd.Flags())
@@ -195,10 +195,10 @@ func (o *DiagnosticsOptions) Complete(args []string) error {
 		o.NetworkOptions.LogDir = logdir
 	}
 	if len(o.NetworkOptions.PodImage) == 0 {
-		o.NetworkOptions.PodImage = netutil.NetworkDiagDefaultPodImage
+		o.NetworkOptions.PodImage = netutil.GetNetworkDiagDefaultPodImage()
 	}
 	if len(o.NetworkOptions.TestPodImage) == 0 {
-		o.NetworkOptions.TestPodImage = netutil.NetworkDiagDefaultTestPodImage
+		o.NetworkOptions.TestPodImage = netutil.GetNetworkDiagDefaultTestPodImage()
 	}
 
 	supportedProtocols := sets.NewString(string(kapi.ProtocolTCP), string(kapi.ProtocolUDP))
