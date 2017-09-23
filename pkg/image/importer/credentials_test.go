@@ -95,7 +95,10 @@ func Test_basicCredentialsFromKeyring(t *testing.T) {
 		{name: "canonical https", args: args{keyring: fn("localhost", def), target: &url.URL{Scheme: "https", Host: "localhost:443"}}, user: def.Username, password: def.Password},
 		{name: "only https", args: args{keyring: fn("https://localhost", def), target: &url.URL{Host: "localhost"}}, user: def.Username, password: def.Password},
 		{name: "only https scheme", args: args{keyring: fn("https://localhost", def), target: &url.URL{Scheme: "https", Host: "localhost"}}, user: def.Username, password: def.Password},
+
 		{name: "mismatched scheme - http", args: args{keyring: fn("http://localhost", def), target: &url.URL{Scheme: "https", Host: "localhost"}}, user: def.Username, password: def.Password},
+		{name: "don't assume port 80 in keyring is https", args: args{keyring: fn("localhost:80", def), target: &url.URL{Scheme: "http", Host: "localhost"}}, user: def.Username, password: def.Password},
+		{name: "exact http", args: args{keyring: fn("localhost:80", def), target: &url.URL{Scheme: "http", Host: "localhost:80"}}, user: def.Username, password: def.Password},
 
 		// this is not allowed by the credential keyring, but should be
 		{name: "exact http", args: args{keyring: fn("http://localhost", def), target: &url.URL{Scheme: "http", Host: "localhost:80"}}, user: "", password: ""},
@@ -104,7 +107,6 @@ func Test_basicCredentialsFromKeyring(t *testing.T) {
 		// these should not be allowed
 		{name: "host is for port 80 only", args: args{keyring: fn("localhost:80", def), target: &url.URL{Host: "localhost"}}, user: "", password: ""},
 		{name: "host is for port 443 only", args: args{keyring: fn("localhost:443", def), target: &url.URL{Host: "localhost"}}, user: "", password: ""},
-		{name: "don't assume port 80 in keyring is https", args: args{keyring: fn("localhost:80", def), target: &url.URL{Scheme: "http", Host: "localhost"}}, user: "", password: ""},
 		{name: "canonical http", args: args{keyring: fn("localhost", def), target: &url.URL{Scheme: "http", Host: "localhost:80"}}, user: "", password: ""},
 		{name: "http scheme", args: args{keyring: fn("localhost", def), target: &url.URL{Scheme: "http", Host: "localhost"}}, user: "", password: ""},
 		{name: "https not canonical", args: args{keyring: fn("localhost", def), target: &url.URL{Scheme: "https", Host: "localhost:80"}}, user: "", password: ""},
