@@ -3,8 +3,10 @@ package top
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 
+	units "github.com/docker/go-units"
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -146,7 +148,7 @@ func (i imageInfo) PrintLine(out io.Writer) {
 	printArray(out, shortParents)
 	printArray(out, i.Usage)
 	printBool(out, i.Metadata)
-	printSize(out, i.Storage)
+	printValue(out, units.BytesSize(float64(i.Storage)))
 }
 
 // imagesTop generates Image information from a graph and returns this as a list
@@ -176,6 +178,16 @@ func (o TopImagesOptions) imagesTop() []Info {
 			Storage:         storage,
 		})
 	}
+	sort.Slice(infos, func(i, j int) bool {
+		a, b := infos[i].(imageInfo), infos[j].(imageInfo)
+		if len(a.ImageStreamTags) < len(b.ImageStreamTags) {
+			return false
+		}
+		if len(a.ImageStreamTags) > len(b.ImageStreamTags) {
+			return true
+		}
+		return a.Storage > b.Storage
+	})
 
 	return infos
 }
