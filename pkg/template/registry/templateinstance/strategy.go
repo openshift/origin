@@ -52,8 +52,9 @@ func (templateInstanceStrategy) Canonicalize(obj runtime.Object) {
 func (templateInstanceStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Object) {
 	templateInstance := obj.(*templateapi.TemplateInstance)
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the if nil check and always
-	// Clear any user-specified info, then seed it from the context
+	// if request not set, pull from context; note: the requester can be set via the service catalog
+	// propagating the user information via the openservicebroker origination api header on
+	// calls to the TSB endpoints (i.e. the Provision call)
 	if templateInstance.Spec.Requester == nil {
 
 		if user, ok := apirequest.UserFrom(ctx); ok {

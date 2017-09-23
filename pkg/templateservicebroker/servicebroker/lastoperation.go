@@ -38,17 +38,14 @@ func (b *Broker) LastOperation(u user.Info, instanceID string, operation api.Ope
 
 	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove the user name empty string checks
-	if u.GetName() != "" {
-		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-			Namespace: namespace,
-			Verb:      "get",
-			Group:     templateapi.GroupName,
-			Resource:  "templateinstances",
-			Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
-		}); err != nil {
-			return api.Forbidden(err)
-		}
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "get",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+	}); err != nil {
+		return api.Forbidden(err)
 	}
 
 	templateInstance, err := b.templateclient.TemplateInstances(namespace).Get(brokerTemplateInstance.Spec.TemplateInstance.Name, metav1.GetOptions{})

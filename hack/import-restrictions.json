@@ -271,7 +271,6 @@
       "github.com/openshift/origin/pkg/template/apis/template",
       "github.com/openshift/origin/pkg/authorization/util",
       "github.com/openshift/origin/pkg/template/apis/template/validation",
-      "github.com/openshift/origin/pkg/user/apis/user/validation",
       "github.com/openshift/origin/pkg/route/apis/route"
     ]
   },

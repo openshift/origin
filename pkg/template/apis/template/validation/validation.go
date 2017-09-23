@@ -12,7 +12,6 @@ import (
 
 	"github.com/golang/glog"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
-	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
 )
 
 var ParameterNameRegexp = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
@@ -95,10 +94,6 @@ func ValidateTemplateInstance(templateInstance *templateapi.TemplateInstance) (a
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.requester"), ""))
 	} else if templateInstance.Spec.Requester.Username == "" {
 		allErrs = append(allErrs, field.Required(field.NewPath("spec.requester.username"), ""))
-	} else {
-		for _, msg := range uservalidation.ValidateUserName(templateInstance.Spec.Requester.Username, false) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec.requester.username"), templateInstance.Spec.Requester.Username, msg))
-		}
 	}
 	return
 }
