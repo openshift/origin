@@ -50,6 +50,9 @@ const (
 	// The previous name of this label was 'io.s2i.scripts-url'. This is now
 	// deprecated.
 	ScriptsURLLabel = api.DefaultNamespace + "scripts-url"
+
+	// AssembleUserLabel is the User that will be used in the assemble process
+	AssembleUserLabel = api.DefaultNamespace + "assemble-user"
 	// DestinationLabel is the name of the Docker image LABEL that tells S2I where
 	// to place the artifacts (scripts, sources) in the builder image.
 	// The previous name of this label was 'io.s2i.destination'. This is now
