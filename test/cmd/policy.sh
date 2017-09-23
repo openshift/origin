@@ -3,6 +3,18 @@ source "$(dirname "${BASH_SOURCE}")/../../hack/lib/init.sh"
 trap os::test::junit::reconcile_output EXIT
 
 project="$( oc project -q )"
+testpod="apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+spec:
+  containers:
+  - image: node
+    imagePullPolicy: IfNotPresent
+    name: testpod
+  volumes:
+  - emptyDir: {}
+    name: tmp"
 
 os::test::junit::declare_suite_start "cmd/policy"
 # This test validates user level policy
@@ -79,6 +91,59 @@ os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/docker
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/source' 'system:authenticated'
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/jenkinspipeline' 'system:authenticated'
 
+# validate --output and --dry-run flags for oc-adm-policy sub-commands
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user -o yaml' 'name: admin'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user -o yaml' 'name: namespaced-user'
+
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-user admin namespaced-user --dry-run' 'role "admin" removed: "namespaced\-user" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-user admin namespaced-user --dry-run' 'role "admin" added: "namespaced\-user" \(dry run\)'
+
+# ensure that running an `oc adm policy` sub-command with --output does not actually perform any changes
+os::cmd::expect_success_and_text 'oc adm policy who-can create pods -o yaml' '\- namespaced\-user'
+
+os::cmd::expect_success_and_text 'oc adm policy scc-subject-review -u namespaced-user --output yaml -f - << __EOF__
+$testpod
+__EOF__' 'name: testpod'
+os::cmd::expect_success_and_text 'oc adm policy scc-subject-review -u namespaced-user --output wide -f - << __EOF__
+$testpod
+__EOF__' 'Pod/testpod'
+
+os::cmd::expect_success_and_text 'oc adm policy scc-review --output yaml -f - << __EOF__
+$testpod
+__EOF__' 'allowedServiceAccounts: \[\]'
+
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup -o yaml' 'name: view'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup -o yaml' '\- testgroup'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user -o yaml' 'name: namespaced\-user'
+
+os::cmd::expect_success_and_text 'oc adm policy add-role-to-group view testgroup --dry-run' 'role "view" added: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group cluster-reader testgroup --dry-run' 'cluster role "cluster\-reader" added: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-user cluster-reader namespaced-user --dry-run' 'cluster role "cluster\-reader" added: "namespaced\-user" \(dry run\)'
+
+os::cmd::expect_success 'oc adm policy add-role-to-group view testgroup'
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup -o yaml' 'subjects: \[\]'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup -o yaml' 'name: cluster\-readers'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user -o yaml' 'name: cluster\-reader'
+
+os::cmd::expect_success_and_text 'oc adm policy remove-role-from-group view testgroup --dry-run' 'role "view" removed: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-group cluster-reader testgroup --dry-run' 'cluster role "cluster\-reader" removed: "testgroup" \(dry run\)'
+os::cmd::expect_success_and_text 'oc adm policy remove-cluster-role-from-user cluster-reader namespaced-user --dry-run' 'cluster role "cluster\-reader" removed: "namespaced\-user" \(dry run\)'
+
+os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user -o yaml' "namespace: ${project}"
+os::cmd::expect_success_and_text 'oc adm policy remove-user namespaced-user --dry-run' "Removing admin from users \[namespaced\-user\] in project ${project}"
+
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-user anyuid namespaced-user --dry-run' 'scc "anyuid" added to: \["namespaced\-user"\] \(dry run\)'
+
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup -o yaml' '\- testgroup'
+os::cmd::expect_success_and_text 'oc adm policy add-scc-to-group anyuid testgroup --dry-run' 'scc "anyuid" added to groups: \["testgroup"\] \(dry run\)'
+
+os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-user anyuid namespaced-user -o yaml' '\- namespaced\-user'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-user anyuid namespaced-user --dry-run' 'scc "anyuid" removed from: \["namespaced\-user"\] \(dry run\)'
+
+os::cmd::expect_success_and_not_text 'oc adm policy remove-scc-from-group anyuid testgroup -o yaml' '\- testgroup'
+os::cmd::expect_success_and_text 'oc adm policy remove-scc-from-group anyuid testgroup --dry-run' 'scc "anyuid" removed from groups: \["testgroup"\] \(dry run\)'
+
 # ensure system:authenticated users can not create custom builds by default, but can if explicitly granted access
 os::cmd::expect_success_and_not_text 'oc adm policy who-can create builds/custom' 'system:authenticated'
 os::cmd::expect_success_and_text 'oc adm policy add-cluster-role-to-group system:build-strategy-custom system:authenticated' 'cluster role "system:build-strategy-custom" added: "system:authenticated"'
@@ -146,7 +211,6 @@ os::cmd::expect_failure_and_text 'oc policy scc-review -z default -f ${OS_ROOT}/
 os::cmd::expect_failure_and_text 'oc policy scc-review -z no-exist -f ${OS_ROOT}/test/testdata/job.yaml' 'error: unable to compute Pod Security Policy Review for "hello": unable to retrieve ServiceAccount no-exist: serviceaccount "no-exist" not found'
 os::cmd::expect_success "oc login -u system:admin -n '${project}'"
 os::cmd::expect_success 'oc delete project policy-second'
-
 
 # adjust the cluster-admin role to check defaulting and coverage checks
 # this is done here instead of an integration test because we need to make sure the actual yaml serializations work
