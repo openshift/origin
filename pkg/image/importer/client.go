@@ -28,6 +28,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	"github.com/openshift/origin/pkg/image/apis/image/docker10"
 	"github.com/openshift/origin/pkg/image/apis/image/dockerpre012"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 )
@@ -245,7 +246,7 @@ func schema1ToImage(manifest *schema1.SignedManifest, d digest.Digest) (*imageap
 	if len(manifest.History) == 0 {
 		return nil, fmt.Errorf("image has no v1Compatibility history and cannot be used")
 	}
-	dockerImage, err := unmarshalDockerImage([]byte(manifest.History[0].V1Compatibility))
+	dockerImage, err := unmarshalDockerImage([]byte(manifest.History[0].V1Compatibility), &dockerpre012.DockerImage{})
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +279,7 @@ func schema2ToImage(manifest *schema2.DeserializedManifest, imageConfig []byte, 
 		return nil, err
 	}
 
-	dockerImage, err := unmarshalDockerImage(imageConfig)
+	dockerImage, err := unmarshalDockerImage(imageConfig, &docker10.DockerImage{})
 	if err != nil {
 		return nil, err
 	}
@@ -319,13 +320,12 @@ func schema0ToImage(dockerImage *dockerregistry.Image) (*imageapi.Image, error) 
 	return image, nil
 }
 
-func unmarshalDockerImage(body []byte) (*imageapi.DockerImage, error) {
-	var image dockerpre012.DockerImage
-	if err := json.Unmarshal(body, &image); err != nil {
+func unmarshalDockerImage(body []byte, expected interface{}) (*imageapi.DockerImage, error) {
+	if err := json.Unmarshal(body, expected); err != nil {
 		return nil, err
 	}
 	dockerImage := &imageapi.DockerImage{}
-	if err := kapi.Scheme.Convert(&image, dockerImage, nil); err != nil {
+	if err := kapi.Scheme.Convert(expected, dockerImage, nil); err != nil {
 		return nil, err
 	}
 	return dockerImage, nil

@@ -22,6 +22,16 @@ type DockerImage struct {
 	Config          *DockerConfig `json:"Config,omitempty"`
 	Architecture    string        `json:"Architecture,omitempty"`
 	Size            int64         `json:"Size,omitempty"`
+
+	RootFS *DockerImageRootFS `json:"RootFS,omitempty"`
+	OS     string             `json:"Os,omitempty"`
+}
+
+// DockerImageRootFS describes images root filesystem as seen from the Docker client
+// API.
+type DockerImageRootFS struct {
+	Type    string   `json:"Type"`
+	DiffIDs []string `json:"Layers,omitempty"`
 }
 
 // DockerConfig is the list of configuration options used when creating a container.
@@ -124,7 +134,9 @@ type DockerV1CompatibilityImageSize struct {
 	Size int64 `json:"size,omitempty"`
 }
 
-// DockerImageConfig stores the image configuration
+// DockerImageConfig handles application/vnd.docker.container.image.v1+json
+// from a docker/distribution registry. It is similar but not identical to
+// the struct returned by the Docker daemon.
 type DockerImageConfig struct {
 	ID              string                `json:"id"`
 	Parent          string                `json:"parent,omitempty"`
