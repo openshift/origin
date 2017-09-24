@@ -46,9 +46,12 @@ func (h *AuthorizeAuthenticator) HandleAuthorize(ar *osin.AuthorizeRequest, resp
 	ar.UserData = info
 	ar.Authorized = true
 
-	if e, ok := ar.Client.(TokenMaxAgeSeconds); ok {
-		if maxAge := e.GetTokenMaxAgeSeconds(); maxAge != nil {
-			ar.Expiration = *maxAge
+	// If requesting a token directly, optionally override the expiration
+	if ar.Type == osin.TOKEN {
+		if e, ok := ar.Client.(TokenMaxAgeSeconds); ok {
+			if maxAge := e.GetTokenMaxAgeSeconds(); maxAge != nil {
+				ar.Expiration = *maxAge
+			}
 		}
 	}
 
@@ -101,7 +104,14 @@ func (h *AccessAuthenticator) HandleAccess(ar *osin.AccessRequest, w http.Respon
 		if info != nil {
 			ar.AccessData.UserData = info
 		}
+
+		if e, ok := ar.Client.(TokenMaxAgeSeconds); ok {
+			if maxAge := e.GetTokenMaxAgeSeconds(); maxAge != nil {
+				ar.Expiration = *maxAge
+			}
+		}
 	}
+
 	return nil
 }
 
