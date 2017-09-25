@@ -28,7 +28,6 @@ import (
 	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -36,7 +35,11 @@ import (
 	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	outil "github.com/openshift/origin/pkg/util"
 	dockerfileutil "github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
@@ -112,7 +115,10 @@ type AppConfig struct {
 	Out    io.Writer
 	ErrOut io.Writer
 
-	KubeClient kclientset.Interface
+	KubeClient     kclientset.Interface
+	ImageClient    imageclient.ImageInterface
+	RouteClient    routeclient.RouteInterface
+	TemplateClient templateclient.TemplateInterface
 
 	Resolvers
 
@@ -121,7 +127,6 @@ type AppConfig struct {
 	CategoryExpander resource.CategoryExpander
 	ClientMapper     resource.ClientMapper
 
-	OSClient        client.Interface
 	OriginNamespace string
 
 	ArgumentClassificationErrors []ArgumentClassificationError
@@ -189,24 +194,29 @@ func (c *AppConfig) ensureDockerSearch() {
 }
 
 // SetOpenShiftClient sets the passed OpenShift client in the application configuration
-func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespace string, dockerclient *docker.Client) {
-	c.OSClient = osclient
+func (c *AppConfig) SetOpenShiftClient(imageClient imageclient.ImageInterface, templateClient templateclient.TemplateInterface, routeClient routeclient.RouteInterface, OriginNamespace string, dockerclient *docker.Client) {
 	c.OriginNamespace = OriginNamespace
 	namespaces := []string{OriginNamespace}
 	if openshiftNamespace := "openshift"; OriginNamespace != openshiftNamespace {
 		namespaces = append(namespaces, openshiftNamespace)
 	}
+	c.ImageClient = imageClient
+	c.RouteClient = routeClient
+	c.TemplateClient = templateClient
 	c.ImageStreamSearcher = app.ImageStreamSearcher{
-		Client:            osclient,
-		ImageStreamImages: osclient,
+		Client:            c.ImageClient,
+		ImageStreamImages: c.ImageClient,
 		Namespaces:        namespaces,
 		AllowMissingTags:  c.AllowMissingImageStreamTags,
 	}
-	c.ImageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(osclient, osclient, namespaces)
+	c.ImageStreamByAnnotationSearcher = app.NewImageStreamByAnnotationSearcher(
+		c.ImageClient,
+		c.ImageClient,
+		namespaces,
+	)
 	c.TemplateSearcher = app.TemplateSearcher{
-		Client: osclient,
-		TemplateConfigsNamespacer: osclient,
-		Namespaces:                namespaces,
+		Client:     c.TemplateClient,
+		Namespaces: namespaces,
 	}
 	c.TemplateFileSearcher = &app.TemplateFileSearcher{
 		Typer:            c.Typer,
@@ -226,7 +236,7 @@ func (c *AppConfig) SetOpenShiftClient(osclient client.Interface, OriginNamespac
 		Insecure:           c.InsecureRegistry,
 		AllowMissingImages: c.AllowMissingImages,
 		RegistrySearcher: app.ImageImportSearcher{
-			Client:        osclient.ImageStreams(OriginNamespace),
+			Client:        c.ImageClient.ImageStreamImports(OriginNamespace),
 			AllowInsecure: c.InsecureRegistry,
 			Fallback:      c.DockerRegistrySearcher(),
 		},
@@ -470,7 +480,7 @@ func (c *AppConfig) buildPipelines(components app.ComponentReferences, environme
 }
 
 // buildTemplates converts a set of resolved, valid references into references to template objects.
-func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment) (string, []runtime.Object, error) {
+func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameters app.Environment, environment app.Environment, buildEnvironment app.Environment, templateProcessor templateinternalclient.TemplateProcessorInterface) (string, []runtime.Object, error) {
 	objects := []runtime.Object{}
 	name := ""
 	for _, ref := range components {
@@ -480,7 +490,7 @@ func (c *AppConfig) buildTemplates(components app.ComponentReferences, parameter
 		if len(c.ContextDir) > 0 {
 			return "", nil, fmt.Errorf("--context-dir is not supported when using a template")
 		}
-		result, err := TransformTemplate(tpl, c.OSClient, c.OriginNamespace, parameters, c.IgnoreUnknownParameters)
+		result, err := TransformTemplate(tpl, templateProcessor, c.OriginNamespace, parameters, c.IgnoreUnknownParameters)
 		if err != nil {
 			return name, nil, err
 		}
@@ -818,7 +828,8 @@ func (c *AppConfig) Run() (*AppResult, error) {
 
 	objects = app.AddServices(objects, false)
 
-	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), parameters, env, buildenv)
+	templateProcessor := templateinternalclient.NewTemplateProcessorClient(c.TemplateClient.RESTClient(), c.OriginNamespace)
+	templateName, templateObjects, err := c.buildTemplates(components.TemplateComponentRefs(), parameters, env, buildenv, templateProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -978,7 +989,7 @@ func (c *AppConfig) followRefToDockerImage(ref *kapi.ObjectReference, isContext 
 
 		if isContext == nil {
 			var err error
-			isContext, err = c.OSClient.ImageStreams(isNS).Get(isName, metav1.GetOptions{})
+			isContext, err = c.ImageClient.ImageStreams(isNS).Get(isName, metav1.GetOptions{})
 			if err != nil {
 				return nil, fmt.Errorf("Unable to check for circular build input/outputs: %v", err)
 			}

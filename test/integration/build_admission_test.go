@@ -211,7 +211,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	}
 
 	var projectAdminConfig *rest.Config
-	_, projectAdminClient, projectAdminConfig, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "harold")
+	_, projectAdminClient, projectAdminConfig, err = testserver.CreateNewProject(*clusterAdminClientConfig, namespace, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

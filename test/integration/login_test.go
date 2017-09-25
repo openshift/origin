@@ -31,11 +31,6 @@ func TestLogin(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -57,7 +52,7 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:            clusterAdminClient,
+		ProjectClient:     projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
 		RoleBindingClient: authorizationclient.NewForConfigOrDie(clusterAdminClientConfig),
 		ProjectName:       project,
 		AdminRole:         bootstrappolicy.AdminRoleName,

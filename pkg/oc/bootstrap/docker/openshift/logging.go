@@ -57,13 +57,17 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, public
 
 // InstallLogging checks whether logging is installed and installs it if not already installed
 func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost, imagePrefix, imageVersion string) error {
-	osClient, kubeClient, err := f.Clients()
+	_, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
+	templateClient, err := f.OpenshiftInternalTemplateClient()
+	if err != nil {
+		return err
 	}
 
 	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
@@ -80,7 +84,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Instantiate logging deployer account template
-	err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, loggingDeployerAccountTemplate, loggingNamespace, nil, false)
+	err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, loggingDeployerAccountTemplate, loggingNamespace, nil, false)
 	if err != nil {
 		return errors.NewError("cannot instantiate logger accounts").WithCause(err)
 	}
@@ -132,7 +136,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 		"IMAGE_PREFIX":  fmt.Sprintf("%s-", imagePrefix),
 		"MODE":          "install",
 	}
-	err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, loggingDeployerTemplate, loggingNamespace, deployerParams, false)
+	err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, loggingDeployerTemplate, loggingNamespace, deployerParams, false)
 	if err != nil {
 		return errors.NewError("cannot instantiate logging deployer").WithCause(err)
 	}

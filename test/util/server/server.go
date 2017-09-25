@@ -38,6 +38,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	newproject "github.com/openshift/origin/pkg/oc/admin/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
@@ -608,14 +609,18 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clusterAdminClient *client.Client, clientConfig restclient.Config, projectName, adminUser string) (kclientset.Interface, *client.Client, *restclient.Config, error) {
+func CreateNewProject(clientConfig restclient.Config, projectName, adminUser string) (kclientset.Interface, *client.Client, *restclient.Config, error) {
+	projectClient, err := projectclient.NewForConfig(&clientConfig)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	authorizationClient, err := authorizationclient.NewForConfig(&clientConfig)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:            clusterAdminClient,
+		ProjectClient:     projectClient,
 		RoleBindingClient: authorizationClient.Authorization(),
 		ProjectName:       projectName,
 		AdminRole:         bootstrappolicy.AdminRoleName,

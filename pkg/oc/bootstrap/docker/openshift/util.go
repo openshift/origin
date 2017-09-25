@@ -6,20 +6,22 @@ import (
 	kerrorutils "k8s.io/apimachinery/pkg/util/errors"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	genappcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
-func instantiateTemplate(client client.Interface, mapper configcmd.Mapper, dmapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string, ignoreExistsErrors bool) error {
+func instantiateTemplate(client templateclient.TemplateInterface, mapper configcmd.Mapper, dmapper configcmd.Mapper, templateNamespace, templateName, targetNamespace string, params map[string]string, ignoreExistsErrors bool) error {
 	template, err := client.Templates(templateNamespace).Get(templateName, metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve template %q from namespace %q", templateName, templateNamespace).WithCause(err)
 	}
 
 	// process the template
-	result, err := genappcmd.TransformTemplate(template, client, targetNamespace, params, false)
+	templateProcessor := templateinternalclient.NewTemplateProcessorClient(client.RESTClient(), targetNamespace)
+	result, err := genappcmd.TransformTemplate(template, templateProcessor, targetNamespace, params, false)
 	if err != nil {
 		return errors.NewError("cannot process template %s/%s", templateNamespace, templateName).WithCause(err)
 	}

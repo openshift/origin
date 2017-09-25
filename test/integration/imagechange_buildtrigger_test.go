@@ -234,17 +234,12 @@ func setup(t *testing.T) (*rest.Config, kclientset.Interface, *client.Client, fu
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminKubeConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	projectKubeAdminClient, projectAdminClient, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminKubeConfig, testutil.Namespace(), testutil.Namespace())
+	projectKubeAdminClient, projectAdminClient, _, err := testserver.CreateNewProject(*clusterAdminKubeConfig, testutil.Namespace(), testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
