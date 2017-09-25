@@ -13,11 +13,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildinternalclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
 
@@ -161,7 +162,7 @@ type DescribeWebhook struct {
 
 // webhookDescribe returns a map of webhook trigger types and its corresponding
 // information.
-func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, cli client.BuildConfigsNamespacer) map[string][]DescribeWebhook {
+func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace string, c rest.Interface) map[string][]DescribeWebhook {
 	result := map[string][]DescribeWebhook{}
 
 	for _, trigger := range triggers {
@@ -192,7 +193,8 @@ func webHooksDescribe(triggers []buildapi.BuildTriggerPolicy, name, namespace st
 		}
 
 		var urlStr string
-		url, err := cli.BuildConfigs(namespace).WebHookURL(name, &trigger)
+		webhookClient := buildinternalclient.NewWebhookURLClient(c, namespace)
+		url, err := webhookClient.WebHookURL(name, &trigger)
 		if err != nil {
 			urlStr = fmt.Sprintf("<error: %s>", err.Error())
 		} else {
