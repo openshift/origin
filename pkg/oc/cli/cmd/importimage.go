@@ -17,7 +17,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -167,8 +166,9 @@ func (o *ImportImageOptions) Run() error {
 
 	// Attempt the new, direct import path
 	result, err := o.imageClient.ImageStreamImports(isi.Namespace).Create(isi)
+	err = imageapi.TransformUnsupportedError(err)
 	switch {
-	case err == client.ErrImageStreamImportUnsupported:
+	case err == imageapi.ErrImageStreamImportUnsupported:
 	case err != nil:
 		return err
 	default:

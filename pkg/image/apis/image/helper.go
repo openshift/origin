@@ -2,6 +2,7 @@ package image
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -9,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 const (
@@ -37,9 +39,13 @@ const (
 	ImportRegistryNotAllowed = "registry is not allowed for import"
 )
 
-var errNoRegistryURLPathAllowed = fmt.Errorf("no path after <host>[:<port>] is allowed")
-var errNoRegistryURLQueryAllowed = fmt.Errorf("no query arguments are allowed after <host>[:<port>]")
-var errRegistryURLHostEmpty = fmt.Errorf("no host name specified")
+var errNoRegistryURLPathAllowed = errors.New("no path after <host>[:<port>] is allowed")
+var errNoRegistryURLQueryAllowed = errors.New("no query arguments are allowed after <host>[:<port>]")
+var errRegistryURLHostEmpty = errors.New("no host name specified")
+
+// ErrImageStreamImportUnsupported is an error client receive when the import
+// failed.
+var ErrImageStreamImportUnsupported = errors.New("the server does not support directly importing images - create an image stream with tags or the dockerImageRepository field set")
 
 // RegistryHostnameRetriever represents an interface for retrieving the hostname
 // of internal and external registry.
@@ -743,9 +749,9 @@ func ResolveImageID(stream *ImageStream, imageID string) (*TagEvent, error) {
 			Image:                event.Image,
 		}, nil
 	case 0:
-		return nil, errors.NewNotFound(Resource("imagestreamimage"), imageID)
+		return nil, kerrors.NewNotFound(Resource("imagestreamimage"), imageID)
 	default:
-		return nil, errors.NewConflict(Resource("imagestreamimage"), imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
+		return nil, kerrors.NewConflict(Resource("imagestreamimage"), imageID, fmt.Errorf("multiple images match the prefix %q: %s", imageID, strings.Join(set.List(), ", ")))
 	}
 }
 
@@ -1038,4 +1044,28 @@ func ValidateRegistryURL(registryURL string) error {
 		return errRegistryURLHostEmpty
 	}
 	return nil
+}
+
+// TransformUnsupportedError converts specific error conditions to unsupported
+func TransformUnsupportedError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if kerrors.IsNotFound(err) {
+		status, ok := err.(kerrors.APIStatus)
+		if !ok {
+			return ErrImageStreamImportUnsupported
+		}
+		if status.Status().Details == nil || status.Status().Details.Kind == "" {
+			return ErrImageStreamImportUnsupported
+		}
+	}
+	// The ImageStreamImport resource exists in v1.1.1 of origin but is not yet
+	// enabled by policy. A create request will return a Forbidden(403) error.
+	// We want to return ErrImageStreamImportUnsupported to allow fallback behavior
+	// in clients.
+	if kerrors.IsForbidden(err) && !quotautil.IsErrorQuotaExceeded(err) {
+		return ErrImageStreamImportUnsupported
+	}
+	return err
 }
