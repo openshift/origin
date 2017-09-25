@@ -27,22 +27,26 @@ import (
 	kubeanalysis "github.com/openshift/origin/pkg/api/kubegraph/analysis"
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployedges "github.com/openshift/origin/pkg/apps/graph"
 	deployanalysis "github.com/openshift/origin/pkg/apps/graph/analysis"
 	deploygraph "github.com/openshift/origin/pkg/apps/graph/nodes"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
-	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imageedges "github.com/openshift/origin/pkg/image/graph"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	loginerrors "github.com/openshift/origin/pkg/oc/cli/cmd/errors"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	routeedges "github.com/openshift/origin/pkg/route/graph"
 	routeanalysis "github.com/openshift/origin/pkg/route/graph/analysis"
 	routegraph "github.com/openshift/origin/pkg/route/graph/nodes"
@@ -54,10 +58,16 @@ const ForbiddenListWarning = "Forbidden"
 
 // ProjectStatusDescriber generates extended information about a Project
 type ProjectStatusDescriber struct {
-	K       kclientset.Interface
-	C       client.Interface
-	Server  string
-	Suggest bool
+	K kclientset.Interface
+
+	// OpenShift clients
+	ProjectClient projectclient.ProjectInterface
+	BuildClient   buildclient.BuildInterface
+	ImageClient   imageclient.ImageInterface
+	AppsClient    appsclient.AppsInterface
+	RouteClient   routeclient.RouteInterface
+	Server        string
+	Suggest       bool
 
 	// root command used when calling this command
 	CommandBaseName    string
@@ -85,11 +95,11 @@ func (d *ProjectStatusDescriber) MakeGraph(namespace string) (osgraph.Graph, set
 		&horizontalPodAutoscalerLoader{namespace: namespace, lister: d.K.Autoscaling()},
 		// TODO check swagger for feature enablement and selectively add bcLoader and buildLoader
 		// then remove errors.TolerateNotFoundError method.
-		&bcLoader{namespace: namespace, lister: d.C},
-		&buildLoader{namespace: namespace, lister: d.C},
-		&isLoader{namespace: namespace, lister: d.C},
-		&dcLoader{namespace: namespace, lister: d.C},
-		&routeLoader{namespace: namespace, lister: d.C},
+		&bcLoader{namespace: namespace, lister: d.BuildClient},
+		&buildLoader{namespace: namespace, lister: d.BuildClient},
+		&isLoader{namespace: namespace, lister: d.ImageClient},
+		&dcLoader{namespace: namespace, lister: d.AppsClient},
+		&routeLoader{namespace: namespace, lister: d.RouteClient},
 	}
 	loadingFuncs := []func() error{}
 	for _, loader := range loaders {
@@ -157,7 +167,7 @@ func (d *ProjectStatusDescriber) Describe(namespace, name string) (string, error
 	allNamespaces := namespace == metav1.NamespaceAll
 	var project *projectapi.Project
 	if !allNamespaces {
-		p, err := d.C.Projects().Get(namespace, metav1.GetOptions{})
+		p, err := d.ProjectClient.Projects().Get(namespace, metav1.GetOptions{})
 		if err != nil {
 			// a forbidden error here (without a --namespace value) means that
 			// the user has not created any projects, and is therefore using a
@@ -1444,7 +1454,7 @@ func (l *pvcLoader) AddToGraph(g osgraph.Graph) error {
 
 type isLoader struct {
 	namespace string
-	lister    client.ImageStreamsNamespacer
+	lister    imageclient.ImageStreamsGetter
 	items     []imageapi.ImageStream
 }
 
@@ -1469,7 +1479,7 @@ func (l *isLoader) AddToGraph(g osgraph.Graph) error {
 
 type dcLoader struct {
 	namespace string
-	lister    client.DeploymentConfigsNamespacer
+	lister    appsclient.DeploymentConfigsGetter
 	items     []deployapi.DeploymentConfig
 }
 
@@ -1493,7 +1503,7 @@ func (l *dcLoader) AddToGraph(g osgraph.Graph) error {
 
 type bcLoader struct {
 	namespace string
-	lister    client.BuildConfigsNamespacer
+	lister    buildclient.BuildConfigsGetter
 	items     []buildapi.BuildConfig
 }
 
@@ -1517,7 +1527,7 @@ func (l *bcLoader) AddToGraph(g osgraph.Graph) error {
 
 type buildLoader struct {
 	namespace string
-	lister    client.BuildsNamespacer
+	lister    buildclient.BuildsGetter
 	items     []buildapi.Build
 }
 
@@ -1541,7 +1551,7 @@ func (l *buildLoader) AddToGraph(g osgraph.Graph) error {
 
 type routeLoader struct {
 	namespace string
-	lister    client.RoutesNamespacer
+	lister    routeclient.RoutesGetter
 	items     []routeapi.Route
 }
 

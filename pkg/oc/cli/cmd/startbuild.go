@@ -36,7 +36,8 @@ import (
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
-	osclient "github.com/openshift/origin/pkg/client"
+	buildclientinternal "github.com/openshift/origin/pkg/build/client/internalversion"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -154,7 +155,7 @@ type StartBuildOptions struct {
 	GitPostReceive string
 
 	Mapper       meta.RESTMapper
-	Client       osclient.Interface
+	BuildClient  buildclient.BuildInterface
 	ClientConfig kclientcmd.ClientConfig
 
 	AsBinary    bool
@@ -232,11 +233,11 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 		return err
 	}
 
-	client, _, err := f.Clients()
+	c, err := f.OpenshiftInternalBuildClient()
 	if err != nil {
 		return err
 	}
-	o.Client = client
+	o.BuildClient = c.Build()
 
 	var (
 		name     = buildName
@@ -263,7 +264,7 @@ func (o *StartBuildOptions) Complete(f *clientcmd.Factory, in io.Reader, out, er
 
 	// when listing webhooks, allow --from-build to lookup a build config
 	if buildapi.IsResourceOrLegacy("builds", resource) && len(o.ListWebhooks) > 0 {
-		build, err := client.Builds(namespace).Get(name, metav1.GetOptions{})
+		build, err := o.BuildClient.Builds(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -368,14 +369,15 @@ func (o *StartBuildOptions) Run() error {
 		if len(o.BuildArgs) > 0 {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
-		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, o.Client.BuildConfigs(o.Namespace), o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
+		instantiateClient := buildclientinternal.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
+		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, instantiateClient, o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
 			if kerrors.IsAlreadyExists(err) {
 				return transformIsAlreadyExistsError(err, o.Name)
 			}
 			return err
 		}
 	case len(o.FromBuild) > 0:
-		if newBuild, err = o.Client.Builds(o.Namespace).Clone(request); err != nil {
+		if newBuild, err = o.BuildClient.Builds(o.Namespace).Clone(request.Name, request); err != nil {
 			if isInvalidSourceInputsError(err) {
 				return fmt.Errorf("Build %s/%s has no valid source inputs and '--from-build' cannot be used for binary builds", o.Namespace, o.Name)
 			}
@@ -385,7 +387,7 @@ func (o *StartBuildOptions) Run() error {
 			return err
 		}
 	default:
-		if newBuild, err = o.Client.BuildConfigs(o.Namespace).Instantiate(request); err != nil {
+		if newBuild, err = o.BuildClient.BuildConfigs(o.Namespace).Instantiate(request.Name, request); err != nil {
 			if isInvalidSourceInputsError(err) {
 				return fmt.Errorf("Build configuration %s/%s has no valid source inputs, if this is a binary build you must specify one of '--from-dir', '--from-repo', or '--from-file'", o.Namespace, o.Name)
 			}
@@ -404,8 +406,9 @@ func (o *StartBuildOptions) Run() error {
 			Follow: true,
 			NoWait: false,
 		}
+		logClient := buildclientinternal.NewBuildLogClient(o.BuildClient.RESTClient(), o.Namespace)
 		for {
-			rd, err := o.Client.BuildLogs(o.Namespace).Get(newBuild.Name, opts).Stream()
+			rd, err := logClient.Logs(newBuild.Name, opts).Stream()
 			if err != nil {
 				// retry the connection to build logs when we hit the timeout.
 				if oerrors.IsTimeoutErr(err) {
@@ -424,7 +427,7 @@ func (o *StartBuildOptions) Run() error {
 	}
 
 	if o.Follow || o.WaitForComplete {
-		return WaitForBuildComplete(o.Client.Builds(o.Namespace), newBuild.Name)
+		return WaitForBuildComplete(o.BuildClient.Builds(o.Namespace), newBuild.Name)
 	}
 
 	return nil
@@ -445,13 +448,13 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	default:
 		return fmt.Errorf("--list-webhooks must be 'all', 'generic', or 'github'")
 	}
-	client := o.Client
 
-	config, err := client.BuildConfigs(o.Namespace).Get(o.Name, metav1.GetOptions{})
+	config, err := o.BuildClient.BuildConfigs(o.Namespace).Get(o.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
+	webhookClient := buildclientinternal.NewWebhookURLClient(o.BuildClient.RESTClient(), o.Namespace)
 	for _, t := range config.Spec.Triggers {
 		hookType := ""
 		switch {
@@ -466,9 +469,9 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		default:
 			continue
 		}
-		url, err := client.BuildConfigs(o.Namespace).WebHookURL(o.Name, &t)
+		url, err := webhookClient.WebHookURL(o.Name, &t)
 		if err != nil {
-			if err != osclient.ErrTriggerIsNotAWebHook {
+			if err != buildclientinternal.ErrTriggerIsNotAWebHook {
 				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
@@ -478,7 +481,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	return nil
 }
 
-func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client osclient.BuildConfigInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
+func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclientinternal.BuildInstantiateBinaryInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
 	asDir, asFile, asRepo := len(fromDir) > 0, len(fromFile) > 0, len(fromRepo) > 0
 
 	if asRepo && !git.IsGitInstalled() {
@@ -560,12 +563,12 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 			// NOTE: It's important that this stays false unless we change the
 			// path to something else, otherwise we will delete whatever path the
 			// user provided.
-			var usedTempDir bool = false
-			var tempDirectory string = ""
+			var usedTempDir bool
+			var tempDirectory string
 
 			if asRepo {
 
-				var contextDir string = ""
+				var contextDir string
 				fmt.Fprintf(out, "Uploading %q at commit %q as binary input for the build ...\n", clean, commit)
 				if gitErr != nil {
 					return nil, fmt.Errorf("the directory %q is not a valid Git repository: %v", clean, gitErr)
@@ -655,7 +658,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 		}
 	}
 
-	return client.InstantiateBinary(options, r)
+	return client.InstantiateBinary(options.Name, options, r)
 }
 
 func isArchive(r *bufio.Reader) bool {
@@ -825,7 +828,7 @@ func gitRefInfo(repo git.Repository, dir, ref string) (buildapi.GitRefInfo, erro
 }
 
 // WaitForBuildComplete waits for a build identified by the name to complete
-func WaitForBuildComplete(c osclient.BuildInterface, name string) error {
+func WaitForBuildComplete(c buildclient.BuildResourceInterface, name string) error {
 	isOK := func(b *buildapi.Build) bool {
 		return b.Status.Phase == buildapi.BuildPhaseComplete
 	}
@@ -889,7 +892,7 @@ func isInvalidSourceInputsError(err error) bool {
 }
 
 func transformIsAlreadyExistsError(err error, buildConfigName string) error {
-	return fmt.Errorf("%s. Retry building BuildConfig \"%s\" or delete the conflicting builds.", err.Error(), buildConfigName)
+	return fmt.Errorf("%s. Retry building BuildConfig \"%s\" or delete the conflicting builds", err.Error(), buildConfigName)
 }
 
 func httpFileName(resp *http.Response) (filename string) {

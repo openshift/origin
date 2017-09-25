@@ -8,6 +8,7 @@ import (
 type ProjectInterface interface {
 	RESTClient() rest.Interface
 	ProjectsGetter
+	ProjectRequestsGetter
 }
 
 // ProjectClient is used to interact with features provided by the project.openshift.io group.
@@ -17,6 +18,10 @@ type ProjectClient struct {
 
 func (c *ProjectClient) Projects() ProjectResourceInterface {
 	return newProjects(c)
+}
+
+func (c *ProjectClient) ProjectRequests() ProjectRequestInterface {
+	return newProjectRequests(c)
 }
 
 // NewForConfig creates a new ProjectClient for the given config.
