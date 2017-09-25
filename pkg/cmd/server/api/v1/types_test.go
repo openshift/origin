@@ -5,15 +5,14 @@ import (
 
 	"github.com/ghodss/yaml"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/diff"
 
 	internal "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/v1"
+	testtypes "github.com/openshift/origin/pkg/cmd/server/api/v1/testing"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -646,16 +645,9 @@ volumeConfig:
 	}
 }
 
-type AdmissionPluginTestConfig struct {
-	metav1.TypeMeta
-	Data string `json:"data"`
-}
-
-func (obj *AdmissionPluginTestConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
-
 func TestMasterConfig(t *testing.T) {
-	internal.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &AdmissionPluginTestConfig{})
-	internal.Scheme.AddKnownTypes(internal.SchemeGroupVersion, &AdmissionPluginTestConfig{})
+	internal.Scheme.AddKnownTypes(v1.SchemeGroupVersion, &testtypes.AdmissionPluginTestConfig{})
+	internal.Scheme.AddKnownTypes(internal.SchemeGroupVersion, &testtypes.AdmissionPluginTestConfig{})
 	config := &internal.MasterConfig{
 		ServingInfo: internal.HTTPServingInfo{
 			ServingInfo: internal.ServingInfo{
@@ -666,7 +658,7 @@ func TestMasterConfig(t *testing.T) {
 			AdmissionConfig: internal.AdmissionConfig{
 				PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
 					"plugin": {
-						Configuration: &AdmissionPluginTestConfig{},
+						Configuration: &testtypes.AdmissionPluginTestConfig{},
 					},
 				},
 				PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty
@@ -702,7 +694,7 @@ func TestMasterConfig(t *testing.T) {
 		AdmissionConfig: internal.AdmissionConfig{
 			PluginConfig: map[string]internal.AdmissionPluginConfig{ // test config as an embedded object
 				"plugin": {
-					Configuration: &AdmissionPluginTestConfig{},
+					Configuration: &testtypes.AdmissionPluginTestConfig{},
 				},
 			},
 			PluginOrderOverride: []string{"plugin"}, // explicitly set this field because it's omitempty

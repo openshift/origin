@@ -10,6 +10,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterNetwork describes the cluster network. There is normally only one object of this type,
 // named "default", which is created by the SDN network plugin based on the master configuration
@@ -29,6 +30,8 @@ type ClusterNetwork struct {
 	PluginName string `json:"pluginName,omitempty" protobuf:"bytes,5,opt,name=pluginName"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ClusterNetworkList is a collection of ClusterNetworks
 type ClusterNetworkList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -40,6 +43,7 @@ type ClusterNetworkList struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HostSubnet describes the container subnet network on a node. The HostSubnet object must have the
 // same name as the Node object it corresponds to.
@@ -56,6 +60,8 @@ type HostSubnet struct {
 	Subnet string `json:"subnet" protobuf:"bytes,4,opt,name=subnet"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // HostSubnetList is a collection of HostSubnets
 type HostSubnetList struct {
 	metav1.TypeMeta `json:",inline"`
@@ -67,6 +73,7 @@ type HostSubnetList struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant
 // plugin, every Namespace will have a corresponding NetNamespace object with the same name.
@@ -81,6 +88,8 @@ type NetNamespace struct {
 	// NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oc adm pod-network" commands.
 	NetID uint32 `json:"netid" protobuf:"varint,3,opt,name=netid"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NetNamespaceList is a collection of NetNamespaces
 type NetNamespaceList struct {
@@ -122,6 +131,7 @@ type EgressNetworkPolicySpec struct {
 }
 
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // EgressNetworkPolicy describes the current egress network policy for a Namespace. When using
 // the 'redhat/openshift-ovs-multitenant' network plugin, traffic from a pod to an IP address
@@ -136,6 +146,8 @@ type EgressNetworkPolicy struct {
 	// spec is the specification of the current egress network policy
 	Spec EgressNetworkPolicySpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // EgressNetworkPolicyList is a collection of EgressNetworkPolicy
 type EgressNetworkPolicyList struct {

@@ -159,6 +159,8 @@ var (
 
 type ExtendedArguments map[string][]string
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // NodeConfig is the fully specified config starting an OpenShift node
 type NodeConfig struct {
 	metav1.TypeMeta
@@ -322,6 +324,8 @@ const (
 )
 
 type FeatureList []string
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type MasterConfig struct {
 	metav1.TypeMeta
@@ -937,6 +941,8 @@ type SessionConfig struct {
 	SessionName string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // SessionSecrets list the secrets to use to sign/encrypt and authenticate/decrypt created sessions.
 type SessionSecrets struct {
 	metav1.TypeMeta
@@ -967,6 +973,8 @@ type IdentityProvider struct {
 	Provider runtime.Object
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type BasicAuthPasswordIdentityProvider struct {
 	metav1.TypeMeta
 
@@ -974,13 +982,19 @@ type BasicAuthPasswordIdentityProvider struct {
 	RemoteConnectionInfo RemoteConnectionInfo
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type AllowAllPasswordIdentityProvider struct {
 	metav1.TypeMeta
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type DenyAllPasswordIdentityProvider struct {
 	metav1.TypeMeta
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type HTPasswdPasswordIdentityProvider struct {
 	metav1.TypeMeta
@@ -988,6 +1002,8 @@ type HTPasswdPasswordIdentityProvider struct {
 	// File is a reference to your htpasswd file
 	File string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type LDAPPasswordIdentityProvider struct {
 	metav1.TypeMeta
@@ -1026,6 +1042,8 @@ type LDAPAttributeMapping struct {
 	Email []string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type KeystonePasswordIdentityProvider struct {
 	metav1.TypeMeta
 	// RemoteConnectionInfo contains information about how to connect to the keystone server
@@ -1033,6 +1051,8 @@ type KeystonePasswordIdentityProvider struct {
 	// Domain Name is required for keystone v3
 	DomainName string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type RequestHeaderIdentityProvider struct {
 	metav1.TypeMeta
@@ -1068,6 +1088,8 @@ type RequestHeaderIdentityProvider struct {
 	EmailHeaders []string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type GitHubIdentityProvider struct {
 	metav1.TypeMeta
 
@@ -1080,6 +1102,8 @@ type GitHubIdentityProvider struct {
 	// Teams optionally restricts which teams are allowed to log in. Format is <org>/<team>.
 	Teams []string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type GitLabIdentityProvider struct {
 	metav1.TypeMeta
@@ -1095,6 +1119,8 @@ type GitLabIdentityProvider struct {
 	ClientSecret StringSource
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type GoogleIdentityProvider struct {
 	metav1.TypeMeta
 
@@ -1106,6 +1132,8 @@ type GoogleIdentityProvider struct {
 	// HostedDomain is the optional Google App domain (e.g. "mycompany.com") to restrict logins to
 	HostedDomain string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type OpenIDIdentityProvider struct {
 	metav1.TypeMeta
@@ -1301,6 +1329,8 @@ type StringSourceSpec struct {
 	// KeyFile references a file containing the key to use to decrypt the value.
 	KeyFile string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type LDAPSyncConfig struct {
 	metav1.TypeMeta
@@ -1507,6 +1537,8 @@ type ServiceServingCert struct {
 	// If this value is nil, then certs are not signed automatically.
 	Signer *CertInfo
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DefaultAdmissionConfig can be used to enable or disable various admission plugins.
 // When this type is present as the `configuration` object under `pluginConfig` and *if* the admission plugin supports it,

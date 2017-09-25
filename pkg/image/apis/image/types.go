@@ -5,6 +5,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ImageList is a list of Image objects.
 type ImageList struct {
 	metav1.TypeMeta
@@ -74,6 +76,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Image is an immutable representation of a Docker image and metadata at a point in time.
 type Image struct {
@@ -118,6 +121,7 @@ const (
 // +genclient
 // +genclient:onlyVerbs=create,delete
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageSignature holds a signature of an image. It allows to verify image identity and possibly other claims
 // as long as the signature is trusted. Based on this information it is possible to restrict runnable images
@@ -209,6 +213,8 @@ type SignatureSubject struct {
 	PublicKeyID string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ImageStreamList is a list of ImageStream objects.
 type ImageStreamList struct {
 	metav1.TypeMeta
@@ -219,6 +225,7 @@ type ImageStreamList struct {
 
 // +genclient
 // +genclient:method=Secrets,verb=list,subresource=secrets,result=k8s.io/kubernetes/pkg/api.Secret
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStream stores a mapping of tags to images, metadata overrides that are applied
 // when images are tagged in a stream, and an optional reference to a Docker image
@@ -381,6 +388,7 @@ type TagEventCondition struct {
 
 // +genclient
 // +genclient:onlyVerbs=create
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as
 // well as the reference to the Docker image repository the image came from.
@@ -400,6 +408,7 @@ type ImageStreamMapping struct {
 
 // +genclient
 // +genclient:onlyVerbs=get,create,update,delete
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamTag has a .Name in the format <stream name>:<tag>.
 type ImageStreamTag struct {
@@ -427,6 +436,8 @@ type ImageStreamTag struct {
 	Image Image
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ImageStreamTagList is a list of ImageStreamTag objects.
 type ImageStreamTagList struct {
 	metav1.TypeMeta
@@ -437,6 +448,7 @@ type ImageStreamTagList struct {
 
 // +genclient
 // +genclient:onlyVerbs=get
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamImage represents an Image that is retrieved by image name from an ImageStream.
 type ImageStreamImage struct {
@@ -458,6 +470,7 @@ type DockerImageReference struct {
 
 // +genclient
 // +genclient:onlyVerbs=create
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamImport allows a caller to request information about a set of images for possible
 // import into an image stream, or actually tag the images into the image stream.

@@ -11,6 +11,7 @@ const (
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 type ClusterNetwork struct {
 	metav1.TypeMeta
@@ -22,6 +23,8 @@ type ClusterNetwork struct {
 	PluginName       string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 type ClusterNetworkList struct {
 	metav1.TypeMeta
 	metav1.ListMeta
@@ -30,6 +33,7 @@ type ClusterNetworkList struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // HostSubnet encapsulates the inputs needed to define the container subnet network on a node
 type HostSubnet struct {
@@ -42,6 +46,8 @@ type HostSubnet struct {
 	Subnet string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // HostSubnetList is a collection of HostSubnets
 type HostSubnetList struct {
 	metav1.TypeMeta
@@ -51,6 +57,7 @@ type HostSubnetList struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NetNamespace holds the network id against its name
 type NetNamespace struct {
@@ -60,6 +67,8 @@ type NetNamespace struct {
 	NetName string
 	NetID   uint32
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // NetNamespaceList is a collection of NetNamespaces
 type NetNamespaceList struct {
@@ -94,6 +103,7 @@ type EgressNetworkPolicySpec struct {
 }
 
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // EgressNetworkPolicy describes the current egress network policy
 type EgressNetworkPolicy struct {

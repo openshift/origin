@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // IngressAdmissionConfig is the configuration for the the ingress
 // controller limiter plugin. It changes the behavior of ingress
 // objects to behave better with openshift routes and routers.

@@ -6,7 +6,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/cache"
@@ -14,22 +13,17 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	testtypes "github.com/openshift/origin/pkg/project/admission/lifecycle/testing"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 )
 
-type UnknownObject struct {
-	metav1.TypeMeta
-}
-
-func (obj *UnknownObject) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
-
 // TestIgnoreThatWhichCannotBeKnown verifies that the plug-in does not reject objects that are unknown to RESTMapper
 func TestIgnoreThatWhichCannotBeKnown(t *testing.T) {
 	handler := &lifecycle{}
-	unknown := &UnknownObject{}
+	unknown := &testtypes.UnknownObject{}
 
 	err := handler.Admit(admission.NewAttributesRecord(unknown, nil, kapi.Kind("kind").WithVersion("version"), "namespace", "name", kapi.Resource("resource").WithVersion("version"), "subresource", "CREATE", nil))
 	if err != nil {

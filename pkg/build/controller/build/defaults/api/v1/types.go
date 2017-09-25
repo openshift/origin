@@ -7,6 +7,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // BuildDefaultsConfig controls the default information for Builds
 type BuildDefaultsConfig struct {
 	metav1.TypeMeta `json:",inline"`
