@@ -3,7 +3,6 @@ package image
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"net/url"
 	"regexp"
 	"sort"
@@ -16,6 +15,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/golang/glog"
 
+	"github.com/openshift/origin/pkg/image/apis/image/apihelpers"
 	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
 )
 
@@ -131,186 +131,105 @@ func ParseImageStreamTagName(istag string) (name string, tag string, err error) 
 // IsRegistryDockerHub returns true if the given registry name belongs to
 // Docker hub.
 func IsRegistryDockerHub(registry string) bool {
-	switch registry {
-	case DockerDefaultRegistry, DockerDefaultV1Registry, DockerDefaultV2Registry:
-		return true
-	default:
-		return false
-	}
+	return apihelpers.IsRegistryDockerHub(registry)
 }
 
 // ParseDockerImageReference parses a Docker pull spec string into a
 // DockerImageReference.
 func ParseDockerImageReference(spec string) (DockerImageReference, error) {
 	var ref DockerImageReference
-
-	namedRef, err := parseNamedDockerImageReference(spec)
+	ret, err := apihelpers.ParseDockerImageReference(spec)
 	if err != nil {
 		return ref, err
 	}
+	return FromDockerImageReference(ret), nil
+}
 
-	ref.Registry = namedRef.Registry
-	ref.Namespace = namedRef.Namespace
-	ref.Name = namedRef.Name
-	ref.Tag = namedRef.Tag
-	ref.ID = namedRef.ID
-
-	return ref, nil
+func (r DockerImageReference) GetRegistry() string {
+	return r.Registry
+}
+func (r DockerImageReference) GetNamespace() string {
+	return r.Namespace
+}
+func (r DockerImageReference) GetName() string {
+	return r.Name
+}
+func (r DockerImageReference) GetTag() string {
+	return r.Tag
+}
+func (r DockerImageReference) GetID() string {
+	return r.ID
+}
+func FromDockerImageReference(in apihelpers.DockerImageReference) DockerImageReference {
+	return DockerImageReference{
+		Registry:  in.GetRegistry(),
+		Namespace: in.GetNamespace(),
+		Name:      in.GetName(),
+		Tag:       in.GetTag(),
+		ID:        in.GetID(),
+	}
 }
 
 // Equal returns true if the other DockerImageReference is equivalent to the
 // reference r. The comparison applies defaults to the Docker image reference,
 // so that e.g., "foobar" equals "docker.io/library/foobar:latest".
 func (r DockerImageReference) Equal(other DockerImageReference) bool {
-	defaultedRef := r.DockerClientDefaults()
-	otherDefaultedRef := other.DockerClientDefaults()
-	return defaultedRef == otherDefaultedRef
+	return apihelpers.Equal(r, other)
 }
 
 // DockerClientDefaults sets the default values used by the Docker client.
 func (r DockerImageReference) DockerClientDefaults() DockerImageReference {
-	if len(r.Registry) == 0 {
-		r.Registry = DockerDefaultRegistry
-	}
-	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
-		r.Namespace = DockerDefaultNamespace
-	}
-	if len(r.Tag) == 0 {
-		r.Tag = DefaultImageTag
-	}
-	return r
-}
-
-// Minimal reduces a DockerImageReference to its minimalist form.
-func (r DockerImageReference) Minimal() DockerImageReference {
-	if r.Tag == DefaultImageTag {
-		r.Tag = ""
-	}
-	return r
+	return FromDockerImageReference(apihelpers.DockerClientDefaults(r))
 }
 
 // AsRepository returns the reference without tags or IDs.
 func (r DockerImageReference) AsRepository() DockerImageReference {
-	r.Tag = ""
-	r.ID = ""
-	return r
+	return FromDockerImageReference(apihelpers.AsRepository(r))
 }
 
 // RepositoryName returns the registry relative name
 func (r DockerImageReference) RepositoryName() string {
-	r.Tag = ""
-	r.ID = ""
-	r.Registry = ""
-	return r.Exact()
+	return apihelpers.RepositoryName(r)
 }
 
 // RegistryHostPort returns the registry hostname and the port.
 // If the port is not specified in the registry hostname we default to 443.
 // This will also default to Docker client defaults if the registry hostname is empty.
 func (r DockerImageReference) RegistryHostPort(insecure bool) (string, string) {
-	registryHost := r.AsV2().DockerClientDefaults().Registry
-	if strings.Contains(registryHost, ":") {
-		hostname, port, _ := net.SplitHostPort(registryHost)
-		return hostname, port
-	}
-	if insecure {
-		return registryHost, "80"
-	}
-	return registryHost, "443"
+	return apihelpers.RegistryHostPort(r, insecure)
 }
 
 // RepositoryName returns the registry relative name
 func (r DockerImageReference) RegistryURL() *url.URL {
-	return &url.URL{
-		Scheme: "https",
-		Host:   r.AsV2().Registry,
-	}
+	return apihelpers.RegistryURL(r)
 }
 
 // DaemonMinimal clears defaults that Docker assumes.
 func (r DockerImageReference) DaemonMinimal() DockerImageReference {
-	switch r.Registry {
-	case DockerDefaultV1Registry, DockerDefaultV2Registry:
-		r.Registry = DockerDefaultRegistry
-	}
-	if IsRegistryDockerHub(r.Registry) && r.Namespace == DockerDefaultNamespace {
-		r.Namespace = ""
-	}
-	return r.Minimal()
-}
-
-func (r DockerImageReference) AsV2() DockerImageReference {
-	switch r.Registry {
-	case DockerDefaultV1Registry, DockerDefaultRegistry:
-		r.Registry = DockerDefaultV2Registry
-	}
-	return r
+	return FromDockerImageReference(apihelpers.DaemonMinimal(r))
 }
 
 // MostSpecific returns the most specific image reference that can be constructed from the
 // current ref, preferring an ID over a Tag. Allows client code dealing with both tags and IDs
 // to get the most specific reference easily.
 func (r DockerImageReference) MostSpecific() DockerImageReference {
-	if len(r.ID) == 0 {
-		return r
-	}
-	if _, err := digest.ParseDigest(r.ID); err == nil {
-		r.Tag = ""
-		return r
-	}
-	if len(r.Tag) == 0 {
-		r.Tag, r.ID = r.ID, ""
-		return r
-	}
-	return r
+	return FromDockerImageReference(apihelpers.MostSpecific(r))
 }
 
 // NameString returns the name of the reference with its tag or ID.
 func (r DockerImageReference) NameString() string {
-	switch {
-	case len(r.Name) == 0:
-		return ""
-	case len(r.Tag) > 0:
-		return r.Name + ":" + r.Tag
-	case len(r.ID) > 0:
-		var ref string
-		if _, err := digest.ParseDigest(r.ID); err == nil {
-			// if it parses as a digest, its v2 pull by id
-			ref = "@" + r.ID
-		} else {
-			// if it doesn't parse as a digest, it's presumably a v1 registry by-id tag
-			ref = ":" + r.ID
-		}
-		return r.Name + ref
-	default:
-		return r.Name
-	}
+	return apihelpers.NameString(r)
 }
 
 // Exact returns a string representation of the set fields on the DockerImageReference
 func (r DockerImageReference) Exact() string {
-	name := r.NameString()
-	if len(name) == 0 {
-		return name
-	}
-	s := r.Registry
-	if len(s) > 0 {
-		s += "/"
-	}
-
-	if len(r.Namespace) != 0 {
-		s += r.Namespace + "/"
-	}
-	return s + name
+	return apihelpers.Exact(r)
 }
 
 // String converts a DockerImageReference to a Docker pull spec (which implies a default namespace
 // according to V1 Docker registry rules). Use Exact() if you want no defaulting.
 func (r DockerImageReference) String() string {
-	if len(r.Namespace) == 0 && IsRegistryDockerHub(r.Registry) {
-		r.Namespace = DockerDefaultNamespace
-	}
-	return r.Exact()
+	return apihelpers.String(r)
 }
 
 // SplitImageStreamTag turns the name of an ImageStreamTag into Name and Tag.
