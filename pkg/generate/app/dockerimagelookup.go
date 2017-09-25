@@ -201,7 +201,7 @@ func (s ImageImportSearcher) Search(precise bool, terms ...string) (ComponentMat
 	isi.Name = "newapp"
 	result, err := s.Client.Import(isi)
 	if err != nil {
-		if err == client.ErrImageStreamImportUnsupported && s.Fallback != nil {
+		if err == imageapi.ErrImageStreamImportUnsupported && s.Fallback != nil {
 			return s.Fallback.Search(precise, terms...)
 		}
 		return nil, []error{fmt.Errorf("can't lookup images: %v", err)}
