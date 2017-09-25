@@ -58,11 +58,11 @@ func setNamespace(typer runtime.ObjectTyper, obj runtime.Object, namespace strin
 	if err != nil {
 		return err
 	}
-	mapping, err := group.RESTMapper.RESTMapping(gvks[0].GroupKind(), gvks[0].Version)
+	mapping, err := group.RESTMapper.RESTMappings(gvks[0].GroupKind(), gvks[0].Version)
 	if err != nil {
 		return err
 	}
-	switch mapping.Scope.Name() {
+	switch mapping[0].Scope.Name() {
 	case meta.RESTScopeNameNamespace:
 		if len(itemMeta.GetNamespace()) == 0 {
 			itemMeta.SetNamespace(namespace)

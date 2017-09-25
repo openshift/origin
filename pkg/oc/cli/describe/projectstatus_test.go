@@ -11,12 +11,23 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	appsfakeclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
+	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	"github.com/openshift/origin/pkg/client/testclient"
+	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imageclientscheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectfakeclient "github.com/openshift/origin/pkg/project/generated/internalclientset/fake"
+	projectclientscheme "github.com/openshift/origin/pkg/project/generated/internalclientset/scheme"
+	routefakeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
+	routeclientscheme "github.com/openshift/origin/pkg/route/generated/internalclientset/scheme"
 )
 
 func mustParseTime(t string) time.Time {
@@ -422,8 +433,27 @@ func TestProjectStatus(t *testing.T) {
 		for _, o := range test.Extra {
 			objs = append(objs, o)
 		}
-		oc, kc := testclient.NewFixtureClients(objs...)
-		d := ProjectStatusDescriber{K: kc, C: oc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
+		_, kc := testclient.NewFixtureClients(objs...)
+
+		projectClient := projectfakeclient.NewSimpleClientset(filterByScheme(projectclientscheme.Scheme, objs...)...)
+		buildClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
+		imageClient := imagefakeclient.NewSimpleClientset(filterByScheme(imageclientscheme.Scheme, objs...)...)
+		appsClient := appsfakeclient.NewSimpleClientset(filterByScheme(appsclientscheme.Scheme, objs...)...)
+		routeClient := routefakeclient.NewSimpleClientset(filterByScheme(routeclientscheme.Scheme, objs...)...)
+
+		d := ProjectStatusDescriber{
+			K:                           kc,
+			ProjectClient:               projectClient.Project(),
+			BuildClient:                 buildClient.Build(),
+			ImageClient:                 imageClient.Image(),
+			AppsClient:                  appsClient.Apps(),
+			RouteClient:                 routeClient.Route(),
+			Server:                      "https://example.com:8443",
+			Suggest:                     true,
+			CommandBaseName:             "oc",
+			LogsCommandName:             "oc logs -p",
+			SecurityPolicyCommandFormat: "policycommand %s %s",
+		}
 		out, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)
@@ -460,8 +490,28 @@ func TestProjectStatusErrors(t *testing.T) {
 		},
 	}
 	for k, test := range testCases {
-		oc, kc := testclient.NewErrorClients(test.Err)
-		d := ProjectStatusDescriber{K: kc, C: oc, Server: "https://example.com:8443", Suggest: true, CommandBaseName: "oc", LogsCommandName: "oc logs -p", SecurityPolicyCommandFormat: "policycommand %s %s"}
+		projectClient := projectfakeclient.NewSimpleClientset()
+		buildClient := buildfakeclient.NewSimpleClientset()
+		imageClient := imagefakeclient.NewSimpleClientset()
+		routeClient := routefakeclient.NewSimpleClientset()
+		appsClient := appsfakeclient.NewSimpleClientset()
+		projectClient.PrependReactor("*", "*", func(_ clientgotesting.Action) (bool, runtime.Object, error) {
+			return true, nil, test.Err
+		})
+		_, kc := testclient.NewErrorClients(test.Err)
+		d := ProjectStatusDescriber{
+			K:                           kc,
+			ProjectClient:               projectClient.Project(),
+			BuildClient:                 buildClient.Build(),
+			ImageClient:                 imageClient.Image(),
+			AppsClient:                  appsClient.Apps(),
+			RouteClient:                 routeClient.Route(),
+			Server:                      "https://example.com:8443",
+			Suggest:                     true,
+			CommandBaseName:             "oc",
+			LogsCommandName:             "oc logs -p",
+			SecurityPolicyCommandFormat: "policycommand %s %s",
+		}
 		_, err := d.Describe("example", "")
 		if !test.ErrFn(err) {
 			t.Errorf("%s: unexpected error: %v", k, err)

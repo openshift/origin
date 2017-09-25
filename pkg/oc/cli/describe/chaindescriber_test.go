@@ -6,10 +6,13 @@ import (
 
 	"github.com/gonum/graph"
 	"github.com/gonum/graph/concrete"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
+	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
 	"github.com/openshift/origin/pkg/client/testclient"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
@@ -204,10 +207,11 @@ func TestChainDescriber(t *testing.T) {
 				t.Fatal(err)
 			}
 		}
-		oc, _ := testclient.NewFixtureClients(objs...)
 		ist := imagegraph.MakeImageStreamTagObjectMeta(test.defaultNamespace, test.name, test.tag)
 
-		desc, err := NewChainDescriber(oc, test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
+		fakeClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
+
+		desc, err := NewChainDescriber(fakeClient.Build(), test.namespaces, test.output).Describe(ist, test.includeInputImg, test.reverse)
 		t.Logf("%s: output:\n%s\n\n", test.testName, desc)
 		if err != test.expectedErr {
 			t.Fatalf("%s: error mismatch: expected %v, got %v", test.testName, test.expectedErr, err)
@@ -250,6 +254,25 @@ func lenReadable(value map[string]int) int {
 		length += cnt
 	}
 	return length
+}
+
+func filterByScheme(scheme *runtime.Scheme, in ...runtime.Object) []runtime.Object {
+	out := []runtime.Object{}
+	for i := range in {
+		obj := in[i]
+		gvks, _, err := scheme.ObjectKinds(obj)
+		if err != nil {
+			continue
+			//panic(err)
+		}
+		if len(gvks) == 0 {
+			continue
+		}
+
+		out = append(out, obj)
+	}
+
+	return out
 }
 
 func TestDepthFirst(t *testing.T) {
