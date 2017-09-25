@@ -25,6 +25,7 @@ import (
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
 	deployv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
 	appsfake "github.com/openshift/origin/pkg/apps/generated/internalclientset/fake"
+	"github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 )
 
@@ -366,19 +367,21 @@ func TestHandleScenarios(t *testing.T) {
 		})
 		codec := kapi.Codecs.LegacyCodec(deployv1.SchemeGroupVersion)
 
-		dcInformer := cache.NewSharedIndexInformer(
-			&cache.ListWatch{
-				ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-					return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).List(options)
+		dcInformer := &fakeDeploymentConfigInformer{
+			informer: cache.NewSharedIndexInformer(
+				&cache.ListWatch{
+					ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+						return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).List(options)
+					},
+					WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
+						return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
+					},
 				},
-				WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-					return oc.Apps().DeploymentConfigs(metav1.NamespaceAll).Watch(options)
-				},
-			},
-			&deployapi.DeploymentConfig{},
-			2*time.Minute,
-			cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
-		)
+				&deployapi.DeploymentConfig{},
+				2*time.Minute,
+				cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+			),
+		}
 
 		kubeInformerFactory := kinformers.NewSharedInformerFactory(kc, 0)
 		rcInformer := kubeInformerFactory.Core().V1().ReplicationControllers()
@@ -428,6 +431,18 @@ func TestHandleScenarios(t *testing.T) {
 			}
 		}
 	}
+}
+
+type fakeDeploymentConfigInformer struct {
+	informer cache.SharedIndexInformer
+}
+
+func (f *fakeDeploymentConfigInformer) Informer() cache.SharedIndexInformer {
+	return f.informer
+}
+
+func (f *fakeDeploymentConfigInformer) Lister() internalversion.DeploymentConfigLister {
+	return internalversion.NewDeploymentConfigLister(f.informer.GetIndexer())
 }
 
 func newInt32(i int32) *int32 {

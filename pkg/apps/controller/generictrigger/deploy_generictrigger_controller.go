@@ -9,7 +9,7 @@ import (
 	"github.com/golang/glog"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	oscache "github.com/openshift/origin/pkg/client/cache"
+	appslister "github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
 )
 
 const (
@@ -32,7 +32,7 @@ type DeploymentTriggerController struct {
 	queue workqueue.RateLimitingInterface
 
 	// dcLister provides a local cache for deployment configs.
-	dcLister oscache.StoreToDeploymentConfigLister
+	dcLister appslister.DeploymentConfigLister
 	// dcListerSynced makes sure the dc store is synced before reconcling any deployment config.
 	dcListerSynced func() bool
 	// rcLister provides a local cache for replication controllers.
