@@ -6,7 +6,6 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 
 	admission "k8s.io/apiserver/pkg/admission"
@@ -26,7 +25,6 @@ func RegisterRestrictedEndpoints(plugins *admission.Plugins) {
 type restrictedEndpointsAdmission struct {
 	*admission.Handler
 
-	client             client.Interface
 	authorizer         authorizer.Authorizer
 	restrictedNetworks []*net.IPNet
 }

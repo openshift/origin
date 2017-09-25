@@ -59,7 +59,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 		KubeInternalInformers:              c.InternalKubeInformers,
 		QuotaInformers:                     c.QuotaInformers,
 		SecurityInformers:                  c.SecurityInformers,
-		DeprecatedOpenshiftClient:          c.PrivilegedLoopbackOpenShiftClient,
 		RuleResolver:                       c.RuleResolver,
 		SubjectLocator:                     c.SubjectLocator,
 		LimitVerifier:                      c.LimitVerifier,
@@ -339,9 +338,8 @@ func (c *MasterConfig) withOAuthRedirection(handler, oauthServerHandler http.Han
 
 // RouteAllocator returns a route allocation controller.
 func (c *MasterConfig) RouteAllocator() *routeallocationcontroller.RouteAllocationController {
-	_, kclient := c.RouteAllocatorClients()
 	factory := routeallocationcontroller.RouteAllocationControllerFactory{
-		KubeClient: kclient,
+		KubeClient: c.PrivilegedLoopbackKubernetesClientsetInternal,
 	}
 
 	plugin, err := routeplugin.NewSimpleAllocationPlugin(c.Options.RoutingConfig.Subdomain)

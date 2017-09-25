@@ -1,4 +1,4 @@
-package cache
+package factory
 
 import (
 	"testing"
@@ -16,7 +16,7 @@ func keyFunc(obj interface{}) (string, error) {
 }
 
 func TestEventQueue_basic(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	const amount = 500
 	go func() {
@@ -54,7 +54,7 @@ func TestEventQueue_basic(t *testing.T) {
 }
 
 func TestEventQueue_initialEventIsDelete(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
@@ -75,7 +75,7 @@ func TestEventQueue_initialEventIsDelete(t *testing.T) {
 }
 
 func TestEventQueue_compressAddDelete(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	q.Add(cacheable{"foo", 10})
 	q.Delete(cacheable{key: "foo"})
@@ -94,7 +94,7 @@ func TestEventQueue_compressAddDelete(t *testing.T) {
 }
 
 func TestEventQueue_compressAddUpdate(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	q.Add(cacheable{"foo", 10})
 	q.Update(cacheable{"foo", 11})
@@ -111,7 +111,7 @@ func TestEventQueue_compressAddUpdate(t *testing.T) {
 }
 
 func TestEventQueue_compressTwoUpdates(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
@@ -132,7 +132,7 @@ func TestEventQueue_compressTwoUpdates(t *testing.T) {
 }
 
 func TestEventQueue_compressUpdateDelete(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
@@ -153,7 +153,7 @@ func TestEventQueue_compressUpdateDelete(t *testing.T) {
 }
 
 func TestEventQueue_modifyEventsFromReplace(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 
 	q.Replace([]interface{}{
 		cacheable{"foo", 2},
@@ -173,7 +173,7 @@ func TestEventQueue_modifyEventsFromReplace(t *testing.T) {
 }
 
 func TestEventQueue_ListConsumed(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 	if !q.ListConsumed() {
 		t.Fatalf("expected ListConsumed to be true after queue creation")
 	}
@@ -207,7 +207,7 @@ func TestEventQueue_ListConsumed(t *testing.T) {
 }
 
 func TestEventQueue_PopAfterResyncShouldBeTypeModified(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 	q.Add(cacheable{"foo", 10})
 	q.Pop()
 	q.Resync()
@@ -218,7 +218,7 @@ func TestEventQueue_PopAfterResyncShouldBeTypeModified(t *testing.T) {
 }
 
 func TestEventQueue_ResyncsShouldNotCausePanics(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 	q.Add(cacheable{"foo", 10})
 	q.Pop()
 
@@ -236,7 +236,7 @@ func TestEventQueue_ResyncsShouldNotCausePanics(t *testing.T) {
 }
 
 func TestEventQueue_ResyncsShouldNotRestoreDeletedItems(t *testing.T) {
-	q := NewEventQueue(keyFunc)
+	q := newEventQueue(keyFunc)
 	q.Add(cacheable{"foo", 10})
 	q.Delete(cacheable{key: "foo"})
 

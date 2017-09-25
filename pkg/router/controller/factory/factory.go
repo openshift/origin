@@ -19,7 +19,6 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	kextensionsclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/extensions/internalversion"
 
-	oscache "github.com/openshift/origin/pkg/client/cache"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"github.com/openshift/origin/pkg/router"
@@ -78,7 +77,7 @@ func routerKeyFn(obj interface{}) (string, error) {
 // Create begins listing and watching against the API server for the desired route and endpoint
 // resources. It spawns child goroutines that cannot be terminated.
 func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *routercontroller.RouterController {
-	routeEventQueue := oscache.NewEventQueue(routerKeyFn)
+	routeEventQueue := newEventQueue(routerKeyFn)
 	rLW := &routeLW{
 		client:    factory.RouteClient,
 		namespace: factory.Namespace,
@@ -87,14 +86,14 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 	}
 	cache.NewReflector(&cache.ListWatch{ListFunc: rLW.List, WatchFunc: rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
-	endpointsEventQueue := oscache.NewEventQueue(routerKeyFn)
+	endpointsEventQueue := newEventQueue(routerKeyFn)
 	cache.NewReflector(&endpointsLW{
 		client:    factory.KClient,
 		namespace: factory.Namespace,
 		// we do not scope endpoints by labels or fields because the route labels != endpoints labels
 	}, &kapi.Endpoints{}, endpointsEventQueue, factory.ResyncInterval).Run()
 
-	nodeEventQueue := oscache.NewEventQueue(routerKeyFn)
+	nodeEventQueue := newEventQueue(routerKeyFn)
 	if watchNodes {
 		cache.NewReflector(&nodeLW{
 			client: factory.NodeClient,
@@ -103,8 +102,8 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 		}, &kapi.Node{}, nodeEventQueue, factory.ResyncInterval).Run()
 	}
 
-	ingressEventQueue := oscache.NewEventQueue(routerKeyFn)
-	secretEventQueue := oscache.NewEventQueue(routerKeyFn)
+	ingressEventQueue := newEventQueue(routerKeyFn)
+	secretEventQueue := newEventQueue(routerKeyFn)
 	var ingressTranslator *routercontroller.IngressTranslator
 	if enableIngress {
 		ingressTranslator = routercontroller.NewIngressTranslator(factory.SecretClient)
@@ -216,7 +215,7 @@ func (factory *RouterControllerFactory) Create(plugin router.Plugin, watchNodes,
 func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByHost {
 	keyFn := routerKeyFn
 	routeStore := cache.NewIndexer(keyFn, cache.Indexers{"host": hostIndexFunc})
-	routeEventQueue := oscache.NewEventQueueForStore(keyFn, routeStore)
+	routeEventQueue := newEventQueueForStore(keyFn, routeStore)
 	rLW := &routeLW{
 		client:    factory.RouteClient,
 		namespace: factory.Namespace,
@@ -226,7 +225,7 @@ func (factory *RouterControllerFactory) CreateNotifier(changed func()) RoutesByH
 	cache.NewReflector(&cache.ListWatch{ListFunc: rLW.List, WatchFunc: rLW.Watch}, &routeapi.Route{}, routeEventQueue, factory.ResyncInterval).Run()
 
 	endpointStore := cache.NewStore(keyFn)
-	endpointsEventQueue := oscache.NewEventQueueForStore(keyFn, endpointStore)
+	endpointsEventQueue := newEventQueueForStore(keyFn, endpointStore)
 	cache.NewReflector(&endpointsLW{
 		client:    factory.KClient,
 		namespace: factory.Namespace,

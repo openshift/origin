@@ -13,7 +13,7 @@ import (
 )
 
 func getControllerContext(options configapi.MasterConfig, controllerManagerOptions *cmappoptions.CMServer, cloudProvider cloudprovider.Interface, informers *informers, stopCh <-chan struct{}) (origincontrollers.ControllerContext, error) {
-	loopbackConfig, _, kubeExternal, _, _, err := getAllClients(options)
+	loopbackConfig, _, kubeExternal, _, err := getAllClients(options)
 	if err != nil {
 		return origincontrollers.ControllerContext{}, err
 	}

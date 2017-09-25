@@ -27,11 +27,11 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	"github.com/openshift/origin/pkg/client"
-	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	"github.com/openshift/origin/pkg/version"
+	testutil "github.com/openshift/origin/test/util"
 )
 
 var (
@@ -226,7 +226,7 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
-		osClient, _, err := configapi.GetOpenShiftClient(KubeConfigPath(), nil)
+		osClient, err := testutil.GetClusterAdminClient(KubeConfigPath())
 		if err != nil {
 			return ns, err
 		}
