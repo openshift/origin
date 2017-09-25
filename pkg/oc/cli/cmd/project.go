@@ -16,11 +16,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	projectutil "github.com/openshift/origin/pkg/project/util"
 
 	"github.com/spf13/cobra"
@@ -29,7 +29,7 @@ import (
 type ProjectOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
-	ClientFn     func() (*client.Client, kclientset.Interface, error)
+	ClientFn     func() (projectclient.ProjectInterface, kclientset.Interface, error)
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
 
@@ -132,9 +132,16 @@ func (o *ProjectOptions) Complete(f *clientcmd.Factory, args []string, out io.Wr
 
 	}
 
-	o.ClientFn = func() (*client.Client, kclientset.Interface, error) {
-		oc, kc, err := f.Clients()
-		return oc, kc, err
+	o.ClientFn = func() (projectclient.ProjectInterface, kclientset.Interface, error) {
+		_, kc, err := f.Clients()
+		if err != nil {
+			return nil, nil, err
+		}
+		projectClient, err := f.OpenshiftInternalProjectClient()
+		if err != nil {
+			return nil, nil, err
+		}
+		return projectClient.Project(), kc, nil
 	}
 
 	o.Out = out
@@ -313,8 +320,8 @@ func (o *ProjectOptions) GetContextFromName(contextName string) (*clientcmdapi.C
 	return nil, false
 }
 
-func confirmProjectAccess(currentProject string, oClient *client.Client, kClient kclientset.Interface) error {
-	_, projectErr := oClient.Projects().Get(currentProject, metav1.GetOptions{})
+func confirmProjectAccess(currentProject string, projectClient projectclient.ProjectInterface, kClient kclientset.Interface) error {
+	_, projectErr := projectClient.Projects().Get(currentProject, metav1.GetOptions{})
 	if !kapierrors.IsNotFound(projectErr) && !kapierrors.IsForbidden(projectErr) {
 		return projectErr
 	}
@@ -328,8 +335,8 @@ func confirmProjectAccess(currentProject string, oClient *client.Client, kClient
 	return projectErr
 }
 
-func getProjects(oClient *client.Client, kClient kclientset.Interface) ([]projectapi.Project, error) {
-	projects, err := oClient.Projects().List(metav1.ListOptions{})
+func getProjects(projectClient projectclient.ProjectInterface, kClient kclientset.Interface) ([]projectapi.Project, error) {
+	projects, err := projectClient.Projects().List(metav1.ListOptions{})
 	if err == nil {
 		return projects.Items, nil
 	}
