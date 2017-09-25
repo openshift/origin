@@ -263,6 +263,7 @@ func RunCleanupActions() {
 var _ = ginkgo.SynchronizedAfterSuite(func() {
 	// Run on all Ginkgo nodes
 	framework.Logf("Running AfterSuite actions on all node")
+	framework.RunCleanupActions()
 	RunCleanupActions()
 }, func() {
 	// Run only Ginkgo on node 1
