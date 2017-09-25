@@ -283,9 +283,19 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Image",
+		oapi.GetFieldLabelConversionFunc(newer.ImageToSelectableFields(&newer.Image{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ImageStream",
 		oapi.GetFieldLabelConversionFunc(newer.ImageStreamToSelectableFields(&newer.ImageStream{}), map[string]string{"name": "metadata.name"}),
+	); err != nil {
+		return err
+	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "ImageStream",
+		oapi.GetFieldLabelConversionFunc(newer.ImageStreamToSelectableFields(&newer.ImageStream{}), nil),
 	); err != nil {
 		return err
 	}

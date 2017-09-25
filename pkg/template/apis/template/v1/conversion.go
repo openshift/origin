@@ -15,14 +15,29 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Template",
+		oapi.GetFieldLabelConversionFunc(templateapi.TemplateToSelectableFields(&templateapi.Template{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "TemplateInstance",
 		oapi.GetFieldLabelConversionFunc(templateapi.TemplateInstanceToSelectableFields(&templateapi.TemplateInstance{}), nil),
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "TemplateInstance",
+		oapi.GetFieldLabelConversionFunc(templateapi.TemplateInstanceToSelectableFields(&templateapi.TemplateInstance{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "BrokerTemplateInstance",
+		oapi.GetFieldLabelConversionFunc(templateapi.BrokerTemplateInstanceToSelectableFields(&templateapi.BrokerTemplateInstance{}), nil),
+	); err != nil {
+		return err
+	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "BrokerTemplateInstance",
 		oapi.GetFieldLabelConversionFunc(templateapi.BrokerTemplateInstanceToSelectableFields(&templateapi.BrokerTemplateInstance{}), nil),
 	); err != nil {
 		return err

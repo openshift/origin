@@ -9,7 +9,12 @@ import (
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
-	return scheme.AddFieldLabelConversionFunc("v1", "Project",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Project",
+		oapi.GetFieldLabelConversionFunc(namespace.NamespaceToSelectableFields(&kapi.Namespace{}), nil),
+	); err != nil {
+		return err
+	}
+	return scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Project",
 		oapi.GetFieldLabelConversionFunc(namespace.NamespaceToSelectableFields(&kapi.Namespace{}), nil),
 	)
 }

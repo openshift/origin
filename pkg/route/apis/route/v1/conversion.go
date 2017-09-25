@@ -8,7 +8,12 @@ import (
 )
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
-	return scheme.AddFieldLabelConversionFunc("v1", "Route",
+	if err := scheme.AddFieldLabelConversionFunc("v1", "Route",
+		oapi.GetFieldLabelConversionFunc(routeapi.RouteToSelectableFields(&routeapi.Route{}), nil),
+	); err != nil {
+		return err
+	}
+	return scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Route",
 		oapi.GetFieldLabelConversionFunc(routeapi.RouteToSelectableFields(&routeapi.Route{}), nil),
 	)
 }
