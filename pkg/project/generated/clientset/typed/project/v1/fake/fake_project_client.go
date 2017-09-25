@@ -14,6 +14,10 @@ func (c *FakeProjectV1) Projects() v1.ProjectResourceInterface {
 	return &FakeProjects{c}
 }
 
+func (c *FakeProjectV1) ProjectRequests() v1.ProjectRequestInterface {
+	return &FakeProjectRequests{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeProjectV1) RESTClient() rest.Interface {
