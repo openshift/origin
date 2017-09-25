@@ -1,13 +1,14 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-echo "===== Verifying Generated Defaulters ====="
+function cleanup() {
+    return_code=$?
+    os::test::junit::generate_report
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
 
-if ! output=`${OS_ROOT}/hack/update-generated-defaulters.sh --verify-only 2>&1`
-then
-  echo "FAILURE: Verification of defaulters failed:"
-  echo "$output"
-  exit 1
-fi
-
-# ex: ts=2 sw=2 et filetype=sh
+os::test::junit::declare_suite_start "verify/defaulters"
+os::cmd::expect_success "${OS_ROOT}/hack/update-generated-defaulters.sh --verify-only"
+os::test::junit::declare_suite_end

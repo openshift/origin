@@ -1,7 +1,14 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-echo "===== Verifying Generated Completions ====="
+function cleanup() {
+    return_code=$?
+    rm -rf "${TMP_COMPLETION_ROOT}"
+    os::test::junit::generate_report
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
 
 platform="$(os::build::host_platform)"
 if [[ "${platform}" != "linux/amd64" ]]; then
@@ -14,23 +21,7 @@ COMPLETION_ROOT="${OS_ROOT}/${COMPLETION_ROOT_REL}"
 TMP_COMPLETION_ROOT_REL="_output/verify-generated-completions/"
 TMP_COMPLETION_ROOT="${OS_ROOT}/${TMP_COMPLETION_ROOT_REL}/${COMPLETION_ROOT_REL}"
 
-echo "Generating fresh completions..."
-if ! output=`${OS_ROOT}/hack/update-generated-completions.sh ${TMP_COMPLETION_ROOT_REL} 2>&1`
-then
-	echo "FAILURE: Generation of fresh spec failed:"
-	echo "$output"
-	exit 1
-fi
-
-
-echo "Diffing current completions against freshly generated completions..."
-ret=0
-diff -Naupr -x "OWNERS" "${COMPLETION_ROOT}" "${TMP_COMPLETION_ROOT}" || ret=$?
-rm -rf "${TMP_COMPLETION_ROOT}"
-if [[ $ret -eq 0 ]]
-then
-  echo "SUCCESS: Generated completions up to date."
-else
-  echo "FAILURE: Generated completions out of date. Please run hack/update-generated-completions.sh"
-  exit 1
-fi
+os::test::junit::declare_suite_start "verify/completions"
+os::cmd::expect_success "${OS_ROOT}/hack/update-generated-completions.sh ${TMP_COMPLETION_ROOT_REL}"
+os::cmd::expect_success "diff -Naupr -x 'OWNERS' ${COMPLETION_ROOT} ${TMP_COMPLETION_ROOT}"
+os::test::junit::declare_suite_end

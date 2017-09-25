@@ -1,13 +1,20 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
+function cleanup() {
+    return_code=$?
+    os::test::junit::generate_report
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
+
 if ! git status &> /dev/null; then
-  echo "FAILURE: Not a Git repository"
-  exit 1
+  os::log::fatal "Not a Git repository"
 fi
 
 os::util::ensure::built_binary_exists 'commitchecker'
 
-echo "===== Verifying UPSTREAM Commits ====="
-commitchecker
-echo "SUCCESS: All commits are valid."
+os::test::junit::declare_suite_start "verify/upstream-commits"
+os::cmd::expect_success "commitchecker"
+os::test::junit::declare_suite_end
