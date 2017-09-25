@@ -53,7 +53,7 @@ func (c *DeploymentConfigControllerConfig) RunController(ctx ControllerContext) 
 	}
 
 	go deployconfigcontroller.NewDeploymentConfigController(
-		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
+		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs(),
 		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
 		ctx.ClientBuilder.OpenshiftInternalAppsClientOrDie(saName),
 		kubeClient,
@@ -67,9 +67,9 @@ func (c *DeploymentTriggerControllerConfig) RunController(ctx ControllerContext)
 	saName := bootstrappolicy.InfraDeploymentTriggerControllerServiceAccountName
 
 	go triggercontroller.NewDeploymentTriggerController(
-		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs().Informer(),
-		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers().Informer(),
-		ctx.ImageInformers.Image().InternalVersion().ImageStreams().Informer(),
+		ctx.AppInformers.Apps().InternalVersion().DeploymentConfigs(),
+		ctx.ExternalKubeInformers.Core().V1().ReplicationControllers(),
+		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
 		ctx.ClientBuilder.OpenshiftInternalAppsClientOrDie(saName),
 		c.Codec,
 	).Run(5, ctx.Stop)

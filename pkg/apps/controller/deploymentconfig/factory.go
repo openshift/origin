@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -20,6 +21,7 @@ import (
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion/apps/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	metrics "github.com/openshift/origin/pkg/apps/metrics/prometheus"
 )
@@ -33,7 +35,7 @@ const (
 
 // NewDeploymentConfigController creates a new DeploymentConfigController.
 func NewDeploymentConfigController(
-	dcInformer cache.SharedIndexInformer,
+	dcInformer appsinformer.DeploymentConfigInformer,
 	rcInformer kcoreinformers.ReplicationControllerInformer,
 	appsClientset appsclient.Interface,
 	kubeClientset kclientset.Interface,
@@ -60,13 +62,13 @@ func NewDeploymentConfigController(
 		codec:    codec,
 	}
 
-	c.dcStore.Indexer = dcInformer.GetIndexer()
-	dcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	c.dcLister = dcInformer.Lister()
+	dcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addDeploymentConfig,
 		UpdateFunc: c.updateDeploymentConfig,
 		DeleteFunc: c.deleteDeploymentConfig,
 	})
-	c.dcStoreSynced = dcInformer.HasSynced
+	c.dcStoreSynced = dcInformer.Informer().HasSynced
 
 	rcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		UpdateFunc: c.updateReplicationController,
@@ -147,7 +149,7 @@ func (c *DeploymentConfigController) updateReplicationController(old, cur interf
 		return
 	}
 
-	if dc, err := c.dcStore.GetConfigForController(curRC); err == nil && dc != nil {
+	if dc, err := c.dcLister.GetConfigForController(curRC); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
 }
@@ -173,7 +175,7 @@ func (c *DeploymentConfigController) deleteReplicationController(obj interface{}
 			return
 		}
 	}
-	if dc, err := c.dcStore.GetConfigForController(rc); err == nil && dc != nil {
+	if dc, err := c.dcLister.GetConfigForController(rc); err == nil && dc != nil {
 		c.enqueueDeploymentConfig(dc)
 	}
 }
@@ -202,12 +204,17 @@ func (c *DeploymentConfigController) work() bool {
 	}
 	defer c.queue.Done(key)
 
-	dc, err := c.getByKey(key.(string))
+	namespace, name, err := cache.SplitMetaNamespaceKey(key.(string))
 	if err != nil {
 		utilruntime.HandleError(err)
+		return false
 	}
-
-	if dc == nil {
+	dc, err := c.dcLister.DeploymentConfigs(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		return false
+	}
+	if err != nil {
+		utilruntime.HandleError(err)
 		return false
 	}
 
@@ -215,18 +222,4 @@ func (c *DeploymentConfigController) work() bool {
 	c.handleErr(err, key)
 
 	return false
-}
-
-func (c *DeploymentConfigController) getByKey(key string) (*deployapi.DeploymentConfig, error) {
-	obj, exists, err := c.dcStore.Indexer.GetByKey(key)
-	if err != nil {
-		c.queue.AddRateLimited(key)
-		return nil, err
-	}
-	if !exists {
-		glog.V(4).Infof("Deployment config %q has been deleted", key)
-		return nil, nil
-	}
-
-	return obj.(*deployapi.DeploymentConfig), nil
 }
