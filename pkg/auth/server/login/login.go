@@ -165,26 +165,25 @@ func (l *Login) handleLogin(w http.ResponseWriter, req *http.Request) {
 		failed(errorCodeUserRequired, w, req)
 		return
 	}
-	var result string
+	var result string = metrics.SuccessResult
 	defer func() {
-		metrics.Record(result)
+		metrics.RecordFormPasswordAuth(result)
 	}()
 	user, ok, err := l.auth.AuthenticatePassword(username, password)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf(`Error authenticating %q with provider %q: %v`, username, l.provider, err))
 		failed(errorpage.AuthenticationErrorCode(err), w, req)
-		result = "error"
+		result = metrics.ErrorResult
 		return
 	}
 	if !ok {
 		glog.V(4).Infof(`Login with provider %q failed for %q`, l.provider, username)
 		failed(errorCodeAccessDenied, w, req)
-		result = "failure"
+		result = metrics.FailResult
 		return
 	}
 	glog.V(4).Infof(`Login with provider %q succeeded for %q: %#v`, l.provider, username, user)
 	l.auth.AuthenticationSucceeded(user, then, w, req)
-	result = "success"
 }
 
 // NewLoginFormRenderer creates a login form renderer that takes in an optional custom template to
