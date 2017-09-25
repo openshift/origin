@@ -15,7 +15,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/imagebuilder/imageprogress"
-	"github.com/openshift/origin/pkg/bootstrap/docker/dockerhelper"
 	starterrors "github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
@@ -71,7 +70,7 @@ func (h *Helper) InsecureRegistryIsConfigured() (configured bool, hasEntries boo
 	if err != nil {
 		return false, false, err
 	}
-	registryConfig := dockerhelper.NewRegistryConfig(info)
+	registryConfig := NewRegistryConfig(info)
 	if !registryConfig.HasCustomInsecureRegistryCIDRs() {
 		return false, false, nil
 	}
