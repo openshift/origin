@@ -10,6 +10,7 @@ import (
 type ProjectV1Interface interface {
 	RESTClient() rest.Interface
 	ProjectsGetter
+	ProjectRequestsGetter
 }
 
 // ProjectV1Client is used to interact with features provided by the project.openshift.io group.
@@ -19,6 +20,10 @@ type ProjectV1Client struct {
 
 func (c *ProjectV1Client) Projects() ProjectResourceInterface {
 	return newProjects(c)
+}
+
+func (c *ProjectV1Client) ProjectRequests() ProjectRequestInterface {
+	return newProjectRequests(c)
 }
 
 // NewForConfig creates a new ProjectV1Client for the given config.
