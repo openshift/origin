@@ -27,7 +27,6 @@ type BuildConfigInterface interface {
 	Watch(opts v1.ListOptions) (watch.Interface, error)
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *build.BuildConfig, err error)
 	Instantiate(buildConfigName string, buildRequest *build.BuildRequest) (*build.Build, error)
-	InstantiateBinary(buildConfigName string, binaryBuildRequestOptions *build.BinaryBuildRequestOptions) (*build.Build, error)
 
 	BuildConfigExpansion
 }
@@ -167,20 +166,6 @@ func (c *buildConfigs) Instantiate(buildConfigName string, buildRequest *build.B
 		Name(buildConfigName).
 		SubResource("instantiate").
 		Body(buildRequest).
-		Do().
-		Into(result)
-	return
-}
-
-// InstantiateBinary takes the representation of a binaryBuildRequestOptions and creates it.  Returns the server's representation of the buildResource, and an error, if there is any.
-func (c *buildConfigs) InstantiateBinary(buildConfigName string, binaryBuildRequestOptions *build.BinaryBuildRequestOptions) (result *build.Build, err error) {
-	result = &build.Build{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("buildconfigs").
-		Name(buildConfigName).
-		SubResource("instantiateBinary").
-		Body(binaryBuildRequestOptions).
 		Do().
 		Into(result)
 	return
