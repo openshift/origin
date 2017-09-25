@@ -14,9 +14,13 @@ import (
 
 // CreateProject creates a project
 func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, out io.Writer) error {
-	client, _, err := f.Clients()
+	projectClient, err := f.OpenshiftInternalProjectClient()
 	if err != nil {
-		return nil
+		return err
+	}
+	_, kc, err := f.Clients()
+	if err != nil {
+		return err
 	}
 	pathOptions := config.NewPathOptionsWithConfig("")
 	opt := &cmd.NewProjectOptions{
@@ -26,7 +30,8 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 
 		Name: basecmd,
 
-		Client: client,
+		Client:    projectClient.Project(),
+		SarClient: kc.Authorization().SelfSubjectAccessReviews(),
 
 		ProjectOptions: &cmd.ProjectOptions{PathOptions: pathOptions},
 		Out:            ioutil.Discard,

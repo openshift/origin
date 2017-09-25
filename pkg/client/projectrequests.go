@@ -1,9 +1,6 @@
 package client
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kapi "k8s.io/kubernetes/pkg/api"
-
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -17,7 +14,7 @@ type ProjectRequestsInterface interface {
 // ProjectRequestInterface exposes methods on projectRequest resources.
 type ProjectRequestInterface interface {
 	Create(p *projectapi.ProjectRequest) (*projectapi.Project, error)
-	List(opts metav1.ListOptions) (*metav1.Status, error)
+	//List(opts metav1.ListOptions) (*metav1.Status, error)
 }
 
 type projectRequests struct {
