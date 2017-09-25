@@ -1,17 +1,21 @@
 package cluster
 
 import (
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	osclient "github.com/openshift/origin/pkg/client"
+	"k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 )
 
-func userCan(sarClient osclient.SubjectAccessReviews, action authorizationapi.Action) (bool, error) {
-	resp, err := sarClient.SubjectAccessReviews().Create(&authorizationapi.SubjectAccessReview{Action: action})
+func userCan(sarClient authorizationtypedclient.SelfSubjectAccessReviewsGetter, action *authorization.ResourceAttributes) (bool, error) {
+	resp, err := sarClient.SelfSubjectAccessReviews().Create(&authorization.SelfSubjectAccessReview{
+		Spec: authorization.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: action,
+		},
+	})
 	if err != nil {
 		return false, err
 	}
 
-	if resp.Allowed {
+	if resp.Status.Allowed {
 		return true, nil
 	}
 

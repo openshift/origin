@@ -238,7 +238,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 	var netns *networkapi.NetNamespace
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		netns, err = d.OSClient.NetNamespaces().Get(nsName, metav1.GetOptions{})
+		netns, err = d.NetNamespacesClient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			// NetNamespace not created yet
 			return false, nil
@@ -253,12 +253,12 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 
 	network.SetChangePodNetworkAnnotation(netns, network.GlobalPodNetwork, "")
 
-	if _, err = d.OSClient.NetNamespaces().Update(netns); err != nil {
+	if _, err = d.NetNamespacesClient.NetNamespaces().Update(netns); err != nil {
 		return err
 	}
 
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
-		updatedNetNs, err := d.OSClient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
+		updatedNetNs, err := d.NetNamespacesClient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

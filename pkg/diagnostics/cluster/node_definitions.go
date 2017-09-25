@@ -9,10 +9,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/log"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 )
@@ -49,7 +48,6 @@ other options for 'oc adm manage-node').
 // NodeDefinitions is a Diagnostic for analyzing the nodes in a cluster.
 type NodeDefinitions struct {
 	KubeClient kclientset.Interface
-	OsClient   *osclient.Client
 }
 
 const NodeDefinitionsName = "NodeDefinitions"
@@ -63,10 +61,10 @@ func (d *NodeDefinitions) Description() string {
 }
 
 func (d *NodeDefinitions) CanRun() (bool, error) {
-	if d.KubeClient == nil || d.OsClient == nil {
-		return false, errors.New("must have kube and os client")
+	if d.KubeClient == nil {
+		return false, errors.New("must have kube  client")
 	}
-	can, err := userCan(d.OsClient, authorizationapi.Action{
+	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    kapi.GroupName,
 		Resource: "nodes",

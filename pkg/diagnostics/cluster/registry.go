@@ -11,18 +11,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	osapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // ClusterRegistry is a Diagnostic to check that there is a working Docker registry.
 type ClusterRegistry struct {
 	KubeClient          kclientset.Interface
-	OsClient            *osclient.Client
+	ImageStreamClient   imagetypedclient.ImageStreamsGetter
 	PreventModification bool
 }
 
@@ -155,15 +155,15 @@ func (d *ClusterRegistry) Description() string {
 }
 
 func (d *ClusterRegistry) CanRun() (bool, error) {
-	if d.OsClient == nil || d.KubeClient == nil {
+	if d.ImageStreamClient == nil || d.KubeClient == nil {
 		return false, fmt.Errorf("must have kube and os clients")
 	}
-	return userCan(d.OsClient, authorizationapi.Action{
-		Namespace:    metav1.NamespaceDefault,
-		Verb:         "get",
-		Group:        kapi.GroupName,
-		Resource:     "services",
-		ResourceName: registryName,
+	return userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
+		Namespace: metav1.NamespaceDefault,
+		Verb:      "get",
+		Group:     kapi.GroupName,
+		Resource:  "services",
+		Name:      registryName,
 	})
 }
 
@@ -321,17 +321,17 @@ func (d *ClusterRegistry) verifyRegistryImageStream(service *kapi.Service, r typ
 		r.Info("DClu1021", "Skipping creating an ImageStream to test registry service address, because you requested no API modifications.")
 		return
 	}
-	imgStream, err := d.OsClient.ImageStreams(metav1.NamespaceDefault).Create(&osapi.ImageStream{ObjectMeta: metav1.ObjectMeta{GenerateName: "diagnostic-test"}})
+	imgStream, err := d.ImageStreamClient.ImageStreams(metav1.NamespaceDefault).Create(&osapi.ImageStream{ObjectMeta: metav1.ObjectMeta{GenerateName: "diagnostic-test"}})
 	if err != nil {
 		r.Error("DClu1015", err, fmt.Sprintf("Creating test ImageStream failed. Error: (%T) %[1]v", err))
 		return
 	}
 	defer func() { // delete what we created, or notify that we couldn't
-		if err := d.OsClient.ImageStreams(metav1.NamespaceDefault).Delete(imgStream.ObjectMeta.Name); err != nil {
+		if err := d.ImageStreamClient.ImageStreams(metav1.NamespaceDefault).Delete(imgStream.ObjectMeta.Name, nil); err != nil {
 			r.Warn("DClu1016", err, fmt.Sprintf(clRegISDelFail, imgStream.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
 		}
 	}()
-	imgStream, err = d.OsClient.ImageStreams(metav1.NamespaceDefault).Get(imgStream.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
+	imgStream, err = d.ImageStreamClient.ImageStreams(metav1.NamespaceDefault).Get(imgStream.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
 	if err != nil {
 		r.Error("DClu1017", err, fmt.Sprintf("Getting created test ImageStream failed. Error: (%T) %[1]v", err))
 		return

@@ -11,11 +11,11 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kubecmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
@@ -48,8 +48,8 @@ func GetNetworkDiagDefaultTestPodImage() string {
 	return imageTemplate.ExpandOrDie("deployer")
 }
 
-func GetOpenShiftNetworkPlugin(osClient *osclient.Client) (string, bool, error) {
-	cn, err := osClient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+func GetOpenShiftNetworkPlugin(clusterNetworkClient networktypedclient.ClusterNetworksGetter) (string, bool, error) {
+	cn, err := clusterNetworkClient.ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return "", false, nil

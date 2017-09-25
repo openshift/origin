@@ -6,6 +6,8 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
@@ -18,7 +20,7 @@ import (
 // ClusterRoles is a Diagnostic to check that the default cluster roles match expectations
 type ClusterRoles struct {
 	ClusterRolesClient osclient.ClusterRolesInterface
-	SARClient          osclient.SubjectAccessReviews
+	SARClient          authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
 const (
@@ -68,7 +70,7 @@ func (d *ClusterRoles) CanRun() (bool, error) {
 		return false, fmt.Errorf("must have client.SubjectAccessReviews")
 	}
 
-	return userCan(d.SARClient, authorizationapi.Action{
+	return userCan(d.SARClient, &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    authorizationapi.GroupName,
 		Resource: "clusterroles",

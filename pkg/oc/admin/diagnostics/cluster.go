@@ -11,12 +11,18 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	clustdiags "github.com/openshift/origin/pkg/diagnostics/cluster"
 	agldiags "github.com/openshift/origin/pkg/diagnostics/cluster/aggregated_logging"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 )
 
 var (
@@ -57,31 +63,55 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, false, err
 	}
+	imageClient, err := imageclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
+	projectClient, err := projectclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
+	routeClient, err := routeclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
+	appsClient, err := appsclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
+	oauthClient, err := oauthclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
+	oauthorizationClient, err := oauthorizationclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
 
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
 		var d types.Diagnostic
 		switch diagnosticName {
 		case agldiags.AggregatedLoggingName:
-			d = agldiags.NewAggregatedLogging(o.MasterConfigLocation, kclusterClient, clusterClient)
+			d = agldiags.NewAggregatedLogging(o.MasterConfigLocation, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), oauthorizationClient.Authorization(), appsClient.Apps())
 		case clustdiags.NodeDefinitionsName:
-			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient, OsClient: clusterClient}
+			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient}
 		case clustdiags.MasterNodeName:
-			d = &clustdiags.MasterNode{KubeClient: kclusterClient, OsClient: clusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation}
+			d = &clustdiags.MasterNode{KubeClient: kclusterClient, ServerUrl: serverUrl, MasterConfigFile: o.MasterConfigLocation}
 		case clustdiags.ClusterRegistryName:
-			d = &clustdiags.ClusterRegistry{KubeClient: kclusterClient, OsClient: clusterClient, PreventModification: o.PreventModification}
+			d = &clustdiags.ClusterRegistry{KubeClient: kclusterClient, ImageStreamClient: imageClient.Image(), PreventModification: o.PreventModification}
 		case clustdiags.ClusterRouterName:
-			d = &clustdiags.ClusterRouter{KubeClient: kclusterClient, OsClient: clusterClient}
+			d = &clustdiags.ClusterRouter{KubeClient: kclusterClient, DCClient: appsClient.Apps()}
 		case clustdiags.ClusterRolesName:
-			d = &clustdiags.ClusterRoles{ClusterRolesClient: clusterClient, SARClient: clusterClient}
+			d = &clustdiags.ClusterRoles{ClusterRolesClient: clusterClient, SARClient: kclusterClient.Authorization()}
 		case clustdiags.ClusterRoleBindingsName:
-			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: clusterClient, SARClient: clusterClient}
+			d = &clustdiags.ClusterRoleBindings{ClusterRoleBindingsClient: clusterClient, SARClient: kclusterClient.Authorization()}
 		case clustdiags.MetricsApiProxyName:
 			d = &clustdiags.MetricsApiProxy{KubeClient: kclusterClient}
 		case clustdiags.ServiceExternalIPsName:
 			d = &clustdiags.ServiceExternalIPs{MasterConfigFile: o.MasterConfigLocation, KclusterClient: kclusterClient}
 		case clustdiags.RouteCertificateValidationName:
-			d = &clustdiags.RouteCertificateValidation{OsClient: clusterClient, RESTConfig: config}
+			d = &clustdiags.RouteCertificateValidation{SARClient: kclusterClient.Authorization(), RESTConfig: config}
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)
 		}
