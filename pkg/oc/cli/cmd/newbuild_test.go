@@ -6,10 +6,11 @@ import (
 	"testing"
 
 	"github.com/MakeNowJust/heredoc"
-	"github.com/openshift/origin/pkg/client/testclient"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
 
 // TestNewBuildRun ensures that Run command calls the right actions
@@ -63,10 +64,11 @@ func TestNewBuildRun(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		client := testclient.NewSimpleFake()
+		templateClient := templatefake.NewSimpleClientset()
+		imageClient := imagefake.NewSimpleClientset()
 
 		o.Config = test.config
-		o.Config.SetOpenShiftClient(client, "openshift", nil)
+		o.Config.SetOpenShiftClient(imageClient.Image(), templateClient.Template(), nil, "openshift", nil)
 
 		o.Config.DockerSearcher = MockSearcher{
 			OnSearch: func(precise bool, terms ...string) (app.ComponentMatches, []error) {
@@ -86,7 +88,8 @@ func TestNewBuildRun(t *testing.T) {
 			t.Fatalf("[%s] expected error: %v, got nil", test.name, test.expectedErr)
 		}
 
-		got := client.Actions()
+		got := imageClient.Actions()
+		got = append(got, templateClient.Actions()...)
 		if len(test.expectedActions) != len(got) {
 			t.Fatalf("action length mismatch: expected %d, got %d", len(test.expectedActions), len(got))
 		}
