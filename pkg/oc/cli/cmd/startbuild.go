@@ -38,7 +38,6 @@ import (
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	buildclientinternal "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
-	osclient "github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/git"
@@ -370,7 +369,8 @@ func (o *StartBuildOptions) Run() error {
 		if len(o.BuildArgs) > 0 {
 			fmt.Fprintf(o.ErrOut, "WARNING: Specifying build arguments with binary builds is not supported.\n")
 		}
-		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, o.BuildClient, o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
+		instantiateClient := buildclientinternal.NewBuildInstantiateBinaryClient(o.BuildClient.RESTClient(), o.Namespace)
+		if newBuild, err = streamPathToBuild(o.Git, o.In, o.ErrOut, instantiateClient, o.FromDir, o.FromFile, o.FromRepo, request); err != nil {
 			if kerrors.IsAlreadyExists(err) {
 				return transformIsAlreadyExistsError(err, o.Name)
 			}
@@ -471,7 +471,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 		}
 		url, err := webhookClient.WebHookURL(o.Name, &t)
 		if err != nil {
-			if err != osclient.ErrTriggerIsNotAWebHook {
+			if err != buildclientinternal.ErrTriggerIsNotAWebHook {
 				fmt.Fprintf(o.ErrOut, "error: unable to get webhook for %s: %v", o.Name, err)
 			}
 			continue
@@ -481,7 +481,7 @@ func (o *StartBuildOptions) RunListBuildWebHooks() error {
 	return nil
 }
 
-func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclient.BuildInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
+func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client buildclientinternal.BuildInstantiateBinaryInterface, fromDir, fromFile, fromRepo string, options *buildapi.BinaryBuildRequestOptions) (*buildapi.Build, error) {
 	asDir, asFile, asRepo := len(fromDir) > 0, len(fromFile) > 0, len(fromRepo) > 0
 
 	if asRepo && !git.IsGitInstalled() {
@@ -658,8 +658,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 		}
 	}
 
-	instantiateClient := buildclientinternal.NewBuildInstantiateBinaryClient(client.RESTClient(), options.Namespace)
-	return instantiateClient.InstantiateBinary(options.Name, options, r)
+	return client.InstantiateBinary(options.Name, options, r)
 }
 
 func isArchive(r *bufio.Reader) bool {
