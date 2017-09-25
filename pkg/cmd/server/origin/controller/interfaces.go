@@ -3,7 +3,7 @@ package controller
 import (
 	"github.com/golang/glog"
 
-	kubecontroller "k8s.io/kubernetes/cmd/kube-controller-manager/app"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
@@ -25,7 +25,7 @@ import (
 )
 
 type ControllerContext struct {
-	KubeControllerContext kubecontroller.ControllerContext
+	OpenshiftControllerOptions OpenshiftControllerOptions
 
 	// ClientBuilder will provide a client for this controller to use
 	ClientBuilder ControllerClientBuilder
@@ -42,6 +42,30 @@ type ControllerContext struct {
 
 	// Stop is the stop channel
 	Stop <-chan struct{}
+}
+
+// OpenshiftControllerOptions contain the options used to run the controllers.  Eventually we need to construct a way to properly
+// configure these in a config struct.  This at least lets us know what we have.
+type OpenshiftControllerOptions struct {
+	HPAControllerOptions       HPAControllerOptions
+	ResourceQuotaOptions       ResourceQuotaOptions
+	ServiceAccountTokenOptions ServiceAccountTokenOptions
+}
+
+type HPAControllerOptions struct {
+	SyncPeriod               metav1.Duration
+	UpscaleForbiddenWindow   metav1.Duration
+	DownscaleForbiddenWindow metav1.Duration
+}
+
+type ResourceQuotaOptions struct {
+	ConcurrentSyncs int32
+	SyncPeriod      metav1.Duration
+	MinResyncPeriod metav1.Duration
+}
+
+type ServiceAccountTokenOptions struct {
+	ConcurrentSyncs int32
 }
 
 // TODO wire this up to something that handles the names.  The logic is available upstream, we just have to wire to it
@@ -226,11 +250,4 @@ func (b OpenshiftControllerClientBuilder) OpenshiftInternalNetworkClientOrDie(na
 		glog.Fatal(err)
 	}
 	return client
-}
-
-// FromKubeInitFunc adapts a kube init func to an openshift one
-func FromKubeInitFunc(initFn kubecontroller.InitFunc) InitFunc {
-	return func(ctx ControllerContext) (bool, error) {
-		return initFn(ctx.KubeControllerContext)
-	}
 }

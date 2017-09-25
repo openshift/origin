@@ -15,9 +15,9 @@ import (
 )
 
 func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
-	concurrentResourceQuotaSyncs := int(ctx.KubeControllerContext.Options.ConcurrentResourceQuotaSyncs)
-	resourceQuotaSyncPeriod := ctx.KubeControllerContext.Options.ResourceQuotaSyncPeriod.Duration
-	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.KubeControllerContext.Options.MinResyncPeriod.Duration)
+	concurrentResourceQuotaSyncs := int(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.ConcurrentSyncs)
+	resourceQuotaSyncPeriod := ctx.OpenshiftControllerOptions.ResourceQuotaOptions.SyncPeriod.Duration
+	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.MinResyncPeriod.Duration)
 	saName := "resourcequota-controller"
 
 	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(

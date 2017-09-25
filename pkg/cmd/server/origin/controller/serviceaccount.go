@@ -68,7 +68,7 @@ func (c *ServiceAccountTokenControllerOptions) RunController(ctx ControllerConte
 			RootCA:           c.RootCA,
 			ServiceServingCA: c.ServiceServingCA,
 		},
-	).Run(int(ctx.KubeControllerContext.Options.ConcurrentSATokenSyncs), ctx.Stop)
+	).Run(int(ctx.OpenshiftControllerOptions.ServiceAccountTokenOptions.ConcurrentSyncs), ctx.Stop)
 	return true, nil
 }
 
