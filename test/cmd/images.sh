@@ -83,8 +83,6 @@ os::cmd::expect_success "oc patch istag/wildfly:latest -p='{\"tag\":{\"from\":{\
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'DockerImage'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' 'mysql:latest'
 os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.tag.generation}' '2'
-os::cmd::expect_success "oc patch istag/wildfly:latest -p='{\"tag\":{\"importPolicy\":{\"scheduled\":true}}}'"
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.importPolicy.scheduled}' 'true'
 
 # create an image stream tag
 os::cmd::expect_success 'oc create imagestreamtag tag:1 --from=wildfly:latest'
