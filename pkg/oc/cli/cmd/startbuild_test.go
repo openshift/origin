@@ -19,8 +19,6 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/client/testclient"
 )
 
 type FakeClientConfig struct {
@@ -150,12 +148,11 @@ func TestStartBuildHookPostReceive(t *testing.T) {
 }
 
 type FakeBuildConfigs struct {
-	client.BuildConfigInterface
 	t            *testing.T
 	expectAsFile bool
 }
 
-func (c FakeBuildConfigs) InstantiateBinary(options *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
+func (c FakeBuildConfigs) InstantiateBinary(name string, options *buildapi.BinaryBuildRequestOptions, r io.Reader) (result *buildapi.Build, err error) {
 	if binary, err := ioutil.ReadAll(r); err != nil {
 		c.t.Errorf("Error while reading binary over HTTP: %v", err)
 	} else if string(binary) != "hi" {
@@ -250,9 +247,6 @@ func TestHttpBinary(t *testing.T) {
 		stdin := bytes.NewReader([]byte{})
 		stdout := &bytes.Buffer{}
 		options := buildapi.BinaryBuildRequestOptions{}
-		fakeclient := testclient.NewSimpleFake()
-		buildconfigs := FakeBuildConfigs{fakeclient.BuildConfigs("default"), t, tc.fromFile}
-
 		handler := func(w http.ResponseWriter, r *http.Request) {
 			if tc.contentDisposition {
 				w.Header().Add("Content-Disposition", "attachment; filename=hi.txt")
@@ -282,7 +276,7 @@ func TestHttpBinary(t *testing.T) {
 			fromDir = server.URL + tc.urlPath
 		}
 
-		build, err := streamPathToBuild(nil, stdin, stdout, buildconfigs, fromDir, fromFile, "", &options)
+		build, err := streamPathToBuild(nil, stdin, stdout, &FakeBuildConfigs{t: t, expectAsFile: tc.fromFile}, fromDir, fromFile, "", &options)
 
 		if len(tc.expectedError) > 0 {
 			if err == nil {

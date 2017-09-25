@@ -14,10 +14,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	osgraph "github.com/openshift/origin/pkg/api/graph"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	buildedges "github.com/openshift/origin/pkg/build/graph"
 	buildanalysis "github.com/openshift/origin/pkg/build/graph/analysis"
 	buildgraph "github.com/openshift/origin/pkg/build/graph/nodes"
-	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	dotutil "github.com/openshift/origin/pkg/util/dot"
@@ -38,14 +38,14 @@ func (e NotFoundErr) Error() string {
 // ChainDescriber generates extended information about a chain of
 // dependencies of an image stream
 type ChainDescriber struct {
-	c            client.BuildConfigsNamespacer
+	c            buildclient.BuildConfigsGetter
 	namespaces   sets.String
 	outputFormat string
 	namer        osgraph.Namer
 }
 
 // NewChainDescriber returns a new ChainDescriber
-func NewChainDescriber(c client.BuildConfigsNamespacer, namespaces sets.String, out string) *ChainDescriber {
+func NewChainDescriber(c buildclient.BuildConfigsGetter, namespaces sets.String, out string) *ChainDescriber {
 	return &ChainDescriber{c: c, namespaces: namespaces, outputFormat: out, namer: namespacedFormatter{hideNamespace: true}}
 }
 
