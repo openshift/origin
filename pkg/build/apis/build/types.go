@@ -1004,7 +1004,6 @@ type ImageLabel struct {
 
 // +genclient
 // +genclient:method=Instantiate,verb=create,subresource=instantiate,input=BuildRequest,result=Build
-// +genclient:method=InstantiateBinary,verb=create,subresource=instantiateBinary,input=BinaryBuildRequestOptions,result=Build
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // BuildConfig is a template which can be used to create new builds.
