@@ -115,7 +115,6 @@ function os::test::extended::setup () {
 	os::log::info "Turn on audit logging"
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
 	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true, \"auditFilePath\": \"${LOG_DIR}/audit.log\"}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
-	exit 1
 
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
 	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"templateServiceBrokerConfig\": {\"templateNamespaces\": [\"openshift\"]}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
