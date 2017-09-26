@@ -200,7 +200,7 @@ function os::util::environment::setup_etcd_vars() {
     ETCD_PEER_PORT="${ETCD_PEER_PORT:-7001}"
     export ETCD_PEER_PORT
 
-    ETCD_DATA_DIR="${BASETMPDIR}/etcd"
+    ETCD_DATA_DIR="/tmp/etcd"
     export ETCD_DATA_DIR
 
     mkdir -p "${ETCD_DATA_DIR}"
