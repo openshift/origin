@@ -95,7 +95,7 @@ type ImageStreamInterface interface {
 var _ ImageStreamMappingInterface = imageclientv1.ImageStreamMappingInterface(nil)
 
 type ImageStreamMappingInterface interface {
-	Create(mapping *imageapiv1.ImageStreamMapping) (*imageapiv1.ImageStreamMapping, error)
+	Create(mapping *imageapiv1.ImageStreamMapping) (*metav1.Status, error)
 }
 
 var _ ImageStreamTagInterface = imageclientv1.ImageStreamTagInterface(nil)
