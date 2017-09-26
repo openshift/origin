@@ -179,7 +179,7 @@ func TestValidateServingInfo(t *testing.T) {
 	}
 
 	for k, tc := range testcases {
-		result := ValidateServingInfo(tc.ServingInfo, nil)
+		result := ValidateServingInfo(tc.ServingInfo, true, nil)
 
 		if len(tc.ExpectedErrors) != len(result.Errors) {
 			t.Errorf("%s: Expected %d errors, got %d", k, len(tc.ExpectedErrors), len(result.Errors))

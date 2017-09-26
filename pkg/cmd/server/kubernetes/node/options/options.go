@@ -8,9 +8,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	kubeproxyoptions "k8s.io/kubernetes/cmd/kube-proxy/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/features"
 	kubeletcni "k8s.io/kubernetes/pkg/kubelet/network/cni"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -120,6 +122,20 @@ func Build(options configapi.NodeConfig) (*kubeletoptions.KubeletServer, *compon
 	// proper errors
 	if err := cmdflags.Resolve(options.KubeletArguments, server.AddFlags); len(err) > 0 {
 		return nil, nil, kerrors.NewAggregate(err)
+	}
+
+	// terminate early if feature gate is incorrect on the node
+	if len(server.FeatureGates) > 0 {
+		if err := utilfeature.DefaultFeatureGate.Set(server.FeatureGates); err != nil {
+			return nil, nil, err
+		}
+	}
+	if utilfeature.DefaultFeatureGate.Enabled(features.RotateKubeletServerCertificate) {
+		// Server cert rotation is ineffective if a cert is hardcoded.
+		if len(server.CertDirectory) > 0 {
+			server.TLSCertFile = ""
+			server.TLSPrivateKeyFile = ""
+		}
 	}
 
 	proxyconfig, err := buildKubeProxyConfig(options)
