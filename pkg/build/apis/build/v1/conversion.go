@@ -179,9 +179,19 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Build",
+		oapi.GetFieldLabelConversionFunc(newer.BuildToSelectableFields(&newer.Build{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "BuildConfig",
 		oapi.GetFieldLabelConversionFunc(newer.BuildConfigToSelectableFields(&newer.BuildConfig{}), map[string]string{"name": "metadata.name"}),
+	); err != nil {
+		return err
+	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "BuildConfig",
+		oapi.GetFieldLabelConversionFunc(newer.BuildConfigToSelectableFields(&newer.BuildConfig{}), nil),
 	); err != nil {
 		return err
 	}

@@ -130,5 +130,10 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "DeploymentConfig",
+		oapi.GetFieldLabelConversionFunc(newer.DeploymentConfigToSelectableFields(&newer.DeploymentConfig{}), nil),
+	); err != nil {
+		return err
+	}
 	return nil
 }

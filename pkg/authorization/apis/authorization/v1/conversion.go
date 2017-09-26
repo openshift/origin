@@ -399,8 +399,18 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "ClusterPolicy",
+		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyToSelectableFields(&newer.ClusterPolicy{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "ClusterPolicyBinding",
+		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyBindingToSelectableFields(&newer.ClusterPolicyBinding{}), nil),
+	); err != nil {
+		return err
+	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "ClusterPolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.ClusterPolicyBindingToSelectableFields(&newer.ClusterPolicyBinding{}), nil),
 	); err != nil {
 		return err
@@ -411,8 +421,18 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Policy",
+		oapi.GetFieldLabelConversionFunc(newer.PolicyToSelectableFields(&newer.Policy{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "PolicyBinding",
+		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
+	); err != nil {
+		return err
+	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "PolicyBinding",
 		oapi.GetFieldLabelConversionFunc(newer.PolicyBindingToSelectableFields(&newer.PolicyBinding{}), nil),
 	); err != nil {
 		return err
@@ -423,8 +443,18 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 	); err != nil {
 		return err
 	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Role",
+		oapi.GetFieldLabelConversionFunc(newer.RoleToSelectableFields(&newer.Role{}), nil),
+	); err != nil {
+		return err
+	}
 
 	if err := scheme.AddFieldLabelConversionFunc("v1", "RoleBinding",
+		oapi.GetFieldLabelConversionFunc(newer.RoleBindingToSelectableFields(&newer.RoleBinding{}), nil),
+	); err != nil {
+		return err
+	}
+	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "RoleBinding",
 		oapi.GetFieldLabelConversionFunc(newer.RoleBindingToSelectableFields(&newer.RoleBinding{}), nil),
 	); err != nil {
 		return err
