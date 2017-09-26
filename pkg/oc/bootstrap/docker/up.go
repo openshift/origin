@@ -132,6 +132,7 @@ var (
 	adminTemplateLocations = map[string]string{
 		"prometheus":          "examples/prometheus/prometheus.yaml",
 		"heapster standalone": "examples/heapster/heapster-standalone.yaml",
+		"acme controller":     "examples/acme-controller/acme-cluster-controller.yaml",
 	}
 
 	openshiftVersion36 = semver.MustParse("3.6.0")

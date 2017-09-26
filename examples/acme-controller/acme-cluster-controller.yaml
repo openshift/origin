@@ -1,0 +1,179 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: acme-controller
+parameters:
+- description: ACME Endpoint URL
+  name: OPENSHIFT_ACME_ACMEURL
+  value: https://acme-staging.api.letsencrypt.org/directory
+- description: Controller loglevel
+  name: OPENSHIFT_ACME_LOGLEVEL
+  value: "8"
+- description: Name of the service pointing to ACME controller
+  name: OPENSHIFT_ACME_SELFSERVICENAME
+  value: acme-controller
+- description: Name of the namespace to instantiate the ACME controller under. Defaults to 'kube-system'.
+  name: OPENSHIFT_ACME_SELFSERVICENAMESPACE
+  value: kube-system
+- description: Docker Image of ACME controller
+  name: DOCKER_IMAGE
+  value: docker.io/appuio/openshift-acme
+- description: Docker Image Tag of ACME controller
+  name: DOCKER_IMAGE_TAG
+  value: latest
+objects:
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: acme-controller
+- apiVersion: v1
+  kind: ClusterRole
+  metadata:
+    name: acme-controller
+  rules:
+  - apiGroups:
+    - ""
+    - "route.openshift.io"
+    resources:
+    - endpoints
+    - endpoints/restricted
+    - events
+    - routes
+    - routes/custom-host
+    - routes/status
+    - secrets
+    - services
+    verbs:
+    - '*'
+  - apiGroups:
+    - ""
+    resources:
+    - namespaces
+    verbs:
+    - get
+    - list
+    - watch
+- apiVersion: v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: acme-controller
+    labels:
+      app: acme-controller
+  roleRef:
+    kind: ClusterRole
+    name: acme-controller
+  subjects:
+  - kind: ServiceAccount
+    name: acme-controller
+    namespace: ${OPENSHIFT_ACME_SELFSERVICENAMESPACE}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: acme-controller
+    labels:
+      type: acme-controller
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - annotations:
+        openshift.io/imported-from: ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
+      from:
+        kind: DockerImage
+        name: ${DOCKER_IMAGE}:${DOCKER_IMAGE_TAG}
+      importPolicy:
+        scheduled: true
+      name: latest
+      referencePolicy:
+        type: Source
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    labels:
+      app: acme-controller
+    name: acme-controller
+  spec:
+    replicas: 1
+    selector:
+      app: acme-controller
+    strategy:
+      activeDeadlineSeconds: 21600
+      recreateParams:
+        timeoutSeconds: 600
+      resources: {}
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: acme-controller
+      spec:
+        containers:
+        - env:
+          - name: OPENSHIFT_ACME_ACMEURL
+            value: ${OPENSHIFT_ACME_ACMEURL}
+          - name: OPENSHIFT_ACME_LOGLEVEL
+            value: ${OPENSHIFT_ACME_LOGLEVEL}
+          - name: OPENSHIFT_ACME_SELFSERVICENAME
+            value: ${OPENSHIFT_ACME_SELFSERVICENAME}
+          - name: OPENSHIFT_ACME_SELFSERVICENAMESPACE
+            value: ${OPENSHIFT_ACME_SELFSERVICENAMESPACE}
+          image: acme-controller:latest
+          imagePullPolicy: IfNotPresent
+          name: acme-controller
+          ports:
+          - containerPort: 80
+            protocol: TCP
+          resources:
+            limits:
+              cpu: '500m'
+              memory: '512Mi'
+            requests:
+              cpu: '500m'
+              memory: '512Mi'
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+        serviceAccountName: acme-controller
+    test: false
+    triggers:
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+        - acme-controller
+        from:
+          kind: ImageStreamTag
+          name: acme-controller:latest
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: acme-controller
+  spec:
+    ports:
+    - name: http
+      port: 80
+      protocol: TCP
+      targetPort: 5000
+    selector:
+      app: acme-controller
