@@ -34,7 +34,7 @@ var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] openshift rou
 	)
 
 	g.BeforeEach(func() {
-		dc, err := oc.AdminClient().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
+		dc, err := oc.AdminAppsClient().Apps().DeploymentConfigs("default").Get("router", metav1.GetOptions{})
 		if kapierrs.IsNotFound(err) {
 			g.Skip("no router installed on the cluster")
 			return

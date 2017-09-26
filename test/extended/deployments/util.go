@@ -310,7 +310,7 @@ func deploymentImageTriggersResolved(expectTriggers int) func(dc *deployapi.Depl
 }
 
 func deploymentInfo(oc *exutil.CLI, name string) (*deployapi.DeploymentConfig, []*kapiv1.ReplicationController, []kapiv1.Pod, error) {
-	dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+	dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -363,7 +363,7 @@ func waitForSyncedConfig(oc *exutil.CLI, name string, timeout time.Duration) err
 	}
 	generation := dc.Generation
 	return wait.PollImmediate(200*time.Millisecond, timeout, func() (bool, error) {
-		config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+		config, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -447,7 +447,7 @@ func waitForRCModification(oc *exutil.CLI, namespace string, name string, timeou
 }
 
 func waitForDCModification(oc *exutil.CLI, namespace string, name string, timeout time.Duration, resourceVersion string, condition func(rc *deployapi.DeploymentConfig) (bool, error)) (*deployapi.DeploymentConfig, error) {
-	watcher, err := oc.Client().DeploymentConfigs(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
+	watcher, err := oc.AppsClient().Apps().DeploymentConfigs(namespace).Watch(metav1.SingleObject(metav1.ObjectMeta{Name: name, ResourceVersion: resourceVersion}))
 	if err != nil {
 		return nil, err
 	}
@@ -490,7 +490,7 @@ func createDeploymentConfig(oc *exutil.CLI, fixture string) (*deployapi.Deployme
 	var pollErr error
 	var dc *deployapi.DeploymentConfig
 	err = wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		dc, err = oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+		dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 		if err != nil {
 			pollErr = err
 			return false, nil

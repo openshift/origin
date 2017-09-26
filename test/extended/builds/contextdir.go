@@ -42,7 +42,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), s2iBuildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), s2iBuildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("s2icontext", oc)
 			}
@@ -51,7 +51,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
 			g.By("waiting for a deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), dcName, 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), dcName, 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
@@ -98,7 +98,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 
 			// build will fail if we don't use the right context dir because there won't be a dockerfile present.
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), dockerBuildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), dockerBuildName, exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("dockercontext", oc)
 			}

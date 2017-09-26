@@ -33,7 +33,7 @@ var _ = g.Describe("[Feature:Builds] build with empty source", func() {
 			br.AssertSuccess()
 
 			g.By(fmt.Sprintf("verifying the status of %q", br.BuildPath))
-			build, err := oc.Client().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.Build.Name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Spec.Source.Dockerfile).To(o.BeNil())
 			o.Expect(build.Spec.Source.Git).To(o.BeNil())

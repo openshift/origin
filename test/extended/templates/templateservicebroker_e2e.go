@@ -19,6 +19,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	"github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -54,7 +55,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		processedtemplate, err = cli.AdminClient().TemplateConfigs("openshift").Create(template)
+		processedtemplate, err = internalversion.NewTemplateProcessorClient(cli.AdminTemplateClient().Template().RESTClient(), "openshift").Process(template)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		errs := runtime.DecodeList(processedtemplate.Objects, unstructured.UnstructuredJSONScheme)
@@ -69,7 +70,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// enable unauthenticated access to the service broker
-		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
@@ -88,7 +89,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	})
 
 	g.AfterEach(func() {
-		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
+		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// it shouldn't be around, but if it is, clean up the

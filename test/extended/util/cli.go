@@ -25,13 +25,16 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	appsclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	authorizationclientset "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildclientset "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	"github.com/openshift/origin/pkg/client"
-	oclientset "github.com/openshift/origin/pkg/client/clientset/clientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	imageclientset "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
+	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 )
 
@@ -183,48 +186,18 @@ func (c *CLI) Verbose() *CLI {
 	return c
 }
 
-// Client provides an OpenShift client for the current user. If the user is not
-// set, then it provides client for the cluster admin user
-func (c *CLI) Client() *client.Client {
+func (c *CLI) AppsClient() appsclientset.Interface {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	osClient, err := client.New(clientConfig)
+	client, err := appsclientset.NewForConfig(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
-	return osClient
+	return client
 }
 
-// Clientset provides the new OpenShift clientset for the current user. If the user is not
-// set, then it provides client for the cluster admin user
-func (c *CLI) Clientset() *oclientset.Clientset {
+func (c *CLI) AuthorizationClient() authorizationclientset.Interface {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	if err != nil {
-		FatalErr(err)
-	}
-
-	cs, err := oclientset.NewForConfig(clientConfig)
-	if err != nil {
-		FatalErr(err)
-	}
-
-	return cs
-}
-
-// AdminClient provides an OpenShift client for the cluster admin user.
-func (c *CLI) AdminClient() *client.Client {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
-	osClient, err := client.New(clientConfig)
-	if err != nil {
-		FatalErr(err)
-	}
-	return osClient
-}
-
-// Client provides an OpenShift client for the current user. If the user is not
-// set, then it provides client for the cluster admin user
-func (c *CLI) TemplateClient() templateclientset.Interface {
-	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
-	client, err := templateclientset.NewForConfig(clientConfig)
+	client, err := authorizationclientset.NewForConfig(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
@@ -240,10 +213,102 @@ func (c *CLI) BuildClient() buildclientset.Interface {
 	return client
 }
 
+func (c *CLI) ImageClient() imageclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	client, err := imageclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) ProjectClient() projectclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	client, err := projectclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+// Client provides an OpenShift client for the current user. If the user is not
+// set, then it provides client for the cluster admin user
+func (c *CLI) TemplateClient() templateclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	client, err := templateclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) UserClient() userclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	client, err := userclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminAppsClient() appsclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := appsclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminAuthorizationClient() authorizationclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := authorizationclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminBuildClient() buildclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := buildclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminImageClient() imageclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := imageclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminProjectClient() projectclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := projectclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
 // AdminClient provides an OpenShift client for the cluster admin user.
 func (c *CLI) AdminTemplateClient() templateclientset.Interface {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
 	client, err := templateclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminUserClient() userclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := userclientset.NewForConfig(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}

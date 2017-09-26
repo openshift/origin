@@ -50,7 +50,7 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		cleanUp.AddImage(imageDigest, "", "")
 
 		g.By("checking that the image converted...")
-		image, err := oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
+		image, err := oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.Equal(0))
 		imageMetadataNotEmpty(image)
@@ -64,18 +64,18 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		o.Expect(len(manifest)).Should(o.BeNumerically(">", 0))
 
 		g.By("restoring manifest...")
-		image, err = oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
+		image, err = oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		imageMetadataNotEmpty(image)
 
 		image.DockerImageManifest = string(manifest)
 
-		newImage, err := oc.AsAdmin().Client().Images().Update(image)
+		newImage, err := oc.AsAdmin().ImageClient().Image().Images().Update(image)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		imageMetadataNotEmpty(newImage)
 
 		g.By("checking that the manifest is present in the image...")
-		image, err = oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
+		image, err = oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.BeNumerically(">", 0))
 		o.Expect(image.DockerImageManifest).Should(o.Equal(string(manifest)))
@@ -91,7 +91,7 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("checking that the manifest was removed from the image...")
-		image, err = oc.AsAdmin().Client().Images().Get(imageDigest, metav1.GetOptions{})
+		image, err = oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.Equal(0))
 		imageMetadataNotEmpty(image)
@@ -127,7 +127,7 @@ func imageMetadataNotEmpty(image *imageapi.Image) {
 
 func waitForImageUpdate(oc *exutil.CLI, image *imageapi.Image) error {
 	return wait.Poll(200*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		newImage, err := oc.AsAdmin().Client().Images().Get(image.Name, metav1.GetOptions{})
+		newImage, err := oc.AsAdmin().ImageClient().Image().Images().Get(image.Name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
