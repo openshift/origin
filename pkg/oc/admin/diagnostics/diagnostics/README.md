@@ -52,7 +52,7 @@ logic. This provides two major benefits:
 Having configuration files where ansible places them means you will generally
 not even need to specify where to find them. Running:
 
-    oc ex diagnostics
+    oc adm diagnostics
 
 by itself will look for master and node configs (in addition to client
 config file) in the standard locations and use them if found; so this
@@ -60,7 +60,7 @@ should make the ansible-installed use case as simple as possible. It's also
 very easy to use configuration files when they are not in the expected
 Enterprise locations:
 
-    oc ex diagnostics --master-config=... --node-config=...
+    oc adm diagnostics --master-config=... --node-config=...
 
 Having logs in journald is necessary for the current log analysis
 logic. Other usage may have logs going into files, output to stdout,
@@ -95,7 +95,7 @@ save may be your own.
 
 A diagnostic is an object that conforms to the Diagnostic interface
 (see pkg/diagnostics/types/diagnostic.go). The diagnostic object should
-be built in one of the builders in the pkg/cmd/admin/diagnostics
+be built in one of the builders in the pkg/oc/admin/diagnostics
 package (based on whether it depends on client, cluster-admin, or host
 configuration). When executed, the diagnostic logs its findings into
 a result object. It should be assumed that they may run in parallel.
