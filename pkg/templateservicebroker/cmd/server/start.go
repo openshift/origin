@@ -164,6 +164,8 @@ func (o TemplateServiceBrokerServerOptions) Config() (*server.TemplateServiceBro
 		return nil, err
 	}
 
+	serverConfig.EnableMetrics = true
+
 	config := &server.TemplateServiceBrokerConfig{
 		GenericConfig: serverConfig,
 

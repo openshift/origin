@@ -260,6 +260,7 @@
     "allowedImportPackages": [
       "vendor/github.com/golang/glog",
       "vendor/k8s.io/kubernetes/pkg/api",
+      "vendor/k8s.io/kubernetes/pkg/api/install",
       "vendor/k8s.io/kubernetes/pkg/apis/authorization",
       "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/clientset",
       "vendor/k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset",
