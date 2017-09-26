@@ -250,17 +250,17 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		}
 		return deploycmd.NewDeploymentConfigReaper(appsclient.NewForConfigOrDie(config), kc), nil
 	case authorizationapi.IsKindOrLegacy("Role", gk):
-		oc, _, err := f.clientAccessFactory.Clients()
+		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
 		if err != nil {
 			return nil, err
 		}
-		return authorizationreaper.NewRoleReaper(oc, oc), nil
+		return authorizationreaper.NewRoleReaper(authClient.Authorization(), authClient.Authorization()), nil
 	case authorizationapi.IsKindOrLegacy("ClusterRole", gk):
-		oc, _, err := f.clientAccessFactory.Clients()
+		authClient, err := f.clientAccessFactory.OpenshiftInternalAuthorizationClient()
 		if err != nil {
 			return nil, err
 		}
-		return authorizationreaper.NewClusterRoleReaper(oc, oc, oc), nil
+		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
 	case userapi.IsKindOrLegacy("User", gk):
 		_, kc, err := f.clientAccessFactory.Clients()
 		if err != nil {

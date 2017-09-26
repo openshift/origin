@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apiserver/pkg/admission"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -22,16 +21,10 @@ import (
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
 	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
+	testtypes "github.com/openshift/origin/test/integration/testing"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
-
-type TestPluginConfig struct {
-	metav1.TypeMeta `json:",inline"`
-	Data            string `json:"data"`
-}
-
-func (obj *TestPluginConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (kclientset.Interface, *client.Client, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
@@ -105,7 +98,7 @@ func registerAdmissionPlugins(t *testing.T, names ...string) {
 					if err != nil {
 						return nil, err
 					}
-					configObj := &TestPluginConfig{}
+					configObj := &testtypes.TestPluginConfig{}
 					err = runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), configData, configObj)
 					if err != nil {
 						return nil, err
@@ -170,8 +163,8 @@ func checkAdmissionObjectLabelValues(labels, expected map[string]string) error {
 }
 
 func registerAdmissionPluginTestConfigType() {
-	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &TestPluginConfig{})
-	configapi.Scheme.AddKnownTypes(configapiv1.SchemeGroupVersion, &TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(configapi.SchemeGroupVersion, &testtypes.TestPluginConfig{})
+	configapi.Scheme.AddKnownTypes(configapiv1.SchemeGroupVersion, &testtypes.TestPluginConfig{})
 }
 
 func setupAdmissionPluginTestConfig(t *testing.T, value string) string {
@@ -180,7 +173,7 @@ func setupAdmissionPluginTestConfig(t *testing.T, value string) string {
 		t.Fatalf("error creating temp file: %v", err)
 	}
 	configFile.Close()
-	configObj := &TestPluginConfig{
+	configObj := &testtypes.TestPluginConfig{
 		Data: value,
 	}
 	configContent, err := configapilatest.WriteYAML(configObj)
@@ -233,7 +226,7 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin1": {
-				Configuration: &TestPluginConfig{
+				Configuration: &testtypes.TestPluginConfig{
 					Data: "embeddedvalue1",
 				},
 			},
@@ -288,7 +281,7 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin2": {
-				Configuration: &TestPluginConfig{
+				Configuration: &testtypes.TestPluginConfig{
 					Data: "embeddedvalue2",
 				},
 			},

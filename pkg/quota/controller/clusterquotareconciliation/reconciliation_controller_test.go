@@ -6,19 +6,19 @@ import (
 	"strings"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utildiff "k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaapiv1 "github.com/openshift/origin/pkg/quota/apis/quota/v1"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	fakequotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/fake"
 )
 
 func defaultQuota() *quotaapi.ClusterResourceQuota {
@@ -224,13 +224,13 @@ func TestSyncFunc(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		client := testclient.NewSimpleFake(tc.startingQuota())
+		client := fakequotaclient.NewSimpleClientset(tc.startingQuota())
 
 		quotaUsageCalculationFunc = tc.calculationFunc
 		// we only need these fields to test the sync func
 		controller := ClusterQuotaReconcilationController{
 			clusterQuotaMapper: tc.mapperFunc(),
-			clusterQuotaClient: client,
+			clusterQuotaClient: client.Quota().ClusterResourceQuotas(),
 		}
 
 		actualErr, actualRetries := controller.syncQuotaForNamespaces(tc.startingQuota(), tc.workItems)
@@ -284,7 +284,7 @@ func TestSyncFunc(t *testing.T) {
 			t.Errorf("%s: unexpected error: %v", tc.name, err)
 			continue
 		}
-		if !kapihelper.Semantic.DeepEqual(expectedV1, actualV1) {
+		if !equality.Semantic.DeepEqual(expectedV1, actualV1) {
 			t.Errorf("%s: %v", tc.name, utildiff.ObjectDiff(expectedV1, actualV1))
 			continue
 		}

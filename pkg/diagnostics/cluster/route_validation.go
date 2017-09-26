@@ -10,9 +10,9 @@ import (
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
+	"k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/route/apis/route/validation"
@@ -21,7 +21,7 @@ import (
 
 // RouteCertificateValidation is a Diagnostic to check that there is a working router.
 type RouteCertificateValidation struct {
-	OsClient   *client.Client
+	SARClient  authorizationtypedclient.SelfSubjectAccessReviewsGetter
 	RESTConfig *rest.Config
 }
 
@@ -46,10 +46,10 @@ func (d *RouteCertificateValidation) Description() string {
 }
 
 func (d *RouteCertificateValidation) CanRun() (bool, error) {
-	if d.RESTConfig == nil || d.OsClient == nil {
-		return false, errors.New("must have OpenShift client configuration")
+	if d.RESTConfig == nil || d.SARClient == nil {
+		return false, errors.New("must have Kube client configuration")
 	}
-	can, err := userCan(d.OsClient, authorizationapi.Action{
+	can, err := userCan(d.SARClient, &authorization.ResourceAttributes{
 		Namespace: metav1.NamespaceAll,
 		Verb:      "get",
 		Group:     routeapi.GroupName,

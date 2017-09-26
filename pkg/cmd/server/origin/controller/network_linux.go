@@ -3,9 +3,6 @@ package controller
 import (
 	"fmt"
 
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/network"
@@ -21,26 +18,12 @@ func (c *SDNControllerConfig) RunController(ctx ControllerContext) (bool, error)
 		return false, nil
 	}
 
-	// TODO: Switch SDN to use client.Interface
-	clientConfig, err := ctx.ClientBuilder.Config(bootstrappolicy.InfraSDNControllerServiceAccountName)
-	if err != nil {
-		return false, err
-	}
-	osClient, err := osclient.New(clientConfig)
-	if err != nil {
-		return false, err
-	}
-	kClient, err := kclientsetinternal.NewForConfig(clientConfig)
-	if err != nil {
-		return false, err
-	}
-	err = sdnmaster.Start(
+	if err := sdnmaster.Start(
 		c.NetworkConfig,
-		osClient,
-		kClient,
+		ctx.ClientBuilder.OpenshiftInternalNetworkClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
+		ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraSDNControllerServiceAccountName),
 		ctx.InternalKubeInformers,
-	)
-	if err != nil {
+	); err != nil {
 		return false, fmt.Errorf("failed to start SDN plugin controller: %v", err)
 	}
 	return true, nil

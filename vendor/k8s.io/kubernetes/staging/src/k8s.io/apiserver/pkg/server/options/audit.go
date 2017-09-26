@@ -63,6 +63,7 @@ type AuditLogOptions struct {
 	MaxAge     int
 	MaxBackups int
 	MaxSize    int
+	Format     string
 }
 
 // AuditWebhookOptions control the webhook configuration for audit events.
@@ -78,6 +79,7 @@ type AuditWebhookOptions struct {
 func NewAuditOptions() *AuditOptions {
 	return &AuditOptions{
 		WebhookOptions: AuditWebhookOptions{Mode: pluginwebhook.ModeBatch},
+		LogOptions:     AuditLogOptions{Format: pluginlog.FormatLegacy},
 	}
 }
 
@@ -131,11 +133,27 @@ func (o *AuditLogOptions) AddFlags(fs *pflag.FlagSet) {
 		"The maximum number of old audit log files to retain.")
 	fs.IntVar(&o.MaxSize, "audit-log-maxsize", o.MaxSize,
 		"The maximum size in megabytes of the audit log file before it gets rotated.")
+	fs.StringVar(&o.Format, "audit-log-format", o.Format,
+		"Format of saved audits. \"legacy\" indicates 1-line text format for each event."+
+			" \"json\" indicates structured json format. Requires the 'AdvancedAuditing' feature"+
+			" gate. Known formats are "+strings.Join(pluginlog.AllowedFormats, ",")+".")
 }
 
 func (o *AuditLogOptions) applyTo(c *server.Config) error {
 	if o.Path == "" {
 		return nil
+	}
+
+	// check log format
+	validFormat := false
+	for _, f := range pluginlog.AllowedFormats {
+		if f == o.Format {
+			validFormat = true
+			break
+		}
+	}
+	if !validFormat {
+		return fmt.Errorf("invalid audit log format %s, allowed formats are %q", o.Format, strings.Join(pluginlog.AllowedFormats, ","))
 	}
 
 	var w io.Writer = os.Stdout
@@ -150,7 +168,7 @@ func (o *AuditLogOptions) applyTo(c *server.Config) error {
 	c.LegacyAuditWriter = w
 
 	if advancedAuditingEnabled() {
-		c.AuditBackend = appendBackend(c.AuditBackend, pluginlog.NewBackend(w))
+		c.AuditBackend = appendBackend(c.AuditBackend, pluginlog.NewBackend(w, o.Format))
 	}
 	return nil
 }

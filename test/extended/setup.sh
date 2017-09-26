@@ -16,7 +16,7 @@ function os::test::extended::focus () {
 		TEST_REPORT_FILE_NAME=focus_parallel TEST_PARALLEL="${PARALLEL_NODES:-5}" os::test::extended::run -- -ginkgo.skip "\[Serial\]" -test.timeout 6h ${TEST_EXTENDED_ARGS-} || exitstatus=$?
 
 		# Then run everything that requires serial and matches the $FOCUS, serially.
-		# there is bit of overlap here because not all serial tests declare [Serial], so they might have run in the 
+		# there is bit of overlap here because not all serial tests declare [Serial], so they might have run in the
 		# parallel section above.  Hopefully your focus was precise enough to exclude them, and we should be adding
 		# the [Serial] tag to them as needed.
 		os::log::info ""
@@ -110,11 +110,11 @@ function os::test::extended::setup () {
 		CONFIG_VERSION="${CONTROLLER_VERSION}"
 	fi
 	os::start::configure_server "${CONFIG_VERSION}"
-	#turn on audit logging for extended tests ... mimic what is done in os::start::configure_server, but don't
+	# turn on audit logging for extended tests ... mimic what is done in os::start::configure_server, but don't
 	# put change there - only want this for extended tests
 	os::log::info "Turn on audit logging"
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
-	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
+	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"auditConfig\": {\"enabled\": true, \"auditFilePath\": \"${LOG_DIR}/audit.log\"}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"
 
 	cp "${SERVER_CONFIG_DIR}/master/master-config.yaml" "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml"
 	openshift ex config patch "${SERVER_CONFIG_DIR}/master/master-config.orig2.yaml" --patch="{\"templateServiceBrokerConfig\": {\"templateNamespaces\": [\"openshift\"]}}"  > "${SERVER_CONFIG_DIR}/master/master-config.yaml"

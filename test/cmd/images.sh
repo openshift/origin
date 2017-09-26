@@ -83,8 +83,6 @@ os::cmd::expect_success "oc patch istag/wildfly:latest -p='{\"tag\":{\"from\":{\
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.kind}' 'DockerImage'
 os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.from.name}' 'mysql:latest'
 os::cmd::expect_success_and_not_text 'oc get istag/wildfly:latest -o jsonpath={.tag.generation}' '2'
-os::cmd::expect_success "oc patch istag/wildfly:latest -p='{\"tag\":{\"importPolicy\":{\"scheduled\":true}}}'"
-os::cmd::expect_success_and_text 'oc get istag/wildfly:latest -o jsonpath={.tag.importPolicy.scheduled}' 'true'
 
 # create an image stream tag
 os::cmd::expect_success 'oc create imagestreamtag tag:1 --from=wildfly:latest'
@@ -143,6 +141,14 @@ os::cmd::expect_success "oc describe ${imagename}"
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Environment:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Created:'
 os::cmd::expect_success_and_text "oc describe ${imagename}" 'Image Name:'
+
+# test prefer-os and prefer-arch annotations
+os::cmd::expect_success 'oc create -f test/testdata/test-nginx-multiarch-stream.yaml'
+os::cmd::try_until_success 'oc get istag test-nginx-multiarch-stream:linux-amd64'
+os::cmd::try_until_success 'oc get istag test-nginx-multiarch-stream:linux-ppc64le'
+os::cmd::expect_success_and_text 'oc get istag test-nginx-multiarch-stream:linux-amd64 --template={{.image.dockerImageMetadata.Architecture}}' 'amd64'
+os::cmd::expect_success_and_text 'oc get istag test-nginx-multiarch-stream:linux-ppc64le --template={{.image.dockerImageMetadata.Architecture}}' 'ppc64le'
+os::cmd::expect_success 'oc delete is test-nginx-multiarch-stream'
 echo "imageStreams: ok"
 os::test::junit::declare_suite_end
 

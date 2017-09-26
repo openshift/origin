@@ -7,28 +7,41 @@ import (
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/cache"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
 	quotainformer "github.com/openshift/origin/pkg/quota/generated/informers/internalversion/quota/internalversion"
+	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userinformer "github.com/openshift/origin/pkg/user/generated/informers/internalversion"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
-// WantDeprecatedOpenshiftClient should be implemented by admission plugins that need
-// an Openshift client
-type WantsDeprecatedOpenshiftClient interface {
-	SetDeprecatedOpenshiftClient(client.Interface)
+type WantsOpenshiftInternalAuthorizationClient interface {
+	SetOpenshiftInternalAuthorizationClient(authorizationclient.Interface)
 	admission.Validator
 }
 
-// WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
-// an Openshift internal template client
-type WantsOpenshiftInternalTemplateClient interface {
-	SetOpenShiftInternalTemplateClient(templateclient.Interface)
+type WantsOpenshiftInternalBuildClient interface {
+	SetOpenshiftInternalBuildClient(buildclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalQuotaClient should be implemented by admission plugins that need
+// an Openshift internal quota client
+type WantsOpenshiftInternalQuotaClient interface {
+	SetOpenshiftInternalQuotaClient(quotaclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalUserClient should be implemented by admission plugins that need
+// an Openshift internal user client
+type WantsOpenshiftInternalUserClient interface {
+	SetOpenshiftInternalUserClient(userclient.Interface)
 	admission.Validator
 }
 
@@ -36,6 +49,13 @@ type WantsOpenshiftInternalTemplateClient interface {
 // an Openshift internal image client
 type WantsOpenshiftInternalImageClient interface {
 	SetOpenshiftInternalImageClient(imageclient.Interface)
+	admission.Validator
+}
+
+// WantsOpenshiftInternalTemplateClient should be implemented by admission plugins that need
+// an Openshift internal template client
+type WantsOpenshiftInternalTemplateClient interface {
+	SetOpenshiftInternalTemplateClient(templateclient.Interface)
 	admission.Validator
 }
 

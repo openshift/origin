@@ -13,15 +13,17 @@ import (
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	restclient "k8s.io/client-go/rest"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
+	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
 	projectauth "github.com/openshift/origin/pkg/project/auth"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	projectproxy "github.com/openshift/origin/pkg/project/registry/project/proxy"
 	projectrequeststorage "github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 )
 
 type ProjectAPIServerConfig struct {
@@ -104,7 +106,15 @@ func (c *ProjectAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, er
 	if err != nil {
 		return nil, err
 	}
-	deprecatedOpenshiftClient, err := osclient.New(c.CoreAPIServerClientConfig)
+	projectClient, err := projectclient.NewForConfig(c.CoreAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	templateClient, err := templateclient.NewForConfig(c.CoreAPIServerClientConfig)
+	if err != nil {
+		return nil, err
+	}
+	authorizationClient, err := authorizationclient.NewForConfig(c.CoreAPIServerClientConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +130,9 @@ func (c *ProjectAPIServerConfig) newV1RESTStorage() (map[string]rest.Storage, er
 	projectRequestStorage := projectrequeststorage.NewREST(
 		c.ProjectRequestMessage,
 		namespace, templateName,
-		deprecatedOpenshiftClient,
+		projectClient.Project(),
+		templateClient,
+		authorizationClient.SubjectAccessReviews(),
 		c.GenericConfig.LoopbackClientConfig,
 		c.KubeInternalInformers.Rbac().InternalVersion().RoleBindings().Lister(),
 	)

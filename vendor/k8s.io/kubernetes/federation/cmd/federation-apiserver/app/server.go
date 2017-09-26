@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/filters"
+	serveroptions "k8s.io/apiserver/pkg/server/options"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	federationv1beta1 "k8s.io/kubernetes/federation/apis/federation/v1beta1"
 	"k8s.io/kubernetes/federation/cmd/federation-apiserver/app/options"
@@ -229,8 +230,17 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 
 	// TODO: Move this to generic api server (Need to move the command line flag).
 	if s.Etcd.EnableWatchCache {
-		cachesize.InitializeWatchCacheSizes(s.GenericServerRunOptions.TargetRAMMB)
-		cachesize.SetWatchCacheSizes(s.GenericServerRunOptions.WatchCacheSizes)
+		glog.V(2).Infof("Initializing cache sizes based on %dMB limit", s.GenericServerRunOptions.TargetRAMMB)
+		sizes := cachesize.NewHeuristicWatchCacheSizes(s.GenericServerRunOptions.TargetRAMMB)
+		if userSpecified, err := serveroptions.ParseWatchCacheSizes(s.Etcd.WatchCacheSizes); err == nil {
+			for resource, size := range userSpecified {
+				sizes[resource] = size
+			}
+		}
+		s.Etcd.WatchCacheSizes, err = serveroptions.WriteWatchCacheSizes(sizes)
+		if err != nil {
+			return err
+		}
 	}
 
 	m, err := genericConfig.Complete().New("federation", genericapiserver.EmptyDelegate)

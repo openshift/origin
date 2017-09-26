@@ -7,18 +7,21 @@ import (
 
 	"github.com/golang/glog"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/v1"
+	kcoreinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions/core/v1"
 	kcontroller "k8s.io/kubernetes/pkg/controller"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion/apps/internalversion"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageinformers "github.com/openshift/origin/pkg/image/generated/informers/internalversion/image/internalversion"
 )
 
 const (
@@ -29,31 +32,31 @@ const (
 )
 
 // NewDeploymentTriggerController returns a new DeploymentTriggerController.
-func NewDeploymentTriggerController(dcInformer, rcInformer, streamInformer cache.SharedIndexInformer, appsClientset appsclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
+func NewDeploymentTriggerController(dcInformer appsinformer.DeploymentConfigInformer, rcInformer kcoreinformers.ReplicationControllerInformer, streamInformer imageinformers.ImageStreamInformer, appsClientset appsclient.Interface, codec runtime.Codec) *DeploymentTriggerController {
 	c := &DeploymentTriggerController{
 		dn:    appsClientset.Apps(),
 		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 		codec: codec,
 	}
 
-	dcInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	dcInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc:    c.addDeploymentConfig,
 		UpdateFunc: c.updateDeploymentConfig,
 	})
 
 	if streamInformer != nil {
 		c.triggerFromImages = true
-		streamInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		streamInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 			AddFunc:    c.addImageStream,
 			UpdateFunc: c.updateImageStream,
 		})
 	}
 
-	c.dcLister.Indexer = dcInformer.GetIndexer()
-	c.dcListerSynced = dcInformer.HasSynced
+	c.dcLister = dcInformer.Lister()
+	c.dcListerSynced = dcInformer.Informer().HasSynced
 
-	c.rcLister = kcorelisters.NewReplicationControllerLister(rcInformer.GetIndexer())
-	c.rcListerSynced = rcInformer.HasSynced
+	c.rcLister = rcInformer.Lister()
+	c.rcListerSynced = rcInformer.Informer().HasSynced
 	return c
 }
 
@@ -216,12 +219,17 @@ func (c *DeploymentTriggerController) work() bool {
 	}
 	defer c.queue.Done(key)
 
-	dc, err := c.getByKey(key.(string))
+	namespace, name, err := cache.SplitMetaNamespaceKey(key.(string))
 	if err != nil {
 		utilruntime.HandleError(err)
+		return false
 	}
-
-	if dc == nil {
+	dc, err := c.dcLister.DeploymentConfigs(namespace).Get(name)
+	if errors.IsNotFound(err) {
+		return false
+	}
+	if err != nil {
+		utilruntime.HandleError(err)
 		return false
 	}
 
@@ -229,18 +237,4 @@ func (c *DeploymentTriggerController) work() bool {
 	c.handleErr(err, key)
 
 	return false
-}
-
-func (c *DeploymentTriggerController) getByKey(key string) (*deployapi.DeploymentConfig, error) {
-	obj, exists, err := c.dcLister.Indexer.GetByKey(key)
-	if err != nil {
-		c.queue.AddRateLimited(key)
-		return nil, err
-	}
-	if !exists {
-		glog.V(4).Infof("Deployment config %q has been deleted", key)
-		return nil, nil
-	}
-
-	return obj.(*deployapi.DeploymentConfig), nil
 }

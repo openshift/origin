@@ -46,7 +46,7 @@ endif
 NEWEST_GO_FILE = $(shell find $(SRC_DIRS) -name \*.go -exec $(STAT) {} \; \
                    | sort -r | head -n 1 | sed "s/.* //")
 TYPES_FILES    = $(shell find pkg/apis -name types.go)
-GO_VERSION     = 1.8
+GO_VERSION     = 1.9
 
 ALL_ARCH=amd64 arm arm64 ppc64le s390x
 
@@ -237,9 +237,8 @@ verify: .init .generate_files verify-client-gen
 	@bash -c '[ "`cat .out`" == "" ] || (cat .out ; false)'
 	@rm .out
 	@#
-	#disabled because of so many flakes during PR verifications
-	#@echo Running href checker:
-	#@$(DOCKER_CMD) verify-links.sh .
+	@echo Running href checker:
+	@$(DOCKER_CMD) verify-links.sh -t .
 	@echo Running errexit checker:
 	@$(DOCKER_CMD) build/verify-errexit.sh
 

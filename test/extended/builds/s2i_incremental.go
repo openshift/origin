@@ -12,7 +12,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
+var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 	defer g.GinkgoRecover()
 
 	const (

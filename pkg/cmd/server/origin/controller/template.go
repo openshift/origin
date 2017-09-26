@@ -15,8 +15,8 @@ func RunTemplateInstanceController(ctx ControllerContext) (bool, error) {
 
 	go templatecontroller.NewTemplateInstanceController(
 		restConfig,
-		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 		ctx.ClientBuilder.KubeInternalClientOrDie(saName),
+		ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(saName),
 		ctx.ClientBuilder.OpenshiftInternalTemplateClientOrDie(saName),
 		ctx.TemplateInformers.Template().InternalVersion().TemplateInstances(),
 	).Run(5, ctx.Stop)

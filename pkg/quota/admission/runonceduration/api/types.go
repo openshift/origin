@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // RunOnceDurationConfig is the configuration for the RunOnceDuration plugin.
 // It specifies a maximum value for ActiveDeadlineSeconds for a run-once pod.
 // The project that contains the pod may specify a different setting. That setting will

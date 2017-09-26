@@ -26,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/batch"
 	"k8s.io/kubernetes/pkg/registry/batch/job"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 )
 
 // JobStorage includes dummy storage for Job.
@@ -57,7 +56,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		NewListFunc:              func() runtime.Object { return &batch.JobList{} },
 		PredicateFunc:            job.MatchJob,
 		DefaultQualifiedResource: batch.Resource("jobs"),
-		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("jobs"),
 
 		CreateStrategy: job.Strategy,
 		UpdateStrategy: job.Strategy,

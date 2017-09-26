@@ -3,8 +3,9 @@ package controller
 import (
 	"time"
 
+	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
+	appstypedclient "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	unidlingcontroller "github.com/openshift/origin/pkg/unidling/controller"
 )
@@ -14,10 +15,15 @@ type UnidlingControllerConfig struct {
 }
 
 func (c *UnidlingControllerConfig) RunController(ctx ControllerContext) (bool, error) {
-	scaleNamespacer := osclient.NewDelegatingScaleNamespacer(
-		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName),
-		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).Extensions(),
-	)
+	clientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName)
+	appsClient, err := appstypedclient.NewForConfig(clientConfig)
+	if err != nil {
+		return false, err
+	}
+
+	scaleNamespacer := appsv1client.NewDelegatingScaleNamespacer(appsClient,
+		ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).ExtensionsV1beta1())
+
 	coreClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraUnidlingControllerServiceAccountName).Core()
 	controller := unidlingcontroller.NewUnidlingController(
 		scaleNamespacer,

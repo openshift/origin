@@ -14,7 +14,7 @@ import (
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	"github.com/openshift/origin/pkg/client"
+	appsinternalversion "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -33,7 +33,7 @@ var (
 
 type CreateDeploymentConfigOptions struct {
 	DC     *deployapi.DeploymentConfig
-	Client client.DeploymentConfigsNamespacer
+	Client appsinternalversion.DeploymentConfigsGetter
 
 	DryRun bool
 
@@ -106,10 +106,11 @@ func (o *CreateDeploymentConfigOptions) Complete(cmd *cobra.Command, f *clientcm
 		return err
 	}
 
-	o.Client, _, err = f.Clients()
+	appsClient, err := f.OpenshiftInternalAppsClient()
 	if err != nil {
 		return err
 	}
+	o.Client = appsClient.Apps()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")

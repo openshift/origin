@@ -1,3 +1,5 @@
+// +build linux
+
 package master
 
 import (
@@ -23,7 +25,7 @@ import (
 
 func (master *OsdnMaster) SubnetStartMaster(clusterNetwork *net.IPNet, hostSubnetLength uint32) error {
 	subrange := make([]string, 0)
-	subnets, err := master.osClient.HostSubnets().List(metav1.ListOptions{})
+	subnets, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{})
 	if err != nil {
 		log.Errorf("Error in initializing/fetching subnets: %v", err)
 		return err
@@ -58,7 +60,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 	}
 
 	// Check if subnet needs to be created or updated
-	sub, err := master.osClient.HostSubnets().Get(nodeName, metav1.GetOptions{})
+	sub, err := master.networkClient.Network().HostSubnets().Get(nodeName, metav1.GetOptions{})
 	if err == nil {
 		if sub.HostIP == nodeIP {
 			return nodeIP, nil
@@ -67,7 +69,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 		} else {
 			// Node IP changed, update old subnet
 			sub.HostIP = nodeIP
-			sub, err = master.osClient.HostSubnets().Update(sub)
+			sub, err = master.networkClient.Network().HostSubnets().Update(sub)
 			if err != nil {
 				return "", fmt.Errorf("error updating subnet %s for node %s: %v", sub.Subnet, nodeName, err)
 			}
@@ -89,7 +91,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 		HostIP:     nodeIP,
 		Subnet:     sn.String(),
 	}
-	sub, err = master.osClient.HostSubnets().Create(sub)
+	sub, err = master.networkClient.Network().HostSubnets().Create(sub)
 	if err != nil {
 		master.subnetAllocator.ReleaseNetwork(sn)
 		return "", fmt.Errorf("error creating subnet %s for node %s: %v", sn.String(), nodeName, err)
@@ -99,11 +101,11 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 }
 
 func (master *OsdnMaster) deleteNode(nodeName string) error {
-	sub, err := master.osClient.HostSubnets().Get(nodeName, metav1.GetOptions{})
+	sub, err := master.networkClient.Network().HostSubnets().Get(nodeName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("error fetching subnet for node %q for deletion: %v", nodeName, err)
 	}
-	err = master.osClient.HostSubnets().Delete(nodeName)
+	err = master.networkClient.Network().HostSubnets().Delete(nodeName, &metav1.DeleteOptions{})
 	if err != nil {
 		return fmt.Errorf("error deleting subnet %v for node %q: %v", sub, nodeName, err)
 	}
@@ -225,7 +227,7 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 
 // Watch for all hostsubnet events and if one is found with the right annotation, use the SubnetAllocator to dole a real subnet
 func (master *OsdnMaster) watchSubnets() {
-	common.RunEventQueue(master.osClient, common.HostSubnets, func(delta cache.Delta) error {
+	common.RunEventQueue(master.networkClient.Network().RESTClient(), common.HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*networkapi.HostSubnet)
 		name := hs.ObjectMeta.Name
 		hostIP := hs.HostIP
@@ -240,7 +242,7 @@ func (master *OsdnMaster) watchSubnets() {
 				// will skip the event if it finds that the hostsubnet has the same host
 				// And we cannot fix the watchSubnets code for node because it will break migration if
 				// nodes are upgraded after the master
-				err := master.osClient.HostSubnets().Delete(name)
+				err := master.networkClient.Network().HostSubnets().Delete(name, &metav1.DeleteOptions{})
 				if err != nil {
 					log.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
 					return nil

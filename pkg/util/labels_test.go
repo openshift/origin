@@ -7,18 +7,11 @@ import (
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	testtypes "github.com/openshift/origin/pkg/util/testing"
 )
-
-type FakeLabelsResource struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-}
-
-func (obj *FakeLabelsResource) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
 
 func TestAddConfigLabels(t *testing.T) {
 	var nilLabels map[string]string
@@ -122,7 +115,7 @@ func TestAddConfigLabels(t *testing.T) {
 			expectedLabels: map[string]string{"foo": "first value", "bar": "second value"},
 		},
 		{ // [10] Test unknown Generic Object with Labels field
-			obj: &FakeLabelsResource{
+			obj: &testtypes.FakeLabelsResource{
 				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"baz": ""}},
 			},
 			addLabels:      map[string]string{"foo": "bar"},

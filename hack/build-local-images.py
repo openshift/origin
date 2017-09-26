@@ -96,6 +96,15 @@ image_config = {
         },
         "files": {}
     },
+    "nginx-router": {
+        "directory": "router/nginx",
+        "binaries": {
+            "openshift": "/usr/bin/openshift"
+        },
+        "files": {
+            ".": "/var/lib/nginx"
+        }
+    },
     "haproxy-router": {
         "directory": "router/haproxy",
         "binaries": {

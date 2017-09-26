@@ -10,7 +10,7 @@ import (
 	s2istatus "github.com/openshift/source-to-image/pkg/util/status"
 )
 
-var _ = g.Describe("[builds][Conformance] s2i build with a root user image", func() {
+var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user image", func() {
 	defer g.GinkgoRecover()
 
 	var (

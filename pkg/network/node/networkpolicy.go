@@ -1,3 +1,5 @@
+// +build linux
+
 package node
 
 import (
@@ -73,7 +75,7 @@ func (np *networkPolicyPlugin) Name() string {
 func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.node = node
 	np.kubeInformers = node.kubeInformers
-	np.vnids = newNodeVNIDMap(np, node.osClient)
+	np.vnids = newNodeVNIDMap(np, node.networkClient)
 	if err := np.vnids.Start(); err != nil {
 		return err
 	}

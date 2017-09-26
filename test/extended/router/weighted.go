@@ -19,7 +19,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Conformance][networking][router] weighted openshift router", func() {
+var _ = g.Describe("[Conformance][Area:Networking][Feature:Router] weighted openshift router", func() {
 	defer g.GinkgoRecover()
 	var (
 		configPath = exutil.FixturePath("testdata", "weighted-router.yaml")

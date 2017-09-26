@@ -5,24 +5,24 @@ import (
 
 	lru "github.com/hashicorp/golang-lru"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	etcd "k8s.io/apiserver/pkg/storage/etcd"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	kcorelisters "k8s.io/kubernetes/pkg/client/listers/core/internalversion"
 	utilquota "k8s.io/kubernetes/pkg/quota"
 
-	oclient "github.com/openshift/origin/pkg/client"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	"github.com/openshift/origin/pkg/quota/controller/clusterquotamapping"
+	quotatypedclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	quotalister "github.com/openshift/origin/pkg/quota/generated/listers/quota/internalversion"
 )
 
 type clusterQuotaAccessor struct {
 	clusterQuotaLister quotalister.ClusterResourceQuotaLister
 	namespaceLister    kcorelisters.NamespaceLister
-	clusterQuotaClient oclient.ClusterResourceQuotasInterface
+	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter
 
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper
 
@@ -36,7 +36,7 @@ type clusterQuotaAccessor struct {
 func newQuotaAccessor(
 	clusterQuotaLister quotalister.ClusterResourceQuotaLister,
 	namespaceLister kcorelisters.NamespaceLister,
-	clusterQuotaClient oclient.ClusterResourceQuotasInterface,
+	clusterQuotaClient quotatypedclient.ClusterResourceQuotasGetter,
 	clusterQuotaMapper clusterquotamapping.ClusterQuotaMapper,
 ) *clusterQuotaAccessor {
 	updatedCache, err := lru.New(100)
@@ -158,7 +158,7 @@ func (e *clusterQuotaAccessor) waitForReadyClusterQuotaNames(namespaceName strin
 		if err != nil {
 			return false, err
 		}
-		if kapihelper.Semantic.DeepEqual(namespaceSelectionFields, clusterquotamapping.GetSelectionFields(namespace)) {
+		if equality.Semantic.DeepEqual(namespaceSelectionFields, clusterquotamapping.GetSelectionFields(namespace)) {
 			return true, nil
 		}
 		return false, nil

@@ -1148,7 +1148,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "v1.BuildRequest",
+      "type": "v1.Build",
       "method": "POST",
       "summary": "create instantiate of a BuildRequest",
       "nickname": "createNamespacedBuildRequestInstantiate",
@@ -1190,7 +1190,7 @@
        {
         "code": 200,
         "message": "OK",
-        "responseModel": "v1.BuildRequest"
+        "responseModel": "v1.Build"
        }
       ],
       "produces": [
@@ -1209,7 +1209,7 @@
     "description": "OpenShift REST API, version v1",
     "operations": [
      {
-      "type": "string",
+      "type": "v1.Build",
       "method": "POST",
       "summary": "connect POST requests to instantiatebinary of BinaryBuildRequestOptions",
       "nickname": "connectPostNamespacedBinaryBuildRequestOptionsInstantiatebinary",
@@ -22310,12 +22310,9 @@
     "id": "v1.DeletionPropagation",
     "properties": {}
    },
-   "v1.BuildRequest": {
-    "id": "v1.BuildRequest",
-    "description": "BuildRequest is the resource used to pass parameters to build generator",
-    "required": [
-     "triggeredBy"
-    ],
+   "v1.Build": {
+    "id": "v1.Build",
+    "description": "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
     "properties": {
      "kind": {
       "type": "string",
@@ -22327,35 +22324,63 @@
      },
      "metadata": {
       "$ref": "v1.ObjectMeta",
-      "description": "metadata for BuildRequest."
+      "description": "Standard object's metadata."
+     },
+     "spec": {
+      "$ref": "v1.BuildSpec",
+      "description": "spec is all the inputs used to execute the build."
+     },
+     "status": {
+      "$ref": "v1.BuildStatus",
+      "description": "status is the current status of the build."
+     }
+    }
+   },
+   "v1.BuildSpec": {
+    "id": "v1.BuildSpec",
+    "description": "BuildSpec has the information to represent a build and also additional information about a build",
+    "required": [
+     "strategy",
+     "nodeSelector",
+     "triggeredBy"
+    ],
+    "properties": {
+     "serviceAccount": {
+      "type": "string",
+      "description": "serviceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount"
+     },
+     "source": {
+      "$ref": "v1.BuildSource",
+      "description": "source describes the SCM in use."
      },
      "revision": {
       "$ref": "v1.SourceRevision",
-      "description": "revision is the information from the source for a specific repo snapshot."
+      "description": "revision is the information from the source for a specific repo snapshot. This is optional."
      },
-     "triggeredByImage": {
-      "$ref": "v1.ObjectReference",
-      "description": "triggeredByImage is the Image that triggered this build."
+     "strategy": {
+      "$ref": "v1.BuildStrategy",
+      "description": "strategy defines how to perform a build."
      },
-     "from": {
-      "$ref": "v1.ObjectReference",
-      "description": "from is the reference to the ImageStreamTag that triggered the build."
+     "output": {
+      "$ref": "v1.BuildOutput",
+      "description": "output describes the Docker image the Strategy should produce."
      },
-     "binary": {
-      "$ref": "v1.BinaryBuildSource",
-      "description": "binary indicates a request to build from a binary provided to the builder"
+     "resources": {
+      "$ref": "v1.ResourceRequirements",
+      "description": "resources computes resource requirements to execute the build."
      },
-     "lastVersion": {
+     "postCommit": {
+      "$ref": "v1.BuildPostCommitSpec",
+      "description": "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry."
+     },
+     "completionDeadlineSeconds": {
       "type": "integer",
       "format": "int64",
-      "description": "lastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated."
+      "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
      },
-     "env": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.EnvVar"
-      },
-      "description": "env contains additional environment variables you want to pass into a builder container."
+     "nodeSelector": {
+      "type": "object",
+      "description": "nodeSelector is a selector which must be true for the build pod to fit on a node If nil, it can be overridden by default build nodeselector values for the cluster. If set to an empty map or a map with any values, default build nodeselector values are ignored."
      },
      "triggeredBy": {
       "type": "array",
@@ -22363,14 +22388,6 @@
        "$ref": "v1.BuildTriggerCause"
       },
       "description": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers."
-     },
-     "dockerStrategyOptions": {
-      "$ref": "v1.DockerStrategyOptions",
-      "description": "DockerStrategyOptions contains additional docker-strategy specific options for the build"
-     },
-     "sourceStrategyOptions": {
-      "$ref": "v1.SourceStrategyOptions",
-      "description": "SourceStrategyOptions contains additional source-strategy specific options for the build"
      }
     }
    },
@@ -22471,142 +22488,6 @@
      "secret": {
       "type": "string",
       "description": "Secret is the obfuscated webhook secret that triggered a build."
-     }
-    }
-   },
-   "v1.DockerStrategyOptions": {
-    "id": "v1.DockerStrategyOptions",
-    "description": "DockerStrategyOptions contains extra strategy options for Docker builds",
-    "properties": {
-     "buildArgs": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.EnvVar"
-      },
-      "description": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details"
-     },
-     "noCache": {
-      "type": "boolean",
-      "description": "noCache overrides the docker-strategy noCache option in the build config"
-     }
-    }
-   },
-   "v1.SourceStrategyOptions": {
-    "id": "v1.SourceStrategyOptions",
-    "description": "SourceStrategyOptions contains extra strategy options for Source builds",
-    "properties": {
-     "incremental": {
-      "type": "boolean",
-      "description": "incremental overrides the source-strategy incremental option in the build config"
-     }
-    }
-   },
-   "v1.BuildList": {
-    "id": "v1.BuildList",
-    "description": "BuildList is a collection of Builds.",
-    "required": [
-     "items"
-    ],
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "v1.ListMeta",
-      "description": "metadata for BuildList."
-     },
-     "items": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.Build"
-      },
-      "description": "items is a list of builds"
-     }
-    }
-   },
-   "v1.Build": {
-    "id": "v1.Build",
-    "description": "Build encapsulates the inputs needed to produce a new deployable image, as well as the status of the execution and a reference to the Pod which executed the build.",
-    "properties": {
-     "kind": {
-      "type": "string",
-      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
-     },
-     "apiVersion": {
-      "type": "string",
-      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources"
-     },
-     "metadata": {
-      "$ref": "v1.ObjectMeta",
-      "description": "Standard object's metadata."
-     },
-     "spec": {
-      "$ref": "v1.BuildSpec",
-      "description": "spec is all the inputs used to execute the build."
-     },
-     "status": {
-      "$ref": "v1.BuildStatus",
-      "description": "status is the current status of the build."
-     }
-    }
-   },
-   "v1.BuildSpec": {
-    "id": "v1.BuildSpec",
-    "description": "BuildSpec has the information to represent a build and also additional information about a build",
-    "required": [
-     "strategy",
-     "nodeSelector",
-     "triggeredBy"
-    ],
-    "properties": {
-     "serviceAccount": {
-      "type": "string",
-      "description": "serviceAccount is the name of the ServiceAccount to use to run the pod created by this build. The pod will be allowed to use secrets referenced by the ServiceAccount"
-     },
-     "source": {
-      "$ref": "v1.BuildSource",
-      "description": "source describes the SCM in use."
-     },
-     "revision": {
-      "$ref": "v1.SourceRevision",
-      "description": "revision is the information from the source for a specific repo snapshot. This is optional."
-     },
-     "strategy": {
-      "$ref": "v1.BuildStrategy",
-      "description": "strategy defines how to perform a build."
-     },
-     "output": {
-      "$ref": "v1.BuildOutput",
-      "description": "output describes the Docker image the Strategy should produce."
-     },
-     "resources": {
-      "$ref": "v1.ResourceRequirements",
-      "description": "resources computes resource requirements to execute the build."
-     },
-     "postCommit": {
-      "$ref": "v1.BuildPostCommitSpec",
-      "description": "postCommit is a build hook executed after the build output image is committed, before it is pushed to a registry."
-     },
-     "completionDeadlineSeconds": {
-      "type": "integer",
-      "format": "int64",
-      "description": "completionDeadlineSeconds is an optional duration in seconds, counted from the time when a build pod gets scheduled in the system, that the build may be active on a node before the system actively tries to terminate the build; value must be positive integer"
-     },
-     "nodeSelector": {
-      "type": "object",
-      "description": "nodeSelector is a selector which must be true for the build pod to fit on a node If nil, it can be overridden by default build nodeselector values for the cluster. If set to an empty map or a map with any values, default build nodeselector values are ignored."
-     },
-     "triggeredBy": {
-      "type": "array",
-      "items": {
-       "$ref": "v1.BuildTriggerCause"
-      },
-      "description": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers."
      }
     }
    },
@@ -22732,6 +22613,125 @@
       "type": "integer",
       "format": "int64",
       "description": "durationMilliseconds identifies how long the step took to complete in milliseconds."
+     }
+    }
+   },
+   "v1.BuildRequest": {
+    "id": "v1.BuildRequest",
+    "description": "BuildRequest is the resource used to pass parameters to build generator",
+    "required": [
+     "triggeredBy"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ObjectMeta",
+      "description": "metadata for BuildRequest."
+     },
+     "revision": {
+      "$ref": "v1.SourceRevision",
+      "description": "revision is the information from the source for a specific repo snapshot."
+     },
+     "triggeredByImage": {
+      "$ref": "v1.ObjectReference",
+      "description": "triggeredByImage is the Image that triggered this build."
+     },
+     "from": {
+      "$ref": "v1.ObjectReference",
+      "description": "from is the reference to the ImageStreamTag that triggered the build."
+     },
+     "binary": {
+      "$ref": "v1.BinaryBuildSource",
+      "description": "binary indicates a request to build from a binary provided to the builder"
+     },
+     "lastVersion": {
+      "type": "integer",
+      "format": "int64",
+      "description": "lastVersion (optional) is the LastVersion of the BuildConfig that was used to generate the build. If the BuildConfig in the generator doesn't match, a build will not be generated."
+     },
+     "env": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "env contains additional environment variables you want to pass into a builder container."
+     },
+     "triggeredBy": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.BuildTriggerCause"
+      },
+      "description": "triggeredBy describes which triggers started the most recent update to the build configuration and contains information about those triggers."
+     },
+     "dockerStrategyOptions": {
+      "$ref": "v1.DockerStrategyOptions",
+      "description": "DockerStrategyOptions contains additional docker-strategy specific options for the build"
+     },
+     "sourceStrategyOptions": {
+      "$ref": "v1.SourceStrategyOptions",
+      "description": "SourceStrategyOptions contains additional source-strategy specific options for the build"
+     }
+    }
+   },
+   "v1.DockerStrategyOptions": {
+    "id": "v1.DockerStrategyOptions",
+    "description": "DockerStrategyOptions contains extra strategy options for Docker builds",
+    "properties": {
+     "buildArgs": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.EnvVar"
+      },
+      "description": "Args contains any build arguments that are to be passed to Docker.  See https://docs.docker.com/engine/reference/builder/#/arg for more details"
+     },
+     "noCache": {
+      "type": "boolean",
+      "description": "noCache overrides the docker-strategy noCache option in the build config"
+     }
+    }
+   },
+   "v1.SourceStrategyOptions": {
+    "id": "v1.SourceStrategyOptions",
+    "description": "SourceStrategyOptions contains extra strategy options for Source builds",
+    "properties": {
+     "incremental": {
+      "type": "boolean",
+      "description": "incremental overrides the source-strategy incremental option in the build config"
+     }
+    }
+   },
+   "v1.BuildList": {
+    "id": "v1.BuildList",
+    "description": "BuildList is a collection of Builds.",
+    "required": [
+     "items"
+    ],
+    "properties": {
+     "kind": {
+      "type": "string",
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds"
+     },
+     "apiVersion": {
+      "type": "string",
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources"
+     },
+     "metadata": {
+      "$ref": "v1.ListMeta",
+      "description": "metadata for BuildList."
+     },
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "v1.Build"
+      },
+      "description": "items is a list of builds"
      }
     }
    },

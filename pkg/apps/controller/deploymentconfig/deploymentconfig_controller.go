@@ -23,8 +23,8 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
+	appslister "github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	oscache "github.com/openshift/origin/pkg/client/cache"
 )
 
 const (
@@ -63,8 +63,8 @@ type DeploymentConfigController struct {
 	// queue contains deployment configs that need to be synced.
 	queue workqueue.RateLimitingInterface
 
-	// dcStore provides a local cache for deployment configs.
-	dcStore oscache.StoreToDeploymentConfigLister
+	// dcLister provides a local cache for deployment configs.
+	dcLister appslister.DeploymentConfigLister
 	// dcStoreSynced makes sure the dc store is synced before reconcling any deployment config.
 	dcStoreSynced func() bool
 	// rcLister can list/get replication controllers from a shared informer's cache

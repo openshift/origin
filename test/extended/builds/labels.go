@@ -10,7 +10,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] result image should have proper labels set", func() {
+var _ = g.Describe("[Feature:Builds][Slow] result image should have proper labels set", func() {
 	defer g.GinkgoRecover()
 	var (
 		imageStreamFixture = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")

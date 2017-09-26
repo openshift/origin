@@ -1,6 +1,7 @@
 package policy
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
@@ -133,6 +134,8 @@ func TestModifySCC(t *testing.T) {
 			SCCInterface:            fakeClient,
 			DefaultSubjectNamespace: "",
 			Subjects:                tc.subjects,
+
+			Out: &bytes.Buffer{},
 		}
 
 		var err error

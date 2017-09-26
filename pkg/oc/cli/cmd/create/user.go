@@ -11,9 +11,9 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const UserRecommendedName = "user"
@@ -38,7 +38,7 @@ type CreateUserOptions struct {
 	Name     string
 	FullName string
 
-	UserClient client.UserInterface
+	UserClient userclient.UserInterface
 
 	DryRun bool
 
@@ -81,11 +81,12 @@ func (o *CreateUserOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, a
 
 	o.DryRun = cmdutil.GetFlagBool(cmd, "dry-run")
 
-	client, _, err := f.Clients()
+	client, err := f.OpenshiftInternalUserClient()
 	if err != nil {
 		return err
 	}
-	o.UserClient = client.Users()
+
+	o.UserClient = client.User()
 
 	o.Mapper, _ = f.Object()
 	o.OutputFormat = cmdutil.GetFlagString(cmd, "output")
@@ -126,7 +127,7 @@ func (o *CreateUserOptions) Run() error {
 
 	var err error
 	if !o.DryRun {
-		actualUser, err = o.UserClient.Create(user)
+		actualUser, err = o.UserClient.Users().Create(user)
 		if err != nil {
 			return err
 		}

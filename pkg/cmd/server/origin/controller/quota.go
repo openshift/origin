@@ -15,14 +15,14 @@ import (
 )
 
 func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
-	concurrentResourceQuotaSyncs := int(ctx.KubeControllerContext.Options.ConcurrentResourceQuotaSyncs)
-	resourceQuotaSyncPeriod := ctx.KubeControllerContext.Options.ResourceQuotaSyncPeriod.Duration
-	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.KubeControllerContext.Options.MinResyncPeriod.Duration)
+	concurrentResourceQuotaSyncs := int(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.ConcurrentSyncs)
+	resourceQuotaSyncPeriod := ctx.OpenshiftControllerOptions.ResourceQuotaOptions.SyncPeriod.Duration
+	replenishmentSyncPeriodFunc := calculateResyncPeriod(ctx.OpenshiftControllerOptions.ResourceQuotaOptions.MinResyncPeriod.Duration)
 	saName := "resourcequota-controller"
 
 	resourceQuotaRegistry := quota.NewOriginQuotaRegistry(
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image(),
 	)
 
 	resourceQuotaControllerOptions := &kresourcequota.ResourceQuotaControllerOptions{
@@ -34,7 +34,6 @@ func RunResourceQuotaManager(ctx ControllerContext) (bool, error) {
 		ControllerFactory: quotacontroller.NewAllResourceReplenishmentControllerFactory(
 			ctx.ExternalKubeInformers,
 			ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-			ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 		),
 		ReplenishmentResyncPeriod: replenishmentSyncPeriodFunc,
 	}
@@ -53,7 +52,7 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 	resourceQuotaRegistry := quota.NewAllResourceQuotaRegistry(
 		ctx.ExternalKubeInformers,
 		ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-		ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
+		ctx.ClientBuilder.OpenshiftInternalImageClientOrDie(saName).Image(),
 		ctx.ClientBuilder.ClientOrDie(saName),
 	)
 	groupKindsToReplenish := quota.AllEvaluatedGroupKinds
@@ -64,14 +63,13 @@ func (c *ClusterQuotaReconciliationControllerConfig) RunController(ctx Controlle
 	options := clusterquotareconciliation.ClusterQuotaReconcilationControllerOptions{
 		ClusterQuotaInformer: ctx.QuotaInformers.Quota().InternalVersion().ClusterResourceQuotas(),
 		ClusterQuotaMapper:   clusterQuotaMappingController.GetClusterQuotaMapper(),
-		ClusterQuotaClient:   ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
+		ClusterQuotaClient:   ctx.ClientBuilder.OpenshiftInternalQuotaClientOrDie(saName).Quota().ClusterResourceQuotas(),
 
 		Registry:     resourceQuotaRegistry,
 		ResyncPeriod: c.DefaultResyncPeriod,
 		ControllerFactory: quotacontroller.NewAllResourceReplenishmentControllerFactory(
 			ctx.ExternalKubeInformers,
 			ctx.ImageInformers.Image().InternalVersion().ImageStreams(),
-			ctx.ClientBuilder.DeprecatedOpenshiftClientOrDie(saName),
 		),
 		ReplenishmentResyncPeriod: controller.StaticResyncPeriodFunc(c.DefaultReplenishmentSyncPeriod),
 		GroupKindsToReplenish:     groupKindsToReplenish,

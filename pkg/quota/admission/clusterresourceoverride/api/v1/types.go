@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ClusterResourceOverrideConfig is the configuration for the ClusterResourceOverride
 // admission controller which overrides user-provided container request/limit values.
 type ClusterResourceOverrideConfig struct {

@@ -25,7 +25,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	policyapi "k8s.io/kubernetes/pkg/apis/policy"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/policy/poddisruptionbudget"
 )
 
@@ -42,7 +41,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		NewListFunc:              func() runtime.Object { return &policyapi.PodDisruptionBudgetList{} },
 		PredicateFunc:            poddisruptionbudget.MatchPodDisruptionBudget,
 		DefaultQualifiedResource: policyapi.Resource("poddisruptionbudgets"),
-		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("poddisruptionbudgets"),
 
 		CreateStrategy: poddisruptionbudget.Strategy,
 		UpdateStrategy: poddisruptionbudget.Strategy,

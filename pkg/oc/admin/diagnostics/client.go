@@ -22,8 +22,9 @@ var (
 func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Config) ([]types.Diagnostic, bool, error) {
 	available := availableClientDiagnostics
 
-	osClient, kubeClient, clientErr := o.Factory.Clients()
-	if clientErr != nil {
+	networkClient, err := o.Factory.OpenshiftInternalNetworkClient()
+	_, kubeClient, clientErr := o.Factory.Clients()
+	if clientErr != nil || err != nil {
 		o.Logger.Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)
 	}
@@ -55,17 +56,18 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 			})
 		case networkdiags.NetworkDiagnosticName:
 			diagnostics = append(diagnostics, &networkdiags.NetworkDiagnostic{
-				KubeClient:          kubeClient,
-				OSClient:            osClient,
-				ClientFlags:         o.ClientFlags,
-				Level:               o.LogOptions.Level,
-				Factory:             o.Factory,
-				PreventModification: o.PreventModification,
-				LogDir:              o.NetworkOptions.LogDir,
-				PodImage:            o.NetworkOptions.PodImage,
-				TestPodImage:        o.NetworkOptions.TestPodImage,
-				TestPodProtocol:     o.NetworkOptions.TestPodProtocol,
-				TestPodPort:         o.NetworkOptions.TestPodPort,
+				KubeClient:           kubeClient,
+				NetNamespacesClient:  networkClient.Network(),
+				ClusterNetworkClient: networkClient.Network(),
+				ClientFlags:          o.ClientFlags,
+				Level:                o.LogOptions.Level,
+				Factory:              o.Factory,
+				PreventModification:  o.PreventModification,
+				LogDir:               o.NetworkOptions.LogDir,
+				PodImage:             o.NetworkOptions.PodImage,
+				TestPodImage:         o.NetworkOptions.TestPodImage,
+				TestPodProtocol:      o.NetworkOptions.TestPodProtocol,
+				TestPodPort:          o.NetworkOptions.TestPodPort,
 			})
 		default:
 			return nil, false, fmt.Errorf("unknown diagnostic: %v", diagnosticName)

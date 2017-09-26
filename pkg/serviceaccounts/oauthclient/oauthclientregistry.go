@@ -16,10 +16,10 @@ import (
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	scopeauthorizer "github.com/openshift/origin/pkg/authorization/authorizer/scope"
-	osclient "github.com/openshift/origin/pkg/client"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	"github.com/openshift/origin/pkg/oauth/registry/oauthclient"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -59,7 +59,7 @@ var legacyRouteGroupKind = routeapi.LegacySchemeGroupVersion.WithKind(routeKind)
 type saOAuthClientAdapter struct {
 	saClient     kcoreclient.ServiceAccountsGetter
 	secretClient kcoreclient.SecretsGetter
-	routeClient  osclient.RoutesNamespacer
+	routeClient  routeclient.RoutesGetter
 	// TODO add ingress support
 	//ingressClient ??
 
@@ -188,7 +188,7 @@ var _ oauthclient.Getter = &saOAuthClientAdapter{}
 func NewServiceAccountOAuthClientGetter(
 	saClient kcoreclient.ServiceAccountsGetter,
 	secretClient kcoreclient.SecretsGetter,
-	routeClient osclient.RoutesNamespacer,
+	routeClient routeclient.RoutesGetter,
 	delegate oauthclient.Getter,
 	grantMethod oauthapi.GrantHandlerType,
 ) oauthclient.Getter {

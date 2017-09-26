@@ -20,12 +20,12 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/server/session"
 	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
@@ -40,8 +40,8 @@ type OAuthServerConfig struct {
 	// KubeClient is kubeclient with enough permission for the auth API
 	KubeClient kclientset.Interface
 
-	// OpenShiftClient is osclient with enough permission for the auth API
-	OpenShiftClient osclient.Interface
+	// RouteClient provides a client for OpenShift routes API.
+	RouteClient routeclient.Interface
 
 	UserClient                userclient.UserResourceInterface
 	IdentityClient            userclient.IdentityInterface

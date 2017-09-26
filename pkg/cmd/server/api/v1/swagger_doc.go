@@ -90,6 +90,11 @@ var map_AuditConfig = map[string]string{
 	"maximumFileRetentionDays": "Maximum number of days to retain old log files based on the timestamp encoded in their filename.",
 	"maximumRetainedFiles":     "Maximum number of old log files to retain.",
 	"maximumFileSizeMegabytes": "Maximum size in megabytes of the log file before it gets rotated. Defaults to 100MB.",
+	"policyFile":               "PolicyFile is a path to the file that defines the audit policy configuration.",
+	"policyConfiguration":      "PolicyConfiguration is an embedded policy configuration object to be used as the audit policy configuration. If present, it will be used instead of the path to the policy file.",
+	"logFormat":                "Format of saved audits (legacy or json).",
+	"webHookKubeConfig":        "Path to a .kubeconfig formatted file that defines the audit webhook configuration.",
+	"webHookMode":              "Strategy for sending audit events (block or batch).",
 }
 
 func (AuditConfig) SwaggerDoc() map[string]string {

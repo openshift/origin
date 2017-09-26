@@ -1205,7 +1205,7 @@ EOF
 [cols="1,5", options="header"]
 |===
 |HTTP Code|Schema
-|200 OK|v1.BuildRequest
+|200 OK|v1.Build
 |401 Unauthorized|
 |===
 
@@ -1266,7 +1266,7 @@ $ curl -k \
 [cols="1,5", options="header"]
 |===
 |HTTP Code|Schema
-|200 OK|string
+|200 OK|v1.Build
 |401 Unauthorized|
 |===
 

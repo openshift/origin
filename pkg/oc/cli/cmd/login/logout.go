@@ -8,14 +8,15 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	restclient "k8s.io/client-go/rest"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
 	kclientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	osclientcmd "github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 )
 
@@ -114,7 +115,7 @@ func (o LogoutOptions) Validate(args []string) error {
 func (o LogoutOptions) RunLogout() error {
 	token := o.Config.BearerToken
 
-	client, err := client.New(o.Config)
+	client, err := oauthclient.NewForConfig(o.Config)
 	if err != nil {
 		return err
 	}
@@ -124,7 +125,7 @@ func (o LogoutOptions) RunLogout() error {
 		return err
 	}
 
-	if err := client.OAuthAccessTokens().Delete(token); err != nil {
+	if err := client.Oauth().OAuthAccessTokens().Delete(token, &metav1.DeleteOptions{}); err != nil {
 		glog.V(1).Infof("%v", err)
 	}
 

@@ -405,6 +405,7 @@ func (c *MasterConfig) DecodeNestedObjects(d runtime.Decoder) error {
 			apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.OAuthConfig.IdentityProviders[i].Provider)
 		}
 	}
+	apihelpers.DecodeNestedRawExtensionOrUnknown(d, &c.AuditConfig.PolicyConfiguration)
 	return nil
 }
 
@@ -433,6 +434,9 @@ func (c *MasterConfig) EncodeNestedObjects(e runtime.Encoder) error {
 				return err
 			}
 		}
+	}
+	if err := apihelpers.EncodeNestedRawExtension(e, &c.AuditConfig.PolicyConfiguration); err != nil {
+		return err
 	}
 	return nil
 }

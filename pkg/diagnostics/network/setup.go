@@ -10,6 +10,7 @@ import (
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	kclientcmd "k8s.io/client-go/tools/clientcmd"
@@ -66,7 +67,12 @@ func (d *NetworkDiagnostic) TestSetup() error {
 	}
 	// Wait for test pods and services to be up and running on all valid nodes
 	if err = d.waitForTestPodAndService(nsList); err != nil {
-		return fmt.Errorf("Failed to run network diags test pod and service: %v", err)
+		logData, er := d.getPodLogs(nsList)
+		if er != nil {
+			return fmt.Errorf("Failed to run network diags test pod and service: %v, fetching logs failed: %v", err, er)
+		} else {
+			return fmt.Errorf("Failed to run network diags test pod and service: %v, details: %s", err, logData)
+		}
 	}
 	return nil
 }
@@ -169,6 +175,41 @@ func (d *NetworkDiagnostic) waitForTestPodAndService(nsList []string) error {
 	return kerrors.NewAggregate(errList)
 }
 
+func (d *NetworkDiagnostic) getPodLogs(nsList []string) (string, error) {
+	logData := sets.String{}
+	errList := []error{}
+	limit := int64(1024)
+
+	for _, name := range nsList {
+		podList, err := d.getPodList(name, util.NetworkDiagTestPodNamePrefix)
+		if err != nil {
+			return "", err
+		}
+
+		for _, pod := range podList.Items {
+			opts := &kapi.PodLogOptions{
+				TypeMeta:   pod.TypeMeta,
+				Container:  pod.Name,
+				Follow:     true,
+				LimitBytes: &limit,
+			}
+
+			req, err := d.Factory.LogsForObject(&pod, opts, 10*time.Second)
+			if err != nil {
+				errList = append(errList, err)
+				continue
+			}
+			data, err := req.DoRaw()
+			if err != nil {
+				errList = append(errList, err)
+				continue
+			}
+			logData.Insert(string(data[:]))
+		}
+	}
+	return strings.Join(logData.List(), ", "), kerrors.NewAggregate(errList)
+}
+
 func (d *NetworkDiagnostic) getCountOfTestPods(nsList []string) (int, int, error) {
 	totalPodCount := 0
 	runningPodCount := 0
@@ -197,7 +238,7 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 	var netns *networkapi.NetNamespace
 	err := wait.ExponentialBackoff(backoff, func() (bool, error) {
 		var err error
-		netns, err = d.OSClient.NetNamespaces().Get(nsName, metav1.GetOptions{})
+		netns, err = d.NetNamespacesClient.NetNamespaces().Get(nsName, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			// NetNamespace not created yet
 			return false, nil
@@ -212,12 +253,12 @@ func (d *NetworkDiagnostic) makeNamespaceGlobal(nsName string) error {
 
 	network.SetChangePodNetworkAnnotation(netns, network.GlobalPodNetwork, "")
 
-	if _, err = d.OSClient.NetNamespaces().Update(netns); err != nil {
+	if _, err = d.NetNamespacesClient.NetNamespaces().Update(netns); err != nil {
 		return err
 	}
 
 	return wait.ExponentialBackoff(backoff, func() (bool, error) {
-		updatedNetNs, err := d.OSClient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
+		updatedNetNs, err := d.NetNamespacesClient.NetNamespaces().Get(netns.NetName, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}

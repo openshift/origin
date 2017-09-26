@@ -1,3 +1,5 @@
+// +build linux
+
 package proxy
 
 import (
@@ -7,11 +9,6 @@ import (
 
 	"github.com/golang/glog"
 
-	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/network/common"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -19,6 +16,11 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	pconfig "k8s.io/kubernetes/pkg/proxy/config"
+
+	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	"github.com/openshift/origin/pkg/network/common"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
 // EndpointsConfigHandler is an abstract interface of objects which receive update notifications for the set of endpoints.
@@ -46,7 +48,7 @@ type proxyEndpoints struct {
 
 type OsdnProxy struct {
 	kClient              kclientset.Interface
-	osClient             *osclient.Client
+	networkClient        networkclient.Interface
 	networkInfo          *common.NetworkInfo
 	egressDNS            *common.EgressDNS
 	baseEndpointsHandler pconfig.EndpointsHandler
@@ -60,18 +62,18 @@ type OsdnProxy struct {
 }
 
 // Called by higher layers to create the proxy plugin instance; only used by nodes
-func New(pluginName string, osClient *osclient.Client, kClient kclientset.Interface) (network.ProxyInterface, error) {
+func New(pluginName string, networkClient networkclient.Interface, kClient kclientset.Interface) (network.ProxyInterface, error) {
 	if !network.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
 		return nil, nil
 	}
 
 	return &OsdnProxy{
-		kClient:      kClient,
-		osClient:     osClient,
-		ids:          make(map[string]uint32),
-		egressDNS:    common.NewEgressDNS(),
-		firewall:     make(map[string]*proxyFirewallItem),
-		allEndpoints: make(map[ktypes.UID]*proxyEndpoints),
+		kClient:       kClient,
+		networkClient: networkClient,
+		ids:           make(map[string]uint32),
+		egressDNS:     common.NewEgressDNS(),
+		firewall:      make(map[string]*proxyFirewallItem),
+		allEndpoints:  make(map[ktypes.UID]*proxyEndpoints),
 	}, nil
 }
 
@@ -79,13 +81,13 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
 	glog.Infof("Starting multitenant SDN proxy endpoint filter")
 
 	var err error
-	proxy.networkInfo, err = common.GetNetworkInfo(proxy.osClient)
+	proxy.networkInfo, err = common.GetNetworkInfo(proxy.networkClient)
 	if err != nil {
 		return fmt.Errorf("could not get network info: %s", err)
 	}
 	proxy.baseEndpointsHandler = baseHandler
 
-	policies, err := proxy.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
+	policies, err := proxy.networkClient.Network().EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
@@ -105,7 +107,7 @@ func (proxy *OsdnProxy) Start(baseHandler pconfig.EndpointsHandler) error {
 }
 
 func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
-	common.RunEventQueue(proxy.osClient, common.EgressNetworkPolicies, func(delta cache.Delta) error {
+	common.RunEventQueue(proxy.networkClient.Network().RESTClient(), common.EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*networkapi.EgressNetworkPolicy)
 
 		proxy.egressDNS.Delete(*policy)
@@ -126,7 +128,7 @@ func (proxy *OsdnProxy) watchEgressNetworkPolicies() {
 
 // TODO: Abstract common code shared between proxy and node
 func (proxy *OsdnProxy) watchNetNamespaces() {
-	common.RunEventQueue(proxy.osClient, common.NetNamespaces, func(delta cache.Delta) error {
+	common.RunEventQueue(proxy.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*networkapi.NetNamespace)
 		name := netns.ObjectMeta.Name
 
@@ -331,7 +333,7 @@ func (proxy *OsdnProxy) OnEndpointsSynced() {
 }
 
 func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
-	policies, err := proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
+	policies, err := proxy.networkClient.Network().EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		glog.Errorf("Could not get EgressNetworkPolicies: %v", err)
 		return
@@ -345,7 +347,7 @@ func (proxy *OsdnProxy) syncEgressDNSProxyFirewall() {
 
 		policy, ok := getPolicy(policyUpdates.UID, policies)
 		if !ok {
-			policies, err = proxy.osClient.EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
+			policies, err = proxy.networkClient.Network().EgressNetworkPolicies(kapi.NamespaceAll).List(metav1.ListOptions{})
 			if err != nil {
 				glog.Errorf("Failed to update proxy firewall for policy: %v, Could not get EgressNetworkPolicies: %v", policyUpdates.UID, err)
 				continue

@@ -1,3 +1,5 @@
+// +build linux
+
 package node
 
 import (
@@ -14,7 +16,7 @@ import (
 )
 
 func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
-	policies, err := plugin.osClient.EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
+	policies, err := plugin.networkClient.Network().EgressNetworkPolicies(metav1.NamespaceAll).List(metav1.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("could not get EgressNetworkPolicies: %s", err)
 	}
@@ -43,7 +45,7 @@ func (plugin *OsdnNode) SetupEgressNetworkPolicy() error {
 }
 
 func (plugin *OsdnNode) watchEgressNetworkPolicies() {
-	common.RunEventQueue(plugin.osClient, common.EgressNetworkPolicies, func(delta cache.Delta) error {
+	common.RunEventQueue(plugin.networkClient.Network().RESTClient(), common.EgressNetworkPolicies, func(delta cache.Delta) error {
 		policy := delta.Object.(*networkapi.EgressNetworkPolicy)
 
 		vnid, err := plugin.policy.GetVNID(policy.Namespace)

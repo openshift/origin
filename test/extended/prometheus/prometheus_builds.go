@@ -17,7 +17,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[Feature:Prometheus][builds] Prometheus", func() {
+var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 	defer g.GinkgoRecover()
 	var (
 		oc = exutil.NewCLI("prometheus", exutil.KubeConfigPath())

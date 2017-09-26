@@ -11,10 +11,10 @@ import (
 	kcontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	"github.com/openshift/origin/pkg/network"
+	networktypedclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 )
 
 const (
@@ -23,8 +23,9 @@ const (
 
 // CheckServiceNetwork is a Diagnostic to check communication between services in the cluster.
 type CheckServiceNetwork struct {
-	KubeClient kclientset.Interface
-	OSClient   *osclient.Client
+	KubeClient           kclientset.Interface
+	NetNamespacesClient  networktypedclient.NetNamespacesGetter
+	ClusterNetworkClient networktypedclient.ClusterNetworksGetter
 
 	vnidMap map[string]uint32
 	res     types.DiagnosticResult
@@ -44,7 +45,7 @@ func (d CheckServiceNetwork) Description() string {
 func (d CheckServiceNetwork) CanRun() (bool, error) {
 	if d.KubeClient == nil {
 		return false, errors.New("must have kube client")
-	} else if d.OSClient == nil {
+	} else if d.NetNamespacesClient == nil || d.ClusterNetworkClient == nil {
 		return false, errors.New("must have openshift client")
 	}
 	return true, nil
@@ -54,7 +55,7 @@ func (d CheckServiceNetwork) CanRun() (bool, error) {
 func (d CheckServiceNetwork) Check() types.DiagnosticResult {
 	d.res = types.NewDiagnosticResult(CheckServiceNetworkName)
 
-	pluginName, ok, err := util.GetOpenShiftNetworkPlugin(d.OSClient)
+	pluginName, ok, err := util.GetOpenShiftNetworkPlugin(d.ClusterNetworkClient)
 	if err != nil {
 		d.res.Error("DSvcNet1001", err, fmt.Sprintf("Checking network plugin failed. Error: %s", err))
 		return d.res
@@ -81,7 +82,7 @@ func (d CheckServiceNetwork) Check() types.DiagnosticResult {
 	}
 
 	if network.IsOpenShiftMultitenantNetworkPlugin(pluginName) {
-		netnsList, err := d.OSClient.NetNamespaces().List(metav1.ListOptions{})
+		netnsList, err := d.NetNamespacesClient.NetNamespaces().List(metav1.ListOptions{})
 		if err != nil {
 			d.res.Error("DSvcNet1006", err, fmt.Sprintf("Getting all network namespaces failed. Error: %s", err))
 			return d.res

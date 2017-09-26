@@ -21,6 +21,9 @@ import (
 // StatusRecommendedName is the recommended command name.
 const StatusRecommendedName = "status"
 
+// ExposeRecommendedName is the recommended command name to expose app.
+const ExposeRecommendedName = "expose"
+
 var (
 	statusLong = templates.LongDesc(`
 		Show a high level overview of the current project

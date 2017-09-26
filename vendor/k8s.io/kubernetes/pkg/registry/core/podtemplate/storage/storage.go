@@ -21,7 +21,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/podtemplate"
 )
 
@@ -37,7 +36,6 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &api.PodTemplateList{} },
 		PredicateFunc:            podtemplate.MatchPodTemplate,
 		DefaultQualifiedResource: api.Resource("podtemplates"),
-		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("podtemplates"),
 
 		CreateStrategy: podtemplate.Strategy,
 		UpdateStrategy: podtemplate.Strategy,

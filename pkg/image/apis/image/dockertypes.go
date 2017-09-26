@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DockerImage is the type representing a docker image and its various properties when
 // retrieved from the Docker client API.
 type DockerImage struct {

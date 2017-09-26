@@ -134,9 +134,13 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 	clientFlags := flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
 	factory := osclientcmd.New(clientFlags)                        // that would otherwise be added to this command
 
-	osClient, kubeClient, clientErr := factory.Clients()
+	_, kubeClient, clientErr := factory.Clients()
 	if clientErr != nil {
 		return diagnostics, false, []error{clientErr}
+	}
+	networkClient, err := factory.OpenshiftInternalNetworkClient()
+	if err != nil {
+		return diagnostics, false, []error{err}
 	}
 
 	for _, diagnosticName := range requestedDiagnostics {
@@ -149,8 +153,9 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 
 		case networkdiag.CheckPodNetworkName:
 			diagnostics = append(diagnostics, networkdiag.CheckPodNetwork{
-				KubeClient: kubeClient,
-				OSClient:   osClient,
+				KubeClient:           kubeClient,
+				NetNamespacesClient:  networkClient.Network(),
+				ClusterNetworkClient: networkClient.Network(),
 			})
 
 		case networkdiag.CheckExternalNetworkName:
@@ -158,8 +163,9 @@ func (o NetworkPodDiagnosticsOptions) buildNetworkPodDiagnostics() ([]types.Diag
 
 		case networkdiag.CheckServiceNetworkName:
 			diagnostics = append(diagnostics, networkdiag.CheckServiceNetwork{
-				KubeClient: kubeClient,
-				OSClient:   osClient,
+				KubeClient:           kubeClient,
+				NetNamespacesClient:  networkClient.Network(),
+				ClusterNetworkClient: networkClient.Network(),
 			})
 
 		case networkdiag.CollectNetworkInfoName:

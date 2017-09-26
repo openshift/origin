@@ -1,3 +1,5 @@
+// +build linux
+
 package master
 
 import (
@@ -7,15 +9,6 @@ import (
 
 	log "github.com/golang/glog"
 
-	osclient "github.com/openshift/origin/pkg/client"
-	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
-	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/network/node"
-	"github.com/openshift/origin/pkg/util/netutils"
-
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ktypes "k8s.io/apimachinery/pkg/types"
@@ -23,11 +16,20 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
+
+	osconfigapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
+	"github.com/openshift/origin/pkg/network/common"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
+	"github.com/openshift/origin/pkg/network/node"
+	"github.com/openshift/origin/pkg/util/netutils"
 )
 
 type OsdnMaster struct {
 	kClient         kclientset.Interface
-	osClient        *osclient.Client
+	networkClient   networkclient.Interface
 	networkInfo     *common.NetworkInfo
 	subnetAllocator *netutils.SubnetAllocator
 	vnids           *masterVNIDMap
@@ -37,7 +39,7 @@ type OsdnMaster struct {
 	hostSubnetNodeIPs map[ktypes.UID]string
 }
 
-func Start(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Client, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
+func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkclient.Interface, kClient kclientset.Interface, informers kinternalinformers.SharedInformerFactory) error {
 	if !network.IsOpenShiftNetworkPlugin(networkConfig.NetworkPluginName) {
 		return nil
 	}
@@ -46,7 +48,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Cli
 
 	master := &OsdnMaster{
 		kClient:           kClient,
-		osClient:          osClient,
+		networkClient:     networkClient,
 		informers:         informers,
 		hostSubnetNodeIPs: map[ktypes.UID]string{},
 	}
@@ -73,7 +75,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Cli
 	err = wait.PollImmediate(1*time.Second, time.Minute, func() (bool, error) {
 		// reset this so that failures come through correctly.
 		getError = nil
-		existingCN, err := master.osClient.ClusterNetwork().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+		existingCN, err := master.networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
 		if err != nil {
 			if !kapierrors.IsNotFound(err) {
 				// the first request can fail on permissions
@@ -84,7 +86,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Cli
 				return false, err
 			}
 
-			if _, err = master.osClient.ClusterNetwork().Create(configCN); err != nil {
+			if _, err = master.networkClient.Network().ClusterNetworks().Create(configCN); err != nil {
 				return false, err
 			}
 			log.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
@@ -100,7 +102,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, osClient *osclient.Cli
 			if configChanged {
 				configCN.TypeMeta = existingCN.TypeMeta
 				configCN.ObjectMeta = existingCN.ObjectMeta
-				if _, err = master.osClient.ClusterNetwork().Update(configCN); err != nil {
+				if _, err = master.networkClient.Network().ClusterNetworks().Update(configCN); err != nil {
 					return false, err
 				}
 				log.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
@@ -150,7 +152,7 @@ func (master *OsdnMaster) checkClusterNetworkAgainstClusterObjects() error {
 	var subnets []networkapi.HostSubnet
 	var pods []kapi.Pod
 	var services []kapi.Service
-	if subnetList, err := master.osClient.HostSubnets().List(metav1.ListOptions{}); err == nil {
+	if subnetList, err := master.networkClient.Network().HostSubnets().List(metav1.ListOptions{}); err == nil {
 		subnets = subnetList.Items
 	}
 	if podList, err := master.kClient.Core().Pods(metav1.NamespaceAll).List(metav1.ListOptions{}); err == nil {

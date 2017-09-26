@@ -26,8 +26,8 @@ import (
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 )
 
-// newControllerContext provides a function which overrides the default and plugs a different set of informers in
-func newControllerContext(informers *informers) func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
+// newKubeControllerContext provides a function which overrides the default and plugs a different set of informers in
+func newKubeControllerContext(informers *informers) func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
 	oldContextFunc := controllerapp.CreateControllerContext
 	return func(s *controlleroptions.CMServer, rootClientBuilder, clientBuilder controller.ControllerClientBuilder, stop <-chan struct{}) (controllerapp.ControllerContext, error) {
 		ret, err := oldContextFunc(s, rootClientBuilder, clientBuilder, stop)
@@ -218,7 +218,7 @@ func createRecylerTemplate(recyclerImage string) (string, error) {
 
 func runEmbeddedKubeControllerManager(kubeconfigFile, saPrivateKeyFile, saRootCAFile, podEvictionTimeout string, dynamicProvisioningEnabled bool, cmdLineArgs map[string][]string,
 	recyclerImage string, informers *informers) {
-	controllerapp.CreateControllerContext = newControllerContext(informers)
+	controllerapp.CreateControllerContext = newKubeControllerContext(informers)
 	controllerapp.StartInformers = func(stop <-chan struct{}) {
 		informers.Start(stop)
 	}

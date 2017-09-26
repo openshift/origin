@@ -127,6 +127,7 @@ const (
 // +genclient:method=Rollback,verb=create,subresource=rollback,input=DeploymentConfigRollback
 // +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
 // +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale,result=k8s.io/kubernetes/pkg/apis/extensions/v1beta1.Scale
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DeploymentConfig represents a configuration for a single deployment (represented as a
 // ReplicationController). It also contains details about changes which resulted in the current
@@ -504,6 +505,8 @@ type DeploymentCondition struct {
 	Message string
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DeploymentConfigList is a collection of deployment configs.
 type DeploymentConfigList struct {
 	metav1.TypeMeta
@@ -512,6 +515,8 @@ type DeploymentConfigList struct {
 	// Items is a list of deployment configs
 	Items []DeploymentConfig
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DeploymentConfigRollback provides the input to rollback generation.
 type DeploymentConfigRollback struct {
@@ -540,6 +545,8 @@ type DeploymentConfigRollbackSpec struct {
 	IncludeStrategy bool
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DeploymentRequest is a request to a deployment config for a new deployment.
 type DeploymentRequest struct {
 	metav1.TypeMeta
@@ -556,10 +563,14 @@ type DeploymentRequest struct {
 	ExcludeTriggers []DeploymentTriggerType
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // DeploymentLog represents the logs for a deployment
 type DeploymentLog struct {
 	metav1.TypeMeta
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // DeploymentLogOptions is the REST options for a deployment log
 type DeploymentLogOptions struct {

@@ -23,15 +23,6 @@ const (
 	// TemplateInstance API.
 	TemplateInstanceLabel = "template.openshift.io/template-instance"
 
-	//TODO - when https://github.com/kubernetes-incubator/service-catalog/pull/939 sufficiently progresses, remove this constant
-	// RequesterUsernameParameterKey is the name of the key in the Open Service
-	// Broker API ProvisionRequest Parameters object where we receive the user
-	// name which will be impersonated during template provisioning.  The '/'
-	// and '.' characters in the name happen to make this an invalid template
-	// parameter name so there is no immediate overlap with passed template
-	// parameters in the same object.
-	RequesterUsernameParameterKey = "template.openshift.io/requester-username"
-
 	// ServiceBrokerRoot is the API root of the template service broker.
 	ServiceBrokerRoot = "/brokers/template.openshift.io"
 

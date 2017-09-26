@@ -4,13 +4,14 @@ import (
 	"container/list"
 	"reflect"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 )
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterResourceQuota mirrors ResourceQuota at a cluster scope.  This object is easily convertible to
 // synthetic ResourceQuota object to allow quota evaluation re-use.
@@ -60,6 +61,8 @@ type ClusterResourceQuotaStatus struct {
 	Namespaces ResourceQuotasStatusByNamespace
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ClusterResourceQuotaList is a collection of ClusterResourceQuotas
 type ClusterResourceQuotaList struct {
 	metav1.TypeMeta
@@ -72,6 +75,7 @@ type ClusterResourceQuotaList struct {
 
 // +genclient
 // +genclient:onlyVerbs=get,list
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // AppliedClusterResourceQuota mirrors ClusterResourceQuota at a project scope, for projection
 // into a project.  It allows a project-admin to know which ClusterResourceQuotas are applied to
@@ -87,6 +91,8 @@ type AppliedClusterResourceQuota struct {
 	// Status defines the actual enforced quota and its current usage
 	Status ClusterResourceQuotaStatus
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // AppliedClusterResourceQuotaList is a collection of AppliedClusterResourceQuotas
 type AppliedClusterResourceQuotaList struct {
@@ -141,7 +147,7 @@ func (o ResourceQuotasStatusByNamespace) DeepCopy() ResourceQuotasStatusByNamesp
 
 func init() {
 	// Tell the reflection package how to compare our unexported type
-	if err := kapihelper.Semantic.AddFuncs(
+	if err := equality.Semantic.AddFuncs(
 		func(o1, o2 ResourceQuotasStatusByNamespace) bool {
 			return reflect.DeepEqual(o1.orderedMap, o2.orderedMap)
 		},

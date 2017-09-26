@@ -1,13 +1,14 @@
 package controller
 
 import (
+	clientgoclientset "k8s.io/client-go/kubernetes"
+	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	hpacontroller "k8s.io/kubernetes/pkg/controller/podautoscaler"
 	hpametrics "k8s.io/kubernetes/pkg/controller/podautoscaler/metrics"
 
-	osclient "github.com/openshift/origin/pkg/client"
+	appsv1client "github.com/openshift/origin/pkg/apps/client/v1"
+	appstypedclient "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	clientgoclientset "k8s.io/client-go/kubernetes"
-	kubeclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 )
 
 // NB: this is funky -- it's actually a Kubernetes controller, but we run it as an OpenShift controller in order
@@ -18,21 +19,19 @@ type HorizontalPodAutoscalerControllerConfig struct {
 }
 
 func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx ControllerContext) (bool, error) {
-	ctx := originCtx.KubeControllerContext
-
-	hpaClientConfig := ctx.ClientBuilder.ConfigOrDie(bootstrappolicy.InfraHorizontalPodAutoscalerControllerServiceAccountName)
+	hpaClientConfig, err := originCtx.ClientBuilder.Config(bootstrappolicy.InfraHorizontalPodAutoscalerControllerServiceAccountName)
+	if err != nil {
+		return true, err
+	}
 
 	hpaClient, err := kubeclientset.NewForConfig(hpaClientConfig)
 	if err != nil {
 		return false, err
 	}
-
-	// use the Kubernetes config so that the service account is in the same name namespace for both clients
-	hpaOriginClient, err := osclient.New(hpaClientConfig)
+	appsClient, err := appstypedclient.NewForConfig(hpaClientConfig)
 	if err != nil {
 		return false, err
 	}
-
 	hpaEventsClient, err := clientgoclientset.NewForConfig(hpaClientConfig)
 	if err != nil {
 		return false, err
@@ -47,18 +46,18 @@ func (c *HorizontalPodAutoscalerControllerConfig) RunController(originCtx Contro
 	)
 	replicaCalc := hpacontroller.NewReplicaCalculator(metricsClient, hpaClient.Core())
 
-	delegatingScalesGetter := osclient.NewDelegatingScaleNamespacer(hpaOriginClient, hpaClient.ExtensionsV1beta1())
+	delegatingScalesGetter := appsv1client.NewDelegatingScaleNamespacer(appsClient, hpaClient.ExtensionsV1beta1())
 
 	go hpacontroller.NewHorizontalController(
 		hpaEventsClient.Core(),
 		delegatingScalesGetter,
 		hpaClient.Autoscaling(),
 		replicaCalc,
-		ctx.InformerFactory.Autoscaling().V1().HorizontalPodAutoscalers(),
-		ctx.Options.HorizontalPodAutoscalerSyncPeriod.Duration,
-		ctx.Options.HorizontalPodAutoscalerUpscaleForbiddenWindow.Duration,
-		ctx.Options.HorizontalPodAutoscalerDownscaleForbiddenWindow.Duration,
-	).Run(ctx.Stop)
+		originCtx.ExternalKubeInformers.Autoscaling().V1().HorizontalPodAutoscalers(),
+		originCtx.OpenshiftControllerOptions.HPAControllerOptions.SyncPeriod.Duration,
+		originCtx.OpenshiftControllerOptions.HPAControllerOptions.UpscaleForbiddenWindow.Duration,
+		originCtx.OpenshiftControllerOptions.HPAControllerOptions.DownscaleForbiddenWindow.Duration,
+	).Run(originCtx.Stop)
 
 	return true, nil
 }

@@ -140,7 +140,8 @@ func TestCreateWithNoNamespace(t *testing.T) {
 	inputServiceBroker := &sc.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: sc.ServiceBrokerSpec{
-			URL: "http://my-awesome-broker.io",
+			URL:            "http://my-awesome-broker.io",
+			RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
 		},
 	}
 	key, err := keyer.Key(request.NewContext(), name)
@@ -336,6 +337,9 @@ func TestGetWithNoNamespace(t *testing.T) {
 	// Ensure an existing broker
 	fakeCl.Storage.Set(globalNamespace, ServiceBrokerKind.URLName(), name, &sc.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: sc.ServiceBrokerSpec{
+			RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
+		},
 	})
 	key, err := keyer.Key(request.NewContext(), name)
 	if err != nil {
@@ -505,6 +509,9 @@ func TestGetListWithNoNamespace(t *testing.T) {
 	// Ensure an existing broker
 	fakeCl.Storage.Set(globalNamespace, ServiceBrokerKind.URLName(), name, &sc.ServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: sc.ServiceBrokerSpec{
+			RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
+		},
 	})
 	list := &sc.ServiceBrokerList{}
 	if err := iface.List(
@@ -873,6 +880,9 @@ func TestDeleteWithNoNamespace(t *testing.T) {
 			Name:            name,
 			ResourceVersion: fmt.Sprintf("%d", origRev),
 		},
+		Spec: sc.ServiceBrokerSpec{
+			RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
+		},
 	}
 	brokerWithFinalizers := *brokerNoFinalizers
 	brokerWithFinalizers.Finalizers = append(brokerWithFinalizers.Finalizers, v1alpha1.FinalizerServiceCatalog)
@@ -993,6 +1003,9 @@ func TestWatchWithNoNamespace(t *testing.T) {
 	obj := &sc.ServiceBroker{
 		TypeMeta:   metav1.TypeMeta{Kind: ServiceBrokerKind.String()},
 		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: sc.ServiceBrokerSpec{
+			RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
+		},
 	}
 	// send an unversioned object into the watch test. it sends this object to the
 	// fake REST client, which encodes the unversioned object into bytes & sends them
@@ -1052,9 +1065,15 @@ func TestWatchListWithNoNamespace(t *testing.T) {
 		Items: []sc.ServiceBroker{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s1", name)},
+				Spec: sc.ServiceBrokerSpec{
+					RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
+				},
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s2", name)},
+				Spec: sc.ServiceBrokerSpec{
+					RelistBehavior: sc.ServiceBrokerRelistBehaviorManual,
+				},
 			},
 		},
 	}

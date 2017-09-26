@@ -32,15 +32,15 @@ import (
 	"io/ioutil"
 	"os"
 
-	"k8s.io/kubernetes/pkg/kubectl/cmd"
+	kubectlcmd "k8s.io/kubernetes/pkg/kubectl/cmd"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/spf13/cobra/doc"
 )
 
 func main() {
-	kubectl := cmd.NewKubectlCommand(cmdutil.NewFactory(nil), os.Stdin, ioutil.Discard, ioutil.Discard)
-	doc.GenMarkdownTree(kubectl, "./")
+	cmd := kubectlcmd.NewKubectlCommand(cmdutil.NewFactory(nil), os.Stdin, ioutil.Discard, ioutil.Discard)
+	doc.GenMarkdownTree(cmd, "./")
 }
 ```
 
@@ -101,3 +101,4 @@ linkHandler := func(name string) string {
 	return "/commands/" + strings.ToLower(base) + "/"
 }
 ```
+

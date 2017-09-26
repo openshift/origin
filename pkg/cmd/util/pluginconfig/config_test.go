@@ -7,41 +7,24 @@ import (
 	"reflect"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kapiserverinternal "k8s.io/apiserver/pkg/apis/apiserver"
 	kapiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
+	testtypes "github.com/openshift/origin/pkg/cmd/util/pluginconfig/testing"
 
 	// install server api
 	_ "github.com/openshift/origin/pkg/cmd/server/api/install"
 )
 
-type TestConfig struct {
-	metav1.TypeMeta `json:",inline"`
-	Item1           string   `json:"item1"`
-	Item2           []string `json:"item2"`
-}
-
-func (obj *TestConfig) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
-
-type TestConfigV1 struct {
-	metav1.TypeMeta `json:",inline"`
-	Item1           string   `json:"item1"`
-	Item2           []string `json:"item2"`
-}
-
-func (obj *TestConfigV1) GetObjectKind() schema.ObjectKind { return &obj.TypeMeta }
-
 func TestGetPluginConfig(t *testing.T) {
-	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
-	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
+	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &testtypes.TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &testtypes.TestConfigV1{})
 
-	testConfig := &TestConfig{
+	testConfig := &testtypes.TestConfig{
 		Item1: "item1value",
 		Item2: []string{"element1", "element2"},
 	}
@@ -54,7 +37,7 @@ func TestGetPluginConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	resultConfig := &TestConfig{}
+	resultConfig := &testtypes.TestConfig{}
 	if err = latest.ReadYAMLFileInto(fileName, resultConfig); err != nil {
 		t.Fatalf("error reading config file: %v", err)
 	}
@@ -96,12 +79,12 @@ func readAdmissionConfigurationFile(t *testing.T, fileName string, into runtime.
 }
 
 func TestGetAdmissionConfigurationConfigWithConfiguration(t *testing.T) {
-	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
-	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
+	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &testtypes.TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &testtypes.TestConfigV1{})
 	kapiserverv1alpha1.AddToScheme(configapi.Scheme)
 	kapiserverinternal.AddToScheme(configapi.Scheme)
 
-	testConfig := &TestConfig{
+	testConfig := &testtypes.TestConfig{
 		Item1: "item1value",
 		Item2: []string{"element1", "element2"},
 	}
@@ -114,7 +97,7 @@ func TestGetAdmissionConfigurationConfigWithConfiguration(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	resultConfig := &TestConfig{}
+	resultConfig := &testtypes.TestConfig{}
 	admissionConfig := readAdmissionConfigurationFile(t, fileName, resultConfig)
 
 	if !reflect.DeepEqual(testConfig, resultConfig) {
@@ -123,8 +106,8 @@ func TestGetAdmissionConfigurationConfigWithConfiguration(t *testing.T) {
 }
 
 func TestGetAdmissionConfigurationConfigWithLocation(t *testing.T) {
-	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &TestConfig{})
-	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &TestConfigV1{})
+	configapi.Scheme.AddKnownTypes(oapi.SchemeGroupVersion, &testtypes.TestConfig{})
+	configapi.Scheme.AddKnownTypeWithName(latest.Version.WithKind("TestConfig"), &testtypes.TestConfigV1{})
 	kapiserverv1alpha1.AddToScheme(configapi.Scheme)
 	kapiserverinternal.AddToScheme(configapi.Scheme)
 
@@ -137,7 +120,7 @@ func TestGetAdmissionConfigurationConfigWithLocation(t *testing.T) {
 	}
 	defer os.Remove(f.Name())
 
-	testConfig := &TestConfig{
+	testConfig := &testtypes.TestConfig{
 		Item1: "item1value",
 		Item2: []string{"element1", "element2"},
 	}
@@ -158,7 +141,7 @@ func TestGetAdmissionConfigurationConfigWithLocation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	resultConfig := &TestConfig{}
+	resultConfig := &testtypes.TestConfig{}
 	admissionConfig := readAdmissionConfigurationFile(t, fileName, resultConfig)
 
 	if !reflect.DeepEqual(testConfig, resultConfig) {

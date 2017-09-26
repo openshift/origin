@@ -17,7 +17,7 @@ variable `FOCUS='regex'` where 'regex' is a regular expression matching the
 description of the test you want to run.  For example one of the s2i tests
 (s2i_incremental.go) defines:
 
-	var _ = g.Describe("[builds][Slow] incremental s2i build", func() {
+	var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 
 So you can write a focus regex that includes this test by setting
 `FOCUS='\[builds\]'` or `FOCUS='incremental s2i'`.

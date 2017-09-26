@@ -14,7 +14,8 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildclientinternal "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/gitserver"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
@@ -23,7 +24,7 @@ import (
 type AutoLinkBuilds struct {
 	Namespaces []string
 	Builders   []kapi.ObjectReference
-	Client     client.BuildConfigsNamespacer
+	Client     buildclientinternal.BuildConfigsGetter
 
 	CurrentNamespace string
 
@@ -45,11 +46,11 @@ func NewAutoLinkBuildsFromEnvironment() (*AutoLinkBuilds, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := client.New(clientConfig)
+	buildClient, err := buildclient.NewForConfig(clientConfig)
 	if err != nil {
 		return nil, err
 	}
-	config.Client = client
+	config.Client = buildClient.Build()
 
 	if value := os.Getenv("AUTOLINK_NAMESPACE"); len(value) > 0 {
 		namespace = value

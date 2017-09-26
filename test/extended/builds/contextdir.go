@@ -14,7 +14,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] builds with a context directory", func() {
+var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", func() {
 	defer g.GinkgoRecover()
 	var (
 		appFixture            = exutil.FixturePath("testdata", "test-context-build.json")

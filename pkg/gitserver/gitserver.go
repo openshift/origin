@@ -22,12 +22,13 @@ import (
 	"k8s.io/apiserver/pkg/server/healthz"
 	"k8s.io/client-go/tools/clientcmd"
 	kapi "k8s.io/kubernetes/pkg/api"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/git"
 
 	s2igit "github.com/openshift/source-to-image/pkg/scm/git"
+	"k8s.io/client-go/rest"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
 const (
@@ -245,10 +246,6 @@ func NewEnvironmentConfig() (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not create a client for REQUIRE_SERVER_AUTH: %v", err)
 		}
-		osc, err := client.New(cfg)
-		if err != nil {
-			return nil, fmt.Errorf("could not create a client for REQUIRE_SERVER_AUTH: %v", err)
-		}
 
 		config.AuthMessage = fmt.Sprintf("Authenticating against %s allow-push=%t anon-pull=%t", cfg.Host, config.AllowPush, allowAnonymousGet)
 		authHandlerFn := auth.Authenticator(func(info auth.AuthInfo) (bool, error) {
@@ -256,29 +253,40 @@ func NewEnvironmentConfig() (*Config, error) {
 				glog.V(5).Infof("Allowing pull because anonymous get is enabled")
 				return true, nil
 			}
-			req := &authapi.LocalSubjectAccessReview{
-				Action: authapi.Action{
-					Verb:     "get",
-					Group:    kapi.GroupName,
-					Resource: "pods",
+			req := &authorization.SelfSubjectAccessReview{
+				Spec: authorization.SelfSubjectAccessReviewSpec{
+					ResourceAttributes: &authorization.ResourceAttributes{
+						Verb:      "get",
+						Namespace: namespace,
+						Group:     kapi.GroupName,
+						Resource:  "pods",
+					},
 				},
 			}
 			if info.Push {
 				if !config.AllowPush {
 					return false, nil
 				}
-				req.Action.Verb = "create"
+				req.Spec.ResourceAttributes.Verb = "create"
 			}
-			glog.V(5).Infof("Checking for %s permission on pods", req.Action.Verb)
-			res, err := osc.ImpersonateLocalSubjectAccessReviews(namespace, info.Password).Create(req)
+
+			configForUser := rest.AnonymousClientConfig(cfg)
+			configForUser.BearerToken = info.Password
+			authorizationClient, err := authorizationtypedclient.NewForConfig(configForUser)
+			if err != nil {
+				return false, err
+			}
+
+			glog.V(5).Infof("Checking for %s permission on pods", req.Spec.ResourceAttributes.Verb)
+			res, err := authorizationClient.SelfSubjectAccessReviews().Create(req)
 			if err != nil {
 				if se, ok := err.(*errors.StatusError); ok {
 					return false, &statusError{se}
 				}
 				return false, err
 			}
-			glog.V(5).Infof("server response allowed=%t message=%s", res.Allowed, res.Reason)
-			return res.Allowed, nil
+			glog.V(5).Infof("server response allowed=%t message=%s", res.Status.Allowed, res.Status.Reason)
+			return res.Status.Allowed, nil
 		})
 		if allowAnonymousGet {
 			authHandlerFn = anonymousHandler(authHandlerFn)

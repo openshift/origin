@@ -6,6 +6,8 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build/v1"
 )
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // BuildOverridesConfig controls override settings for builds
 type BuildOverridesConfig struct {
 	metav1.TypeMeta `json:",inline"`

@@ -11,7 +11,7 @@ import (
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
-var _ = g.Describe("[builds][Slow] can use build secrets", func() {
+var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 	defer g.GinkgoRecover()
 	var (
 		buildSecretBaseDir    = exutil.FixturePath("testdata", "build-secrets")

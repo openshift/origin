@@ -12,7 +12,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	kapi "k8s.io/kubernetes/pkg/api"
 
-	"github.com/openshift/origin/pkg/client"
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	requestlimitapi "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
@@ -20,6 +19,8 @@ import (
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectcache "github.com/openshift/origin/pkg/project/cache"
 	uservalidation "github.com/openshift/origin/pkg/user/apis/user/validation"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // allowedTerminatingProjects is the number of projects that are owned by a user, are in terminating state,
@@ -62,14 +63,14 @@ func readConfig(reader io.Reader) (*requestlimitapi.ProjectRequestLimitConfig, e
 
 type projectRequestLimit struct {
 	*admission.Handler
-	client client.Interface
-	config *requestlimitapi.ProjectRequestLimitConfig
-	cache  *projectcache.ProjectCache
+	userClient usertypedclient.UsersGetter
+	config     *requestlimitapi.ProjectRequestLimitConfig
+	cache      *projectcache.ProjectCache
 }
 
 // ensure that the required Openshift admission interfaces are implemented
 var _ = oadmission.WantsProjectCache(&projectRequestLimit{})
-var _ = oadmission.WantsDeprecatedOpenshiftClient(&projectRequestLimit{})
+var _ = oadmission.WantsOpenshiftInternalUserClient(&projectRequestLimit{})
 
 // Admit ensures that only a configured number of projects can be requested by a particular user.
 func (o *projectRequestLimit) Admit(a admission.Attributes) (err error) {
@@ -123,7 +124,7 @@ func (o *projectRequestLimit) maxProjectsByRequester(userName string) (int, bool
 		return 0, false, nil
 	}
 
-	user, err := o.client.Users().Get(userName, metav1.GetOptions{})
+	user, err := o.userClient.Users().Get(userName, metav1.GetOptions{})
 	if err != nil {
 		return 0, false, err
 	}
@@ -166,8 +167,8 @@ func (o *projectRequestLimit) projectCountByRequester(userName string) (int, err
 	return count, nil
 }
 
-func (o *projectRequestLimit) SetDeprecatedOpenshiftClient(client client.Interface) {
-	o.client = client
+func (o *projectRequestLimit) SetOpenshiftInternalUserClient(client userclient.Interface) {
+	o.userClient = client.User()
 }
 
 func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) {
@@ -175,7 +176,7 @@ func (o *projectRequestLimit) SetProjectCache(cache *projectcache.ProjectCache) 
 }
 
 func (o *projectRequestLimit) Validate() error {
-	if o.client == nil {
+	if o.userClient == nil {
 		return fmt.Errorf("ProjectRequestLimit plugin requires an Openshift client")
 	}
 	if o.cache == nil {

@@ -21,12 +21,6 @@ var SchemaVersion = manifest.Versioned{
 }
 
 func init() {
-	// FIXME: Do not registry the manifest list schema as the manifest lists are
-	// not supported by OpenShift and fetching the manifest list will result in
-	// the import failure. If we return here, it means the docker client will ask
-	// for the schema2 instead.
-	return
-
 	manifestListFunc := func(b []byte) (distribution.Manifest, distribution.Descriptor, error) {
 		m := new(DeserializedManifestList)
 		err := m.UnmarshalJSON(b)

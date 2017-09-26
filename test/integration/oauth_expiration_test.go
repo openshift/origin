@@ -1,9 +1,12 @@
 package integration
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -43,7 +46,7 @@ func TestOAuthExpiration(t *testing.T) {
 
 	{
 		zero := int32(0)
-		nonexpiring, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
 			ObjectMeta:               metav1.ObjectMeta{Name: "nonexpiring"},
 			RespondWithChallenges:    true,
 			RedirectURIs:             []string{"http://localhost"},
@@ -54,42 +57,12 @@ func TestOAuthExpiration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		nonExpiringTokenOpts := tokencmd.NewRequestTokenOptions(anonConfig, nil, "username", "password")
-		nonExpiringTokenOpts.ClientID = nonexpiring.Name
-		nonexpiringToken, err := nonExpiringTokenOpts.RequestToken()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// Make sure we can use the token, and it represents who we expect
-		nonExpiringUserConfig := *anonConfig
-		nonExpiringUserConfig.BearerToken = nonexpiringToken
-		nonExpiringUserClient, err := client.New(&nonExpiringUserConfig)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		user, err := nonExpiringUserClient.Users().Get("~", metav1.GetOptions{})
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if user.Name != "username" {
-			t.Fatalf("Expected username as the user, got %v", user)
-		}
-
-		// Make sure the token exists with the overridden time
-		tokenObj, err := clusterAdminClient.OAuthAccessTokens().Get(nonexpiringToken, metav1.GetOptions{})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if tokenObj.ExpiresIn != 0 {
-			t.Fatalf("Expected expiration of 0, got %#v", tokenObj.ExpiresIn)
-		}
+		testExpiringOAuthFlows(t, clusterAdminClient, client, anonConfig, 0)
 	}
 
 	{
 		ten := int32(10)
-		shortexpiring, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
+		client, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
 			ObjectMeta:               metav1.ObjectMeta{Name: "shortexpiring"},
 			RespondWithChallenges:    true,
 			RedirectURIs:             []string{"http://localhost"},
@@ -100,32 +73,11 @@ func TestOAuthExpiration(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		expiringTokenOpts := tokencmd.NewRequestTokenOptions(anonConfig, nil, "username", "password")
-		expiringTokenOpts.ClientID = shortexpiring.Name
-		expiringToken, err := expiringTokenOpts.RequestToken()
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		// Make sure we can use the token, and it represents who we expect
-		expiringUserConfig := *anonConfig
-		expiringUserConfig.BearerToken = expiringToken
-		expiringUserClient, err := client.New(&expiringUserConfig)
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-
-		user, err := expiringUserClient.Users().Get("~", metav1.GetOptions{})
-		if err != nil {
-			t.Fatalf("Unexpected error: %v", err)
-		}
-		if user.Name != "username" {
-			t.Fatalf("Expected username as the user, got %v", user)
-		}
+		token := testExpiringOAuthFlows(t, clusterAdminClient, client, anonConfig, 10)
 
 		// Ensure the token goes away after the time expiration
 		if err := wait.Poll(1*time.Second, time.Minute, func() (bool, error) {
-			_, err := clusterAdminClient.OAuthAccessTokens().Get(expiringToken, metav1.GetOptions{})
+			_, err := clusterAdminClient.OAuthAccessTokens().Get(token, metav1.GetOptions{})
 			if errors.IsNotFound(err) {
 				return true, nil
 			}
@@ -136,5 +88,126 @@ func TestOAuthExpiration(t *testing.T) {
 		}); err != nil {
 			t.Fatal(err)
 		}
+	}
+}
+
+func testExpiringOAuthFlows(t *testing.T, clusterAdminClient *client.Client, oauthclient *oauthapi.OAuthClient, anonConfig *restclient.Config, expectedExpires int) string {
+
+	{
+		tokenOpts := tokencmd.NewRequestTokenOptions(anonConfig, nil, "username", "password")
+		tokenOpts.ClientID = oauthclient.Name
+		token, err := tokenOpts.RequestToken()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		// Make sure we can use the token, and it represents who we expect
+		userConfig := *anonConfig
+		userConfig.BearerToken = token
+		userClient, err := client.New(&userConfig)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		user, err := userClient.Users().Get("~", metav1.GetOptions{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if user.Name != "username" {
+			t.Fatalf("Expected username as the user, got %v", user)
+		}
+
+		// Make sure the token exists with the overridden time
+		tokenObj, err := clusterAdminClient.OAuthAccessTokens().Get(token, metav1.GetOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tokenObj.ExpiresIn != int64(expectedExpires) {
+			t.Fatalf("Expected expiration of %d, got %#v", expectedExpires, tokenObj.ExpiresIn)
+		}
+	}
+
+	{
+		rt, err := restclient.TransportFor(anonConfig)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		conf := &oauth2.Config{
+			ClientID:     oauthclient.Name,
+			ClientSecret: oauthclient.Secret,
+			RedirectURL:  oauthclient.RedirectURIs[0],
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  anonConfig.Host + "/oauth/authorize",
+				TokenURL: anonConfig.Host + "/oauth/token",
+			},
+		}
+
+		// get code
+		req, err := http.NewRequest("GET", conf.AuthCodeURL(""), nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.SetBasicAuth("username", "password")
+		resp, err := rt.RoundTrip(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusFound {
+			t.Fatalf("unexpected status %v", resp.StatusCode)
+		}
+		location, err := resp.Location()
+		if err != nil {
+			t.Fatal(err)
+		}
+		code := location.Query().Get("code")
+		if len(code) == 0 {
+			t.Fatalf("Unexpected response: %v", location)
+		}
+
+		// Make sure the code exists with the default time
+		codeObj, err := clusterAdminClient.OAuthAuthorizeTokens().Get(code, metav1.GetOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if codeObj.ExpiresIn != (5 * 60) {
+			t.Fatalf("Expected expiration of %d, got %#v", (5 * 60), codeObj.ExpiresIn)
+		}
+
+		// Use the custom HTTP client when requesting a token.
+		httpClient := &http.Client{Transport: rt}
+		ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
+		oauthToken, err := conf.Exchange(ctx, code)
+		if err != nil {
+			t.Fatal(err)
+		}
+		token := oauthToken.AccessToken
+
+		// Make sure we can use the token, and it represents who we expect
+		userConfig := *anonConfig
+		userConfig.BearerToken = token
+		userClient, err := client.New(&userConfig)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		user, err := userClient.Users().Get("~", metav1.GetOptions{})
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if user.Name != "username" {
+			t.Fatalf("Expected username as the user, got %v", user)
+		}
+
+		// Make sure the token exists with the overridden time
+		tokenObj, err := clusterAdminClient.OAuthAccessTokens().Get(token, metav1.GetOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tokenObj.ExpiresIn != int64(expectedExpires) {
+			t.Fatalf("Expected expiration of %d, got %#v", expectedExpires, tokenObj.ExpiresIn)
+		}
+
+		return token
 	}
 }

@@ -6,8 +6,11 @@ import (
 
 	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/kubernetes/pkg/apis/authorization"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	"github.com/openshift/origin/pkg/authorization/registry/util"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
@@ -16,7 +19,7 @@ import (
 // ClusterRoleBindings is a Diagnostic to check that the default cluster role bindings match expectations
 type ClusterRoleBindings struct {
 	ClusterRoleBindingsClient osclient.ClusterRoleBindingsInterface
-	SARClient                 osclient.SubjectAccessReviews
+	SARClient                 authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
 const (
@@ -39,7 +42,7 @@ func (d *ClusterRoleBindings) CanRun() (bool, error) {
 		return false, fmt.Errorf("must have client.SubjectAccessReviews")
 	}
 
-	return userCan(d.SARClient, authorizationapi.Action{
+	return userCan(d.SARClient, &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    authorizationapi.GroupName,
 		Resource: "clusterrolebindings",
@@ -79,9 +82,15 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 		}
 		if err != nil {
 			r.Error("CRBD1002", err, fmt.Sprintf("Unable to get clusterrolebinding/%s: %v", changedClusterRoleBinding.Name, err))
+			continue
+		}
+		actualRBACClusterRole, err := util.ClusterRoleBindingToRBAC(actualClusterRole)
+		if err != nil {
+			r.Error("CRBD1008", err, fmt.Sprintf("Unable to convert clusterrolebinding/%s to RBAC: %v", actualClusterRole.Name, err))
+			continue
 		}
 
-		missingSubjects, extraSubjects := policycmd.DiffObjectReferenceLists(changedClusterRoleBinding.Subjects, actualClusterRole.Subjects)
+		missingSubjects, extraSubjects := policycmd.DiffSubjects(changedClusterRoleBinding.Subjects, actualRBACClusterRole.Subjects)
 		switch {
 		case len(missingSubjects) > 0:
 			// Only a warning, because they can remove things like self-provisioner role from system:unauthenticated, and it's not an error

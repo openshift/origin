@@ -22,7 +22,7 @@ func hostname(hostport string) (string, error) {
 	return host, err
 }
 
-var _ = g.Describe("[builds][Slow] can use private repositories as build input", func() {
+var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build input", func() {
 	defer g.GinkgoRecover()
 
 	const (

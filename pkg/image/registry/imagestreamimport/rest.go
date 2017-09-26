@@ -152,53 +152,6 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		}
 	}
 
-	// only load secrets if we need them
-	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapiv1.Secret, error) {
-		secrets, err := r.isClient.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
-		if err != nil {
-			return nil, err
-		}
-		secretsv1 := make([]kapiv1.Secret, len(secrets.Items))
-		for i, secret := range secrets.Items {
-			err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
-			if err != nil {
-				utilruntime.HandleError(err)
-				continue
-			}
-		}
-		return secretsv1, nil
-	})
-	importCtx := importer.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
-	imports := r.importFn(importCtx)
-	if err := imports.Import(ctx.(gocontext.Context), isi); err != nil {
-		return nil, kapierrors.NewInternalError(err)
-	}
-
-	// if we encountered an error loading credentials and any images could not be retrieved with an access
-	// related error, modify the message.
-	// TODO: set a status cause
-	if err := credentials.Err(); err != nil {
-		for i, image := range isi.Status.Images {
-			switch image.Status.Reason {
-			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
-				isi.Status.Images[i].Status.Message = fmt.Sprintf("Unable to load secrets for this image: %v; (%s)", err, image.Status.Message)
-			}
-		}
-		if r := isi.Status.Repository; r != nil {
-			switch r.Status.Reason {
-			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
-				r.Status.Message = fmt.Sprintf("Unable to load secrets for this repository: %v; (%s)", err, r.Status.Message)
-			}
-		}
-	}
-
-	// TODO: perform the transformation of the image stream and return it with the ISI if import is false
-	//   so that clients can see what the resulting object would look like.
-	if !isi.Spec.Import {
-		clearManifests(isi)
-		return isi, nil
-	}
-
 	create := false
 	stream, err := r.streams.GetImageStream(ctx, isi.Name, &metav1.GetOptions{})
 	if err != nil {
@@ -226,6 +179,53 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 			glog.V(4).Infof("DEBUG: mismatch between requested UID %s and located UID %s", inputMeta.UID, stream.UID)
 			return nil, kapierrors.NewNotFound(imageapi.Resource("imagestream"), inputMeta.Name)
 		}
+	}
+
+	// only load secrets if we need them
+	credentials := importer.NewLazyCredentialsForSecrets(func() ([]kapiv1.Secret, error) {
+		secrets, err := r.isClient.ImageStreams(namespace).Secrets(isi.Name, metav1.ListOptions{})
+		if err != nil {
+			return nil, err
+		}
+		secretsv1 := make([]kapiv1.Secret, len(secrets.Items))
+		for i, secret := range secrets.Items {
+			err := kapiv1.Convert_api_Secret_To_v1_Secret(&secret, &secretsv1[i], nil)
+			if err != nil {
+				utilruntime.HandleError(err)
+				continue
+			}
+		}
+		return secretsv1, nil
+	})
+	importCtx := importer.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
+	imports := r.importFn(importCtx)
+	if err := imports.Import(ctx.(gocontext.Context), isi, stream); err != nil {
+		return nil, kapierrors.NewInternalError(err)
+	}
+
+	// if we encountered an error loading credentials and any images could not be retrieved with an access
+	// related error, modify the message.
+	// TODO: set a status cause
+	if err := credentials.Err(); err != nil {
+		for i, image := range isi.Status.Images {
+			switch image.Status.Reason {
+			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
+				isi.Status.Images[i].Status.Message = fmt.Sprintf("Unable to load secrets for this image: %v; (%s)", err, image.Status.Message)
+			}
+		}
+		if r := isi.Status.Repository; r != nil {
+			switch r.Status.Reason {
+			case metav1.StatusReasonUnauthorized, metav1.StatusReasonForbidden:
+				r.Status.Message = fmt.Sprintf("Unable to load secrets for this repository: %v; (%s)", err, r.Status.Message)
+			}
+		}
+	}
+
+	// TODO: perform the transformation of the image stream and return it with the ISI if import is false
+	//   so that clients can see what the resulting object would look like.
+	if !isi.Spec.Import {
+		clearManifests(isi)
+		return isi, nil
 	}
 
 	if stream.Annotations == nil {

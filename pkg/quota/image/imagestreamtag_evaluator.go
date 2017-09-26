@@ -13,8 +13,8 @@ import (
 	kquota "k8s.io/kubernetes/pkg/quota"
 	"k8s.io/kubernetes/pkg/quota/generic"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
 )
 
@@ -23,16 +23,16 @@ var imageStreamTagResources = []kapi.ResourceName{
 }
 
 type imageStreamTagEvaluator struct {
-	store         imageinternalversion.ImageStreamLister
-	istNamespacer osclient.ImageStreamTagsNamespacer
+	store     imageinternalversion.ImageStreamLister
+	istGetter imageclient.ImageStreamTagsGetter
 }
 
 // NewImageStreamTagEvaluator computes resource usage of ImageStreamsTags. Its sole purpose is to handle
 // UPDATE admission operations on imageStreamTags resource.
-func NewImageStreamTagEvaluator(store imageinternalversion.ImageStreamLister, istNamespacer osclient.ImageStreamTagsNamespacer) kquota.Evaluator {
+func NewImageStreamTagEvaluator(store imageinternalversion.ImageStreamLister, istGetter imageclient.ImageStreamTagsGetter) kquota.Evaluator {
 	return &imageStreamTagEvaluator{
-		store:         store,
-		istNamespacer: istNamespacer,
+		store:     store,
+		istGetter: istGetter,
 	}
 }
 

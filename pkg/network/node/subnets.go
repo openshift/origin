@@ -1,3 +1,5 @@
+// +build linux
+
 package node
 
 import (
@@ -31,7 +33,7 @@ func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
 
 func (node *OsdnNode) watchSubnets() {
 	subnets := make(hostSubnetMap)
-	common.RunEventQueue(node.osClient, common.HostSubnets, func(delta cache.Delta) error {
+	common.RunEventQueue(node.networkClient.Network().RESTClient(), common.HostSubnets, func(delta cache.Delta) error {
 		hs := delta.Object.(*networkapi.HostSubnet)
 		if hs.HostIP == node.localIP {
 			return nil

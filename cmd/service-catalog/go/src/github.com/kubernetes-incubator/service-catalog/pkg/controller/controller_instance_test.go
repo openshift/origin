@@ -1319,7 +1319,7 @@ func TestPollServiceInstanceInProgressDeprovisioningWithOperationNoFinalizer(t *
 	assertNumberOfActions(t, actions, 1)
 	action := actions[0]
 	updatedServiceInstance := assertUpdateStatus(t, action, instance)
-	assertServiceInstanceReadyFalse(t, updatedServiceInstance, asyncDeprovisioningMessage)
+	assertServiceInstanceReadyFalse(t, updatedServiceInstance, asyncDeprovisioningReason)
 
 	// verify no kube resources created.
 	// No actions

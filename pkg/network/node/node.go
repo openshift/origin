@@ -1,3 +1,5 @@
+// +build linux
+
 package node
 
 import (
@@ -12,15 +14,7 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-
-	"github.com/openshift/origin/pkg/network/node/cniserver"
-
-	osclient "github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
-	"github.com/openshift/origin/pkg/network/common"
-	"github.com/openshift/origin/pkg/util/netutils"
-	"github.com/openshift/origin/pkg/util/ovs"
+	"github.com/vishvananda/netlink"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -40,7 +34,13 @@ import (
 	ktypes "k8s.io/kubernetes/pkg/kubelet/types"
 	kexec "k8s.io/kubernetes/pkg/util/exec"
 
-	"github.com/vishvananda/netlink"
+	"github.com/openshift/origin/pkg/network"
+	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	"github.com/openshift/origin/pkg/network/common"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
+	"github.com/openshift/origin/pkg/network/node/cniserver"
+	"github.com/openshift/origin/pkg/util/netutils"
+	"github.com/openshift/origin/pkg/util/ovs"
 )
 
 const (
@@ -70,9 +70,10 @@ type OsdnNodeConfig struct {
 	SelfIP          string
 	RuntimeEndpoint string
 	MTU             uint32
+	EnableHostports bool
 
-	OSClient *osclient.Client
-	KClient  kclientset.Interface
+	NetworkClient networkclient.Interface
+	KClient       kclientset.Interface
 
 	KubeInformers kinternalinformers.SharedInformerFactory
 
@@ -83,7 +84,7 @@ type OsdnNodeConfig struct {
 type OsdnNode struct {
 	policy             osdnPolicy
 	kClient            kclientset.Interface
-	osClient           *osclient.Client
+	networkClient      networkclient.Interface
 	oc                 *ovsController
 	networkInfo        *common.NetworkInfo
 	podManager         *podManager
@@ -176,9 +177,9 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	plugin := &OsdnNode{
 		policy:             policy,
 		kClient:            c.KClient,
-		osClient:           c.OSClient,
+		networkClient:      c.NetworkClient,
 		oc:                 oc,
-		podManager:         newPodManager(c.KClient, policy, c.MTU, oc),
+		podManager:         newPodManager(c.KClient, policy, c.MTU, oc, c.EnableHostports),
 		localIP:            c.SelfIP,
 		hostName:           c.Hostname,
 		useConnTrack:       useConnTrack,
@@ -291,7 +292,7 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 
 func (node *OsdnNode) Start() error {
 	var err error
-	node.networkInfo, err = common.GetNetworkInfo(node.osClient)
+	node.networkInfo, err = common.GetNetworkInfo(node.networkClient)
 	if err != nil {
 		return fmt.Errorf("failed to get network information: %v", err)
 	}

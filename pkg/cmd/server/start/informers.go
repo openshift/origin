@@ -6,6 +6,7 @@ import (
 	kubeclientgoinformers "k8s.io/client-go/informers"
 	kubeclientgoclient "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kexternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
@@ -13,11 +14,11 @@ import (
 
 	appinformer "github.com/openshift/origin/pkg/apps/generated/informers/internalversion"
 	appclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appslisters "github.com/openshift/origin/pkg/apps/generated/listers/apps/internalversion"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildinformer "github.com/openshift/origin/pkg/build/generated/informers/internalversion"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	osclient "github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	imageinformer "github.com/openshift/origin/pkg/image/generated/informers/internalversion"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
@@ -50,7 +51,7 @@ type informers struct {
 
 // NewInformers is only exposed for the build's integration testing until it can be fixed more appropriately.
 func NewInformers(options configapi.MasterConfig) (*informers, error) {
-	clientConfig, kubeInternal, kubeExternal, kubeClientGoExternal, _, err := getAllClients(options)
+	clientConfig, kubeInternal, kubeExternal, kubeClientGoExternal, err := getAllClients(options)
 	if err != nil {
 		return nil, err
 	}
@@ -92,11 +93,15 @@ func NewInformers(options configapi.MasterConfig) (*informers, error) {
 	// before then we should try to eliminate our direct to storage access.  It's making us do weird things.
 	const defaultInformerResyncPeriod = 10 * time.Minute
 
+	appInformers := appinformer.NewSharedInformerFactory(appClient, defaultInformerResyncPeriod)
+	appInformers.Apps().InternalVersion().DeploymentConfigs().Informer().AddIndexers(
+		map[string]cache.IndexFunc{appslisters.ImageStreamReferenceIndex: appslisters.ImageStreamReferenceIndexFunc})
+
 	return &informers{
 		internalKubeInformers:  kinternalinformers.NewSharedInformerFactory(kubeInternal, defaultInformerResyncPeriod),
 		externalKubeInformers:  kexternalinformers.NewSharedInformerFactory(kubeExternal, defaultInformerResyncPeriod),
 		clientGoKubeInformers:  kubeclientgoinformers.NewSharedInformerFactory(kubeClientGoExternal, defaultInformerResyncPeriod),
-		appInformers:           appinformer.NewSharedInformerFactory(appClient, defaultInformerResyncPeriod),
+		appInformers:           appInformers,
 		authorizationInformers: authorizationinformer.NewSharedInformerFactory(authorizationClient, defaultInformerResyncPeriod),
 		buildInformers:         buildinformer.NewSharedInformerFactory(buildClient, defaultInformerResyncPeriod),
 		imageInformers:         imageinformer.NewSharedInformerFactory(imageClient, defaultInformerResyncPeriod),
@@ -156,23 +161,19 @@ func (i *informers) Start(stopCh <-chan struct{}) {
 	i.userInformers.Start(stopCh)
 }
 
-func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, kubeclientgoclient.Interface, *osclient.Client, error) {
+func getAllClients(options configapi.MasterConfig) (*rest.Config, kclientsetinternal.Interface, kclientsetexternal.Interface, kubeclientgoclient.Interface, error) {
 	kubeInternal, clientConfig, err := configapi.GetInternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	kubeExternal, _, err := configapi.GetExternalKubeClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
-	}
-	deprecatedOpenshiftClient, _, err := configapi.GetOpenShiftClient(options.MasterClients.OpenShiftLoopbackKubeConfig, options.MasterClients.OpenShiftLoopbackClientConnectionOverrides)
-	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	kubeClientGoClientSet, err := kubeclientgoclient.NewForConfig(clientConfig)
 	if err != nil {
-		return nil, nil, nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	return clientConfig, kubeInternal, kubeExternal, kubeClientGoClientSet, deprecatedOpenshiftClient, nil
+	return clientConfig, kubeInternal, kubeExternal, kubeClientGoClientSet, nil
 }

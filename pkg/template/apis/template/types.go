@@ -7,6 +7,7 @@ import (
 )
 
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Template contains the inputs needed to produce a Config.
 type Template struct {
@@ -37,6 +38,8 @@ type Template struct {
 	// object during the Template to Config transformation.
 	ObjectLabels map[string]string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // TemplateList is a list of Template objects.
 type TemplateList struct {
@@ -77,6 +80,7 @@ type Parameter struct {
 }
 
 // +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // TemplateInstance requests and records the instantiation of a Template.
 // TemplateInstance is part of an experimental API.
@@ -173,6 +177,8 @@ type TemplateInstanceObject struct {
 	Ref kapi.ObjectReference
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // TemplateInstanceList is a list of TemplateInstance objects.
 type TemplateInstanceList struct {
 	metav1.TypeMeta
@@ -184,6 +190,7 @@ type TemplateInstanceList struct {
 
 // +genclient
 // +genclient:nonNamespaced
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // BrokerTemplateInstance holds the service broker-related state associated with
 // a TemplateInstance.  BrokerTemplateInstance is part of an experimental API.
@@ -209,6 +216,8 @@ type BrokerTemplateInstanceSpec struct {
 	// calls to the template service broker.
 	BindingIDs []string
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // BrokerTemplateInstanceList is a list of BrokerTemplateInstance objects.
 type BrokerTemplateInstanceList struct {
