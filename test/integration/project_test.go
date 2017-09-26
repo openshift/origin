@@ -235,13 +235,13 @@ func TestProjectWatch(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-01", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-01", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForAdd("ns-01", w, t)
 
 	// TEST FOR ADD/REMOVE ACCESS
-	joeClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
+	_, joeClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestProjectWatch(t *testing.T) {
 	waitForDelete("ns-02", w, t)
 
 	// TEST FOR DELETE PROJECT
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-03", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-03", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForAdd("ns-03", w, t)
@@ -438,14 +438,14 @@ func TestScopedProjectAccess(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "one", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "one", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	t.Logf("test 1")
 	waitForOnlyAdd("one", allWatch, t)
 	waitForOnlyAdd("one", oneTwoWatch, t)
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "two", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "two", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	t.Logf("test 2")
@@ -453,14 +453,14 @@ func TestScopedProjectAccess(t *testing.T) {
 	waitForOnlyAdd("two", oneTwoWatch, t)
 	waitForOnlyAdd("two", twoThreeWatch, t)
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "three", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "three", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	t.Logf("test 3")
 	waitForOnlyAdd("three", allWatch, t)
 	waitForOnlyAdd("three", twoThreeWatch, t)
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "four", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "four", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForOnlyAdd("four", allWatch, t)
@@ -537,10 +537,10 @@ func TestInvalidRoleRefs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "foo", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "foo", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "bar", "alice"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "bar", "alice"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

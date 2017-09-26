@@ -62,7 +62,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(errs).To(o.BeEmpty())
 
 		// privatetemplate is an additional template in our namespace
-		privatetemplate, err = cli.Client().Templates(cli.Namespace()).Create(&templateapi.Template{
+		privatetemplate, err = cli.TemplateClient().Template().Templates(cli.Namespace()).Create(&templateapi.Template{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "private",
 			},
@@ -268,7 +268,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		bindroute, err := cli.Client().Routes(cli.Namespace()).Create(&routeapi.Route{
+		bindroute, err := cli.RouteClient().Route().Routes(cli.Namespace()).Create(&routeapi.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bindroute",
 				Annotations: map[string]string{
@@ -317,7 +317,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		err = cli.KubeClient().CoreV1().Services(cli.Namespace()).Delete(bindservice.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = cli.Client().Routes(cli.Namespace()).Delete(bindroute.Name)
+		err = cli.RouteClient().Route().Routes(cli.Namespace()).Delete(bindroute.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 

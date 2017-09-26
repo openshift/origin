@@ -33,7 +33,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	valerieOpenshiftClient, valerieKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestBasicUserBasedGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", kapi.Resource("pods"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(valerieKubeClient.Authorization(), "empty", "get", kapi.Resource("pods"), true); err != nil {
 		t.Error(err)
 	}
 
@@ -121,7 +121,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	valerieOpenshiftClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	valerieOpenshiftClient, valerieKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -154,7 +154,7 @@ func TestBasicGroupManipulation(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(valerieOpenshiftClient, "empty", "get", kapi.Resource("pods"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(valerieKubeClient.Authorization(), "empty", "get", kapi.Resource("pods"), true); err != nil {
 		t.Error(err)
 	}
 

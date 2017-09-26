@@ -517,7 +517,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 			_, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("multitag:prod3", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
-			_, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("multitagprod4", metav1.GetOptions{})
+			_, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("multitag:prod4", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// N to 1 mapping

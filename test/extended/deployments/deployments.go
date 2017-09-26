@@ -532,7 +532,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("updating the deployment config in order to trigger a new rollout")
-			_, err = updateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
+			_, err = updateConfigWithRetries(oc.AppsClient().Apps(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
 				one := int64(1)
 				update.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
 			})
@@ -703,7 +703,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			_, err = updateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+			_, err = updateConfigWithRetries(oc.AppsClient().Apps(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
 				// TODO: oc rollout pause should patch instead of making a full update
 				dc.Spec.Paused = false
 			})

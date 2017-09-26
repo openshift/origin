@@ -23,8 +23,8 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appstypedclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/client"
 	exutil "github.com/openshift/origin/test/extended/util"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -33,7 +33,7 @@ import (
 type updateConfigFunc func(d *deployapi.DeploymentConfig)
 
 // updateConfigWithRetries will try to update a deployment config and ignore any update conflicts.
-func updateConfigWithRetries(dn client.DeploymentConfigsNamespacer, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
+func updateConfigWithRetries(dn appstypedclientset.DeploymentConfigsGetter, namespace, name string, applyUpdate updateConfigFunc) (*deployapi.DeploymentConfig, error) {
 	var config *deployapi.DeploymentConfig
 	resultErr := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		var err error

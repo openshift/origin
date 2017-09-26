@@ -144,7 +144,7 @@ func TestPullThroughInsecure(t *testing.T) {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
 	user := "admin"
-	adminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
+	_, adminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}

@@ -68,9 +68,9 @@ func TestNodeAuth(t *testing.T) {
 	badTokenConfig := clientcmd.AnonymousClientConfig(adminConfig)
 	badTokenConfig.BearerToken = "bad-token"
 
-	bobClient, _, bobConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
+	bobClient, bobKubeClient, bobConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
 	_, _, aliceConfig, err := testutil.GetClientForUser(*adminConfig, "alice")
-	sa1Client, _, sa1Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa1")
+	_, sa1KubeClient, sa1Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa1")
 	_, _, sa2Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa2")
 
 	// Grant Bob system:node-reader, which should let them read metrics and stats
@@ -113,10 +113,10 @@ func TestNodeAuth(t *testing.T) {
 	}
 
 	// Wait for policy cache
-	if err := testutil.WaitForClusterPolicyUpdate(bobClient, "get", kapi.Resource("nodes/metrics"), true); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(bobKubeClient.Authorization(), "get", kapi.Resource("nodes/metrics"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForClusterPolicyUpdate(sa1Client, "get", kapi.Resource("nodes/metrics"), true); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(sa1KubeClient.Authorization(), "get", kapi.Resource("nodes/metrics"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

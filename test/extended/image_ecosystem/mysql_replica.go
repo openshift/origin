@@ -89,7 +89,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace(), "1Gi", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = testutil.WaitForPolicyUpdate(oc.Client(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
