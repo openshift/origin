@@ -39,6 +39,7 @@ readonly OS_CROSS_COMPILE_TARGETS=(
   cmd/openshift
   cmd/oc
   cmd/kubefed
+  cmd/template-service-broker
 )
 readonly OS_CROSS_COMPILE_BINARIES=("${OS_CROSS_COMPILE_TARGETS[@]##*/}")
 
