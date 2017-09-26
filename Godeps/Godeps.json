@@ -10338,6 +10338,21 @@
 			"Rev": "b0608fa189530bca78d7459a87318652b116171e"
 		},
 		{
+			"ImportPath": "github.com/kubernetes-incubator/cri-o/client",
+			"Comment": "v1.0.0-rc2-40-ga8ee86b1",
+			"Rev": "a8ee86b1cce0c13bd541a99140682a92635ba9f7"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/cri-o/types",
+			"Comment": "v1.0.0-rc2-40-ga8ee86b1",
+			"Rev": "a8ee86b1cce0c13bd541a99140682a92635ba9f7"
+		},
+		{
+			"ImportPath": "github.com/kubernetes-incubator/cri-o/pkg/annotations",
+			"Comment": "v1.0.0-rc2-40-ga8ee86b1",
+			"Rev": "a8ee86b1cce0c13bd541a99140682a92635ba9f7"
+		},
+		{
 			"ImportPath": "vbom.ml/util/sortorder",
 			"Rev": "db5cfe13f5cc80a4990d98e2e1b0707a4d1a5394"
 		},
