@@ -10,8 +10,8 @@ import (
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
@@ -19,7 +19,7 @@ import (
 
 // ClusterRoles is a Diagnostic to check that the default cluster roles match expectations
 type ClusterRoles struct {
-	ClusterRolesClient osclient.ClusterRolesInterface
+	ClusterRolesClient oauthorizationtypedclient.ClusterRoleInterface
 	SARClient          authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
@@ -84,7 +84,7 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 		Confirmed:  false,
 		Union:      false,
 		Out:        ioutil.Discard,
-		RoleClient: d.ClusterRolesClient.ClusterRoles(),
+		RoleClient: d.ClusterRolesClient,
 	}
 
 	changedClusterRoles, _, err := reconcileOptions.ChangedClusterRoles()
@@ -99,7 +99,7 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 	}
 
 	for _, changedClusterRole := range changedClusterRoles {
-		actualClusterRole, err := d.ClusterRolesClient.ClusterRoles().Get(changedClusterRole.Name, metav1.GetOptions{})
+		actualClusterRole, err := d.ClusterRolesClient.Get(changedClusterRole.Name, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			r.Error("CRD1002", nil, fmt.Sprintf(clusterRoleMissing, changedClusterRole.Name))
 			continue
