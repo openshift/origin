@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 529328f37a7015a6c9cb4f52113de8f99c33a83f
+%global commit 8da13fd737174bf1425495d205701196a52db628
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.126.6 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=529328f
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.127.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=8da13fd
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.127.0%{?dist}
+Release:        0.128.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,132 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Sep 26 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.128.0
+- bump(github.com/openshift/origin-web-console):
+  cf9c610fe4fcce12b88069e5108ae488abd59e71 (eparis+openshiftbot@redhat.com)
+- simplify controller startup (deads@redhat.com)
+- remove most legacy client usage from diagnostics (deads@redhat.com)
+- move eventQueue to the only package using it (deads@redhat.com)
+- remove legacy client usage (deads@redhat.com)
+- add new scaler namespacer with external type (deads@redhat.com)
+- use reconcilation to ensure rbac resources (deads@redhat.com)
+- switch to generated apps listers (deads@redhat.com)
+- tidy up owners files and move naughty pacakge (deads@redhat.com)
+- remove exit (pweil@redhat.com)
+- add deploymentconfig lister methods (deads@redhat.com)
+- Update generated files (stefan.schimanski@gmail.com)
+- bump(github.com/openshift/origin-web-console):
+  c1a018662d8f73d402774706101575505361080d (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  1dae20b4c822489dede0ce84c8fad1af35d2927a (eparis+openshiftbot@redhat.com)
+- Enable deepcopy-gen in packages where needed (stefan.schimanski@gmail.com)
+- Add +k8s:deepcopy-gen:interfaces tags to runtime.Object impls in tests
+  (stefan.schimanski@gmail.com)
+- Add +k8s:deepcopy-gen:interfaces tags to runtime.Object impls
+  (stefan.schimanski@gmail.com)
+- Set access token expiration correctly for code and implicit flows
+  (jliggitt@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  9dfd4eed18adfc112b8ed42b4a0945d46ef011d0 (bparees@redhat.com)
+- switch rest of the controllers to use generated clients (mfojtik@redhat.com)
+- api: pass proper parameterCodec to api group info (mfojtik@redhat.com)
+- cli: switch to generated clients (mfojtik@redhat.com)
+- update generated completions (jvallejo@redhat.com)
+- add tests (jvallejo@redhat.com)
+- add --dry-run --output opts -> modify_scc (jvallejo@redhat.com)
+- add --dry-run --output support to modify_roles (jvallejo@redhat.com)
+- Mark all of the SDN code "+build linux", to fix unit tests on OS X
+  (danw@redhat.com)
+- add --output & --dry-run options oc-adm-policy... (jvallejo@redhat.com)
+- remove scheduled import patch test (bparees@redhat.com)
+- bump(k8s.io/kubernetes): b0608fa189530bca78d7459a87318652b116171e
+  (deads@redhat.com)
+- api: pass proper parameterCodec to api group info (mfojtik@redhat.com)
+- cli: switch to generated clients (mfojtik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  0ffc72d9d1063529fbe0ba79de040d297ed5c786 (eparis+openshiftbot@redhat.com)
+- remove last of the bad api deps (deads@redhat.com)
+- remove dependency on kube api helpers from api types (deads@redhat.com)
+- remove last docker distribution dependency from api (deads@redhat.com)
+- remove legacy client from clusterquota (deads@redhat.com)
+- removing legacy client from strategyrestrictions (deads@redhat.com)
+- restrictuser admission legacy client removal (deads@redhat.com)
+- remove legacy client deps (deads@redhat.com)
+- project: switch to generated clientset (mfojtik@redhat.com)
+- UPSTREAM: 50036: Bring volume operation metrics (hekumar@redhat.com)
+- oc new-app expose message logic (m.judeikis@gmail.com)
+- remove last docker distribution dependency from api (deads@redhat.com)
+- UPSTREAM: 52691: FC plugin: Return target wwn + lun at GetVolumeName()
+  (hchen@redhat.com)
+- UPSTREAM: 52687: Refactoring and improvements for iSCSI and FC storage
+  plugins (hchen@redhat.com)
+- UPSTREAM: 52675: Fix FC WaitForAttach not mounting a volume
+  (hchen@redhat.com)
+- UPSTREAM: opencontainers/runc: 1344: fix cpu.cfs_quota_us changed when
+  systemd daemon-reload using systemd (sjenning@redhat.com)
+- catalog: enable OriginatingIdentity (jaboyd@redhat.com)
+- Reduce the log level of regex debugging statements (bbennett@redhat.com)
+- Add a suite test that tests the upstream conformance (ccoleman@redhat.com)
+- catalog: added new admission controller BrokerAuthSarCheck and updated
+  bindata (jaboyd@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from ae6b643caf..06b897d198 (jaboyd@redhat.com)
+- Drop double conversion in boostrap policy (cheimes@redhat.com)
+- Basic audit extended test (maszulik@redhat.com)
+- Enable full advanced audit in origin (maszulik@redhat.com)
+- Select manifest for default platform from manifest lists
+  (obulatov@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Revert "disable manifest list
+  registration" (obulatov@redhat.com)
+- UPSTREAM: 51782: A policy with 0 rules should return an error
+  (maszulik@redhat.com)
+- UPSTREAM: 52030: Fill in creationtimestamp in audit events
+  (maszulik@redhat.com)
+- UPSTREAM: 51119: Allow audit to log authorization failures
+  (maszulik@redhat.com)
+- UPSTREAM: 48605: support json output for log backend of advanced audit
+  (maszulik@redhat.com)
+- sdn: disable hostport handling when CRIO is used (dcbw@redhat.com)
+- tls edge support add nginx to build local images script (rchopra@redhat.com)
+- contain annotations to the appropriate group (deads@redhat.com)
+- nginx router based on template (rchopra@redhat.com)
+- remove user specification via request parameter for TSB (gmontero@redhat.com)
+- Make focus and skip a lot easier to use in extended tests
+  (ccoleman@redhat.com)
+- Switch to the upstream style for Features (ccoleman@redhat.com)
+- UPSTREAM: onsi/ginkgo: 371: Allow tests to be modified (ccoleman@redhat.com)
+- Use utilruntime.HandleError for errors in login.go (mrogers@redhat.com)
+- Print more details when network diagnostics test setup fails
+  (rpenta@redhat.com)
+- Bug 1481147 - Fix default pod image for network diagnostics
+  (rpenta@redhat.com)
+- Rebase cluster-capacity to 0.3.0 version that is rebased to kubernetes 1.7.
+  (avagarwa@redhat.com)
+- UPSTREAM: 52297: Use cAdvisor constant for crio imagefs (sjenning@redhat.com)
+- UPSTREAM: 52073: Fix cross-build (sjenning@redhat.com)
+- UPSTREAM: 51728: Enable CRI-O stats from cAdvisor (sjenning@redhat.com)
+- Added networking team members to the relevant oc adm commands
+  (bbennett@redhat.com)
+- Disable the watch cache for most resources by default (ccoleman@redhat.com)
+- React to changes in watch cache initialization (ccoleman@redhat.com)
+- UPSTREAM: 52112: Allow watch cache disablement per type (ccoleman@redhat.com)
+- Instead of launching kubelet directly, exec (ccoleman@redhat.com)
+- Remove two deprecated / unnecessary default overrides in node
+  (ccoleman@redhat.com)
+- Support --v and --vmodule silently (ccoleman@redhat.com)
+- UPSTREAM: 52597: Support flag round tripping (ccoleman@redhat.com)
+- UPSTREAM: 51796: Fix pod and node names switched around in error message.
+  (jminter@redhat.com)
+- ensure node exists if --node-name given (jvallejo@redhat.com)
+- Exit if there is no ClusterID and allow-untagged-cluster isn't set.
+  (rrati@redhat.com)
+- UPSTREAM: 49215: Require Cluster ID for AWS (rrati@redhat.com)
+- UPSTREAM: 48612: Warn if cluster ID is missing for AWS (rrati@redhat.com)
+- api docs should show right return value for build instantiate{binary,}
+  (jminter@redhat.com)
+- UPSTREAM: 51972: ProducesObject should only update the returned API object
+  resource documentation (jminter@redhat.com)
+
 * Thu Sep 21 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.127.0
 - bump(github.com/openshift/origin-web-console):
   444e25c4351d52160eef428f1b526cf37d0519a2 (eparis+openshiftbot@redhat.com)
