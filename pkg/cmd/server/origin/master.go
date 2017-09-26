@@ -153,7 +153,7 @@ func (c *MasterConfig) withKubeAPI(delegateAPIServer apiserver.DelegationTarget,
 	return preparedKubeAPIServer.GenericAPIServer, nil
 }
 
-func (c *MasterConfig) newAssetServerHandler() (http.Handler, error) {
+func (c *MasterConfig) newAssetServerHandler(genericConfig *apiserver.Config) (http.Handler, error) {
 	if !c.WebConsoleEnabled() || c.WebConsoleStandalone() {
 		return http.NotFoundHandler(), nil
 	}
@@ -162,6 +162,8 @@ func (c *MasterConfig) newAssetServerHandler() (http.Handler, error) {
 	if err != nil {
 		return nil, err
 	}
+	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
+	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
 	assetServer, err := config.Complete().New(apiserver.EmptyDelegate)
 	if err != nil {
 		return nil, err
@@ -169,7 +171,7 @@ func (c *MasterConfig) newAssetServerHandler() (http.Handler, error) {
 	return assetServer.GenericAPIServer.PrepareRun().GenericAPIServer.Handler.FullHandlerChain, nil
 }
 
-func (c *MasterConfig) newOAuthServerHandler() (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
+func (c *MasterConfig) newOAuthServerHandler(genericConfig *apiserver.Config) (http.Handler, map[string]apiserver.PostStartHookFunc, error) {
 	if c.Options.OAuthConfig == nil {
 		return http.NotFoundHandler(), nil, nil
 	}
@@ -178,6 +180,8 @@ func (c *MasterConfig) newOAuthServerHandler() (http.Handler, map[string]apiserv
 	if err != nil {
 		return nil, nil, err
 	}
+	config.GenericConfig.AuditBackend = genericConfig.AuditBackend
+	config.GenericConfig.AuditPolicyChecker = genericConfig.AuditPolicyChecker
 	oauthServer, err := config.Complete().New(apiserver.EmptyDelegate)
 	if err != nil {
 		return nil, nil, err
@@ -211,7 +215,7 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain()
+	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
@@ -268,12 +272,12 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	return cmdutil.WaitForSuccessfulDial(true, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindNetwork, aggregatedAPIServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)
 }
 
-func (c *MasterConfig) buildHandlerChain() (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
-	assetServerHandler, err := c.newAssetServerHandler()
+func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(apiHandler http.Handler, kc *apiserver.Config) http.Handler, map[string]apiserver.PostStartHookFunc, error) {
+	assetServerHandler, err := c.newAssetServerHandler(genericConfig)
 	if err != nil {
 		return nil, nil, err
 	}
-	oauthServerHandler, extraPostStartHooks, err := c.newOAuthServerHandler()
+	oauthServerHandler, extraPostStartHooks, err := c.newOAuthServerHandler(genericConfig)
 	if err != nil {
 		return nil, nil, err
 	}
