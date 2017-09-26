@@ -24,12 +24,14 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
 	"net/url"
 	"os"
 	"path"
 	"strconv"
 	"time"
+
+	// included for side effect of getting pprof endpoints
+	_ "net/http/pprof"
 
 	"github.com/golang/glog"
 	"github.com/spf13/cobra"
@@ -466,7 +468,9 @@ func run(s *options.KubeletServer, kubeDeps *kubelet.KubeletDeps) (err error) {
 				if err != nil {
 					return err
 				}
-				if err := certificate.UpdateTransport(wait.NeverStop, clientConfig, clientCertificateManager); err != nil {
+				// we set exitIfExpired to true because we use this client configuration to request new certs - if we are unable
+				// to request new certs we will need to re-bootstrap
+				if err := certificate.UpdateTransport(wait.NeverStop, clientConfig, clientCertificateManager, true); err != nil {
 					return err
 				}
 			}
