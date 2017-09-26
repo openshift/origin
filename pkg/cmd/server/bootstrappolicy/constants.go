@@ -32,8 +32,6 @@ const (
 
 // groups
 const (
-	UnauthenticatedUsername = "system:anonymous"
-
 	AuthenticatedGroup      = "system:authenticated"
 	AuthenticatedOAuthGroup = "system:authenticated:oauth"
 	UnauthenticatedGroup    = "system:unauthenticated"
@@ -42,7 +40,6 @@ const (
 	MastersGroup            = "system:masters"
 	NodesGroup              = "system:nodes"
 	NodeAdminsGroup         = "system:node-admins"
-	NodeReadersGroup        = "system:node-readers"
 )
 
 // Roles
@@ -113,23 +110,14 @@ const (
 	StatusCheckerRoleBindingName      = StatusCheckerRoleName + "-binding"
 	ImagePullerRoleBindingName        = ImagePullerRoleName + "s"
 	ImageBuilderRoleBindingName       = ImageBuilderRoleName + "s"
-	RouterRoleBindingName             = RouterRoleName + "s"
-	RegistryRoleBindingName           = RegistryRoleName + "s"
 	MasterRoleBindingName             = MasterRoleName + "s"
-	NodeRoleBindingName               = NodeRoleName + "s"
 	NodeProxierRoleBindingName        = NodeProxierRoleName + "s"
 	NodeAdminRoleBindingName          = NodeAdminRoleName + "s"
-	NodeReaderRoleBindingName         = NodeReaderRoleName + "s"
 	SDNReaderRoleBindingName          = SDNReaderRoleName + "s"
-	SDNManagerRoleBindingName         = SDNManagerRoleName + "s"
 	WebHooksRoleBindingName           = WebHooksRoleName + "s"
 	DiscoveryRoleBindingName          = DiscoveryRoleName + "-binding"
-	RegistryAdminRoleBindingName      = RegistryAdminRoleName + "s"
-	RegistryViewerRoleBindingName     = RegistryViewerRoleName + "s"
-	RegistryEditorRoleBindingName     = RegistryEditorRoleName + "s"
 
 	BuildStrategyDockerRoleBindingName          = BuildStrategyDockerRoleName + "-binding"
-	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
 	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
 	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
 
