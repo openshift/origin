@@ -32507,7 +32507,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.BuildRequest"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.Build"
        }
       },
       "401": {
@@ -32567,7 +32567,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "type": "string"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.Build"
        }
       },
       "401": {
@@ -70958,7 +70958,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.BuildRequest"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.Build"
        }
       },
       "401": {
@@ -71018,7 +71018,7 @@
       "200": {
        "description": "OK",
        "schema": {
-        "type": "string"
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.Build"
        }
       },
       "401": {
