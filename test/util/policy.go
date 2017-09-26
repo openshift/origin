@@ -5,9 +5,9 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
 const (
@@ -17,28 +17,45 @@ const (
 
 // WaitForPolicyUpdate checks if the given client can perform the named verb and action.
 // If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
-func WaitForPolicyUpdate(c *client.Client, namespace, verb string, resource schema.GroupResource, allowed bool) error {
-	review := &authorizationapi.LocalSubjectAccessReview{Action: authorizationapi.Action{Verb: verb, Group: resource.Group, Resource: resource.Resource}}
+func WaitForPolicyUpdate(c authorizationtypedclient.SelfSubjectAccessReviewsGetter, namespace, verb string, resource schema.GroupResource, allowed bool) error {
+	review := &authorization.SelfSubjectAccessReview{
+		Spec: authorization.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorization.ResourceAttributes{
+				Namespace: namespace,
+				Verb:      verb,
+				Group:     resource.Group,
+				Resource:  resource.Resource,
+			},
+		},
+	}
 	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
-		response, err := c.LocalSubjectAccessReviews(namespace).Create(review)
+		response, err := c.SelfSubjectAccessReviews().Create(review)
 		if err != nil {
 			return false, err
 		}
-		return response.Allowed == allowed, nil
+		return response.Status.Allowed == allowed, nil
 	})
 	return err
 }
 
 // WaitForClusterPolicyUpdate checks if the given client can perform the named verb and action.
 // If PolicyCachePollTimeout is reached without the expected condition matching, an error is returned
-func WaitForClusterPolicyUpdate(c *client.Client, verb string, resource schema.GroupResource, allowed bool) error {
-	review := &authorizationapi.SubjectAccessReview{Action: authorizationapi.Action{Verb: verb, Group: resource.Group, Resource: resource.Resource}}
+func WaitForClusterPolicyUpdate(c authorizationtypedclient.SelfSubjectAccessReviewsGetter, verb string, resource schema.GroupResource, allowed bool) error {
+	review := &authorization.SelfSubjectAccessReview{
+		Spec: authorization.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authorization.ResourceAttributes{
+				Verb:     verb,
+				Group:    resource.Group,
+				Resource: resource.Resource,
+			},
+		},
+	}
 	err := wait.Poll(PolicyCachePollInterval, PolicyCachePollTimeout, func() (bool, error) {
-		response, err := c.SubjectAccessReviews().Create(review)
+		response, err := c.SelfSubjectAccessReviews().Create(review)
 		if err != nil {
 			return false, err
 		}
-		if response.Allowed != allowed {
+		if response.Status.Allowed != allowed {
 			return false, nil
 		}
 		return true, nil

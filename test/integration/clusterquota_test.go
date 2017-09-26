@@ -58,10 +58,10 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "first", "harold"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "first", "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "second", "harold"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "second", "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

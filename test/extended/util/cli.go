@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclientset "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	templateclientset "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	userclientset "github.com/openshift/origin/pkg/user/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
@@ -159,7 +160,7 @@ func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[s
 	e2e.Logf("The user is now %q", c.Username())
 
 	e2e.Logf("Creating project %q", c.Namespace())
-	_, err := c.Client().ProjectRequests().Create(&projectapi.ProjectRequest{
+	_, err := c.ProjectClient().Project().ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()},
 	})
 	if err != nil {
@@ -231,6 +232,15 @@ func (c *CLI) ProjectClient() projectclientset.Interface {
 	return client
 }
 
+func (c *CLI) RouteClient() routeclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.configPath, nil)
+	client, err := routeclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
 // Client provides an OpenShift client for the current user. If the user is not
 // set, then it provides client for the cluster admin user
 func (c *CLI) TemplateClient() templateclientset.Interface {
@@ -290,6 +300,15 @@ func (c *CLI) AdminImageClient() imageclientset.Interface {
 func (c *CLI) AdminProjectClient() projectclientset.Interface {
 	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
 	client, err := projectclientset.NewForConfig(clientConfig)
+	if err != nil {
+		FatalErr(err)
+	}
+	return client
+}
+
+func (c *CLI) AdminRouteClient() routeclientset.Interface {
+	_, clientConfig, err := configapi.GetInternalKubeClient(c.adminConfigPath, nil)
+	client, err := routeclientset.NewForConfig(clientConfig)
 	if err != nil {
 		FatalErr(err)
 	}
