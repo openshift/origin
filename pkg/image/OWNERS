@@ -1,4 +1,5 @@
 reviewers:
+  - bparees
   - smarterclayton
   - soltysh
   - miminar
@@ -6,6 +7,7 @@ reviewers:
   - liggitt
   - legionus
 approvers:
+  - bparees
   - smarterclayton
   - soltysh
   - mfojtik
