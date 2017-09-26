@@ -53,36 +53,9 @@ func printBool(out io.Writer, value bool) {
 func tabbedString(f func(*tabwriter.Writer)) string {
 	out := new(tabwriter.Writer)
 	buf := &bytes.Buffer{}
-	out.Init(buf, 0, 8, 1, '\t', 0)
+	out.Init(buf, 0, 8, 1, ' ', 0)
 	f(out)
 	out.Flush()
 	str := string(buf.String())
 	return str
-}
-
-type scale struct {
-	scale uint64
-	unit  string
-}
-
-var (
-	mega = scale{20, "MiB"}
-	giga = scale{30, "GiB"}
-)
-
-func printSize(out io.Writer, size int64) {
-	scale := mega
-	if size >= (1 << 30) {
-		scale = giga
-	}
-	integer := size >> scale.scale
-	// fraction is the reminder of a division shifted by one order of magnitude
-	fraction := (size % (1 << scale.scale)) >> (scale.scale - 10)
-	// additionally we present only 2 digits after dot, so divide by 10
-	fraction = fraction / 10
-	if fraction > 0 {
-		printValue(out, fmt.Sprintf("%d.%02d%s", integer, fraction, scale.unit))
-	} else {
-		printValue(out, fmt.Sprintf("%d%s", integer, scale.unit))
-	}
 }

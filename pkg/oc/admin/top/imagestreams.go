@@ -3,7 +3,9 @@ package top
 import (
 	"fmt"
 	"io"
+	"sort"
 
+	units "github.com/docker/go-units"
 	gonum "github.com/gonum/graph"
 	"github.com/spf13/cobra"
 
@@ -116,7 +118,7 @@ var _ Info = &imageStreamInfo{}
 
 func (i imageStreamInfo) PrintLine(out io.Writer) {
 	printValue(out, i.ImageStream)
-	printSize(out, i.Storage)
+	printValue(out, units.BytesSize(float64(i.Storage)))
 	printValue(out, i.Images)
 	printValue(out, i.Layers)
 }
@@ -139,6 +141,16 @@ func (o TopImageStreamsOptions) imageStreamsTop() []Info {
 			Layers:      layers,
 		})
 	}
+	sort.Slice(infos, func(i, j int) bool {
+		a, b := infos[i].(imageStreamInfo), infos[j].(imageStreamInfo)
+		if a.Storage < b.Storage {
+			return false
+		}
+		if a.Storage > b.Storage {
+			return true
+		}
+		return a.Images > b.Images
+	})
 
 	return infos
 }
