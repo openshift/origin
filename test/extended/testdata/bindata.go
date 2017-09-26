@@ -24862,6 +24862,22 @@ objects:
           action: replace
           target_label: kubernetes_name
 
+      - job_name: 'openshift-template-service-broker'
+
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+          server_name: apiserver.openshift-template-service-broker.svc
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+
+        kubernetes_sd_configs:
+        - role: endpoints
+
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: openshift-template-service-broker;apiserver;https
+
       alerting:
         alertmanagers:
         - scheme: http
@@ -27968,7 +27984,8 @@ func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml()
 var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
-- openshift`)
+- openshift
+`)
 
 func installTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
 	return _installTemplateservicebrokerApiserverConfigYaml, nil
@@ -28002,6 +28019,8 @@ parameters:
    apiVersion: config.templateservicebroker.openshift.io/v1
    templateNamespaces:
    - openshift
+- name: NODE_SELECTOR
+  value: "{}"
 objects:
 
 # to create the tsb server
@@ -28046,6 +28065,7 @@ objects:
               path: /healthz
               port: 8443
               scheme: HTTPS
+        nodeSelector: "${{NODE_SELECTOR}}"
         volumes:
         - name: serving-cert
           secret:
@@ -28084,11 +28104,12 @@ objects:
     selector:
       apiserver: "true"
     ports:
-    - port: 443
+    - name: https
+      port: 443
       targetPort: 8443
 
 # This service account will be granted permission to call the TSB.
-# The token for this SA will be provided to the service catalog for 
+# The token for this SA will be provided to the service catalog for
 # use when calling the TSB.
 - apiVersion: v1
   kind: ServiceAccount
