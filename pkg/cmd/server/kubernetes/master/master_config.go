@@ -77,8 +77,6 @@ import (
 	"github.com/openshift/origin/pkg/version"
 )
 
-const DefaultWatchCacheSize = 1000
-
 // request paths that match this regular expression will be treated as long running
 // and not subjected to the default server timeout.
 const originLongRunningEndpointsRE = "(/|^)(buildconfigs/.*/instantiatebinary|imagestreamimports)$"
@@ -147,7 +145,7 @@ func BuildKubeAPIserverOptions(masterConfig configapi.MasterConfig) (*kapiserver
 	server.Etcd.StorageConfig.KeyFile = masterConfig.EtcdClientInfo.ClientCert.KeyFile
 	server.Etcd.StorageConfig.CertFile = masterConfig.EtcdClientInfo.ClientCert.CertFile
 	server.Etcd.StorageConfig.CAFile = masterConfig.EtcdClientInfo.CA
-	server.Etcd.DefaultWatchCacheSize = DefaultWatchCacheSize
+	server.Etcd.DefaultWatchCacheSize = 0
 
 	server.GenericServerRunOptions.CorsAllowedOriginList = masterConfig.CORSAllowedOrigins
 	server.GenericServerRunOptions.MaxRequestsInFlight = masterConfig.ServingInfo.MaxRequestsInFlight
@@ -438,6 +436,20 @@ func buildKubeApiserverConfig(
 		return originLongRunningRequestRE.MatchString(r.URL.Path) || kubeLongRunningFunc(r, requestInfo)
 	}
 
+	if apiserverOptions.Etcd.EnableWatchCache {
+		glog.V(2).Infof("Initializing cache sizes based on %dMB limit", apiserverOptions.GenericServerRunOptions.TargetRAMMB)
+		sizes := cachesize.NewHeuristicWatchCacheSizes(apiserverOptions.GenericServerRunOptions.TargetRAMMB)
+		if userSpecified, err := genericoptions.ParseWatchCacheSizes(apiserverOptions.Etcd.WatchCacheSizes); err == nil {
+			for resource, size := range userSpecified {
+				sizes[resource] = size
+			}
+		}
+		apiserverOptions.Etcd.WatchCacheSizes, err = genericoptions.WriteWatchCacheSizes(sizes)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if err := apiserverOptions.Etcd.ApplyWithStorageFactoryTo(storageFactory, genericConfig); err != nil {
 		return nil, err
 	}
@@ -521,12 +533,6 @@ func buildKubeApiserverConfig(
 
 		EnableLogsSupport:     false, // don't expose server logs
 		EnableCoreControllers: true,
-	}
-
-	if apiserverOptions.Etcd.EnableWatchCache {
-		// TODO(rebase): upstream also does the following:
-		// cachesize.InitializeWatchCacheSizes(s.GenericServerRunOptions.TargetRAMMB)
-		cachesize.SetWatchCacheSizes(apiserverOptions.GenericServerRunOptions.WatchCacheSizes)
 	}
 
 	if kubeApiserverConfig.EnableCoreControllers {
