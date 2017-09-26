@@ -120,6 +120,16 @@ func setUser(cli *exutil.CLI, user *userapi.User) {
 	}
 }
 
+func setEmptyNodeSelector(tsbOC *exutil.CLI) {
+	namespace, err := tsbOC.AdminKubeClient().CoreV1().Namespaces().Get(tsbOC.Namespace(), metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred())
+
+	namespace.Annotations["openshift.io/node-selector"] = ""
+
+	_, err = tsbOC.AdminKubeClient().CoreV1().Namespaces().Update(namespace)
+	o.Expect(err).NotTo(o.HaveOccurred())
+}
+
 // EnsureTSB makes sure a TSB is present where expected and returns a client to
 // speak to it and a close method which provides the proxy.  The caller must
 // call the close method, usually done in AfterEach
@@ -136,6 +146,13 @@ func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, func() error) {
 			e2e.Logf("Error creating TSB resources: %v \n", err)
 		}
 	}
+
+	// Set an empty node selector on our namespace.  For now this ensures we
+	// don't trigger a spinning state (see bz1494709) with the DaemonSet if
+	// projectConfig.defaultNodeSelector is set in the master config and some
+	// nodes don't match the nodeSelector.  The spinning state wastes CPU and
+	// fills the node logs, but otherwise isn't particularly harmful.
+	setEmptyNodeSelector(tsbOC)
 
 	configPath := exutil.FixturePath("..", "..", "install", "templateservicebroker", "apiserver-template.yaml")
 

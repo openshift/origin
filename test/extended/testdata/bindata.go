@@ -27968,7 +27968,8 @@ func installServiceCatalogBrokerResourcesTemplateServiceBrokerRegistrationYaml()
 var _installTemplateservicebrokerApiserverConfigYaml = []byte(`kind: TemplateServiceBrokerConfig
 apiVersion: config.templateservicebroker.openshift.io/v1
 templateNamespaces:
-- openshift`)
+- openshift
+`)
 
 func installTemplateservicebrokerApiserverConfigYamlBytes() ([]byte, error) {
 	return _installTemplateservicebrokerApiserverConfigYaml, nil
@@ -28002,6 +28003,8 @@ parameters:
    apiVersion: config.templateservicebroker.openshift.io/v1
    templateNamespaces:
    - openshift
+- name: NODE_SELECTOR
+  value: "{}"
 objects:
 
 # to create the tsb server
@@ -28046,6 +28049,7 @@ objects:
               path: /healthz
               port: 8443
               scheme: HTTPS
+        nodeSelector: "${{NODE_SELECTOR}}"
         volumes:
         - name: serving-cert
           secret:
@@ -28088,7 +28092,7 @@ objects:
       targetPort: 8443
 
 # This service account will be granted permission to call the TSB.
-# The token for this SA will be provided to the service catalog for 
+# The token for this SA will be provided to the service catalog for
 # use when calling the TSB.
 - apiVersion: v1
   kind: ServiceAccount
