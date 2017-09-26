@@ -67,6 +67,19 @@ func buildNamespaceRolesAndBindings() (map[string][]rbac.Role, map[string][]rbac
 		DefaultOpenShiftSharedResourcesNamespace,
 		newOriginRoleBinding(OpenshiftSharedResourceViewRoleBindingName, OpenshiftSharedResourceViewRoleName, DefaultOpenShiftSharedResourcesNamespace).Groups(AuthenticatedGroup).BindingOrDie())
 
+	addNamespaceRole(namespaceRoles,
+		DefaultOpenShiftNodeNamespace,
+		rbac.Role{
+			ObjectMeta: metav1.ObjectMeta{Name: NodeConfigReaderRoleName},
+			Rules: []rbac.PolicyRule{
+				// Allow the reader to read config maps in a given namespace with a given name.
+				rbac.NewRule("get").Groups(kapiGroup).Resources("configmaps").RuleOrDie(),
+			},
+		})
+	addNamespaceRoleBinding(namespaceRoleBindings,
+		DefaultOpenShiftNodeNamespace,
+		rbac.NewRoleBinding(NodeConfigReaderRoleName, DefaultOpenShiftNodeNamespace).Groups(NodesGroup).BindingOrDie())
+
 	return namespaceRoles, namespaceRoleBindings
 }
 
