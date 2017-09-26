@@ -35,7 +35,7 @@ USER 1001
 
 	g.It("should succeed [Conformance]", func() {
 		g.By("creating a build directly")
-		build, err := oc.AdminClient().Builds(oc.Namespace()).Create(&buildapi.Build{
+		build, err := oc.AdminBuildClient().Build().Builds(oc.Namespace()).Create(&buildapi.Build{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "optimized",
 			},
@@ -55,7 +55,7 @@ USER 1001
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(build.Spec.Strategy.DockerStrategy.ImageOptimizationPolicy).ToNot(o.BeNil())
 		result := exutil.NewBuildResult(oc, build)
-		err = exutil.WaitForBuildResult(oc.AdminClient().Builds(oc.Namespace()), result)
+		err = exutil.WaitForBuildResult(oc.AdminBuildClient().Build().Builds(oc.Namespace()), result)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(result.BuildSuccess).To(o.BeTrue(), "Build did not succeed: %v", result)
 

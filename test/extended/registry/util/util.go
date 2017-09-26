@@ -137,7 +137,7 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 		return nil
 	}
 
-	dc, err := oc.Client().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
+	dc, err := oc.AppsClient().Apps().DeploymentConfigs(metav1.NamespaceDefault).Get("docker-registry", metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 	}
 	return exutil.WaitForDeploymentConfig(
 		oc.AdminKubeClient(),
-		oc.AdminClient(),
+		oc.AdminAppsClient().Apps(),
 		metav1.NamespaceDefault,
 		"docker-registry",
 		waitForVersion,
