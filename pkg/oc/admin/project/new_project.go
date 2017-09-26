@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -40,6 +41,8 @@ type NewProjectOptions struct {
 
 	AdminRole string
 	AdminUser string
+
+	Output io.Writer
 }
 
 var newProjectLong = templates.LongDesc(`
@@ -126,7 +129,12 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		return err
 	}
 
-	fmt.Printf("Created project %v\n", o.ProjectName)
+	output := o.Output
+	if output == nil {
+		output = os.Stdout
+	}
+
+	fmt.Fprintf(output, "Created project %v\n", o.ProjectName)
 
 	errs := []error{}
 	if len(o.AdminUser) != 0 {
@@ -137,7 +145,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		}
 
 		if err := adduser.AddRole(); err != nil {
-			fmt.Printf("%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
+			fmt.Fprintf(output, "%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
 			errs = append(errs, err)
 		} else {
 			if err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
@@ -166,7 +174,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	for _, rbacBinding := range bootstrappolicy.GetBootstrapServiceAccountProjectRoleBindings(o.ProjectName) {
 		binding, err := authorizationregistryutil.RoleBindingFromRBAC(&rbacBinding)
 		if err != nil {
-			fmt.Printf("Could not convert Role Binding %s in the %q namespace: %v\n", rbacBinding.Name, o.ProjectName, err)
+			fmt.Fprintf(output, "Could not convert Role Binding %s in the %q namespace: %v\n", rbacBinding.Name, o.ProjectName, err)
 			errs = append(errs, err)
 			continue
 		}
@@ -177,7 +185,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {
-			fmt.Printf("Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
+			fmt.Fprintf(output, "Could not add service accounts to the %v role: %v\n", binding.RoleRef.Name, err)
 			errs = append(errs, err)
 		}
 	}

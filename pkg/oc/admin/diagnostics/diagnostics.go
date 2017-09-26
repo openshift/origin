@@ -276,6 +276,8 @@ func bindIndividualFlags(diag types.ParameterizedDiagnostic, prefix string, flag
 			flags.StringVar(target, name, param.Default.(string), param.Description)
 		case *int:
 			flags.IntVar(target, name, param.Default.(int), param.Description)
+		case *int64:
+			flags.Int64Var(target, name, param.Default.(int64), param.Description)
 		case *bool:
 			flags.BoolVar(target, name, param.Default.(bool), param.Description)
 		default:

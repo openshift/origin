@@ -17,6 +17,7 @@ import (
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	clustdiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster"
 	agldiags "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/aggregated_logging"
+	appcreate "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/cluster/app_create"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
@@ -30,6 +31,7 @@ import (
 func availableClusterDiagnostics() types.DiagnosticList {
 	return types.DiagnosticList{
 		&agldiags.AggregatedLogging{},
+		appcreate.NewDefaultAppCreateDiagnostic(),
 		&clustdiags.ClusterRegistry{},
 		&clustdiags.ClusterRouter{},
 		&clustdiags.ClusterRoles{},
@@ -96,6 +98,16 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 		case agldiags.AggregatedLoggingName:
 			p := o.ParameterizedDiagnostics[agldiags.AggregatedLoggingName].(*agldiags.AggregatedLogging).Project
 			d = agldiags.NewAggregatedLogging(p, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), oauthorizationClient.Authorization(), appsClient.Apps(), securityClient.Security())
+		case appcreate.AppCreateName:
+			ac := o.ParameterizedDiagnostics[diagnosticName].(*appcreate.AppCreate)
+			ac.KubeClient = kclusterClient
+			ac.ProjectClient = projectClient.Project()
+			ac.RouteClient = routeClient
+			ac.RoleBindingClient = oauthorizationClient.Authorization()
+			ac.SARClient = kclusterClient.Authorization()
+			ac.AppsClient = appsClient
+			ac.PreventModification = o.PreventModification
+			d = ac
 		case clustdiags.NodeDefinitionsName:
 			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient}
 		case clustdiags.MasterNodeName:

@@ -11,8 +11,9 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	"github.com/openshift/origin/pkg/authorization/registry/util"
+	regutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
@@ -46,7 +47,7 @@ func (d *ClusterRoleBindings) CanRun() (bool, error) {
 		return false, fmt.Errorf("must have client.SubjectAccessReviews")
 	}
 
-	return userCan(d.SARClient, &authorization.ResourceAttributes{
+	return util.UserCan(d.SARClient, &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    authorizationapi.GroupName,
 		Resource: "clusterrolebindings",
@@ -88,7 +89,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 			r.Error("CRBD1002", err, fmt.Sprintf("Unable to get clusterrolebinding/%s: %v", changedClusterRoleBinding.Name, err))
 			continue
 		}
-		actualRBACClusterRole, err := util.ClusterRoleBindingToRBAC(actualClusterRole)
+		actualRBACClusterRole, err := regutil.ClusterRoleBindingToRBAC(actualClusterRole)
 		if err != nil {
 			r.Error("CRBD1008", err, fmt.Sprintf("Unable to convert clusterrolebinding/%s to RBAC: %v", actualClusterRole.Name, err))
 			continue

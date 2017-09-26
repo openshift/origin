@@ -11,8 +11,9 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
-	"github.com/openshift/origin/pkg/authorization/registry/util"
+	regutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/util"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 )
@@ -74,7 +75,7 @@ func (d *ClusterRoles) CanRun() (bool, error) {
 		return false, fmt.Errorf("must have client.SubjectAccessReviews")
 	}
 
-	return userCan(d.SARClient, &authorization.ResourceAttributes{
+	return util.UserCan(d.SARClient, &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    authorizationapi.GroupName,
 		Resource: "clusterroles",
@@ -113,7 +114,7 @@ func (d *ClusterRoles) Check() types.DiagnosticResult {
 			continue
 		}
 
-		actualRBACClusterRole, err := util.ClusterRoleToRBAC(actualClusterRole)
+		actualRBACClusterRole, err := regutil.ClusterRoleToRBAC(actualClusterRole)
 		if err != nil {
 			r.Error("CRD1009", err, fmt.Sprintf("Unable to convert clusterrole/%s to RBAC cluster role: %v", actualClusterRole.Name, err))
 			continue
