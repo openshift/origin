@@ -37,7 +37,7 @@ func TestTriggers_manual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -117,7 +117,7 @@ func TestTriggers_imageChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, openshiftProjectAdminClient, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, oc, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, oc, _, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -401,7 +401,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, openshiftProjectAdminClient, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -565,7 +565,7 @@ func TestTriggers_configChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}

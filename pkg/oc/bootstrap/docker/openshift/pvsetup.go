@@ -11,7 +11,7 @@ import (
 	kbatch "k8s.io/kubernetes/pkg/apis/batch"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 )
 
@@ -80,9 +80,8 @@ for i in $(seq -f "%%04g" 1 %[1]d); do
 done
 `
 
-func (h *Helper) SetupPersistentStorage(osclient client.Interface, kclient kclientset.Interface, dir string) error {
-
-	err := h.ensurePVInstallerSA(osclient, kclient)
+func (h *Helper) SetupPersistentStorage(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, kclient kclientset.Interface, dir string) error {
+	err := h.ensurePVInstallerSA(authorizationClient, kclient)
 	if err != nil {
 		return err
 	}
@@ -104,7 +103,7 @@ func (h *Helper) SetupPersistentStorage(osclient client.Interface, kclient kclie
 	return nil
 }
 
-func (h *Helper) ensurePVInstallerSA(osclient client.Interface, kclient kclientset.Interface) error {
+func (h *Helper) ensurePVInstallerSA(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, kclient kclientset.Interface) error {
 	createSA := false
 	sa, err := kclient.Core().ServiceAccounts(pvSetupNamespace).Get(pvInstallerSA, metav1.GetOptions{})
 	if err != nil {
@@ -130,7 +129,7 @@ func (h *Helper) ensurePVInstallerSA(osclient client.Interface, kclient kclients
 	}
 
 	saUser := serviceaccount.MakeUsername(pvSetupNamespace, pvInstallerSA)
-	err = AddClusterRole(osclient, "cluster-admin", saUser)
+	err = AddClusterRole(authorizationClient, "cluster-admin", saUser)
 	if err != nil {
 		return errors.NewError("cannot add cluster role to service account (%s/%s)", pvSetupNamespace, pvInstallerSA).WithCause(err).WithDetails(h.OriginLog())
 	}

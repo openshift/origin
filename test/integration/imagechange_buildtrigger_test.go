@@ -5,10 +5,12 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	watchapi "k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -24,7 +26,7 @@ const (
 )
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
-	_, projectAdminClient, _, fn := setup(t)
+	_, _, projectAdminClient, fn := setup(t)
 	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -34,7 +36,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTI(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *testing.T) {
-	_, projectAdminClient, _, fn := setup(t)
+	_, _, projectAdminClient, fn := setup(t)
 	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -44,7 +46,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagSTIWithConfigChange(t *t
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
-	_, projectAdminClient, _, fn := setup(t)
+	_, _, projectAdminClient, fn := setup(t)
 	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -54,7 +56,7 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDocker(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t *testing.T) {
-	_, projectAdminClient, _, fn := setup(t)
+	_, _, projectAdminClient, fn := setup(t)
 	defer fn()
 	imageStream := mockImageStream2(tag)
 	imageStreamMapping := mockImageStreamMapping(imageStream.Name, "someimage", tag, "registry:8080/openshift/test-image-trigger:"+tag)
@@ -64,10 +66,10 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagDockerWithConfigChange(t
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
-	projectAdminKubeClient, projectAdminClient, clusterAdminClient, fn := setup(t)
+	clusterAdminClientConfig, projectAdminKubeClient, projectAdminClient, fn := setup(t)
 	defer fn()
 
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(clusterAdminClient)
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
 	subjects := []kapi.ObjectReference{
 		{
 			Kind: authorizationapi.SystemGroupKind,
@@ -94,14 +96,10 @@ func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustom(t *testing.T) {
 }
 
 func TestSimpleImageChangeBuildTriggerFromImageStreamTagCustomWithConfigChange(t *testing.T) {
-	projectAdminKubeClient, projectAdminClient, _, fn := setup(t)
+	clusterAdminClientConfig, projectAdminKubeClient, projectAdminClient, fn := setup(t)
 	defer fn()
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(testutil.GetBaseDir() + "/openshift.local.config/master/admin.kubeconfig")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(clusterAdminClient)
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig))
 	subjects := []kapi.ObjectReference{
 		{
 			Kind: authorizationapi.SystemGroupKind,
@@ -230,7 +228,7 @@ func mockImageStreamMapping(stream, image, tag, reference string) *imageapi.Imag
 	}
 }
 
-func setup(t *testing.T) (kclientset.Interface, *client.Client, *client.Client, func()) {
+func setup(t *testing.T) (*rest.Config, kclientset.Interface, *client.Client, func()) {
 	masterConfig, clusterAdminKubeConfigFile, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -246,12 +244,12 @@ func setup(t *testing.T) (kclientset.Interface, *client.Client, *client.Client, 
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	projectKubeAdminClient, projectAdminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminKubeConfig, testutil.Namespace(), testutil.Namespace())
+	projectKubeAdminClient, projectAdminClient, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminKubeConfig, testutil.Namespace(), testutil.Namespace())
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	return projectKubeAdminClient, projectAdminClient, clusterAdminClient, func() {
+	return clusterAdminKubeConfig, projectKubeAdminClient, projectAdminClient, func() {
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 }
@@ -478,7 +476,7 @@ func TestMultipleImageChangeBuildTriggers(t *testing.T) {
 		}
 		return bc
 	}
-	_, projectAdminClient, _, fn := setup(t)
+	_, _, projectAdminClient, fn := setup(t)
 	defer fn()
 	config := multipleImageChangeBuildConfig()
 	triggersToTest := []struct {

@@ -8,7 +8,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client/testclient"
+	fakeauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/fake"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
@@ -130,7 +130,7 @@ func TestModifyNamedClusterRoleBinding(t *testing.T) {
 			RoleName:            tc.inputRole,
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
-			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(testclient.NewSimpleFake(tc.existingClusterRoleBindings)),
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(fakeauthorizationclient.NewSimpleClientset(tc.existingClusterRoleBindings).Authorization()),
 		}
 
 		addRoleAndCheck(t, o, tcName, tc.expectedRoleBindingName, tc.expectedSubjects)
@@ -264,7 +264,7 @@ func TestModifyNamedLocalRoleBinding(t *testing.T) {
 			RoleBindingName:     tc.inputRoleBindingName,
 			Users:               tc.inputSubjects,
 			RoleNamespace:       metav1.NamespaceDefault,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(metav1.NamespaceDefault, testclient.NewSimpleFake(tc.existingRoleBindings)),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(metav1.NamespaceDefault, fakeauthorizationclient.NewSimpleClientset(tc.existingRoleBindings).Authorization()),
 		}
 
 		addRoleAndCheck(t, o, tcName, tc.expectedRoleBindingName, tc.expectedSubjects)

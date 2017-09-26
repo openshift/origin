@@ -61,6 +61,10 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
 
 	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
 	if err == nil {
@@ -82,12 +86,12 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Add oauth-editor cluster role to logging-deployer sa
-	if err = AddClusterRole(osClient, "oauth-editor", "system:serviceaccount:logging:logging-deployer"); err != nil {
+	if err = AddClusterRole(authorizationClient.Authorization(), "oauth-editor", "system:serviceaccount:logging:logging-deployer"); err != nil {
 		return errors.NewError("cannot add oauth editor role to logging deployer service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add cluster-reader cluster role to aggregated-logging-fluentd sa
-	if err = AddClusterRole(osClient, "cluster-reader", "system:serviceaccount:logging:aggregated-logging-fluentd"); err != nil {
+	if err = AddClusterRole(authorizationClient.Authorization(), "cluster-reader", "system:serviceaccount:logging:aggregated-logging-fluentd"); err != nil {
 		return errors.NewError("cannot cluster reader role to logging fluentd service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 

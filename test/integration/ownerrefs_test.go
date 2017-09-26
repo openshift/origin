@@ -42,7 +42,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, _, err := testserver.CreateNewProject(originClient, *clientConfig, "foo", "admin-user"); err != nil {
+	if _, _, _, err := testserver.CreateNewProject(originClient, *clientConfig, "foo", "admin-user"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	_, creatorClient, _, err := testutil.GetClientForUser(*clientConfig, "creator")

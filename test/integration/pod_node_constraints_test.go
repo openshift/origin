@@ -11,6 +11,7 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -106,10 +107,6 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -134,7 +131,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	addUser := &policy.RoleModificationOptions{
 		RoleNamespace:       ns.Name,
 		RoleName:            bootstrappolicy.AdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{user},
 	}
 	if err := addUser.AddRole(); err != nil {
