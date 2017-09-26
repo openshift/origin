@@ -9,13 +9,11 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	osclient "github.com/openshift/origin/pkg/client"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/diagnostics/types"
-
 	"github.com/openshift/origin/pkg/network"
 )
 
@@ -29,7 +27,6 @@ to proxy to pods over the Open vSwitch SDN.
 // with other nodes.
 type MasterNode struct {
 	KubeClient       kclientset.Interface
-	OsClient         *osclient.Client
 	ServerUrl        string
 	MasterConfigFile string // may often be empty if not being run on the host
 }
@@ -45,8 +42,8 @@ func (d *MasterNode) Description() string {
 }
 
 func (d *MasterNode) CanRun() (bool, error) {
-	if d.KubeClient == nil || d.OsClient == nil {
-		return false, errors.New("must have kube and os client")
+	if d.KubeClient == nil {
+		return false, errors.New("must have kube client")
 	}
 	if d.ServerUrl == "" {
 		return false, errors.New("must have a server URL")
@@ -67,7 +64,7 @@ func (d *MasterNode) CanRun() (bool, error) {
 		}
 	}
 
-	can, err := userCan(d.OsClient, authorizationapi.Action{
+	can, err := userCan(d.KubeClient.Authorization(), &authorization.ResourceAttributes{
 		Verb:     "list",
 		Group:    kapi.GroupName,
 		Resource: "nodes",

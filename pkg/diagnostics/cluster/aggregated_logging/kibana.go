@@ -11,9 +11,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
+	routetypedclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 )
 
 const (
@@ -23,18 +24,18 @@ const (
 )
 
 //checkKibana verifies the various integration points between Kibana and logging
-func checkKibana(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string) {
-	oauthclient, err := osClient.OAuthClients().Get(kibanaProxyOauthClientName, metav1.GetOptions{})
+func checkKibana(r types.DiagnosticResult, routeClient routetypedclient.RoutesGetter, oauthClientClient oauthtypedclient.OAuthClientsGetter, kClient kclientset.Interface, project string) {
+	oauthclient, err := oauthClientClient.OAuthClients().Get(kibanaProxyOauthClientName, metav1.GetOptions{})
 	if err != nil {
 		r.Error("AGL0115", err, fmt.Sprintf("Error retrieving the OauthClient '%s': %s. Unable to check Kibana", kibanaProxyOauthClientName, err))
 		return
 	}
-	checkKibanaSecret(r, osClient, kClient, project, oauthclient)
-	checkKibanaRoutesInOauthClient(r, osClient, project, oauthclient)
+	checkKibanaSecret(r, kClient, project, oauthclient)
+	checkKibanaRoutesInOauthClient(r, routeClient, project, oauthclient)
 }
 
 //checkKibanaSecret confirms the secret used by kibana matches that configured in the oauth client
-func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClient kclientset.Interface, project string, oauthclient *oauthapi.OAuthClient) {
+func checkKibanaSecret(r types.DiagnosticResult, kClient kclientset.Interface, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0100", "Checking oauthclient secrets...")
 	secret, err := kClient.Core().Secrets(project).Get(kibanaProxySecretName, metav1.GetOptions{})
 	if err != nil {
@@ -55,9 +56,9 @@ func checkKibanaSecret(r types.DiagnosticResult, osClient *client.Client, kClien
 }
 
 //checkKibanaRoutesInOauthClient verifies the client contains the correct redirect uris
-func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, osClient *client.Client, project string, oauthclient *oauthapi.OAuthClient) {
+func checkKibanaRoutesInOauthClient(r types.DiagnosticResult, routeClient routetypedclient.RoutesGetter, project string, oauthclient *oauthapi.OAuthClient) {
 	r.Debug("AGL0141", "Checking oauthclient redirectURIs for the logging routes...")
-	routeList, err := osClient.Routes(project).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector().String()})
+	routeList, err := routeClient.Routes(project).List(metav1.ListOptions{LabelSelector: loggingSelector.AsSelector().String()})
 	if err != nil {
 		r.Error("AGL0143", err, fmt.Sprintf("Error retrieving the logging routes: %s", err))
 		return
