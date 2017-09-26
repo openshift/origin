@@ -1,11 +1,13 @@
 package client
 
 import (
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 // ImageStreamsNamespacer has methods to work with ImageStream resources in a namespace
@@ -105,7 +107,31 @@ func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *image
 func (c *imageStreams) Import(isi *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error) {
 	result := &imageapi.ImageStreamImport{}
 	if err := c.r.Post().Namespace(c.ns).Resource("imageStreamImports").Body(isi).Do().Into(result); err != nil {
-		return nil, imageapi.TransformUnsupportedError(err)
+		return nil, transformUnsupportedError(err)
 	}
 	return result, nil
+}
+
+// transformUnsupportedError converts specific error conditions to unsupported
+func transformUnsupportedError(err error) error {
+	if err == nil {
+		return nil
+	}
+	if kerrors.IsNotFound(err) {
+		status, ok := err.(kerrors.APIStatus)
+		if !ok {
+			return imageapi.ErrImageStreamImportUnsupported
+		}
+		if status.Status().Details == nil || status.Status().Details.Kind == "" {
+			return imageapi.ErrImageStreamImportUnsupported
+		}
+	}
+	// The ImageStreamImport resource exists in v1.1.1 of origin but is not yet
+	// enabled by policy. A create request will return a Forbidden(403) error.
+	// We want to return ErrImageStreamImportUnsupported to allow fallback behavior
+	// in clients.
+	if kerrors.IsForbidden(err) && !quotautil.IsErrorQuotaExceeded(err) {
+		return imageapi.ErrImageStreamImportUnsupported
+	}
+	return err
 }

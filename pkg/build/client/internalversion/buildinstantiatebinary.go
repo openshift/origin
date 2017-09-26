@@ -28,8 +28,8 @@ func (c *buildInstatiateBinary) InstantiateBinary(name string, options *buildapi
 		Namespace(c.ns).
 		Resource("buildconfigs").
 		Name(name).
-		SubResource("instantiateBinary").
-		Body(c).
+		SubResource("instantiatebinary").
+		Body(r).
 		VersionedParams(options, kapi.ParameterCodec).
 		Do().
 		Into(result)

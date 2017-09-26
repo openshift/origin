@@ -14,7 +14,7 @@ type ProjectRequestsInterface interface {
 // ProjectRequestInterface exposes methods on projectRequest resources.
 type ProjectRequestInterface interface {
 	Create(p *projectapi.ProjectRequest) (*projectapi.Project, error)
-	//List(opts metav1.ListOptions) (*metav1.Status, error)
+	List(opts metav1.ListOptions) (*metav1.Status, error)
 }
 
 type projectRequests struct {

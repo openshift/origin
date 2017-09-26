@@ -14,7 +14,6 @@ import (
 
 	"github.com/openshift/origin/pkg/api/graph"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
@@ -58,30 +57,29 @@ type TopImageStreamsOptions struct {
 	Streams *imageapi.ImageStreamList
 
 	// helpers
-	out      io.Writer
-	osClient client.Interface
+	out io.Writer
 }
 
 // Complete turns a partially defined TopImageStreamsOptions into a solvent structure
 // which can be validated and used for showing limits usage.
 func (o *TopImageStreamsOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	osClient, _, err := f.Clients()
-	if err != nil {
-		return err
-	}
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
 		namespace = metav1.NamespaceAll
 	}
 	o.out = out
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
 
-	allImages, err := osClient.Images().List(metav1.ListOptions{})
+	allImages, err := imageClient.Image().Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := osClient.ImageStreams(namespace).List(metav1.ListOptions{})
+	allStreams, err := imageClient.Image().ImageStreams(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

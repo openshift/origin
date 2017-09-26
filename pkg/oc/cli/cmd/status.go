@@ -167,6 +167,7 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 		AppsClient:    appsClient.Apps(),
 		RouteClient:   routeClient.Route(),
 		Suggest:       o.verbose,
+		Server:        config.Host,
 
 		CommandBaseName:    baseCLIName,
 		RequestedNamespace: nsFlag,

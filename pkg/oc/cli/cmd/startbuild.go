@@ -563,7 +563,7 @@ func streamPathToBuild(repo git.Repository, in io.Reader, out io.Writer, client 
 			// NOTE: It's important that this stays false unless we change the
 			// path to something else, otherwise we will delete whatever path the
 			// user provided.
-			var usedTempDir bool
+			var usedTempDir bool = false
 			var tempDirectory string
 
 			if asRepo {

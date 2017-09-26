@@ -18,10 +18,6 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 	if err != nil {
 		return err
 	}
-	_, kc, err := f.Clients()
-	if err != nil {
-		return err
-	}
 	pathOptions := config.NewPathOptionsWithConfig("")
 	opt := &cmd.NewProjectOptions{
 		ProjectName: name,
@@ -30,8 +26,7 @@ func CreateProject(f *clientcmd.Factory, name, display, desc, basecmd string, ou
 
 		Name: basecmd,
 
-		Client:    projectClient.Project(),
-		SarClient: kc.Authorization().SelfSubjectAccessReviews(),
+		Client: projectClient.Project(),
 
 		ProjectOptions: &cmd.ProjectOptions{PathOptions: pathOptions},
 		Out:            ioutil.Discard,

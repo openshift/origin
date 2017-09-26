@@ -18,7 +18,6 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/openshift/origin/pkg/image/apis/image/internal/digest"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 const (
@@ -1044,28 +1043,4 @@ func ValidateRegistryURL(registryURL string) error {
 		return errRegistryURLHostEmpty
 	}
 	return nil
-}
-
-// TransformUnsupportedError converts specific error conditions to unsupported
-func TransformUnsupportedError(err error) error {
-	if err == nil {
-		return nil
-	}
-	if kerrors.IsNotFound(err) {
-		status, ok := err.(kerrors.APIStatus)
-		if !ok {
-			return ErrImageStreamImportUnsupported
-		}
-		if status.Status().Details == nil || status.Status().Details.Kind == "" {
-			return ErrImageStreamImportUnsupported
-		}
-	}
-	// The ImageStreamImport resource exists in v1.1.1 of origin but is not yet
-	// enabled by policy. A create request will return a Forbidden(403) error.
-	// We want to return ErrImageStreamImportUnsupported to allow fallback behavior
-	// in clients.
-	if kerrors.IsForbidden(err) && !quotautil.IsErrorQuotaExceeded(err) {
-		return ErrImageStreamImportUnsupported
-	}
-	return err
 }

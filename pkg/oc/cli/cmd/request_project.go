@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -32,8 +31,7 @@ type NewProjectOptions struct {
 
 	SkipConfigWrite bool
 
-	Client    projectclient.ProjectInterface
-	SarClient authorizationclient.SelfSubjectAccessReviewInterface
+	Client projectclient.ProjectInterface
 
 	ProjectOptions *ProjectOptions
 	Out            io.Writer
@@ -89,10 +87,7 @@ func NewCmdRequestProject(name, baseName string, f *clientcmd.Factory, out, erro
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			projectClient, err := f.OpenshiftInternalProjectClient()
 			kcmdutil.CheckErr(err)
-			_, kc, err := f.Clients()
-			kcmdutil.CheckErr(err)
 			o.Client = projectClient.Project()
-			o.SarClient = kc.Authorization().SelfSubjectAccessReviews()
 			kcmdutil.CheckErr(o.Run())
 		},
 	}

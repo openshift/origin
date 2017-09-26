@@ -13,10 +13,6 @@ import (
 	"github.com/containers/image/docker/policyconfiguration"
 	"github.com/containers/image/docker/reference"
 	"github.com/containers/image/signature"
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-
 	sigtypes "github.com/containers/image/types"
 	"github.com/spf13/cobra"
 
@@ -25,6 +21,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+
+	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 var (
@@ -81,7 +81,8 @@ type VerifyImageSignatureOptions struct {
 	RegistryURL       string
 	Insecure          bool
 
-	Client       client.Interface
+	ImageClient imageclient.ImageInterface
+
 	clientConfig kclientcmd.ClientConfig
 
 	Out    io.Writer
@@ -149,14 +150,21 @@ func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.
 			return fmt.Errorf("unable to read --public-key: %v", err)
 		}
 	}
-	if o.Client, _, err = f.Clients(); err != nil {
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
+	o.ImageClient = imageClient.Image()
+
+	userClient, err := f.OpenshiftInternalUserClient()
+	if err != nil {
 		return err
 	}
 
 	// We need the current user name so we can record it into an verification condition and
 	// we need a bearer token so we can fetch the manifest from the registry.
 	// TODO: Add support for external registries (currently only integrated registry will
-	if me, err := o.Client.Users().Get("~", metav1.GetOptions{}); err != nil {
+	if me, err := userClient.User().Users().Get("~", metav1.GetOptions{}); err != nil {
 		return err
 	} else {
 		o.CurrentUser = me.Name
@@ -173,7 +181,7 @@ func (o *VerifyImageSignatureOptions) Complete(f *clientcmd.Factory, cmd *cobra.
 }
 
 func (o VerifyImageSignatureOptions) Run() error {
-	img, err := o.Client.Images().Get(o.InputImage, metav1.GetOptions{})
+	img, err := o.ImageClient.Images().Get(o.InputImage, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -231,7 +239,7 @@ func (o VerifyImageSignatureOptions) Run() error {
 	}
 
 	if o.Save || o.RemoveAll {
-		_, err := o.Client.Images().Update(img)
+		_, err := o.ImageClient.Images().Update(img)
 		return err
 	}
 	return nil
