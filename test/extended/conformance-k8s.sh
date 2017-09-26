@@ -15,8 +15,8 @@ fi
 test_report_dir="${ARTIFACT_DIR}"
 mkdir -p "${test_report_dir}"
 
-version="${KUBERNETES_VERSION:-v1.7.6}"
-kubernetes="${KUBERNETES_ROOT:-${OS_ROOT}/../../../k8s.io/kubernetes}"
+version="${KUBERNETES_VERSION:-release-1.7}"
+kubernetes="${KUBERNETES_ROOT:-${OS_ROOT}/../../../k8s.io/kubernetes2}"
 if [[ ! -d "${kubernetes}" ]]; then
   if [[ -n "${KUBERNETES_ROOT-}" ]]; then
     os::log::fatal "Cannot find Kubernetes source directory, set KUBERNETES_ROOT"
@@ -24,7 +24,7 @@ if [[ ! -d "${kubernetes}" ]]; then
   kubernetes="${OS_ROOT}/_output/components/kubernetes"
   mkdir -p "$( dirname "${kubernetes}" )"
   os::log::info "Cloning Kubernetes source"
-  git clone "https://github.com/kubernetes/kubernetes.git" -b "${version}" --depth=1 "${kubernetes}"
+  git clone "https://github.com/kubernetes/kubernetes.git" -b "${version}" "${kubernetes}" # --depth=1 unfortunately we need history info as well
 fi
 
 os::log::info "Running Kubernetes conformance suite for ${version}"
