@@ -85,7 +85,7 @@ if [ -n "$old_pids" ]; then
   if $(set | grep DROP_SYN_DURING_RESTART= > /dev/null) && [[ "$DROP_SYN_DURING_RESTART" == 'true' || "$DROP_SYN_DURING_RESTART" == '1' ]]; then
     # We install the syn eater so that connections that come in during the restart don't
     # go onto the wrong socket, which is then closed.
-    ports=$(grep -E '^\s*bind\s+:[[:digit:]]+\w' "$config_file" | cut -f2 -d: | paste -d, -s)
+    ports=$(grep -E -o '^\s*bind\s+:[[:digit:]]+\w' "$config_file" | cut -f2 -d: | paste -d, -s)
     if [ -n "$ports" ]; then
       # If this doesn't insert, we don't care, we still want to reload
       /usr/sbin/iptables -I INPUT -p tcp -m multiport --dports $ports --syn -j DROP \
