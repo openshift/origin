@@ -33,6 +33,10 @@ func (d CheckNodeNetwork) Description() string {
 	return "Check that pods in the cluster can access its own node."
 }
 
+func (d CheckNodeNetwork) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d CheckNodeNetwork) CanRun() (bool, error) {
 	if d.KubeClient == nil {

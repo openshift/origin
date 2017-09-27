@@ -1,4 +1,4 @@
-package cluster
+package host
 
 import (
 	"context"
@@ -15,38 +15,66 @@ import (
 
 	"bytes"
 
+	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 )
 
 // EtcdWriteVolume is a Diagnostic to check the writes occurring against etcd
 // and organize them by volume.
 type EtcdWriteVolume struct {
-	V2Client etcdclient.Client
-	V3Client *clientv3.Client
+	MasterConfigLocation string
+	V2Client             etcdclient.Client
+	V3Client             *clientv3.Client
+	durationSpec         string
+	duration             time.Duration
 }
 
 const (
-	EtcdWriteName = "EtcdWriteVolume"
+	EtcdWriteName   = "EtcdWriteVolume"
+	DurationParam   = "duration"
+	DurationDefault = "1m"
 )
-
-func (d *EtcdWriteVolume) duration() time.Duration {
-	s := os.Getenv("ETCD_WRITE_VOLUME_DURATION")
-	if len(s) == 0 {
-		s = "1m"
-	}
-	duration, err := time.ParseDuration(s)
-	if err != nil {
-		panic(fmt.Errorf("ETCD_WRITE_VOLUME_DURATION could not be parsed: %v", err))
-	}
-	return duration
-}
 
 func (d *EtcdWriteVolume) Name() string {
 	return EtcdWriteName
 }
 
 func (d *EtcdWriteVolume) Description() string {
-	return fmt.Sprintf("Check the volume of writes against etcd and classify them by operation and key for %s", d.duration())
+	return fmt.Sprintf("Check the volume of writes against etcd over a time period and classify them by operation and key")
+}
+
+func (d *EtcdWriteVolume) Requirements() (client bool, host bool) {
+	return false, true
+}
+
+func (d *EtcdWriteVolume) AvailableParameters() []types.Parameter {
+	return []types.Parameter{
+		{DurationParam, "How long to perform the write test", &d.durationSpec, DurationDefault},
+	}
+}
+
+func (d *EtcdWriteVolume) Complete(logger *log.Logger) error {
+	v2Client, v3Client, found, err := findEtcdClients(d.MasterConfigLocation, logger)
+	if err != nil || !found {
+		return err
+	}
+	d.V2Client, d.V3Client = v2Client, v3Client
+
+	// determine the duration to run the check from either the deprecated env var, the flag, or the default
+	s := os.Getenv("ETCD_WRITE_VOLUME_DURATION") // deprecated way
+	if d.durationSpec != "" {
+		s = d.durationSpec
+	}
+	if s == "" {
+		s = DurationDefault
+	}
+	duration, err := time.ParseDuration(s)
+	if err != nil {
+		return fmt.Errorf("EtcdWriteVolume duration '%s' could not be parsed: %v", s, err)
+	}
+	d.duration = duration
+	return nil
 }
 
 func (d *EtcdWriteVolume) CanRun() (bool, error) {
@@ -64,9 +92,8 @@ func (d *EtcdWriteVolume) Check() types.DiagnosticResult {
 
 	var wg sync.WaitGroup
 
-	duration := d.duration()
 	ctx := context.Background()
-	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(duration))
+	ctx, cancel := context.WithDeadline(ctx, time.Now().Add(d.duration))
 	defer cancel()
 
 	keyStats := &keyCounter{}
@@ -121,9 +148,44 @@ func (d *EtcdWriteVolume) Check() types.DiagnosticResult {
 		fmt.Fprintf(tw, "%s\t%6d\t%5.1f%%\n", b.Name, b.Count, float64(b.Count)/float64(keyStats.count)*100)
 	}
 	tw.Flush()
-	r.Info("DEw2004", fmt.Sprintf("Measured %.1f writes/sec\n", float64(keyStats.count)/float64(duration/time.Second))+buf.String())
+	r.Info("DEw2004", fmt.Sprintf("Measured %.1f writes/sec\n", float64(keyStats.count)/float64(d.duration/time.Second))+buf.String())
 
 	return r
+}
+
+// findEtcdClients finds and loads etcd clients
+func findEtcdClients(configFile string, logger *log.Logger) (etcdclient.Client, *clientv3.Client, bool, error) {
+	masterConfig, err := GetMasterConfig(configFile, logger)
+	if err != nil {
+		configErr := fmt.Errorf("Unreadable master config; skipping this diagnostic.")
+		logger.Error("DE2001", configErr.Error())
+		return nil, nil, false, configErr
+	}
+	if len(masterConfig.EtcdClientInfo.URLs) == 0 {
+		configErr := fmt.Errorf("No etcdClientInfo.urls defined; can't contact etcd")
+		logger.Error("DE2002", configErr.Error())
+		return nil, nil, false, configErr
+	}
+	v2Client, err := etcd.MakeEtcdClient(masterConfig.EtcdClientInfo)
+	if err != nil {
+		configErr := fmt.Errorf("Unable to create an etcd v2 client: %v", err)
+		logger.Error("DE2003", configErr.Error())
+		return nil, nil, false, configErr
+	}
+	config, err := etcd.MakeEtcdClientV3Config(masterConfig.EtcdClientInfo)
+	if err != nil {
+		configErr := fmt.Errorf("Unable to create an etcd v3 client config: %v", err)
+		logger.Error("DE2004", configErr.Error())
+		return nil, nil, false, configErr
+	}
+	config.DialTimeout = 5 * time.Second
+	v3Client, err := clientv3.New(*config)
+	if err != nil {
+		configErr := fmt.Errorf("Unable to create an etcd v3 client: %v", err)
+		logger.Error("DE2005", configErr.Error())
+		return nil, nil, false, configErr
+	}
+	return v2Client, v3Client, true, nil
 }
 
 type KeyCounter interface {

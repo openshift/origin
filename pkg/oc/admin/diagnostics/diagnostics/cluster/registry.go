@@ -154,6 +154,10 @@ func (d *ClusterRegistry) Description() string {
 	return "Check that there is a working Docker registry"
 }
 
+func (d *ClusterRegistry) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 func (d *ClusterRegistry) CanRun() (bool, error) {
 	if d.ImageStreamClient == nil || d.KubeClient == nil {
 		return false, fmt.Errorf("must have kube and os clients")

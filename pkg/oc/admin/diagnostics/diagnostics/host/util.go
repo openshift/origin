@@ -5,7 +5,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 )
 
 // this would be bad practice if there were ever a need to load more than one master config for diagnostics.
@@ -16,24 +16,24 @@ var (
 	masterConfigLoadError error
 )
 
-func GetMasterConfig(r types.DiagnosticResult, masterConfigFile string) (*configapi.MasterConfig, error) {
+func GetMasterConfig(masterConfigFile string, logger *log.Logger) (*configapi.MasterConfig, error) {
 	if masterConfigLoaded { // no need to do this more than once
 		if masterConfigLoadError != nil {
-			printMasterConfigLoadError(r, masterConfigFile)
+			printMasterConfigLoadError(masterConfigFile, logger)
 		}
 		return masterConfig, masterConfigLoadError
 	}
-	r.Debug("DH0001", fmt.Sprintf("Looking for master config file at '%s'", masterConfigFile))
+	logger.Debug("DH0001", fmt.Sprintf("Looking for master config file at '%s'", masterConfigFile))
 	masterConfigLoaded = true
 	masterConfig, masterConfigLoadError = configapilatest.ReadAndResolveMasterConfig(masterConfigFile)
 	if masterConfigLoadError != nil {
-		printMasterConfigLoadError(r, masterConfigFile)
+		printMasterConfigLoadError(masterConfigFile, logger)
 	} else {
-		r.Debug("DH0003", fmt.Sprintf("Found a master config file: %[1]s", masterConfigFile))
+		logger.Debug("DH0003", fmt.Sprintf("Found a master config file: %[1]s", masterConfigFile))
 	}
 	return masterConfig, masterConfigLoadError
 }
 
-func printMasterConfigLoadError(r types.DiagnosticResult, masterConfigFile string) {
-	r.Error("DH0002", masterConfigLoadError, fmt.Sprintf("Could not read master config file '%s':\n(%T) %[2]v", masterConfigFile, masterConfigLoadError))
+func printMasterConfigLoadError(masterConfigFile string, logger *log.Logger) {
+	logger.Error("DH0002", fmt.Sprintf("Could not read master config file '%s':\n(%T) %[2]v", masterConfigFile, masterConfigLoadError))
 }

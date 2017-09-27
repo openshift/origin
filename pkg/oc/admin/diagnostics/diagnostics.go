@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"runtime/debug"
 	"strings"
 
@@ -13,35 +12,32 @@ import (
 
 	kutilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-	kvalidation "k8s.io/apimachinery/pkg/util/validation"
-	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	"github.com/openshift/origin/pkg/client/config"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
-	"github.com/openshift/origin/pkg/cmd/util/variable"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
-	netutil "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/networkpod/util"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/options"
 	osclientcmd "github.com/openshift/origin/pkg/oc/cli/util/clientcmd"
 )
 
-// DiagnosticsOptions holds values received from command line flags as well as
+// DiagnosticsConfig holds values received from command line flags as well as
 // other objects generated for the command to operate.
-type DiagnosticsOptions struct {
-	// list of diagnostic names to limit what is run
-	RequestedDiagnostics []string
+type DiagnosticsConfig struct {
+	// list of diagnostic name(s) to run
+	RequestedDiagnostics sets.String
+	// flag bindings for any diagnostics that require them
+	ParameterizedDiagnostics types.ParameterizedDiagnosticMap
+
+	// list available diagnostics and exit
+	ListAll bool
 	// specify locations of host config files
 	MasterConfigLocation string
 	NodeConfigLocation   string
-	// specify context name to be used for cluster-admin access
-	ClientClusterContext string
 	// indicate this is an openshift host despite lack of other indicators
 	IsHost bool
-	// specify the image template to use for DiagnosticPod
-	ImageTemplate variable.ImageTemplate
 	// When true, prevent diagnostics from changing API state (e.g. creating something)
 	PreventModification bool
 	// We need a factory for creating clients. Creating a factory
@@ -49,16 +45,16 @@ type DiagnosticsOptions struct {
 	// The command creates these and binds only the flags we want.
 	ClientFlags *flag.FlagSet
 	Factory     *osclientcmd.Factory
+	// specify context name to be used for cluster-admin access
+	ClientClusterContext string
 	// LogOptions determine globally what the user wants to see and how.
 	LogOptions *log.LoggerOptions
 	// The Logger is built with the options and should be used for all diagnostic output.
 	Logger *log.Logger
-	// Options specific to network diagnostics
-	NetworkOptions *NetworkDiagnosticsOptions
 }
 
 // NetworkDiagnosticsOptions holds additional values received from command line flags that
-// are specify to network diagnostics.
+// are specific to network diagnostics.
 type NetworkDiagnosticsOptions struct {
 	// Path to store network diagnostic results in case of errors
 	LogDir string
@@ -73,7 +69,9 @@ type NetworkDiagnosticsOptions struct {
 }
 
 const (
-	DiagnosticsRecommendedName = "diagnostics"
+	// Command name
+	DiagnosticsRecommendedName    = "diagnostics"
+	AllDiagnosticsRecommendedName = "all"
 
 	// Standard locations for the host config files OpenShift uses.
 	StandardMasterConfigPath string = "/etc/origin/master/master-config.yaml"
@@ -82,50 +80,60 @@ const (
 
 var (
 	longDescription = templates.LongDesc(`
-		This utility helps troubleshoot and diagnose known problems. It runs
-		diagnostics using a client and/or the state of a running master /
-		node host.
+		This utility helps troubleshoot and diagnose known problems for an OpenShift cluster
+		and/or local host. The base command runs a standard set of diagnostics:
 
 		    %[1]s
 
-		If run without flags, it will check for standard config files for
-		client, master, and node, and if found, use them for diagnostics.
-		You may also specify config files explicitly with flags, in which case
-		you will receive an error if they are not found. For example:
+		Available diagnostics vary based on client config and local OpenShift host config.
+		Config files in standard locations for client, master, and node are used, or
+		you may specify config files explicitly with flags. For example:
 
 		    %[1]s --master-config=/etc/origin/master/master-config.yaml
 
-		* If master/node config files are not found and the --host flag is not
-		  present, host diagnostics are skipped.
-		* If the client has cluster-admin access, this access enables cluster
-		  diagnostics to run which regular users cannot.
-		* If a client config file is not found, client and cluster diagnostics
-		  are skipped.
+		* Explicitly specifying a config file raises an error if it is not found.
+		* A client config with cluster-admin access is required for most cluster diagnostics.
+		* Diagnostics that require a config file are skipped if it is not found.
+		* The standard set also skips diagnostics considered too heavyweight.
 
-		Diagnostics may be individually run by passing diagnostic name as arguments.
+		An individual diagnostic may be run as a subcommand which may have flags
+		for specifying options specific to that diagnostic.
 
-		    %[1]s <DiagnosticName>
+		Finally, the "all" subcommand runs all available diagnostics (including heavyweight
+		ones skipped in the standard set) and provides all individual diagnostic flags.
+		`)
+	longDescriptionAll = templates.LongDesc(`
+		This utility helps troubleshoot and diagnose known problems for an OpenShift cluster
+		and/or local host. This subcommand exists to run all available diagnostics:
 
-		The available diagnostic names are: %[2]s.`)
+		    %[1]s
+
+		Available diagnostics vary based on client config and local OpenShift host config.
+		All flags from the base command work similarly here, but all possible flags for
+		individual diagnostics are also available.
+		`)
+	longDescriptionIndividual = templates.LongDesc(`
+		Runs the %s diagnostic.
+
+		%s
+		`)
 )
 
 // NewCmdDiagnostics is the base command for running any diagnostics.
 func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Command {
-	o := &DiagnosticsOptions{
-		RequestedDiagnostics: []string{},
-		LogOptions:           &log.LoggerOptions{Out: out},
-		ImageTemplate:        variable.NewDefaultImageTemplate(),
-		NetworkOptions:       &NetworkDiagnosticsOptions{},
+	available := availableDiagnostics()
+	o := &DiagnosticsConfig{
+		RequestedDiagnostics:     available.Names().Difference(defaultSkipDiagnostics()),
+		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(available...),
+		LogOptions:               &log.LoggerOptions{Out: out},
 	}
 
 	cmd := &cobra.Command{
 		Use:   name,
 		Short: "Diagnose common cluster problems",
-		Long:  fmt.Sprintf(longDescription, fullName, strings.Join(availableDiagnostics().List(), ", ")),
+		Long:  fmt.Sprintf(longDescription, fullName),
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(args))
-
-			kcmdutil.CheckErr(o.Validate())
 
 			failed, err, warnCount, errorCount := o.RunDiagnostics()
 			o.Logger.Summary(warnCount, errorCount)
@@ -138,35 +146,147 @@ func NewCmdDiagnostics(name string, fullName string, out io.Writer) *cobra.Comma
 		},
 	}
 	cmd.SetOutput(out) // for output re: usage / help
+	o.bindCommonFlags(cmd.Flags())
+	o.bindClientFlags(cmd.Flags())
+	o.bindHostFlags(cmd.Flags())
 
-	o.ClientFlags = flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
-	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
-	cmd.Flags().AddFlag(o.ClientFlags.Lookup(config.OpenShiftConfigFlagName))
-	cmd.Flags().AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
-	cmd.Flags().StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "Client context to use for cluster administrator")
-	cmd.Flags().StringVar(&o.MasterConfigLocation, options.FlagMasterConfigName, "", "Path to master config file (implies --host)")
-	cmd.Flags().StringVar(&o.NodeConfigLocation, options.FlagNodeConfigName, "", "Path to node config file (implies --host)")
-	cmd.Flags().BoolVar(&o.IsHost, options.FlagIsHostName, false, "If true, look for systemd and journald units even without master/node config")
-	cmd.Flags().StringVar(&o.ImageTemplate.Format, options.FlagImageTemplateName, o.ImageTemplate.Format, "Image template for DiagnosticPod to use in creating a pod")
-	cmd.Flags().BoolVar(&o.ImageTemplate.Latest, options.FlagLatestImageName, false, "If true, when expanding the image template, use latest version, not release version")
-	cmd.Flags().BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "If true, may be set to prevent diagnostics making any changes via the API")
-	cmd.Flags().StringVar(&o.NetworkOptions.LogDir, options.FlagNetworkDiagLogDir, netutil.NetworkDiagDefaultLogDir, "Path to store network diagnostic results in case of errors")
-	cmd.Flags().StringVar(&o.NetworkOptions.PodImage, options.FlagNetworkDiagPodImage, netutil.GetNetworkDiagDefaultPodImage(), "Image to use for network diagnostic pod")
-	cmd.Flags().StringVar(&o.NetworkOptions.TestPodImage, options.FlagNetworkDiagTestPodImage, netutil.GetNetworkDiagDefaultTestPodImage(), "Image to use for network diagnostic test pod")
-	cmd.Flags().StringVar(&o.NetworkOptions.TestPodProtocol, options.FlagNetworkDiagTestPodProtocol, netutil.NetworkDiagDefaultTestPodProtocol, "Protocol used to connect to network diagnostic test pod")
-	cmd.Flags().IntVar(&o.NetworkOptions.TestPodPort, options.FlagNetworkDiagTestPodPort, netutil.NetworkDiagDefaultTestPodPort, "Serving port on the network diagnostic test pod")
-	flagtypes.GLog(cmd.Flags())
-	options.BindLoggerOptionFlags(cmd.Flags(), o.LogOptions, options.RecommendedLoggerOptionFlags())
+	// add "all" subcommand
+	cmd.AddCommand(NewCmdDiagnosticsAll(AllDiagnosticsRecommendedName, fullName+" "+AllDiagnosticsRecommendedName, out, available))
+	// add individual diagnostic subcommands
+	for _, diag := range available {
+		cmd.AddCommand(NewCmdDiagnosticsIndividual(diag.Name(), fullName+" "+diag.Name(), out, diag))
+	}
 
 	return cmd
 }
 
-// Complete fills in DiagnosticsOptions needed if the command is actually invoked.
-func (o *DiagnosticsOptions) Complete(args []string) error {
+// NewCmdDiagnosticsAll is the command for running ALL diagnostics and providing all flags.
+func NewCmdDiagnosticsAll(name string, fullName string, out io.Writer, available types.DiagnosticList) *cobra.Command {
+	o := &DiagnosticsConfig{
+		RequestedDiagnostics:     available.Names(),
+		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(available...),
+		LogOptions:               &log.LoggerOptions{Out: out},
+	}
+
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: "Diagnose common cluster problems",
+		Long:  fmt.Sprintf(longDescriptionAll, fullName),
+		Run: func(c *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(args))
+
+			failed, err, warnCount, errorCount := o.RunDiagnostics()
+			o.Logger.Summary(warnCount, errorCount)
+
+			kcmdutil.CheckErr(err)
+			if failed {
+				os.Exit(255)
+			}
+
+		},
+	}
+	cmd.SetOutput(out) // for output re: usage / help
+	o.bindCommonFlags(cmd.Flags())
+	o.bindClientFlags(cmd.Flags())
+	o.bindHostFlags(cmd.Flags())
+	o.bindRequestedIndividualFlags(cmd.Flags())
+	return cmd
+}
+
+// NewCmdDiagnosticsIndividual is a generic subcommand providing a single diagnostic and its flags.
+func NewCmdDiagnosticsIndividual(name string, fullName string, out io.Writer, diagnostic types.Diagnostic) *cobra.Command {
+	o := &DiagnosticsConfig{
+		RequestedDiagnostics:     sets.NewString(diagnostic.Name()),
+		ParameterizedDiagnostics: types.NewParameterizedDiagnosticMap(diagnostic),
+		LogOptions:               &log.LoggerOptions{Out: out},
+	}
+
+	cmd := &cobra.Command{
+		Use:   name,
+		Short: diagnostic.Description(),
+		Long:  fmt.Sprintf(longDescriptionIndividual, fullName, diagnostic.Description()),
+		Run: func(c *cobra.Command, args []string) {
+			kcmdutil.CheckErr(o.Complete(args))
+
+			failed, err, warnCount, errorCount := o.RunDiagnostics()
+			o.Logger.Summary(warnCount, errorCount)
+
+			kcmdutil.CheckErr(err)
+			if failed {
+				os.Exit(255)
+			}
+
+		},
+	}
+	cmd.SetOutput(out) // for output re: usage / help
+	o.bindCommonFlags(cmd.Flags())
+	needClient, needHost := diagnostic.Requirements()
+	if pd, ok := diagnostic.(types.ParameterizedDiagnostic); ok {
+		bindIndividualFlags(pd, "", cmd.Flags())
+	}
+	if needClient {
+		o.bindClientFlags(cmd.Flags())
+	}
+	if needHost {
+		o.bindHostFlags(cmd.Flags())
+	}
+	return cmd
+}
+
+func (o *DiagnosticsConfig) bindCommonFlags(flags *flag.FlagSet) {
+	flagtypes.GLog(flags)
+	options.BindLoggerOptionFlags(flags, o.LogOptions, options.RecommendedLoggerOptionFlags())
+}
+
+func (o *DiagnosticsConfig) bindClientFlags(flags *flag.FlagSet) {
+	o.ClientFlags = flag.NewFlagSet("client", flag.ContinueOnError) // hide the extensive set of client flags
+	o.Factory = osclientcmd.New(o.ClientFlags)                      // that would otherwise be added to this command
+	flags.AddFlag(o.ClientFlags.Lookup(config.OpenShiftConfigFlagName))
+	flags.AddFlag(o.ClientFlags.Lookup("context")) // TODO: find k8s constant
+	flags.StringVar(&o.ClientClusterContext, options.FlagClusterContextName, "", "Client context to use for cluster administrator")
+	flags.BoolVar(&o.PreventModification, options.FlagPreventModificationName, false, "If true, may be set to prevent diagnostics making any changes via the API")
+}
+
+func (o *DiagnosticsConfig) bindHostFlags(flags *flag.FlagSet) {
+	flags.StringVar(&o.MasterConfigLocation, options.FlagMasterConfigName, "", "Path to master config file (implies --host)")
+	flags.StringVar(&o.NodeConfigLocation, options.FlagNodeConfigName, "", "Path to node config file (implies --host)")
+	flags.BoolVar(&o.IsHost, options.FlagIsHostName, false, "If true, look for systemd and journald units even without master/node config")
+}
+
+func (o *DiagnosticsConfig) bindRequestedIndividualFlags(flags *flag.FlagSet) {
+	for name, diag := range o.ParameterizedDiagnostics {
+		if o.RequestedDiagnostics.Has(name) {
+			bindIndividualFlags(diag, strings.ToLower(diag.Name()+"-"), flags)
+		}
+	}
+}
+
+func bindIndividualFlags(diag types.ParameterizedDiagnostic, prefix string, flags *flag.FlagSet) {
+	for _, param := range diag.AvailableParameters() {
+		name := prefix + param.Name
+		switch target := param.Target.(type) {
+		case *string:
+			flags.StringVar(target, name, param.Default.(string), param.Description)
+		case *int:
+			flags.IntVar(target, name, param.Default.(int), param.Description)
+		case *bool:
+			flags.BoolVar(target, name, param.Default.(bool), param.Description)
+		default:
+			panic("Don't know what to do with parameter")
+		}
+	}
+}
+
+// Complete fills in DiagnosticsConfig needed if the command is actually invoked.
+func (o *DiagnosticsConfig) Complete(args []string) error {
 	var err error
 	o.Logger, err = o.LogOptions.NewLogger()
 	if err != nil {
 		return err
+	}
+
+	if len(args) > 0 {
+		return fmt.Errorf("Unexpected command line argument(s): %v", args)
 	}
 
 	// If not given master/client config file locations, check if the defaults exist
@@ -182,85 +302,24 @@ func (o *DiagnosticsOptions) Complete(args []string) error {
 		}
 	}
 
-	if len(o.NetworkOptions.LogDir) == 0 {
-		o.NetworkOptions.LogDir = netutil.NetworkDiagDefaultLogDir
-	} else {
-		logdir, err := filepath.Abs(o.NetworkOptions.LogDir)
-		if err != nil {
-			return err
-		}
-		if path, err := os.Stat(o.NetworkOptions.LogDir); err == nil && !path.Mode().IsDir() {
-			return fmt.Errorf("Network log path %q exists but is not a directory", o.NetworkOptions.LogDir)
-		}
-		o.NetworkOptions.LogDir = logdir
-	}
-	if len(o.NetworkOptions.PodImage) == 0 {
-		o.NetworkOptions.PodImage = netutil.GetNetworkDiagDefaultPodImage()
-	}
-	if len(o.NetworkOptions.TestPodImage) == 0 {
-		o.NetworkOptions.TestPodImage = netutil.GetNetworkDiagDefaultTestPodImage()
-	}
-
-	supportedProtocols := sets.NewString(string(kapi.ProtocolTCP), string(kapi.ProtocolUDP))
-	if !supportedProtocols.Has(o.NetworkOptions.TestPodProtocol) {
-		return fmt.Errorf("invalid protocol for network diagnostic test pod. Supported protocols: %s", strings.Join(supportedProtocols.List(), ","))
-	}
-	if kvalidation.IsValidPortNum(o.NetworkOptions.TestPodPort) != nil {
-		return fmt.Errorf("invalid port for network diagnostic test pod. Must be in the range 1 to 65535.")
-	}
-
-	o.RequestedDiagnostics = append(o.RequestedDiagnostics, args...)
-	if len(o.RequestedDiagnostics) == 0 {
-		o.RequestedDiagnostics = availableDiagnostics().Difference(defaultSkipDiagnostics()).List()
-	}
-
 	return nil
 }
 
-func (o *DiagnosticsOptions) Validate() error {
-	available := availableDiagnostics()
-
-	if common := available.Intersection(sets.NewString(o.RequestedDiagnostics...)); len(common) == 0 {
-		o.Logger.Error("CED3012", log.EvalTemplate("CED3012", "None of the requested diagnostics are available:\n  {{.requested}}\nPlease try from the following:\n  {{.available}}",
-			log.Hash{"requested": o.RequestedDiagnostics, "available": available.List()}))
-		return fmt.Errorf("No requested diagnostics are available: requested=%s available=%s", strings.Join(o.RequestedDiagnostics, " "), strings.Join(available.List(), " "))
-
-	} else if len(common) < len(o.RequestedDiagnostics) {
-		o.Logger.Error("CED3013", log.EvalTemplate("CED3013", `
-Of the requested diagnostics:
-    {{.requested}}
-only these are available:
-    {{.common}}
-The list of all possible is:
-    {{.available}}
-		`, log.Hash{"requested": o.RequestedDiagnostics, "common": common.List(), "available": available.List()}))
-
-		return fmt.Errorf("Not all requested diagnostics are available: missing=%s requested=%s available=%s",
-			strings.Join(sets.NewString(o.RequestedDiagnostics...).Difference(available).List(), " "),
-			strings.Join(o.RequestedDiagnostics, " "),
-			strings.Join(available.List(), " "))
-	}
-
-	return nil
-}
-
-func availableDiagnostics() sets.String {
-	available := sets.NewString()
-	available.Insert(availableClientDiagnostics.List()...)
-	available.Insert(availableClusterDiagnostics.List()...)
-	available.Insert(availableEtcdDiagnostics.List()...)
-	available.Insert(availableHostDiagnostics.List()...)
+func availableDiagnostics() types.DiagnosticList {
+	available := availableClientDiagnostics()
+	available = append(available, availableClusterDiagnostics()...)
+	available = append(available, availableHostDiagnostics()...)
 	return available
 }
 
 func defaultSkipDiagnostics() sets.String {
-	available := sets.NewString()
-	available.Insert(defaultSkipEtcdDiagnostics.List()...)
-	return available
+	toSkip := sets.NewString()
+	toSkip.Insert(defaultSkipHostDiagnostics.List()...)
+	return toSkip
 }
 
 // RunDiagnostics builds diagnostics based on the options and executes them, returning a summary.
-func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
+func (o DiagnosticsConfig) RunDiagnostics() (bool, error, int, int) {
 	failed := false
 	warnings := []error{}
 	errors := []error{}
@@ -274,14 +333,19 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 				errors = append(errors, fmt.Errorf("While building the diagnostics, a panic was encountered.\nThis is a bug in diagnostics. Error and stack trace follow: \n%v\n%s", r, stack))
 			}
 		}()
-		detected, detectWarnings, detectErrors := o.detectClientConfig() // may log and return problems
+
+		// build client/cluster diags if there is a client config for them to use
+		expected, detected, detectWarnings, detectErrors := o.detectClientConfig() // may log and return problems
 		for _, warn := range detectWarnings {
 			warnings = append(warnings, warn)
 		}
 		for _, err := range detectErrors {
 			errors = append(errors, err)
 		}
-		if !detected { // there just plain isn't any client config file available
+		if !expected {
+			// no diagnostic required a client config, nothing to do
+		} else if !detected {
+			// there just plain isn't any client config file available
 			o.Logger.Notice("CED3014", "No client configuration specified; skipping client and cluster diagnostics.")
 		} else if rawConfig, err := o.buildRawConfig(); err != nil { // client config is totally broken - won't parse etc (problems may have been detected and logged)
 			o.Logger.Error("CED3015", fmt.Sprintf("Client configuration failed to load; skipping client and cluster diagnostics due to error: %s", err.Error()))
@@ -306,12 +370,7 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 			}
 		}
 
-		etcdDiags, ok, err := o.buildEtcdDiagnostics()
-		failed = failed || !ok
-		if ok {
-			diagnostics = append(diagnostics, etcdDiags...)
-		}
-
+		// build host diagnostics if config is available
 		hostDiags, ok, err := o.buildHostDiagnostics()
 		failed = failed || !ok
 		if ok {
@@ -319,6 +378,16 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 		}
 		if err != nil {
 			errors = append(errors, err)
+		}
+
+		// complete any diagnostics that require it
+		for _, d := range diagnostics {
+			if toComplete, ok := d.(types.IncompleteDiagnostic); ok {
+				if err := toComplete.Complete(o.Logger); err != nil {
+					errors = append(errors, err)
+					failed = true
+				}
+			}
 		}
 	}()
 
@@ -333,7 +402,7 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 }
 
 // Run performs the actual execution of diagnostics once they're built.
-func (o DiagnosticsOptions) Run(diagnostics []types.Diagnostic) (bool, error, int, int) {
+func (o DiagnosticsConfig) Run(diagnostics []types.Diagnostic) (bool, error, int, int) {
 	warnCount := 0
 	errorCount := 0
 	for _, diagnostic := range diagnostics {

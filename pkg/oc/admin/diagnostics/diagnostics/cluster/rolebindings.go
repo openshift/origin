@@ -34,6 +34,10 @@ func (d *ClusterRoleBindings) Description() string {
 	return "Check that the default ClusterRoleBindings are present and contain the expected subjects"
 }
 
+func (d *ClusterRoleBindings) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 func (d *ClusterRoleBindings) CanRun() (bool, error) {
 	if d.ClusterRoleBindingsClient == nil {
 		return false, fmt.Errorf("must have client.ClusterRoleBindingsInterface")
