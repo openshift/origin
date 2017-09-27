@@ -48,8 +48,9 @@ type OpenshiftControllerConfig struct {
 	DeploymentConfigControllerConfig  DeploymentConfigControllerConfig
 	DeploymentTriggerControllerConfig DeploymentTriggerControllerConfig
 
-	ImageTriggerControllerConfig ImageTriggerControllerConfig
-	ImageImportControllerConfig  ImageImportControllerConfig
+	ImageTriggerControllerConfig         ImageTriggerControllerConfig
+	ImageSignatureImportControllerConfig ImageSignatureImportControllerConfig
+	ImageImportControllerConfig          ImageImportControllerConfig
 
 	ServiceServingCertsControllerOptions ServiceServingCertsControllerOptions
 
@@ -80,6 +81,7 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 
 	ret["openshift.io/image-trigger"] = c.ImageTriggerControllerConfig.RunController
 	ret["openshift.io/image-import"] = c.ImageImportControllerConfig.RunController
+	ret["openshift.io/image-signature-import"] = c.ImageSignatureImportControllerConfig.RunController
 
 	ret["openshift.io/templateinstance"] = RunTemplateInstanceController
 
@@ -202,6 +204,11 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		ResyncPeriod:                               10 * time.Minute,
 		DisableScheduledImport:                     options.ImagePolicyConfig.DisableScheduledImport,
 		ScheduledImageImportMinimumIntervalSeconds: options.ImagePolicyConfig.ScheduledImageImportMinimumIntervalSeconds,
+	}
+	ret.ImageSignatureImportControllerConfig = ImageSignatureImportControllerConfig{
+		ResyncPeriod:          10 * time.Minute,
+		SignatureFetchTimeout: 1 * time.Minute,
+		SignatureImportLimit:  3,
 	}
 
 	ret.ServiceServingCertsControllerOptions = ServiceServingCertsControllerOptions{
