@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
@@ -41,6 +42,7 @@ func TestGetClient(t *testing.T) {
 
 		expectedDelegation  bool
 		expectedErr         string
+		expectedEventMsg    string
 		expectedClient      *oauthapi.OAuthClient
 		expectedKubeActions []clientgotesting.Action
 		expectedOSActions   []clientgotesting.Action
@@ -74,8 +76,28 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 				}),
+			routeClient:      routefake.NewSimpleClientset(),
+			expectedErr:      `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
+			expectedEventMsg: `Warning NoSAOAuthRedirectURIs system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>`,
+
+			//expectedEventMsg:    `Warning NoSAOAuthRedirectURIs [parse ::: missing protocol scheme, system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]`,
+			expectedKubeActions: []clientgotesting.Action{clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default")},
+			expectedOSActions:   []clientgotesting.Action{},
+		},
+		{
+			name:       "sa invalid redirect scheme",
+			clientName: "system:serviceaccount:ns-01:default",
+			kubeClient: fake.NewSimpleClientset(
+				&kapi.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace:   "ns-01",
+						Name:        "default",
+						Annotations: map[string]string{OAuthRedirectModelAnnotationURIPrefix + "incomplete": "::"},
+					},
+				}),
 			routeClient:         routefake.NewSimpleClientset(),
 			expectedErr:         `system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>`,
+			expectedEventMsg:    `Warning NoSAOAuthRedirectURIs [parse ::: missing protocol scheme, system:serviceaccount:ns-01:default has no redirectURIs; set serviceaccounts.openshift.io/oauth-redirecturi.<some-value>=<redirect> or create a dynamic URI using serviceaccounts.openshift.io/oauth-redirectreference.<some-value>=<reference>]`,
 			expectedKubeActions: []clientgotesting.Action{clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default")},
 			expectedOSActions:   []clientgotesting.Action{},
 		},
@@ -90,8 +112,9 @@ func TestGetClient(t *testing.T) {
 						Annotations: map[string]string{OAuthRedirectModelAnnotationURIPrefix + "one": "http://anywhere"},
 					},
 				}),
-			routeClient: routefake.NewSimpleClientset(),
-			expectedErr: `system:serviceaccount:ns-01:default has no tokens`,
+			routeClient:      routefake.NewSimpleClientset(),
+			expectedErr:      `system:serviceaccount:ns-01:default has no tokens`,
+			expectedEventMsg: `Warning NoSAOAuthTokens system:serviceaccount:ns-01:default has no tokens`,
 			expectedKubeActions: []clientgotesting.Action{
 				clientgotesting.NewGetAction(serviceAccountsResource, "ns-01", "default"),
 				clientgotesting.NewListAction(secretsResource, secretKind, "ns-01", metav1.ListOptions{}),
@@ -258,7 +281,7 @@ func TestGetClient(t *testing.T) {
 			expectedOSActions: []clientgotesting.Action{},
 		},
 		{
-			name:       "good SA with a route that don't have a host",
+			name:       "good SA with a route that doesn't have a host",
 			clientName: "system:serviceaccount:ns-01:default",
 			kubeClient: fake.NewSimpleClientset(
 				&kapi.ServiceAccount{
@@ -547,7 +570,16 @@ func TestGetClient(t *testing.T) {
 
 	for _, tc := range testCases {
 		delegate := &fakeDelegate{}
-		getter := NewServiceAccountOAuthClientGetter(tc.kubeClient.Core(), tc.kubeClient.Core(), tc.routeClient.Route(), delegate, oauthapi.GrantHandlerPrompt)
+		fakerecorder := record.NewFakeRecorder(100)
+		getter := saOAuthClientAdapter{
+			saClient:      tc.kubeClient.Core(),
+			secretClient:  tc.kubeClient.Core(),
+			eventRecorder: fakerecorder,
+			routeClient:   tc.routeClient.Route(),
+			delegate:      delegate,
+			grantMethod:   oauthapi.GrantHandlerPrompt,
+			decoder:       kapi.Codecs.UniversalDecoder(),
+		}
 		client, err := getter.Get(tc.clientName, metav1.GetOptions{})
 		switch {
 		case len(tc.expectedErr) == 0 && err == nil:
@@ -577,8 +609,18 @@ func TestGetClient(t *testing.T) {
 			t.Errorf("%s: expected %#v, got %#v", tc.name, tc.expectedOSActions, tc.routeClient.Actions())
 			continue
 		}
-	}
 
+		if len(tc.expectedEventMsg) > 0 {
+			var ev string
+			select {
+			case ev = <-fakerecorder.Events:
+			default:
+			}
+			if tc.expectedEventMsg != ev {
+				t.Errorf("%s: expected event message %#v, got %#v", tc.name, tc.expectedEventMsg, ev)
+			}
+		}
+	}
 }
 
 type fakeDelegate struct {
@@ -816,8 +858,12 @@ func TestParseModelsMap(t *testing.T) {
 			},
 		},
 	} {
-		if !reflect.DeepEqual(test.expected, parseModelsMap(test.annotations, decoder)) {
-			t.Errorf("%s: expected %#v, got %#v", test.name, test.expected, parseModelsMap(test.annotations, decoder))
+		models, errs := parseModelsMap(test.annotations, decoder)
+		if len(errs) > 0 {
+			t.Errorf("%s: unexpected parseModelsMap errors %v", test.name, errs)
+		}
+		if !reflect.DeepEqual(test.expected, models) {
+			t.Errorf("%s: expected %#v, got %#v", test.name, test.expected, models)
 		}
 	}
 }
@@ -1005,7 +1051,11 @@ func TestGetRedirectURIs(t *testing.T) {
 		},
 	} {
 		a := buildRouteClient(test.routes)
-		actual := test.models.getRedirectURIs(a.redirectURIsFromRoutes(test.namespace, test.models.getNames()))
+		uris, errs := a.redirectURIsFromRoutes(test.namespace, test.models.getNames())
+		if len(errs) > 0 {
+			t.Errorf("%s: unexpected redirectURIsFromRoutes errors %v", test.name, errs)
+		}
+		actual := test.models.getRedirectURIs(uris)
 		if !reflect.DeepEqual(test.expected, actual) {
 			t.Errorf("%s: expected %#v, got %#v", test.name, test.expected, actual)
 		}
@@ -1172,8 +1222,12 @@ func TestRedirectURIsFromRoutes(t *testing.T) {
 		},
 	} {
 		a := buildRouteClient(test.routes)
-		if !reflect.DeepEqual(test.expected, a.redirectURIsFromRoutes(test.namespace, test.names)) {
-			t.Errorf("%s: expected %#v, got %#v", test.name, test.expected, a.redirectURIsFromRoutes(test.namespace, test.names))
+		uris, errs := a.redirectURIsFromRoutes(test.namespace, test.names)
+		if len(errs) > 0 {
+			t.Errorf("%s: unexpected redirectURIsFromRoutes errors %v", test.name, errs)
+		}
+		if !reflect.DeepEqual(test.expected, uris) {
+			t.Errorf("%s: expected %#v, got %#v", test.name, test.expected, uris)
 		}
 	}
 }
@@ -1183,7 +1237,10 @@ func buildRouteClient(routes []*routeapi.Route) saOAuthClientAdapter {
 	for _, route := range routes {
 		objects = append(objects, route)
 	}
-	return saOAuthClientAdapter{routeClient: routefake.NewSimpleClientset(objects...).Route()}
+	return saOAuthClientAdapter{
+		routeClient:   routefake.NewSimpleClientset(objects...).Route(),
+		eventRecorder: record.NewFakeRecorder(100),
+	}
 }
 
 func buildRedirectObjectReferenceString(kind, name, group string) string {
