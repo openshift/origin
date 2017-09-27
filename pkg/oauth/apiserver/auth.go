@@ -22,6 +22,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/request/union"
 	x509request "k8s.io/apiserver/pkg/authentication/request/x509"
 	kuser "k8s.io/apiserver/pkg/authentication/user"
+	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	"github.com/openshift/origin/pkg/auth/authenticator/challenger/passwordchallenger"
@@ -72,7 +73,7 @@ const (
 
 // WithOAuth decorates the given handler by serving the OAuth2 endpoints while
 // passing through all other requests to the given handler.
-func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error) {
+func (c *OAuthServerConfig) WithOAuth(handler http.Handler, requestContextMapper request.RequestContextMapper) (http.Handler, error) {
 	baseMux := http.NewServeMux()
 	mux := c.possiblyWrapMux(baseMux)
 
@@ -93,7 +94,7 @@ func (c *OAuthServerConfig) WithOAuth(handler http.Handler) (http.Handler, error
 		glog.Fatal(err)
 	}
 
-	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux, errorPageHandler)
+	authRequestHandler, authHandler, authFinalizer, err := c.getAuthorizeAuthenticationHandlers(mux, errorPageHandler, requestContextMapper)
 	if err != nil {
 		glog.Fatal(err)
 	}
@@ -264,12 +265,12 @@ func (c *OAuthServerConfig) getCSRF() csrf.CSRF {
 	return csrf.NewCookieCSRF("csrf", "/", "", secure, true)
 }
 
-func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
+func (c *OAuthServerConfig) getAuthorizeAuthenticationHandlers(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (authenticator.Request, handlers.AuthenticationHandler, osinserver.AuthorizeHandler, error) {
 	authRequestHandler, err := c.getAuthenticationRequestHandler()
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	authHandler, err := c.getAuthenticationHandler(mux, errorHandler)
+	authHandler, err := c.getAuthenticationHandler(mux, errorHandler, requestContextMapper)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -313,7 +314,7 @@ func (c *OAuthServerConfig) getAuthenticationFinalizer() osinserver.AuthorizeHan
 	})
 }
 
-func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler) (handlers.AuthenticationHandler, error) {
+func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandler handlers.AuthenticationErrorHandler, requestContextMapper request.RequestContextMapper) (handlers.AuthenticationHandler, error) {
 	// TODO: make this ordered once we can have more than one
 	challengers := map[string]handlers.AuthenticationChallenger{}
 
@@ -454,7 +455,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 
 	selectProvider := selectprovider.NewSelectProvider(selectProviderRenderer, c.Options.AlwaysShowProviderSelection)
 
-	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler, selectProvider)
+	authHandler := handlers.NewUnionAuthenticationHandler(challengers, redirectors, errorHandler, selectProvider, requestContextMapper)
 	return authHandler, nil
 }
 

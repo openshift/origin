@@ -14,11 +14,13 @@ import (
 
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/server"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
 	genericmux "k8s.io/apiserver/pkg/server/mux"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kversion "k8s.io/kubernetes/pkg/version"
@@ -149,11 +151,15 @@ func buildHandlerChainForAssets(consoleRedirectPath string) func(startingHandler
 	return func(startingHandler http.Handler, c *genericapiserver.Config) http.Handler {
 		handler := WithAssetServerRedirect(startingHandler, consoleRedirectPath)
 		handler = genericfilters.WithMaxInFlightLimit(handler, c.MaxRequestsInFlight, c.MaxMutatingRequestsInFlight, c.RequestContextMapper, c.LongRunningFunc)
+		if utilfeature.DefaultFeatureGate.Enabled(features.AdvancedAuditing) {
+			handler = genericapifilters.WithAudit(handler, c.RequestContextMapper, c.AuditBackend, c.AuditPolicyChecker, c.LongRunningFunc)
+		}
 		handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
 		handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.RequestContextMapper, c.LongRunningFunc)
 		handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(c), c.RequestContextMapper)
 		handler = apirequest.WithRequestContext(handler, c.RequestContextMapper)
 		handler = genericfilters.WithPanicRecovery(handler)
+
 		return handler
 	}
 }

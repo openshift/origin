@@ -15,7 +15,7 @@ import (
 func TestHandler(t *testing.T) {
 	redirectors := new(handlers.AuthenticationRedirectors)
 	redirectors.Add("handler", &Handler{})
-	_ = handlers.NewUnionAuthenticationHandler(nil, redirectors, nil, nil)
+	_ = handlers.NewUnionAuthenticationHandler(nil, redirectors, nil, nil, nil)
 }
 
 func TestRedirectingStateValidCSRF(t *testing.T) {
