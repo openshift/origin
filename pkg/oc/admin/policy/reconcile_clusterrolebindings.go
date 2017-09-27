@@ -19,9 +19,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
 	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -45,7 +45,7 @@ type ReconcileClusterRoleBindingsOptions struct {
 	Err    io.Writer
 	Output string
 
-	RoleBindingClient client.ClusterRoleBindingInterface
+	RoleBindingClient authorizationtypedclient.ClusterRoleBindingInterface
 }
 
 var (
@@ -118,11 +118,11 @@ func NewCmdReconcileClusterRoleBindings(name, fullName string, f *clientcmd.Fact
 }
 
 func (o *ReconcileClusterRoleBindingsOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string, excludeUsers, excludeGroups []string) error {
-	oclient, _, err := f.Clients()
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return err
 	}
-	o.RoleBindingClient = oclient.ClusterRoleBindings()
+	o.RoleBindingClient = authorizationClient.Authorization().ClusterRoleBindings()
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 
@@ -291,7 +291,7 @@ func (o *ReconcileClusterRoleBindingsOptions) ReplaceChangedRoleBindings(changed
 			rbacRoleBinding.Subjects = changedRoleBindings[i].Subjects
 
 			// TODO: for extra credit, determine whether the right to delete/create this rolebinding for the current user came from this rolebinding before deleting it
-			err := o.RoleBindingClient.Delete(roleBinding.Name)
+			err := o.RoleBindingClient.Delete(roleBinding.Name, nil)
 			if err != nil {
 				errs = append(errs, err)
 				continue

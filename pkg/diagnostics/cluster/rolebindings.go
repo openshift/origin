@@ -10,15 +10,15 @@ import (
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/diagnostics/types"
 	policycmd "github.com/openshift/origin/pkg/oc/admin/policy"
 )
 
 // ClusterRoleBindings is a Diagnostic to check that the default cluster role bindings match expectations
 type ClusterRoleBindings struct {
-	ClusterRoleBindingsClient osclient.ClusterRoleBindingsInterface
+	ClusterRoleBindingsClient oauthorizationtypedclient.ClusterRoleBindingInterface
 	SARClient                 authorizationtypedclient.SelfSubjectAccessReviewsGetter
 }
 
@@ -56,7 +56,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 		Confirmed:         false,
 		Union:             false,
 		Out:               ioutil.Discard,
-		RoleBindingClient: d.ClusterRoleBindingsClient.ClusterRoleBindings(),
+		RoleBindingClient: d.ClusterRoleBindingsClient,
 	}
 
 	changedClusterRoleBindings, _, err := reconcileOptions.ChangedClusterRoleBindings()
@@ -75,7 +75,7 @@ func (d *ClusterRoleBindings) Check() types.DiagnosticResult {
 	}
 
 	for _, changedClusterRoleBinding := range changedClusterRoleBindings {
-		actualClusterRole, err := d.ClusterRoleBindingsClient.ClusterRoleBindings().Get(changedClusterRoleBinding.Name, metav1.GetOptions{})
+		actualClusterRole, err := d.ClusterRoleBindingsClient.Get(changedClusterRoleBinding.Name, metav1.GetOptions{})
 		if kerrs.IsNotFound(err) {
 			r.Error("CRBD1001", nil, fmt.Sprintf("clusterrolebinding/%s is missing.\n\nUse the `oc adm policy reconcile-cluster-role-bindings` command to create the role binding.", changedClusterRoleBinding.Name))
 			continue
