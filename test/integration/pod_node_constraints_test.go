@@ -106,10 +106,6 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -118,6 +114,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	if err != nil {
 		t.Fatalf("error getting user/kube client: %v", err)
 	}
+	_, authAdminClient := testutil.GetAdminClientForCreateProject(kubeConfigFile)
 	kubeClientset, err := testutil.GetClusterAdminKubeClient(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting kube client: %v", err)
@@ -134,7 +131,7 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 	addUser := &policy.RoleModificationOptions{
 		RoleNamespace:       ns.Name,
 		RoleName:            bootstrappolicy.AdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authAdminClient),
 		Users:               []string{user},
 	}
 	if err := addUser.AddRole(); err != nil {

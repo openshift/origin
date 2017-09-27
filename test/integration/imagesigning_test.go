@@ -11,6 +11,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -22,7 +23,7 @@ import (
 const testUserName = "bob"
 
 func TestImageAddSignature(t *testing.T) {
-	userKubeClient, adminClient, userClient, image, fn := testSetupImageSignatureTest(t, testUserName)
+	userKubeClient, adminClient, userClient, image, authClient, fn := testSetupImageSignatureTest(t, testUserName)
 	defer fn()
 
 	if len(image.Signatures) != 0 {
@@ -49,7 +50,7 @@ func TestImageAddSignature(t *testing.T) {
 		t.Fatalf("expected forbidden error, not: %v", err)
 	}
 
-	makeUserAnImageSigner(adminClient, userKubeClient, testUserName)
+	makeUserAnImageSigner(authClient, userKubeClient, testUserName)
 
 	// try to create the signature again
 	created, err = userClient.ImageSignatures().Create(&signature)
@@ -98,9 +99,9 @@ func TestImageAddSignature(t *testing.T) {
 }
 
 func TestImageRemoveSignature(t *testing.T) {
-	userKubeClient, adminClient, userClient, image, fn := testSetupImageSignatureTest(t, testUserName)
+	userKubeClient, _, userClient, image, authClient, fn := testSetupImageSignatureTest(t, testUserName)
 	defer fn()
-	makeUserAnImageSigner(adminClient, userKubeClient, testUserName)
+	makeUserAnImageSigner(authClient, userKubeClient, testUserName)
 
 	// create some signatures
 	sigData := []struct {
@@ -196,7 +197,7 @@ func TestImageRemoveSignature(t *testing.T) {
 	}
 }
 
-func testSetupImageSignatureTest(t *testing.T, userName string) (userKubeClient kclientset.Interface, adminClient *client.Client, userClient *client.Client, image *imageapi.Image, cleanup func()) {
+func testSetupImageSignatureTest(t *testing.T, userName string) (userKubeClient kclientset.Interface, adminClient *client.Client, userClient *client.Client, image *imageapi.Image, authClient authclient.AuthorizationInterface, cleanup func()) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -230,17 +231,19 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (userKubeClient 
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	return userKubeClient, adminClient, userClient, image, func() {
+	_, authClient = testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
+	return userKubeClient, adminClient, userClient, image, authClient, func() {
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 }
 
-func makeUserAnImageSigner(clusterAdminClient *client.Client, userClient kclientset.Interface, userName string) error {
+func makeUserAnImageSigner(authClient authclient.AuthorizationInterface, userClient kclientset.Interface, userName string) error {
 	// give bob permissions to update image signatures
 	addImageSignerRole := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ImageSignerRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authClient),
 		Users:               []string{userName},
 	}
 	if err := addImageSignerRole.AddRole(); err != nil {

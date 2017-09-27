@@ -27,15 +27,13 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminConfig, "service-serving-cert-signer", "deads"); err != nil {
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminConfig, "service-serving-cert-signer", "deads"); err != nil {
 		t.Fatal(err)
 	}
 

@@ -20,11 +20,6 @@ func TestPolicyCommands(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -32,14 +27,18 @@ func TestPolicyCommands(t *testing.T) {
 
 	const projectName = "hammer-project"
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold")
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
+	_, haroldClient, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, projectName, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	haroldAuthClient := testutil.GetAuthClientForUser(*clusterAdminClientConfig, "harold")
+
 	addViewer := policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(projectName, haroldClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(projectName, haroldAuthClient),
 		Users:               []string{"valerie"},
 		Groups:              []string{"my-group"},
 	}

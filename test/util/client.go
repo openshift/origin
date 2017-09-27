@@ -18,12 +18,18 @@ import (
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 	"k8s.io/kubernetes/pkg/quota"
 
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	authtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
+	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	projecttypedclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/pkg/serviceaccounts"
 )
 
@@ -72,6 +78,47 @@ func GetClusterAdminClientConfigOrDie(adminKubeConfigFile string) *restclient.Co
 		panic(err)
 	}
 	return conf
+}
+
+func GetAdminClientForCreateProject(adminKubeConfigFile string) (projecttypedclient.ProjectInterface, authtypedclient.AuthorizationInterface) {
+	return projectclient.NewForConfigOrDie(GetClusterAdminClientConfigOrDie(adminKubeConfigFile)).Project(),
+		authclient.NewForConfigOrDie(GetClusterAdminClientConfigOrDie(adminKubeConfigFile)).Authorization()
+}
+
+func GetAuthClientForUser(clientConfig restclient.Config, username string) authtypedclient.AuthorizationInterface {
+	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
+	if err != nil {
+		panic(err)
+	}
+
+	userClientConfig := clientcmd.AnonymousClientConfig(&clientConfig)
+	userClientConfig.BearerToken = token
+
+	return authclient.NewForConfigOrDie(&userClientConfig).Authorization()
+}
+
+func GetProjectClientForUser(clientConfig restclient.Config, username string) projecttypedclient.ProjectInterface {
+	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
+	if err != nil {
+		panic(err)
+	}
+
+	userClientConfig := clientcmd.AnonymousClientConfig(&clientConfig)
+	userClientConfig.BearerToken = token
+
+	return projectclient.NewForConfigOrDie(&userClientConfig).Project()
+}
+
+func GetBuildClientForUser(clientConfig restclient.Config, username string) buildtypedclient.BuildInterface {
+	token, err := tokencmd.RequestToken(&clientConfig, nil, username, "password")
+	if err != nil {
+		panic(err)
+	}
+
+	userClientConfig := clientcmd.AnonymousClientConfig(&clientConfig)
+	userClientConfig.BearerToken = token
+
+	return buildclient.NewForConfigOrDie(&userClientConfig).Build()
 }
 
 func GetClientForUser(clientConfig restclient.Config, username string) (*client.Client, kclientset.Interface, *restclient.Config, error) {

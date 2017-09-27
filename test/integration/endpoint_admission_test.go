@@ -73,14 +73,11 @@ func TestEndpointAdmission(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting kube client: %v", err)
 	}
-	clusterAdminOSClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
-	if err != nil {
-		t.Fatalf("error getting client: %v", err)
-	}
 	clientConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client config: %v", err)
 	}
+	createProjectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(kubeConfigFile)
 
 	// Cluster admin
 	testOne(t, clusterAdminKubeClient, "default", "cluster", true)
@@ -97,7 +94,7 @@ func TestEndpointAdmission(t *testing.T) {
 	testOne(t, serviceAccountClient, "default", "external", true)
 
 	// Project admin
-	_, _, err = testserver.CreateNewProject(clusterAdminOSClient, *clientConfig, "myproject", "myadmin")
+	_, _, err = testserver.CreateNewProject(createProjectAdminClient, authAdminClient, *clientConfig, "myproject", "myadmin")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}

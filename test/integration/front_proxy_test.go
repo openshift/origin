@@ -79,6 +79,7 @@ func TestFrontProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	proxyHTTPHandler, err := newFrontProxyHandler(clusterAdminClientConfig.Host, masterConfig.ServingInfo.ClientCA, proxyUserHeader, proxyGroupHeader, proxyCert)
 	if err != nil {
@@ -108,7 +109,7 @@ func TestFrontProxy(t *testing.T) {
 
 	for _, username := range []string{"david", "jordan"} {
 		projectName := username + "-project"
-		if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, username); err != nil {
+		if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, projectName, username); err != nil {
 			t.Fatal(err)
 		}
 		waitForAdd(projectName, w, t)

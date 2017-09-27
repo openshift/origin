@@ -218,10 +218,6 @@ func TestProjectWatch(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -234,21 +230,23 @@ func TestProjectWatch(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-01", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "ns-01", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForAdd("ns-01", w, t)
 
 	// TEST FOR ADD/REMOVE ACCESS
-	_, joeClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
+	_, _, err = testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "ns-02", "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	joeAuthClient := testutil.GetAuthClientForUser(*clusterAdminClientConfig, "joe")
 	addBob := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", joeClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("ns-02", joeAuthClient),
 		Users:               []string{"bob"},
 	}
 	if err := addBob.AddRole(); err != nil {
@@ -262,7 +260,7 @@ func TestProjectWatch(t *testing.T) {
 	waitForDelete("ns-02", w, t)
 
 	// TEST FOR DELETE PROJECT
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "ns-03", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "ns-03", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForAdd("ns-03", w, t)
@@ -388,6 +386,8 @@ func TestScopedProjectAccess(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
 	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -438,14 +438,14 @@ func TestScopedProjectAccess(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "one", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "one", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	t.Logf("test 1")
 	waitForOnlyAdd("one", allWatch, t)
 	waitForOnlyAdd("one", oneTwoWatch, t)
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "two", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "two", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	t.Logf("test 2")
@@ -453,14 +453,14 @@ func TestScopedProjectAccess(t *testing.T) {
 	waitForOnlyAdd("two", oneTwoWatch, t)
 	waitForOnlyAdd("two", twoThreeWatch, t)
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "three", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "three", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	t.Logf("test 3")
 	waitForOnlyAdd("three", allWatch, t)
 	waitForOnlyAdd("three", twoThreeWatch, t)
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "four", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "four", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	waitForOnlyAdd("four", allWatch, t)
@@ -528,6 +528,8 @@ func TestInvalidRoleRefs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
 	bobClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "bob")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -537,10 +539,10 @@ func TestInvalidRoleRefs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "foo", "bob"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "foo", "bob"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "bar", "alice"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "bar", "alice"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -550,17 +552,17 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 	modifyRole := &policy.RoleModificationOptions{RoleName: roleName, Users: []string{"someuser"}}
 	// mess up rolebindings in "foo"
-	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", clusterAdminClient)
+	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("foo", authAdminClient)
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// mess up rolebindings in "bar"
-	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("bar", clusterAdminClient)
+	modifyRole.RoleBindingAccessor = policy.NewLocalRoleBindingAccessor("bar", authAdminClient)
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	// mess up clusterrolebindings
-	modifyRole.RoleBindingAccessor = policy.NewClusterRoleBindingAccessor(clusterAdminClient)
+	modifyRole.RoleBindingAccessor = policy.NewClusterRoleBindingAccessor(authAdminClient)
 	if err := modifyRole.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
