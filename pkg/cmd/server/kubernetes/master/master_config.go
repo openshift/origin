@@ -46,6 +46,7 @@ import (
 	utilflag "k8s.io/apiserver/pkg/util/flag"
 	auditlog "k8s.io/apiserver/plugin/pkg/audit/log"
 	auditwebhook "k8s.io/apiserver/plugin/pkg/audit/webhook"
+	kubeclientgoinformers "k8s.io/client-go/informers"
 	kapiserveroptions "k8s.io/kubernetes/cmd/kube-apiserver/app/options"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
@@ -353,10 +354,10 @@ func buildPublicAddress(masterConfig configapi.MasterConfig) (net.IP, error) {
 
 func buildKubeApiserverConfig(
 	masterConfig configapi.MasterConfig,
-	requestContextMapper apirequest.RequestContextMapper,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
+	clientGoInformers kubeclientgoinformers.SharedInformerFactory,
 ) (*master.Config, error) {
 	apiserverOptions, err := BuildKubeAPIserverOptions(masterConfig)
 	if err != nil {
@@ -394,11 +395,11 @@ func buildKubeApiserverConfig(
 	genericConfig.PublicAddress = publicAddress
 	genericConfig.Authenticator = originAuthenticator // this is used to fulfill the tokenreviews endpoint which is used by node authentication
 	genericConfig.Authorizer = kubeAuthorizer         // this is used to fulfill the kube SAR endpoints
+	genericConfig.SharedInformerFactory = clientGoInformers
 	genericConfig.DisabledPostStartHooks.Insert(rbacrest.PostStartHookName)
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
 	genericConfig.AdmissionControl = admissionControl
-	genericConfig.RequestContextMapper = requestContextMapper
 	genericConfig.RequestInfoResolver = openshiftRequestInfoResolver(genericConfig.RequestContextMapper)
 	genericConfig.OpenAPIConfig = defaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
@@ -556,17 +557,17 @@ func buildKubeApiserverConfig(
 // TODO this function's parameters need to be refactored
 func BuildKubernetesMasterConfig(
 	masterConfig configapi.MasterConfig,
-	requestContextMapper apirequest.RequestContextMapper,
 	admissionControl admission.Interface,
 	originAuthenticator authenticator.Request,
 	kubeAuthorizer authorizer.Authorizer,
+	clientGoInformers kubeclientgoinformers.SharedInformerFactory,
 ) (*master.Config, error) {
 	apiserverConfig, err := buildKubeApiserverConfig(
 		masterConfig,
-		requestContextMapper,
 		admissionControl,
 		originAuthenticator,
-		kubeAuthorizer)
+		kubeAuthorizer,
+		clientGoInformers)
 	if err != nil {
 		return nil, err
 	}

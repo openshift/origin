@@ -11,7 +11,6 @@ import (
 	"github.com/golang/glog"
 
 	apiextensionsinformers "k8s.io/apiextensions-apiserver/pkg/client/informers/internalversion"
-	"k8s.io/apimachinery/pkg/util/wait"
 	apiserver "k8s.io/apiserver/pkg/server"
 	aggregatorapiserver "k8s.io/kube-aggregator/pkg/apiserver"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
@@ -47,9 +46,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// TODO try to stop special casing these.  We should all agree on them.
 	genericConfig.AdmissionControl = c.AdmissionControl
 	genericConfig.RESTOptionsGetter = c.RESTOptionsGetter
-	genericConfig.Authenticator = c.Authenticator
-	genericConfig.Authorizer = c.Authorizer
-	genericConfig.RequestContextMapper = c.RequestContextMapper
 
 	ret := &OpenshiftAPIConfig{
 		GenericConfig: &genericConfig,
@@ -209,35 +205,35 @@ func (c *MasterConfig) withAggregator(delegateAPIServer apiserver.DelegationTarg
 
 // Run launches the OpenShift master by creating a kubernetes master, installing
 // OpenShift APIs into it and then running it.
-func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controllerPlug plug.Plug, stopCh <-chan struct{}) error {
+func (c *MasterConfig) Run(controllerPlug plug.Plug, stopCh <-chan struct{}) error {
 	var err error
 	var apiExtensionsInformers apiextensionsinformers.SharedInformerFactory
 	var delegateAPIServer apiserver.DelegationTarget
 	var extraPostStartHooks map[string]apiserver.PostStartHookFunc
 
-	kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(kubeAPIServerConfig.GenericConfig)
+	c.kubeAPIServerConfig.GenericConfig.BuildHandlerChainFunc, extraPostStartHooks, err = c.buildHandlerChain(c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
 
 	delegateAPIServer = apiserver.EmptyDelegate
-	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, apiExtensionsInformers, err = c.withAPIExtensions(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *kubeAPIServerConfig.GenericConfig, controllerPlug)
+	delegateAPIServer, err = c.withNonAPIRoutes(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig, controllerPlug)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *kubeAPIServerConfig.GenericConfig)
+	delegateAPIServer, err = c.withOpenshiftAPI(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig)
 	if err != nil {
 		return err
 	}
-	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *kubeAPIServerConfig)
+	delegateAPIServer, err = c.withKubeAPI(delegateAPIServer, *c.kubeAPIServerConfig)
 	if err != nil {
 		return err
 	}
-	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
+	aggregatedAPIServer, err := c.withAggregator(delegateAPIServer, *c.kubeAPIServerConfig.GenericConfig, apiExtensionsInformers)
 	if err != nil {
 		return err
 	}
@@ -253,15 +249,9 @@ func (c *MasterConfig) Run(kubeAPIServerConfig *kubeapiserver.Config, controller
 	// add post-start hooks
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("template.openshift.io-sharednamespace", c.ensureOpenShiftSharedResourcesNamespace)
 	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("authorization.openshift.io-bootstrapclusterroles", bootstrappolicy.Policy().EnsureRBACPolicy())
-	aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie("admission.openshift.io-RefreshRESTMapper", func(context apiserver.PostStartHookContext) error {
-		c.RESTMapper.Reset()
-		go func() {
-			wait.Until(func() {
-				c.RESTMapper.Reset()
-			}, 10*time.Second, context.StopCh)
-		}()
-		return nil
-	})
+	for name, fn := range c.additionalPostStartHooks {
+		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
+	}
 	for name, fn := range extraPostStartHooks {
 		aggregatedAPIServer.GenericAPIServer.AddPostStartHookOrDie(name, fn)
 	}

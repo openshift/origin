@@ -1,17 +1,12 @@
-package origin
+package admission
 
 import (
 	"testing"
-
-	// this package has imports for all the admission controllers used in the kube api server
-	// it causes all the admission plugins to be registered, giving us a full listing.
-	_ "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	kubeapiserver "k8s.io/kubernetes/cmd/kube-apiserver/app"
 
-	serveradmission "github.com/openshift/origin/pkg/cmd/server/origin/admission"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 )
 
@@ -45,7 +40,7 @@ var admissionPluginsNotUsedByKube = sets.NewString(
 func TestKubeAdmissionControllerUsage(t *testing.T) {
 	kubeAdmissionPlugins := &admission.Plugins{}
 	kubeapiserver.RegisterAllAdmissionPlugins(kubeAdmissionPlugins)
-	registeredKubePlugins := sets.NewString(serveradmission.OriginAdmissionPlugins.Registered()...)
+	registeredKubePlugins := sets.NewString(OriginAdmissionPlugins.Registered()...)
 
 	usedAdmissionPlugins := sets.NewString(KubeAdmissionPlugins...)
 
@@ -65,8 +60,8 @@ func TestKubeAdmissionControllerUsage(t *testing.T) {
 func TestAdmissionOnOffCoverage(t *testing.T) {
 	configuredAdmissionPlugins := sets.NewString(CombinedAdmissionControlPlugins...)
 	allCoveredAdmissionPlugins := sets.String{}
-	allCoveredAdmissionPlugins.Insert(serveradmission.DefaultOnPlugins.List()...)
-	allCoveredAdmissionPlugins.Insert(serveradmission.DefaultOffPlugins.List()...)
+	allCoveredAdmissionPlugins.Insert(DefaultOnPlugins.List()...)
+	allCoveredAdmissionPlugins.Insert(DefaultOffPlugins.List()...)
 
 	if !configuredAdmissionPlugins.Equal(allCoveredAdmissionPlugins) {
 		t.Errorf("every admission plugin must be default on or default off. differences: %v and %v",
@@ -74,8 +69,8 @@ func TestAdmissionOnOffCoverage(t *testing.T) {
 			allCoveredAdmissionPlugins.Difference(configuredAdmissionPlugins))
 	}
 
-	for plugin := range serveradmission.DefaultOnPlugins {
-		if serveradmission.DefaultOffPlugins.Has(plugin) {
+	for plugin := range DefaultOnPlugins {
+		if DefaultOffPlugins.Has(plugin) {
 			t.Errorf("%v is both enabled and disabled", plugin)
 		}
 	}
