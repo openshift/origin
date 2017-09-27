@@ -18,11 +18,12 @@ import (
 	kinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/externalversions"
 	"k8s.io/kubernetes/pkg/controller"
 
-	"github.com/openshift/origin/pkg/client"
+	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	"github.com/openshift/origin/pkg/cmd/server/start"
+	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/common/build"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -38,57 +39,57 @@ type controllerCount struct {
 // transition happens and that only a single pod is created during a set period of time.
 func TestConcurrentBuildControllers(t *testing.T) {
 	// Start a master with multiple BuildControllers
-	osClient, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
 	defer fn()
-	build.RunBuildControllerTest(t, osClient, kClient)
+	build.RunBuildControllerTest(t, buildClient, kClient)
 }
 
 // TestConcurrentBuildControllersPodSync tests the lifecycle of a build pod when running multiple controllers.
 func TestConcurrentBuildControllersPodSync(t *testing.T) {
 	// Start a master with multiple BuildControllers
-	osClient, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
+	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{BuildControllers: 5}, t)
 	defer fn()
-	build.RunBuildControllerPodSyncTest(t, osClient, kClient)
+	build.RunBuildControllerPodSyncTest(t, buildClient, kClient)
 }
 
 func TestConcurrentBuildImageChangeTriggerControllers(t *testing.T) {
 	// Start a master with multiple ImageChangeTrigger controllers
-	osClient, _, fn := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
+	buildClient, imageClient, _, fn := setupBuildControllerTest(controllerCount{ImageChangeControllers: 5}, t)
 	defer fn()
-	build.RunImageChangeTriggerTest(t, osClient)
+	build.RunImageChangeTriggerTest(t, buildClient, imageClient)
 }
 
 func TestBuildDeleteController(t *testing.T) {
-	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
-	build.RunBuildDeleteTest(t, osClient, kClient)
+	build.RunBuildDeleteTest(t, buildClient, kClient)
 }
 
 func TestBuildRunningPodDeleteController(t *testing.T) {
-	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
-	build.RunBuildRunningPodDeleteTest(t, osClient, kClient)
+	build.RunBuildRunningPodDeleteTest(t, buildClient, kClient)
 }
 
 func TestBuildCompletePodDeleteController(t *testing.T) {
-	osClient, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
+	buildClient, _, kClient, fn := setupBuildControllerTest(controllerCount{}, t)
 	defer fn()
-	build.RunBuildCompletePodDeleteTest(t, osClient, kClient)
+	build.RunBuildCompletePodDeleteTest(t, buildClient, kClient)
 }
 
 func TestConcurrentBuildConfigControllers(t *testing.T) {
-	osClient, kClient, fn := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
+	buildClient, _, _, fn := setupBuildControllerTest(controllerCount{ConfigChangeControllers: 5}, t)
 	defer fn()
-	build.RunBuildConfigChangeControllerTest(t, osClient, kClient)
+	build.RunBuildConfigChangeControllerTest(t, buildClient)
 }
 
-func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Client, kclientset.Interface, func()) {
+func setupBuildControllerTest(counts controllerCount, t *testing.T) (buildtypedclient.BuildInterface, imagetypedclient.ImageInterface, kclientset.Interface, func()) {
 	master, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,9 +209,12 @@ func setupBuildControllerTest(counts controllerCount, t *testing.T) (*client.Cli
 			t.Fatal(err)
 		}
 	}
-	return clusterAdminClient, clusterAdminKubeClientset, func() {
-		testserver.CleanupMasterEtcd(t, master)
-	}
+	return buildtypedclient.NewForConfigOrDie(clusterAdminClientConfig),
+		imagetypedclient.NewForConfigOrDie(clusterAdminClientConfig),
+		clusterAdminKubeClientset,
+		func() {
+			testserver.CleanupMasterEtcd(t, master)
+		}
 }
 
 type GenericResourceInformer interface {

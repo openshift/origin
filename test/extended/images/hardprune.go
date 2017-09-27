@@ -130,7 +130,7 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 
 		imgs := map[string]*imageapi.Image{}
 		for _, imgName := range []string{baseImg1, baseImg2, baseImg3, baseImg4, childImg1, childImg2, childImg3} {
-			img, err := oc.AsAdmin().Client().Images().Get(imgName, metav1.GetOptions{})
+			img, err := oc.AsAdmin().ImageClient().Image().Images().Get(imgName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			imgs[imgName] = img
 			o.Expect(img.DockerImageManifestMediaType).To(o.Equal(schema2.MediaTypeManifest))
@@ -158,7 +158,7 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 		 *  childImg3 | baseImg3 | 7 8 9  | c
 		 */
 
-		err = oc.AsAdmin().Client().ImageStreamTags(oc.Namespace()).Delete("a", "latest")
+		err = oc.AsAdmin().ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("a:latest", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -175,11 +175,11 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().Client().Images().Delete(childImg1)
+		err = oc.AsAdmin().ImageClient().Image().Images().Delete(childImg1, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		// The repository a-tagged will not be removed even though it has no tags anymore.
 		// For the repository to be removed, the image stream itself needs to be deleted.
-		err = oc.AsAdmin().Client().ImageStreamTags(oc.Namespace()).Delete("a-tagged", "latest")
+		err = oc.AsAdmin().ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("a-tagged:latest", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -202,7 +202,7 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().Client().Images().Delete(baseImg1)
+		err = oc.AsAdmin().ImageClient().Image().Images().Delete(baseImg1, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -219,7 +219,7 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().Client().Images().Delete(childImg2)
+		err = oc.AsAdmin().ImageClient().Image().Images().Delete(childImg2, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -243,10 +243,10 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// untag both baseImg2 and childImg2
-		err = oc.AsAdmin().Client().ImageStreams(oc.Namespace()).Delete("b")
+		err = oc.AsAdmin().ImageClient().Image().ImageStreams(oc.Namespace()).Delete("b", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		delete(expectedDeletions.ManifestLinks, oc.Namespace()+"/b")
-		err = oc.AsAdmin().Client().Images().Delete(baseImg2)
+		err = oc.AsAdmin().ImageClient().Image().Images().Delete(baseImg2, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -300,7 +300,7 @@ var _ = g.Describe("[Feature:ImagePrune] Image hard prune", func() {
 		err = AssertDeletedStorageFiles(deleted, expectedDeletions)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = oc.AsAdmin().Client().Images().Delete(childImg3)
+		err = oc.AsAdmin().ImageClient().Image().Images().Delete(childImg3, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		deleted, err = RunHardPrune(oc, dryRun)
 		o.Expect(err).NotTo(o.HaveOccurred())

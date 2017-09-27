@@ -59,7 +59,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			br.AssertSuccess()
 		}
 
-		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -68,7 +68,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 		g.By("waiting up to one minute for pruning to complete")
 		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				return false, err
@@ -104,7 +104,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			br.AssertFailure()
 		}
 
-		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -113,7 +113,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 		g.By("waiting up to one minute for pruning to complete")
 		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				return false, err
@@ -149,7 +149,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
 		}
 
-		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -158,7 +158,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 		g.By("waiting up to one minute for pruning to complete")
 		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				return false, err
@@ -194,7 +194,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 			br.AssertFailure()
 		}
 
-		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -203,7 +203,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 		g.By("waiting up to one minute for pruning to complete")
 		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.Client().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
 				return false, err
@@ -233,7 +233,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		err := oc.Run("create").Args("-f", groupBuildConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}
@@ -249,7 +249,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		err := oc.Run("create").Args("-f", legacyBuildConfig).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		buildConfig, err := oc.Client().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 		if err != nil {
 			fmt.Fprintf(g.GinkgoWriter, "%v", err)
 		}

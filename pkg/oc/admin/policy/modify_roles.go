@@ -320,7 +320,7 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 		return errors.New("you must specify at least one user or service account")
 	}
 
-	osClient, _, err := f.Clients()
+	authClient, err := f.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return err
 	}
@@ -339,9 +339,9 @@ func (o *RoleModificationOptions) CompleteUserWithSA(f *clientcmd.Factory, cmd *
 	}
 
 	if isNamespaced {
-		o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, osClient)
+		o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, authClient.Authorization())
 	} else {
-		o.RoleBindingAccessor = NewClusterRoleBindingAccessor(osClient)
+		o.RoleBindingAccessor = NewClusterRoleBindingAccessor(authClient.Authorization())
 	}
 
 	for _, sa := range saNames {
@@ -362,7 +362,7 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 
 	o.Targets = *target
 
-	osClient, _, err := f.Clients()
+	authClient, err := f.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return err
 	}
@@ -380,10 +380,10 @@ func (o *RoleModificationOptions) Complete(f *clientcmd.Factory, cmd *cobra.Comm
 		if err != nil {
 			return err
 		}
-		o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, osClient)
+		o.RoleBindingAccessor = NewLocalRoleBindingAccessor(roleBindingNamespace, authClient.Authorization())
 
 	} else {
-		o.RoleBindingAccessor = NewClusterRoleBindingAccessor(osClient)
+		o.RoleBindingAccessor = NewClusterRoleBindingAccessor(authClient.Authorization())
 
 	}
 

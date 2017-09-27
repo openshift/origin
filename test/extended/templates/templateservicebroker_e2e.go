@@ -19,6 +19,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
+	"github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -54,14 +55,14 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		processedtemplate, err = cli.AdminClient().TemplateConfigs("openshift").Create(template)
+		processedtemplate, err = internalversion.NewTemplateProcessorClient(cli.AdminTemplateClient().Template().RESTClient(), "openshift").Process(template)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		errs := runtime.DecodeList(processedtemplate.Objects, unstructured.UnstructuredJSONScheme)
 		o.Expect(errs).To(o.BeEmpty())
 
 		// privatetemplate is an additional template in our namespace
-		privatetemplate, err = cli.Client().Templates(cli.Namespace()).Create(&templateapi.Template{
+		privatetemplate, err = cli.TemplateClient().Template().Templates(cli.Namespace()).Create(&templateapi.Template{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "private",
 			},
@@ -69,7 +70,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// enable unauthenticated access to the service broker
-		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
@@ -88,7 +89,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	})
 
 	g.AfterEach(func() {
-		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
+		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		// it shouldn't be around, but if it is, clean up the
@@ -267,7 +268,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		bindroute, err := cli.Client().Routes(cli.Namespace()).Create(&routeapi.Route{
+		bindroute, err := cli.RouteClient().Route().Routes(cli.Namespace()).Create(&routeapi.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "bindroute",
 				Annotations: map[string]string{
@@ -316,7 +317,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		err = cli.KubeClient().CoreV1().Services(cli.Namespace()).Delete(bindservice.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = cli.Client().Routes(cli.Namespace()).Delete(bindroute.Name)
+		err = cli.RouteClient().Route().Routes(cli.Namespace()).Delete(bindroute.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	}
 

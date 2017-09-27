@@ -70,9 +70,10 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	projectName := "hammer-project"
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, projectName, "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, projectName, []string{"default"}); err != nil {

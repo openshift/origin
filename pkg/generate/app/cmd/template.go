@@ -10,15 +10,16 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // TransformTemplate processes a template with the provided parameters, returning an error if transformation fails.
-func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsNamespacer, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
+func TransformTemplate(tpl *templateapi.Template, client templateclient.TemplateInterface, namespace string, parameters map[string]string, ignoreUnknownParameters bool) (*templateapi.Template, error) {
 	// only set values that match what's expected by the template.
 	for k, value := range parameters {
 		v := template.GetParameterByName(tpl, k)
@@ -33,7 +34,8 @@ func TransformTemplate(tpl *templateapi.Template, client client.TemplateConfigsN
 	name := localOrRemoteName(tpl.ObjectMeta, namespace)
 
 	// transform the template
-	result, err := client.TemplateConfigs(namespace).Create(tpl)
+	processor := templateinternalclient.NewTemplateProcessorClient(client.RESTClient(), namespace)
+	result, err := processor.Process(tpl)
 	if err != nil {
 		return nil, fmt.Errorf("error processing template %q: %v", name, err)
 	}

@@ -5,16 +5,20 @@ import (
 	"testing"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildtypedclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 )
 
 // all build strategy types
@@ -27,11 +31,28 @@ func buildStrategyTypesRestricted() []string {
 	return []string{"custom"}
 }
 
-func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
-	clusterAdminClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, false)
-	defer fn()
+type buildStrategyTest struct {
+	authEditorClient authclient.AuthorizationInterface
+	authAdminClient  authclient.AuthorizationInterface
 
-	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
+	projectEditorClient projectclient.ProjectInterface
+	projectAdminClient  projectclient.ProjectInterface
+
+	buildAdminClient  buildtypedclient.BuildInterface
+	buildEditorClient buildtypedclient.BuildInterface
+
+	cleanup       func()
+	selfSarClient authorizationtypedclient.SelfSubjectAccessReviewsGetter
+}
+
+func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
+	setup := setupBuildStrategyTest(t, false)
+	defer setup.cleanup()
+
+	clients := map[string]buildtypedclient.BuildInterface{
+		"admin":  setup.buildAdminClient,
+		"editor": setup.buildEditorClient,
+	}
 	builds := map[string]*buildapi.Build{}
 
 	restrictedStrategies := make(map[string]int)
@@ -53,7 +74,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 		}
 	}
 
-	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+	grantRestrictedBuildStrategyRoleResources(t, setup)
 
 	// Create builds to setup test
 	for _, strategy := range buildStrategyTypes() {
@@ -73,7 +94,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 			}
 		}
 	}
-	removeBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+	removeBuildStrategyRoleResources(t, setup)
 
 	// make sure builds are rejected
 	for _, strategy := range buildStrategyTypes() {
@@ -104,10 +125,13 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 }
 
 func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *testing.T) {
-	clusterAdminClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, true)
-	defer fn()
+	setup := setupBuildStrategyTest(t, true)
+	defer setup.cleanup()
 
-	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
+	clients := map[string]buildtypedclient.BuildInterface{
+		"admin":  setup.buildAdminClient,
+		"editor": setup.buildEditorClient,
+	}
 	buildConfigs := map[string]*buildapi.BuildConfig{}
 	restrictedStrategies := make(map[string]int)
 	for key, val := range buildStrategyTypesRestricted() {
@@ -128,7 +152,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 		}
 	}
 
-	grantRestrictedBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+	grantRestrictedBuildStrategyRoleResources(t, setup)
 
 	// by default admins and editors can create source, docker, and jenkinspipline buildconfigs
 	for _, strategy := range buildStrategyTypes() {
@@ -149,7 +173,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 		}
 	}
 
-	removeBuildStrategyRoleResources(t, clusterAdminClient, projectAdminClient, projectEditorClient)
+	removeBuildStrategyRoleResources(t, setup)
 
 	// make sure buildconfigs are rejected
 	for _, strategy := range buildStrategyTypes() {
@@ -179,7 +203,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	}
 }
 
-func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClient, projectAdminClient, projectEditorClient *client.Client, cleanup func()) {
+func setupBuildStrategyTest(t *testing.T, includeControllers bool) *buildStrategyTest {
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
 	var masterConfig *configapi.MasterConfig
@@ -193,26 +217,21 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	cleanup = func() {
-		testserver.CleanupMasterEtcd(t, masterConfig)
-	}
-
-	clusterAdminClient, err = testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	projectAdminClient, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "harold")
+	projectAdminClient := testutil.GetProjectClientForUser(*clusterAdminClientConfig, "harold")
+	authAdminClient := testutil.GetAuthClientForUser(*clusterAdminClientConfig, "harold")
+
+	_, _, err = testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, namespace, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	var kubeClient kclientset.Interface
-	projectEditorClient, kubeClient, _, err = testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
+
+	_, projectAdminKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "joe")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -220,18 +239,18 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	addJoe := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, projectAdminClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, authAdminClient),
 		Users:               []string{"joe"},
 	}
 	if err := addJoe.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, namespace, "create", buildapi.Resource(authorizationapi.DockerBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(projectAdminKubeClient.Authorization(), namespace, "create", buildapi.Resource(authorizationapi.DockerBuildResource), true); err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	if includeControllers {
-		if err := testserver.WaitForServiceAccounts(kubeClient, namespace, []string{"builder"}); err != nil {
+		if err := testserver.WaitForServiceAccounts(projectAdminKubeClient, namespace, []string{"builder"}); err != nil {
 			t.Fatalf(err.Error())
 		}
 	}
@@ -249,9 +268,10 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 	template.Name = "jenkins-ephemeral"
 	template.Namespace = "openshift"
 
-	_, err = clusterAdminClient.Templates("openshift").Create(template)
-	if err != nil {
-		t.Fatalf("Couldn't create jenkins template: %v", err)
+	templateClient := templateclient.NewForConfigOrDie(clusterAdminClientConfig)
+	processor := templateinternalclient.NewTemplateProcessorClient(templateClient.Template().RESTClient(), "openshift")
+	if _, err = processor.Process(template); err != nil {
+		t.Fatalf("Couldn't process jenkins template: %v", err)
 	}
 
 	if includeControllers {
@@ -259,22 +279,33 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdmin
 		if err != nil {
 			t.Fatal(err)
 		}
-
 		if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, testutil.Namespace(), []string{bootstrappolicy.BuilderServiceAccountName, bootstrappolicy.DefaultServiceAccountName}); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
 
-	return
+	return &buildStrategyTest{
+		authEditorClient: testutil.GetAuthClientForUser(*clusterAdminClientConfig, "joe"),
+		authAdminClient:  authAdminClient,
+
+		projectEditorClient: testutil.GetProjectClientForUser(*clusterAdminClientConfig, "joe"),
+		projectAdminClient:  projectAdminClient,
+
+		buildEditorClient: testutil.GetBuildClientForUser(*clusterAdminClientConfig, "joe"),
+		buildAdminClient:  testutil.GetBuildClientForUser(*clusterAdminClientConfig, "harold"),
+
+		cleanup:       func() { testserver.CleanupMasterEtcd(t, masterConfig) },
+		selfSarClient: projectAdminKubeClient.Authorization(),
+	}
 }
 
-func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func removeBuildStrategyRoleResources(t *testing.T, setup *buildStrategyTest) {
 	// remove resources from role so that certain build strategies are forbidden
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName, bootstrappolicy.BuildStrategyJenkinsPipelineRoleName} {
 		options := &policy.RoleModificationOptions{
 			RoleNamespace:       "",
 			RoleName:            role,
-			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(setup.authAdminClient),
 			Groups:              []string{"system:authenticated"},
 		}
 		if err := options.RemoveRole(); err != nil {
@@ -282,35 +313,34 @@ func removeBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectA
 		}
 	}
 
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(setup.selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.DockerBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.SourceBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(setup.selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.SourceBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(setup.selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), false); err != nil {
+	if err := testutil.WaitForPolicyUpdate(setup.selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.JenkinsPipelineBuildResource), false); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func grantRestrictedBuildStrategyRoleResources(t *testing.T, setup *buildStrategyTest) {
 	// grant resources to role so that restricted build strategies are available
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName} {
 		options := &policy.RoleModificationOptions{
 			RoleNamespace:       "",
 			RoleName:            role,
-			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(setup.authAdminClient),
 			Groups:              []string{"system:authenticated"},
 		}
 		if err := options.AddRole(); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 	}
-
-	if err := testutil.WaitForPolicyUpdate(projectEditorClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(setup.selfSarClient, testutil.Namespace(), "create", buildapi.Resource(authorizationapi.CustomBuildResource), true); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -336,7 +366,7 @@ func strategyForType(t *testing.T, strategy string) buildapi.BuildStrategy {
 	return buildStrategy
 }
 
-func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy string) (*buildapi.Build, error) {
+func createBuild(t *testing.T, buildInterface buildtypedclient.BuildResourceInterface, strategy string) (*buildapi.Build, error) {
 	build := &buildapi.Build{}
 	build.ObjectMeta.Labels = map[string]string{
 		buildapi.BuildConfigLabel:    "mock-build-config",
@@ -349,12 +379,12 @@ func createBuild(t *testing.T, buildInterface client.BuildInterface, strategy st
 	return buildInterface.Create(build)
 }
 
-func updateBuild(t *testing.T, buildInterface client.BuildInterface, build *buildapi.Build) (*buildapi.Build, error) {
+func updateBuild(t *testing.T, buildInterface buildtypedclient.BuildResourceInterface, build *buildapi.Build) (*buildapi.Build, error) {
 	build.Labels = map[string]string{"updated": "true"}
 	return buildInterface.Update(build)
 }
 
-func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
+func createBuildConfig(t *testing.T, buildConfigInterface buildtypedclient.BuildConfigInterface, strategy string) (*buildapi.BuildConfig, error) {
 	buildConfig := &buildapi.BuildConfig{}
 	buildConfig.Spec.RunPolicy = buildapi.BuildRunPolicyParallel
 	buildConfig.GenerateName = strings.ToLower(string(strategy)) + "-buildconfig-"
@@ -364,19 +394,19 @@ func createBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInte
 	return buildConfigInterface.Create(buildConfig)
 }
 
-func cloneBuild(t *testing.T, buildInterface client.BuildInterface, build *buildapi.Build) (*buildapi.Build, error) {
+func cloneBuild(t *testing.T, buildInterface buildtypedclient.BuildResourceInterface, build *buildapi.Build) (*buildapi.Build, error) {
 	req := &buildapi.BuildRequest{}
 	req.Name = build.Name
-	return buildInterface.Clone(req)
+	return buildInterface.Clone(build.Name, req)
 }
 
-func instantiateBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.Build, error) {
+func instantiateBuildConfig(t *testing.T, buildConfigInterface buildtypedclient.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.Build, error) {
 	req := &buildapi.BuildRequest{}
 	req.Name = buildConfig.Name
-	return buildConfigInterface.Instantiate(req)
+	return buildConfigInterface.Instantiate(buildConfig.Name, req)
 }
 
-func updateBuildConfig(t *testing.T, buildConfigInterface client.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
+func updateBuildConfig(t *testing.T, buildConfigInterface buildtypedclient.BuildConfigInterface, buildConfig *buildapi.BuildConfig) (*buildapi.BuildConfig, error) {
 	buildConfig.Labels = map[string]string{"updated": "true"}
 	return buildConfigInterface.Update(buildConfig)
 }

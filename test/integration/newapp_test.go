@@ -32,7 +32,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	"github.com/openshift/origin/pkg/generate/app/cmd"
@@ -42,9 +41,12 @@ import (
 	"github.com/openshift/origin/pkg/generate/jenkinsfile"
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	clicmd "github.com/openshift/origin/pkg/oc/cli/cmd"
+	routefake "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 
 	_ "github.com/openshift/origin/pkg/api/install"
 	"github.com/openshift/origin/test/util"
@@ -313,10 +315,13 @@ func TestNewAppRunAll(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
-	failClient := &client.Fake{}
-	failClient.AddReactor("get", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+	failImageClient := &imagefake.Clientset{}
+	failImageClient.AddReactor("get", "images", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, errors.NewInternalError(fmt.Errorf(""))
 	})
+	okTemplateClient := &templatefake.Clientset{}
+	okImageClient := &imagefake.Clientset{}
+	okRouteClient := &routefake.Clientset{}
 	tests := []struct {
 		name            string
 		config          *cmd.AppConfig
@@ -335,16 +340,15 @@ func TestNewAppRunAll(t *testing.T) {
 					SourceRepositories: []string{"https://github.com/openshift/ruby-hello-world"},
 				},
 				Resolvers: cmd.Resolvers{
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					DockerSearcher: fakeDockerSearcher(),
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
@@ -357,7 +361,9 @@ func TestNewAppRunAll(t *testing.T) {
 					Strategy: generate.StrategySource,
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -380,15 +386,14 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: fakeDockerSearcher(),
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -402,7 +407,9 @@ func TestNewAppRunAll(t *testing.T) {
 					Labels:   map[string]string{"label1": "value1", "label2": "value2"},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -425,15 +432,14 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: fakeSimpleDockerSearcher(),
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -445,7 +451,9 @@ func TestNewAppRunAll(t *testing.T) {
 					Strategy: generate.StrategyDocker,
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			checkPort: "8080",
@@ -471,11 +479,10 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher:                  dockerSearcher,
 					ImageStreamSearcher:             fakeImageStreamSearcher(),
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -485,7 +492,9 @@ func TestNewAppRunAll(t *testing.T) {
 				},
 
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -511,11 +520,10 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher:                  dockerSearcher,
 					ImageStreamSearcher:             fakeImageStreamSearcher(),
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -525,7 +533,9 @@ func TestNewAppRunAll(t *testing.T) {
 				},
 
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -563,14 +573,13 @@ func TestNewAppRunAll(t *testing.T) {
 						RegistrySearcher: &ExactMatchDockerSearcher{},
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{},
 					},
 					TemplateFileSearcher: &app.TemplateFileSearcher{},
 					Detector: app.SourceRepositoryEnumerator{
@@ -580,7 +589,9 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -604,14 +615,13 @@ func TestNewAppRunAll(t *testing.T) {
 				Resolvers: cmd.Resolvers{
 					DockerSearcher: dockerSearcher,
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -621,7 +631,9 @@ func TestNewAppRunAll(t *testing.T) {
 				},
 
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 
@@ -654,15 +666,14 @@ func TestNewAppRunAll(t *testing.T) {
 						RegistrySearcher: &ExactMatchDockerSearcher{},
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -671,7 +682,9 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -699,15 +712,14 @@ func TestNewAppRunAll(t *testing.T) {
 						Insecure: true,
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
-					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(&client.Fake{}, &client.Fake{}, []string{"default"}),
+					ImageStreamByAnnotationSearcher: app.NewImageStreamByAnnotationSearcher(okImageClient.Image(), okImageClient.Image(), []string{"default"}),
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 					Detector: app.SourceRepositoryEnumerator{
 						Detectors:         source.DefaultDetectors,
@@ -716,7 +728,9 @@ func TestNewAppRunAll(t *testing.T) {
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -752,18 +766,19 @@ func TestNewAppRunAll(t *testing.T) {
 						RegistrySearcher: &ExactMatchDockerSearcher{},
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            &client.Fake{},
-						ImageStreamImages: &client.Fake{},
+						Client:            okImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -788,18 +803,19 @@ func TestNewAppRunAll(t *testing.T) {
 						RegistrySearcher: &ExactMatchDockerSearcher{Errs: []error{errors.NewInternalError(fmt.Errorf("test error"))}},
 					},
 					ImageStreamSearcher: app.ImageStreamSearcher{
-						Client:            failClient,
-						ImageStreamImages: &client.Fake{},
+						Client:            failImageClient.Image(),
+						ImageStreamImages: okImageClient.Image(),
 						Namespaces:        []string{"default"},
 					},
 					TemplateSearcher: app.TemplateSearcher{
-						Client: &client.Fake{},
-						TemplateConfigsNamespacer: &client.Fake{},
-						Namespaces:                []string{"openshift", "default"},
+						Client:     okTemplateClient.Template(),
+						Namespaces: []string{"openshift", "default"},
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: map[string][]string{
@@ -1694,6 +1710,10 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
 
+	okTemplateClient := &templatefake.Clientset{}
+	okImageClient := &imagefake.Clientset{}
+	okRouteClient := &routefake.Clientset{}
+
 	tests := []struct {
 		name        string
 		config      *cmd.AppConfig
@@ -1721,7 +1741,9 @@ func TestNewAppNewBuildEnvVars(t *testing.T) {
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected: []kapi.EnvVar{
@@ -1761,6 +1783,9 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 	dockerSearcher := app.DockerRegistrySearcher{
 		Client: dockerregistry.NewClient(10*time.Second, true),
 	}
+	okTemplateClient := &templatefake.Clientset{}
+	okImageClient := &imagefake.Clientset{}
+	okRouteClient := &routefake.Clientset{}
 
 	tests := []struct {
 		name            string
@@ -1791,7 +1816,9 @@ func TestNewAppBuildConfigEnvVarsAndSecrets(t *testing.T) {
 					},
 				},
 				Typer:           kapi.Scheme,
-				OSClient:        &client.Fake{},
+				ImageClient:     okImageClient.Image(),
+				TemplateClient:  okTemplateClient.Template(),
+				RouteClient:     okRouteClient.Route(),
 				OriginNamespace: "default",
 			},
 			expected:        []kapi.EnvVar{},
@@ -2154,7 +2181,7 @@ func dockerBuilderImage() *docker.Image {
 }
 
 func fakeImageStreamSearcher() app.Searcher {
-	client := &client.Fake{}
+	client := &imagefake.Clientset{}
 	client.AddReactor("get", "imagestreams", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, builderImageStream(), nil
 	})
@@ -2166,20 +2193,20 @@ func fakeImageStreamSearcher() app.Searcher {
 	})
 
 	return app.ImageStreamSearcher{
-		Client:            client,
-		ImageStreamImages: client,
+		Client:            client.Image(),
+		ImageStreamImages: client.Image(),
 		Namespaces:        []string{"default"},
 	}
 }
 
 func fakeTemplateSearcher() app.Searcher {
-	client := &client.Fake{}
+	client := &templatefake.Clientset{}
 	client.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 
 	return app.TemplateSearcher{
-		Client:     client,
+		Client:     client.Template(),
 		Namespaces: []string{"default"},
 	}
 }
@@ -2248,6 +2275,10 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 	stdout, stderr = new(bytes.Buffer), new(bytes.Buffer)
 	config.Out, config.ErrOut = stdout, stderr
 
+	okTemplateClient := &templatefake.Clientset{}
+	okImageClient := &imagefake.Clientset{}
+	okRouteClient := &routefake.Clientset{}
+
 	config.Detector = app.SourceRepositoryEnumerator{
 		Detectors:         source.DefaultDetectors,
 		DockerfileTester:  dockerfile.NewTester(),
@@ -2261,11 +2292,14 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 	config.ImageStreamByAnnotationSearcher = fakeImageStreamSearcher()
 	config.ImageStreamSearcher = fakeImageStreamSearcher()
 	config.OriginNamespace = "default"
-	config.OSClient = &client.Fake{}
+
+	config.ImageClient = okImageClient.Image()
+	config.TemplateClient = okTemplateClient.Template()
+	config.RouteClient = okRouteClient.Route()
+
 	config.TemplateSearcher = app.TemplateSearcher{
-		Client: &client.Fake{},
-		TemplateConfigsNamespacer: &client.Fake{},
-		Namespaces:                []string{"openshift", "default"},
+		Client:     okTemplateClient.Template(),
+		Namespaces: []string{"openshift", "default"},
 	}
 	config.Typer = kapi.Scheme
 	return

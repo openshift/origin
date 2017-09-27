@@ -6,15 +6,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/origin/pkg/client/testclient"
-
 	"github.com/openshift/origin/pkg/generate/app"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	newcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 )
 
 // TestNewAppDefaultFlags ensures that flags default values are set.
@@ -332,12 +332,13 @@ func TestNewAppRunQueryActions(t *testing.T) {
 
 	for _, test := range tests {
 		// Prepare structure for test.
-		client := testclient.NewSimpleFake(fakeTemplateList(), fakeImagestreamList())
+		templateClient := templatefake.NewSimpleClientset(fakeTemplateList())
+		imageClient := imagefake.NewSimpleClientset(fakeImagestreamList())
 
 		o.Config = test.config
 		o.Config.Deploy = true
 
-		o.Config.SetOpenShiftClient(client, "openshift", nil)
+		o.Config.SetOpenShiftClient(imageClient.Image(), templateClient.Template(), nil, "openshift", nil)
 
 		var dockerVisited, tfVisited bool
 		o.Config.DockerSearcher = MockSearcher{
@@ -382,7 +383,9 @@ func TestNewAppRunQueryActions(t *testing.T) {
 			t.Errorf("[%s] error mismatch: expected %v, got %v", test.name, test.expectedTemplateFilesVisited, tfVisited)
 		}
 
-		got := client.Actions()
+		got := imageClient.Actions()
+		got = append(got, templateClient.Actions()...)
+
 		if len(test.expectedActions) != len(got) {
 			t.Fatalf("[%s] action length mismatch: expected %d, got %d", test.name, len(test.expectedActions), len(got))
 		}

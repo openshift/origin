@@ -140,7 +140,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				objects:         []runtime.Object{dummyrolebinding},
 				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+					_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
@@ -151,7 +151,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				objects:         []runtime.Object{dummyrolebinding},
 				expectCondition: templateapi.TemplateInstanceInstantiateFailure,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+					_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 					return err != nil && kerrors.IsNotFound(err)
 				},
 			},
@@ -162,7 +162,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance security tests", f
 				objects:         []runtime.Object{dummyrolebinding},
 				expectCondition: templateapi.TemplateInstanceReady,
 				checkOK: func(namespace string) bool {
-					_, err := cli.AdminClient().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
+					_, err := cli.AdminAuthorizationClient().Authorization().RoleBindings(namespace).Get(dummyrolebinding.Name, metav1.GetOptions{})
 					return err == nil
 				},
 			},

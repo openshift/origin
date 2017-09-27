@@ -30,7 +30,7 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func(
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "mysql", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "mysql", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the mysql service get endpoints")

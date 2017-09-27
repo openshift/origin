@@ -42,14 +42,14 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the build to complete")
-		err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
+		err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
 		if err != nil {
 			exutil.DumpBuildLogs(a58, oc)
 		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the deployment to complete")
-		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), a58, 1, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), a58, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 

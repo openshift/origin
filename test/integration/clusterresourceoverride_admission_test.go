@@ -131,16 +131,14 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 	// need to create a project and return client for project admin
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), "peon")
+
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+	_, _, err = testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, testutil.Namespace(), "peon")
 	if err != nil {
 		t.Fatal(err)
 	}

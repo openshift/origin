@@ -41,14 +41,14 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
+			bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("busybox", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile))
 
 			buildName := "busybox-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
 			//debug for failures
 			if err != nil {
 				exutil.DumpBuildLogs("busybox", oc)
@@ -56,7 +56,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the build Docker image reference from ImageStream")
-			image, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("busybox", "custom")
+			image, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("busybox:custom", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 		})
@@ -67,7 +67,7 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
+			bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("centos", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(bc.Spec.Source.Git).To(o.BeNil())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile2))
@@ -76,7 +76,7 @@ USER 1001
 
 			buildName := "centos-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
 			//debug for failures
 			if err != nil {
 				exutil.DumpBuildLogs("centos", oc)
@@ -84,12 +84,12 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("getting the built Docker image reference from ImageStream")
-			image, err := oc.Client().ImageStreamTags(oc.Namespace()).Get("centos", "latest")
+			image, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("centos:latest", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(image.Image.DockerImageMetadata.Config.User).To(o.Equal("1001"))
 
 			g.By("checking for the imported tag")
-			_, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("centos", "7")
+			_, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("centos:7", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
@@ -99,13 +99,13 @@ USER 1001
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("starting a test build")
-			bc, err := oc.Client().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
+			bc, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("scratch", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(*bc.Spec.Source.Dockerfile).To(o.Equal(testDockerfile3))
 
 			buildName := "scratch-1"
 			g.By("expecting the Dockerfile build is in Complete phase")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
 			//debug for failures
 			if err != nil {
 				exutil.DumpBuildLogs("scratch", oc)

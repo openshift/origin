@@ -27,6 +27,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -37,6 +38,7 @@ import (
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	utilflags "github.com/openshift/origin/pkg/cmd/util/flags"
 	newproject "github.com/openshift/origin/pkg/oc/admin/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	"github.com/openshift/origin/test/util"
 
 	// install all APIs
@@ -607,18 +609,19 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clusterAdminClient *client.Client, clientConfig restclient.Config, projectName, adminUser string) (*client.Client, error) {
+func CreateNewProject(projectAdminClient projectclient.ProjectInterface, authAdminClient authclient.AuthorizationInterface, clientConfig restclient.Config, projectName, adminUser string) (kclientset.Interface, *client.Client, error) {
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:      clusterAdminClient,
-		ProjectName: projectName,
-		AdminRole:   bootstrappolicy.AdminRoleName,
-		AdminUser:   adminUser,
+		ProjectClient: projectAdminClient,
+		AuthClient:    authAdminClient,
+		ProjectName:   projectName,
+		AdminRole:     bootstrappolicy.AdminRoleName,
+		AdminUser:     adminUser,
 	}
 
 	if err := newProjectOptions.Run(false); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	client, _, _, err := util.GetClientForUser(clientConfig, adminUser)
-	return client, err
+	client, kubeClient, _, err := util.GetClientForUser(clientConfig, adminUser)
+	return kubeClient, client, err
 }

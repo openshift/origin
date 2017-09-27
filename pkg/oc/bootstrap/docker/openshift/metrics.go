@@ -55,7 +55,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, public
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, imageVersion string) error {
-	osClient, kubeClient, err := f.Clients()
+	_, kubeClient, err := f.Clients()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -64,6 +64,10 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	if err == nil {
 		// If there's no error, the metrics service already exists
 		return nil
+	}
+	authClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return err
 	}
 	if !apierrors.IsNotFound(err) {
 		return errors.NewError("error retrieving metrics service").WithCause(err).WithDetails(h.OriginLog())
@@ -78,17 +82,17 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	}
 
 	// Add edit role to deployer service account
-	if err = AddRoleToServiceAccount(osClient, "edit", metricsDeployerSA, infraNamespace); err != nil {
+	if err = AddRoleToServiceAccount(authClient.Authorization(), "edit", metricsDeployerSA, infraNamespace); err != nil {
 		return errors.NewError("cannot add edit role to metrics deployer service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add view role to the hawkular service account
-	if err = AddRoleToServiceAccount(osClient, "view", "hawkular", infraNamespace); err != nil {
+	if err = AddRoleToServiceAccount(authClient.Authorization(), "view", "hawkular", infraNamespace); err != nil {
 		return errors.NewError("cannot add view role to the hawkular service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add cluster reader role to heapster service account
-	if err = AddClusterRole(osClient, "cluster-reader", "system:serviceaccount:openshift-infra:heapster"); err != nil {
+	if err = AddClusterRole(authClient.Authorization(), "cluster-reader", "system:serviceaccount:openshift-infra:heapster"); err != nil {
 		return errors.NewError("cannot add cluster reader role to heapster service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 

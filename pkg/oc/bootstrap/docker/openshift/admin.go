@@ -18,7 +18,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
@@ -189,8 +189,8 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	return nil
 }
 
-func AddClusterRole(osClient client.Interface, role, user string) error {
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(osClient)
+func AddClusterRole(authClient authorizationclient.AuthorizationInterface, role, user string) error {
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authClient)
 	addClusterReaderRole := policy.RoleModificationOptions{
 		RoleName:            role,
 		RoleBindingAccessor: clusterRoleBindingAccessor,
@@ -199,8 +199,8 @@ func AddClusterRole(osClient client.Interface, role, user string) error {
 	return addClusterReaderRole.AddRole()
 }
 
-func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace string) error {
-	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(namespace, osClient)
+func AddRoleToServiceAccount(authClient authorizationclient.AuthorizationInterface, role, sa, namespace string) error {
+	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(namespace, authClient)
 	addRole := policy.RoleModificationOptions{
 		RoleName:            role,
 		RoleBindingAccessor: roleBindingAccessor,

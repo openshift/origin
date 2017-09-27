@@ -37,6 +37,7 @@ func TestClusterQuota(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	// time.Sleep(10 * time.Second)
 
@@ -58,10 +59,10 @@ func TestClusterQuota(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "first", "harold"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "first", "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "second", "harold"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "second", "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

@@ -14,13 +14,13 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
-
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
 const NewProjectRecommendedName = "new-project"
@@ -31,7 +31,8 @@ type NewProjectOptions struct {
 	Description  string
 	NodeSelector string
 
-	Client client.Interface
+	ProjectClient projectclient.ProjectInterface
+	AuthClient    authorizationclient.AuthorizationInterface
 
 	AdminRole string
 	AdminUser string
@@ -56,11 +57,12 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			if err := options.complete(args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
-
-			var err error
-			if options.Client, _, err = f.Clients(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
+			projectClient, err := f.OpenshiftInternalProjectClient()
+			kcmdutil.CheckErr(err)
+			options.ProjectClient = projectClient.Project()
+			authClient, err := f.OpenshiftInternalAuthorizationClient()
+			kcmdutil.CheckErr(err)
+			options.AuthClient = authClient.Authorization()
 
 			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
 			// and we want to populate node selector as project annotation only if explicitly set by user
@@ -91,7 +93,7 @@ func (o *NewProjectOptions) complete(args []string) error {
 }
 
 func (o *NewProjectOptions) Run(useNodeSelector bool) error {
-	if _, err := o.Client.Projects().Get(o.ProjectName, metav1.GetOptions{}); err != nil {
+	if _, err := o.ProjectClient.Projects().Get(o.ProjectName, metav1.GetOptions{}); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
 		}
@@ -107,7 +109,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	if useNodeSelector {
 		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
 	}
-	project, err := o.Client.Projects().Create(project)
+	project, err := o.ProjectClient.Projects().Create(project)
 	if err != nil {
 		return err
 	}
@@ -118,7 +120,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	if len(o.AdminUser) != 0 {
 		adduser := &policy.RoleModificationOptions{
 			RoleName:            o.AdminRole,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(project.Name, o.Client),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(project.Name, o.AuthClient),
 			Users:               []string{o.AdminUser},
 		}
 
@@ -138,7 +140,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.Client),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.AuthClient),
 			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {

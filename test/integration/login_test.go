@@ -30,15 +30,12 @@ func TestLogin(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	username := "joe"
 	password := "pass"
@@ -56,10 +53,11 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:      clusterAdminClient,
-		ProjectName: project,
-		AdminRole:   bootstrappolicy.AdminRoleName,
-		AdminUser:   username,
+		AuthClient:    authAdminClient,
+		ProjectClient: projectAdminClient,
+		ProjectName:   project,
+		AdminRole:     bootstrappolicy.AdminRoleName,
+		AdminUser:     username,
 	}
 	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)

@@ -29,6 +29,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	_, err = originClient.ClusterRoles().Create(&authorizationapi.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -42,7 +43,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(originClient, *clientConfig, "foo", "admin-user"); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clientConfig, "foo", "admin-user"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	_, creatorClient, _, err := testutil.GetClientForUser(*clientConfig, "creator")
@@ -60,7 +61,7 @@ func TestOwnerRefRestriction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if err := testutil.WaitForPolicyUpdate(originClient, "foo", "create", kapi.Resource("services"), true); err != nil {
+	if err := testutil.WaitForPolicyUpdate(creatorClient.Authorization(), "foo", "create", kapi.Resource("services"), true); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

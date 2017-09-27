@@ -48,7 +48,9 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "namespace", "carol"); err != nil {
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, "namespace", "carol"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

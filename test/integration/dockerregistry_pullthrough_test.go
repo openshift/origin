@@ -135,16 +135,13 @@ func TestPullThroughInsecure(t *testing.T) {
 		t.Fatalf("error starting master: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("error getting cluster admin client: %v", err)
-	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 	user := "admin"
-	adminClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
+	_, adminClient, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, testutil.Namespace(), user)
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}

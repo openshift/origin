@@ -10,15 +10,17 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 
+	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func createProject(osClient *osclient.Client, clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
-	_, err := testserver.CreateNewProject(osClient, *clientConfig, name, name)
+func createProject(pClient projectclient.ProjectInterface, aClient authclient.AuthorizationInterface, clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
+	_, osClient, err := testserver.CreateNewProject(pClient, aClient, *clientConfig, name, name)
 	if err != nil {
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
 	}
@@ -85,15 +87,17 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("error getting client config: %v", err)
 	}
 
-	origNetns1, err := createProject(osClient, clientConfig, "one")
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(kubeConfigFile)
+
+	origNetns1, err := createProject(projectAdminClient, authAdminClient, clientConfig, "one")
 	if err != nil {
 		t.Fatalf("could not create namespace %q: %v", "one", err)
 	}
-	origNetns2, err := createProject(osClient, clientConfig, "two")
+	origNetns2, err := createProject(projectAdminClient, authAdminClient, clientConfig, "two")
 	if err != nil {
 		t.Fatalf("could not create namespace %q: %v", "two", err)
 	}
-	origNetns3, err := createProject(osClient, clientConfig, "three")
+	origNetns3, err := createProject(projectAdminClient, authAdminClient, clientConfig, "three")
 	if err != nil {
 		t.Fatalf("could not create namespace %q: %v", "three", err)
 	}

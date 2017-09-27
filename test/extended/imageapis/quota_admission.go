@@ -97,7 +97,7 @@ var _ = g.Describe("[Feature:ImageQuota] Image resource quota", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("deleting first image stream")
-		err = oc.Client().ImageStreams(oc.Namespace()).Delete("first")
+		err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Delete("first", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		used, err = exutil.WaitForResourceQuotaSync(
 			oc.InternalKubeClient().Core().ResourceQuotas(oc.Namespace()),
@@ -220,14 +220,14 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		oc.Namespace(),
 	} {
 		g.By(fmt.Sprintf("Deleting images and image streams in project %q", projectName))
-		iss, err := oc.AdminClient().ImageStreams(projectName).List(metav1.ListOptions{})
+		iss, err := oc.AdminImageClient().Image().ImageStreams(projectName).List(metav1.ListOptions{})
 		if err != nil {
 			continue
 		}
 		for _, is := range iss.Items {
 			for _, history := range is.Status.Tags {
 				for i := range history.Items {
-					oc.AdminClient().Images().Delete(history.Items[i].Image)
+					oc.AdminImageClient().Image().Images().Delete(history.Items[i].Image, nil)
 				}
 			}
 			for _, tagRef := range is.Spec.Tags {
@@ -237,7 +237,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 					if err != nil {
 						continue
 					}
-					oc.AdminClient().Images().Delete(id)
+					oc.AdminImageClient().Image().Images().Delete(id, nil)
 				}
 			}
 		}
@@ -245,7 +245,7 @@ func deleteTestImagesAndStreams(oc *exutil.CLI) {
 		// let the extended framework take care of the current namespace
 		if projectName != oc.Namespace() {
 			g.By(fmt.Sprintf("Deleting project %q", projectName))
-			oc.AdminClient().Projects().Delete(projectName)
+			oc.AdminProjectClient().Project().Projects().Delete(projectName, nil)
 		}
 	}
 }

@@ -37,10 +37,11 @@ func TestScopedTokens(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	projectName := "hammer-project"
 	userName := "harold"
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName)
+	_, haroldClient, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, projectName, userName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,9 +115,11 @@ func TestScopedImpersonation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
+
 	projectName := "hammer-project"
 	userName := "harold"
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName); err != nil {
+	if _, _, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, projectName, userName); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -157,10 +160,11 @@ func TestScopeEscalations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	projectAdminClient, authAdminClient := testutil.GetAdminClientForCreateProject(clusterAdminKubeConfig)
 
 	projectName := "hammer-project"
 	userName := "harold"
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName)
+	_, haroldClient, err := testserver.CreateNewProject(projectAdminClient, authAdminClient, *clusterAdminClientConfig, projectName, userName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
