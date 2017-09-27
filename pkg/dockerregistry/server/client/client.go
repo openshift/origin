@@ -24,7 +24,7 @@ type Interface interface {
 	ImageSignaturesInterfacer
 	ImagesInterfacer
 	ImageStreamImagesNamespacer
-	ImageStreamMappingsNamespacer
+	ImageStreamImportsNamespacer
 	ImageStreamSecretsNamespacer
 	ImageStreamsNamespacer
 	ImageStreamTagsNamespacer
@@ -75,8 +75,8 @@ func (c *apiClient) ImageStreamImages(namespace string) ImageStreamImageInterfac
 	return c.image.ImageStreamImages(namespace)
 }
 
-func (c *apiClient) ImageStreamMappings(namespace string) ImageStreamMappingInterface {
-	return c.image.ImageStreamMappings(namespace)
+func (c *apiClient) ImageStreamImports(namespace string) ImageStreamImportInterface {
+	return c.image.ImageStreamImports(namespace)
 }
 
 func (c *apiClient) ImageStreamTags(namespace string) ImageStreamTagInterface {

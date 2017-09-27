@@ -2,23 +2,16 @@ package server
 
 import (
 	"fmt"
-	"net/http"
-	"strings"
 	"sync"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
-	"github.com/docker/distribution/registry/api/errcode"
 	regapi "github.com/docker/distribution/registry/api/v2"
-
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
-	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
 var _ distribution.ManifestService = &manifestService{}
@@ -47,35 +40,26 @@ func (m *manifestService) Exists(ctx context.Context, dgst digest.Digest) (bool,
 func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options ...distribution.ManifestServiceOption) (distribution.Manifest, error) {
 	context.GetLogger(ctx).Debugf("(*manifestService).Get")
 
-	image, _, _, err := m.repo.getStoredImageOfImageStream(dgst)
-	if err != nil {
-		return nil, err
-	}
-
-	ref := imageapi.DockerImageReference{
+	cacheName := imageapi.DockerImageReference{
 		Namespace: m.repo.namespace,
 		Name:      m.repo.name,
 		Registry:  m.repo.config.registryAddr,
-	}
-	if isImageManaged(image) {
-		// Reference without a registry part refers to repository containing locally managed images.
-		// Such an entry is retrieved, checked and set by blobDescriptorService operating only on local blobs.
-		ref.Registry = ""
-	} else {
-		// Repository with a registry points to remote repository. This is used by pullthrough middleware.
-		ref = ref.DockerClientDefaults().AsRepository()
-	}
+	}.Exact()
 
 	manifest, err := m.manifests.Get(withRepository(ctx, m.repo), dgst, options...)
 	switch err.(type) {
 	case distribution.ErrManifestUnknownRevision:
 		break
 	case nil:
-		m.repo.rememberLayersOfManifest(dgst, manifest, ref.Exact())
-		m.migrateManifest(withRepository(ctx, m.repo), image, dgst, manifest, true)
+		m.repo.rememberLayersOfManifest(dgst, manifest, cacheName)
 		return manifest, nil
 	default:
 		context.GetLogger(m.ctx).Errorf("unable to get manifest from storage: %v", err)
+		return nil, err
+	}
+
+	image, _, _, err := m.repo.getStoredImageOfImageStream(dgst)
+	if err != nil {
 		return nil, err
 	}
 
@@ -88,7 +72,7 @@ func (m *manifestService) Get(ctx context.Context, dgst digest.Digest, options .
 		}
 	}
 
-	manifest, err = m.repo.manifestFromImageWithCachedLayers(image, ref.Exact())
+	manifest, err = m.repo.manifestFromImageWithCachedLayers(image, cacheName)
 	if err == nil {
 		m.migrateManifest(withRepository(ctx, m.repo), image, dgst, manifest, false)
 	}
@@ -104,7 +88,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
-	mediaType, payload, canonical, err := mh.Payload()
+	mediaType, _, canonical, err := mh.Payload()
 	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
@@ -126,80 +110,6 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 
 	// Calculate digest
 	dgst := digest.FromBytes(canonical)
-
-	// Upload to openshift
-	ism := imageapiv1.ImageStreamMapping{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: m.repo.namespace,
-			Name:      m.repo.name,
-		},
-		Image: imageapiv1.Image{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: dgst.String(),
-				Annotations: map[string]string{
-					imageapi.ManagedByOpenShiftAnnotation: "true",
-				},
-			},
-			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", m.repo.config.registryAddr, m.repo.namespace, m.repo.name, dgst.String()),
-			DockerImageManifest:          string(payload),
-			DockerImageManifestMediaType: mediaType,
-		},
-	}
-
-	for _, option := range options {
-		if opt, ok := option.(distribution.WithTagOption); ok {
-			ism.Tag = opt.Tag
-			break
-		}
-	}
-
-	if err = mh.FillImageMetadata(ctx, &ism.Image); err != nil {
-		return "", err
-	}
-
-	// Remove the raw manifest as it's very big and this leads to a large memory consumption in etcd.
-	ism.Image.DockerImageManifest = ""
-	ism.Image.DockerImageConfig = ""
-
-	if _, err = m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
-		// if the error was that the image stream wasn't found, try to auto provision it
-		statusErr, ok := err.(*kerrors.StatusError)
-		if !ok {
-			context.GetLogger(ctx).Errorf("error creating ImageStreamMapping: %s", err)
-			return "", err
-		}
-
-		if quotautil.IsErrorQuotaExceeded(statusErr) {
-			context.GetLogger(ctx).Errorf("denied creating ImageStreamMapping: %v", statusErr)
-			return "", distribution.ErrAccessDenied
-		}
-
-		status := statusErr.ErrStatus
-		kind := strings.ToLower(status.Details.Kind)
-		isValidKind := kind == "imagestream" /*pre-1.2*/ || kind == "imagestreams" /*1.2 to 1.6*/ || kind == "imagestreammappings" /*1.7+*/
-		if !isValidKind || status.Code != http.StatusNotFound || status.Details.Name != m.repo.name {
-			context.GetLogger(ctx).Errorf("error creating ImageStreamMapping: %s", err)
-			return "", err
-		}
-
-		if _, err := m.repo.createImageStream(ctx); err != nil {
-			if e, ok := err.(errcode.Error); ok && e.ErrorCode() == errcode.ErrorCodeUnknown {
-				// TODO: convert statusErr to distribution error
-				return "", statusErr
-			}
-			return "", err
-		}
-
-		// try to create the ISM again
-		if _, err := m.repo.registryOSClient.ImageStreamMappings(m.repo.namespace).Create(&ism); err != nil {
-			if quotautil.IsErrorQuotaExceeded(err) {
-				context.GetLogger(ctx).Errorf("denied a creation of ImageStreamMapping: %v", err)
-				return "", distribution.ErrAccessDenied
-			}
-			context.GetLogger(ctx).Errorf("error creating ImageStreamMapping: %s", err)
-			return "", err
-		}
-	}
 
 	return dgst, nil
 }

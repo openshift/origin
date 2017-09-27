@@ -35,8 +35,8 @@ type ImageStreamsNamespacer interface {
 	ImageStreams(namespace string) ImageStreamInterface
 }
 
-type ImageStreamMappingsNamespacer interface {
-	ImageStreamMappings(namespace string) ImageStreamMappingInterface
+type ImageStreamImportsNamespacer interface {
+	ImageStreamImports(namespace string) ImageStreamImportInterface
 }
 
 type ImageStreamSecretsNamespacer interface {
@@ -92,10 +92,10 @@ type ImageStreamInterface interface {
 	Create(stream *imageapiv1.ImageStream) (*imageapiv1.ImageStream, error)
 }
 
-var _ ImageStreamMappingInterface = imageclientv1.ImageStreamMappingInterface(nil)
+var _ ImageStreamImportInterface = imageclientv1.ImageStreamImportInterface(nil)
 
-type ImageStreamMappingInterface interface {
-	Create(mapping *imageapiv1.ImageStreamMapping) (*imageapiv1.ImageStreamMapping, error)
+type ImageStreamImportInterface interface {
+	Create(*imageapiv1.ImageStreamImport) (*imageapiv1.ImageStreamImport, error)
 }
 
 var _ ImageStreamTagInterface = imageclientv1.ImageStreamTagInterface(nil)
