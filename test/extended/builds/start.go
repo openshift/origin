@@ -240,7 +240,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 				build = b
 				return exutil.CheckBuildCancelledFn(b)
 			}
-			err := exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
+			err := exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "sample-build-binary-invalidnodeselector-1", nil, nil, cancelFn)
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build.Status.Phase).To(o.Equal(buildapi.BuildPhaseCancelled))
 			exutil.CheckForBuildEvent(oc.KubeClient().Core(), build, buildapi.BuildCancelledEventReason, buildapi.BuildCancelledEventMessage)
@@ -275,7 +275,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 			})
 
 			o.Expect(buildName).ToNot(o.BeEmpty())
-			build, err := oc.Client().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
+			build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(buildName, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(build).NotTo(o.BeNil(), "build object should exist")
 
@@ -327,7 +327,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for the build to complete")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), "ruby-hello-world-1", nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), "ruby-hello-world-1", nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("ruby-hello-world", oc)
 			}

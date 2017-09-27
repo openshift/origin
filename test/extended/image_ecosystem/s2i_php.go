@@ -33,13 +33,13 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), dcName, nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), dcName, nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("cakephp-mysql-example", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "cakephp-mysql-example", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "cakephp-mysql-example", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")

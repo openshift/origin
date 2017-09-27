@@ -41,7 +41,7 @@ func TestGCDefaults(t *testing.T) {
 	}
 
 	ns := "some-ns-old"
-	if _, err := testserver.CreateNewProject(originClient, *clusterAdminConfig, ns, "adminUser"); err != nil {
+	if _, _, err := testserver.CreateNewProject(originClient, *clusterAdminConfig, ns, "adminUser"); err != nil {
 		t.Fatal(err)
 	}
 

@@ -114,7 +114,7 @@ var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(`removing tag "second" from "another" image stream`)
-		err = oc.Client().ImageStreamTags(oc.Namespace()).Delete("another", "second")
+		err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Delete("another:second", nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to push image below limits %v", limits))
@@ -149,7 +149,7 @@ var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By(fmt.Sprintf("trying to tag a docker image exceeding limit %v", limit))
-		is, err := oc.Client().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
+		is, err := oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is.Spec.Tags["foo"] = imageapi.TagReference{
 			Name: "foo",
@@ -161,12 +161,12 @@ var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 				Insecure: true,
 			},
 		}
-		_, err = oc.Client().ImageStreams(oc.Namespace()).Update(is)
+		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(quotautil.IsErrorQuotaExceeded(err)).Should(o.Equal(true))
 
 		g.By("re-tagging the image under different tag")
-		is, err = oc.Client().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
+		is, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get("stream", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		is.Spec.Tags["duplicate"] = imageapi.TagReference{
 			Name: "duplicate",
@@ -178,7 +178,7 @@ var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 				Insecure: true,
 			},
 		}
-		_, err = oc.Client().ImageStreams(oc.Namespace()).Update(is)
+		_, err = oc.ImageClient().Image().ImageStreams(oc.Namespace()).Update(is)
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -243,7 +243,7 @@ func buildAndPushTestImagesTo(oc *exutil.CLI, isName string, tagPrefix string, n
 		if err != nil {
 			return nil, err
 		}
-		ist, err := oc.Client().ImageStreamTags(oc.Namespace()).Get(isName, tag)
+		ist, err := oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get(isName+":"+tag, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}

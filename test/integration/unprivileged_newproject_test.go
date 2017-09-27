@@ -7,6 +7,7 @@ import (
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/client"
@@ -251,13 +252,13 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
+	valerieKubeClient := kclientset.NewForConfigOrDie(&valerieClientConfig)
 
-	if err := testutil.WaitForClusterPolicyUpdate(valerieOpenshiftClient, "create", projectapi.Resource("projectrequests"), false); err != nil {
+	if err := testutil.WaitForClusterPolicyUpdate(valerieKubeClient.Authorization(), "create", projectapi.Resource("projectrequests"), false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

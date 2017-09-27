@@ -379,11 +379,11 @@ func (fos *FakeOpenShift) imageStreamMappingsHandler(action clientgotesting.Acti
 		func() (bool, runtime.Object, error) {
 			switch action := action.(type) {
 			case clientgotesting.CreateActionImpl:
-				ism, err := fos.CreateImageStreamMapping(
+				_, err := fos.CreateImageStreamMapping(
 					action.GetNamespace(),
 					action.Object.(*imageapiv1.ImageStreamMapping),
 				)
-				return true, ism, err
+				return true, &metav1.Status{}, err
 			}
 			return fos.todo(action)
 		},

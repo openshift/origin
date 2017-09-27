@@ -35,7 +35,7 @@ func TestServiceServingCertSigner(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminConfig, "service-serving-cert-signer", "deads"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminConfig, "service-serving-cert-signer", "deads"); err != nil {
 		t.Fatal(err)
 	}
 

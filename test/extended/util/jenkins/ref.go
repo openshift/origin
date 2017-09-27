@@ -372,7 +372,7 @@ func SetupSnapshotImage(envVarName, localImageName, snapshotImageStream string, 
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for build to finish")
-		err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, exutil.CheckBuildCancelledFn)
+		err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), snapshotImageStream+"-1", exutil.CheckBuildSuccessFn, exutil.CheckBuildFailedFn, exutil.CheckBuildCancelledFn)
 		if err != nil {
 			exutil.DumpBuildLogs(snapshotImageStream, oc)
 		}
@@ -424,7 +424,7 @@ func ProcessLogURLAnnotations(oc *exutil.CLI, t *exutil.BuildResult) (*url.URL, 
 func DumpLogs(oc *exutil.CLI, t *exutil.BuildResult) (string, error) {
 	var err error
 	if t.Build == nil {
-		t.Build, err = oc.Client().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
+		t.Build, err = oc.BuildClient().Build().Builds(oc.Namespace()).Get(t.BuildName, metav1.GetOptions{})
 		if err != nil {
 			return "", fmt.Errorf("cannot retrieve build %s: %v", t.BuildName, err)
 		}

@@ -97,7 +97,7 @@ func TestEndpointAdmission(t *testing.T) {
 	testOne(t, serviceAccountClient, "default", "external", true)
 
 	// Project admin
-	_, err = testserver.CreateNewProject(clusterAdminOSClient, *clientConfig, "myproject", "myadmin")
+	_, _, err = testserver.CreateNewProject(clusterAdminOSClient, *clientConfig, "myproject", "myadmin")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}

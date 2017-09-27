@@ -213,13 +213,13 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			name := "deployment-image-resolution"
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentImageTriggersResolved(2))).NotTo(o.HaveOccurred())
 
-			is, err := oc.Client().ImageStreams(oc.Namespace()).Get(name, metav1.GetOptions{})
+			is, err := oc.ImageClient().Image().ImageStreams(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(is.Status.DockerImageRepository).NotTo(o.BeEmpty())
 			o.Expect(is.Status.Tags["direct"].Items).NotTo(o.BeEmpty())
 			o.Expect(is.Status.Tags["pullthrough"].Items).NotTo(o.BeEmpty())
 
-			dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+			dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(dc.Spec.Triggers).To(o.HaveLen(3))
 
@@ -277,7 +277,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 
 			g.By("verifying the scale is updated on the deployment config")
-			config, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get("deployment-test", metav1.GetOptions{})
+			config, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get("deployment-test", metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 			o.Expect(config.Spec.Replicas).Should(o.BeEquivalentTo(1))
 			o.Expect(config.Spec.Test).Should(o.BeTrue())
@@ -331,11 +331,11 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			expectLatestVersion := func(version int) {
-				dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+				dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				latestVersion := dc.Status.LatestVersion
 				err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
-					dc, err = oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+					dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 					o.Expect(err).NotTo(o.HaveOccurred())
 					latestVersion = dc.Status.LatestVersion
 					return latestVersion == int64(version), nil
@@ -388,7 +388,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("verifying the post deployment action happened: tag is set")
 			var istag *imageapi.ImageStreamTag
 			pollErr := wait.PollImmediate(100*time.Millisecond, 1*time.Minute, func() (bool, error) {
-				istag, err = oc.Client().ImageStreamTags(oc.Namespace()).Get("sample-stream", "deployed")
+				istag, err = oc.ImageClient().Image().ImageStreamTags(oc.Namespace()).Get("sample-stream:deployed", metav1.GetOptions{})
 				if kerrors.IsNotFound(err) {
 					return false, nil
 				}
@@ -528,11 +528,11 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("waiting for the first rollout to complete")
 			o.Expect(waitForLatestCondition(oc, name, deploymentRunTimeout, deploymentReachedCompletion)).NotTo(o.HaveOccurred())
 
-			dc, err := oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+			dc, err := oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("updating the deployment config in order to trigger a new rollout")
-			_, err = updateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
+			_, err = updateConfigWithRetries(oc.AppsClient().Apps(), oc.Namespace(), name, func(update *deployapi.DeploymentConfig) {
 				one := int64(1)
 				update.Spec.Template.Spec.TerminationGracePeriodSeconds = &one
 			})
@@ -540,7 +540,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			// Wait for latestVersion=2 to be surfaced in the API
 			latestVersion := dc.Status.LatestVersion
 			err = wait.PollImmediate(500*time.Millisecond, 10*time.Second, func() (bool, error) {
-				dc, err = oc.Client().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
+				dc, err = oc.AppsClient().Apps().DeploymentConfigs(oc.Namespace()).Get(name, metav1.GetOptions{})
 				if err != nil {
 					return false, err
 				}
@@ -703,7 +703,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 				o.Expect(fmt.Errorf("expected no deployment, found %#v", rcs[0])).NotTo(o.HaveOccurred())
 			}
 
-			_, err = updateConfigWithRetries(oc.Client(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
+			_, err = updateConfigWithRetries(oc.AppsClient().Apps(), oc.Namespace(), name, func(dc *deployapi.DeploymentConfig) {
 				// TODO: oc rollout pause should patch instead of making a full update
 				dc.Spec.Paused = false
 			})
@@ -908,7 +908,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			dc.Spec.Triggers = append(dc.Spec.Triggers, deployapi.DeploymentTriggerPolicy{Type: deployapi.DeploymentTriggerOnConfigChange})
 			// This is the last place we can safely say that the time was taken before replicas became ready
 			startTime := time.Now()
-			dc, err = oc.Client().DeploymentConfigs(namespace).Create(dc)
+			dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the deployment is created")
@@ -1030,7 +1030,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("should create ControllerRef in RCs it creates", func() {
 				dc, err = readDCFixture(simpleDeploymentFixture)
 				o.Expect(err).NotTo(o.HaveOccurred())
-				dc, err = oc.Client().DeploymentConfigs(namespace).Create(dc)
+				dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = waitForLatestCondition(oc, dcName, deploymentRunTimeout, deploymentRunning)
@@ -1046,7 +1046,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("releasing RCs that no longer match its selector", func() {
-				dc, err = oc.Client().DeploymentConfigs(namespace).Get(dcName, metav1.GetOptions{})
+				dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Get(dcName, metav1.GetOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				patch := []byte(fmt.Sprintf(`{"metadata": {"labels":{"openshift.io/deployment-config.name": "%s-detached"}}}`, dcName))
@@ -1089,7 +1089,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			})
 
 			g.By("deleting owned RCs when deleted", func() {
-				err = oc.Clientset().AppsV1().DeploymentConfigs(namespace).Delete(dcName, &metav1.DeleteOptions{})
+				err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Delete(dcName, &metav1.DeleteOptions{})
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				err = wait.PollImmediate(200*time.Millisecond, 5*time.Minute, func() (bool, error) {

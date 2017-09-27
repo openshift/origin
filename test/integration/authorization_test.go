@@ -212,12 +212,12 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -509,12 +509,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -853,7 +853,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -995,7 +995,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1005,7 +1005,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	haroldSARGetter := haroldKubeClient.Authorization()
 
-	markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1430,7 +1430,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1495,7 +1495,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		otherNamespace := "chisel-project"
 		// we need a real project for this to make it past admission.
 		// TODO, this is an information leaking problem.  This admission plugin leaks knowledge of which projects exist via SARs
-		if _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
+		if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -1557,7 +1557,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
