@@ -1378,7 +1378,7 @@ func TestImageIsPrunable(t *testing.T) {
 	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)
 	g.AddEdge(streamNode, imageNode, WeakReferencedImageEdgeKind)
 
-	if imageIsPrunable(g, imageNode.(*imagegraph.ImageNode)) {
+	if imageIsPrunable(g, imageNode.(*imagegraph.ImageNode), pruneAlgorithm{}) {
 		t.Fatalf("Image is prunable although it should not")
 	}
 }
