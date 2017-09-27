@@ -20,11 +20,11 @@ func addDeadClusterRole(name string) {
 		}
 	}
 
-	deadClusterRoles = append(deadClusterRoles,
-		rbac.ClusterRole{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-		},
-	)
+	deadClusterRole := rbac.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+	}
+	addDefaultMetadata(&deadClusterRole)
+	deadClusterRoles = append(deadClusterRoles, deadClusterRole)
 }
 
 func addDeadClusterRoleBinding(name, roleName string) {
@@ -34,12 +34,12 @@ func addDeadClusterRoleBinding(name, roleName string) {
 		}
 	}
 
-	deadClusterRoleBindings = append(deadClusterRoleBindings,
-		rbac.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-			RoleRef:    rbac.RoleRef{APIGroup: rbac.GroupName, Kind: "ClusterRole", Name: roleName},
-		},
-	)
+	deadClusterRoleBinding := rbac.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		RoleRef:    rbac.RoleRef{APIGroup: rbac.GroupName, Kind: "ClusterRole", Name: roleName},
+	}
+	addDefaultMetadata(&deadClusterRoleBinding)
+	deadClusterRoleBindings = append(deadClusterRoleBindings, deadClusterRoleBinding)
 }
 
 // GetDeadClusterRoles returns cluster roles which should no longer have any permissions.
