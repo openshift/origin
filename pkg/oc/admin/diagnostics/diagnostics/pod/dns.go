@@ -38,6 +38,10 @@ func (d PodCheckDns) Description() string {
 	return "Check that DNS within a pod works as expected"
 }
 
+func (d PodCheckDns) Requirements() (client bool, host bool) {
+	return true, false
+}
+
 // CanRun is part of the Diagnostic interface; it determines if the conditions are right to run this diagnostic.
 func (d PodCheckDns) CanRun() (bool, error) {
 	return true, nil

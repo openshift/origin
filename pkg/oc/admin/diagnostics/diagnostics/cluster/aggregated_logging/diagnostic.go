@@ -18,6 +18,7 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	oauthtypedclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	hostdiag "github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/host"
+	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/log"
 	"github.com/openshift/origin/pkg/oc/admin/diagnostics/diagnostics/types"
 	projecttypedclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routesapi "github.com/openshift/origin/pkg/route/apis/route"
@@ -144,8 +145,23 @@ func (d *AggregatedLogging) Description() string {
 	return "Check aggregated logging integration for proper configuration"
 }
 
+func (d *AggregatedLogging) Requirements() (client bool, host bool) {
+	return true, false
+}
+
+func (d *AggregatedLogging) Complete(logger *log.Logger) error {
+	if len(d.MasterConfigFile) > 0 {
+		var err error
+		d.masterConfig, err = hostdiag.GetMasterConfig(d.MasterConfigFile, logger)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (d *AggregatedLogging) CanRun() (bool, error) {
-	if len(d.MasterConfigFile) == 0 {
+	if len(d.MasterConfigFile) == 0 || d.masterConfig == nil {
 		return false, errors.New("No master config file was provided")
 	}
 	if d.OAuthClientClient == nil || d.ProjectClient == nil || d.RouteClient == nil || d.CRBClient == nil || d.DCClient == nil {
@@ -153,11 +169,6 @@ func (d *AggregatedLogging) CanRun() (bool, error) {
 	}
 	if d.KubeClient == nil {
 		return false, errors.New("Config must include a cluster-admin context to run this diagnostic")
-	}
-	var err error
-	d.masterConfig, err = hostdiag.GetMasterConfig(d.result, d.MasterConfigFile)
-	if err != nil {
-		return false, errors.New("Master configuration is unreadable")
 	}
 	if d.masterConfig.AssetConfig.LoggingPublicURL == "" {
 		return false, errors.New("No LoggingPublicURL is defined in the master configuration")
