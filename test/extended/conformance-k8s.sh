@@ -15,7 +15,7 @@ fi
 test_report_dir="${ARTIFACT_DIR}"
 mkdir -p "${test_report_dir}"
 
-version="${KUBERNETES_VERSION:-release-1.7}"
+version="${KUBERNETES_VERSION:-release-1.8}"
 kubernetes="${KUBERNETES_ROOT:-${OS_ROOT}/../../../k8s.io/kubernetes2}"
 if [[ ! -d "${kubernetes}" ]]; then
   if [[ -n "${KUBERNETES_ROOT-}" ]]; then
