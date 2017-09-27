@@ -3032,11 +3032,6 @@
 			"Rev": "9dfd4eed18adfc112b8ed42b4a0945d46ef011d0"
 		},
 		{
-			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/downloaders",
-			"Comment": "v1.1.7-44-g9dfd4eed",
-			"Rev": "9dfd4eed18adfc112b8ed42b4a0945d46ef011d0"
-		},
-		{
 			"ImportPath": "github.com/openshift/source-to-image/pkg/scm/downloaders/empty",
 			"Comment": "v1.1.7-44-g9dfd4eed",
 			"Rev": "9dfd4eed18adfc112b8ed42b4a0945d46ef011d0"
