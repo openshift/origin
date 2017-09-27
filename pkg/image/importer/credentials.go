@@ -172,8 +172,12 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 	if len(target.Scheme) == 0 || target.Scheme == "https" {
 		value = target.Host + target.Path
 	} else {
-		// only lookup credential for http that say they are for http
-		value = target.String()
+		// always require an explicit port to look up HTTP credentials
+		if !strings.Contains(target.Host, ":") {
+			value = target.Host + ":80" + target.Path
+		} else {
+			value = target.Host + target.Path
+		}
 	}
 
 	// Lookup(...) expects an image (not a URL path).
@@ -189,12 +193,12 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 	if !found || len(configs) == 0 {
 		// do a special case check for docker.io to match historical lookups when we respond to a challenge
 		if value == "auth.docker.io/token" {
-			glog.V(5).Infof("Being asked for %s, trying %s for legacy behavior", target, "index.docker.io/v1")
+			glog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "index.docker.io/v1")
 			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "index.docker.io", Path: "/v1"})
 		}
 		// docker 1.9 saves 'docker.io' in config in f23, see https://bugzilla.redhat.com/show_bug.cgi?id=1309739
 		if value == "index.docker.io" {
-			glog.V(5).Infof("Being asked for %s, trying %s for legacy behavior", target, "docker.io")
+			glog.V(5).Infof("Being asked for %s (%s), trying %s for legacy behavior", target, value, "docker.io")
 			return basicCredentialsFromKeyring(keyring, &url.URL{Host: "docker.io"})
 		}
 
@@ -202,7 +206,7 @@ func basicCredentialsFromKeyring(keyring credentialprovider.DockerKeyring, targe
 		if (strings.HasSuffix(target.Host, ":443") && target.Scheme == "https") ||
 			(strings.HasSuffix(target.Host, ":80") && target.Scheme == "http") {
 			host := strings.SplitN(target.Host, ":", 2)[0]
-			glog.V(5).Infof("Being asked for %s, trying %s without port", target, host)
+			glog.V(5).Infof("Being asked for %s (%s), trying %s without port", target, value, host)
 
 			return basicCredentialsFromKeyring(keyring, &url.URL{Scheme: target.Scheme, Host: host, Path: target.Path})
 		}
