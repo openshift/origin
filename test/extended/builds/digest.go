@@ -29,6 +29,13 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("S2I build", func() {
 		g.Describe("started with normal log level", func() {
 			testBuildDigest(oc, stiBuildFixture, 0)

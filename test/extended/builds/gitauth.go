@@ -44,6 +44,13 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		caCertPath                = filepath.Join(filepath.Dir(exutil.KubeConfigPath()), "ca.crt")
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

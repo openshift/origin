@@ -26,6 +26,13 @@ var _ = g.Describe("[Feature:Builds] build with empty source", func() {
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("started build", func() {
 		g.It("should build even with an empty source in build config", func() {
 			g.By("starting the empty source build")

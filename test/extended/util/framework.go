@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -249,60 +248,68 @@ func GetMasterThreadDump(oc *CLI) {
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {
-	out, err := exec.Command("/bin/df", "-m").Output()
-	if err == nil {
-		e2e.Logf("\n\n df -m output: %s\n\n", string(out))
-	} else {
-		e2e.Logf("\n\n got error on df %v\n\n", err)
-	}
-	out, err = exec.Command("/bin/docker", "info").Output()
-	if err == nil {
-		e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
-	} else {
-		e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
-	}
+	// disabling this for now, easier to do it here than everywhere that's calling it.
+	return
+	/*
+		out, err := exec.Command("/bin/df", "-m").Output()
+		if err == nil {
+			e2e.Logf("\n\n df -m output: %s\n\n", string(out))
+		} else {
+			e2e.Logf("\n\n got error on df %v\n\n", err)
+		}
+		out, err = exec.Command("/bin/docker", "info").Output()
+		if err == nil {
+			e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
+		} else {
+			e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
+		}
+	*/
 }
 
 // ExaminePodDiskUsage will dump df/du output on registry pod; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExaminePodDiskUsage(oc *CLI) {
-	out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
-	var podName string
-	if err == nil {
-		b := []byte(out)
-		var list kapiv1.PodList
-		err = json.Unmarshal(b, &list)
+	// disabling this for now, easier to do it here than everywhere that's calling it.
+	return
+	/*
+		out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
+		var podName string
 		if err == nil {
-			for _, pod := range list.Items {
-				e2e.Logf("\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
-				if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
-					podName = pod.ObjectMeta.Name
-					break
+			b := []byte(out)
+			var list kapiv1.PodList
+			err = json.Unmarshal(b, &list)
+			if err == nil {
+				for _, pod := range list.Items {
+					e2e.Logf("\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
+					if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
+						podName = pod.ObjectMeta.Name
+						break
+					}
 				}
+			} else {
+				e2e.Logf("\n\n got json unmarshal err: %v\n\n", err)
 			}
 		} else {
-			e2e.Logf("\n\n got json unmarshal err: %v\n\n", err)
+			e2e.Logf("\n\n  got error on get pods: %v\n\n", err)
 		}
-	} else {
-		e2e.Logf("\n\n  got error on get pods: %v\n\n", err)
-	}
-	if len(podName) == 0 {
-		e2e.Logf("Unable to determine registry pod name, so we can't examine its disk usage.")
-		return
-	}
+		if len(podName) == 0 {
+			e2e.Logf("Unable to determine registry pod name, so we can't examine its disk usage.")
+			return
+		}
 
-	out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
-	if err == nil {
-		e2e.Logf("\n\n df from registry pod: \n%s\n\n", out)
-	} else {
-		e2e.Logf("\n\n got error on reg pod df: %v\n", err)
-	}
-	out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
-	if err == nil {
-		e2e.Logf("\n\n du from registry pod: \n%s\n\n", out)
-	} else {
-		e2e.Logf("\n\n got error on reg pod du: %v\n", err)
-	}
+		out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
+		if err == nil {
+			e2e.Logf("\n\n df from registry pod: \n%s\n\n", out)
+		} else {
+			e2e.Logf("\n\n got error on reg pod df: %v\n", err)
+		}
+		out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
+		if err == nil {
+			e2e.Logf("\n\n du from registry pod: \n%s\n\n", out)
+		} else {
+			e2e.Logf("\n\n got error on reg pod du: %v\n", err)
+		}
+	*/
 }
 
 // VarSubOnFile reads in srcFile, finds instances of ${key} from the map

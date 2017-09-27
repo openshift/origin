@@ -21,6 +21,13 @@ var _ = g.Describe("[Feature:Builds] buildconfig secret injector", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.It("should inject secrets to the appropriate buildconfigs", func() {
 		out, err := oc.Run("get").Args("bc/test1", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
 		o.Expect(err).NotTo(o.HaveOccurred())

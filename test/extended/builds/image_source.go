@@ -30,6 +30,13 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("build with image source", func() {
 		g.It("should complete successfully and contain the expected file", func() {
 			g.By("Creating build configs for source build")

@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies"
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("start build with broken proxy", func() {
 		g.It("should start a build and wait for the build to fail", func() {
 			g.By("starting the build")

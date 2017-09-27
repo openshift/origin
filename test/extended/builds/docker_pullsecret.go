@@ -27,6 +27,13 @@ var _ = g.Describe("[Feature:Builds][pullsecret][Conformance] docker build using
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Building from a template", func() {
 		g.It("should create a docker build that pulls using a secret run it", func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

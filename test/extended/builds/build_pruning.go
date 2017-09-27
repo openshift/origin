@@ -47,6 +47,13 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting", func() {
 
 		g.By("creating test successful build config")

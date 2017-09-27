@@ -29,6 +29,14 @@ var _ = g.Describe("[image_ecosystem][python][Slow] hot deploy for openshift pyt
 		dcLabelOne       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameOne))
 		dcLabelTwo       = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
 	)
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Django example", func() {
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

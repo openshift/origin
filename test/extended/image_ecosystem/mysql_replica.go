@@ -208,9 +208,17 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
-	ocs := make([]*exutil.CLI, len(testCases))
+	var oc *exutil.CLI
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	for i, tc := range testCases {
-		ocs[i] = exutil.NewCLI(fmt.Sprintf("mysql-replication-%d", i), exutil.KubeConfigPath())
-		g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(ocs[i], tc))
+		oc = exutil.NewCLI(fmt.Sprintf("mysql-replication-%d", i), exutil.KubeConfigPath())
+		g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(oc, tc))
 	}
 })

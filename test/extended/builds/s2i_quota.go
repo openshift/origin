@@ -30,6 +30,13 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Building from a template", func() {
 		g.It("should create an s2i build with a quota and run it", func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

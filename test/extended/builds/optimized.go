@@ -33,6 +33,13 @@ USER 1001
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.It("should succeed [Conformance]", func() {
 		g.By("creating a build directly")
 		build, err := oc.AdminBuildClient().Build().Builds(oc.Namespace()).Create(&buildapi.Build{

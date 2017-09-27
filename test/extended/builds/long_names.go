@@ -16,6 +16,13 @@ var _ = g.Describe("[Feature:Builds][Slow] extremely long build/bc names are not
 		oc               = exutil.NewCLI("long-names", exutil.KubeConfigPath())
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("build with long names", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 

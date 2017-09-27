@@ -19,6 +19,13 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 		os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("RunBuildControllerTest", func() {
 		g.It("should succeed", func() {
 			build.RunBuildControllerTest(g.GinkgoT(), oc.BuildClient().Build(), oc.InternalAdminKubeClient())

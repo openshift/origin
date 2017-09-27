@@ -34,6 +34,13 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i extended build", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("with scripts from the source repository", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 

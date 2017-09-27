@@ -32,6 +32,13 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Building from a template", func() {
 		g.It(fmt.Sprintf("should create a image from %q template and run it in a pod", stiEnvBuildFixture), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

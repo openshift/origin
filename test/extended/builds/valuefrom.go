@@ -23,6 +23,13 @@ var _ = g.Describe("[Feature:Builds][Conformance][valueFrom] process valueFrom i
 		oc                             = exutil.NewCLI("build-valuefrom", exutil.KubeConfigPath())
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

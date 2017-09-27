@@ -152,6 +152,13 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Context("Pipeline with maven slave", func() {
 		g.AfterEach(func() {
 			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {

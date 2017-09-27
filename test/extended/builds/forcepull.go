@@ -73,6 +73,13 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.BeforeEach(func() {
 		g.By("waiting for openshift/ruby:latest ImageStreamTag")
 		err := exutil.WaitForAnImageStreamTag(oc, "openshift", "ruby", "latest")
@@ -126,9 +133,6 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 			g.By("when custom force pull is true")
 
 			checkPodFlag(buildPrefixTC, oc)
-
 		})
-
 	})
-
 })

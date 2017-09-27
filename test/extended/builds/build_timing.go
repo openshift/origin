@@ -43,6 +43,13 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.It("should record build stages and durations for s2i", func() {
 
 		expectedBuildStages := make(map[string][]string)

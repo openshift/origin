@@ -44,6 +44,13 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Build status postcommit hook failure", func() {
 		g.It("should contain the post commit hook failure reason and message", func() {
 			err := oc.Run("create").Args("-f", postCommitHookFixture).Execute()
