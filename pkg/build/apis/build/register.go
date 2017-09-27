@@ -3,6 +3,7 @@ package build
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kapi "k8s.io/kubernetes/pkg/api"
 )
 
 const (
@@ -64,6 +65,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&BuildRequest{},
 		&BuildLogOptions{},
 		&BinaryBuildRequestOptions{},
+		// This is needed for webhooks
+		&kapi.PodProxyOptions{},
 	)
 	return nil
 }

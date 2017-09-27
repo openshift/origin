@@ -13,11 +13,11 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	oapi "github.com/openshift/origin/pkg/api"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	cliconfig "github.com/openshift/origin/pkg/oc/cli/config"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapihelpers "github.com/openshift/origin/pkg/project/apis/project/helpers"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 
 	"github.com/spf13/cobra"
 )
@@ -25,7 +25,7 @@ import (
 type ProjectsOptions struct {
 	Config       clientcmdapi.Config
 	ClientConfig *restclient.Config
-	Client       *client.Client
+	Client       projectclient.ProjectInterface
 	KubeClient   kclientset.Interface
 	Out          io.Writer
 	PathOptions  *kclientcmd.PathOptions
@@ -100,10 +100,15 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 		return err
 	}
 
-	o.Client, o.KubeClient, err = f.Clients()
+	_, o.KubeClient, err = f.Clients()
 	if err != nil {
 		return err
 	}
+	projectClient, err := f.OpenshiftInternalProjectClient()
+	if err != nil {
+		return err
+	}
+	o.Client = projectClient.Project()
 
 	o.Out = out
 

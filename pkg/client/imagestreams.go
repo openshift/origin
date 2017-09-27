@@ -1,9 +1,7 @@
 package client
 
 import (
-	"errors"
-
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -11,8 +9,6 @@ import (
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
-
-var ErrImageStreamImportUnsupported = errors.New("the server does not support directly importing images - create an image stream with tags or the dockerImageRepository field set")
 
 // ImageStreamsNamespacer has methods to work with ImageStream resources in a namespace
 type ImageStreamsNamespacer interface {
@@ -111,31 +107,31 @@ func (c *imageStreams) UpdateStatus(stream *imageapi.ImageStream) (result *image
 func (c *imageStreams) Import(isi *imageapi.ImageStreamImport) (*imageapi.ImageStreamImport, error) {
 	result := &imageapi.ImageStreamImport{}
 	if err := c.r.Post().Namespace(c.ns).Resource("imageStreamImports").Body(isi).Do().Into(result); err != nil {
-		return nil, transformUnsupported(err)
+		return nil, transformUnsupportedError(err)
 	}
 	return result, nil
 }
 
-// transformUnsupported converts specific error conditions to unsupported
-func transformUnsupported(err error) error {
+// transformUnsupportedError converts specific error conditions to unsupported
+func transformUnsupportedError(err error) error {
 	if err == nil {
 		return nil
 	}
-	if apierrs.IsNotFound(err) {
-		status, ok := err.(apierrs.APIStatus)
+	if kerrors.IsNotFound(err) {
+		status, ok := err.(kerrors.APIStatus)
 		if !ok {
-			return ErrImageStreamImportUnsupported
+			return imageapi.ErrImageStreamImportUnsupported
 		}
 		if status.Status().Details == nil || status.Status().Details.Kind == "" {
-			return ErrImageStreamImportUnsupported
+			return imageapi.ErrImageStreamImportUnsupported
 		}
 	}
 	// The ImageStreamImport resource exists in v1.1.1 of origin but is not yet
 	// enabled by policy. A create request will return a Forbidden(403) error.
 	// We want to return ErrImageStreamImportUnsupported to allow fallback behavior
 	// in clients.
-	if apierrs.IsForbidden(err) && !quotautil.IsErrorQuotaExceeded(err) {
-		return ErrImageStreamImportUnsupported
+	if kerrors.IsForbidden(err) && !quotautil.IsErrorQuotaExceeded(err) {
+		return imageapi.ErrImageStreamImportUnsupported
 	}
 	return err
 }

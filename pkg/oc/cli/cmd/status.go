@@ -102,7 +102,27 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	o.securityPolicyCommandFormat = "oc adm policy add-scc-to-user anyuid -n %s -z %s"
 	o.setProbeCommandName = fmt.Sprintf("%s set probe", cmd.Parent().CommandPath())
 
-	client, kclientset, err := f.Clients()
+	_, kclientset, err := f.Clients()
+	if err != nil {
+		return err
+	}
+	projectClient, err := f.OpenshiftInternalProjectClient()
+	if err != nil {
+		return err
+	}
+	buildClient, err := f.OpenshiftInternalBuildClient()
+	if err != nil {
+		return err
+	}
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
+	appsClient, err := f.OpenshiftInternalAppsClient()
+	if err != nil {
+		return err
+	}
+	routeClient, err := f.OpenshiftInternalRouteClient()
 	if err != nil {
 		return err
 	}
@@ -140,10 +160,14 @@ func (o *StatusOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, baseC
 	canRequestProjects, _ := loginutil.CanRequestProjects(config, o.namespace)
 
 	o.describer = &describe.ProjectStatusDescriber{
-		K:       kclientset,
-		C:       client,
-		Server:  config.Host,
-		Suggest: o.verbose,
+		K:             kclientset,
+		ProjectClient: projectClient.Project(),
+		BuildClient:   buildClient.Build(),
+		ImageClient:   imageClient.Image(),
+		AppsClient:    appsClient.Apps(),
+		RouteClient:   routeClient.Route(),
+		Suggest:       o.verbose,
+		Server:        config.Host,
 
 		CommandBaseName:    baseCLIName,
 		RequestedNamespace: nsFlag,

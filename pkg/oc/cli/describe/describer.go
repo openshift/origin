@@ -31,24 +31,29 @@ import (
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	oauthorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	onetworkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	quotaapi "github.com/openshift/origin/pkg/quota/apis/quota"
 	quotaclient "github.com/openshift/origin/pkg/quota/generated/internalclientset/typed/quota/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/security/legacyclient"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
-func describerMap(clientConfig *rest.Config, c *client.Client, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kprinters.Describer {
+func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host string, withCoreGroup bool) map[schema.GroupKind]kprinters.Describer {
+	// FIXME: This should use the client factory
 	// we can't fail and we can't log at a normal level because this is sometimes called with `nils` for help :(
 	oauthorizationClient, err := oauthorizationclient.NewForConfig(clientConfig)
 	if err != nil {
@@ -74,18 +79,38 @@ func describerMap(clientConfig *rest.Config, c *client.Client, kclient kclientse
 	if err != nil {
 		glog.V(1).Info(err)
 	}
+	buildClient, err := buildclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
+	templateClient, err := templateclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
+	routeClient, err := routeclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
+	projectClient, err := projectclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
+	oauthClient, err := oauthclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
-		buildapi.Kind("Build"):                          &BuildDescriber{c, kclient},
-		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{c, kclient, host},
+		buildapi.Kind("Build"):                          &BuildDescriber{buildClient, kclient},
+		buildapi.Kind("BuildConfig"):                    &BuildConfigDescriber{buildClient, kclient, host},
 		deployapi.Kind("DeploymentConfig"):              &DeploymentConfigDescriber{appsClient, kclient, nil},
 		imageapi.Kind("Image"):                          &ImageDescriber{imageClient},
 		imageapi.Kind("ImageStream"):                    &ImageStreamDescriber{imageClient},
 		imageapi.Kind("ImageStreamTag"):                 &ImageStreamTagDescriber{imageClient},
 		imageapi.Kind("ImageStreamImage"):               &ImageStreamImageDescriber{imageClient},
-		routeapi.Kind("Route"):                          &RouteDescriber{c, kclient},
-		projectapi.Kind("Project"):                      &ProjectDescriber{c, kclient},
-		templateapi.Kind("Template"):                    &TemplateDescriber{c, meta.NewAccessor(), kapi.Scheme, nil},
+		routeapi.Kind("Route"):                          &RouteDescriber{routeClient, kclient},
+		projectapi.Kind("Project"):                      &ProjectDescriber{projectClient, kclient},
+		templateapi.Kind("Template"):                    &TemplateDescriber{templateClient, meta.NewAccessor(), kapi.Scheme, nil},
 		authorizationapi.Kind("Policy"):                 &PolicyDescriber{oauthorizationClient},
 		authorizationapi.Kind("PolicyBinding"):          &PolicyBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("RoleBinding"):            &RoleBindingDescriber{oauthorizationClient},
@@ -95,7 +120,7 @@ func describerMap(clientConfig *rest.Config, c *client.Client, kclient kclientse
 		authorizationapi.Kind("ClusterRoleBinding"):     &ClusterRoleBindingDescriber{oauthorizationClient},
 		authorizationapi.Kind("ClusterRole"):            &ClusterRoleDescriber{oauthorizationClient},
 		authorizationapi.Kind("RoleBindingRestriction"): &RoleBindingRestrictionDescriber{oauthorizationClient},
-		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{c},
+		oauthapi.Kind("OAuthAccessToken"):               &OAuthAccessTokenDescriber{oauthClient},
 		authorizationapi.Kind("Identity"):               &IdentityDescriber{userClient},
 		userapi.Kind("User"):                            &UserDescriber{userClient},
 		userapi.Kind("Group"):                           &GroupDescriber{userClient},
@@ -128,7 +153,7 @@ func DescribableResources() []string {
 	// Include describable resources in kubernetes
 	keys := kinternalprinters.DescribableResources()
 
-	for k := range describerMap(&rest.Config{}, nil, nil, "", false) {
+	for k := range describerMap(&rest.Config{}, nil, "", false) {
 		resource := strings.ToLower(k.Kind)
 		keys = append(keys, resource)
 	}
@@ -136,8 +161,8 @@ func DescribableResources() []string {
 }
 
 // DescriberFor returns a describer for a given kind of resource
-func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, c *client.Client, kclient kclientset.Interface, host string) (kprinters.Describer, bool) {
-	f, ok := describerMap(clientConfig, c, kclient, host, true)[kind]
+func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, kclient kclientset.Interface, host string) (kprinters.Describer, bool) {
+	f, ok := describerMap(clientConfig, kclient, host, true)[kind]
 	if ok {
 		return f, true
 	}
@@ -146,13 +171,13 @@ func DescriberFor(kind schema.GroupKind, clientConfig *rest.Config, c *client.Cl
 
 // BuildDescriber generates information about a build
 type BuildDescriber struct {
-	osClient   client.Interface
-	kubeClient kclientset.Interface
+	buildClient buildclient.BuildInterface
+	kubeClient  kclientset.Interface
 }
 
 // Describe returns the description of a build
 func (d *BuildDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.osClient.Builds(namespace)
+	c := d.buildClient.Builds(namespace)
 	build, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -243,9 +268,9 @@ func describeBuildDuration(build *buildapi.Build) string {
 
 // BuildConfigDescriber generates information about a buildConfig
 type BuildConfigDescriber struct {
-	client.Interface
-	kubeClient kclientset.Interface
-	host       string
+	buildClient buildclient.BuildInterface
+	kubeClient  kclientset.Interface
+	host        string
 }
 
 func nameAndNamespace(ns, name string) string {
@@ -478,7 +503,7 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 	desc := strings.Join(labels, ", ")
 	formatString(w, "Triggered by", desc)
 
-	webHooks := webHooksDescribe(triggers, name, namespace, d.Interface)
+	webHooks := webHooksDescribe(triggers, name, namespace, d.buildClient.RESTClient())
 	for webHookType, webHookDesc := range webHooks {
 		fmt.Fprintf(w, "Webhook %s:\n", strings.Title(webHookType))
 		for _, trigger := range webHookDesc {
@@ -492,12 +517,12 @@ func describeBuildTriggers(triggers []buildapi.BuildTriggerPolicy, name, namespa
 
 // Describe returns the description of a buildConfig
 func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.BuildConfigs(namespace)
+	c := d.buildClient.BuildConfigs(namespace)
 	buildConfig, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
-	buildList, err := d.Builds(namespace).List(metav1.ListOptions{})
+	buildList, err := d.buildClient.Builds(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -546,11 +571,11 @@ func (d *BuildConfigDescriber) Describe(namespace, name string, settings kprinte
 
 // OAuthAccessTokenDescriber generates information about an OAuth Acess Token (OAuth)
 type OAuthAccessTokenDescriber struct {
-	client.Interface
+	client oauthclient.OauthInterface
 }
 
 func (d *OAuthAccessTokenDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.OAuthAccessTokens()
+	c := d.client.OAuthAccessTokens()
 	oAuthAccessToken, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -782,8 +807,8 @@ func DescribeImageStream(imageStream *imageapi.ImageStream) (string, error) {
 
 // RouteDescriber generates information about a Route
 type RouteDescriber struct {
-	client.Interface
-	kubeClient kclientset.Interface
+	routeClient routeclient.RouteInterface
+	kubeClient  kclientset.Interface
 }
 
 type routeEndpointInfo struct {
@@ -793,7 +818,7 @@ type routeEndpointInfo struct {
 
 // Describe returns the description of a route
 func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.Routes(namespace)
+	c := d.routeClient.Routes(namespace)
 	route, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -921,13 +946,13 @@ func (d *RouteDescriber) Describe(namespace, name string, settings kprinters.Des
 
 // ProjectDescriber generates information about a Project
 type ProjectDescriber struct {
-	osClient   client.Interface
-	kubeClient kclientset.Interface
+	projectClient projectclient.ProjectInterface
+	kubeClient    kclientset.Interface
 }
 
 // Describe returns the description of a project
 func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	projectsClient := d.osClient.Projects()
+	projectsClient := d.projectClient.Projects()
 	project, err := projectsClient.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -1040,7 +1065,7 @@ func (d *ProjectDescriber) Describe(namespace, name string, settings kprinters.D
 
 // TemplateDescriber generates information about a template
 type TemplateDescriber struct {
-	client.Interface
+	templateClient templateclient.TemplateInterface
 	meta.MetadataAccessor
 	runtime.ObjectTyper
 	kprinters.ObjectDescriber
@@ -1125,7 +1150,7 @@ func (d *TemplateDescriber) describeObjects(objects []runtime.Object, out *tabwr
 
 // Describe returns the description of a template
 func (d *TemplateDescriber) Describe(namespace, name string, settings kprinters.DescriberSettings) (string, error) {
-	c := d.Templates(namespace)
+	c := d.templateClient.Templates(namespace)
 	template, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err

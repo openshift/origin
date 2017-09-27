@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -20,10 +19,8 @@ import (
 	kubegraph "github.com/openshift/origin/pkg/api/kubegraph/nodes"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
@@ -69,31 +66,35 @@ type TopImagesOptions struct {
 	Pods    *kapi.PodList
 
 	// helpers
-	out      io.Writer
-	osClient client.Interface
-	kClient  kclientset.Interface
+	out io.Writer
 }
 
 // Complete turns a partially defined TopImagesOptions into a solvent structure
 // which can be validated and used for showing limits usage.
 func (o *TopImagesOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args []string, out io.Writer) error {
-	osClient, kClient, err := f.Clients()
+	_, kClient, err := f.Clients()
 	if err != nil {
 		return err
 	}
+
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
+
 	namespace := cmd.Flag("namespace").Value.String()
 	if len(namespace) == 0 {
 		namespace = metav1.NamespaceAll
 	}
 	o.out = out
 
-	allImages, err := osClient.Images().List(metav1.ListOptions{})
+	allImages, err := imageClient.Image().Images().List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}
 	o.Images = allImages
 
-	allStreams, err := osClient.ImageStreams(namespace).List(metav1.ListOptions{})
+	allStreams, err := imageClient.Image().ImageStreams(namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
 	}

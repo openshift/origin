@@ -78,8 +78,9 @@ func TestUnprivilegedNewProject(t *testing.T) {
 	}
 
 	// confirm that we have access to request the project
-	allowed, err := valerieOpenshiftClient.ProjectRequests().List(metav1.ListOptions{})
-	if err != nil {
+
+	allowed := &metav1.Status{}
+	if err := valerieProjectClient.Project().RESTClient().Get().Resource("projectrequests").Do().Into(allowed); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if allowed.Status != metav1.StatusSuccess {
@@ -91,7 +92,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		DisplayName: "display name here",
 		Description: "the special description",
 
-		Client: valerieOpenshiftClient,
+		Client: valerieProjectClient.Project(),
 		Out:    ioutil.Discard,
 	}
 
@@ -158,6 +159,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
 
 	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -180,7 +182,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		DisplayName: "display name here",
 		Description: "the special description",
 
-		Client: valerieOpenshiftClient,
+		Client: valerieProjectClient.Project(),
 		Out:    ioutil.Discard,
 	}
 
@@ -253,13 +255,14 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
 
 	if err := testutil.WaitForClusterPolicyUpdate(valerieOpenshiftClient, "create", projectapi.Resource("projectrequests"), false); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// confirm that we have access to request the project
-	_, err = valerieOpenshiftClient.ProjectRequests().List(metav1.ListOptions{})
+	err = valerieProjectClient.Project().RESTClient().Get().Resource("projectrequests").Do().Into(&metav1.Status{})
 	if err == nil {
 		t.Fatalf("expected error: %v", err)
 	}

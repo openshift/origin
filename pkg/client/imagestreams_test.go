@@ -30,19 +30,19 @@ func TestImageStreamImportUnsupported(t *testing.T) {
 	}{
 		{
 			status: errors.NewNotFound(imageapi.Resource(""), "").ErrStatus,
-			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
+			errFn:  func(err error) bool { return err == imageapi.ErrImageStreamImportUnsupported },
 		},
 		{
 			status: errors.NewNotFound(imageapi.Resource("ImageStreamImport"), "").ErrStatus,
-			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsNotFound(err) },
+			errFn:  func(err error) bool { return err != imageapi.ErrImageStreamImportUnsupported && errors.IsNotFound(err) },
 		},
 		{
 			status: errors.NewConflict(imageapi.Resource("ImageStreamImport"), "", nil).ErrStatus,
-			errFn:  func(err error) bool { return err != ErrImageStreamImportUnsupported && errors.IsConflict(err) },
+			errFn:  func(err error) bool { return err != imageapi.ErrImageStreamImportUnsupported && errors.IsConflict(err) },
 		},
 		{
 			status: errors.NewForbidden(imageapi.Resource("ImageStreamImport"), "", nil).ErrStatus,
-			errFn:  func(err error) bool { return err == ErrImageStreamImportUnsupported },
+			errFn:  func(err error) bool { return err == imageapi.ErrImageStreamImportUnsupported },
 		},
 	}
 	for i, test := range testCases {

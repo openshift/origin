@@ -843,7 +843,6 @@ type ImageLabel struct {
 
 // +genclient
 // +genclient:method=Instantiate,verb=create,subresource=instantiate,input=BuildRequest,result=Build
-// +genclient:method=InstantiateBinary,verb=create,subresource=instantiateBinary,input=BinaryBuildRequestOptions,result=Build
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Build configurations define a build process for new Docker images. There are three types of builds possible - a Docker build using a Dockerfile, a Source-to-Image build that uses a specially prepared base image that accepts source code that it can make runnable, and a custom build that can run // arbitrary Docker images as a base and accept the build parameters. Builds run on the cluster and on completion are pushed to the Docker registry specified in the "output" section. A build can be triggered via a webhook, when the base image changes, or when a user manually requests a new build be // created.
