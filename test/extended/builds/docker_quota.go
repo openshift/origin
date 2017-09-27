@@ -29,6 +29,13 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Building from a template", func() {
 		g.It("should create a docker build with a quota and run it", func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

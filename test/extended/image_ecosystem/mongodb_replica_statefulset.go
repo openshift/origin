@@ -19,6 +19,13 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 
 	oc := exutil.NewCLI("mongodb-petset-replica", exutil.KubeConfigPath()).Verbose()
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("creating from a template", func() {
 		g.AfterEach(func() {
 			for i := 0; i < 3; i++ {

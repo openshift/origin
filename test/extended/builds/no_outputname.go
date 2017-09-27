@@ -17,6 +17,13 @@ var _ = g.Describe("[Feature:Builds][Conformance] build without output image", f
 		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("building from templates", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 

@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 		oc                    = exutil.NewCLI("build-secrets", exutil.KubeConfigPath())
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("build with secrets", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 

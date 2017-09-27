@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Slow] builds should have deadlines", func()
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("oc start-build source-build --wait", func() {
 		g.It("Source: should start a build and wait for the build failed and build pod being killed by kubelet", func() {
 

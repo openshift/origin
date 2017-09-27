@@ -16,6 +16,14 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")
 		oc           = exutil.NewCLI("mariadb-create", exutil.KubeConfigPath())
 	)
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Creating from a template", func() {
 		g.It(fmt.Sprintf("should instantiate the template"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

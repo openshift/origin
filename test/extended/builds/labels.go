@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Slow] result image should have proper label
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("S2I build from a template", func() {
 		g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels", stiBuildFixture), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

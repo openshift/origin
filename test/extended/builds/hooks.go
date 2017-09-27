@@ -24,6 +24,13 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 		exutil.WaitForAnImageStreamTag(oc, oc.Namespace(), "busybox", "1")
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("testing postCommit hook", func() {
 
 		g.It("successful postCommit script with args", func() {

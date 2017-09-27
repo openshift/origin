@@ -41,6 +41,13 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
+
 		g.Describe("Building "+c.repoName+" app from new-app", func() {
 			g.It(fmt.Sprintf("should build a "+c.repoName+" image and run it in a pod"), func() {
 				oc.SetOutputDir(exutil.TestContext.OutputDir)

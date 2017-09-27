@@ -28,6 +28,14 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 		dockerBuildConfigName = "dockercontext"
 		dockerBuildName       = "dockercontext-1"
 	)
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("s2i context directory build", func() {
 		g.It(fmt.Sprintf("should s2i build an application using a context directory"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

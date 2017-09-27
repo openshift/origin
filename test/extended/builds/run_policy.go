@@ -32,6 +32,13 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 		oc.Run("create").Args("-f", exutil.FixturePath("testdata", "run_policy")).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("build configuration with Parallel build run policy", func() {
 		g.It("runs the builds in parallel", func() {
 			g.By("starting multiple builds")

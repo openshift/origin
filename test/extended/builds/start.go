@@ -36,6 +36,13 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("oc start-build --wait", func() {
 		g.It("should start a build and wait for the build to complete", func() {
 			g.By("starting the build with --wait flag")

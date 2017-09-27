@@ -34,6 +34,13 @@ USER 1001
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("being created from new-build", func() {
 		g.It("should create a image via new-build", func() {
 			g.By("calling oc new-build with Dockerfile")

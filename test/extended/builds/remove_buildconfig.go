@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Conformance] remove all builds when build c
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("oc delete buildconfig", func() {
 		g.It("should start builds and delete the buildconfig", func() {
 			var (

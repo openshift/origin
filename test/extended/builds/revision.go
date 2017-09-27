@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds] build have source revision metadata", func(
 		oc.Run("create").Args("-f", buildFixture).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("started build", func() {
 		g.It("should contain source revision information", func() {
 			g.By("starting the build")
