@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"regexp"
 
+	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/reference"
-	"github.com/opencontainers/go-digest"
 )
 
 func BlobServer(blob []byte) http.Handler {
