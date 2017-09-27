@@ -153,7 +153,7 @@ func (c *OAuthServerConfig) getOsinOAuthClient() (*osincli.Client, error) {
 	}
 
 	osOAuthClientConfig := newOpenShiftOAuthClientConfig(browserClient.Name, browserClient.Secret, c.Options.MasterPublicURL, c.Options.MasterURL)
-	osOAuthClientConfig.RedirectUrl = c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)
+	osOAuthClientConfig.RedirectUrl = oauthutil.OpenShiftOAuthTokenDisplayURL(c.Options.MasterPublicURL)
 
 	osOAuthClient, err := osincli.NewClient(osOAuthClientConfig)
 	if err != nil {
@@ -426,7 +426,7 @@ func (c *OAuthServerConfig) getAuthenticationHandler(mux cmdutil.Mux, errorHandl
 			}
 		} else if requestHeaderProvider, isRequestHeader := identityProvider.Provider.(*configapi.RequestHeaderIdentityProvider); isRequestHeader {
 			// We might be redirecting to an external site, we need to fully resolve the request URL to the public master
-			baseRequestURL, err := url.Parse(c.Options.MasterPublicURL + oauthutil.OpenShiftOAuthAPIPrefix + osinserver.AuthorizePath)
+			baseRequestURL, err := url.Parse(oauthutil.OpenShiftOAuthAuthorizeURL(c.Options.MasterPublicURL))
 			if err != nil {
 				return nil, err
 			}

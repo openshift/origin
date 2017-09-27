@@ -94,7 +94,7 @@ func (endpoints *endpointDetails) safeInitOsinOAuthClientOnce() error {
 // requestToken works for getting a token in your browser and seeing what your token is
 func (endpoints *endpointDetails) requestToken(w http.ResponseWriter, req *http.Request) {
 	authReq := endpoints.osinOAuthClient.NewAuthorizeRequest(osincli.CODE)
-	oauthURL := authReq.GetAuthorizeUrlWithParams("")
+	oauthURL := authReq.GetAuthorizeUrl()
 
 	http.Redirect(w, req, oauthURL.String(), http.StatusFound)
 }

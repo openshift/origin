@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/pborman/uuid"
 
@@ -22,7 +21,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
-	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -228,7 +226,7 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 		Secret:                uuid.New(),
 		RespondWithChallenges: false,
-		RedirectURIs:          []string{c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.Options.MasterPublicURL)},
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
 	if err := ensureOAuthClient(browserClient, c.OAuthClientClient, true, true); err != nil {
@@ -239,7 +237,7 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 		Secret:                "",
 		RespondWithChallenges: true,
-		RedirectURIs:          []string{c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
+		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.Options.MasterPublicURL)},
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
 	if err := ensureOAuthClient(cliClient, c.OAuthClientClient, false, false); err != nil {
