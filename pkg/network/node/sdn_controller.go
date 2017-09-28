@@ -62,7 +62,7 @@ func (plugin *OsdnNode) getLocalSubnet() (string, error) {
 	return subnet.Subnet, nil
 }
 
-func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR string) bool {
+func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetworkCIDR []string) bool {
 	var found bool
 
 	l, err := netlink.LinkByName(Tun0)
@@ -89,15 +89,17 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR, clusterNetworkCIDR 
 	if err != nil {
 		return false
 	}
-	found = false
 	for _, route := range routes {
-		if route.Dst != nil && route.Dst.String() == clusterNetworkCIDR {
-			found = true
-			break
+		found = false
+		for _, clusterCIDR := range clusterNetworkCIDR {
+			if route.Dst != nil && route.Dst.String() == clusterCIDR {
+				found = true
+				break
+			}
 		}
-	}
-	if !found {
-		return false
+		if !found {
+			return false
+		}
 	}
 
 	if !plugin.oc.AlreadySetUp() {
@@ -140,7 +142,11 @@ func deleteLocalSubnetRoute(device, localSubnetCIDR string) {
 }
 
 func (plugin *OsdnNode) SetupSDN() (bool, error) {
-	clusterNetworkCIDR := plugin.networkInfo.ClusterNetwork.String()
+	var clusterNetworkCIDRs []string
+	for _, cn := range plugin.networkInfo.ClusterNetworks {
+		clusterNetworkCIDRs = append(clusterNetworkCIDRs, cn.ClusterCIDR.String())
+	}
+
 	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
 
 	localSubnetCIDR := plugin.localSubnetCIDR
@@ -161,13 +167,13 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	}
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
-	if plugin.alreadySetUp(gwCIDR, clusterNetworkCIDR) {
+	if plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
 		return false, nil
 	}
 	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
-	err = plugin.oc.SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.localIP)
+	err = plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, plugin.localIP)
 	if err != nil {
 		return false, err
 	}
@@ -187,12 +193,16 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		err = netlink.LinkSetUp(l)
 	}
 	if err == nil {
-		route := &netlink.Route{
-			LinkIndex: l.Attrs().Index,
-			Scope:     netlink.SCOPE_LINK,
-			Dst:       plugin.networkInfo.ClusterNetwork,
+		for _, clusterNetwork := range plugin.networkInfo.ClusterNetworks {
+			route := &netlink.Route{
+				LinkIndex: l.Attrs().Index,
+				Scope:     netlink.SCOPE_LINK,
+				Dst:       clusterNetwork.ClusterCIDR,
+			}
+			if err = netlink.RouteAdd(route); err != nil {
+				return false, err
+			}
 		}
-		err = netlink.RouteAdd(route)
 	}
 	if err == nil {
 		route := &netlink.Route{

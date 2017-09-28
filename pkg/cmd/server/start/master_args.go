@@ -294,9 +294,13 @@ func (args MasterArgs) BuildSerializeableMasterConfig() (*configapi.MasterConfig
 		},
 
 		NetworkConfig: configapi.MasterNetworkConfig{
-			NetworkPluginName:  args.NetworkArgs.NetworkPluginName,
-			ClusterNetworkCIDR: args.NetworkArgs.ClusterNetworkCIDR,
-			HostSubnetLength:   args.NetworkArgs.HostSubnetLength,
+			NetworkPluginName: args.NetworkArgs.NetworkPluginName,
+			ClusterNetworks: []configapi.ClusterNetworkEntry{
+				{
+					CIDR:             args.NetworkArgs.ClusterNetworkCIDR,
+					HostSubnetLength: args.NetworkArgs.HostSubnetLength,
+				},
+			},
 			ServiceNetworkCIDR: args.NetworkArgs.ServiceNetworkCIDR,
 		},
 

@@ -6837,12 +6837,50 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
+						"clusterNetworks": {
+							SchemaProps: spec.SchemaProps{
+								Description: "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Ref: ref("github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkEntry"),
+										},
+									},
+								},
+							},
+						},
 					},
-					Required: []string{"network", "hostsubnetlength", "serviceNetwork"},
+					Required: []string{"serviceNetwork", "clusterNetworks"},
 				},
 			},
 			Dependencies: []string{
-				"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+				"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkEntry", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
+		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkEntry": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
+					Properties: map[string]spec.Schema{
+						"CIDR": {
+							SchemaProps: spec.SchemaProps{
+								Description: "CIDR defines the total range of a cluster networks address space.",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"hostSubnetLength": {
+							SchemaProps: spec.SchemaProps{
+								Description: "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods.",
+								Type:        []string{"integer"},
+								Format:      "int64",
+							},
+						},
+					},
+					Required: []string{"CIDR", "hostSubnetLength"},
+				},
+			},
+			Dependencies: []string{},
 		},
 		"github.com/openshift/origin/pkg/network/apis/network/v1.ClusterNetworkList": {
 			Schema: spec.Schema{

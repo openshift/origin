@@ -12,10 +12,21 @@ var map_ClusterNetwork = map[string]string{
 	"hostsubnetlength": "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
 	"serviceNetwork":   "ServiceNetwork is the CIDR range that Service IP addresses are allocated from",
 	"pluginName":       "PluginName is the name of the network plugin being used",
+	"clusterNetworks":  "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.",
 }
 
 func (ClusterNetwork) SwaggerDoc() map[string]string {
 	return map_ClusterNetwork
+}
+
+var map_ClusterNetworkEntry = map[string]string{
+	"":                 "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
+	"CIDR":             "CIDR defines the total range of a cluster networks address space.",
+	"hostSubnetLength": "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods.",
+}
+
+func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
+	return map_ClusterNetworkEntry
 }
 
 var map_ClusterNetworkList = map[string]string{

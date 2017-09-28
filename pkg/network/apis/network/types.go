@@ -17,10 +17,16 @@ type ClusterNetwork struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
+	ClusterNetworks  []ClusterNetworkEntry
 	Network          string
 	HostSubnetLength uint32
 	ServiceNetwork   string
 	PluginName       string
+}
+
+type ClusterNetworkEntry struct {
+	CIDR             string
+	HostSubnetLength uint32
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

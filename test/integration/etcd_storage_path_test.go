@@ -290,11 +290,11 @@ var etcdStorageData = map[schema.GroupVersionResource]struct {
 		expectedGVK:      gvkP("", "v1", "HostSubnet"), // expect the legacy group to be persisted
 	},
 	gvr("", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1"}, "network": "192.168.0.0/24", "hostsubnetlength": 4, "serviceNetwork": "192.168.1.0/24"}`,
+		stub:             `{"metadata": {"name": "cn1"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.166.0.0/16", "hostSubnetLength": 8}]}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1",
 	},
 	gvr("network.openshift.io", "v1", "clusternetworks"): {
-		stub:             `{"metadata": {"name": "cn1g"}, "network": "192.168.0.0/24", "hostsubnetlength": 4, "serviceNetwork": "192.168.1.0/24"}`,
+		stub:             `{"metadata": {"name": "cn1g"}, "serviceNetwork": "192.168.1.0/24", "clusterNetworks": [{"CIDR": "192.167.0.0/16", "hostSubnetLength": 8}]}`,
 		expectedEtcdPath: "openshift.io/registry/sdnnetworks/cn1g",
 		expectedGVK:      gvkP("", "v1", "ClusterNetwork"), // expect the legacy group to be persisted
 	},

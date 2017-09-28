@@ -11,10 +11,9 @@ import (
 
 func Test_clusterNetworkChanged(t *testing.T) {
 	origCN := networkapi.ClusterNetwork{
-		Network:          "10.128.0.0/14",
-		HostSubnetLength: 10,
-		ServiceNetwork:   "172.30.0.0/16",
-		PluginName:       "redhat/openshift-ovs-subnet",
+		ClusterNetworks: []networkapi.ClusterNetworkEntry{{CIDR: "10.128.0.0/14", HostSubnetLength: 10}},
+		ServiceNetwork:  "172.30.0.0/16",
+		PluginName:      "redhat/openshift-ovs-subnet",
 	}
 
 	tests := []struct {
@@ -30,44 +29,9 @@ func Test_clusterNetworkChanged(t *testing.T) {
 		{
 			name: "larger Network",
 			changes: &networkapi.ClusterNetwork{
-				Network: "10.128.0.0/12",
+				ClusterNetworks: []networkapi.ClusterNetworkEntry{{CIDR: "10.128.0.0/12"}},
 			},
 			expectError: false,
-		},
-		{
-			name: "larger Network",
-			changes: &networkapi.ClusterNetwork{
-				Network: "10.0.0.0/8",
-			},
-			expectError: false,
-		},
-		{
-			name: "smaller Network",
-			changes: &networkapi.ClusterNetwork{
-				Network: "10.128.0.0/15",
-			},
-			expectError: true,
-		},
-		{
-			name: "moved Network",
-			changes: &networkapi.ClusterNetwork{
-				Network: "10.1.0.0/16",
-			},
-			expectError: true,
-		},
-		{
-			name: "larger HostSubnetLength",
-			changes: &networkapi.ClusterNetwork{
-				HostSubnetLength: 11,
-			},
-			expectError: true,
-		},
-		{
-			name: "smaller HostSubnetLength",
-			changes: &networkapi.ClusterNetwork{
-				HostSubnetLength: 9,
-			},
-			expectError: true,
 		},
 		{
 			name: "larger ServiceNetwork",
@@ -102,6 +66,10 @@ func Test_clusterNetworkChanged(t *testing.T) {
 	for _, test := range tests {
 		newCN := origCN
 		expectChanged := false
+		if test.changes.ClusterNetworks != nil {
+			newCN.ClusterNetworks = test.changes.ClusterNetworks
+			expectChanged = true
+		}
 		if test.changes.Network != "" {
 			newCN.Network = test.changes.Network
 			expectChanged = true

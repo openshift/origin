@@ -543,10 +543,12 @@ type RoutingConfig struct {
 type MasterNetworkConfig struct {
 	// NetworkPluginName is the name of the network plugin to use
 	NetworkPluginName string `json:"networkPluginName"`
-	// ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space
-	ClusterNetworkCIDR string `json:"clusterNetworkCIDR"`
-	// HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host
-	HostSubnetLength uint32 `json:"hostSubnetLength"`
+	// ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.
+	DeprecatedClusterNetworkCIDR string `json:"clusterNetworkCIDR,omitempty"`
+	// ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.  If this is specified, then ClusterNetworkCIDR and HostSubnetLength may not be set.
+	ClusterNetworks []ClusterNetworkEntry `json:"clusterNetworks"`
+	// HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.
+	DeprecatedHostSubnetLength uint32 `json:"hostSubnetLength,omitempty"`
 	// ServiceNetwork is the CIDR string to specify the service networks
 	ServiceNetworkCIDR string `json:"serviceNetworkCIDR"`
 	// ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP
@@ -559,6 +561,14 @@ type MasterNetworkConfig struct {
 	// For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips,
 	// nodes, pods, or services.
 	IngressIPNetworkCIDR string `json:"ingressIPNetworkCIDR"`
+}
+
+// ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.
+type ClusterNetworkEntry struct {
+	// CIDR defines the total range of a cluster networks address space.
+	CIDR string `json:"cidr"`
+	// HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.
+	HostSubnetLength uint32 `json:"hostSubnetLength"`
 }
 
 // ImageConfig holds the necessary configuration options for building image names for system components

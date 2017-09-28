@@ -145,6 +145,16 @@ func (ClientConnectionOverrides) SwaggerDoc() map[string]string {
 	return map_ClientConnectionOverrides
 }
 
+var map_ClusterNetworkEntry = map[string]string{
+	"":                 "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
+	"cidr":             "CIDR defines the total range of a cluster networks address space.",
+	"hostSubnetLength": "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pod.",
+}
+
+func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
+	return map_ClusterNetworkEntry
+}
+
 var map_ControllerConfig = map[string]string{
 	"":                   "ControllerConfig holds configuration values for controllers",
 	"election":           "Election defines the configuration for electing a controller instance to make changes to the cluster. If unspecified, the ControllerTTL value is checked to determine whether the legacy direct etcd election code will be used.",
@@ -536,8 +546,9 @@ func (MasterConfig) SwaggerDoc() map[string]string {
 var map_MasterNetworkConfig = map[string]string{
 	"":                       "MasterNetworkConfig to be passed to the compiled in network plugin",
 	"networkPluginName":      "NetworkPluginName is the name of the network plugin to use",
-	"clusterNetworkCIDR":     "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space",
-	"hostSubnetLength":       "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host",
+	"clusterNetworkCIDR":     "ClusterNetworkCIDR is the CIDR string to specify the global overlay network's L3 space.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.",
+	"clusterNetworks":        "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.  If this is specified, then ClusterNetworkCIDR and HostSubnetLength may not be set.",
+	"hostSubnetLength":       "HostSubnetLength is the number of bits to allocate to each host's subnet e.g. 8 would mean a /24 network on the host.  Deprecated, but maintained for backwards compatibility, use ClusterNetworks instead.",
 	"serviceNetworkCIDR":     "ServiceNetwork is the CIDR string to specify the service networks",
 	"externalIPNetworkCIDRs": "ExternalIPNetworkCIDRs controls what values are acceptable for the service external IP field. If empty, no externalIP may be set. It may contain a list of CIDRs which are checked for access. If a CIDR is prefixed with !, IPs in that CIDR will be rejected. Rejections will be applied first, then the IP checked against one of the allowed CIDRs. You should ensure this range does not overlap with your nodes, pods, or service CIDRs for security reasons.",
 	"ingressIPNetworkCIDR":   "IngressIPNetworkCIDR controls the range to assign ingress ips from for services of type LoadBalancer on bare metal. If empty, ingress ips will not be assigned. It may contain a single CIDR that will be allocated from. For security reasons, you should ensure that this range does not overlap with the CIDRs reserved for external ips, nodes, pods, or services.",

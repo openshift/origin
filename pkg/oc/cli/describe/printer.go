@@ -62,7 +62,7 @@ var (
 
 	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
 	netNamespaceColumns        = []string{"NAME", "NETID"}
-	clusterNetworkColumns      = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
+	clusterNetworkColumns      = []string{"NAME", "CLUSTER NETWORKS", "SERVICE NETWORK", "PLUGIN NAME"}
 	egressNetworkPolicyColumns = []string{"NAME"}
 
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
@@ -1058,7 +1058,24 @@ func printNetNamespaceList(list *networkapi.NetNamespaceList, w io.Writer, opts 
 
 func printClusterNetwork(n *networkapi.ClusterNetwork, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, n.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
+	const numOfNetworksShown = 3
+	var networksList []string
+	var networks string
+	for _, cidr := range n.ClusterNetworks {
+		networksList = append(networksList, fmt.Sprintf("%s:%d", cidr.CIDR, cidr.HostSubnetLength))
+	}
+
+	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
+		return err
+	}
+	if len(networksList) > numOfNetworksShown {
+		networks = fmt.Sprintf("%s + %d more...",
+			strings.Join(networksList[:numOfNetworksShown], ", "),
+			len(networksList)-numOfNetworksShown)
+	} else {
+		networks = strings.Join(networksList, ", ")
+	}
+	_, err := fmt.Fprintf(w, "\t%s\t%s\t%s\n", networks, n.ServiceNetwork, n.PluginName)
 	return err
 }
 

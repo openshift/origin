@@ -12,6 +12,7 @@ import (
 	"time"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 	"github.com/openshift/origin/pkg/util/netutils"
 
@@ -101,7 +102,7 @@ func newDefaultPodManager() *podManager {
 // Generates a CNI IPAM config from a given node cluster and local subnet that
 // CNI 'host-local' IPAM plugin will use to create an IP address lease for the
 // container
-func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error) {
+func getIPAMConfig(clusterNetworks []common.ClusterNetwork, localSubnet string) ([]byte, error) {
 	nodeNet, err := cnitypes.ParseCIDR(localSubnet)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing node network '%s': %v", localSubnet, err)
@@ -121,6 +122,26 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 	}
 
 	_, mcnet, _ := net.ParseCIDR("224.0.0.0/4")
+
+	routes := []cnitypes.Route{
+		{
+			//Default route
+			Dst: net.IPNet{
+				IP:   net.IPv4zero,
+				Mask: net.IPMask(net.IPv4zero),
+			},
+			GW: netutils.GenerateDefaultGateway(nodeNet),
+		},
+		{
+			//Multicast
+			Dst: *mcnet,
+		},
+	}
+
+	for _, cn := range clusterNetworks {
+		routes = append(routes, cnitypes.Route{Dst: *cn.ClusterCIDR})
+	}
+
 	return json.Marshal(&cniNetworkConfig{
 		// TODO: update to 0.3.0 spec
 		CNIVersion: "0.2.0",
@@ -132,36 +153,19 @@ func getIPAMConfig(clusterNetwork *net.IPNet, localSubnet string) ([]byte, error
 				IP:   nodeNet.IP,
 				Mask: nodeNet.Mask,
 			},
-			Routes: []cnitypes.Route{
-				{
-					// Default route
-					Dst: net.IPNet{
-						IP:   net.IPv4zero,
-						Mask: net.IPMask(net.IPv4zero),
-					},
-					GW: netutils.GenerateDefaultGateway(nodeNet),
-				},
-				{
-					// Cluster network
-					Dst: *clusterNetwork,
-				},
-				{
-					// Multicast
-					Dst: *mcnet,
-				},
-			},
+			Routes: routes,
 		},
 	})
 }
 
 // Start the CNI server and start processing requests from it
-func (m *podManager) Start(socketPath string, localSubnetCIDR string, clusterNetwork *net.IPNet) error {
+func (m *podManager) Start(socketPath string, localSubnetCIDR string, clusterNetworks []common.ClusterNetwork) error {
 	if m.enableHostports {
 		m.hostportSyncer = kubehostport.NewHostportSyncer()
 	}
 
 	var err error
-	if m.ipamConfig, err = getIPAMConfig(clusterNetwork, localSubnetCIDR); err != nil {
+	if m.ipamConfig, err = getIPAMConfig(clusterNetworks, localSubnetCIDR); err != nil {
 		return err
 	}
 

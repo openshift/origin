@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/openshift/origin/pkg/network/common"
 	"github.com/openshift/origin/pkg/network/node/cniserver"
 
 	utiltesting "k8s.io/client-go/util/testing"
@@ -316,8 +317,8 @@ func TestPodManager(t *testing.T) {
 		podTester := newPodTester(t, k, socketPath)
 		podManager := newDefaultPodManager()
 		podManager.podHandler = podTester
-		_, net, _ := net.ParseCIDR("1.2.0.0/16")
-		podManager.Start(socketPath, "1.2.3.0/24", net)
+		_, cidr, _ := net.ParseCIDR("1.2.0.0/16")
+		podManager.Start(socketPath, "1.2.3.0/24", []common.ClusterNetwork{{ClusterCIDR: cidr, HostSubnetLength: 8}})
 
 		// Add pods to our expected pod list before kicking off the
 		// actual pod setup to ensure we don't concurrently access
@@ -412,8 +413,8 @@ func TestDirectPodUpdate(t *testing.T) {
 	podTester := newPodTester(t, "update", socketPath)
 	podManager := newDefaultPodManager()
 	podManager.podHandler = podTester
-	_, net, _ := net.ParseCIDR("1.2.0.0/16")
-	podManager.Start(socketPath, "1.2.3.0/24", net)
+	_, cidr, _ := net.ParseCIDR("1.2.0.0/16")
+	podManager.Start(socketPath, "1.2.3.0/24", []common.ClusterNetwork{{ClusterCIDR: cidr, HostSubnetLength: 8}})
 
 	op := &operation{
 		command:   cniserver.CNI_UPDATE,
