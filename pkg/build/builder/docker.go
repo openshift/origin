@@ -305,9 +305,15 @@ func (d *DockerBuilder) dockerBuild(dir string, tag string, secrets []buildapi.S
 		NoCache:        noCache,
 		Pull:           forcePull,
 		BuildArgs:      buildArgs,
-		NetworkMode:    string(getDockerNetworkMode()),
 	}
-
+	network, resolvConfHostPath, err := getContainerNetworkConfig()
+	if err != nil {
+		return err
+	}
+	opts.NetworkMode = network
+	if len(resolvConfHostPath) != 0 {
+		opts.BuildBinds = fmt.Sprintf("[\"%s:/etc/resolv.conf\"]", resolvConfHostPath)
+	}
 	// Though we are capped on memory and cpu at the cgroup parent level,
 	// some build containers care what their memory limit is so they can
 	// adapt, thus we need to set the memory limit at the container level

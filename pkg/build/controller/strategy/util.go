@@ -6,12 +6,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/golang/glog"
+	"github.com/google/cadvisor/container/crio"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
 
-	"github.com/golang/glog"
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildapiv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
@@ -89,6 +91,29 @@ func setupDockerSocket(pod *v1.Pod) {
 			break
 		}
 	}
+}
+
+// setupCrioSocket configures the pod to support the host's Crio socket
+func setupCrioSocket(pod *v1.Pod) {
+	crioSocketVolume := v1.Volume{
+		Name: "crio-socket",
+		VolumeSource: v1.VolumeSource{
+			HostPath: &v1.HostPathVolumeSource{
+				Path: crio.CrioSocket,
+			},
+		},
+	}
+
+	crioSocketVolumeMount := v1.VolumeMount{
+		Name:      "crio-socket",
+		MountPath: crio.CrioSocket,
+	}
+
+	pod.Spec.Volumes = append(pod.Spec.Volumes,
+		crioSocketVolume)
+	pod.Spec.Containers[0].VolumeMounts =
+		append(pod.Spec.Containers[0].VolumeMounts,
+			crioSocketVolumeMount)
 }
 
 // mountSecretVolume is a helper method responsible for actual mounting secret
