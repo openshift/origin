@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/google/cadvisor/container/crio"
+
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -98,17 +100,17 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 		t.Errorf("Expected environment keys:\n%v\ngot keys\n%v", expectedKeys, gotKeys)
 	}
 
-	// the pod has 5 volumes but the git source secret is not mounted into the main container.
-	if len(container.VolumeMounts) != 4 {
-		t.Fatalf("Expected 4 volumes in container, got %d", len(container.VolumeMounts))
+	// the pod has 6 volumes but the git source secret is not mounted into the main container.
+	if len(container.VolumeMounts) != 5 {
+		t.Fatalf("Expected 5 volumes in container, got %d", len(container.VolumeMounts))
 	}
-	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, DockerPushSecretMountPath, DockerPullSecretMountPath} {
+	for i, expected := range []string{buildutil.BuildWorkDirMount, dockerSocketPath, crio.CrioSocket, DockerPushSecretMountPath, DockerPullSecretMountPath} {
 		if container.VolumeMounts[i].MountPath != expected {
 			t.Fatalf("Expected %s in VolumeMount[%d], got %s", expected, i, container.VolumeMounts[i].MountPath)
 		}
 	}
-	if len(actual.Spec.Volumes) != 5 {
-		t.Fatalf("Expected 5 volumes in Build pod, got %d", len(actual.Spec.Volumes))
+	if len(actual.Spec.Volumes) != 6 {
+		t.Fatalf("Expected 6 volumes in Build pod, got %d", len(actual.Spec.Volumes))
 	}
 	if *actual.Spec.ActiveDeadlineSeconds != 60 {
 		t.Errorf("Expected ActiveDeadlineSeconds 60, got %d", *actual.Spec.ActiveDeadlineSeconds)

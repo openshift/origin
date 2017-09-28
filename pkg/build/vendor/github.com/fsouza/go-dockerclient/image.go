@@ -463,6 +463,7 @@ type BuildImageOptions struct {
 	NetworkMode         string             `qs:"networkmode"`
 	InactivityTimeout   time.Duration      `qs:"-"`
 	CgroupParent        string             `qs:"cgroupparent"`
+	BuildBinds          string             `qs:"buildbinds"` // this value must be a json encoded string array, e.g. ["/tmp:/mnt"]
 	Context             context.Context
 }
 

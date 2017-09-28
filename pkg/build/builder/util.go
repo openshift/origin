@@ -2,6 +2,7 @@ package builder
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -10,6 +11,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/google/cadvisor/container/crio"
+	crioclient "github.com/kubernetes-incubator/cri-o/client"
+	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
 
 	docker "github.com/fsouza/go-dockerclient"
 
@@ -20,17 +25,22 @@ import (
 
 var (
 	// procCGroupPattern is a regular expression that parses the entries in /proc/self/cgroup
-	procCGroupPattern = regexp.MustCompile(`\d+:([a-z_,]+):/.*/(docker-|)([a-z0-9]+).*`)
+	procCGroupPattern = regexp.MustCompile(`\d+:([a-z_,]+):/.*/(\w+-|)([a-z0-9]+).*`)
 )
 
 // readNetClsCGroup parses /proc/self/cgroup in order to determine the container id that can be used
-// the network namespace that this process is running on.
-func readNetClsCGroup(reader io.Reader) string {
-	cgroups := make(map[string]string)
+// the network namespace that this process is running on, it returns the cgroup and container type
+// (docker vs crio).
+func readNetClsCGroup(reader io.Reader) (string, string) {
 
+	containerType := "docker"
+
+	cgroups := make(map[string]string)
 	scanner := bufio.NewScanner(reader)
 	for scanner.Scan() {
 		if match := procCGroupPattern.FindStringSubmatch(scanner.Text()); match != nil {
+			containerType = strings.TrimSuffix(match[2], "-")
+
 			list := strings.Split(match[1], ",")
 			containerId := match[3]
 			if len(list) > 0 {
@@ -46,26 +56,47 @@ func readNetClsCGroup(reader io.Reader) string {
 	names := []string{"net_cls", "cpu"}
 	for _, group := range names {
 		if value, ok := cgroups[group]; ok {
-			return value
+			return value, containerType
 		}
 	}
 
-	return ""
+	return "", containerType
 }
 
-// getDockerNetworkMode determines whether the builder is running as a container
+// getContainerNetworkConfig determines whether the builder is running as a container
 // by examining /proc/self/cgroup. This context is then passed to source-to-image.
-func getDockerNetworkMode() s2iapi.DockerNetworkMode {
+// It returns a suitable argument for NetworkMode.  If the container platform is
+// CRI-O, it also returns a path for /etc/resolv.conf, suitable for bindmounting.
+func getContainerNetworkConfig() (string, string, error) {
 	file, err := os.Open("/proc/self/cgroup")
 	if err != nil {
-		return ""
+		return "", "", err
 	}
 	defer file.Close()
 
-	if id := readNetClsCGroup(file); id != "" {
-		return s2iapi.NewDockerNetworkModeContainer(id)
+	if id, containerType := readNetClsCGroup(file); id != "" {
+		glog.V(5).Infof("container type=%s", containerType)
+		if containerType != "crio" {
+			return s2iapi.DockerNetworkModeContainerPrefix + id, "", nil
+		}
+
+		crioClient, err := crioclient.New(crio.CrioSocket)
+		if err != nil {
+			return "", "", err
+		}
+		info, err := crioClient.ContainerInfo(id)
+		if err != nil {
+			return "", "", err
+		}
+		pid := strconv.Itoa(info.Pid)
+		resolvConfHostPath := info.CrioAnnotations[annotations.ResolvPath]
+		if len(resolvConfHostPath) == 0 {
+			return "", "", errors.New("/etc/resolv.conf hostpath is empty")
+		}
+
+		return fmt.Sprintf("netns:/proc/%s/ns/net", pid), resolvConfHostPath, nil
 	}
-	return ""
+	return "", "", nil
 }
 
 // GetCGroupLimits returns a struct populated with cgroup limit values gathered

@@ -166,6 +166,11 @@ func (s *S2IBuilder) Build() error {
 		}
 	}
 
+	networkMode, resolvConfHostPath, err := getContainerNetworkConfig()
+	if err != nil {
+		return err
+	}
+
 	config := &s2iapi.Config{
 		// Save some processing time by not cleaning up (the container will go away anyway)
 		PreserveWorkingDir: true,
@@ -182,7 +187,7 @@ func (s *S2IBuilder) Build() error {
 
 		Environment:       buildEnvVars(s.build, sourceInfo),
 		Labels:            s2iBuildLabels(s.build, sourceInfo),
-		DockerNetworkMode: getDockerNetworkMode(),
+		DockerNetworkMode: s2iapi.DockerNetworkMode(networkMode),
 
 		Source:     &s2igit.URL{URL: url.URL{Path: srcDir}, Type: s2igit.URLTypeLocal},
 		ContextDir: contextDir,
@@ -195,6 +200,10 @@ func (s *S2IBuilder) Build() error {
 		CGroupLimits:              s.cgLimits,
 		ScriptDownloadProxyConfig: scriptDownloadProxyConfig,
 		BlockOnBuild:              true,
+	}
+
+	if len(resolvConfHostPath) != 0 {
+		config.BuildVolumes = []string{fmt.Sprintf("%s:/etc/resolv.conf", resolvConfHostPath)}
 	}
 
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
