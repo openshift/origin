@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f6213c5845b5747c00d532a56049c23b40c1bb45
+%global commit 2b87e9be599fe7a2d6fb0d535b242bbd8065493b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.131.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=f6213c5
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.132.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2b87e9b
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.132.0%{?dist}
+Release:        0.133.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,48 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Sep 28 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.133.0
+- Refine prometheus auth metrics (mrogers@redhat.com)
+- Wire advanced audit to asset and oauth api servers (maszulik@redhat.com)
+- Add PKCE support to oc (mkhan@redhat.com)
+- Fix hack/godep-save.sh (maszulik@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  06c9446cd6b580cbcb13a1489efcb3e943b470af - fix deps (maszulik@redhat.com)
+- switch some test-integration clients (deads@redhat.com)
+- update imagestreammappingclient to work (deads@redhat.com)
+- convert test-extensions to generated client (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  d8d6ca4d2f7e9f49db2084f82e914d41b25c7129 (eparis+openshiftbot@redhat.com)
+- image: add image signature importer controller (mfojtik@redhat.com)
+- bump(github.com/opencontainers/image-spec):
+  ef2b9a1d696677abd664a0879758d2b115b1ded3 (mfojtik@redhat.com)
+- bump(github.com/docker/go-connections):
+  3ede32e2033de7505e6500d6c868c2b9ed9f169d (mfojtik@redhat.com)
+- bump(github.com/containers/image): dbd0a4cee2480da39048095a326506ae114d635a
+  (mfojtik@redhat.com)
+- add pod state/log dumping to all build/image extended tests
+  (bparees@redhat.com)
+- Generated changes to bootstrappolicy test data (mkhan@redhat.com)
+- Bootstrap Kube namespaced roles and bindings (mkhan@redhat.com)
+- implement prometheus metrics for the TemplateInstance controller
+  (jminter@redhat.com)
+- build: fix field selector in startbuild (mfojtik@redhat.com)
+- switch reconciliation to generated clients (deads@redhat.com)
+- build: register PodProxyOptions to build schema (mfojtik@redhat.com)
+- cli: fix more clients (mfojtik@redhat.com)
+- project and chaindescriber_test (mfojtik@redhat.com)
+- cli: fix rest of the cli and describers (mfojtik@redhat.com)
+- cli: use generated clients in describer (mfojtik@redhat.com)
+- build: make start-build use generated client (mfojtik@redhat.com)
+- build: use rest.Interface in webhooks client (mfojtik@redhat.com)
+- apps: fix prune and rollout latest clients (mfojtik@redhat.com)
+- build: remove generated instantiateBinary method cause it has unsupoported
+  signature (mfojtik@redhat.com)
+- cli: use generated clients in projects (mfojtik@redhat.com)
+- project: add client for projectRequests (mfojtik@redhat.com)
+- cli: fix images (mfojtik@redhat.com)
+- Support HOST:80 in .docker/config.json like Docker (ccoleman@redhat.com)
+
 * Wed Sep 27 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.132.0
 - Switch to 1.8 conformance (ccoleman@redhat.com)
 - UPSTREAM: 51035: Show events when describing service accounts
