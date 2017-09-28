@@ -313,7 +313,8 @@ type LocalResourceAccessReview struct {
 }
 
 // +genclient
-// +genclient:onlyVerbs=create
+// +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+// +genclient:method=Create,verb=create,result=SubjectAccessReviewResponse
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace
