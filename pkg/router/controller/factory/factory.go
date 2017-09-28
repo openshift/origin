@@ -9,8 +9,10 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	kcache "k8s.io/client-go/tools/cache"
@@ -18,6 +20,7 @@ import (
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router"
@@ -29,23 +32,26 @@ import (
 // controller. It supports optional scoping on Namespace, Labels, and Fields of routes.
 // If Namespace is empty, it means "all namespaces".
 type RouterControllerFactory struct {
-	KClient kclientset.Interface
-	RClient routeclientset.Interface
+	KClient       kclientset.Interface
+	RClient       routeclientset.Interface
+	ProjectClient projectclient.ProjectResourceInterface
 
-	Namespaces     routercontroller.NamespaceLister
-	ResyncInterval time.Duration
-	Namespace      string
-	LabelSelector  string
-	FieldSelector  string
+	ResyncInterval  time.Duration
+	Namespace       string
+	LabelSelector   string
+	FieldSelector   string
+	NamespaceLabels labels.Selector
+	ProjectLabels   labels.Selector
 
 	informers map[reflect.Type]kcache.SharedIndexInformer
 }
 
 // NewDefaultRouterControllerFactory initializes a default router controller factory.
-func NewDefaultRouterControllerFactory(rc routeclientset.Interface, kc kclientset.Interface) *RouterControllerFactory {
+func NewDefaultRouterControllerFactory(rc routeclientset.Interface, pc projectclient.ProjectResourceInterface, kc kclientset.Interface) *RouterControllerFactory {
 	return &RouterControllerFactory{
 		KClient:        kc,
 		RClient:        rc,
+		ProjectClient:  pc,
 		ResyncInterval: 10 * time.Minute,
 
 		Namespace: v1.NamespaceAll,
@@ -57,17 +63,23 @@ func NewDefaultRouterControllerFactory(rc routeclientset.Interface, kc kclientse
 // resources. It spawns child goroutines that cannot be terminated.
 func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enableIngress bool) *routercontroller.RouterController {
 	rc := &routercontroller.RouterController{
-		Plugin:     plugin,
-		Namespaces: f.Namespaces,
-		// check namespaces a bit more often than we resync events, so that we aren't always waiting
+		Plugin:            plugin,
+		WatchNodes:        watchNodes,
+		EnableIngress:     enableIngress,
+		IngressTranslator: routercontroller.NewIngressTranslator(f.KClient.Core()),
+
+		NamespaceLabels:        f.NamespaceLabels,
+		FilteredNamespaceNames: make(sets.String),
+		NamespaceRoutes:        make(map[string]map[string]*routeapi.Route),
+		NamespaceEndpoints:     make(map[string]map[string]*kapi.Endpoints),
+
+		ProjectClient: f.ProjectClient,
+		ProjectLabels: f.ProjectLabels,
+		// Check projects a bit more often than we resync events, so that we aren't always waiting
 		// the maximum interval for new items to come into the list
-		// TODO: trigger a reflector resync after every namespace sync?
-		NamespaceSyncInterval: f.ResyncInterval - 10*time.Second,
-		NamespaceWaitInterval: 10 * time.Second,
-		NamespaceRetries:      5,
-		WatchNodes:            watchNodes,
-		EnableIngress:         enableIngress,
-		IngressTranslator:     routercontroller.NewIngressTranslator(f.KClient.Core()),
+		ProjectSyncInterval: f.ResyncInterval - 10*time.Second,
+		ProjectWaitInterval: 10 * time.Second,
+		ProjectRetries:      5,
 	}
 
 	f.initInformers(rc)
@@ -77,13 +89,15 @@ func (f *RouterControllerFactory) Create(plugin router.Plugin, watchNodes, enabl
 }
 
 func (f *RouterControllerFactory) initInformers(rc *routercontroller.RouterController) {
+	if f.NamespaceLabels != nil {
+		f.createNamespacesSharedInformer(rc)
+	}
 	f.createEndpointsSharedInformer(rc)
 	f.createRoutesSharedInformer(rc)
 
 	if rc.WatchNodes {
 		f.createNodesSharedInformer(rc)
 	}
-
 	if rc.EnableIngress {
 		f.createIngressesSharedInformer(rc)
 		f.createSecretsSharedInformer(rc)
@@ -102,6 +116,9 @@ func (f *RouterControllerFactory) initInformers(rc *routercontroller.RouterContr
 }
 
 func (f *RouterControllerFactory) registerInformerEventHandlers(rc *routercontroller.RouterController) {
+	if f.NamespaceLabels != nil {
+		f.registerSharedInformerEventHandlers(&kapi.Namespace{}, rc.HandleNamespace)
+	}
 	f.registerSharedInformerEventHandlers(&kapi.Endpoints{}, rc.HandleEndpoints)
 	f.registerSharedInformerEventHandlers(&routeapi.Route{}, rc.HandleRoute)
 
@@ -135,6 +152,17 @@ func (f *RouterControllerFactory) informerStoreList(obj runtime.Object) []interf
 // - Perform first router sync
 // - Register informer event handlers for new updates and resyncs
 func (f *RouterControllerFactory) processExistingItems(rc *routercontroller.RouterController) {
+	if f.NamespaceLabels != nil {
+		items := f.informerStoreList(&kapi.Namespace{})
+		if len(items) == 0 {
+			rc.UpdateNamespaces()
+		} else {
+			for _, item := range items {
+				rc.HandleNamespace(watch.Added, item.(*kapi.Namespace))
+			}
+		}
+	}
+
 	for _, item := range f.informerStoreList(&kapi.Endpoints{}) {
 		rc.HandleEndpoints(watch.Added, item.(*kapi.Endpoints))
 	}
@@ -252,6 +280,24 @@ func (f *RouterControllerFactory) createSecretsSharedInformer(rc *routercontroll
 	objType := reflect.TypeOf(sc)
 	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
 	informer := kcache.NewSharedIndexInformer(lw, sc, f.ResyncInterval, indexers)
+	f.informers[objType] = informer
+}
+
+func (f *RouterControllerFactory) createNamespacesSharedInformer(rc *routercontroller.RouterController) {
+	lw := &kcache.ListWatch{
+		ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
+			options.LabelSelector = f.NamespaceLabels.String()
+			return f.KClient.Core().Namespaces().List(options)
+		},
+		WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
+			options.LabelSelector = f.NamespaceLabels.String()
+			return f.KClient.Core().Namespaces().Watch(options)
+		},
+	}
+	ns := &kapi.Namespace{}
+	objType := reflect.TypeOf(ns)
+	indexers := kcache.Indexers{kcache.NamespaceIndex: kcache.MetaNamespaceIndexFunc}
+	informer := kcache.NewSharedIndexInformer(lw, ns, f.ResyncInterval, indexers)
 	f.informers[objType] = informer
 }
 
