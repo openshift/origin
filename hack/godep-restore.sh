@@ -55,12 +55,12 @@ pin-godep 'v79'
 preload-remote "github.com/openshift" "origin" "github.com/openshift" "origin" # this looks goofy, but if you are not in GOPATH you need to pull origin explicitly
 preload-remote "k8s.io" "kubernetes" "github.com/openshift" "kubernetes"
 preload-remote "github.com/docker" "distribution" "github.com/openshift" "docker-distribution"
-preload-remote "github.com/skynetservices" "skydns" "github.com/openshift" "skydns"
-preload-remote "github.com/coreos" "etcd" "github.com/openshift" "etcd"
-preload-remote "github.com/emicklei" "go-restful" "github.com/openshift" "go-restful"
-preload-remote "github.com/cloudflare" "cfssl" "github.com/openshift" "cfssl"
-preload-remote "github.com/google" "certificate-transparency" "github.com/openshift" "certificate-transparency"
-preload-remote "github.com/google" "cadvisor" "github.com/openshift" "cadvisor"
+preload-remote "github.com/skynetservices" "skydns" "github.com/openshift" "skynetservices-skydns"
+preload-remote "github.com/coreos" "etcd" "github.com/openshift" "coreos-etcd"
+preload-remote "github.com/emicklei" "go-restful" "github.com/openshift" "emicklei-go-restful-swagger12"
+preload-remote "github.com/cloudflare" "cfssl" "github.com/openshift" "cloudflare-cfssl"
+preload-remote "github.com/google" "certificate-transparency" "github.com/openshift" "google-certificate-transparency"
+preload-remote "github.com/google" "cadvisor" "github.com/openshift" "google-cadvisor"
 
 # preload any odd-ball commits
 # kube e2e test dep
