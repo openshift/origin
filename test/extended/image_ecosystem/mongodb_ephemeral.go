@@ -18,6 +18,13 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.json")
 	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("creating from a template", func() {
 		g.It(fmt.Sprintf("should instantiate the template"), func() {
 
@@ -26,7 +33,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 			o.Expect(oc.Run("new-app").Args("-f", templatePath).Execute()).Should(o.Succeed())
 
 			g.By("waiting for the deployment to complete")
-			err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "mongodb", 1, oc)
+			err := exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "mongodb", 1, oc)
 			o.Expect(err).ShouldNot(o.HaveOccurred())
 
 			g.By("expecting the mongodb pod is running")

@@ -8,6 +8,7 @@ items:
       openshift.io/description: A super-user that can perform any action in the cluster.
         When granted to a user within a project, they have full control over quota
         and membership and can perform every action on every resource in the project.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-admin
   rules:
@@ -26,6 +27,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: sudoer
   rules:
@@ -54,6 +56,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:scope-impersonation
   rules:
@@ -68,6 +71,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-reader
   rules:
@@ -470,6 +474,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-debugger
   rules:
@@ -484,6 +489,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-docker
   rules:
@@ -500,6 +506,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-custom
   rules:
@@ -515,6 +522,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-source
   rules:
@@ -530,6 +538,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-strategy-jenkinspipeline
   rules:
@@ -545,6 +554,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: storage-admin
   rules:
@@ -589,6 +599,7 @@ items:
     annotations:
       openshift.io/description: A user that has edit rights within the project and
         can change the project's membership.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: admin
   rules:
@@ -1021,6 +1032,7 @@ items:
     annotations:
       openshift.io/description: A user that can create and edit most objects in a
         project, but can not update the project's membership.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: edit
   rules:
@@ -1371,6 +1383,7 @@ items:
     annotations:
       openshift.io/description: A user who can view but not edit any resources within
         the project. They can not view secrets or membership.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: view
   rules:
@@ -1588,6 +1601,7 @@ items:
   metadata:
     annotations:
       openshift.io/description: A user that can get basic information about projects.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: basic-user
   rules:
@@ -1656,6 +1670,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-access-reviewer
   rules:
@@ -1678,6 +1693,7 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
       openshift.io/description: A user that can request projects.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: self-provisioner
   rules:
@@ -1694,6 +1710,7 @@ items:
     annotations:
       authorization.openshift.io/system-only: "true"
       openshift.io/description: A user that can get basic cluster status information.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: cluster-status
   rules:
@@ -1726,6 +1743,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-auditor
   rules:
@@ -1745,6 +1763,7 @@ items:
   metadata:
     annotations:
       openshift.io/description: Grants the right to pull images from within a project.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-puller
   rules:
@@ -1761,6 +1780,7 @@ items:
     annotations:
       openshift.io/description: Grants the right to push and pull images from within
         a project.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-pusher
   rules:
@@ -1778,6 +1798,7 @@ items:
     annotations:
       openshift.io/description: Grants the right to build, push and pull images from
         within a project.  Used primarily with service accounts for builds.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-builder
   rules:
@@ -1815,6 +1836,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-pruner
   rules:
@@ -1877,6 +1899,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:image-signer
   rules:
@@ -1902,6 +1925,7 @@ items:
     annotations:
       openshift.io/description: Grants the right to deploy within a project.  Used
         primarily with service accounts for automated deployments.
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deployer
   rules:
@@ -1954,6 +1978,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:master
   rules:
@@ -1972,6 +1997,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:oauth-token-deleter
   rules:
@@ -1988,6 +2014,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:router
   rules:
@@ -2025,6 +2052,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:registry
   rules:
@@ -2073,6 +2101,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-proxier
   rules:
@@ -2089,6 +2118,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-admin
   rules:
@@ -2121,6 +2151,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node-reader
   rules:
@@ -2151,6 +2182,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:node
   rules:
@@ -2263,6 +2295,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:sdn-reader
   rules:
@@ -2306,6 +2339,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:sdn-manager
   rules:
@@ -2342,6 +2376,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:webhook
   rules:
@@ -2358,6 +2393,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:discovery
   rules:
@@ -2385,6 +2421,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:persistent-volume-provisioner
   rules:
@@ -2430,6 +2467,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: registry-admin
   rules:
@@ -2537,6 +2575,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: registry-editor
   rules:
@@ -2605,6 +2644,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: registry-viewer
   rules:
@@ -2645,6 +2685,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:templateservicebroker-client
   rules:
@@ -2660,6 +2701,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:replication-controller
   rules: []
@@ -2668,6 +2710,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:endpoint-controller
   rules: []
@@ -2676,6 +2719,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:replicaset-controller
   rules: []
@@ -2684,6 +2728,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:garbage-collector-controller
   rules: []
@@ -2692,6 +2737,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:job-controller
   rules: []
@@ -2700,6 +2746,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:hpa-controller
   rules: []
@@ -2708,6 +2755,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:daemonset-controller
   rules: []
@@ -2716,6 +2764,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:disruption-controller
   rules: []
@@ -2724,6 +2773,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:namespace-controller
   rules: []
@@ -2732,6 +2782,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:gc-controller
   rules: []
@@ -2740,6 +2791,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:certificate-signing-controller
   rules: []
@@ -2748,6 +2800,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:statefulset-controller
   rules: []
@@ -2756,6 +2809,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:build-controller
   rules: []
@@ -2764,6 +2818,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deploymentconfig-controller
   rules: []
@@ -2772,6 +2827,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:deployment-controller
   rules: []
@@ -2780,6 +2836,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:build-controller
   rules:
@@ -2877,6 +2934,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:build-config-change-controller
   rules:
@@ -2909,6 +2967,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deployer-controller
   rules:
@@ -2951,6 +3010,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deploymentconfig-controller
   rules:
@@ -3002,6 +3062,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:deployment-trigger-controller
   rules:
@@ -3051,6 +3112,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-instance-controller
   rules:
@@ -3079,6 +3141,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:origin-namespace-controller
   rules:
@@ -3110,6 +3173,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-controller
   rules:
@@ -3138,6 +3202,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:serviceaccount-pull-secrets-controller
   rules:
@@ -3184,6 +3249,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:image-trigger-controller
   rules:
@@ -3262,6 +3328,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:service-serving-cert-controller
   rules:
@@ -3297,6 +3364,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:image-import-controller
   rules:
@@ -3344,6 +3412,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:sdn-controller
   rules:
@@ -3430,6 +3499,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:cluster-quota-reconciliation-controller
   rules:
@@ -3467,6 +3537,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:unidling-controller
   rules:
@@ -3532,6 +3603,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:service-ingress-ip-controller
   rules:
@@ -3562,6 +3634,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:pv-recycler-controller
   rules:
@@ -3620,6 +3693,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:resourcequota-controller
   rules:
@@ -3672,6 +3746,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:horizontal-pod-autoscaler
   rules:
@@ -3688,6 +3763,7 @@ items:
   metadata:
     annotations:
       authorization.openshift.io/system-only: "true"
+      rbac.authorization.kubernetes.io/autoupdate: "true"
     creationTimestamp: null
     name: system:openshift:controller:template-service-broker
   rules:

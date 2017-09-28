@@ -24,6 +24,13 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Building using an image with a root default user", func() {
 		g.It("should fail the build immediately", func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)

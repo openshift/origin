@@ -3,7 +3,9 @@ package bootstrappolicy
 import (
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
@@ -87,37 +89,10 @@ var (
 	legacyNetworkGroup  = networkapi.LegacyGroupName
 )
 
-func GetBootstrapOpenshiftRoles(openshiftNamespace string) []rbac.Role {
-	return []rbac.Role{
-		{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      OpenshiftSharedResourceViewRoleName,
-				Namespace: openshiftNamespace,
-			},
-			Rules: []rbac.PolicyRule{
-				rbac.NewRule(read...).
-					Groups(templateGroup, legacyTemplateGroup).
-					Resources("templates").
-					RuleOrDie(),
-				rbac.NewRule(read...).
-					Groups(imageGroup, legacyImageGroup).
-					Resources("imagestreams", "imagestreamtags", "imagestreamimages").
-					RuleOrDie(),
-				// so anyone can pull from openshift/* image streams
-				rbac.NewRule("get").
-					Groups(imageGroup, legacyImageGroup).
-					Resources("imagestreams/layers").
-					RuleOrDie(),
-			},
-		},
-	}
-}
-
 func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 	// four resource can be a single line
 	// up to ten-ish resources per line otherwise
-
-	roles := []rbac.ClusterRole{
+	clusterRoles := []rbac.ClusterRole{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: ClusterAdminRoleName,
@@ -844,8 +819,11 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 			},
 		},
 	}
-
-	return roles
+	for i := range clusterRoles {
+		clusterRole := &clusterRoles[i]
+		addDefaultMetadata(clusterRole)
+	}
+	return clusterRoles
 }
 
 func GetBootstrapClusterRoles() []rbac.ClusterRole {
@@ -891,6 +869,7 @@ func GetBootstrapClusterRoles() []rbac.ClusterRole {
 		}
 	}
 
+	// TODO we should not do this for kube cluster roles since we cannot control them once we run on top of kube
 	// conditionally add the web console annotations
 	for i := range finalClusterRoles {
 		role := &finalClusterRoles[i]
@@ -904,14 +883,6 @@ func GetBootstrapClusterRoles() []rbac.ClusterRole {
 	}
 
 	return finalClusterRoles
-}
-
-func GetBootstrapOpenshiftRoleBindings(openshiftNamespace string) []rbac.RoleBinding {
-	return []rbac.RoleBinding{
-		newOriginRoleBinding(OpenshiftSharedResourceViewRoleBindingName, OpenshiftSharedResourceViewRoleName, openshiftNamespace).
-			Groups(AuthenticatedGroup).
-			BindingOrDie(),
-	}
 }
 
 func newOriginRoleBinding(bindingName, roleName, namespace string) *rbac.RoleBindingBuilder {
@@ -933,7 +904,7 @@ func newOriginClusterBinding(bindingName, roleName string) *rbac.ClusterRoleBind
 }
 
 func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
-	return []rbac.ClusterRoleBinding{
+	clusterRoleBindings := []rbac.ClusterRoleBinding{
 		newOriginClusterBinding(MasterRoleBindingName, MasterRoleName).
 			Groups(MastersGroup).
 			BindingOrDie(),
@@ -1002,6 +973,11 @@ func GetOpenshiftBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
 			Groups(AuthenticatedGroup, UnauthenticatedGroup).
 			BindingOrDie(),
 	}
+	for i := range clusterRoleBindings {
+		clusterRoleBinding := &clusterRoleBindings[i]
+		addDefaultMetadata(clusterRoleBinding)
+	}
+	return clusterRoleBindings
 }
 
 func GetBootstrapClusterRoleBindings() []rbac.ClusterRoleBinding {
@@ -1083,3 +1059,43 @@ var rolesToShow = sets.NewString(
 	"system:image-pusher",
 	"view",
 )
+
+// TODO we need to remove the global mutable state from all roles / bindings so we know this function is safe to call
+func addDefaultMetadata(obj runtime.Object) {
+	metadata, err := meta.Accessor(obj)
+	if err != nil {
+		// if this happens, then some static code is broken
+		panic(err)
+	}
+
+	annotations := metadata.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	for k, v := range bootstrappolicy.Annotation {
+		annotations[k] = v
+	}
+	metadata.SetAnnotations(annotations)
+}
+
+func GetBootstrapNamespaceRoles() map[string][]rbac.Role {
+	// openshift and kube are guaranteed never to conflict on these
+	// the openshift map is safe to mutate unlike the kube one
+	ret := NamespaceRoles()
+	// add the kube roles, do not mutate the kube map
+	for namespace, roles := range bootstrappolicy.NamespaceRoles() {
+		ret[namespace] = roles
+	}
+	return ret
+}
+
+func GetBootstrapNamespaceRoleBindings() map[string][]rbac.RoleBinding {
+	// openshift and kube are guaranteed never to conflict on these
+	// the openshift map is safe to mutate unlike the kube one
+	ret := NamespaceRoleBindings()
+	// add the kube role bindings, do not mutate the kube map
+	for namespace, roleBindings := range bootstrappolicy.NamespaceRoleBindings() {
+		ret[namespace] = roleBindings
+	}
+	return ret
+}

@@ -44,6 +44,13 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		caCertPath                = filepath.Join(filepath.Dir(exutil.KubeConfigPath()), "ca.crt")
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.JustBeforeEach(func() {
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
@@ -74,7 +81,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("expecting the deployment of the gitserver to be in the Complete phase")
-		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), gitServerDeploymentConfigName, 1, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), gitServerDeploymentConfigName, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		sourceSecretName := secretFunc()

@@ -322,7 +322,8 @@ type TagEventCondition struct {
 }
 
 // +genclient
-// +genclient:onlyVerbs=create
+// +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+// +genclient:method=Create,verb=create,result=k8s.io/apimachinery/pkg/apis/meta/v1.Status
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ImageStreamMapping represents a mapping from a single tag to a Docker image as

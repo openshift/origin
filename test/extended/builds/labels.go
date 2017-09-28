@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Slow] result image should have proper label
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("S2I build from a template", func() {
 		g.It(fmt.Sprintf("should create a image from %q template with proper Docker labels", stiBuildFixture), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
@@ -42,10 +49,10 @@ var _ = g.Describe("[Feature:Builds][Slow] result image should have proper label
 			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
-			imageRef, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
+			imageRef, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			imageLabels, err := eximages.GetImageLabels(oc.Client().ImageStreamImages(oc.Namespace()), "test", imageRef)
+			imageLabels, err := eximages.GetImageLabels(oc.ImageClient().Image().ImageStreamImages(oc.Namespace()), "test", imageRef)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("inspecting the new image for proper Docker labels")
@@ -71,10 +78,10 @@ var _ = g.Describe("[Feature:Builds][Slow] result image should have proper label
 			br.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
-			imageRef, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
+			imageRef, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			imageLabels, err := eximages.GetImageLabels(oc.Client().ImageStreamImages(oc.Namespace()), "test", imageRef)
+			imageLabels, err := eximages.GetImageLabels(oc.ImageClient().Image().ImageStreamImages(oc.Namespace()), "test", imageRef)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("inspecting the new image for proper Docker labels")

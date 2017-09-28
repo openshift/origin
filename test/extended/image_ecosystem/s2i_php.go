@@ -23,6 +23,14 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 		dcName          = "cakephp-mysql-example-1"
 		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("CakePHP example", func() {
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
@@ -33,13 +41,13 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), dcName, nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), dcName, nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs("cakephp-mysql-example", oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "cakephp-mysql-example", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "cakephp-mysql-example", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")

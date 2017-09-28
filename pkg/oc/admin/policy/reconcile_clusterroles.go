@@ -18,8 +18,8 @@ import (
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
@@ -44,7 +44,7 @@ type ReconcileClusterRolesOptions struct {
 	ErrOut io.Writer
 	Output string
 
-	RoleClient client.ClusterRoleInterface
+	RoleClient authorizationtypedclient.ClusterRoleInterface
 }
 
 var (
@@ -112,11 +112,11 @@ func NewCmdReconcileClusterRoles(name, fullName string, f *clientcmd.Factory, ou
 }
 
 func (o *ReconcileClusterRolesOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
-	oclient, _, err := f.Clients()
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return err
 	}
-	o.RoleClient = oclient.ClusterRoles()
+	o.RoleClient = authorizationClient.Authorization().ClusterRoles()
 
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 

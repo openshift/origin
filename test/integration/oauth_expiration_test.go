@@ -92,10 +92,17 @@ func TestOAuthExpiration(t *testing.T) {
 }
 
 func testExpiringOAuthFlows(t *testing.T, clusterAdminClient *client.Client, oauthclient *oauthapi.OAuthClient, anonConfig *restclient.Config, expectedExpires int) string {
-
+	// token flow
 	{
-		tokenOpts := tokencmd.NewRequestTokenOptions(anonConfig, nil, "username", "password")
-		tokenOpts.ClientID = oauthclient.Name
+		tokenOpts := tokencmd.NewRequestTokenOptions(anonConfig, nil, "username", "password", true)
+		if err := tokenOpts.SetDefaultOsinConfig(); err != nil {
+			t.Fatal(err)
+		}
+		tokenOpts.OsinConfig.ClientId = oauthclient.Name
+		tokenOpts.OsinConfig.RedirectUrl = oauthclient.RedirectURIs[0]
+		if len(tokenOpts.OsinConfig.CodeChallenge) != 0 || len(tokenOpts.OsinConfig.CodeChallengeMethod) != 0 || len(tokenOpts.OsinConfig.CodeVerifier) != 0 {
+			t.Fatalf("incorrectly set PKCE for OAuth client %q during token flow", oauthclient.Name)
+		}
 		token, err := tokenOpts.RequestToken()
 		if err != nil {
 			t.Fatal(err)
@@ -127,6 +134,7 @@ func testExpiringOAuthFlows(t *testing.T, clusterAdminClient *client.Client, oau
 		}
 	}
 
+	// code flow
 	{
 		rt, err := restclient.TransportFor(anonConfig)
 		if err != nil {
@@ -170,8 +178,8 @@ func testExpiringOAuthFlows(t *testing.T, clusterAdminClient *client.Client, oau
 		if err != nil {
 			t.Fatal(err)
 		}
-		if codeObj.ExpiresIn != (5 * 60) {
-			t.Fatalf("Expected expiration of %d, got %#v", (5 * 60), codeObj.ExpiresIn)
+		if codeObj.ExpiresIn != 5*60 {
+			t.Fatalf("Expected expiration of %d, got %#v", 5*60, codeObj.ExpiresIn)
 		}
 
 		// Use the custom HTTP client when requesting a token.

@@ -35,6 +35,7 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 	g.AfterEach(func() {
 		if g.CurrentGinkgoTestDescription().Failed {
 			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
 		}
 	})
 
@@ -55,7 +56,7 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 			br2.AssertSuccess()
 
 			g.By("getting the Docker image reference from ImageStream")
-			imageName, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "internal-image", "latest")
+			imageName, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "internal-image", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("instantiating a pod and service with the new image")

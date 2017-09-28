@@ -143,7 +143,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		}
 
 		// additional plumbing to enable impersonateuser to impersonate edituser1
-		role, err := cli.AdminClient().Roles(cli.Namespace()).Create(&authorizationapi.Role{
+		role, err := cli.AdminAuthorizationClient().Authorization().Roles(cli.Namespace()).Create(&authorizationapi.Role{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater",
 			},
@@ -157,7 +157,7 @@ var _ = g.Describe("[Conformance][templates] templateinstance impersonation test
 		})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.AdminClient().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
+		_, err = cli.AdminAuthorizationClient().Authorization().RoleBindings(cli.Namespace()).Create(&authorizationapi.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "impersonater-binding",
 			},

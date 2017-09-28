@@ -456,52 +456,12 @@ func buildKubeApiserverConfig(
 
 	// we don't use legacy audit anymore
 	genericConfig.LegacyAuditWriter = nil
-	if masterConfig.AuditConfig.Enabled {
-		var writer io.Writer
-		if len(masterConfig.AuditConfig.AuditFilePath) > 0 {
-			writer = &lumberjack.Logger{
-				Filename:   masterConfig.AuditConfig.AuditFilePath,
-				MaxAge:     masterConfig.AuditConfig.MaximumFileRetentionDays,
-				MaxBackups: masterConfig.AuditConfig.MaximumRetainedFiles,
-				MaxSize:    masterConfig.AuditConfig.MaximumFileSizeMegabytes,
-			}
-		} else {
-			// backwards compatible writer to regular log
-			writer = cmdutil.NewGLogWriterV(0)
-		}
-		genericConfig.AuditBackend = auditlog.NewBackend(writer, auditlog.FormatLegacy)
-		genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
-			// This is for backwards compatibility maintaining the old visibility, ie. just
-			// raw overview of the requests comming in.
-			Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
-		})
-
-		// when a policy file is defined we enable the advanced auditing
-		if masterConfig.AuditConfig.PolicyConfiguration != nil || len(masterConfig.AuditConfig.PolicyFile) > 0 {
-			// policy configuration
-			if masterConfig.AuditConfig.PolicyConfiguration == nil {
-				p, _ := auditpolicy.LoadPolicyFromFile(masterConfig.AuditConfig.PolicyFile)
-				genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(p)
-			} else if len(masterConfig.AuditConfig.PolicyFile) > 0 {
-				p := masterConfig.AuditConfig.PolicyConfiguration.(*auditinternal.Policy)
-				genericConfig.AuditPolicyChecker = auditpolicy.NewChecker(p)
-			}
-
-			// log configuration, only when file path was provided
-			if len(masterConfig.AuditConfig.AuditFilePath) > 0 {
-				genericConfig.AuditBackend = auditlog.NewBackend(writer, string(masterConfig.AuditConfig.LogFormat))
-			}
-
-			// webhook configuration, only when config file was provided
-			if len(masterConfig.AuditConfig.WebHookKubeConfig) > 0 {
-				webhook, err := auditwebhook.NewBackend(masterConfig.AuditConfig.WebHookKubeConfig, string(masterConfig.AuditConfig.WebHookMode))
-				if err != nil {
-					glog.Fatalf("Audit webhook initialization failed: %v", err)
-				}
-				genericConfig.AuditBackend = audit.Union(genericConfig.AuditBackend, webhook)
-			}
-		}
+	backend, policyChecker, err := GetAuditConfig(masterConfig.AuditConfig)
+	if err != nil {
+		glog.Fatalf("Audit initialization failed: %v", err)
 	}
+	genericConfig.AuditBackend = backend
+	genericConfig.AuditPolicyChecker = policyChecker
 
 	kubeApiserverConfig := &master.Config{
 		GenericConfig: genericConfig,
@@ -803,4 +763,60 @@ func openshiftRequestInfoResolver(requestContextMapper apirequest.RequestContext
 	projectRequestInfoResolver := oauthorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
 
 	return projectRequestInfoResolver
+}
+
+func GetAuditConfig(auditConfig configapi.AuditConfig) (audit.Backend, auditpolicy.Checker, error) {
+	if !auditConfig.Enabled {
+		return nil, nil, nil
+	}
+	var (
+		backend       audit.Backend
+		policyChecker auditpolicy.Checker
+		writer        io.Writer
+	)
+	if len(auditConfig.AuditFilePath) > 0 {
+		writer = &lumberjack.Logger{
+			Filename:   auditConfig.AuditFilePath,
+			MaxAge:     auditConfig.MaximumFileRetentionDays,
+			MaxBackups: auditConfig.MaximumRetainedFiles,
+			MaxSize:    auditConfig.MaximumFileSizeMegabytes,
+		}
+	} else {
+		// backwards compatible writer to regular log
+		writer = cmdutil.NewGLogWriterV(0)
+	}
+	backend = auditlog.NewBackend(writer, auditlog.FormatLegacy)
+	policyChecker = auditpolicy.NewChecker(&auditinternal.Policy{
+		// This is for backwards compatibility maintaining the old visibility, ie. just
+		// raw overview of the requests comming in.
+		Rules: []auditinternal.PolicyRule{{Level: auditinternal.LevelMetadata}},
+	})
+
+	// when a policy file is defined we enable the advanced auditing
+	if auditConfig.PolicyConfiguration != nil || len(auditConfig.PolicyFile) > 0 {
+		// policy configuration
+		if auditConfig.PolicyConfiguration == nil {
+			p, _ := auditpolicy.LoadPolicyFromFile(auditConfig.PolicyFile)
+			policyChecker = auditpolicy.NewChecker(p)
+		} else if len(auditConfig.PolicyFile) > 0 {
+			p := auditConfig.PolicyConfiguration.(*auditinternal.Policy)
+			policyChecker = auditpolicy.NewChecker(p)
+		}
+
+		// log configuration, only when file path was provided
+		if len(auditConfig.AuditFilePath) > 0 {
+			backend = auditlog.NewBackend(writer, string(auditConfig.LogFormat))
+		}
+
+		// webhook configuration, only when config file was provided
+		if len(auditConfig.WebHookKubeConfig) > 0 {
+			webhook, err := auditwebhook.NewBackend(auditConfig.WebHookKubeConfig, string(auditConfig.WebHookMode))
+			if err != nil {
+				glog.Fatalf("Audit webhook initialization failed: %v", err)
+			}
+			backend = audit.Union(backend, webhook)
+		}
+	}
+
+	return backend, policyChecker, nil
 }

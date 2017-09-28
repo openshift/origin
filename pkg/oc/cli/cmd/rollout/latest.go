@@ -16,8 +16,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclientinternal "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -47,7 +47,7 @@ type RolloutLatestOptions struct {
 	output string
 	again  bool
 
-	oc              client.Interface
+	appsClient      appsclientinternal.DeploymentConfigsGetter
 	kc              kclientset.Interface
 	baseCommandName string
 }
@@ -96,10 +96,15 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	o.oc, o.kc, err = f.Clients()
+	_, o.kc, err = f.Clients()
 	if err != nil {
 		return err
 	}
+	appsClient, err := f.OpenshiftInternalAppsClient()
+	if err != nil {
+		return err
+	}
+	o.appsClient = appsClient.Apps()
 
 	o.mapper, o.typer = f.Object()
 	o.infos, err = f.NewBuilder(true).
@@ -160,13 +165,13 @@ func (o RolloutLatestOptions) RunRolloutLatest() error {
 			Force:  true,
 		}
 
-		dc, err = o.oc.DeploymentConfigs(config.Namespace).Instantiate(request)
+		dc, err = o.appsClient.DeploymentConfigs(config.Namespace).Instantiate(config.Name, request)
 
 		// Pre 1.4 servers don't support the instantiate endpoint. Fallback to incrementing
 		// latestVersion on them.
 		if kerrors.IsNotFound(err) || kerrors.IsForbidden(err) {
 			config.Status.LatestVersion++
-			dc, err = o.oc.DeploymentConfigs(config.Namespace).Update(config)
+			dc, err = o.appsClient.DeploymentConfigs(config.Namespace).Update(config)
 		}
 
 		if err != nil {

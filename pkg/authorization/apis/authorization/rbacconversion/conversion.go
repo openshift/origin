@@ -47,6 +47,7 @@ func Convert_authorization_ClusterRole_To_rbac_ClusterRole(in *authorizationapi.
 
 func Convert_authorization_Role_To_rbac_Role(in *authorizationapi.Role, out *rbac.Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	out.Rules = convert_api_PolicyRules_To_rbac_PolicyRules(in.Rules)
 	return nil
 }
@@ -61,6 +62,7 @@ func Convert_authorization_ClusterRoleBinding_To_rbac_ClusterRoleBinding(in *aut
 	}
 	out.RoleRef = convert_api_RoleRef_To_rbac_RoleRef(&in.RoleRef)
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	return nil
 }
 
@@ -74,6 +76,7 @@ func Convert_authorization_RoleBinding_To_rbac_RoleBinding(in *authorizationapi.
 	}
 	out.RoleRef = convert_api_RoleRef_To_rbac_RoleRef(&in.RoleRef)
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_authorization_Annotations_To_rbac_Annotations(in.Annotations)
 	return nil
 }
 
@@ -172,6 +175,7 @@ func Convert_rbac_ClusterRole_To_authorization_ClusterRole(in *rbac.ClusterRole,
 
 func Convert_rbac_Role_To_authorization_Role(in *rbac.Role, out *authorizationapi.Role, _ conversion.Scope) error {
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
 	out.Rules = Convert_rbac_PolicyRules_To_authorization_PolicyRules(in.Rules)
 	return nil
 }
@@ -185,6 +189,7 @@ func Convert_rbac_ClusterRoleBinding_To_authorization_ClusterRoleBinding(in *rba
 		return err
 	}
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
 	return nil
 }
 
@@ -197,6 +202,7 @@ func Convert_rbac_RoleBinding_To_authorization_RoleBinding(in *rbac.RoleBinding,
 		return err
 	}
 	out.ObjectMeta = in.ObjectMeta
+	out.Annotations = convert_rbac_Annotations_To_authorization_Annotations(in.Annotations)
 	return nil
 }
 

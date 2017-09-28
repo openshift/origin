@@ -16,6 +16,14 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 		templatePath = exutil.FixturePath("..", "..", "examples", "db-templates", "mariadb-ephemeral-template.json")
 		oc           = exutil.NewCLI("mariadb-create", exutil.KubeConfigPath())
 	)
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Creating from a template", func() {
 		g.It(fmt.Sprintf("should instantiate the template"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
@@ -30,7 +38,7 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 
 			// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 			// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "mariadb", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "mariadb", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("expecting the mariadb service get endpoints")

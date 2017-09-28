@@ -25,6 +25,13 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 		oc                    = exutil.NewCLI("build-secrets", exutil.KubeConfigPath())
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("build with secrets", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 
@@ -48,7 +55,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 			br.AssertSuccess()
 
 			g.By("getting the image name")
-			image, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
+			image, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the build secrets were available during build and not present in the output image")
@@ -83,7 +90,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 			br.AssertSuccess()
 
 			g.By("getting the image name")
-			image, err := exutil.GetDockerImageReference(oc.Client().ImageStreams(oc.Namespace()), "test", "latest")
+			image, err := exutil.GetDockerImageReference(oc.ImageClient().Image().ImageStreams(oc.Namespace()), "test", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying the secrets are present in container output")

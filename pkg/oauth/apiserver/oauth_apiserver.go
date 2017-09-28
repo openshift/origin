@@ -5,22 +5,22 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/pborman/uuid"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	genericapifilters "k8s.io/apiserver/pkg/endpoints/filters"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/features"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericfilters "k8s.io/apiserver/pkg/server/filters"
+	utilfeature "k8s.io/apiserver/pkg/util/feature"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	"github.com/openshift/origin/pkg/auth/server/session"
-	"github.com/openshift/origin/pkg/auth/server/tokenrequest"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/api/latest"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -189,10 +189,13 @@ func (c completedOAuthServerConfig) New(delegationTarget genericapiserver.Delega
 }
 
 func (c *OAuthServerConfig) buildHandlerChainForOAuth(startingHandler http.Handler, genericConfig *genericapiserver.Config) http.Handler {
-	handler, err := c.WithOAuth(startingHandler)
+	handler, err := c.WithOAuth(startingHandler, genericConfig.RequestContextMapper)
 	if err != nil {
 		// the existing errors all cause the server to die anyway
 		panic(err)
+	}
+	if utilfeature.DefaultFeatureGate.Enabled(features.AdvancedAuditing) {
+		handler = genericapifilters.WithAudit(handler, genericConfig.RequestContextMapper, genericConfig.AuditBackend, genericConfig.AuditPolicyChecker, genericConfig.LongRunningFunc)
 	}
 
 	handler = genericfilters.WithMaxInFlightLimit(handler, genericConfig.MaxRequestsInFlight, genericConfig.MaxMutatingRequestsInFlight, genericConfig.RequestContextMapper, genericConfig.LongRunningFunc)
@@ -223,7 +226,7 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftBrowserClientID},
 		Secret:                uuid.New(),
 		RespondWithChallenges: false,
-		RedirectURIs:          []string{c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.DisplayTokenEndpoint)},
+		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenDisplayURL(c.Options.MasterPublicURL)},
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
 	if err := ensureOAuthClient(browserClient, c.OAuthClientClient, true, true); err != nil {
@@ -234,7 +237,7 @@ func (c *OAuthServerConfig) EnsureBootstrapOAuthClients(context genericapiserver
 		ObjectMeta:            metav1.ObjectMeta{Name: OpenShiftCLIClientID},
 		Secret:                "",
 		RespondWithChallenges: true,
-		RedirectURIs:          []string{c.Options.MasterPublicURL + path.Join(oauthutil.OpenShiftOAuthAPIPrefix, tokenrequest.ImplicitTokenEndpoint)},
+		RedirectURIs:          []string{oauthutil.OpenShiftOAuthTokenImplicitURL(c.Options.MasterPublicURL)},
 		GrantMethod:           oauthapi.GrantHandlerAuto,
 	}
 	if err := ensureOAuthClient(cliClient, c.OAuthClientClient, false, false); err != nil {

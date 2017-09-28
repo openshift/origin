@@ -109,7 +109,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for jenkins deployment")
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), "jenkins", 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), "jenkins", 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			j = jenkins.NewRef(oc)
@@ -150,6 +150,13 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		g.By("waiting for builder service account")
 		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
 		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
 	})
 
 	g.Context("Pipeline with maven slave", func() {
@@ -470,7 +477,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					g.By("Waiting for the build uri")
 					var jenkinsBuildURI string
 					for {
-						build, err := oc.Client().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+						build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 						if err != nil {
 							errs <- fmt.Errorf("error getting build: %s", err)
 							return
@@ -520,7 +527,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 					defer g.GinkgoRecover()
 
 					for {
-						build, err := oc.Client().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+						build, err := oc.BuildClient().Build().Builds(oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
 						switch {
 						case err != nil:
 							errs <- fmt.Errorf("error getting build: %s", err)

@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 )
 
 const GroupName = "build.openshift.io"
@@ -35,6 +36,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&BuildRequest{},
 		&BuildLogOptions{},
 		&BinaryBuildRequestOptions{},
+		// This is needed for webhooks
+		&kapiv1.PodProxyOptions{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

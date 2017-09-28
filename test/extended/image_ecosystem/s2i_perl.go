@@ -29,6 +29,13 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 		dcLabelTwo     = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
 	)
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("Dancer example", func() {
 		g.It(fmt.Sprintf("should work with hot deploy"), func() {
 			oc.SetOutputDir(exutil.TestContext.OutputDir)
@@ -39,13 +46,13 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for build to finish")
-			err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), rcNameOne, nil, nil, nil)
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), rcNameOne, nil, nil, nil)
 			if err != nil {
 				exutil.DumpBuildLogs(dcName, oc)
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), dcName, 1, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), dcName, 1, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for endpoint")
@@ -79,7 +86,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 			g.By("turning on hot-deploy")
 			err = oc.Run("env").Args("dc", dcName, "PERL_APACHE2_RELOAD=true").Execute()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), dcName, 2, oc)
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), dcName, 2, oc)
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("waiting for a new endpoint")

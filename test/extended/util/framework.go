@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/pkg/apis/authorization"
 	batchv1 "k8s.io/kubernetes/pkg/apis/batch/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kbatchclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/batch/v1"
@@ -37,11 +37,12 @@ import (
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appstypeclientset "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
-	authapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildtypedclientset "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagetypeclientset "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	"github.com/openshift/origin/test/extended/testdata"
 )
 
@@ -53,7 +54,7 @@ func WaitForOpenShiftNamespaceImageStreams(oc *CLI) error {
 	scan := func() bool {
 		for _, lang := range langs {
 			e2e.Logf("Checking language %v \n", lang)
-			is, err := oc.Client().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
+			is, err := oc.ImageClient().Image().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 			if err != nil {
 				e2e.Logf("ImageStream Error: %#v \n", err)
 				return false
@@ -94,7 +95,7 @@ func CheckOpenShiftNamespaceImageStreams(oc *CLI) {
 	missing := false
 	langs := []string{"ruby", "nodejs", "perl", "php", "python", "wildfly", "mysql", "postgresql", "mongodb", "jenkins"}
 	for _, lang := range langs {
-		_, err := oc.Client().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
+		_, err := oc.ImageClient().Image().ImageStreams("openshift").Get(lang, metav1.GetOptions{})
 		if err != nil {
 			missing = true
 			break
@@ -247,60 +248,68 @@ func GetMasterThreadDump(oc *CLI) {
 // ExamineDiskUsage will dump df output on the testing system; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExamineDiskUsage() {
-	out, err := exec.Command("/bin/df", "-m").Output()
-	if err == nil {
-		e2e.Logf("\n\n df -m output: %s\n\n", string(out))
-	} else {
-		e2e.Logf("\n\n got error on df %v\n\n", err)
-	}
-	out, err = exec.Command("/bin/docker", "info").Output()
-	if err == nil {
-		e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
-	} else {
-		e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
-	}
+	// disabling this for now, easier to do it here than everywhere that's calling it.
+	return
+	/*
+		out, err := exec.Command("/bin/df", "-m").Output()
+		if err == nil {
+			e2e.Logf("\n\n df -m output: %s\n\n", string(out))
+		} else {
+			e2e.Logf("\n\n got error on df %v\n\n", err)
+		}
+		out, err = exec.Command("/bin/docker", "info").Output()
+		if err == nil {
+			e2e.Logf("\n\n docker info output: \n%s\n\n", string(out))
+		} else {
+			e2e.Logf("\n\n got error on docker inspect %v\n\n", err)
+		}
+	*/
 }
 
 // ExaminePodDiskUsage will dump df/du output on registry pod; leveraging this as part of diagnosing
 // the registry's disk filling up during external tests on jenkins
 func ExaminePodDiskUsage(oc *CLI) {
-	out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
-	var podName string
-	if err == nil {
-		b := []byte(out)
-		var list kapiv1.PodList
-		err = json.Unmarshal(b, &list)
+	// disabling this for now, easier to do it here than everywhere that's calling it.
+	return
+	/*
+		out, err := oc.Run("get").Args("pods", "-o", "json", "-n", "default", "--config", KubeConfigPath()).Output()
+		var podName string
 		if err == nil {
-			for _, pod := range list.Items {
-				e2e.Logf("\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
-				if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
-					podName = pod.ObjectMeta.Name
-					break
+			b := []byte(out)
+			var list kapiv1.PodList
+			err = json.Unmarshal(b, &list)
+			if err == nil {
+				for _, pod := range list.Items {
+					e2e.Logf("\n\n looking at pod %s \n\n", pod.ObjectMeta.Name)
+					if strings.Contains(pod.ObjectMeta.Name, "docker-registry-") && !strings.Contains(pod.ObjectMeta.Name, "deploy") {
+						podName = pod.ObjectMeta.Name
+						break
+					}
 				}
+			} else {
+				e2e.Logf("\n\n got json unmarshal err: %v\n\n", err)
 			}
 		} else {
-			e2e.Logf("\n\n got json unmarshal err: %v\n\n", err)
+			e2e.Logf("\n\n  got error on get pods: %v\n\n", err)
 		}
-	} else {
-		e2e.Logf("\n\n  got error on get pods: %v\n\n", err)
-	}
-	if len(podName) == 0 {
-		e2e.Logf("Unable to determine registry pod name, so we can't examine its disk usage.")
-		return
-	}
+		if len(podName) == 0 {
+			e2e.Logf("Unable to determine registry pod name, so we can't examine its disk usage.")
+			return
+		}
 
-	out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
-	if err == nil {
-		e2e.Logf("\n\n df from registry pod: \n%s\n\n", out)
-	} else {
-		e2e.Logf("\n\n got error on reg pod df: %v\n", err)
-	}
-	out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
-	if err == nil {
-		e2e.Logf("\n\n du from registry pod: \n%s\n\n", out)
-	} else {
-		e2e.Logf("\n\n got error on reg pod du: %v\n", err)
-	}
+		out, err = oc.Run("exec").Args("-n", "default", podName, "df", "--config", KubeConfigPath()).Output()
+		if err == nil {
+			e2e.Logf("\n\n df from registry pod: \n%s\n\n", out)
+		} else {
+			e2e.Logf("\n\n got error on reg pod df: %v\n", err)
+		}
+		out, err = oc.Run("exec").Args("-n", "default", podName, "du", "/registry", "--config", KubeConfigPath()).Output()
+		if err == nil {
+			e2e.Logf("\n\n du from registry pod: \n%s\n\n", out)
+		} else {
+			e2e.Logf("\n\n got error on reg pod du: %v\n", err)
+		}
+	*/
 }
 
 // VarSubOnFile reads in srcFile, finds instances of ${key} from the map
@@ -419,7 +428,7 @@ func (t *BuildResult) dumpRegistryLogs() {
 	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
 		buildStarted = &t.Build.CreationTimestamp.Time
 	} else {
-		proj, err := oc.Client().Projects().Get(oc.Namespace(), metav1.GetOptions{})
+		proj, err := oc.ProjectClient().Project().Projects().Get(oc.Namespace(), metav1.GetOptions{})
 		if err != nil {
 			e2e.Logf("Failed to get project %s: %v\n", oc.Namespace(), err)
 		} else {
@@ -533,11 +542,11 @@ func StartBuildAndWait(oc *CLI, args ...string) (result *BuildResult, err error)
 	if err != nil {
 		return result, err
 	}
-	return result, WaitForBuildResult(oc.Client().Builds(oc.Namespace()), result)
+	return result, WaitForBuildResult(oc.BuildClient().Build().Builds(oc.Namespace()), result)
 }
 
 // WaitForBuildResult updates result wit the state of the build
-func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
+func WaitForBuildResult(c buildtypedclientset.BuildResourceInterface, result *BuildResult) error {
 	e2e.Logf("Waiting for %s to complete\n", result.BuildName)
 	err := WaitForABuild(c, result.BuildName,
 		func(b *buildapi.Build) bool {
@@ -570,7 +579,7 @@ func WaitForBuildResult(c client.BuildInterface, result *BuildResult) error {
 }
 
 // WaitForABuild waits for a Build object to match either isOK or isFailed conditions.
-func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCanceled func(*buildapi.Build) bool) error {
+func WaitForABuild(c buildtypedclientset.BuildResourceInterface, name string, isOK, isFailed, isCanceled func(*buildapi.Build) bool) error {
 	if isOK == nil {
 		isOK = CheckBuildSuccessFn
 	}
@@ -596,7 +605,7 @@ func WaitForABuild(c client.BuildInterface, name string, isOK, isFailed, isCance
 	}
 	// wait longer for the build to run to completion
 	err = wait.Poll(5*time.Second, 60*time.Minute, func() (bool, error) {
-		list, err := c.List(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String()})
+		list, err := c.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
 			e2e.Logf("error listing builds: %v", err)
 			return false, err
@@ -662,11 +671,11 @@ func WaitForBuilderAccount(c kcoreclient.ServiceAccountInterface) error {
 }
 
 // WaitForAnImageStream waits for an ImageStream to fulfill the isOK function
-func WaitForAnImageStream(client client.ImageStreamInterface,
+func WaitForAnImageStream(client imagetypeclientset.ImageStreamInterface,
 	name string,
 	isOK, isFailed func(*imageapi.ImageStream) bool) error {
 	for {
-		list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String()})
+		list, err := client.List(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String()})
 		if err != nil {
 			return err
 		}
@@ -681,7 +690,7 @@ func WaitForAnImageStream(client client.ImageStreamInterface,
 		}
 
 		rv := list.ResourceVersion
-		w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"name": name}.AsSelector().String(), ResourceVersion: rv})
+		w, err := client.Watch(metav1.ListOptions{FieldSelector: fields.Set{"metadata.name": name}.AsSelector().String(), ResourceVersion: rv})
 		if err != nil {
 			return err
 		}
@@ -720,7 +729,7 @@ func TimedWaitForAnImageStreamTag(oc *CLI, namespace, name, tag string, waitTime
 	c := make(chan error)
 	go func() {
 		err := WaitForAnImageStream(
-			oc.Client().ImageStreams(namespace),
+			oc.ImageClient().Image().ImageStreams(namespace),
 			name,
 			func(is *imageapi.ImageStream) bool {
 				if history, exists := is.Status.Tags[tag]; !exists || len(history.Items) == 0 {
@@ -756,13 +765,13 @@ var CheckImageStreamTagNotFoundFn = func(i *imageapi.ImageStream) bool {
 
 // WaitForDeploymentConfig waits for a DeploymentConfig to complete transition
 // to a given version and report minimum availability.
-func WaitForDeploymentConfig(kc kclientset.Interface, oc client.Interface, namespace, name string, version int64, cli *CLI) error {
+func WaitForDeploymentConfig(kc kclientset.Interface, dcClient appstypeclientset.DeploymentConfigsGetter, namespace, name string, version int64, cli *CLI) error {
 	e2e.Logf("waiting for deploymentconfig %s/%s to be available with version %d\n", namespace, name, version)
 	var dc *deployapi.DeploymentConfig
 
 	start := time.Now()
 	err := wait.Poll(time.Second, 15*time.Minute, func() (done bool, err error) {
-		dc, err = oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		dc, err = dcClient.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return false, err
 		}
@@ -993,7 +1002,7 @@ func WaitUntilPodIsGone(c kcoreclient.PodInterface, podName string, timeout time
 
 // GetDockerImageReference retrieves the full Docker pull spec from the given ImageStream
 // and tag
-func GetDockerImageReference(c client.ImageStreamInterface, name, tag string) (string, error) {
+func GetDockerImageReference(c imagetypeclientset.ImageStreamInterface, name, tag string) (string, error) {
 	imageStream, err := c.Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
@@ -1349,17 +1358,19 @@ func (r *podExecutor) Exec(script string) (string, error) {
 // WaitForUserBeAuthorized waits a minute until the cluster bootstrap roles are available
 // and the provided user is authorized to perform the action on the resource.
 func WaitForUserBeAuthorized(oc *CLI, user, verb, resource string) error {
-	sar := authapi.SubjectAccessReview{
-		User: user,
-		Action: authapi.Action{
-			Namespace: oc.Namespace(),
-			Verb:      verb,
-			Resource:  resource,
+	sar := &authorization.SubjectAccessReview{
+		Spec: authorization.SubjectAccessReviewSpec{
+			ResourceAttributes: &authorization.ResourceAttributes{
+				Namespace: oc.Namespace(),
+				Verb:      verb,
+				Resource:  resource,
+			},
+			User: user,
 		},
 	}
 	return wait.PollImmediate(1*time.Second, 1*time.Minute, func() (bool, error) {
-		resp, err := oc.AdminClient().SubjectAccessReviews().Create(&sar)
-		if err == nil && resp != nil && resp.Allowed {
+		resp, err := oc.InternalAdminKubeClient().Authorization().SubjectAccessReviews().Create(sar)
+		if err == nil && resp != nil && resp.Status.Allowed {
 			return true, nil
 		}
 		return false, err

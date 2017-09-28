@@ -26,8 +26,15 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for imagestreams to be imported")
-		err = exutil.WaitForAnImageStream(oc.AdminClient().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulatedFn, exutil.CheckImageStreamTagNotFoundFn)
+		err = exutil.WaitForAnImageStream(oc.AdminImageClient().Image().ImageStreams("openshift"), "ruby", exutil.CheckImageStreamLatestTagPopulatedFn, exutil.CheckImageStreamTagNotFoundFn)
 		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
 	})
 
 	g.Describe("build with image source", func() {

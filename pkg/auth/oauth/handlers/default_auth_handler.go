@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apiserver/pkg/endpoints/request"
 
 	authapi "github.com/openshift/origin/pkg/auth/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
@@ -14,14 +15,15 @@ import (
 
 // unionAuthenticationHandler is an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
 type unionAuthenticationHandler struct {
-	challengers      map[string]AuthenticationChallenger
-	redirectors      *AuthenticationRedirectors
-	errorHandler     AuthenticationErrorHandler
-	selectionHandler AuthenticationSelectionHandler
+	challengers          map[string]AuthenticationChallenger
+	redirectors          *AuthenticationRedirectors
+	errorHandler         AuthenticationErrorHandler
+	selectionHandler     AuthenticationSelectionHandler
+	requestContextMapper request.RequestContextMapper
 }
 
 // NewUnionAuthenticationHandler returns an oauth.AuthenticationHandler that muxes multiple challenge handlers and redirect handlers
-func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors *AuthenticationRedirectors, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler) AuthenticationHandler {
+func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationChallenger, passedRedirectors *AuthenticationRedirectors, errorHandler AuthenticationErrorHandler, selectionHandler AuthenticationSelectionHandler, requestContextMapper request.RequestContextMapper) AuthenticationHandler {
 	challengers := passedChallengers
 	if challengers == nil {
 		challengers = make(map[string]AuthenticationChallenger, 1)
@@ -32,7 +34,7 @@ func NewUnionAuthenticationHandler(passedChallengers map[string]AuthenticationCh
 		redirectors = new(AuthenticationRedirectors)
 	}
 
-	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler}
+	return &unionAuthenticationHandler{challengers, redirectors, errorHandler, selectionHandler, requestContextMapper}
 }
 
 const (
@@ -113,6 +115,21 @@ func (authHandler *unionAuthenticationHandler) AuthenticationNeeded(apiClient au
 				w.WriteHeader(http.StatusFound)
 			default:
 				w.WriteHeader(http.StatusUnauthorized)
+				ctx, ok := authHandler.requestContextMapper.Get(req)
+				if !ok {
+					return false, fmt.Errorf("no context found for request to audit")
+				}
+				ev := request.AuditEventFrom(ctx)
+				if ev != nil {
+					// this code mimics the bits from k8s.io/apiserver/pkg/endpoints/filters/authn_audit.go
+					// but since we don't accept failedHander here we need to manually alter the audit
+					// event with information about failed authentication
+					ev.ResponseStatus.Message = getAuthMethods(req)
+					ctx = request.WithAuditEvent(ctx, ev)
+					if err := authHandler.requestContextMapper.Update(req, ctx); err != nil {
+						return false, fmt.Errorf("failed to attach audit event to context: %v", err)
+					}
+				}
 			}
 
 			// Print Misc Warning headers (code 199) to the body
@@ -209,4 +226,34 @@ func mergeHeaders(dest http.Header, toAdd http.Header) {
 			dest.Add(key, value)
 		}
 	}
+}
+
+// getAuthMethods is copied from k8s.io/apiserver/pkg/endpoints/filters/authn_audit.go
+// to be able to return information about failed authentication
+func getAuthMethods(req *http.Request) string {
+	authMethods := []string{}
+
+	if _, _, ok := req.BasicAuth(); ok {
+		authMethods = append(authMethods, "basic")
+	}
+
+	auth := strings.TrimSpace(req.Header.Get("Authorization"))
+	parts := strings.Split(auth, " ")
+	if len(parts) > 1 && strings.ToLower(parts[0]) == "bearer" {
+		authMethods = append(authMethods, "bearer")
+	}
+
+	token := strings.TrimSpace(req.URL.Query().Get("access_token"))
+	if len(token) > 0 {
+		authMethods = append(authMethods, "access_token")
+	}
+
+	if req.TLS != nil && len(req.TLS.PeerCertificates) > 0 {
+		authMethods = append(authMethods, "x509")
+	}
+
+	if len(authMethods) > 0 {
+		return fmt.Sprintf("Authentication failed, attempted: %s", strings.Join(authMethods, ", "))
+	}
+	return "Authentication failed, no credentials provided"
 }

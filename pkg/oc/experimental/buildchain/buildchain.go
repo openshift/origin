@@ -13,12 +13,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	cmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	osutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
 // BuildChainRecommendedCommandName is the recommended command name
@@ -55,8 +57,9 @@ type BuildChainOptions struct {
 
 	output string
 
-	c client.BuildConfigsNamespacer
-	t client.ImageStreamTagsNamespacer
+	buildClient   buildclient.BuildConfigsGetter
+	imageClient   imageclient.ImageStreamTagsGetter
+	projectClient projectclient.ProjectsGetter
 }
 
 // NewCmdBuildChain implements the OpenShift experimental build-chain command
@@ -89,12 +92,21 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 		return cmdutil.UsageError(cmd, "Must pass an image stream tag. If only an image stream name is specified, 'latest' will be used for the tag.")
 	}
 
-	// Setup client
-	oc, _, err := f.Clients()
+	buildClient, err := f.OpenshiftInternalBuildClient()
 	if err != nil {
 		return err
 	}
-	o.c, o.t = oc, oc
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
+	projectClient, err := f.OpenshiftInternalProjectClient()
+	if err != nil {
+		return err
+	}
+	o.buildClient = buildClient.Build()
+	o.imageClient = imageClient.Image()
+	o.projectClient = projectClient.Project()
 
 	resource := schema.GroupResource{}
 	mapper, _ := f.Object()
@@ -114,7 +126,7 @@ func (o *BuildChainOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, a
 	// Setup namespace
 	if o.allNamespaces {
 		// TODO: Handle different uses of build-chain; user and admin
-		projectList, err := oc.Projects().List(metav1.ListOptions{})
+		projectList, err := o.projectClient.Projects().List(metav1.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -148,11 +160,14 @@ func (o *BuildChainOptions) Validate() error {
 	if o.output != "" && o.output != "dot" {
 		return fmt.Errorf("output must be either empty or 'dot'")
 	}
-	if o.c == nil {
+	if o.buildClient == nil {
 		return fmt.Errorf("buildConfig client must not be nil")
 	}
-	if o.t == nil {
+	if o.imageClient == nil {
 		return fmt.Errorf("imageStreamTag client must not be nil")
+	}
+	if o.projectClient == nil {
+		return fmt.Errorf("project client must not be nil")
 	}
 	return nil
 }
@@ -162,12 +177,11 @@ func (o *BuildChainOptions) Validate() error {
 func (o *BuildChainOptions) RunBuildChain() error {
 	ist := imagegraph.MakeImageStreamTagObjectMeta2(o.defaultNamespace, o.name)
 
-	desc, err := describe.NewChainDescriber(o.c, o.namespaces, o.output).Describe(ist, !o.triggerOnly, o.reverse)
+	desc, err := describe.NewChainDescriber(o.buildClient, o.namespaces, o.output).Describe(ist, !o.triggerOnly, o.reverse)
 	if err != nil {
 		if _, isNotFoundErr := err.(describe.NotFoundErr); isNotFoundErr {
-			name, tag, _ := imageapi.SplitImageStreamTag(o.name)
 			// Try to get the imageStreamTag via a direct GET
-			if _, getErr := o.t.ImageStreamTags(o.defaultNamespace).Get(name, tag); getErr != nil {
+			if _, getErr := o.imageClient.ImageStreamTags(o.defaultNamespace).Get(o.name, metav1.GetOptions{}); getErr != nil {
 				return getErr
 			}
 			fmt.Printf("Image stream tag %q in %q doesn't have any dependencies.\n", o.name, o.defaultNamespace)

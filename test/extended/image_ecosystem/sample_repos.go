@@ -41,6 +41,13 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
+
 		g.Describe("Building "+c.repoName+" app from new-app", func() {
 			g.It(fmt.Sprintf("should build a "+c.repoName+" image and run it in a pod"), func() {
 				oc.SetOutputDir(exutil.TestContext.OutputDir)
@@ -55,19 +62,19 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 				buildName := c.buildConfigName + "-1"
 
 				g.By("expecting the build is in the Complete phase")
-				err = exutil.WaitForABuild(oc.Client().Builds(oc.Namespace()), buildName, nil, nil, nil)
+				err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), buildName, nil, nil, nil)
 				if err != nil {
 					exutil.DumpBuildLogs(c.buildConfigName, oc)
 				}
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("expecting the app deployment to be complete")
-				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), c.deploymentConfigName, 1, oc)
+				err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), c.deploymentConfigName, 1, oc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				if len(c.dbDeploymentConfigName) > 0 {
 					g.By("expecting the db deployment to be complete")
-					err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), c.dbDeploymentConfigName, 1, oc)
+					err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), c.dbDeploymentConfigName, 1, oc)
 					o.Expect(err).NotTo(o.HaveOccurred())
 
 					g.By("expecting the db service is available")

@@ -2,13 +2,20 @@ package tokencmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/util/diff"
 	restclient "k8s.io/client-go/rest"
+
+	"github.com/openshift/origin/pkg/oauth/util"
+
+	"github.com/RangelReale/osincli"
 )
 
 type unloadableNegotiator struct {
@@ -425,6 +432,13 @@ func TestRequestToken(t *testing.T) {
 		opts := &RequestTokenOptions{
 			ClientConfig: &restclient.Config{Host: s.URL},
 			Handler:      tc.Handler,
+			OsinConfig: &osincli.ClientConfig{
+				ClientId:     openShiftCLIClientID,
+				AuthorizeUrl: util.OpenShiftOAuthAuthorizeURL(s.URL),
+				TokenUrl:     util.OpenShiftOAuthTokenURL(s.URL),
+				RedirectUrl:  util.OpenShiftOAuthTokenImplicitURL(s.URL),
+			},
+			TokenFlow: true,
 		}
 		token, err := opts.RequestToken()
 		if token != tc.ExpectedToken {
@@ -441,5 +455,224 @@ func TestRequestToken(t *testing.T) {
 			t.Errorf("%s: expected %d requests, saw %d", k, len(tc.Requests), i)
 		}
 		verifyReleased(k, tc.Handler)
+	}
+}
+
+func TestSetDefaultOsinConfig(t *testing.T) {
+	noHostChange := func(host string) string { return host }
+	for _, tc := range []struct {
+		name        string
+		metadata    *util.OauthAuthorizationServerMetadata
+		hostWrapper func(host string) (newHost string)
+		tokenFlow   bool
+
+		expectPKCE     bool
+		expectedConfig *osincli.ClientConfig
+	}{
+		{
+			name: "code with PKCE support from server",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{pkce_s256},
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   false,
+
+			expectPKCE: true,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:            openShiftCLIClientID,
+				AuthorizeUrl:        "b",
+				TokenUrl:            "c",
+				RedirectUrl:         "a/oauth/token/implicit",
+				CodeChallengeMethod: pkce_s256,
+			},
+		},
+		{
+			name: "code without PKCE support from server",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{"someotherstuff"},
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   false,
+
+			expectPKCE: false,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:     openShiftCLIClientID,
+				AuthorizeUrl: "b",
+				TokenUrl:     "c",
+				RedirectUrl:  "a/oauth/token/implicit",
+			},
+		},
+		{
+			name: "token with PKCE support from server",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{pkce_s256},
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   true,
+
+			expectPKCE: false,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:     openShiftCLIClientID,
+				AuthorizeUrl: "b",
+				TokenUrl:     "c",
+				RedirectUrl:  "a/oauth/token/implicit",
+			},
+		},
+		{
+			name: "code with PKCE support from server, but wrong case",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{"s256"}, // we are case sensitive so this is not valid
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   false,
+
+			expectPKCE: false,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:     openShiftCLIClientID,
+				AuthorizeUrl: "b",
+				TokenUrl:     "c",
+				RedirectUrl:  "a/oauth/token/implicit",
+			},
+		},
+		{
+			name: "token without PKCE support from server",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{"random"},
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   true,
+
+			expectPKCE: false,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:     openShiftCLIClientID,
+				AuthorizeUrl: "b",
+				TokenUrl:     "c",
+				RedirectUrl:  "a/oauth/token/implicit",
+			},
+		},
+		{
+			name: "host with extra slashes",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{pkce_s256},
+			},
+			hostWrapper: func(host string) string { return host + "/////" },
+			tokenFlow:   false,
+
+			expectPKCE: true,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:            openShiftCLIClientID,
+				AuthorizeUrl:        "b",
+				TokenUrl:            "c",
+				RedirectUrl:         "a/oauth/token/implicit",
+				CodeChallengeMethod: pkce_s256,
+			},
+		},
+		{
+			name: "issuer with extra slashes",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "a/////",
+				AuthorizationEndpoint:         "b",
+				TokenEndpoint:                 "c",
+				CodeChallengeMethodsSupported: []string{pkce_s256},
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   false,
+
+			expectPKCE: true,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:            openShiftCLIClientID,
+				AuthorizeUrl:        "b",
+				TokenUrl:            "c",
+				RedirectUrl:         "a/oauth/token/implicit",
+				CodeChallengeMethod: pkce_s256,
+			},
+		},
+		{
+			name: "code with PKCE support from server, more complex JSON",
+			metadata: &util.OauthAuthorizationServerMetadata{
+				Issuer:                        "arandomissuerthatisfun123!!!///",
+				AuthorizationEndpoint:         "44authzisanawesomeendpoint",
+				TokenEndpoint:                 "&&buttokenendpointisprettygoodtoo",
+				CodeChallengeMethodsSupported: []string{pkce_s256},
+			},
+			hostWrapper: noHostChange,
+			tokenFlow:   false,
+
+			expectPKCE: true,
+			expectedConfig: &osincli.ClientConfig{
+				ClientId:            openShiftCLIClientID,
+				AuthorizeUrl:        "44authzisanawesomeendpoint",
+				TokenUrl:            "&&buttokenendpointisprettygoodtoo",
+				RedirectUrl:         "arandomissuerthatisfun123!!!/oauth/token/implicit",
+				CodeChallengeMethod: pkce_s256,
+			},
+		},
+	} {
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.Method != "GET" {
+				t.Errorf("%s: Expected GET, got %s", tc.name, req.Method)
+				return
+			}
+			if req.URL.Path != oauthMetadataEndpoint {
+				t.Errorf("%s: Expected metadata endpoint, got %s", tc.name, req.URL.Path)
+				return
+			}
+			data, err := json.Marshal(tc.metadata)
+			if err != nil {
+				t.Errorf("%s: unexpected json error: %v", tc.name, err)
+				return
+			}
+			w.Write(data)
+		}))
+		defer s.Close()
+
+		opts := &RequestTokenOptions{
+			ClientConfig: &restclient.Config{Host: tc.hostWrapper(s.URL)},
+			TokenFlow:    tc.tokenFlow,
+		}
+		if err := opts.SetDefaultOsinConfig(); err != nil {
+			t.Errorf("%s: unexpected SetDefaultOsinConfig error: %v", tc.name, err)
+			continue
+		}
+
+		// check PKCE data
+		if tc.expectPKCE {
+			if len(opts.OsinConfig.CodeChallenge) == 0 || len(opts.OsinConfig.CodeChallengeMethod) == 0 || len(opts.OsinConfig.CodeVerifier) == 0 {
+				t.Errorf("%s: did not set PKCE", tc.name)
+				continue
+			}
+		} else {
+			if len(opts.OsinConfig.CodeChallenge) != 0 || len(opts.OsinConfig.CodeChallengeMethod) != 0 || len(opts.OsinConfig.CodeVerifier) != 0 {
+				t.Errorf("%s: incorrectly set PKCE", tc.name)
+				continue
+			}
+		}
+
+		// blindly unset random PKCE data since we already checked for it
+		opts.OsinConfig.CodeChallenge = ""
+		opts.OsinConfig.CodeVerifier = ""
+
+		// compare the configs to see if they match
+		if !reflect.DeepEqual(*tc.expectedConfig, *opts.OsinConfig) {
+			t.Errorf("%s: expected osin config does not match, %s", tc.name, diff.ObjectDiff(*tc.expectedConfig, *opts.OsinConfig))
+		}
 	}
 }

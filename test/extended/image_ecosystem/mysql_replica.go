@@ -89,7 +89,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace(), "1Gi", 2)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = testutil.WaitForPolicyUpdate(oc.Client(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
@@ -102,7 +102,7 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
 		g.By("waiting for the deployment to complete")
-		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), helperName, 1, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), helperName, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for an endpoint")
@@ -208,9 +208,17 @@ func replicationTestFactory(oc *exutil.CLI, tc testCase) func() {
 var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication", func() {
 	defer g.GinkgoRecover()
 
-	ocs := make([]*exutil.CLI, len(testCases))
+	var oc *exutil.CLI
+
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	for i, tc := range testCases {
-		ocs[i] = exutil.NewCLI(fmt.Sprintf("mysql-replication-%d", i), exutil.KubeConfigPath())
-		g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(ocs[i], tc))
+		oc = exutil.NewCLI(fmt.Sprintf("mysql-replication-%d", i), exutil.KubeConfigPath())
+		g.It(fmt.Sprintf("MySQL replication template for %s: %s", tc.Version, tc.TemplatePath), replicationTestFactory(oc, tc))
 	}
 })

@@ -31,8 +31,16 @@ var (
 var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgresql replication", func() {
 	defer g.GinkgoRecover()
 
+	var oc *exutil.CLI
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	for i, image := range postgreSQLImages {
-		oc := exutil.NewCLI(fmt.Sprintf("postgresql-replication-%d", i), exutil.KubeConfigPath())
+		oc = exutil.NewCLI(fmt.Sprintf("postgresql-replication-%d", i), exutil.KubeConfigPath())
 		testFn := PostgreSQLReplicationTestFactory(oc, image)
 		g.It(fmt.Sprintf("postgresql replication works for %s", image), testFn)
 	}
@@ -73,7 +81,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 		_, err := exutil.SetupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace(), "512Mi", 1)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		err = testutil.WaitForPolicyUpdate(oc.Client(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
+		err = testutil.WaitForPolicyUpdate(oc.InternalKubeClient().Authorization(), oc.Namespace(), "create", templateapi.Resource("templates"), true)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		exutil.CheckOpenShiftNamespaceImageStreams(oc)
@@ -85,7 +93,7 @@ func PostgreSQLReplicationTestFactory(oc *exutil.CLI, image string) func() {
 
 		// oc.KubeFramework().WaitForAnEndpoint currently will wait forever;  for now, prefacing with our WaitForADeploymentToComplete,
 		// which does have a timeout, since in most cases a failure in the service coming up stems from a failed deployment
-		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.Client(), oc.Namespace(), postgreSQLHelperName, 1, oc)
+		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), postgreSQLHelperName, 1, oc)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), postgreSQLHelperName)

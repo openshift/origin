@@ -32,6 +32,13 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 		oc.Run("create").Args("-f", exutil.FixturePath("testdata", "run_policy")).Execute()
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("build configuration with Parallel build run policy", func() {
 		g.It("runs the builds in parallel", func() {
 			g.By("starting multiple builds")
@@ -41,7 +48,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 			)
 			bcName := "sample-parallel-build"
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+			buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
@@ -127,7 +134,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 				startedBuilds = append(startedBuilds, strings.TrimSpace(strings.Split(stdout, "/")[1]))
 			}
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+			buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
@@ -192,7 +199,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+			buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
@@ -235,7 +242,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 				o.Expect(err).NotTo(o.HaveOccurred())
 			}
 
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+			buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()
@@ -308,7 +315,7 @@ var _ = g.Describe("[Feature:Builds][Slow][Serial] using build configuration run
 
 			bcName := "sample-serial-latest-only-build"
 			buildVerified := map[string]bool{}
-			buildWatch, err := oc.Client().Builds(oc.Namespace()).Watch(metav1.ListOptions{
+			buildWatch, err := oc.BuildClient().Build().Builds(oc.Namespace()).Watch(metav1.ListOptions{
 				LabelSelector: buildutil.BuildConfigSelector(bcName).String(),
 			})
 			defer buildWatch.Stop()

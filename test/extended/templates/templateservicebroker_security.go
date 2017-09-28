@@ -47,10 +47,10 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 
 		var err error
 
-		template, err = cli.Client().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
+		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		clusterrolebinding, err = cli.AdminClient().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
+		clusterrolebinding, err = cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Create(&authorizationapi.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: cli.Namespace() + "templateservicebroker-client",
 			},
@@ -76,7 +76,7 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 		deleteUser(cli, edituser)
 		deleteUser(cli, nopermsuser)
 
-		err := cli.AdminClient().ClusterRoleBindings().Delete(clusterrolebinding.Name)
+		err := cli.AdminAuthorizationClient().Authorization().ClusterRoleBindings().Delete(clusterrolebinding.Name, nil)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		cli.AdminTemplateClient().Template().BrokerTemplateInstances().Delete(instanceID, nil)

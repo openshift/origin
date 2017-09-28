@@ -143,7 +143,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 	// it wasn't an origin type pre 3.6.
 	isSCC := mapping.GroupVersionKind.Kind == "SecurityContextConstraints"
 	if latest.OriginKind(mapping.GroupVersionKind) || isSCC {
-		oClient, kClient, err := f.clientAccessFactory.Clients()
+		_, kClient, err := f.clientAccessFactory.Clients()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
 		}
@@ -158,7 +158,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 			return nil, fmt.Errorf("unable to load a client %s: %v", mapping.GroupVersionKind.Kind, err)
 		}
 
-		describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), clientConfig, oClient, kClient, cfg.Host)
+		describer, ok := describe.DescriberFor(mapping.GroupVersionKind.GroupKind(), clientConfig, kClient, cfg.Host)
 		if !ok {
 			return nil, fmt.Errorf("no description has been implemented for %q", mapping.GroupVersionKind.Kind)
 		}

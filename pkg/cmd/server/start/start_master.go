@@ -584,6 +584,12 @@ func StartAPI(oc *origin.MasterConfig, kubeAPIServerConfig *master.Config, infor
 		if err != nil {
 			return err
 		}
+		backend, policy, err := kubernetes.GetAuditConfig(oc.Options.AuditConfig)
+		if err != nil {
+			return err
+		}
+		config.GenericConfig.AuditBackend = backend
+		config.GenericConfig.AuditPolicyChecker = policy
 		assetServer, err := config.Complete().New(genericapiserver.EmptyDelegate)
 		if err != nil {
 			return err

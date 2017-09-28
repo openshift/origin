@@ -607,7 +607,7 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clusterAdminClient *client.Client, clientConfig restclient.Config, projectName, adminUser string) (*client.Client, error) {
+func CreateNewProject(clusterAdminClient *client.Client, clientConfig restclient.Config, projectName, adminUser string) (kclientset.Interface, *client.Client, error) {
 	newProjectOptions := &newproject.NewProjectOptions{
 		Client:      clusterAdminClient,
 		ProjectName: projectName,
@@ -616,9 +616,9 @@ func CreateNewProject(clusterAdminClient *client.Client, clientConfig restclient
 	}
 
 	if err := newProjectOptions.Run(false); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	client, _, _, err := util.GetClientForUser(clientConfig, adminUser)
-	return client, err
+	client, kubeClient, _, err := util.GetClientForUser(clientConfig, adminUser)
+	return kubeClient, client, err
 }

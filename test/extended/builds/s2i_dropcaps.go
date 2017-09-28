@@ -23,6 +23,13 @@ var _ = g.Describe("[Feature:Builds][Slow] Capabilities should be dropped for s2
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
+	g.AfterEach(func() {
+		if g.CurrentGinkgoTestDescription().Failed {
+			exutil.DumpPodStates(oc)
+			exutil.DumpPodLogsStartingWith("", oc)
+		}
+	})
+
 	g.Describe("s2i build with a rootable builder", func() {
 		g.It("should not be able to switch to root with an assemble script", func() {
 

@@ -55,10 +55,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance object kinds test"
 		_, err = cli.KubeClient().AppsV1beta1().Deployments(cli.Namespace()).Get("deployment", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.Client().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
+		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("route", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 
-		_, err = cli.Client().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
+		_, err = cli.RouteClient().Route().Routes(cli.Namespace()).Get("newroute", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })
