@@ -517,7 +517,7 @@ var map_MasterConfig = map[string]string{
 	"controllerLeaseTTL":     "ControllerLeaseTTL enables controller election against etcd, instructing the master to attempt to acquire a lease before controllers start and renewing it within a number of seconds defined by this value. Setting this value non-negative forces pauseControllers=true. This value defaults off (0, or omitted) and controller election can be disabled with -1. This field is ignored if controllerConfig.lockServiceName is specified. Deprecated: use controllerConfig.lockServiceName to force leader election via config, and the\n  appropriate leader election flags in controllerArguments. Will be removed in 3.9.",
 	"admissionConfig":        "AdmissionConfig contains admission control plugin configuration.",
 	"controllerConfig":       "ControllerConfig holds configuration values for controllers",
-	"disabledFeatures":       "DisabledFeatures is a list of features that should not be started.  We omitempty here because its very unlikely that anyone will want to manually disable features and we don't want to encourage it.",
+	"disabledFeatures":       "DisabledFeatures is a list of features that should not be started.",
 	"etcdStorageConfig":      "EtcdStorageConfig contains information about how API resources are stored in Etcd. These values are only relevant when etcd is the backing store for the cluster.",
 	"etcdClientInfo":         "EtcdClientInfo contains information about how to connect to etcd",
 	"kubeletClientInfo":      "KubeletClientInfo contains information about how to connect to kubelets",
