@@ -9,23 +9,28 @@
 {{- $router_ip_v4_v6_mode := env "ROUTER_IP_V4_V6_MODE" "v4" }}
 
 
-{{/* A bunch of regular expressions.  Each should be wrapped in (?:) so that it is safe to include bare */}}
-{{/* quadPattern: Match a quad in an IP address; e.g. 123 */}}
+{{- /* A bunch of regular expressions.  Each should be wrapped in (?:) so that it is safe to include bare */}}
+{{- /* quadPattern: Match a quad in an IP address; e.g. 123 */}}
 {{- $quadPattern := `(?:[0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])` -}}
 
-{{/* ipPattern: Match an IPv4 address; e.g. 192.168.21.23 */}}
+{{- /* ipPattern: Match an IPv4 address; e.g. 192.168.21.23 */}}
 {{- $ipPattern := printf `(?:%s\.%s\.%s\.%s)` $quadPattern $quadPattern $quadPattern $quadPattern -}}
 
-{{/* cidrPattern: Match an IP and network size in CIDR form; e.g. 192.168.21.23/24 */}}
+{{- /* cidrPattern: Match an IP and network size in CIDR form; e.g. 192.168.21.23/24 */}}
 {{- $cidrPattern := printf `(?:%s(?:/(?:[0-9]|[1-2][0-9]|3[0-2]))?)` $ipPattern -}}
 
-{{/* cidrListPattern: Match a space separated list of CIDRs; e.g. 192.168.21.23/24 192.10.2.12 */}}
+{{- /* cidrListPattern: Match a space separated list of CIDRs; e.g. 192.168.21.23/24 192.10.2.12 */}}
 {{- $cidrListPattern := printf `(?:%s(?: +%s)*)` $cidrPattern $cidrPattern -}}
 
-{{/* cookie name pattern: */}}
+{{- /* cookie name pattern: */}}
 {{- $cookieNamePattern := `[a-zA-Z0-9_-]+` -}}
 
 {{- $timeSpecPattern := `[1-9][0-9]*(us|ms|s|m|h|d)?` }}
+
+{{- /* hsts header in response: */}}
+{{- $hstsOptionalTokenPattern := `(?:includeSubDomains|preload)` }}
+{{- $hstsPattern := printf `(?:%[1]s[;])*max-age=(?:\d+|"\d+")(?:[;]%[1]s)*`  $hstsOptionalTokenPattern -}}
+
 global
   maxconn {{env "ROUTER_MAX_CONNECTIONS" "20000"}}
 
@@ -385,6 +390,9 @@ backend be_secure:{{$cfgIdx}}
     {{- end }}
   {{- end }}{{/* end disable cookies check */}}
 
+  {{- with $hsts := firstMatch $hstsPattern (index $cfg.Annotations "haproxy.router.openshift.io/hsts_header") }}
+  http-response set-header Strict-Transport-Security {{$hsts}}
+  {{- end }}{{/* hsts header */}}
 
   {{- range $serviceUnitName, $weight := $cfg.ServiceUnitNames }}
     {{- if ne $weight 0 }}
