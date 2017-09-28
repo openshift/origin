@@ -12,8 +12,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const (
@@ -42,7 +42,7 @@ var (
 )
 
 type GroupModificationOptions struct {
-	GroupClient client.GroupInterface
+	GroupClient usertypedclient.GroupInterface
 
 	Group string
 	Users []string
@@ -96,12 +96,12 @@ func (o *GroupModificationOptions) Complete(f *clientcmd.Factory, args []string)
 	o.Group = args[0]
 	o.Users = append(o.Users, args[1:]...)
 
-	osClient, _, err := f.Clients()
+	userClient, err := f.OpenshiftInternalUserClient()
 	if err != nil {
 		return err
 	}
 
-	o.GroupClient = osClient.Groups()
+	o.GroupClient = userClient.User().Groups()
 
 	return nil
 }

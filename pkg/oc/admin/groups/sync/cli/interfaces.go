@@ -1,8 +1,8 @@
 package cli
 
 import (
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // SyncBuilder describes an object that can build all the schema-specific parts of an LDAPGroupSyncer
@@ -30,7 +30,7 @@ type GroupNameRestrictions interface {
 // a client that can retrieve OpenShift groups to satisfy those lists
 type OpenShiftGroupNameRestrictions interface {
 	GroupNameRestrictions
-	GetClient() client.GroupInterface
+	GetClient() usertypedclient.GroupInterface
 }
 
 // MappedNameRestrictions describes an object that holds user name mappings for a group sync job

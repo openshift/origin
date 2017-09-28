@@ -13,6 +13,7 @@ import (
 	groupscmd "github.com/openshift/origin/pkg/oc/admin/groups"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -182,13 +183,14 @@ func TestGroupCommands(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	userClient := userclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	newGroup := &groupscmd.NewGroupOptions{
-		GroupClient: clusterAdminClient.Groups(),
+		GroupClient: userClient.Groups(),
 		Group:       "group1",
 		Users:       []string{"first", "second", "third", "first"},
 		Printer: func(runtime.Object, io.Writer) error {
@@ -198,7 +200,7 @@ func TestGroupCommands(t *testing.T) {
 	if err := newGroup.AddGroup(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	group1, err := clusterAdminClient.Groups().Get("group1", metav1.GetOptions{})
+	group1, err := userClient.Groups().Get("group1", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -207,14 +209,14 @@ func TestGroupCommands(t *testing.T) {
 	}
 
 	modifyUsers := &groupscmd.GroupModificationOptions{
-		GroupClient: clusterAdminClient.Groups(),
+		GroupClient: userClient.Groups(),
 		Group:       "group1",
 		Users:       []string{"second", "fourth", "fifth"},
 	}
 	if err := modifyUsers.AddUsers(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	group1, err = clusterAdminClient.Groups().Get("group1", metav1.GetOptions{})
+	group1, err = userClient.Groups().Get("group1", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -225,7 +227,7 @@ func TestGroupCommands(t *testing.T) {
 	if err := modifyUsers.RemoveUsers(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	group1, err = clusterAdminClient.Groups().Get("group1", metav1.GetOptions{})
+	group1, err = userClient.Groups().Get("group1", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

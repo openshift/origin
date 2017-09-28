@@ -13,9 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // GroupSyncer runs a Sync job on Groups
@@ -35,7 +35,7 @@ type LDAPGroupSyncer struct {
 	// Maps an LDAP group enrty to an OpenShift Group's Name
 	GroupNameMapper interfaces.LDAPGroupNameMapper
 	// Allows the Syncer to search for OpenShift Groups
-	GroupClient client.GroupInterface
+	GroupClient usertypedclient.GroupInterface
 	// Host stores the address:port of the LDAP server
 	Host string
 	// DryRun indicates that no changes should be made.

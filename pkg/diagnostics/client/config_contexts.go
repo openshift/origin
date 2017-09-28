@@ -228,10 +228,10 @@ func (d ConfigContext) Check() types.DiagnosticResult {
 
 	// Actually send a request to see if context has connectivity.
 	// Note: we cannot reuse factories as they cache the clients, so build new factory for each context.
-	osClient, _, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).Clients()
+	projectClient, err := osclientcmd.NewFactory(kclientcmd.NewDefaultClientConfig(*d.RawConfig, &kclientcmd.ConfigOverrides{Context: *context})).OpenshiftInternalProjectClient()
 	// client create now *fails* if cannot connect to server; so, address connectivity errors below
 	if err == nil {
-		if projects, projerr := osClient.Projects().List(metav1.ListOptions{}); projerr != nil {
+		if projects, projerr := projectClient.Project().Projects().List(metav1.ListOptions{}); projerr != nil {
 			err = projerr
 		} else { // success!
 			list := []string{}

@@ -216,7 +216,7 @@ func (o *F5RouterOptions) Run() error {
 		return err
 	}
 
-	_, kc, err := o.Config.Clients()
+	kc, err := o.Config.Clients()
 	if err != nil {
 		return err
 	}

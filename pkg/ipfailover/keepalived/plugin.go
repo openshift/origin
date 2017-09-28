@@ -85,7 +85,7 @@ func (p *KeepalivedPlugin) GetNamespace() (string, error) {
 
 // GetDeploymentConfig gets the deployment config associated with this IP Failover configurator plugin.
 func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, error) {
-	osClient, _, err := p.Factory.Clients()
+	appsClient, err := p.Factory.OpenshiftInternalAppsClient()
 	if err != nil {
 		return nil, fmt.Errorf("error getting client: %v", err)
 	}
@@ -95,7 +95,7 @@ func (p *KeepalivedPlugin) GetDeploymentConfig() (*deployapi.DeploymentConfig, e
 		return nil, fmt.Errorf("error getting namespace: %v", err)
 	}
 
-	dc, err := osClient.DeploymentConfigs(namespace).Get(p.Name, metav1.GetOptions{})
+	dc, err := appsClient.Apps().DeploymentConfigs(namespace).Get(p.Name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			glog.V(4).Infof("KeepAlived IP Failover DeploymentConfig: %s not found", p.Name)

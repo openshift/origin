@@ -17,11 +17,11 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oc/admin/migrate"
 
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imagetypedclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 var (
@@ -73,7 +73,7 @@ var (
 type MigrateImageReferenceOptions struct {
 	migrate.ResourceOptions
 
-	Client          client.Interface
+	Client          imagetypedclient.ImageStreamsGetter
 	Mappings        ImageReferenceMappings
 	UpdatePodSpecFn func(obj runtime.Object, fn func(*kapi.PodSpec) error) (bool, error)
 }
@@ -129,11 +129,11 @@ func (o *MigrateImageReferenceOptions) Complete(f *clientcmd.Factory, c *cobra.C
 		return err
 	}
 
-	osclient, _, err := f.Clients()
+	imageClient, err := f.OpenshiftInternalImageClient()
 	if err != nil {
 		return err
 	}
-	o.Client = osclient
+	o.Client = imageClient.Image()
 
 	return nil
 }

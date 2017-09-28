@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
+	userfakeclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 func TestGoodPrune(t *testing.T) {
@@ -86,7 +86,7 @@ func TestDeleteFails(t *testing.T) {
 	checkClientForDeletedGroups(tc, []string{"os" + Group1UID, "os" + Group2UID}, t)
 }
 
-func checkClientForDeletedGroups(tc *testclient.Fake, expectedGroups []string, t *testing.T) {
+func checkClientForDeletedGroups(tc *userfakeclient.Clientset, expectedGroups []string, t *testing.T) {
 	actualGroups := sets.NewString(extractDeletedGroups(tc)...)
 	wantedGroups := sets.NewString(expectedGroups...)
 
@@ -95,7 +95,7 @@ func checkClientForDeletedGroups(tc *testclient.Fake, expectedGroups []string, t
 	}
 }
 
-func extractDeletedGroups(tc *testclient.Fake) []string {
+func extractDeletedGroups(tc *userfakeclient.Clientset) []string {
 	ret := []string{}
 	for _, genericAction := range tc.Actions() {
 		switch action := genericAction.(type) {
@@ -107,8 +107,8 @@ func extractDeletedGroups(tc *testclient.Fake) []string {
 	return ret
 }
 
-func newTestPruner() (*LDAPGroupPruner, *testclient.Fake) {
-	tc := testclient.NewSimpleFake()
+func newTestPruner() (*LDAPGroupPruner, *userfakeclient.Clientset) {
+	tc := userfakeclient.NewSimpleClientset()
 	tc.PrependReactor("delete", "groups", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, nil, nil
 	})
@@ -117,7 +117,7 @@ func newTestPruner() (*LDAPGroupPruner, *testclient.Fake) {
 		GroupLister:     newTestLister(),
 		GroupDetector:   newTestGroupDetector(),
 		GroupNameMapper: newTestGroupNameMapper(),
-		GroupClient:     tc.Groups(),
+		GroupClient:     tc.User().Groups(),
 		Host:            newTestHost(),
 		Out:             ioutil.Discard,
 		Err:             ioutil.Discard,

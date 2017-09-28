@@ -93,7 +93,11 @@ func NewCmdCreateEdgeRoute(fullName string, f *clientcmd.Factory, out io.Writer)
 
 // CreateEdgeRoute implements the behavior to run the create edge route command.
 func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, err := f.Clients()
+	kc, err := f.ClientSet()
+	if err != nil {
+		return err
+	}
+	routeClient, err := f.OpenshiftInternalRouteClient()
 	if err != nil {
 		return err
 	}
@@ -149,7 +153,7 @@ func CreateEdgeRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, ar
 	actualRoute := route
 
 	if !dryRun {
-		actualRoute, err = oc.Routes(ns).Create(route)
+		actualRoute, err = routeClient.Route().Routes(ns).Create(route)
 		if err != nil {
 			return err
 		}
@@ -215,7 +219,11 @@ func NewCmdCreatePassthroughRoute(fullName string, f *clientcmd.Factory, out io.
 
 // CreatePassthroughRoute implements the behavior to run the create passthrough route command.
 func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, err := f.Clients()
+	kc, err := f.ClientSet()
+	if err != nil {
+		return err
+	}
+	routeClient, err := f.OpenshiftInternalRouteClient()
 	if err != nil {
 		return err
 	}
@@ -255,7 +263,7 @@ func CreatePassthroughRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comm
 	actualRoute := route
 
 	if !dryRun {
-		actualRoute, err = oc.Routes(ns).Create(route)
+		actualRoute, err = routeClient.Route().Routes(ns).Create(route)
 		if err != nil {
 			return err
 		}
@@ -332,7 +340,11 @@ func NewCmdCreateReencryptRoute(fullName string, f *clientcmd.Factory, out io.Wr
 
 // CreateReencryptRoute implements the behavior to run the create reencrypt route command.
 func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Command, args []string) error {
-	oc, kc, err := f.Clients()
+	kc, err := f.ClientSet()
+	if err != nil {
+		return err
+	}
+	routeClient, err := f.OpenshiftInternalRouteClient()
 	if err != nil {
 		return err
 	}
@@ -394,7 +406,7 @@ func CreateReencryptRoute(f *clientcmd.Factory, out io.Writer, cmd *cobra.Comman
 	actualRoute := route
 
 	if !dryRun {
-		actualRoute, err = oc.Routes(ns).Create(route)
+		actualRoute, err = routeClient.Route().Routes(ns).Create(route)
 		if err != nil {
 			return err
 		}

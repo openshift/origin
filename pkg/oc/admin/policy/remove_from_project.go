@@ -14,7 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -25,7 +25,7 @@ const (
 
 type RemoveFromProjectOptions struct {
 	BindingNamespace string
-	Client           client.Interface
+	Client           oauthorizationtypedclient.RoleBindingsGetter
 
 	Groups []string
 	Users  []string
@@ -103,10 +103,11 @@ func (o *RemoveFromProjectOptions) Complete(f *clientcmd.Factory, cmd *cobra.Com
 
 	*target = append(*target, args...)
 
-	var err error
-	if o.Client, _, err = f.Clients(); err != nil {
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
 		return err
 	}
+	o.Client = authorizationClient.Authorization()
 	if o.BindingNamespace, _, err = f.DefaultNamespace(); err != nil {
 		return err
 	}
