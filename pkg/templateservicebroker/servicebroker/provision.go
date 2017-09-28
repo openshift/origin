@@ -85,7 +85,12 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, instanceI
 	}
 
 	templateInstance := &templateapi.TemplateInstance{
-		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: instanceID,
+			Annotations: map[string]string{
+				api.OpenServiceBrokerInstanceExternalID: instanceID,
+			},
+		},
 		Spec: templateapi.TemplateInstanceSpec{
 			Template: *template,
 			Secret:   &kapi.LocalObjectReference{Name: secret.Name},

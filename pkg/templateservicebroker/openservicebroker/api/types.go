@@ -203,3 +203,6 @@ const (
 	OperationUpdating       Operation = "updating"
 	OperationDeprovisioning Operation = "deprovisioning"
 )
+
+// OpenServiceBrokerInstanceExternalID is a common, optional annotation that stores the OSBAPI instance (UU)ID associated with an object.
+const OpenServiceBrokerInstanceExternalID = "openservicebroker.openshift.io/instance-external-id"
