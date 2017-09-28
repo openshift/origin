@@ -44,11 +44,13 @@ func TestMetrics(t *testing.T) {
 	expectedResponse := `# HELP openshift_template_instance_active_start_time_seconds Show the start time in unix epoch form of active TemplateInstance objects by namespace and name
 # TYPE openshift_template_instance_active_start_time_seconds gauge
 openshift_template_instance_active_start_time_seconds{name="testname",namespace="testnamespace"} 123
-# HELP openshift_template_instance_total Counts TemplateInstance objects by condition type and status
+# HELP openshift_template_instance_status_condition_total Counts TemplateInstance objects by condition type and status
+# TYPE openshift_template_instance_status_condition_total gauge
+openshift_template_instance_status_condition_total{status="False",type="Ready"} 1
+openshift_template_instance_status_condition_total{status="True",type="Ready"} 1
+# HELP openshift_template_instance_total Counts TemplateInstance objects
 # TYPE openshift_template_instance_total gauge
-openshift_template_instance_total{status="",type=""} 2
-openshift_template_instance_total{status="False",type="Ready"} 1
-openshift_template_instance_total{status="True",type="Ready"} 1
+openshift_template_instance_total 2
 `
 	registry := prometheus.NewRegistry()
 
