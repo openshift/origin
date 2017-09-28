@@ -89,7 +89,7 @@ func TestEndpointAdmission(t *testing.T) {
 	testOne(t, clusterAdminKubeClient, "default", "external", true)
 
 	// Endpoint controller service account
-	_, serviceAccountClient, _, err := testutil.GetClientForServiceAccount(clusterAdminKubeClient, *clientConfig, "kube-system", "endpoint-controller")
+	serviceAccountClient, _, err := testutil.GetClientForServiceAccount(clusterAdminKubeClient, *clientConfig, "kube-system", "endpoint-controller")
 	if err != nil {
 		t.Fatalf("error getting endpoint controller service account: %v", err)
 	}
@@ -98,11 +98,11 @@ func TestEndpointAdmission(t *testing.T) {
 	testOne(t, serviceAccountClient, "default", "external", true)
 
 	// Project admin
-	_, _, _, err = testserver.CreateNewProject(*clientConfig, "myproject", "myadmin")
+	_, _, err = testserver.CreateNewProject(clientConfig, "myproject", "myadmin")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
-	_, projectAdminClient, _, err := testutil.GetClientForUser(*clientConfig, "myadmin")
+	projectAdminClient, _, err := testutil.GetClientForUser(clientConfig, "myadmin")
 	if err != nil {
 		t.Fatalf("error getting project admin client: %v", err)
 	}

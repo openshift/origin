@@ -7,18 +7,15 @@ import (
 	"github.com/spf13/pflag"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/admin/project"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
-	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -144,20 +141,6 @@ func newLoginOptions(server string, username string, password string, insecure b
 	}
 
 	return loginOptions
-}
-
-func whoami(clientCfg *restclient.Config) (*userapi.User, error) {
-	oClient, err := client.New(clientCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	me, err := oClient.Users().Get("~", metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	return me, nil
 }
 
 func defaultClientConfig(flags *pflag.FlagSet) clientcmd.ClientConfig {

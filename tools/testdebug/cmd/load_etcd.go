@@ -13,6 +13,7 @@ import (
 
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -86,14 +87,14 @@ func (o *DebugAPIServerOptions) Run() error {
 	}
 
 	if o.AllowAll {
-		osClient, err := testutil.GetClusterAdminClient(testutil.GetBaseDir() + "/openshift.local.config/master/admin.kubeconfig")
+		clientConfig, err := testutil.GetClusterAdminClientConfig(testutil.GetBaseDir() + "/openshift.local.config/master/admin.kubeconfig")
 		if err != nil {
 			return err
 		}
 
 		addClusterAdmin := &policy.RoleModificationOptions{
 			RoleName:            bootstrappolicy.ClusterAdminRoleName,
-			RoleBindingAccessor: policy.ClusterRoleBindingAccessor{Client: osClient},
+			RoleBindingAccessor: policy.ClusterRoleBindingAccessor{Client: authorizationclient.NewForConfigOrDie(clientConfig)},
 			Groups:              []string{"system:authenticated"},
 		}
 		if err := addClusterAdmin.AddRole(); err != nil {

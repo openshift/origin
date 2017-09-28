@@ -13,8 +13,10 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploytest "github.com/openshift/origin/pkg/apps/apis/apps/test"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -33,20 +35,21 @@ func TestTriggers_manual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, _, err = testserver.CreateNewProject(*clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
-	oc, kc, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
+	kc, adminConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{{Type: deployapi.DeploymentTriggerManual}}
 
-	dc, err := oc.DeploymentConfigs(namespace).Create(config)
+	dc, err := adminAppsClient.DeploymentConfigs(namespace).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v %#v", err, config)
 	}
@@ -65,7 +68,7 @@ func TestTriggers_manual(t *testing.T) {
 
 	retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 		var err error
-		config, err = oc.DeploymentConfigs(namespace).Instantiate(request)
+		config, err = adminAppsClient.DeploymentConfigs(namespace).Instantiate(config.Name, request)
 		return err
 	})
 	if retryErr != nil {
@@ -109,10 +112,12 @@ func TestTriggers_imageChange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(*openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, projectAdminClientConfig, err := testserver.CreateNewProject(openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
+	projectAdminAppsClient := appsclient.NewForConfigOrDie(projectAdminClientConfig)
+	projectAdminImageClient := imageclient.NewForConfigOrDie(projectAdminClientConfig)
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 
@@ -120,17 +125,17 @@ func TestTriggers_imageChange(t *testing.T) {
 	config.Namespace = testutil.Namespace()
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkImageChangeTrigger()}
 
-	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
+	configWatch, err := projectAdminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
 	}
 	defer configWatch.Stop()
 
-	if imageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if imageStream, err = projectAdminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream: %v", err)
 	}
 
-	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(metav1.ListOptions{})
+	imageWatch, err := projectAdminImageClient.ImageStreams(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 	}
@@ -151,7 +156,7 @@ func TestTriggers_imageChange(t *testing.T) {
 				DockerImageReference: updatedPullSpec,
 			},
 		}
-		if err := openshiftProjectAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
+		if _, err := projectAdminImageClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -170,7 +175,7 @@ func TestTriggers_imageChange(t *testing.T) {
 		}
 	}
 
-	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+	if config, err = projectAdminAppsClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create deploymentconfig: %v", err)
 	}
 
@@ -210,18 +215,20 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, oc, _, err := testserver.CreateNewProject(*openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, adminConfig, err := testserver.CreateNewProject(openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
+	adminImageClient := imageclient.NewForConfigOrDie(adminConfig)
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 
-	if imageStream, err = oc.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if imageStream, err = adminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream: %v", err)
 	}
 
-	imageWatch, err := oc.ImageStreams(testutil.Namespace()).Watch(metav1.ListOptions{})
+	imageWatch, err := adminImageClient.ImageStreams(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 	}
@@ -243,7 +250,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	}
 
 	createTagEvent := func(mapping *imageapi.ImageStreamMapping) {
-		if err := oc.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
+		if _, err := adminImageClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -270,7 +277,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		}
 	}
 
-	configWatch, err := oc.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
+	configWatch, err := adminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to deploymentconfigs: %v", err)
 	}
@@ -280,7 +287,7 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 	config.Namespace = testutil.Namespace()
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{deploytest.OkImageChangeTrigger()}
 	config.Spec.Triggers[0].ImageChangeParams.Automatic = false
-	if config, err = oc.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+	if config, err = adminAppsClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create deploymentconfig: %v", err)
 	}
 
@@ -349,13 +356,13 @@ loop:
 	}
 	retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 		var err error
-		config, err = oc.DeploymentConfigs(testutil.Namespace()).Instantiate(request)
+		config, err = adminAppsClient.DeploymentConfigs(testutil.Namespace()).Instantiate(config.Name, request)
 		return err
 	})
 	if retryErr != nil {
 		t.Fatalf("Couldn't instantiate deployment config %q: %v", request.Name, err)
 	}
-	config, err = oc.DeploymentConfigs(config.Namespace).Get(config.Name, metav1.GetOptions{})
+	config, err = adminAppsClient.DeploymentConfigs(config.Namespace).Get(config.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -385,10 +392,12 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(*openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, adminConfig, err := testserver.CreateNewProject(openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
+	adminImageClient := imageclient.NewForConfigOrDie(adminConfig)
 
 	imageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: deploytest.ImageStreamName}}
 	secondImageStream := &imageapi.ImageStream{ObjectMeta: metav1.ObjectMeta{Name: "sample"}}
@@ -401,20 +410,20 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 	secondTrigger.ImageChangeParams.From.Name = imageapi.JoinImageStreamTag("sample", imageapi.DefaultImageTag)
 	config.Spec.Triggers = []deployapi.DeploymentTriggerPolicy{firstTrigger, secondTrigger}
 
-	configWatch, err := openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
+	configWatch, err := adminAppsClient.DeploymentConfigs(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to deploymentconfigs %v", err)
 	}
 	defer configWatch.Stop()
 
-	if imageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
+	if imageStream, err = adminImageClient.ImageStreams(testutil.Namespace()).Create(imageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream %q: %v", imageStream.Name, err)
 	}
-	if secondImageStream, err = openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Create(secondImageStream); err != nil {
+	if secondImageStream, err = adminImageClient.ImageStreams(testutil.Namespace()).Create(secondImageStream); err != nil {
 		t.Fatalf("Couldn't create imagestream %q: %v", secondImageStream.Name, err)
 	}
 
-	imageWatch, err := openshiftProjectAdminClient.ImageStreams(testutil.Namespace()).Watch(metav1.ListOptions{})
+	imageWatch, err := adminImageClient.ImageStreams(testutil.Namespace()).Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("Couldn't subscribe to imagestreams: %v", err)
 	}
@@ -436,7 +445,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 				DockerImageReference: pullSpec,
 			},
 		}
-		if err := openshiftProjectAdminClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
+		if _, err := adminImageClient.ImageStreamMappings(testutil.Namespace()).Create(mapping); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -458,7 +467,7 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		}
 	}
 
-	if config, err = openshiftProjectAdminClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
+	if config, err = adminAppsClient.DeploymentConfigs(testutil.Namespace()).Create(config); err != nil {
 		t.Fatalf("Couldn't create deploymentconfig: %v", err)
 	}
 
@@ -545,14 +554,15 @@ func TestTriggers_configChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, _, err = testserver.CreateNewProject(*clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
-	oc, kc, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "my-test-user")
+	kc, adminConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
+	adminAppsClient := appsclient.NewForConfigOrDie(adminConfig)
 
 	config := deploytest.OkDeploymentConfig(0)
 	config.Namespace = namespace
@@ -565,7 +575,7 @@ func TestTriggers_configChange(t *testing.T) {
 	defer rcWatch.Stop()
 
 	// submit the initial deployment config
-	config, err = oc.DeploymentConfigs(namespace).Create(config)
+	config, err = adminAppsClient.DeploymentConfigs(namespace).Create(config)
 	if err != nil {
 		t.Fatalf("Couldn't create DeploymentConfig: %v", err)
 	}
@@ -611,7 +621,7 @@ func TestTriggers_configChange(t *testing.T) {
 	// Update the config with a new environment variable and observe a new deployment
 	// coming up.
 	retryErr = retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
-		latest, err := oc.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
+		latest, err := adminAppsClient.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -624,7 +634,7 @@ func TestTriggers_configChange(t *testing.T) {
 		}
 
 		// update the config
-		_, err = oc.DeploymentConfigs(namespace).Update(latest)
+		_, err = adminAppsClient.DeploymentConfigs(namespace).Update(latest)
 		return err
 	})
 	if retryErr != nil {
@@ -633,12 +643,12 @@ func TestTriggers_configChange(t *testing.T) {
 
 	if retryErr := retry.RetryOnConflict(wait.Backoff{Steps: maxUpdateRetries}, func() error {
 		// submit a new config with an updated environment variable
-		newConfig, err := oc.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
+		newConfig, err := adminAppsClient.DeploymentConfigs(namespace).Get(config.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 		newConfig.Spec.Template.Spec.Containers[0].Env[0].Value = "UPDATED"
-		_, err = oc.DeploymentConfigs(namespace).Update(newConfig)
+		_, err = adminAppsClient.DeploymentConfigs(namespace).Update(newConfig)
 		return err
 	}); retryErr != nil {
 		t.Fatal(retryErr)

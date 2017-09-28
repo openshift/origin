@@ -13,8 +13,10 @@ import (
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -41,7 +43,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
-	openshiftClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting openshift client: %v", err)
 	}
@@ -61,7 +63,7 @@ func TestProjectRequestError(t *testing.T) {
 	if err := templateapi.AddObjectsToTemplate(template, additionalObjects, kapiv1.SchemeGroupVersion); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := openshiftClient.Templates(templateNamespace).Create(template); err != nil {
+	if _, err := templateclient.NewForConfigOrDie(clusterAdminClientConfig).Templates(templateNamespace).Create(template); err != nil {
 		t.Fatal(err)
 	}
 
@@ -80,7 +82,7 @@ func TestProjectRequestError(t *testing.T) {
 	}
 
 	// Create project request
-	_, err = openshiftClient.ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
+	_, err = projectclient.NewForConfigOrDie(clusterAdminClientConfig).ProjectRequests().Create(&projectapi.ProjectRequest{ObjectMeta: metav1.ObjectMeta{Name: ns}})
 	if err == nil || err.Error() != `Internal error occurred: ConfigMap "" is invalid: metadata.name: Required value: name or generateName is required` {
 		t.Fatalf("Expected internal error creating project, got %v", err)
 	}

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -205,12 +206,13 @@ func pluginImplementsNetworkPolicy() bool {
 }
 
 func makeNamespaceGlobal(ns *kapiv1.Namespace) {
-	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
+	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
+	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	expectNoError(err)
-	netns, err := client.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	netns.NetID = 0
-	_, err = client.NetNamespaces().Update(netns)
+	_, err = networkClient.NetNamespaces().Update(netns)
 	expectNoError(err)
 }
 

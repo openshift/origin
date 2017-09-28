@@ -28,7 +28,6 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -609,14 +608,14 @@ func WaitForServiceAccounts(clientset kclientset.Interface, namespace string, ac
 
 // CreateNewProject creates a new project using the clusterAdminClient, then gets a token for the adminUser and returns
 // back a client for the admin user
-func CreateNewProject(clientConfig restclient.Config, projectName, adminUser string) (kclientset.Interface, *client.Client, *restclient.Config, error) {
-	projectClient, err := projectclient.NewForConfig(&clientConfig)
+func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser string) (kclientset.Interface, *restclient.Config, error) {
+	projectClient, err := projectclient.NewForConfig(clientConfig)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
-	authorizationClient, err := authorizationclient.NewForConfig(&clientConfig)
+	authorizationClient, err := authorizationclient.NewForConfig(clientConfig)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
@@ -628,9 +627,9 @@ func CreateNewProject(clientConfig restclient.Config, projectName, adminUser str
 	}
 
 	if err := newProjectOptions.Run(false); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	client, kubeClient, config, err := util.GetClientForUser(clientConfig, adminUser)
-	return kubeClient, client, config, err
+	kubeClient, config, err := util.GetClientForUser(clientConfig, adminUser)
+	return kubeClient, config, err
 }

@@ -10,7 +10,6 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	restclient "k8s.io/client-go/rest"
 
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
@@ -19,7 +18,7 @@ import (
 )
 
 func createProject(clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
-	_, _, _, err := testserver.CreateNewProject(*clientConfig, name, name)
+	_, _, err := testserver.CreateNewProject(clientConfig, name, name)
 	if err != nil {
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
 	}
@@ -40,7 +39,7 @@ func createProject(clientConfig *restclient.Config, name string) (*networkapi.Ne
 	return netns, nil
 }
 
-func updateNetNamespace(osClient *osclient.Client, netns *networkapi.NetNamespace, action network.PodNetworkAction, args string) (*networkapi.NetNamespace, error) {
+func updateNetNamespace(osClient networkclient.NetworkInterface, netns *networkapi.NetNamespace, action network.PodNetworkAction, args string) (*networkapi.NetNamespace, error) {
 	network.SetChangePodNetworkAnnotation(netns, action, args)
 	_, err := osClient.NetNamespaces().Update(netns)
 	if err != nil {
@@ -77,14 +76,11 @@ func TestOadmPodNetwork(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)
 	}
-	osClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
-	if err != nil {
-		t.Fatalf("error getting client: %v", err)
-	}
 	clientConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client config: %v", err)
 	}
+	clusterAdminNetworkClient := networkclient.NewForConfigOrDie(clientConfig)
 
 	origNetns1, err := createProject(clientConfig, "one")
 	if err != nil {
@@ -106,14 +102,14 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected unique NetIDs, got %d, %d, %d", origNetns1.NetID, origNetns2.NetID, origNetns3.NetID)
 	}
 
-	newNetns2, err := updateNetNamespace(osClient, origNetns2, network.JoinPodNetwork, "one")
+	newNetns2, err := updateNetNamespace(clusterAdminNetworkClient, origNetns2, network.JoinPodNetwork, "one")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}
 	if newNetns2.NetID != origNetns1.NetID {
 		t.Fatalf("expected netns2 (%d) to be joined to netns1 (%d)", newNetns2.NetID, origNetns1.NetID)
 	}
-	newNetns1, err := osClient.NetNamespaces().Get("one", metav1.GetOptions{})
+	newNetns1, err := clusterAdminNetworkClient.NetNamespaces().Get("one", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting refetching NetNamespace: %v", err)
 	}
@@ -121,14 +117,14 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected netns1 (%d) to be unchanged (%d)", newNetns1.NetID, origNetns1.NetID)
 	}
 
-	newNetns1, err = updateNetNamespace(osClient, origNetns1, network.GlobalPodNetwork, "")
+	newNetns1, err = updateNetNamespace(clusterAdminNetworkClient, origNetns1, network.GlobalPodNetwork, "")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}
 	if newNetns1.NetID != 0 {
 		t.Fatalf("expected netns1 (%d) to be global", newNetns1.NetID)
 	}
-	newNetns2, err = osClient.NetNamespaces().Get("two", metav1.GetOptions{})
+	newNetns2, err = clusterAdminNetworkClient.NetNamespaces().Get("two", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("error getting refetching NetNamespace: %v", err)
 	}
@@ -136,7 +132,7 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("expected netns2 (%d) to be unchanged (%d)", newNetns2.NetID, origNetns1.NetID)
 	}
 
-	newNetns1, err = updateNetNamespace(osClient, newNetns1, network.IsolatePodNetwork, "")
+	newNetns1, err = updateNetNamespace(clusterAdminNetworkClient, newNetns1, network.IsolatePodNetwork, "")
 	if err != nil {
 		t.Fatalf("error updating namespace: %v", err)
 	}

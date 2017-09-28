@@ -26,11 +26,12 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	"k8s.io/kubernetes/pkg/serviceaccount"
 
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oauth/scope"
 	saoauth "github.com/openshift/origin/pkg/serviceaccounts/oauthclient"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	htmlutil "github.com/openshift/origin/test/util/html"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -58,10 +59,6 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	defer oauthServer.Close()
 	redirectURL := oauthServer.URL + "/oauthcallback"
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -70,16 +67,17 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	projectName := "hammer-project"
-	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, projectName, "harold"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, "harold"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if err := testserver.WaitForServiceAccounts(clusterAdminKubeClientset, projectName, []string{"default"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	promptingClient, err := clusterAdminClient.OAuthClients().Create(&oauthapi.OAuthClient{
+	promptingClient, err := clusterAdminOAuthClient.OAuthClients().Create(&oauthapi.OAuthClient{
 		ObjectMeta:            metav1.ObjectMeta{Name: "prompting-client"},
 		Secret:                "prompting-client-secret",
 		RedirectURIs:          []string{redirectURL},
@@ -163,14 +161,14 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"scope:user:full",
 		})
 		// verify the persisted client authorization looks like we expect
-		if clientAuth, err := clusterAdminClient.OAuthClientAuthorizations().Get("harold:"+oauthClientConfig.ClientId, metav1.GetOptions{}); err != nil {
+		if clientAuth, err := clusterAdminOAuthClient.OAuthClientAuthorizations().Get("harold:"+oauthClientConfig.ClientId, metav1.GetOptions{}); err != nil {
 			t.Fatalf("Unexpected error: %v", err)
 		} else if !reflect.DeepEqual(clientAuth.Scopes, []string{"user:full"}) {
 			t.Fatalf("Unexpected scopes: %v", clientAuth.Scopes)
 		} else {
 			// update the authorization to not contain any approved scopes
 			clientAuth.Scopes = nil
-			if _, err := clusterAdminClient.OAuthClientAuthorizations().Update(clientAuth); err != nil {
+			if _, err := clusterAdminOAuthClient.OAuthClientAuthorizations().Update(clientAuth); err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 		}
@@ -260,7 +258,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"scope:user:full",
 		})
 
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminOAuthClient.OAuthClientAuthorizations().Delete("harold:"+oauthClientConfig.ClientId, nil)
 	}
 
 	{
@@ -296,7 +294,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"code",
 			"scope:" + oauthClientConfig.Scope,
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminOAuthClient.OAuthClientAuthorizations().Delete("harold:"+oauthClientConfig.ClientId, nil)
 	}
 
 	{
@@ -317,7 +315,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"redirect to /oauthcallback",
 			"error:access_denied",
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminOAuthClient.OAuthClientAuthorizations().Delete("harold:"+oauthClientConfig.ClientId, nil)
 	}
 
 	{
@@ -338,7 +336,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"redirect to /oauthcallback",
 			"error:invalid_scope",
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminOAuthClient.OAuthClientAuthorizations().Delete("harold:"+oauthClientConfig.ClientId, nil)
 	}
 
 	{
@@ -374,7 +372,7 @@ func TestOAuthServiceAccountClient(t *testing.T) {
 			"code",
 			"scope:" + oauthClientConfig.Scope,
 		})
-		clusterAdminClient.OAuthClientAuthorizations().Delete("harold:" + oauthClientConfig.ClientId)
+		clusterAdminOAuthClient.OAuthClientAuthorizations().Delete("harold:"+oauthClientConfig.ClientId, nil)
 	}
 }
 
@@ -516,15 +514,12 @@ func runOAuthFlow(
 		}
 		operations = append(operations, fmt.Sprintf("scope:%v", accessData.ResponseData["scope"]))
 
-		whoamiConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+		whoamiConfig := restclient.AnonymousClientConfig(clusterAdminClientConfig)
 		whoamiConfig.BearerToken = accessData.AccessToken
-		whoamiClient, err := client.New(&whoamiConfig)
-		if err != nil {
-			t.Errorf("unexpected error: %v", err)
-			return
-		}
+		whoamiBuildClient := buildclient.NewForConfigOrDie(whoamiConfig)
+		whoamiUserClient := userclient.NewForConfigOrDie(whoamiConfig)
 
-		_, err = whoamiClient.Builds(projectName).List(metav1.ListOptions{})
+		_, err = whoamiBuildClient.Builds(projectName).List(metav1.ListOptions{})
 		if expectBuildSuccess && err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return
@@ -534,7 +529,7 @@ func runOAuthFlow(
 			return
 		}
 
-		user, err := whoamiClient.Users().Get("~", metav1.GetOptions{})
+		user, err := whoamiUserClient.Users().Get("~", metav1.GetOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 			return

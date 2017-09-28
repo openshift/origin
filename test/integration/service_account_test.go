@@ -335,7 +335,7 @@ func TestDockercfgTokenDeletedController(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: "ns1"},
 	}
 
-	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
