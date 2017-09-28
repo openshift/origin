@@ -15,12 +15,12 @@ var resourceaccessreviewsResource = schema.GroupVersionResource{Group: "authoriz
 
 var resourceaccessreviewsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "", Kind: "ResourceAccessReview"}
 
-// Create takes the representation of a resourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReview, and an error, if there is any.
-func (c *FakeResourceAccessReviews) Create(resourceAccessReview *authorization.ResourceAccessReview) (result *authorization.ResourceAccessReview, err error) {
+// Create takes the representation of a resourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReviewResponse, and an error, if there is any.
+func (c *FakeResourceAccessReviews) Create(resourceAccessReview *authorization.ResourceAccessReview) (result *authorization.ResourceAccessReviewResponse, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(resourceaccessreviewsResource, resourceAccessReview), &authorization.ResourceAccessReview{})
+		Invokes(testing.NewRootCreateAction(resourceaccessreviewsResource, resourceAccessReview), &authorization.ResourceAccessReviewResponse{})
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*authorization.ResourceAccessReview), err
+	return obj.(*authorization.ResourceAccessReviewResponse), err
 }

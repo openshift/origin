@@ -13,7 +13,8 @@ type LocalResourceAccessReviewsGetter interface {
 
 // LocalResourceAccessReviewInterface has methods to work with LocalResourceAccessReview resources.
 type LocalResourceAccessReviewInterface interface {
-	Create(*v1.LocalResourceAccessReview) (*v1.LocalResourceAccessReview, error)
+	Create(*v1.LocalResourceAccessReview) (*v1.ResourceAccessReviewResponse, error)
+
 	LocalResourceAccessReviewExpansion
 }
 
@@ -31,9 +32,9 @@ func newLocalResourceAccessReviews(c *AuthorizationV1Client, namespace string) *
 	}
 }
 
-// Create takes the representation of a localResourceAccessReview and creates it.  Returns the server's representation of the localResourceAccessReview, and an error, if there is any.
-func (c *localResourceAccessReviews) Create(localResourceAccessReview *v1.LocalResourceAccessReview) (result *v1.LocalResourceAccessReview, err error) {
-	result = &v1.LocalResourceAccessReview{}
+// Create takes the representation of a localResourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReviewResponse, and an error, if there is any.
+func (c *localResourceAccessReviews) Create(localResourceAccessReview *v1.LocalResourceAccessReview) (result *v1.ResourceAccessReviewResponse, err error) {
+	result = &v1.ResourceAccessReviewResponse{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("localresourceaccessreviews").
