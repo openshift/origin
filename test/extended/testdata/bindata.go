@@ -25555,10 +25555,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
                     "value": "true"
                   },
                   {
-                    "name": "OPENSHIFT_JENKINS_JVM_ARCH",
-                    "value": "${JVM_ARCH}"
-                  },
-                  {
                     "name": "KUBERNETES_MASTER",
                     "value": "https://kubernetes.default:443"
                   },
@@ -25705,12 +25701,6 @@ var _examplesJenkinsJenkinsEphemeralTemplateJson = []byte(`{
       "displayName": "Enable OAuth in Jenkins",
       "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
       "value": "true"
-    },
-    {
-      "name": "JVM_ARCH",
-      "displayName": "Jenkins JVM Architecture",
-      "description": "Whether Jenkins runs with a 32 bit (i386) or 64 bit (x86_64) JVM.",
-      "value": "i386"
     },
     {
       "name": "MEMORY_LIMIT",
@@ -25883,10 +25873,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
                     "value": "true"
                   },
                   {
-                    "name": "OPENSHIFT_JENKINS_JVM_ARCH",
-                    "value": "${JVM_ARCH}"
-                  },
-                  {
                     "name": "KUBERNETES_MASTER",
                     "value": "https://kubernetes.default:443"
                   },
@@ -26033,12 +26019,6 @@ var _examplesJenkinsJenkinsPersistentTemplateJson = []byte(`{
       "displayName": "Enable OAuth in Jenkins",
       "description": "Whether to enable OAuth OpenShift integration. If false, the static account 'admin' will be initialized with the password 'password'.",
       "value": "true"
-    },
-    {
-      "name": "JVM_ARCH",
-      "displayName": "Jenkins JVM Architecture",
-      "description": "Whether Jenkins runs with a 32 bit (i386) or 64 bit (x86_64) JVM.",
-      "value": "i386"
     },
     {
       "name": "MEMORY_LIMIT",
