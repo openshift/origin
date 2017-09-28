@@ -35,7 +35,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
-	"github.com/openshift/origin/pkg/client"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -96,7 +95,7 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	cfg.Burst = 100
 
 	// at this point we've negotiated and can get the client
-	oclient, err := client.New(cfg)
+	kubeClient, err := kclientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +103,7 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	// TODO: k8s dir is different, I guess we should align
 	// cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery"), cfg.Host)
 	cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
-	return kcmdutil.NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.RESTClient), cacheDir, time.Duration(10*time.Minute)), nil
+	return kcmdutil.NewCachedDiscoveryClient(newLegacyDiscoveryClient(kubeClient.Discovery().RESTClient()), cacheDir, time.Duration(10*time.Minute)), nil
 }
 
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {

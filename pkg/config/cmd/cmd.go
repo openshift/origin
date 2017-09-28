@@ -3,6 +3,9 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
+	"path"
+	goruntime "runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,7 +24,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	"github.com/openshift/origin/pkg/api/latest"
-	"github.com/openshift/origin/pkg/client"
+	"github.com/openshift/origin/pkg/version"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -138,7 +141,7 @@ func ClientMapperFromConfig(config *rest.Config) resource.ClientMapperFunc {
 		configCopy := *config
 
 		if latest.OriginKind(mapping.GroupVersionKind) {
-			if err := client.SetOpenShiftDefaults(&configCopy); err != nil {
+			if err := SetLegacyOpenShiftDefaults(&configCopy); err != nil {
 				return nil, err
 			}
 			configCopy.APIPath = "/apis"
@@ -388,4 +391,37 @@ func (b *BulkAction) Run(list *kapi.List, namespace string) []error {
 		}
 	}
 	return errs
+}
+
+// SetLegacyOpenShiftDefaults sets the default settings on the passed client configuration for legacy usage
+func SetLegacyOpenShiftDefaults(config *rest.Config) error {
+	if len(config.UserAgent) == 0 {
+		config.UserAgent = defaultOpenShiftUserAgent()
+	}
+	if config.GroupVersion == nil {
+		// Clients default to the preferred code API version
+		groupVersionCopy := latest.Version
+		config.GroupVersion = &groupVersionCopy
+	}
+	if config.APIPath == "" || config.APIPath == "/api" {
+		config.APIPath = "/oapi"
+	}
+	if config.NegotiatedSerializer == nil {
+		config.NegotiatedSerializer = kapi.Codecs
+	}
+	return nil
+}
+
+func defaultOpenShiftUserAgent() string {
+	commit := version.Get().GitCommit
+	if len(commit) > 7 {
+		commit = commit[:7]
+	}
+	if len(commit) == 0 {
+		commit = "unknown"
+	}
+	version := version.Get().GitVersion
+	seg := strings.SplitN(version, "-", 2)
+	version = seg[0]
+	return fmt.Sprintf("%s/%s (%s/%s) openshift/%s", path.Base(os.Args[0]), version, goruntime.GOOS, goruntime.GOARCH, commit)
 }

@@ -39,7 +39,7 @@ import (
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
@@ -97,12 +97,13 @@ var legacyOpeshiftCategoryExpander resource.CategoryExpander = resource.SimpleCa
 }
 
 func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+	// TODO only do this for legacy kinds
 	if latest.OriginKind(mapping.GroupVersionKind) {
 		cfg, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
-		if err := client.SetOpenShiftDefaults(cfg); err != nil {
+		if err := configcmd.SetLegacyOpenShiftDefaults(cfg); err != nil {
 			return nil, err
 		}
 		cfg.APIPath = "/apis"
@@ -117,12 +118,13 @@ func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RES
 }
 
 func (f *ring1Factory) UnstructuredClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+	// TODO only do this for legacy kinds
 	if latest.OriginKind(mapping.GroupVersionKind) {
 		cfg, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
-		if err := client.SetOpenShiftDefaults(cfg); err != nil {
+		if err := configcmd.SetLegacyOpenShiftDefaults(cfg); err != nil {
 			return nil, err
 		}
 		cfg.APIPath = "/apis"
