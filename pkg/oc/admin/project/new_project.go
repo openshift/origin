@@ -14,6 +14,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -31,7 +32,8 @@ type NewProjectOptions struct {
 	Description  string
 	NodeSelector string
 
-	Client client.Interface
+	Client            client.Interface
+	RoleBindingClient authorizationtypedclient.RoleBindingsGetter
 
 	AdminRole string
 	AdminUser string
@@ -61,6 +63,9 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 			if options.Client, _, err = f.Clients(); err != nil {
 				kcmdutil.CheckErr(err)
 			}
+			authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+			kcmdutil.CheckErr(err)
+			options.RoleBindingClient = authorizationClient.Authorization()
 
 			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
 			// and we want to populate node selector as project annotation only if explicitly set by user
@@ -118,7 +123,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	if len(o.AdminUser) != 0 {
 		adduser := &policy.RoleModificationOptions{
 			RoleName:            o.AdminRole,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(project.Name, o.Client),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(project.Name, o.RoleBindingClient),
 			Users:               []string{o.AdminUser},
 		}
 
@@ -138,7 +143,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		addRole := &policy.RoleModificationOptions{
 			RoleName:            binding.RoleRef.Name,
 			RoleNamespace:       binding.RoleRef.Namespace,
-			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.Client),
+			RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(o.ProjectName, o.RoleBindingClient),
 			Subjects:            binding.Subjects,
 		}
 		if err := addRole.AddRole(); err != nil {

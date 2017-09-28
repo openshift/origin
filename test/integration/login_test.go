@@ -10,6 +10,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	newproject "github.com/openshift/origin/pkg/oc/admin/project"
@@ -56,10 +57,11 @@ func TestLogin(t *testing.T) {
 	}
 
 	newProjectOptions := &newproject.NewProjectOptions{
-		Client:      clusterAdminClient,
-		ProjectName: project,
-		AdminRole:   bootstrappolicy.AdminRoleName,
-		AdminUser:   username,
+		Client:            clusterAdminClient,
+		RoleBindingClient: authorizationclient.NewForConfigOrDie(clusterAdminClientConfig),
+		ProjectName:       project,
+		AdminRole:         bootstrappolicy.AdminRoleName,
+		AdminUser:         username,
 	}
 	if err := newProjectOptions.Run(false); err != nil {
 		t.Fatalf("unexpected error, a project is required to continue: %v", err)

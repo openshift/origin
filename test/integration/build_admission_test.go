@@ -5,10 +5,12 @@ import (
 	"testing"
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/rest"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	authorizationtypedclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -29,7 +31,7 @@ func buildStrategyTypesRestricted() []string {
 }
 
 func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
-	projectAdminKubeClient, clusterAdminClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, false)
+	clusterAdminClientConfig, projectAdminKubeClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, false)
 	defer fn()
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
@@ -54,7 +56,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 		}
 	}
 
-	grantRestrictedBuildStrategyRoleResources(t, projectAdminKubeClient.Authorization(), clusterAdminClient, projectAdminClient, projectEditorClient)
+	grantRestrictedBuildStrategyRoleResources(t, authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), projectAdminKubeClient.Authorization(), projectAdminClient, projectEditorClient)
 
 	// Create builds to setup test
 	for _, strategy := range buildStrategyTypes() {
@@ -74,7 +76,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 			}
 		}
 	}
-	removeBuildStrategyRoleResources(t, projectAdminKubeClient.Authorization(), clusterAdminClient, projectAdminClient, projectEditorClient)
+	removeBuildStrategyRoleResources(t, authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), projectAdminKubeClient.Authorization(), projectAdminClient, projectEditorClient)
 
 	// make sure builds are rejected
 	for _, strategy := range buildStrategyTypes() {
@@ -105,7 +107,7 @@ func TestPolicyBasedRestrictionOfBuildCreateAndCloneByStrategy(t *testing.T) {
 }
 
 func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *testing.T) {
-	projectAdminKubeClient, clusterAdminClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, true)
+	clusterAdminClientConfig, projectAdminKubeClient, projectAdminClient, projectEditorClient, fn := setupBuildStrategyTest(t, true)
 	defer fn()
 
 	clients := map[string]*client.Client{"admin": projectAdminClient, "editor": projectEditorClient}
@@ -129,7 +131,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 		}
 	}
 
-	grantRestrictedBuildStrategyRoleResources(t, projectAdminKubeClient.Authorization(), clusterAdminClient, projectAdminClient, projectEditorClient)
+	grantRestrictedBuildStrategyRoleResources(t, authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), projectAdminKubeClient.Authorization(), projectAdminClient, projectEditorClient)
 
 	// by default admins and editors can create source, docker, and jenkinspipline buildconfigs
 	for _, strategy := range buildStrategyTypes() {
@@ -150,7 +152,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 		}
 	}
 
-	removeBuildStrategyRoleResources(t, projectAdminKubeClient.Authorization(), clusterAdminClient, projectAdminClient, projectEditorClient)
+	removeBuildStrategyRoleResources(t, authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), projectAdminKubeClient.Authorization(), projectAdminClient, projectEditorClient)
 
 	// make sure buildconfigs are rejected
 	for _, strategy := range buildStrategyTypes() {
@@ -180,7 +182,7 @@ func TestPolicyBasedRestrictionOfBuildConfigCreateAndInstantiateByStrategy(t *te
 	}
 }
 
-func setupBuildStrategyTest(t *testing.T, includeControllers bool) (projectAdminKubeClient kclientset.Interface, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client, cleanup func()) {
+func setupBuildStrategyTest(t *testing.T, includeControllers bool) (clusterAdminClientConfig *rest.Config, projectAdminKubeClient kclientset.Interface, projectAdminClient, projectEditorClient *client.Client, cleanup func()) {
 	namespace := testutil.Namespace()
 	var clusterAdminKubeConfig string
 	var masterConfig *configapi.MasterConfig
@@ -198,17 +200,18 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (projectAdmin
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 
-	clusterAdminClient, err = testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err = testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, projectAdminClient, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "harold")
+	var projectAdminConfig *rest.Config
+	_, projectAdminClient, projectAdminConfig, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -220,7 +223,7 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (projectAdmin
 	addJoe := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, projectAdminClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(namespace, authorizationclient.NewForConfigOrDie(projectAdminConfig)),
 		Users:               []string{"joe"},
 	}
 	if err := addJoe.AddRole(); err != nil {
@@ -268,13 +271,13 @@ func setupBuildStrategyTest(t *testing.T, includeControllers bool) (projectAdmin
 	return
 }
 
-func removeBuildStrategyRoleResources(t *testing.T, selfSarClient authorizationtypedclient.SelfSubjectAccessReviewsGetter, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func removeBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationClient authorizationclient.Interface, selfSarClient authorizationtypedclient.SelfSubjectAccessReviewsGetter, projectAdminClient, projectEditorClient *client.Client) {
 	// remove resources from role so that certain build strategies are forbidden
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName, bootstrappolicy.BuildStrategyDockerRoleName, bootstrappolicy.BuildStrategySourceRoleName, bootstrappolicy.BuildStrategyJenkinsPipelineRoleName} {
 		options := &policy.RoleModificationOptions{
 			RoleNamespace:       "",
 			RoleName:            role,
-			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminAuthorizationClient.Authorization()),
 			Groups:              []string{"system:authenticated"},
 		}
 		if err := options.RemoveRole(); err != nil {
@@ -296,13 +299,13 @@ func removeBuildStrategyRoleResources(t *testing.T, selfSarClient authorizationt
 	}
 }
 
-func grantRestrictedBuildStrategyRoleResources(t *testing.T, selfSarClient authorizationtypedclient.SelfSubjectAccessReviewsGetter, clusterAdminClient, projectAdminClient, projectEditorClient *client.Client) {
+func grantRestrictedBuildStrategyRoleResources(t *testing.T, clusterAdminAuthorizationClient authorizationclient.Interface, selfSarClient authorizationtypedclient.SelfSubjectAccessReviewsGetter, projectAdminClient, projectEditorClient *client.Client) {
 	// grant resources to role so that restricted build strategies are available
 	for _, role := range []string{bootstrappolicy.BuildStrategyCustomRoleName} {
 		options := &policy.RoleModificationOptions{
 			RoleNamespace:       "",
 			RoleName:            role,
-			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+			RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminAuthorizationClient.Authorization()),
 			Groups:              []string{"system:authenticated"},
 		}
 		if err := options.AddRole(); err != nil {

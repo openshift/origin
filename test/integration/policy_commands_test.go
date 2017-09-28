@@ -6,6 +6,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	authorizationinterfaces "github.com/openshift/origin/pkg/authorization/interfaces"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
@@ -32,14 +33,14 @@ func TestPolicyCommands(t *testing.T) {
 
 	const projectName = "hammer-project"
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold")
+	_, haroldClient, haroldConfig, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addViewer := policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(projectName, haroldClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(projectName, authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
 		Groups:              []string{"my-group"},
 	}

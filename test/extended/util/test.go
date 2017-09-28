@@ -26,7 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/security/legacyclient"
@@ -226,11 +226,15 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 		// The intra-pod test requires that the service account have
 		// permission to retrieve service endpoints.
-		osClient, err := testutil.GetClusterAdminClient(KubeConfigPath())
+		clientConfig, err := testutil.GetClusterAdminClientConfig(KubeConfigPath())
 		if err != nil {
 			return ns, err
 		}
-		addRoleToE2EServiceAccounts(osClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+		authorizationClient, err := authorizationclient.NewForConfig(clientConfig)
+		if err != nil {
+			return ns, err
+		}
+		addRoleToE2EServiceAccounts(authorizationClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
 	// some test suites assume they can schedule to all nodes
@@ -461,7 +465,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Name
 	}
 }
 
-func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapiv1.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(c authorizationclient.Interface, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {
@@ -469,7 +473,7 @@ func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapiv1.Namespace
 				addRole := &policy.RoleModificationOptions{
 					RoleNamespace:       "",
 					RoleName:            roleName,
-					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c),
+					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c.Authorization()),
 					Users:               []string{sa},
 				}
 				if err := addRole.AddRole(); err != nil {

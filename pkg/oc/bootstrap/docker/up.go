@@ -885,7 +885,15 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	}()
 
 	// Setup persistent storage
-	osClient, kClient, err := c.Clients()
+	_, kClient, err := c.Clients()
+	if err != nil {
+		return err
+	}
+	factory, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := factory.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return err
 	}
@@ -896,7 +904,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		return err
 	}
 
-	err = c.OpenShiftHelper().SetupPersistentStorage(osClient, kClient, c.HostPersistentVolumesDir)
+	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, c.HostPersistentVolumesDir)
 	if err != nil {
 		return err
 	}

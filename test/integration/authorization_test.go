@@ -22,6 +22,7 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -212,12 +213,12 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markClient, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -277,11 +278,15 @@ func TestAuthorizationResolution(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -295,7 +300,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -319,7 +324,7 @@ func TestAuthorizationResolution(t *testing.T) {
 	addBuildLister := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            "with-group",
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"build-lister"},
 	}
 	if err := addBuildLister.AddRole(); err != nil {
@@ -509,12 +514,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, haroldConfig, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markClient, markConfig, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -522,7 +527,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", haroldClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -532,7 +537,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", markClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig)),
 		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -853,7 +858,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, _, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -995,7 +1000,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, haroldConfig, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1005,7 +1010,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	haroldSARGetter := haroldKubeClient.Authorization()
 
-	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markClient, markConfig, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1035,7 +1040,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addAnonymous := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", clusterAdminClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"system:anonymous"},
 	}
 	if err := addAnonymous.AddRole(); err != nil {
@@ -1045,7 +1050,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addDanny := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", clusterAdminClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"danny"},
 	}
 	if err := addDanny.AddRole(); err != nil {
@@ -1100,7 +1105,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", haroldClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -1110,7 +1115,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", markClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig)),
 		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -1345,7 +1350,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addOtherAdmin := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ClusterAdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"other-admin"},
 	}
 	if err := addOtherAdmin.AddRole(); err != nil {
@@ -1430,7 +1435,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1495,7 +1500,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		otherNamespace := "chisel-project"
 		// we need a real project for this to make it past admission.
 		// TODO, this is an information leaking problem.  This admission plugin leaks knowledge of which projects exist via SARs
-		if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
+		if _, _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -1557,7 +1562,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldClient, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

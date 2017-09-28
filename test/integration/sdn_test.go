@@ -18,7 +18,7 @@ import (
 )
 
 func createProject(osClient *osclient.Client, clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
-	_, _, err := testserver.CreateNewProject(osClient, *clientConfig, name, name)
+	_, _, _, err := testserver.CreateNewProject(osClient, *clientConfig, name, name)
 	if err != nil {
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
 	}

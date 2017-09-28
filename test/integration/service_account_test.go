@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	serviceaccountadmission "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/serviceaccounts/controllers"
@@ -44,10 +45,6 @@ func TestServiceAccountAuthorization(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	cluster1AdminKubeClientset, err := testutil.GetClusterAdminKubeClient(cluster1AdminConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	cluster1AdminOSClient, err := testutil.GetClusterAdminClient(cluster1AdminConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -82,11 +79,11 @@ func TestServiceAccountAuthorization(t *testing.T) {
 	// Make the service account a cluster admin on cluster1
 	addRoleOptions := &policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.ClusterAdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(cluster1AdminOSClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(cluster1AdminConfig)),
 		Users:               []string{saUsername},
 	}
 	if err := addRoleOptions.AddRole(); err != nil {
-		t.Fatalf("could not add role to service account")
+		t.Fatal(err)
 	}
 
 	// Give the policy cache a second to catch its breath
@@ -342,7 +339,7 @@ func TestDockercfgTokenDeletedController(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: "ns1"},
 	}
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
+	if _, _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

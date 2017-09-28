@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
@@ -126,10 +126,10 @@ type RoleBindingAccessor interface {
 // LocalRoleBindingAccessor operates against role bindings in namespace
 type LocalRoleBindingAccessor struct {
 	BindingNamespace string
-	Client           client.Interface
+	Client           authorizationtypedclient.RoleBindingsGetter
 }
 
-func NewLocalRoleBindingAccessor(bindingNamespace string, client client.Interface) LocalRoleBindingAccessor {
+func NewLocalRoleBindingAccessor(bindingNamespace string, client authorizationtypedclient.RoleBindingsGetter) LocalRoleBindingAccessor {
 	return LocalRoleBindingAccessor{bindingNamespace, client}
 }
 
@@ -183,10 +183,10 @@ func (a LocalRoleBindingAccessor) CreateRoleBinding(binding *authorizationapi.Ro
 
 // ClusterRoleBindingAccessor operates against cluster scoped role bindings
 type ClusterRoleBindingAccessor struct {
-	Client client.Interface
+	Client authorizationtypedclient.ClusterRoleBindingsGetter
 }
 
-func NewClusterRoleBindingAccessor(client client.Interface) ClusterRoleBindingAccessor {
+func NewClusterRoleBindingAccessor(client authorizationtypedclient.ClusterRoleBindingsGetter) ClusterRoleBindingAccessor {
 	// the master namespace value doesn't matter because we're round tripping all the values, so the namespace gets stripped out
 	return ClusterRoleBindingAccessor{client}
 }
