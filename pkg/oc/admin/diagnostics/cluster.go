@@ -21,6 +21,7 @@ import (
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 )
 
@@ -85,13 +86,17 @@ func (o DiagnosticsOptions) buildClusterDiagnostics(rawConfig *clientcmdapi.Conf
 	if err != nil {
 		return nil, false, err
 	}
+	securityClient, err := securityclient.NewForConfig(config)
+	if err != nil {
+		return nil, false, err
+	}
 
 	diagnostics := []types.Diagnostic{}
 	for _, diagnosticName := range requestedDiagnostics {
 		var d types.Diagnostic
 		switch diagnosticName {
 		case agldiags.AggregatedLoggingName:
-			d = agldiags.NewAggregatedLogging(o.MasterConfigLocation, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), oauthorizationClient.Authorization(), appsClient.Apps())
+			d = agldiags.NewAggregatedLogging(o.MasterConfigLocation, kclusterClient, oauthClient.Oauth(), projectClient.Project(), routeClient.Route(), oauthorizationClient.Authorization(), appsClient.Apps(), securityClient.Security())
 		case clustdiags.NodeDefinitionsName:
 			d = &clustdiags.NodeDefinitions{KubeClient: kclusterClient}
 		case clustdiags.MasterNodeName:

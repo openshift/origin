@@ -10,7 +10,7 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl"
 
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
@@ -18,7 +18,7 @@ func NewGroupReaper(
 	groupClient userclient.Interface,
 	clusterBindingClient authclient.Interface,
 	bindingClient authclient.Interface,
-	sccClient legacyclient.SecurityContextConstraintInterface,
+	sccClient securitytypedclient.SecurityContextConstraintsInterface,
 ) kubectl.Reaper {
 	return &GroupReaper{
 		groupClient:          groupClient,
@@ -32,7 +32,7 @@ type GroupReaper struct {
 	groupClient          userclient.Interface
 	clusterBindingClient authclient.Interface
 	bindingClient        authclient.Interface
-	sccClient            legacyclient.SecurityContextConstraintInterface
+	sccClient            securitytypedclient.SecurityContextConstraintsInterface
 }
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,

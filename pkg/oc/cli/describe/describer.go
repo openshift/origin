@@ -45,7 +45,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -99,6 +99,10 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	if err != nil {
 		glog.V(1).Info(err)
 	}
+	securityClient, err := securityclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{buildClient, kclient},
@@ -131,7 +135,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		networkapi.Kind("HostSubnet"):                   &HostSubnetDescriber{onetworkClient},
 		networkapi.Kind("NetNamespace"):                 &NetNamespaceDescriber{onetworkClient},
 		networkapi.Kind("EgressNetworkPolicy"):          &EgressNetworkPolicyDescriber{onetworkClient},
-		securityapi.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{kclient},
+		securityapi.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{securityClient},
 	}
 
 	// Register the legacy ("core") API group for all kinds as well.
@@ -1850,11 +1854,11 @@ func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, setti
 
 // SecurityContextConstraintsDescriber generates information about an SCC
 type SecurityContextConstraintsDescriber struct {
-	kclientset.Interface
+	c securityclient.SecurityContextConstraintsGetter
 }
 
 func (d *SecurityContextConstraintsDescriber) Describe(namespace, name string, s kprinters.DescriberSettings) (string, error) {
-	scc, err := legacyclient.NewFromClient(d.Core().RESTClient()).Get(name, metav1.GetOptions{})
+	scc, err := d.c.SecurityContextConstraints().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

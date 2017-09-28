@@ -12,7 +12,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -23,7 +22,7 @@ import (
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/ipfailover"
 	"github.com/openshift/origin/pkg/ipfailover/keepalived"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 var (
@@ -186,11 +185,11 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	if err != nil {
 		return err
 	}
-	kClient, err := f.ClientSet()
+	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
-		return fmt.Errorf("error getting client: %v", err)
+		return err
 	}
-	if err := validateServiceAccount(kClient, namespace, options.ServiceAccount); err != nil {
+	if err := validateServiceAccount(securityClient, namespace, options.ServiceAccount); err != nil {
 		return fmt.Errorf("ipfailover could not be created; %v", err)
 	}
 
@@ -211,8 +210,8 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	return nil
 }
 
-func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string) error {
-	sccList, err := legacyclient.NewFromClient(client.Core().RESTClient()).List(metav1.ListOptions{})
+func validateServiceAccount(client securityclient.Interface, ns string, serviceAccount string) error {
+	sccList, err := client.Security().SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

@@ -41,7 +41,6 @@ import (
 	buildutil "github.com/openshift/origin/pkg/build/util"
 	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/security/legacyclient"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
@@ -265,10 +264,6 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		}
 		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
 	case userapi.IsKindOrLegacy("User", gk):
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
 		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
 		if err != nil {
 			return nil, err
@@ -281,19 +276,19 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
+		securityClient, err := f.clientAccessFactory.OpenshiftInternalSecurityClient()
+		if err != nil {
+			return nil, err
+		}
 		return authenticationreaper.NewUserReaper(
 			userClient,
 			userClient,
 			authClient,
 			authClient,
 			oauthClient,
-			legacyclient.NewFromClient(kc.Core().RESTClient()),
+			securityClient.Security().SecurityContextConstraints(),
 		), nil
 	case userapi.IsKindOrLegacy("Group", gk):
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
 		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
 		if err != nil {
 			return nil, err
@@ -302,11 +297,15 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
+		securityClient, err := f.clientAccessFactory.OpenshiftInternalSecurityClient()
+		if err != nil {
+			return nil, err
+		}
 		return authenticationreaper.NewGroupReaper(
 			userClient,
 			authClient,
 			authClient,
-			legacyclient.NewFromClient(kc.Core().RESTClient()),
+			securityClient.Security().SecurityContextConstraints(),
 		), nil
 	case buildapi.IsKindOrLegacy("BuildConfig", gk):
 		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()

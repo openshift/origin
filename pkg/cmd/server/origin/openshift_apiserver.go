@@ -53,7 +53,7 @@ import (
 	routeallocationcontroller "github.com/openshift/origin/pkg/route/controller/allocation"
 	securityapiserver "github.com/openshift/origin/pkg/security/apiserver"
 	securityinformer "github.com/openshift/origin/pkg/security/generated/informers/internalversion"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	sccstorage "github.com/openshift/origin/pkg/security/registry/securitycontextconstraints/etcd"
 	templateapiserver "github.com/openshift/origin/pkg/template/apiserver"
 	userapiserver "github.com/openshift/origin/pkg/user/apiserver"
@@ -654,8 +654,23 @@ func (c *OpenshiftAPIConfig) bootstrapSCC(context genericapiserver.PostStartHook
 	ns := bootstrappolicy.DefaultOpenShiftInfraNamespace
 	bootstrapSCCGroups, bootstrapSCCUsers := bootstrappolicy.GetBoostrapSCCAccess(ns)
 
+	var securityClient securityclient.Interface
+	err := wait.Poll(1*time.Second, 30*time.Second, func() (bool, error) {
+		var err error
+		securityClient, err = securityclient.NewForConfig(context.LoopbackClientConfig)
+		if err != nil {
+			utilruntime.HandleError(fmt.Errorf("unable to initialize client: %v", err))
+			return false, nil
+		}
+		return true, nil
+	})
+	if err != nil {
+		utilruntime.HandleError(fmt.Errorf("error getting client: %v", err))
+		return err
+	}
+
 	for _, scc := range bootstrappolicy.GetBootstrapSecurityContextConstraints(bootstrapSCCGroups, bootstrapSCCUsers) {
-		_, err := legacyclient.NewFromClient(c.KubeClientInternal.Core().RESTClient()).Create(scc)
+		_, err := securityClient.Security().SecurityContextConstraints().Create(scc)
 		if kapierror.IsAlreadyExists(err) {
 			continue
 		}
