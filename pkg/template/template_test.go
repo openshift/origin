@@ -154,19 +154,19 @@ func TestParameterGenerators(t *testing.T) {
 	for i, test := range tests {
 		processor := NewProcessor(test.generators)
 		template := templateapi.Template{Parameters: []templateapi.Parameter{test.parameter}}
-		err := processor.GenerateParameterValues(&template)
-		if err != nil && test.shouldPass {
-			t.Errorf("test[%v]: Unexpected error %v", i, err)
+		errs := processor.GenerateParameterValues(&template)
+		if errs != nil && test.shouldPass {
+			t.Errorf("test[%v]: Unexpected error %v", i, errs)
 		}
-		if err == nil && !test.shouldPass {
+		if errs == nil && !test.shouldPass {
 			t.Errorf("test[%v]: Expected error", i)
 		}
-		if err != nil {
-			if test.errType != err.Type {
-				t.Errorf("test[%v]: Unexpected error type: Expected: %s, got %s", i, test.errType, err.Type)
+		if errs != nil {
+			if test.errType != errs[0].Type {
+				t.Errorf("test[%v]: Unexpected error type: Expected: %s, got %s", i, test.errType, errs[0].Type)
 			}
-			if test.fieldPath != err.Field {
-				t.Errorf("test[%v]: Unexpected error type: Expected: %s, got %s", i, test.fieldPath, err.Field)
+			if test.fieldPath != errs[0].Field {
+				t.Errorf("test[%v]: Unexpected error type: Expected: %s, got %s", i, test.fieldPath, errs[0].Field)
 			}
 			continue
 		}

@@ -282,7 +282,15 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 	} else {
 		resultObj, err = client.TemplateConfigs(namespace).Create(obj)
 		if err != nil {
-			return fmt.Errorf("error processing the template %q: %v\n", obj.Name, err)
+			if err, ok := err.(*errors.StatusError); ok && err.ErrStatus.Details != nil {
+				errstr := "unable to process template\n"
+				for _, cause := range err.ErrStatus.Details.Causes {
+					errstr += fmt.Sprintf("  %s\n", cause.Message)
+				}
+				return fmt.Errorf(errstr)
+			}
+
+			return fmt.Errorf("unable to process template: %v\n", err)
 		}
 	}
 
