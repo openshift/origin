@@ -117,7 +117,7 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory,
 		return kcmdutil.UsageError(cmd, "no arguments are allowed")
 	}
 
-	_, kClient, err := f.Clients()
+	kClient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

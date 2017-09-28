@@ -29,7 +29,7 @@ const (
 
 // InstallTemplateServiceBroker checks whether the template service broker is installed and installs it if not already installed
 func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat string, serverLogLevel int) error {
-	_, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}

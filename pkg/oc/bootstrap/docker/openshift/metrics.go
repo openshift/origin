@@ -23,7 +23,7 @@ const (
 
 // InstallMetricsViaAnsible checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
-	_, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -55,7 +55,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, public
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, imageVersion string) error {
-	_, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}

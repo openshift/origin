@@ -177,7 +177,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 	case *deployapi.DeploymentConfig:
 		fallback := t.Spec.Template
 
-		_, kc, err := f.Clients()
+		kc, err := f.ClientSet()
 		if err != nil {
 			return fallback, err
 		}

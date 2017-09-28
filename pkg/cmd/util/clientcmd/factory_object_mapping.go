@@ -143,7 +143,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 	// it wasn't an origin type pre 3.6.
 	isSCC := mapping.GroupVersionKind.Kind == "SecurityContextConstraints"
 	if latest.OriginKind(mapping.GroupVersionKind) || isSCC {
-		_, kClient, err := f.clientAccessFactory.Clients()
+		kClient, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
 		}
@@ -223,7 +223,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 
 func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -240,7 +240,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 	gk := mapping.GroupVersionKind.GroupKind()
 	switch {
 	case deployapi.IsKindOrLegacy("DeploymentConfig", gk):
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +262,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		}
 		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
 	case userapi.IsKindOrLegacy("User", gk):
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -287,7 +287,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case userapi.IsKindOrLegacy("Group", gk):
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +317,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 
 func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
 	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -351,7 +351,7 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout time.Duration) (*kapi.Pod, error) {
 	switch t := object.(type) {
 	case *deployapi.DeploymentConfig:
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}

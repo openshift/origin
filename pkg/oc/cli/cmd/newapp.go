@@ -574,7 +574,7 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 		return err
 	}
 
-	_, kclient, err := f.Clients()
+	kclient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

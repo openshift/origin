@@ -138,7 +138,7 @@ func (o *RollbackOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		return f.NewBuilder(true)
 	}
 
-	_, kClient, err := f.Clients()
+	kClient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

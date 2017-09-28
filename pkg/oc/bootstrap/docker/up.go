@@ -1226,7 +1226,7 @@ func (c *ClientStartConfig) Clients() (interface{}, kclientset.Interface, error)
 	if err != nil {
 		return nil, nil, err
 	}
-	_, kcset, err := f.Clients()
+	kcset, err := f.ClientSet()
 	if err != nil {
 		return nil, nil, err
 	}
