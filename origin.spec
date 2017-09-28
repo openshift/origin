@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 2b87e9be599fe7a2d6fb0d535b242bbd8065493b
+%global commit 4389c49ea5be501c8bed3f17af31f55dce8ffe2b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.132.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2b87e9b
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.133.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4389c49
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.133.0%{?dist}
+Release:        0.134.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,19 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Sep 28 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.134.0
+- Return error instead of glog.Fatalf (maszulik@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  36bd0fb71e0811c5838d02ea8b7cdfae5275c6d6 (eparis+openshiftbot@redhat.com)
+- metrics, readme changes to prep for prometheus alerts for openshift build
+  subsystem (gmontero@redhat.com)
+- tsb: return error description on failed async operation (jminter@redhat.com)
+- setup crio networking for build containers (bparees@redhat.com)
+- bump(github.com/kubernetes-incubator/crio):
+  a8ee86b1cce0c13bd541a99140682a92635ba9f7 (bparees@redhat.com)
+- UPSTREAM: fsouza/go-dockerclient: <carry>: support volume mounts in docker
+  build api, RH specific (bparees@redhat.com)
+
 * Thu Sep 28 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.133.0
 - Refine prometheus auth metrics (mrogers@redhat.com)
 - Wire advanced audit to asset and oauth api servers (maszulik@redhat.com)
