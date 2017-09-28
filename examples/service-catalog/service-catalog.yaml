@@ -203,21 +203,6 @@ objects:
     name: service-catalog-controller
 
 - apiVersion: authorization.openshift.io/v1
-  kind: Role
-  metadata:
-    name: extension-apiserver-authentication-reader
-    namespace: ${KUBE_SYSTEM_NAMESPACE}
-  rules:
-  - apiGroups:
-    - ""
-    resourceNames:
-    - extension-apiserver-authentication
-    resources:
-    - configmaps
-    verbs:
-    - get
-
-- apiVersion: authorization.openshift.io/v1
   kind: RoleBinding
   metadata:
     name: extension-apiserver-authentication-reader-binding
