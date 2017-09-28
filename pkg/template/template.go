@@ -53,6 +53,18 @@ func (p *Processor) Process(template *templateapi.Template) field.ErrorList {
 	// instruct a user on next steps for the template.
 	template.Message, _ = p.EvaluateParameterSubstitution(paramMap, template.Message)
 
+	// Substitute parameters in ObjectLabels - must be done before the template
+	// objects themselves are iterated.
+	for k, v := range template.ObjectLabels {
+		newk, _ := p.EvaluateParameterSubstitution(paramMap, k)
+		v, _ = p.EvaluateParameterSubstitution(paramMap, v)
+		template.ObjectLabels[newk] = v
+
+		if newk != k {
+			delete(template.ObjectLabels, k)
+		}
+	}
+
 	itemPath := field.NewPath("item")
 	for i, item := range template.Objects {
 		idxPath := itemPath.Index(i)
