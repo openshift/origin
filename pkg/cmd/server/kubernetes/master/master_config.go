@@ -458,7 +458,7 @@ func buildKubeApiserverConfig(
 	genericConfig.LegacyAuditWriter = nil
 	backend, policyChecker, err := GetAuditConfig(masterConfig.AuditConfig)
 	if err != nil {
-		glog.Fatalf("Audit initialization failed: %v", err)
+		return nil, err
 	}
 	genericConfig.AuditBackend = backend
 	genericConfig.AuditPolicyChecker = policyChecker
