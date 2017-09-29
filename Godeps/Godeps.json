@@ -591,6 +591,10 @@
 			"Rev": "137b4975ecab6e1f0c24c1e3c228a50a3cfba75e"
 		},
 		{
+			"ImportPath": "github.com/containers/image/docker",
+			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
+		},
+		{
 			"ImportPath": "github.com/containers/image/docker/policyconfiguration",
 			"Rev": "dbd0a4cee2480da39048095a326506ae114d635a"
 		},
