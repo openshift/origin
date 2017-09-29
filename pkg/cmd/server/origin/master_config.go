@@ -451,7 +451,6 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"openshift.io/RestrictSubjectBindings",
-		"PodNodeConstraints",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
