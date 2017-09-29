@@ -30,7 +30,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubelettypes "k8s.io/kubernetes/pkg/kubelet/types"
-	"k8s.io/kubernetes/pkg/master"
 	kutilerrors "k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/errors"
 
 	assetapiserver "github.com/openshift/origin/pkg/assets/apiserver"
@@ -42,7 +41,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
 	"github.com/openshift/origin/pkg/cmd/server/etcd/etcdserver"
-	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
+	kubernetesmaster "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
 	"github.com/openshift/origin/pkg/cmd/server/origin"
 	origincontrollers "github.com/openshift/origin/pkg/cmd/server/origin/controller"
 	originrest "github.com/openshift/origin/pkg/cmd/server/origin/rest"
@@ -520,18 +519,6 @@ func (m *Master) Start() error {
 			return err
 		}
 
-		kubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(
-			openshiftConfig.Options,
-			openshiftConfig.RequestContextMapper,
-			openshiftConfig.KubeAdmissionControl,
-			openshiftConfig.Authenticator,
-			openshiftConfig.Authorizer,
-		)
-		if err != nil {
-			return err
-		}
-		kubeAPIServerConfig.GenericConfig.SharedInformerFactory = informers.GetClientGoKubeInformers()
-
 		glog.Infof("Starting master on %s (%s)", m.config.ServingInfo.BindAddress, version.Get().String())
 		glog.Infof("Public master address is %s", m.config.MasterPublicURL)
 		if len(m.config.DisabledFeatures) > 0 {
@@ -542,7 +529,7 @@ func (m *Master) Start() error {
 		imageTemplate.Latest = m.config.ImageConfig.Latest
 		glog.Infof("Using images from %q", imageTemplate.ExpandOrDie("<component>"))
 
-		if err := StartAPI(openshiftConfig, kubeAPIServerConfig, informers, controllerPlug); err != nil {
+		if err := StartAPI(openshiftConfig, controllerPlug); err != nil {
 			return err
 		}
 	}
@@ -554,7 +541,7 @@ func (m *Master) Start() error {
 // API and core controllers, the Origin API, the group, policy, project, and authorization caches,
 // etcd, the asset server (for the UI), the OAuth server endpoints, and the DNS server.
 // TODO: allow to be more granularly targeted
-func StartAPI(oc *origin.MasterConfig, kubeAPIServerConfig *master.Config, informers *informers, controllerPlug plug.Plug) error {
+func StartAPI(oc *origin.MasterConfig, controllerPlug plug.Plug) error {
 	// start etcd
 	if oc.Options.EtcdConfig != nil {
 		etcdserver.RunEtcd(oc.Options.EtcdConfig)
@@ -566,17 +553,14 @@ func StartAPI(oc *origin.MasterConfig, kubeAPIServerConfig *master.Config, infor
 		return err
 	}
 
-	if err := oc.Run(kubeAPIServerConfig, controllerPlug, utilwait.NeverStop); err != nil {
-		return err
-	}
-
 	// start DNS before the informers are started because it adds a ClusterIP index.
 	if oc.Options.DNSConfig != nil {
 		oc.RunDNSServer()
 	}
 
-	// start up the informers that we're trying to use in the API server
-	informers.Start(utilwait.NeverStop)
+	if err := oc.Run(controllerPlug, utilwait.NeverStop); err != nil {
+		return err
+	}
 
 	// if the webconsole is configured to be standalone, go ahead and create and run it
 	if oc.WebConsoleEnabled() && oc.WebConsoleStandalone() {
@@ -584,7 +568,7 @@ func StartAPI(oc *origin.MasterConfig, kubeAPIServerConfig *master.Config, infor
 		if err != nil {
 			return err
 		}
-		backend, policy, err := kubernetes.GetAuditConfig(oc.Options.AuditConfig)
+		backend, policy, err := kubernetesmaster.GetAuditConfig(oc.Options.AuditConfig)
 		if err != nil {
 			return err
 		}
