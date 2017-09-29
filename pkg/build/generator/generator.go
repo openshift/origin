@@ -2,7 +2,6 @@ package generator
 
 import (
 	"fmt"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,7 +14,6 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	"github.com/openshift/origin/pkg/api/apihelpers"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -53,8 +51,6 @@ func IsFatal(err error) bool {
 type BuildGenerator struct {
 	Client                    GeneratorClient
 	DefaultServiceAccountName string
-	ServiceAccounts           kcoreclient.ServiceAccountsGetter
-	Secrets                   kcoreclient.SecretsGetter
 }
 
 // GeneratorClient is the API client used by the generator
@@ -124,24 +120,6 @@ func (c Client) GetImageStreamTag(ctx apirequest.Context, name string, options *
 type streamRef struct {
 	ref *kapi.ObjectReference
 	tag string
-}
-
-// FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
-// images from private Docker registries.
-func (g *BuildGenerator) FetchServiceAccountSecrets(namespace, serviceAccount string) ([]kapi.Secret, error) {
-	var result []kapi.Secret
-	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
-	if err != nil {
-		return result, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", namespace, serviceAccount, err)
-	}
-	for _, ref := range sa.Secrets {
-		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
-		if err != nil {
-			continue
-		}
-		result = append(result, *secret)
-	}
-	return result, nil
 }
 
 // findImageChangeTrigger finds an image change trigger that has a from that matches the passed in ref
@@ -506,139 +484,41 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 	setBuildSource(binary, build)
 	setBuildAnnotationAndLabel(bcCopy, build)
 
-	var builderSecrets []kapi.Secret
-	var err error
-	if builderSecrets, err = g.FetchServiceAccountSecrets(bcCopy.Namespace, serviceAccount); err != nil {
-		return nil, err
-	}
-
-	// Resolve image source if present
-	if err = g.setBuildSourceImage(ctx, builderSecrets, bcCopy, &build.Spec.Source); err != nil {
-		return nil, err
-	}
-	if err = g.setBaseImageAndPullSecretForBuildStrategy(ctx, builderSecrets, bcCopy, &build.Spec.Strategy); err != nil {
+	if err := g.setBaseImageFromTrigger(ctx, bcCopy, &build.Spec.Strategy); err != nil {
 		return nil, err
 	}
 
 	return build, nil
 }
 
-// setBuildSourceImage set BuildSource Image item for new build
-func (g *BuildGenerator) setBuildSourceImage(ctx apirequest.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, Source *buildapi.BuildSource) error {
-	var err error
-
-	strategyImageChangeTrigger := getStrategyImageChangeTrigger(bcCopy)
-	for i, sourceImage := range Source.Images {
-		if sourceImage.PullSecret == nil {
-			sourceImage.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &sourceImage.From, bcCopy.Namespace)
-		}
-
-		var sourceImageSpec string
-		// if the imagesource matches the strategy from, and we have a trigger for the strategy from,
-		// use the imageid from the trigger rather than resolving it.
-		if strategyFrom := buildapi.GetInputReference(bcCopy.Spec.Strategy); strategyFrom != nil &&
-			reflect.DeepEqual(sourceImage.From, *strategyFrom) &&
-			strategyImageChangeTrigger != nil {
-			sourceImageSpec = strategyImageChangeTrigger.LastTriggeredImageID
-		} else {
-			refImageChangeTrigger := getImageChangeTriggerForRef(bcCopy, &sourceImage.From)
-			// if there is no trigger associated with this imagesource, resolve the imagesource reference now.
-			// otherwise use the imageid from the imagesource trigger.
-			if refImageChangeTrigger == nil {
-				sourceImageSpec, err = g.resolveImageStreamReference(ctx, sourceImage.From, bcCopy.Namespace)
-				if err != nil {
-					return err
-				}
-			} else {
-				sourceImageSpec = refImageChangeTrigger.LastTriggeredImageID
-			}
-		}
-
-		sourceImage.From.Kind = "DockerImage"
-		sourceImage.From.Name = sourceImageSpec
-		sourceImage.From.Namespace = ""
-		Source.Images[i] = sourceImage
-	}
-
-	return nil
-}
-
-// setBaseImageAndPullSecretForBuildStrategy sets base image and pullSecret items used in buildStrategy for new builds
-func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx apirequest.Context, builderSecrets []kapi.Secret, bcCopy *buildapi.BuildConfig, strategy *buildapi.BuildStrategy) error {
-	var err error
+// setBaseImageFromTrigger sets base builder image based on the image change that triggered this build, if any.
+func (g *BuildGenerator) setBaseImageFromTrigger(ctx apirequest.Context, bcCopy *buildapi.BuildConfig, strategy *buildapi.BuildStrategy) error {
 	var image string
 
 	if strategyImageChangeTrigger := getStrategyImageChangeTrigger(bcCopy); strategyImageChangeTrigger != nil {
 		image = strategyImageChangeTrigger.LastTriggeredImageID
 	}
-	// If the Build is using a From reference instead of a resolved image, we need to resolve that From
-	// reference to a valid image so we can run the build.  Builds do not consume ImageStream references,
-	// only image specs.
+	if len(image) == 0 {
+		return nil
+	}
+
 	switch {
 	case strategy.SourceStrategy != nil:
-		if image == "" {
-			image, err = g.resolveImageStreamReference(ctx, strategy.SourceStrategy.From, bcCopy.Namespace)
-			if err != nil {
-				return err
-			}
-		}
 		strategy.SourceStrategy.From = kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
 		}
-		if strategy.SourceStrategy.RuntimeImage != nil {
-			runtimeImageName, err := g.resolveImageStreamReference(ctx, *strategy.SourceStrategy.RuntimeImage, bcCopy.Namespace)
-			if err != nil {
-				return err
-			}
-			strategy.SourceStrategy.RuntimeImage = &kapi.ObjectReference{
-				Kind: "DockerImage",
-				Name: runtimeImageName,
-			}
-		}
-		if strategy.SourceStrategy.PullSecret == nil {
-			// we have 3 different variations:
-			// 1) builder and runtime images use the same secret => use builder image secret
-			// 2) builder and runtime images use different secrets => use builder image secret
-			// 3) builder doesn't need a secret but runtime image requires it => use runtime image secret
-			// The case when both of the images don't use secret (equals to nil) is covered by the first variant.
-			pullSecret := g.resolveImageSecret(ctx, builderSecrets, &strategy.SourceStrategy.From, bcCopy.Namespace)
-			if pullSecret == nil {
-				pullSecret = g.resolveImageSecret(ctx, builderSecrets, strategy.SourceStrategy.RuntimeImage, bcCopy.Namespace)
-			}
-
-			strategy.SourceStrategy.PullSecret = pullSecret
-		}
 	case strategy.DockerStrategy != nil &&
 		strategy.DockerStrategy.From != nil:
-		if image == "" {
-			image, err = g.resolveImageStreamReference(ctx, *strategy.DockerStrategy.From, bcCopy.Namespace)
-			if err != nil {
-				return err
-			}
-		}
 		strategy.DockerStrategy.From = &kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
 		}
-		if strategy.DockerStrategy.PullSecret == nil {
-			strategy.DockerStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, strategy.DockerStrategy.From, bcCopy.Namespace)
-		}
 	case strategy.CustomStrategy != nil:
-		if image == "" {
-			image, err = g.resolveImageStreamReference(ctx, strategy.CustomStrategy.From, bcCopy.Namespace)
-			if err != nil {
-				return err
-			}
-		}
 		strategy.CustomStrategy.From = kapi.ObjectReference{
 			Kind: "DockerImage",
 			Name: image,
 		}
-		if strategy.CustomStrategy.PullSecret == nil {
-			strategy.CustomStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &strategy.CustomStrategy.From, bcCopy.Namespace)
-		}
-		updateCustomImageEnv(strategy.CustomStrategy, image)
 	}
 	return nil
 }
@@ -747,25 +627,6 @@ func (g *BuildGenerator) resolveImageStreamDockerRepository(ctx apirequest.Conte
 	}
 }
 
-// resolveImageSecret looks up the Secrets provided by the Service Account and
-// attempt to find a best match for given image.
-func (g *BuildGenerator) resolveImageSecret(ctx apirequest.Context, secrets []kapi.Secret, imageRef *kapi.ObjectReference, buildNamespace string) *kapi.LocalObjectReference {
-	if len(secrets) == 0 || imageRef == nil {
-		return nil
-	}
-	// Get the image pull spec from the image stream reference
-	imageSpec, err := g.resolveImageStreamDockerRepository(ctx, *imageRef, buildNamespace)
-	if err != nil {
-		glog.V(2).Infof("Unable to resolve the image name for %s/%s: %v", buildNamespace, imageRef, err)
-		return nil
-	}
-	s := buildutil.FindDockerSecretAsReference(secrets, imageSpec)
-	if s == nil {
-		glog.V(4).Infof("No secrets found for pushing or pulling the %s  %s/%s", imageRef.Kind, buildNamespace, imageRef.Name)
-	}
-	return s
-}
-
 func resolveError(kind string, namespace string, name string, err error) error {
 	msg := fmt.Sprintf("Error resolving %s %s in namespace %s: %v", kind, name, namespace, err)
 	return &errors.StatusError{ErrStatus: metav1.Status{
@@ -788,29 +649,6 @@ func resolveError(kind string, namespace string, name string, err error) error {
 func getNextBuildName(buildConfig *buildapi.BuildConfig) string {
 	buildConfig.Status.LastVersion++
 	return apihelpers.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
-}
-
-//updateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
-// If no env variable reference exists, create a new env variable.
-func updateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage string) {
-	if strategy.Env == nil {
-		strategy.Env = make([]kapi.EnvVar, 1)
-		strategy.Env[0] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: newImage}
-	} else {
-		found := false
-		for i := range strategy.Env {
-			glog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
-			if strategy.Env[i].Name == buildapi.CustomBuildStrategyBaseImageKey {
-				found = true
-				strategy.Env[i].Value = newImage
-				glog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
-				break
-			}
-		}
-		if !found {
-			strategy.Env = append(strategy.Env, kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: newImage})
-		}
-	}
 }
 
 // generateBuildFromBuild creates a new build based on a given Build.

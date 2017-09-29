@@ -22,12 +22,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildgenerator "github.com/openshift/origin/pkg/build/generator"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	triggerapi "github.com/openshift/origin/pkg/image/apis/image/v1/trigger"
 	imageinternalversion "github.com/openshift/origin/pkg/image/generated/listers/image/internalversion"
@@ -172,15 +170,9 @@ func (m *fakeBuildConfigUpdater) Update(buildcfg *buildapi.BuildConfig) error {
 }
 
 func fakeBuildConfigInstantiator(buildcfg *buildapi.BuildConfig, imageStream *imageapi.ImageStream) *fakeInstantiator {
-	builderAccount := kapi.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{Name: bootstrappolicy.BuilderServiceAccountName, Namespace: buildcfg.Namespace},
-		Secrets:    []kapi.ObjectReference{},
-	}
 	instantiator := &fakeInstantiator{}
 	instantiator.buildConfigUpdater = &fakeBuildConfigUpdater{}
 	generator := &buildgenerator.BuildGenerator{
-		Secrets:         fake.NewSimpleClientset().Core(),
-		ServiceAccounts: fake.NewSimpleClientset(&builderAccount).Core(),
 		Client: buildgenerator.TestingClient{
 			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return buildcfg, nil
