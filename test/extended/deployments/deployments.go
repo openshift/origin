@@ -1030,6 +1030,8 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("should create ControllerRef in RCs it creates", func() {
 				dc, err = readDCFixture(simpleDeploymentFixture)
 				o.Expect(err).NotTo(o.HaveOccurred())
+				// Having more replicas will make us more resilient to pod failures
+				dc.Spec.Replicas = 3
 				dc, err = oc.AppsClient().Apps().DeploymentConfigs(namespace).Create(dc)
 				o.Expect(err).NotTo(o.HaveOccurred())
 
@@ -1061,7 +1063,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
 					dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
-						return config.Status.AvailableReplicas != dc.Status.AvailableReplicas, nil
+						return config.Status.AvailableReplicas == 0, nil
 					})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(dc.Status.AvailableReplicas).To(o.BeZero())
@@ -1081,7 +1083,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 
 				dc, err = waitForDCModification(oc, namespace, dcName, deploymentChangeTimeout,
 					dc.GetResourceVersion(), func(config *deployapi.DeploymentConfig) (bool, error) {
-						return config.Status.AvailableReplicas != dc.Status.AvailableReplicas, nil
+						return config.Status.AvailableReplicas == dc.Spec.Replicas, nil
 					})
 				o.Expect(err).NotTo(o.HaveOccurred())
 				o.Expect(dc.Status.AvailableReplicas).To(o.Equal(dc.Spec.Replicas))
