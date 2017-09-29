@@ -13,19 +13,20 @@ import (
 	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset/typed/network/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func createProject(osClient *osclient.Client, clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
-	_, _, _, err := testserver.CreateNewProject(osClient, *clientConfig, name, name)
+func createProject(clientConfig *restclient.Config, name string) (*networkapi.NetNamespace, error) {
+	_, _, _, err := testserver.CreateNewProject(*clientConfig, name, name)
 	if err != nil {
 		return nil, fmt.Errorf("error creating project %q: %v", name, err)
 	}
 
 	var netns *networkapi.NetNamespace
 	err = utilwait.Poll(time.Second/2, 30*time.Second, func() (bool, error) {
-		netns, err = osClient.NetNamespaces().Get(name, metav1.GetOptions{})
+		netns, err = networkclient.NewForConfigOrDie(clientConfig).NetNamespaces().Get(name, metav1.GetOptions{})
 		if kapierrors.IsNotFound(err) {
 			return false, nil
 		} else if err != nil {
@@ -85,15 +86,15 @@ func TestOadmPodNetwork(t *testing.T) {
 		t.Fatalf("error getting client config: %v", err)
 	}
 
-	origNetns1, err := createProject(osClient, clientConfig, "one")
+	origNetns1, err := createProject(clientConfig, "one")
 	if err != nil {
 		t.Fatalf("could not create namespace %q: %v", "one", err)
 	}
-	origNetns2, err := createProject(osClient, clientConfig, "two")
+	origNetns2, err := createProject(clientConfig, "two")
 	if err != nil {
 		t.Fatalf("could not create namespace %q: %v", "two", err)
 	}
-	origNetns3, err := createProject(osClient, clientConfig, "three")
+	origNetns3, err := createProject(clientConfig, "three")
 	if err != nil {
 		t.Fatalf("could not create namespace %q: %v", "three", err)
 	}

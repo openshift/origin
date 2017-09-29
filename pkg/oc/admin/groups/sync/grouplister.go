@@ -9,13 +9,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 	ouserapi "github.com/openshift/origin/pkg/user/apis/user"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 // NewAllOpenShiftGroupLister returns a new allOpenShiftGroupLister
-func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient osclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
+func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient usertypedclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &allOpenShiftGroupLister{
 		blacklist: sets.NewString(blacklist...),
 		client:    groupClient,
@@ -29,7 +29,7 @@ func NewAllOpenShiftGroupLister(blacklist []string, ldapURL string, groupClient 
 type allOpenShiftGroupLister struct {
 	blacklist sets.String
 
-	client  osclient.GroupInterface
+	client  usertypedclient.GroupInterface
 	ldapURL string
 
 	ldapGroupUIDToOpenShiftGroupName map[string]string
@@ -102,7 +102,7 @@ func validateGroupAnnotations(ldapURL string, group ouserapi.Group) (bool, error
 
 // NewOpenShiftGroupLister returns a new openshiftGroupLister that divulges the LDAP group unique identifier for
 // each entry in the given whitelist of OpenShift Group names
-func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client osclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
+func NewOpenShiftGroupLister(whitelist, blacklist []string, ldapURL string, client usertypedclient.GroupInterface) interfaces.LDAPGroupListerNameMapper {
 	return &openshiftGroupLister{
 		whitelist: whitelist,
 		blacklist: sets.NewString(blacklist...),
@@ -118,7 +118,7 @@ type openshiftGroupLister struct {
 	whitelist []string
 	blacklist sets.String
 
-	client  osclient.GroupInterface
+	client  usertypedclient.GroupInterface
 	ldapURL string
 
 	ldapGroupUIDToOpenShiftGroupName map[string]string

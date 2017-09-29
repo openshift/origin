@@ -16,12 +16,11 @@ import (
 	oapi "github.com/openshift/origin/pkg/api"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
-
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 )
 
 const NewProjectRecommendedName = "new-project"
@@ -32,7 +31,7 @@ type NewProjectOptions struct {
 	Description  string
 	NodeSelector string
 
-	Client            client.Interface
+	ProjectClient     projectclient.ProjectInterface
 	RoleBindingClient authorizationtypedclient.RoleBindingsGetter
 
 	AdminRole string
@@ -55,17 +54,9 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 		Short: "Create a new project",
 		Long:  newProjectLong,
 		Run: func(cmd *cobra.Command, args []string) {
-			if err := options.complete(args); err != nil {
+			if err := options.complete(f, args); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
-
-			var err error
-			if options.Client, _, err = f.Clients(); err != nil {
-				kcmdutil.CheckErr(err)
-			}
-			authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
-			kcmdutil.CheckErr(err)
-			options.RoleBindingClient = authorizationClient.Authorization()
 
 			// We can't depend on len(options.NodeSelector) > 0 as node-selector="" is valid
 			// and we want to populate node selector as project annotation only if explicitly set by user
@@ -86,17 +77,29 @@ func NewCmdNewProject(name, fullName string, f *clientcmd.Factory, out io.Writer
 	return cmd
 }
 
-func (o *NewProjectOptions) complete(args []string) error {
+func (o *NewProjectOptions) complete(f *clientcmd.Factory, args []string) error {
 	if len(args) != 1 {
 		return errors.New("you must specify one argument: project name")
 	}
 
 	o.ProjectName = args[0]
+
+	projectClient, err := f.OpenshiftInternalProjectClient()
+	if err != nil {
+		return err
+	}
+	o.ProjectClient = projectClient.Project()
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return err
+	}
+	o.RoleBindingClient = authorizationClient.Authorization()
+
 	return nil
 }
 
 func (o *NewProjectOptions) Run(useNodeSelector bool) error {
-	if _, err := o.Client.Projects().Get(o.ProjectName, metav1.GetOptions{}); err != nil {
+	if _, err := o.ProjectClient.Projects().Get(o.ProjectName, metav1.GetOptions{}); err != nil {
 		if !kerrors.IsNotFound(err) {
 			return err
 		}
@@ -112,7 +115,7 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 	if useNodeSelector {
 		project.Annotations[projectapi.ProjectNodeSelector] = o.NodeSelector
 	}
-	project, err := o.Client.Projects().Create(project)
+	project, err := o.ProjectClient.Projects().Create(project)
 	if err != nil {
 		return err
 	}

@@ -27,11 +27,7 @@ func TestDeployScale(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, _, err = testserver.CreateNewProject(*clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}

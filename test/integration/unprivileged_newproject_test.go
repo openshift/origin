@@ -252,9 +252,7 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+
 	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
 	valerieKubeClient := kclientset.NewForConfigOrDie(&valerieClientConfig)
 

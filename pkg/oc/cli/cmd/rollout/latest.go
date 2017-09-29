@@ -96,7 +96,7 @@ func (o *RolloutLatestOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	_, o.kc, err = f.Clients()
+	o.kc, err = f.ClientSet()
 	if err != nil {
 		return err
 	}

@@ -13,7 +13,6 @@ import (
 
 	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
-	"github.com/openshift/origin/pkg/client/testclient"
 	imagegraph "github.com/openshift/origin/pkg/image/graph/nodes"
 )
 
@@ -202,7 +201,7 @@ func TestChainDescriber(t *testing.T) {
 		objs := []runtime.Object{}
 		if len(test.path) > 0 {
 			var err error
-			objs, err = testclient.ReadObjectsFromPath(test.path, test.defaultNamespace, kapi.Codecs.UniversalDecoder(), kapi.Scheme)
+			objs, err = readObjectsFromPath(test.path, test.defaultNamespace, kapi.Codecs.UniversalDecoder(), kapi.Scheme)
 			if err != nil {
 				t.Fatal(err)
 			}

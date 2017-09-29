@@ -574,7 +574,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}
-	_, kClient, err := f.Clients()
+	kClient, err := f.ClientSet()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}

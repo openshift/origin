@@ -9,12 +9,27 @@ import (
 
 type SecurityV1Interface interface {
 	RESTClient() rest.Interface
+	PodSecurityPolicyReviewsGetter
+	PodSecurityPolicySelfSubjectReviewsGetter
+	PodSecurityPolicySubjectReviewsGetter
 	SecurityContextConstraintsGetter
 }
 
 // SecurityV1Client is used to interact with features provided by the security.openshift.io group.
 type SecurityV1Client struct {
 	restClient rest.Interface
+}
+
+func (c *SecurityV1Client) PodSecurityPolicyReviews(namespace string) PodSecurityPolicyReviewInterface {
+	return newPodSecurityPolicyReviews(c, namespace)
+}
+
+func (c *SecurityV1Client) PodSecurityPolicySelfSubjectReviews(namespace string) PodSecurityPolicySelfSubjectReviewInterface {
+	return newPodSecurityPolicySelfSubjectReviews(c, namespace)
+}
+
+func (c *SecurityV1Client) PodSecurityPolicySubjectReviews(namespace string) PodSecurityPolicySubjectReviewInterface {
+	return newPodSecurityPolicySubjectReviews(c, namespace)
 }
 
 func (c *SecurityV1Client) SecurityContextConstraints() SecurityContextConstraintsInterface {

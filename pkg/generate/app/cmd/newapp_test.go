@@ -16,11 +16,13 @@ import (
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	client "github.com/openshift/origin/pkg/client/testclient"
 	"github.com/openshift/origin/pkg/generate"
 	"github.com/openshift/origin/pkg/generate/app"
 	image "github.com/openshift/origin/pkg/image/apis/image"
+	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	routefakeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatefakeclient "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
 	"github.com/openshift/source-to-image/pkg/scm/git"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -181,7 +183,14 @@ func TestBuildTemplates(t *testing.T) {
 	for n, c := range tests {
 		appCfg := AppConfig{}
 		appCfg.Out = &bytes.Buffer{}
-		appCfg.SetOpenShiftClient(&client.Fake{}, c.namespace, nil)
+
+		// the previous fake was broken and didn't 404 properly.  this test is relying on that
+		templateFake := templatefakeclient.NewSimpleClientset()
+		imageFake := imagefakeclient.NewSimpleClientset()
+
+		appCfg.SetOpenShiftClient(
+			imageFake.Image(), templateFake.Template(), routefakeclient.NewSimpleClientset().Route(),
+			c.namespace, nil)
 		appCfg.KubeClient = fake.NewSimpleClientset()
 		appCfg.TemplateSearcher = fakeTemplateSearcher()
 		appCfg.AddArguments([]string{c.templateName})
@@ -208,7 +217,7 @@ func TestBuildTemplates(t *testing.T) {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 			continue
 		}
-		_, _, err = appCfg.buildTemplates(components, app.Environment(parms), app.Environment(map[string]string{}), app.Environment(map[string]string{}))
+		_, _, err = appCfg.buildTemplates(components, app.Environment(parms), app.Environment(map[string]string{}), app.Environment(map[string]string{}), fakeTemplateProcessor{})
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", n, err)
 		}
@@ -234,12 +243,12 @@ func TestBuildTemplates(t *testing.T) {
 }
 
 func fakeTemplateSearcher() app.Searcher {
-	client := &client.Fake{}
-	client.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
+	client := templatefakeclient.NewSimpleClientset()
+	client.PrependReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		return true, templateList(), nil
 	})
 	return app.TemplateSearcher{
-		Client:     client,
+		Client:     client.Template(),
 		Namespaces: []string{"default"},
 	}
 }

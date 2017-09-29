@@ -17,7 +17,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kubeversion "k8s.io/kubernetes/pkg/version"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	"github.com/openshift/origin/pkg/version"
@@ -34,7 +33,7 @@ type VersionOptions struct {
 	Out      io.Writer
 
 	ClientConfig kclientcmd.ClientConfig
-	Clients      func() (*client.Client, kclientset.Interface, error)
+	Clients      func() (kclientset.Interface, error)
 
 	Timeout time.Duration
 
@@ -72,7 +71,7 @@ func (o *VersionOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory, out 
 		return nil
 	}
 
-	o.Clients = f.Clients
+	o.Clients = f.ClientSet
 	o.ClientConfig = f.OpenShiftClientConfig()
 
 	if !o.IsServer {
@@ -137,7 +136,7 @@ func (o VersionOptions) RunVersion() error {
 		}
 		versionHost = clientConfig.Host
 
-		oClient, kClient, err := o.Clients()
+		kClient, err := o.Clients()
 		if err != nil {
 			done <- err
 			return
@@ -160,7 +159,7 @@ func (o VersionOptions) RunVersion() error {
 			return
 		}
 
-		ocVersionBody, err := oClient.Get().AbsPath("/version/openshift").Do().Raw()
+		ocVersionBody, err := kClient.Discovery().RESTClient().Get().AbsPath("/version/openshift").Do().Raw()
 		switch {
 		case err == nil:
 			var ocServerInfo version.Info

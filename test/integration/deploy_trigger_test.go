@@ -33,11 +33,7 @@ func TestTriggers_manual(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, _, err = testserver.CreateNewProject(*clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,15 +105,11 @@ func TestTriggers_imageChange(t *testing.T) {
 		t.Fatalf("error starting master: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("error getting cluster admin client: %v", err)
-	}
 	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(*openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -214,15 +206,11 @@ func TestTriggers_imageChange_nonAutomatic(t *testing.T) {
 		t.Fatalf("error starting master: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("error getting cluster admin client: %v", err)
-	}
 	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, oc, _, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, oc, _, err := testserver.CreateNewProject(*openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -393,15 +381,11 @@ func TestTriggers_MultipleICTs(t *testing.T) {
 		t.Fatalf("error starting master: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	openshiftClusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("error getting cluster admin client: %v", err)
-	}
 	openshiftClusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("error getting cluster admin client config: %v", err)
 	}
-	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(openshiftClusterAdminClient, *openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
+	_, openshiftProjectAdminClient, _, err := testserver.CreateNewProject(*openshiftClusterAdminClientConfig, testutil.Namespace(), "bob")
 	if err != nil {
 		t.Fatalf("error creating project: %v", err)
 	}
@@ -561,11 +545,7 @@ func TestTriggers_configChange(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, _, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, namespace, "my-test-user")
+	_, _, _, err = testserver.CreateNewProject(*clusterAdminClientConfig, namespace, "my-test-user")
 	if err != nil {
 		t.Fatal(err)
 	}

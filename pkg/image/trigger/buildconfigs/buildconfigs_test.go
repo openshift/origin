@@ -5,15 +5,12 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	testingcore "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client/testclient"
 )
 
 type fakeTagResponse struct {
@@ -248,14 +245,6 @@ func TestBuildConfigReactor(t *testing.T) {
 	}
 
 	for i, test := range testCases {
-		c := &testclient.Fake{}
-		var actualUpdate runtime.Object
-		if test.response != nil {
-			c.AddReactor("update", "*", func(action testingcore.Action) (handled bool, ret runtime.Object, err error) {
-				actualUpdate = action.(testingcore.UpdateAction).GetObject()
-				return true, test.response, nil
-			})
-		}
 		instantiator := &instantiator{build: test.response}
 		r := BuildConfigReactor{Instantiator: instantiator}
 		initial, err := kapi.Scheme.DeepCopy(test.obj)

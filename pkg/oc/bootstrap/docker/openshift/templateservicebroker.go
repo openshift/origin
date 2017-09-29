@@ -29,9 +29,13 @@ const (
 
 // InstallTemplateServiceBroker checks whether the template service broker is installed and installs it if not already installed
 func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat string, serverLogLevel int) error {
-	osClient, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
+	templateClient, err := f.OpenshiftInternalTemplateClient()
+	if err != nil {
+		return err
 	}
 
 	// create the namespace if needed.  This is a reserved namespace, so you can't do it with the create project request
@@ -39,7 +43,7 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 		return errors.NewError("cannot create template service broker project").WithCause(err)
 	}
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
+	if err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbRBACTemplateName, tsbNamespace, map[string]string{}, true); err != nil {
 		return errors.NewError("cannot instantiate template service broker permissions").WithCause(err)
 	}
 
@@ -55,7 +59,7 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	}
 	glog.V(2).Infof("instantiating template service broker template with parameters %v", params)
 
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, params, true); err != nil {
+	if err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), nil, OpenshiftInfraNamespace, tsbAPIServerTemplateName, tsbNamespace, params, true); err != nil {
 		return errors.NewError("cannot instantiate template service broker resources").WithCause(err)
 	}
 
@@ -80,9 +84,9 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 
 // RegisterTemplateServiceBroker registers the TSB with the SC by creating the broker resource
 func (h *Helper) RegisterTemplateServiceBroker(f *clientcmd.Factory, configDir string) error {
-	osClient, _, err := f.Clients()
+	templateClient, err := f.OpenshiftInternalTemplateClient()
 	if err != nil {
-		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+		return err
 	}
 
 	// Register the template broker with the service catalog
@@ -101,7 +105,7 @@ func (h *Helper) RegisterTemplateServiceBroker(f *clientcmd.Factory, configDir s
 	if err != nil {
 		return errors.NewError("unable to read service signer cert").WithCause(err)
 	}
-	if err = instantiateTemplate(osClient, clientcmd.ResourceMapper(f), dmapper, OpenshiftInfraNamespace, tsbRegistrationTemplateName, tsbNamespace, map[string]string{
+	if err = instantiateTemplate(templateClient.Template(), clientcmd.ResourceMapper(f), dmapper, OpenshiftInfraNamespace, tsbRegistrationTemplateName, tsbNamespace, map[string]string{
 		"TSB_NAMESPACE": tsbNamespace,
 		"CA_BUNDLE":     serviceCAString,
 	}, true); err != nil {

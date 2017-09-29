@@ -48,7 +48,7 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "namespace", "carol"); err != nil {
+	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, "namespace", "carol"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

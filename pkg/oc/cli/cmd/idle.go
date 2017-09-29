@@ -24,8 +24,8 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployclient "github.com/openshift/origin/pkg/apps/generated/internalclientset/typed/apps/internalversion"
-	osclient "github.com/openshift/origin/pkg/client"
+	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
+	appsv1client "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
@@ -535,16 +535,26 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 		fmt.Fprintf(o.errOut, "warning: continuing on for valid scalable resources, but an error occurred while finding scalable resources to idle: %v", err)
 	}
 
-	oclient, kclient, err := f.Clients()
+	kclient, err := f.ClientSet()
+	if err != nil {
+		return err
+	}
+	appClient, err := f.OpenshiftInternalAppsClient()
+	if err != nil {
+		return err
+	}
+	clientConfig, err := f.ClientConfig()
+	if err != nil {
+		return err
+	}
+	appsV1Client, err := appsv1client.NewForConfig(clientConfig)
 	if err != nil {
 		return err
 	}
 
 	externalKubeExtensionClient := kextensionsclient.New(kclient.Core().RESTClient())
-	delegScaleGetter := osclient.NewDelegatingScaleNamespacer(oclient, externalKubeExtensionClient)
-	dcGetter := deployclient.New(oclient.RESTClient)
-
-	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, dcGetter, kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
+	delegScaleGetter := appsmanualclient.NewDelegatingScaleNamespacer(appsV1Client, externalKubeExtensionClient)
+	scaleAnnotater := utilunidling.NewScaleAnnotater(delegScaleGetter, appClient.Apps(), kclient.Core(), func(currentReplicas int32, annotations map[string]string) {
 		annotations[unidlingapi.IdledAtAnnotation] = nowTime.UTC().Format(time.RFC3339)
 		annotations[unidlingapi.PreviousScaleAnnotation] = fmt.Sprintf("%v", currentReplicas)
 	})
@@ -646,7 +656,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	for scaleRef, info := range toScale {
 		if !o.dryRun {
 			info.scale.Spec.Replicas = 0
-			scaleUpdater := utilunidling.NewScaleUpdater(f.JSONEncoder(), info.namespace, dcGetter, kclient.Core())
+			scaleUpdater := utilunidling.NewScaleUpdater(f.JSONEncoder(), info.namespace, appClient.Apps(), kclient.Core())
 			if err := scaleAnnotater.UpdateObjectScale(scaleUpdater, info.namespace, scaleRef, info.obj, info.scale); err != nil {
 				fmt.Fprintf(o.errOut, "error: unable to scale %s %s/%s to 0, but still listed as target for unidling: %v\n", scaleRef.Kind, info.namespace, scaleRef.Name, err)
 				hadError = true

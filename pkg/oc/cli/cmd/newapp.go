@@ -384,7 +384,7 @@ func (o *NewAppOptions) RunNewApp() error {
 				var route *routeapi.Route
 				//check if route processing was completed and host field is prepopulated by router
 				err := wait.PollImmediate(500*time.Millisecond, RoutePollTimeout, func() (bool, error) {
-					route, err = config.OSClient.Routes(t.Namespace).Get(t.Name, metav1.GetOptions{})
+					route, err = config.RouteClient.Routes(t.Namespace).Get(t.Name, metav1.GetOptions{})
 					if err != nil {
 						return false, fmt.Errorf("Error while polling route %s", t.Name)
 					}
@@ -574,13 +574,26 @@ func CompleteAppConfig(config *newcmd.AppConfig, f *clientcmd.Factory, c *cobra.
 		return err
 	}
 
-	osclient, kclient, err := f.Clients()
+	kclient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
 	config.KubeClient = kclient
 	dockerClient, _ := getDockerClient()
-	config.SetOpenShiftClient(osclient, namespace, dockerClient)
+
+	imageClient, err := f.OpenshiftInternalImageClient()
+	if err != nil {
+		return err
+	}
+	templateClient, err := f.OpenshiftInternalTemplateClient()
+	if err != nil {
+		return err
+	}
+	routeClient, err := f.OpenshiftInternalRouteClient()
+	if err != nil {
+		return err
+	}
+	config.SetOpenShiftClient(imageClient.Image(), templateClient.Template(), routeClient.Route(), namespace, dockerClient)
 
 	if config.AllowSecretUse {
 		cfg, err := f.ClientConfig()

@@ -54,9 +54,6 @@ type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
 	CLIClientBuilder
 
-	// TODO: this should be removed when we finally get rid of pkg/client
-	Clients() (*client.Client, kclientset.Interface, error)
-
 	OpenShiftClientConfig() kclientcmd.ClientConfig
 	ImageResolutionOptions() FlagBinder
 }
@@ -132,24 +129,6 @@ func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	clientConfig := kclientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 
 	return clientConfig
-}
-
-func (f *ring0Factory) Clients() (*client.Client, kclientset.Interface, error) {
-	kubeClientSet, err := f.ClientSet()
-	if err != nil {
-		return nil, nil, err
-	}
-	cfg, err := f.clientConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	openShiftClient, err := client.New(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return openShiftClient, kubeClientSet, nil
 }
 
 func (f *ring0Factory) OpenShiftClientConfig() kclientcmd.ClientConfig {

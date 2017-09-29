@@ -186,7 +186,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	if err != nil {
 		return err
 	}
-	_, kClient, err := f.Clients()
+	kClient, err := f.ClientSet()
 	if err != nil {
 		return fmt.Errorf("error getting client: %v", err)
 	}

@@ -8,14 +8,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 )
 
 // ImageStreamSearcher searches the openshift server image streams for images matching a particular name
 type ImageStreamSearcher struct {
-	Client            client.ImageStreamsNamespacer
-	ImageStreamImages client.ImageStreamImagesNamespacer
+	Client            imageclient.ImageStreamsGetter
+	ImageStreamImages imageclient.ImageStreamImagesGetter
 	Namespaces        []string
 	AllowMissingTags  bool
 }
@@ -175,7 +175,7 @@ func (r ImageStreamSearcher) Search(precise bool, terms ...string) (ComponentMat
 					continue
 				}
 
-				imageStreamImage, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(stream.Name, latest.Image)
+				imageStreamImage, err := r.ImageStreamImages.ImageStreamImages(namespace).Get(imageapi.JoinImageStreamImage(stream.Name, latest.Image), metav1.GetOptions{})
 				if err != nil {
 					if errors.IsNotFound(err) {
 						// continue searching
@@ -246,8 +246,8 @@ func InputImageFromMatch(match *ComponentMatch) (*ImageRef, error) {
 // ImageStreamByAnnotationSearcher searches for image streams based on 'supports' annotations
 // found in tagged images belonging to the stream
 type ImageStreamByAnnotationSearcher struct {
-	Client            client.ImageStreamsNamespacer
-	ImageStreamImages client.ImageStreamImagesNamespacer
+	Client            imageclient.ImageStreamsGetter
+	ImageStreamImages imageclient.ImageStreamImagesGetter
 	Namespaces        []string
 
 	imageStreams map[string]*imageapi.ImageStreamList
@@ -256,7 +256,7 @@ type ImageStreamByAnnotationSearcher struct {
 const supportsAnnotationKey = "supports"
 
 // NewImageStreamByAnnotationSearcher creates a new ImageStreamByAnnotationSearcher
-func NewImageStreamByAnnotationSearcher(streamClient client.ImageStreamsNamespacer, imageClient client.ImageStreamImagesNamespacer, namespaces []string) Searcher {
+func NewImageStreamByAnnotationSearcher(streamClient imageclient.ImageStreamsGetter, imageClient imageclient.ImageStreamImagesGetter, namespaces []string) Searcher {
 	return &ImageStreamByAnnotationSearcher{
 		Client:            streamClient,
 		ImageStreamImages: imageClient,
@@ -322,7 +322,7 @@ func (r *ImageStreamByAnnotationSearcher) annotationMatches(stream *imageapi.Ima
 		if latest == nil {
 			continue
 		}
-		imageStream, err := r.ImageStreamImages.ImageStreamImages(stream.Namespace).Get(stream.Name, latest.Image)
+		imageStream, err := r.ImageStreamImages.ImageStreamImages(stream.Namespace).Get(imageapi.JoinImageStreamImage(stream.Name, latest.Image), metav1.GetOptions{})
 		if err != nil {
 			glog.V(2).Infof("Could not retrieve image stream image for stream %q, tag %q: %v", stream.Name, tag, err)
 			continue

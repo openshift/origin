@@ -147,7 +147,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 		}
 	}
 
-	oclient, _, err := f.Clients()
+	discoveryClient, err := f.DiscoveryClient()
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (o *ResourceOptions) Complete(f *clientcmd.Factory, c *cobra.Command) error
 			break
 		}
 
-		all, err := clientcmd.FindAllCanonicalResources(oclient.Discovery(), mapper)
+		all, err := clientcmd.FindAllCanonicalResources(discoveryClient, mapper)
 		if err != nil {
 			return fmt.Errorf("could not calculate the list of available resources: %v", err)
 		}

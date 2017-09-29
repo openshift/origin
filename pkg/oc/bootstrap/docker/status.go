@@ -176,14 +176,14 @@ func (c *ClientStatusConfig) Status(f *clientcmd.Factory, out io.Writer) error {
 }
 
 func isHealthy(f *clientcmd.Factory) (bool, error) {
-	osClient, _, err := f.Clients()
+	client, err := f.RESTClient()
 	if err != nil {
 		return false, err
 	}
 
 	var statusCode int
-	osClient.Client.Timeout = 10 * time.Second
-	osClient.Get().AbsPath("/healthz").Do().StatusCode(&statusCode)
+	client.Client.Timeout = 10 * time.Second
+	client.Get().AbsPath("/healthz").Do().StatusCode(&statusCode)
 	return statusCode == 200, nil
 }
 

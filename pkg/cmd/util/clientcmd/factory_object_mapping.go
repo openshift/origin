@@ -29,11 +29,13 @@ import (
 
 	"github.com/openshift/origin/pkg/api/latest"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsmanualclient "github.com/openshift/origin/pkg/apps/client/internalversion"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
 	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationreaper "github.com/openshift/origin/pkg/authorization/reaper"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
+	buildmanualclient "github.com/openshift/origin/pkg/build/client/internalversion"
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
@@ -143,7 +145,7 @@ func (f *ring1Factory) Describer(mapping *meta.RESTMapping) (kprinters.Describer
 	// it wasn't an origin type pre 3.6.
 	isSCC := mapping.GroupVersionKind.Kind == "SecurityContextConstraints"
 	if latest.OriginKind(mapping.GroupVersionKind) || isSCC {
-		_, kClient, err := f.clientAccessFactory.Clients()
+		kClient, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, fmt.Errorf("unable to create client %s: %v", mapping.GroupVersionKind.Kind, err)
 		}
@@ -174,11 +176,11 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 		if !ok {
 			return nil, errors.New("provided options object is not a DeploymentLogOptions")
 		}
-		oc, _, err := f.clientAccessFactory.Clients()
+		appsClient, err := f.clientAccessFactory.OpenshiftInternalAppsClient()
 		if err != nil {
 			return nil, err
 		}
-		return oc.DeploymentLogs(t.Namespace).Get(t.Name, *dopts), nil
+		return appsmanualclient.NewRolloutLogClient(appsClient.Apps().RESTClient(), t.Namespace).Logs(t.Name, *dopts), nil
 	case *buildapi.Build:
 		bopts, ok := options.(*buildapi.BuildLogOptions)
 		if !ok {
@@ -187,21 +189,22 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 		if bopts.Version != nil {
 			return nil, errors.New("cannot specify a version and a build")
 		}
-		oc, _, err := f.clientAccessFactory.Clients()
+		buildClient, err := f.clientAccessFactory.OpenshiftInternalBuildClient()
 		if err != nil {
 			return nil, err
 		}
-		return oc.BuildLogs(t.Namespace).Get(t.Name, *bopts), nil
+		return buildmanualclient.NewBuildLogClient(buildClient.Build().RESTClient(), t.Namespace).Logs(t.Name, *bopts), nil
 	case *buildapi.BuildConfig:
 		bopts, ok := options.(*buildapi.BuildLogOptions)
 		if !ok {
 			return nil, errors.New("provided options object is not a BuildLogOptions")
 		}
-		oc, _, err := f.clientAccessFactory.Clients()
+		buildClient, err := f.clientAccessFactory.OpenshiftInternalBuildClient()
 		if err != nil {
 			return nil, err
 		}
-		builds, err := oc.Builds(t.Namespace).List(metav1.ListOptions{})
+		logClient := buildmanualclient.NewBuildLogClient(buildClient.Build().RESTClient(), t.Namespace)
+		builds, err := buildClient.Build().Builds(t.Namespace).List(metav1.ListOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -212,10 +215,10 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 		if bopts.Version != nil {
 			// If a version has been specified, try to get the logs from that build.
 			desired := buildutil.BuildNameForConfigVersion(t.Name, int(*bopts.Version))
-			return oc.BuildLogs(t.Namespace).Get(desired, *bopts), nil
+			return logClient.Logs(desired, *bopts), nil
 		}
 		sort.Sort(sort.Reverse(buildapi.BuildSliceByCreationTimestamp(builds.Items)))
-		return oc.BuildLogs(t.Namespace).Get(builds.Items[0].Name, *bopts), nil
+		return logClient.Logs(builds.Items[0].Name, *bopts), nil
 	default:
 		return f.kubeObjectMappingFactory.LogsForObject(object, options, timeout)
 	}
@@ -223,7 +226,7 @@ func (f *ring1Factory) LogsForObject(object, options runtime.Object, timeout tim
 
 func (f *ring1Factory) Scaler(mapping *meta.RESTMapping) (kubectl.Scaler, error) {
 	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -240,7 +243,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 	gk := mapping.GroupVersionKind.GroupKind()
 	switch {
 	case deployapi.IsKindOrLegacy("DeploymentConfig", gk):
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -262,7 +265,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		}
 		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
 	case userapi.IsKindOrLegacy("User", gk):
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -287,7 +290,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 			legacyclient.NewFromClient(kc.Core().RESTClient()),
 		), nil
 	case userapi.IsKindOrLegacy("Group", gk):
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +320,7 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 
 func (f *ring1Factory) HistoryViewer(mapping *meta.RESTMapping) (kubectl.HistoryViewer, error) {
 	if deployapi.IsKindOrLegacy("DeploymentConfig", mapping.GroupVersionKind.GroupKind()) {
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -351,7 +354,7 @@ func (f *ring1Factory) StatusViewer(mapping *meta.RESTMapping) (kubectl.StatusVi
 func (f *ring1Factory) AttachablePodForObject(object runtime.Object, timeout time.Duration) (*kapi.Pod, error) {
 	switch t := object.(type) {
 	case *deployapi.DeploymentConfig:
-		_, kc, err := f.clientAccessFactory.Clients()
+		kc, err := f.clientAccessFactory.ClientSet()
 		if err != nil {
 			return nil, err
 		}
@@ -372,13 +375,11 @@ func (f *ring1Factory) SwaggerSchema(gvk schema.GroupVersionKind) (*swagger.ApiD
 	if !latest.OriginLegacyKind(gvk) {
 		return f.kubeObjectMappingFactory.SwaggerSchema(gvk)
 	}
-	// TODO: we need to register the OpenShift API under the Kube group, and start returning the OpenShift
-	// group from the scheme.
-	oc, _, err := f.clientAccessFactory.Clients()
+	kubeClient, err := f.clientAccessFactory.ClientSet()
 	if err != nil {
 		return nil, err
 	}
-	return f.OriginSwaggerSchema(oc.RESTClient, gvk.GroupVersion())
+	return f.OriginSwaggerSchema(kubeClient.Discovery().RESTClient(), gvk.GroupVersion())
 }
 
 func (f *ring1Factory) OpenAPISchema(cacheDir string) (*openapi.Resources, error) {
@@ -386,7 +387,7 @@ func (f *ring1Factory) OpenAPISchema(cacheDir string) (*openapi.Resources, error
 }
 
 // OriginSwaggerSchema returns a swagger API doc for an Origin schema under the /oapi prefix.
-func (f *ring1Factory) OriginSwaggerSchema(client *restclient.RESTClient, version schema.GroupVersion) (*swagger.ApiDeclaration, error) {
+func (f *ring1Factory) OriginSwaggerSchema(client restclient.Interface, version schema.GroupVersion) (*swagger.ApiDeclaration, error) {
 	if version.Empty() {
 		return nil, fmt.Errorf("groupVersion cannot be empty")
 	}

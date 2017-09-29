@@ -322,10 +322,6 @@ func TestDockercfgTokenDeletedController(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -339,7 +335,7 @@ func TestDockercfgTokenDeletedController(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "sa1", Namespace: "ns1"},
 	}
 
-	if _, _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
+	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, sa.Namespace, "ignored"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 

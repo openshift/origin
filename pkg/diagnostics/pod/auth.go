@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/diagnostics/types"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
 const (
@@ -70,14 +71,14 @@ func (d PodCheckAuth) authenticateToMaster(token string, r types.DiagnosticResul
 			BearerToken:     token,
 		},
 	}
-	oclient, _, err := clientConfig.Clients()
+	userClient, err := userclient.NewForConfig(clientConfig.OpenShiftConfig())
 	if err != nil {
 		r.Error("DP1002", err, fmt.Sprintf("could not create API clients from the service account client config: %v", err))
 		return
 	}
 	rchan := make(chan error, 1) // for concurrency with timeout
 	go func() {
-		_, err := oclient.Users().Get("~", metav1.GetOptions{})
+		_, err := userClient.User().Users().Get("~", metav1.GetOptions{})
 		rchan <- err
 	}()
 

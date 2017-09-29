@@ -88,7 +88,7 @@ func validate(cmd *cobra.Command, f *clientcmd.Factory, args []string) error {
 		return err
 	}
 
-	_, kc, err := f.Clients()
+	kc, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

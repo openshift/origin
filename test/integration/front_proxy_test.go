@@ -108,7 +108,7 @@ func TestFrontProxy(t *testing.T) {
 
 	for _, username := range []string{"david", "jordan"} {
 		projectName := username + "-project"
-		if _, _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, username); err != nil {
+		if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, projectName, username); err != nil {
 			t.Fatal(err)
 		}
 		waitForAdd(projectName, w, t)

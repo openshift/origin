@@ -15,7 +15,7 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	oauthorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -24,7 +24,7 @@ const WhoCanRecommendedName = "who-can"
 type whoCanOptions struct {
 	allNamespaces    bool
 	bindingNamespace string
-	client           *client.Client
+	client           oauthorizationtypedclient.AuthorizationInterface
 
 	verb         string
 	resource     schema.GroupVersionResource
@@ -46,13 +46,6 @@ func NewCmdWhoCan(name, fullName string, f *clientcmd.Factory, out io.Writer) *c
 			if err := options.complete(f, cmd, args, out); err != nil {
 				kcmdutil.CheckErr(kcmdutil.UsageError(cmd, err.Error()))
 			}
-
-			var err error
-			options.client, _, err = f.Clients()
-			kcmdutil.CheckErr(err)
-
-			options.bindingNamespace, _, err = f.DefaultNamespace()
-			kcmdutil.CheckErr(err)
 
 			kcmdutil.CheckErr(options.run())
 		},
@@ -81,6 +74,17 @@ func (o *whoCanOptions) complete(f *clientcmd.Factory, cmd *cobra.Command, args 
 		o.resource = resourceFor(mapper, args[1])
 	default:
 		return errors.New("you must specify two or three arguments: verb, resource, and optional resourceName")
+	}
+
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return err
+	}
+	o.client = authorizationClient.Authorization()
+
+	o.bindingNamespace, _, err = f.DefaultNamespace()
+	if err != nil {
+		return err
 	}
 
 	return nil

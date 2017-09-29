@@ -23,7 +23,7 @@ func (o DiagnosticsOptions) buildClientDiagnostics(rawConfig *clientcmdapi.Confi
 	available := availableClientDiagnostics
 
 	networkClient, err := o.Factory.OpenshiftInternalNetworkClient()
-	_, kubeClient, clientErr := o.Factory.Clients()
+	kubeClient, clientErr := o.Factory.ClientSet()
 	if clientErr != nil || err != nil {
 		o.Logger.Notice("CED0001", "Could not configure a client, so client diagnostics are limited to testing configuration and connection")
 		available = sets.NewString(clientdiags.ConfigContextsName)

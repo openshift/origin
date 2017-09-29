@@ -71,7 +71,7 @@ func (o *CreatePolicyBindingOptions) Complete(cmd *cobra.Command, f *clientcmd.F
 	}
 	o.BindingNamespace = namespace
 
-	_, kclient, err := f.Clients()
+	kclient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

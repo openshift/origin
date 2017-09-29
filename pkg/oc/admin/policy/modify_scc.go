@@ -170,7 +170,7 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, cmd *cobra.
 		return f.PrintObject(cmd, false, mapper, obj, out)
 	}
 
-	_, kc, err := f.Clients()
+	kc, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
@@ -208,7 +208,7 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, cmd *cobra
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	_, kc, err := f.Clients()
+	kc, err := f.ClientSet()
 	if err != nil {
 		return err
 	}
