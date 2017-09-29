@@ -1,25 +1,27 @@
 package templaterouter
 
+import "time"
+
 // NewFakeTemplateRouter provides an empty template router with a simple certificate manager
 // backed by a fake cert writer for testing
 func NewFakeTemplateRouter() *templateRouter {
 	fakeCertManager, _ := newSimpleCertificateManager(newFakeCertificateManagerConfig(), &fakeCertWriter{})
 	return &templateRouter{
-		state:                        map[string]ServiceAliasConfig{},
-		serviceUnits:                 make(map[string]ServiceUnit),
-		certManager:                  fakeCertManager,
-		rateLimitedCommitFunction:    nil,
-		rateLimitedCommitStopChannel: make(chan struct{}),
+		state:        map[string]ServiceAliasConfig{},
+		serviceUnits: make(map[string]ServiceUnit),
+		certManager:  fakeCertManager,
 	}
 }
 
 // FakeReloadHandler implements the minimal changes needed to make the locking behavior work
-// This MUST match the behavior with the stateChanged of commitAndReload
+// This MUST match the behavior with the object updates of commitAndReload() in router.go
 func (r *templateRouter) FakeReloadHandler() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	r.stateChanged = false
+	r.lastReloadStart = time.Now()
+	r.lastReloadEnd = time.Now()
 
 	return
 }

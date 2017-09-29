@@ -37,6 +37,12 @@ import (
 // defaultReloadInterval is how often to do reloads in seconds.
 const defaultReloadInterval = 5
 
+// defaultReloadGap is the minimum gap between a reload end and start in milliseconds.
+const defaultReloadGap = 100
+
+// defaultReloadEventWait is how long to wait for more events before triggering a reload.  In milliseconds
+const defaultReloadEventWait = 10
+
 var routerLong = templates.LongDesc(`
 	Start a router
 
@@ -68,6 +74,8 @@ type TemplateRouter struct {
 	TemplateFile             string
 	ReloadScript             string
 	ReloadInterval           time.Duration
+	ReloadGap                time.Duration
+	ReloadEventWait          time.Duration
 	DefaultCertificate       string
 	DefaultCertificatePath   string
 	DefaultCertificateDir    string
@@ -87,8 +95,32 @@ func reloadInterval() time.Duration {
 	interval := util.Env("RELOAD_INTERVAL", fmt.Sprintf("%vs", defaultReloadInterval))
 	value, err := time.ParseDuration(interval)
 	if err != nil {
-		glog.Warningf("Invalid RELOAD_INTERVAL %q, using default value %v ...", interval, defaultReloadInterval)
+		glog.Warningf("Invalid RELOAD_INTERVAL %q, using default value %vs ...", interval, defaultReloadInterval)
 		value = time.Duration(defaultReloadInterval * time.Second)
+	}
+	return value
+}
+
+// reloadGap returns how often to wait between a reload end and the start of the next reload.
+// The gap value is based on an environment variable or the default.
+func reloadGap() time.Duration {
+	gap := util.Env("RELOAD_GAP", fmt.Sprintf("%vms", defaultReloadGap))
+	value, err := time.ParseDuration(gap)
+	if err != nil {
+		glog.Warningf("Invalid RELOAD_GAP %q, using default value %vms ...", gap, defaultReloadGap)
+		value = time.Duration(defaultReloadGap * time.Millisecond)
+	}
+	return value
+}
+
+// reloadEventWait returns how often to wait after getting the first event after a reload before triggering the next reload.
+// The event wait value is based on an environment variable or the default.
+func reloadEventWait() time.Duration {
+	eventWait := util.Env("RELOAD_EVENT_WAIT", fmt.Sprintf("%vms", defaultReloadEventWait))
+	value, err := time.ParseDuration(eventWait)
+	if err != nil {
+		glog.Warningf("Invalid RELOAD_EVENT_WAIT %q, using default value %vms ...", eventWait, defaultReloadEventWait)
+		value = time.Duration(defaultReloadEventWait * time.Millisecond)
 	}
 	return value
 }
@@ -103,7 +135,9 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.DefaultDestinationCAPath, "default-destination-ca-path", util.Env("DEFAULT_DESTINATION_CA_PATH", "/var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt"), "A path to a PEM file containing the default CA bundle to use with re-encrypt routes. This CA should sign for certificates in the Kubernetes DNS space (service.namespace.svc).")
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
-	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
+	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the time the last reload started.")
+	flag.DurationVar(&o.ReloadGap, "reload-gap", reloadGap(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the time the last reload ended.")
+	flag.DurationVar(&o.ReloadEventWait, "reload-event-wait", reloadEventWait(), "Controls how often router reloads are invoked. Mutiple router reload events are gathered for the given duration before a reload is triggered.")
 	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
 	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
@@ -203,6 +237,14 @@ func (o *TemplateRouterOptions) Complete() error {
 
 	if nsecs := int(o.ReloadInterval.Seconds()); nsecs < 1 {
 		return fmt.Errorf("invalid reload interval: %v - must be a positive duration", nsecs)
+	}
+
+	if o.ReloadGap < 0 {
+		return fmt.Errorf("invalid reload gap: %s - must not be negative", o.ReloadGap.String())
+	}
+
+	if o.ReloadEventWait < 0 {
+		return fmt.Errorf("invalid reload event wait: %s - must not be negative", o.ReloadEventWait.String())
 	}
 
 	if len(routerCanonicalHostname) > 0 {
@@ -324,6 +366,8 @@ func (o *TemplateRouterOptions) Run() error {
 		TemplatePath:             o.TemplateFile,
 		ReloadScriptPath:         o.ReloadScript,
 		ReloadInterval:           o.ReloadInterval,
+		ReloadGap:                o.ReloadGap,
+		ReloadEventWait:          o.ReloadEventWait,
 		DefaultCertificate:       o.DefaultCertificate,
 		DefaultCertificatePath:   o.DefaultCertificatePath,
 		DefaultCertificateDir:    o.DefaultCertificateDir,
