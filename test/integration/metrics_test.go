@@ -25,7 +25,7 @@ func TestMetrics(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestMetrics(t *testing.T) {
 	err = wait.Poll(time.Second, 30*time.Second, func() (bool, error) {
 		missingMetrics = []string{}
 
-		b, err := clusterAdminClient.Get().RequestURI("/metrics").DoRaw()
+		b, err := clusterAdminClient.Discovery().RESTClient().Get().RequestURI("/metrics").DoRaw()
 		if err != nil {
 			return false, err
 		}

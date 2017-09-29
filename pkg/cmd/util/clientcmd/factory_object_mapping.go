@@ -39,9 +39,8 @@ import (
 	buildcmd "github.com/openshift/origin/pkg/build/cmd"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	buildutil "github.com/openshift/origin/pkg/build/util"
-	"github.com/openshift/origin/pkg/client"
+	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
-	"github.com/openshift/origin/pkg/security/legacyclient"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	authenticationreaper "github.com/openshift/origin/pkg/user/reaper"
 )
@@ -98,12 +97,13 @@ var legacyOpeshiftCategoryExpander resource.CategoryExpander = resource.SimpleCa
 }
 
 func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+	// TODO only do this for legacy kinds
 	if latest.OriginKind(mapping.GroupVersionKind) {
 		cfg, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
-		if err := client.SetOpenShiftDefaults(cfg); err != nil {
+		if err := configcmd.SetLegacyOpenShiftDefaults(cfg); err != nil {
 			return nil, err
 		}
 		cfg.APIPath = "/apis"
@@ -118,12 +118,13 @@ func (f *ring1Factory) ClientForMapping(mapping *meta.RESTMapping) (resource.RES
 }
 
 func (f *ring1Factory) UnstructuredClientForMapping(mapping *meta.RESTMapping) (resource.RESTClient, error) {
+	// TODO only do this for legacy kinds
 	if latest.OriginKind(mapping.GroupVersionKind) {
 		cfg, err := f.clientAccessFactory.ClientConfig()
 		if err != nil {
 			return nil, err
 		}
-		if err := client.SetOpenShiftDefaults(cfg); err != nil {
+		if err := configcmd.SetLegacyOpenShiftDefaults(cfg); err != nil {
 			return nil, err
 		}
 		cfg.APIPath = "/apis"
@@ -265,10 +266,6 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		}
 		return authorizationreaper.NewClusterRoleReaper(authClient.Authorization(), authClient.Authorization(), authClient.Authorization()), nil
 	case userapi.IsKindOrLegacy("User", gk):
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
 		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
 		if err != nil {
 			return nil, err
@@ -281,19 +278,19 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
+		securityClient, err := f.clientAccessFactory.OpenshiftInternalSecurityClient()
+		if err != nil {
+			return nil, err
+		}
 		return authenticationreaper.NewUserReaper(
 			userClient,
 			userClient,
 			authClient,
 			authClient,
 			oauthClient,
-			legacyclient.NewFromClient(kc.Core().RESTClient()),
+			securityClient.Security().SecurityContextConstraints(),
 		), nil
 	case userapi.IsKindOrLegacy("Group", gk):
-		kc, err := f.clientAccessFactory.ClientSet()
-		if err != nil {
-			return nil, err
-		}
 		userClient, err := f.clientAccessFactory.OpenshiftInternalUserClient()
 		if err != nil {
 			return nil, err
@@ -302,11 +299,15 @@ func (f *ring1Factory) Reaper(mapping *meta.RESTMapping) (kubectl.Reaper, error)
 		if err != nil {
 			return nil, err
 		}
+		securityClient, err := f.clientAccessFactory.OpenshiftInternalSecurityClient()
+		if err != nil {
+			return nil, err
+		}
 		return authenticationreaper.NewGroupReaper(
 			userClient,
 			authClient,
 			authClient,
-			legacyclient.NewFromClient(kc.Core().RESTClient()),
+			securityClient.Security().SecurityContextConstraints(),
 		), nil
 	case buildapi.IsKindOrLegacy("BuildConfig", gk):
 		config, err := f.clientAccessFactory.OpenShiftClientConfig().ClientConfig()

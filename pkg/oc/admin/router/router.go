@@ -20,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	kapi "k8s.io/kubernetes/pkg/api"
-	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/serviceaccount"
@@ -34,7 +33,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	oscc "github.com/openshift/origin/pkg/security/securitycontextconstraints"
 	fileutil "github.com/openshift/origin/pkg/util/file"
 )
@@ -611,7 +610,11 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 		return fmt.Errorf("you must specify a service account for the router with --service-account")
 	}
 
-	if err := validateServiceAccount(kClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
+	securityClient, err := f.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return err
+	}
+	if err := validateServiceAccount(securityClient, namespace, cfg.ServiceAccount, cfg.HostNetwork, cfg.HostPorts); err != nil {
 		err = fmt.Errorf("router could not be created; %v", err)
 		if !cfg.Action.ShouldPrint() {
 			return err
@@ -884,12 +887,12 @@ func generateStatsPassword() string {
 	return strings.Join(password, "")
 }
 
-func validateServiceAccount(client kclientset.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
+func validateServiceAccount(client securityclient.Interface, ns string, serviceAccount string, hostNetwork, hostPorts bool) error {
 	if !hostNetwork && !hostPorts {
 		return nil
 	}
 	// get cluster sccs
-	sccList, err := legacyclient.NewFromClient(client.Core().RESTClient()).List(metav1.ListOptions{})
+	sccList, err := client.Security().SecurityContextConstraints().List(metav1.ListOptions{})
 	if err != nil {
 		if !errors.IsUnauthorized(err) {
 			return fmt.Errorf("could not retrieve list of security constraints to verify service account %q: %v", serviceAccount, err)

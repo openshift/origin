@@ -41,10 +41,10 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	}
 
 	// create the containing project
-	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, projName, "admin"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projName, "admin"); err != nil {
 		t.Fatalf("unexpected error creating the project: %v", err)
 	}
-	_, projectAdminKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
+	projectAdminKubeClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "admin")
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
@@ -78,10 +78,10 @@ func TestExtensionsAPIDisabledAutoscaleBatchEnabled(t *testing.T) {
 	}
 
 	// recreate the containing project
-	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, projName, "admin"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projName, "admin"); err != nil {
 		t.Fatalf("unexpected error creating the project: %v", err)
 	}
-	_, projectAdminKubeClient, _, err = testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
+	projectAdminKubeClient, _, err = testutil.GetClientForUser(clusterAdminClientConfig, "admin")
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}

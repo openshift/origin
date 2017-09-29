@@ -20,10 +20,9 @@ import (
 
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 // ReconcileSCCRecommendedName is the recommended command name
@@ -43,7 +42,7 @@ type ReconcileSCCOptions struct {
 	Out    io.Writer
 	Output string
 
-	SCCClient legacyclient.SecurityContextConstraintInterface
+	SCCClient securitytypedclient.SecurityContextConstraintsInterface
 	NSClient  kcoreclient.NamespaceInterface
 }
 
@@ -121,7 +120,11 @@ func (o *ReconcileSCCOptions) Complete(cmd *cobra.Command, f *clientcmd.Factory,
 	if err != nil {
 		return err
 	}
-	o.SCCClient = legacyclient.NewFromClient(kClient.Core().RESTClient())
+	securityClient, err := f.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return err
+	}
+	o.SCCClient = securityClient.Security().SecurityContextConstraints()
 	o.NSClient = kClient.Core().Namespaces()
 	o.Output = kcmdutil.GetFlagString(cmd, "output")
 

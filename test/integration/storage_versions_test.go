@@ -63,10 +63,10 @@ func setupStorageTests(t *testing.T, ns string) (*configapi.MasterConfig, kclien
 	}
 
 	// create the containing project
-	if _, _, _, err := testserver.CreateNewProject(*clusterAdminClientConfig, ns, "admin"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, ns, "admin"); err != nil {
 		t.Fatalf("unexpected error creating the project: %v", err)
 	}
-	_, projectAdminKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
+	projectAdminKubeClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "admin")
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}

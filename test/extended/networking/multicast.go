@@ -5,6 +5,7 @@ import (
 	"regexp"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
+	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	testexutil "github.com/openshift/origin/test/extended/util"
 	testutil "github.com/openshift/origin/test/util"
 
@@ -41,15 +42,16 @@ var _ = Describe("[Area:Networking] multicast", func() {
 })
 
 func makeNamespaceMulticastEnabled(ns *kapiv1.Namespace) {
-	client, err := testutil.GetClusterAdminClient(testexutil.KubeConfigPath())
+	clientConfig, err := testutil.GetClusterAdminClientConfig(testexutil.KubeConfigPath())
+	networkClient := networkclient.NewForConfigOrDie(clientConfig)
 	expectNoError(err)
-	netns, err := client.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
+	netns, err := networkClient.NetNamespaces().Get(ns.Name, metav1.GetOptions{})
 	expectNoError(err)
 	if netns.Annotations == nil {
 		netns.Annotations = make(map[string]string, 1)
 	}
 	netns.Annotations[networkapi.MulticastEnabledAnnotation] = "true"
-	_, err = client.NetNamespaces().Update(netns)
+	_, err = networkClient.NetNamespaces().Update(netns)
 	expectNoError(err)
 }
 

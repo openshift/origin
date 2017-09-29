@@ -17,14 +17,14 @@ import (
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthfake "github.com/openshift/origin/pkg/oauth/generated/internalclientset/fake"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityfake "github.com/openshift/origin/pkg/security/generated/internalclientset/fake"
 	authenticationapi "github.com/openshift/origin/pkg/user/apis/user"
 	userfake "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 var (
 	usersResource                     = schema.GroupVersionResource{Group: "user.openshift.io", Version: "", Resource: "users"}
-	securityContextContraintsResource = schema.GroupVersionResource{Group: "", Version: "", Resource: "securitycontextconstraints"}
+	securityContextContraintsResource = schema.GroupVersionResource{Group: "security.openshift.io", Version: "", Resource: "securitycontextconstraints"}
 	oAuthClientAuthorizationsResource = schema.GroupVersionResource{Group: "oauth.openshift.io", Version: "", Resource: "oauthclientauthorizations"}
 )
 
@@ -220,8 +220,7 @@ func TestUserReaper(t *testing.T) {
 		authFake := authfake.NewSimpleClientset(test.authObjects...)
 		userFake := userfake.NewSimpleClientset(test.userObjects...)
 		oauthFake := oauthfake.NewSimpleClientset(test.oauthObjects...)
-
-		ktc := legacyclient.NewSimpleFake(test.sccs...)
+		securityFake := securityfake.NewSimpleClientset(test.sccs...)
 
 		actual := []interface{}{}
 		oreactor := func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
@@ -239,10 +238,10 @@ func TestUserReaper(t *testing.T) {
 		authFake.PrependReactor("delete", "*", oreactor)
 		userFake.PrependReactor("delete", "*", oreactor)
 		oauthFake.PrependReactor("delete", "*", oreactor)
-		ktc.Fake.PrependReactor("update", "*", kreactor)
-		ktc.Fake.PrependReactor("delete", "*", kreactor)
+		securityFake.Fake.PrependReactor("update", "*", kreactor)
+		securityFake.Fake.PrependReactor("delete", "*", kreactor)
 
-		reaper := NewUserReaper(userFake, userFake, authFake, authFake, oauthFake, ktc)
+		reaper := NewUserReaper(userFake, userFake, authFake, authFake, oauthFake, securityFake.Security().SecurityContextConstraints())
 		err := reaper.Stop("", test.user, 0, nil)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)

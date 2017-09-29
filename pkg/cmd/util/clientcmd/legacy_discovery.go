@@ -1,4 +1,4 @@
-package client
+package clientcmd
 
 import (
 	"net/url"
@@ -9,14 +9,14 @@ import (
 	restclient "k8s.io/client-go/rest"
 )
 
-// DiscoveryClient implements the functions that discovery server-supported API groups,
+// legacyDiscoveryClient  implements the functions that discovery server-supported API groups,
 // versions and resources.
-type DiscoveryClient struct {
+type legacyDiscoveryClient struct {
 	*discovery.DiscoveryClient
 }
 
 // ServerResourcesForGroupVersion returns the supported resources for a group and version.
-func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (resources *metav1.APIResourceList, err error) {
+func (d *legacyDiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (resources *metav1.APIResourceList, err error) {
 	parentList, err := d.DiscoveryClient.ServerResourcesForGroupVersion(groupVersion)
 	if err != nil {
 		return parentList, err
@@ -45,7 +45,7 @@ func (d *DiscoveryClient) ServerResourcesForGroupVersion(groupVersion string) (r
 }
 
 // ServerResources returns the supported resources for all groups and versions.
-func (d *DiscoveryClient) ServerResources() ([]*metav1.APIResourceList, error) {
+func (d *legacyDiscoveryClient) ServerResources() ([]*metav1.APIResourceList, error) {
 	apiGroups, err := d.ServerGroups()
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func (d *DiscoveryClient) ServerResources() ([]*metav1.APIResourceList, error) {
 	return result, nil
 }
 
-// New creates a new DiscoveryClient for the given RESTClient.
-func NewDiscoveryClient(c restclient.Interface) *DiscoveryClient {
-	return &DiscoveryClient{discovery.NewDiscoveryClient(c)}
+// newLegacyDiscoveryClient creates a new DiscoveryClient for the given RESTClient.
+func newLegacyDiscoveryClient(c restclient.Interface) *legacyDiscoveryClient {
+	return &legacyDiscoveryClient{discovery.NewDiscoveryClient(c)}
 }

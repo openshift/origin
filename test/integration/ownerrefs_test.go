@@ -9,6 +9,7 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -25,12 +26,9 @@ func TestOwnerRefRestriction(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	originClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clientConfig)
 
-	_, err = originClient.ClusterRoles().Create(&authorizationapi.ClusterRole{
+	_, err = clusterAdminAuthorizationClient.ClusterRoles().Create(&authorizationapi.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "create-svc",
 		},
@@ -42,15 +40,15 @@ func TestOwnerRefRestriction(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, _, _, err := testserver.CreateNewProject(*clientConfig, "foo", "admin-user"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clientConfig, "foo", "admin-user"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, creatorClient, _, err := testutil.GetClientForUser(*clientConfig, "creator")
+	creatorClient, _, err := testutil.GetClientForUser(clientConfig, "creator")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = originClient.RoleBindings("foo").Create(&authorizationapi.RoleBinding{
+	_, err = clusterAdminAuthorizationClient.RoleBindings("foo").Create(&authorizationapi.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "create-svc",
 		},

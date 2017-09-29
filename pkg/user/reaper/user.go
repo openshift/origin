@@ -9,10 +9,9 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl"
 
-	"github.com/openshift/origin/pkg/security/legacyclient"
-
 	authclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset"
 )
 
@@ -22,7 +21,7 @@ func NewUserReaper(
 	clusterBindingClient authclient.Interface,
 	bindingClient authclient.Interface,
 	authorizationsClient oauthclient.Interface,
-	sccClient legacyclient.SecurityContextConstraintInterface,
+	sccClient securitytypedclient.SecurityContextConstraintsInterface,
 ) kubectl.Reaper {
 	return &UserReaper{
 		userClient:           userClient,
@@ -40,7 +39,7 @@ type UserReaper struct {
 	clusterBindingClient authclient.Interface
 	bindingClient        authclient.Interface
 	authorizationsClient oauthclient.Interface
-	sccClient            legacyclient.SecurityContextConstraintInterface
+	sccClient            securitytypedclient.SecurityContextConstraintsInterface
 }
 
 // Stop on a reaper is actually used for deletion.  In this case, we'll delete referencing identities, clusterBindings, and bindings,

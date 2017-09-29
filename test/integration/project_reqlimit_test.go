@@ -11,16 +11,17 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	requestlimit "github.com/openshift/origin/pkg/project/admission/requestlimit/api"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclientset.Interface, client.Interface, *restclient.Config, func()) {
+func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.ProjectRequestLimitConfig) (kclientset.Interface, *restclient.Config, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -38,20 +39,16 @@ func setupProjectRequestLimitTest(t *testing.T, pluginConfig *requestlimit.Proje
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
-	openshiftClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
-	if err != nil {
-		t.Fatalf("error getting openshift client: %v", err)
-	}
 	clientConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting client config: %v", err)
 	}
-	return kubeClient, openshiftClient, clientConfig, func() {
+	return kubeClient, clientConfig, func() {
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 }
 
-func setupProjectRequestLimitUsers(t *testing.T, client client.Interface, users map[string]labels.Set) {
+func setupProjectRequestLimitUsers(t *testing.T, client userclient.UserInterface, users map[string]labels.Set) {
 	for userName, labels := range users {
 		user := &userapi.User{}
 		user.Name = userName
@@ -126,9 +123,9 @@ func projectRequestLimitUsers() map[string]labels.Set {
 }
 
 func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
-	kclient, oclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitMultiLevelConfig())
+	kclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitMultiLevelConfig())
 	defer fn()
-	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
+	setupProjectRequestLimitUsers(t, userclient.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 0,
 		"silver":  2,
@@ -142,9 +139,9 @@ func TestProjectRequestLimitMultiLevelConfig(t *testing.T) {
 }
 
 func TestProjectRequestLimitEmptyConfig(t *testing.T) {
-	kclient, oclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitEmptyConfig())
+	kclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitEmptyConfig())
 	defer fn()
-	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
+	setupProjectRequestLimitUsers(t, userclient.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 5,
 		"silver":  2,
@@ -158,9 +155,9 @@ func TestProjectRequestLimitEmptyConfig(t *testing.T) {
 }
 
 func TestProjectRequestLimitSingleConfig(t *testing.T) {
-	kclient, oclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+	kclient, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 	defer fn()
-	setupProjectRequestLimitUsers(t, oclient, projectRequestLimitUsers())
+	setupProjectRequestLimitUsers(t, userclient.NewForConfigOrDie(clientConfig), projectRequestLimitUsers())
 	setupProjectRequestLimitNamespaces(t, kclient, map[string]int{
 		"regular": 0,
 		"silver":  1,
@@ -176,15 +173,16 @@ func TestProjectRequestLimitSingleConfig(t *testing.T) {
 // we had a bug where this failed on ` uenxpected error: metadata.name: Invalid value: "system:admin": may not contain ":"`
 // make sure we never have that bug again and that project limits for them work
 func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
-	_, oclient, _, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
+	_, clientConfig, fn := setupProjectRequestLimitTest(t, projectRequestLimitSingleDefaultConfig())
 	defer fn()
+	projectClient := projectclient.NewForConfigOrDie(clientConfig)
 
-	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
+	if _, err := projectClient.ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 	}); err != nil {
 		t.Errorf("uenxpected error: %v", err)
 	}
-	if _, err := oclient.ProjectRequests().Create(&projectapi.ProjectRequest{
+	if _, err := projectClient.ProjectRequests().Create(&projectapi.ProjectRequest{
 		ObjectMeta: metav1.ObjectMeta{Name: "bar"},
 	}); !apierrors.IsForbidden(err) {
 		t.Errorf("missing error: %v", err)
@@ -193,13 +191,13 @@ func TestProjectRequestLimitAsSystemAdmin(t *testing.T) {
 
 func testProjectRequestLimitAdmission(t *testing.T, errorPrefix string, clientConfig *restclient.Config, tests map[string]bool) {
 	for user, expectSuccess := range tests {
-		oclient, _, _, err := testutil.GetClientForUser(*clientConfig, user)
+		_, clientConfig, err := testutil.GetClientForUser(clientConfig, user)
 		if err != nil {
 			t.Fatalf("Error getting client for user %s: %v", user, err)
 		}
 		projectRequest := &projectapi.ProjectRequest{}
 		projectRequest.Name = names.SimpleNameGenerator.GenerateName("test-projectreq")
-		_, err = oclient.ProjectRequests().Create(projectRequest)
+		_, err = projectclient.NewForConfigOrDie(clientConfig).ProjectRequests().Create(projectRequest)
 		if err != nil && expectSuccess {
 			t.Errorf("%s: unexpected error for user %s: %v", errorPrefix, user, err)
 			continue

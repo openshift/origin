@@ -8,8 +8,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -41,31 +43,29 @@ func TestBootstrapPolicyAuthenticatedUsersAgainstOpenshiftNamespace(t *testing.T
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	valerieTemplateClient := templateclient.NewForConfigOrDie(&valerieClientConfig)
+	valerieImageClient := imageclient.NewForConfigOrDie(&valerieClientConfig)
 
 	openshiftSharedResourcesNamespace := "openshift"
 
-	if _, err := valerieOpenshiftClient.Templates(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
+	if _, err := valerieTemplateClient.Templates(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.Templates(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	if _, err := valerieOpenshiftClient.ImageStreams(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-	if _, err := valerieOpenshiftClient.ImageStreams(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieTemplateClient.Templates(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	if _, err := valerieOpenshiftClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name", "tag"); !kapierror.IsNotFound(err) {
+	if _, err := valerieImageClient.ImageStreams(openshiftSharedResourcesNamespace).List(metav1.ListOptions{}); err != nil {
 		t.Errorf("unexpected error: %v", err)
 	}
-	if _, err := valerieOpenshiftClient.ImageStreamTags(metav1.NamespaceDefault).Get("name", "tag"); err == nil || !kapierror.IsForbidden(err) {
+	if _, err := valerieImageClient.ImageStreams(metav1.NamespaceDefault).List(metav1.ListOptions{}); err == nil || !kapierror.IsForbidden(err) {
+		t.Errorf("unexpected error: %v", err)
+	}
+
+	if _, err := valerieImageClient.ImageStreamTags(openshiftSharedResourcesNamespace).Get("name:tag", metav1.GetOptions{}); !kapierror.IsNotFound(err) {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if _, err := valerieImageClient.ImageStreamTags(metav1.NamespaceDefault).Get("name:tag", metav1.GetOptions{}); err == nil || !kapierror.IsForbidden(err) {
 		t.Errorf("unexpected error: %v", err)
 	}
 }
@@ -82,17 +82,18 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieOpenshiftClient, valerieKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	valerieKubeClient, valerieClientConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	valerieAuthorizationClient := authorizationclient.NewForConfigOrDie(valerieClientConfig)
 
 	askCanICreatePolicyBindings := &authorizationapi.LocalSubjectAccessReview{
 		Action: authorizationapi.Action{Verb: "create", Resource: "policybindings"},
 	}
 	subjectAccessReviewTest{
 		description:       "can I get a subjectaccessreview on myself even if I have no rights to do it generally",
-		localInterface:    valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
+		localInterface:    valerieAuthorizationClient.LocalSubjectAccessReviews("openshift"),
 		localReview:       askCanICreatePolicyBindings,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -108,11 +109,11 @@ func TestBootstrapPolicySelfSubjectAccessReviews(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "I shouldn't be allowed to ask whether someone else can perform an action",
-		localInterface:    valerieOpenshiftClient.LocalSubjectAccessReviews("openshift"),
+		localInterface:    valerieAuthorizationClient.LocalSubjectAccessReviews("openshift"),
 		localReview:       askCanClusterAdminsCreateProject,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		kubeNamespace:     "openshift",
-		err:               `User "valerie" cannot create localsubjectaccessreviews in the namespace "openshift"`,
+		err:               `User "valerie" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "openshift"`,
 		kubeErr:           `User "valerie" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "openshift"`,
 	}.run(t)
 
@@ -130,7 +131,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 		t.Errorf("unexpected error: %v", err)
 	}
 
-	valerieOpenshiftClient, valerieKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "valerie")
+	valerieKubeClient, valerieClientConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "valerie")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -142,7 +143,7 @@ func TestSelfSubjectAccessReviewsNonExistingNamespace(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "ensure SAR for non-existing namespace does not leak namespace info",
-		localInterface:    valerieOpenshiftClient.LocalSubjectAccessReviews("foo"),
+		localInterface:    authorizationclient.NewForConfigOrDie(valerieClientConfig).LocalSubjectAccessReviews("foo"),
 		localReview:       askCanICreatePodsInNonExistingNamespace,
 		kubeAuthInterface: valerieKubeClient.Authorization(),
 		response: authorizationapi.SubjectAccessReviewResponse{

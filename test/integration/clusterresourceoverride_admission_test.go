@@ -136,7 +136,7 @@ func setupClusterResourceOverrideTest(t *testing.T, pluginConfig *overrideapi.Cl
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, _, _, err = testserver.CreateNewProject(*clusterAdminClientConfig, testutil.Namespace(), "peon")
+	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, testutil.Namespace(), "peon")
 	if err != nil {
 		t.Fatal(err)
 	}

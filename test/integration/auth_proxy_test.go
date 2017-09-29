@@ -12,6 +12,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -46,10 +47,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	// set up a front proxy guarding the oauth server
 	proxyHTTPHandler := NewBasicAuthChallenger("TestRegistryAndServer", validUsers, NewXRemoteUserProxyingHandler(clusterAdminClientConfig.Host))
@@ -58,7 +56,7 @@ func TestAuthProxyOnAuthorize(t *testing.T) {
 	t.Logf("proxy server is on %v\n", proxyServer.URL)
 
 	// need to prime clients so that we can get back a code.  the client must be valid
-	result := clusterAdminClient.RESTClient.Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
+	result := clusterAdminOAuthClient.RESTClient().Post().Resource("oAuthClients").Body(&oauthapi.OAuthClient{ObjectMeta: metav1.ObjectMeta{Name: "test"}, Secret: "secret", RedirectURIs: []string{clusterAdminClientConfig.Host}}).Do()
 	if result.Error() != nil {
 		t.Fatal(result.Error())
 	}

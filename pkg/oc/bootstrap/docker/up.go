@@ -899,6 +899,10 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	if err != nil {
 		return err
 	}
+	securityClient, err := factory.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return err
+	}
 
 	// Remove any duplicate nodes
 	err = c.OpenShiftHelper().CheckNodes(kClient)
@@ -906,7 +910,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		return err
 	}
 
-	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, c.HostPersistentVolumesDir)
+	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, securityClient, c.HostPersistentVolumesDir)
 	if err != nil {
 		return err
 	}

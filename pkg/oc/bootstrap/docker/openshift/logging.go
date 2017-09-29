@@ -25,6 +25,10 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, public
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
+	securityClient, err := f.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
 
 	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
 	if err == nil {
@@ -49,7 +53,7 @@ func (h *Helper) InstallLoggingViaAnsible(f *clientcmd.Factory, serverIP, public
 	params.LoggingNamespace = loggingNamespace
 	params.KibanaHostName = loggerHost
 
-	runner := newAnsibleRunner(h, kubeClient, loggingNamespace, imageStreams, "logging")
+	runner := newAnsibleRunner(h, kubeClient, securityClient, loggingNamespace, imageStreams, "logging")
 
 	//run logging playbook
 	return runner.RunPlaybook(params, loggingPlaybook, hostConfigDir, imagePrefix, imageVersion)
@@ -67,7 +71,11 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 	templateClient, err := f.OpenshiftInternalTemplateClient()
 	if err != nil {
-		return err
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
+	securityClient, err := f.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	_, err = kubeClient.Core().Namespaces().Get(loggingNamespace, metav1.GetOptions{})
@@ -100,7 +108,7 @@ func (h *Helper) InstallLogging(f *clientcmd.Factory, publicHostname, loggerHost
 	}
 
 	// Add privileged SCC to aggregated-logging-fluentd sa
-	if err = AddSCCToServiceAccount(kubeClient, "privileged", "aggregated-logging-fluentd", loggingNamespace, out); err != nil {
+	if err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "aggregated-logging-fluentd", loggingNamespace, out); err != nil {
 		return errors.NewError("cannot add privileged security context constraint to logging fluentd service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 

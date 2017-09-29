@@ -28,7 +28,7 @@ func TestPolicyCommands(t *testing.T) {
 
 	const projectName = "hammer-project"
 
-	_, _, haroldConfig, err := testserver.CreateNewProject(*clusterAdminClientConfig, projectName, "harold")
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

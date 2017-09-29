@@ -12,11 +12,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/apiserver/pkg/admission"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	configapiv1 "github.com/openshift/origin/pkg/cmd/server/api/v1"
@@ -26,7 +27,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (kclientset.Interface, *client.Client, func()) {
+func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig)) (kclientset.Interface, *rest.Config, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -40,11 +41,11 @@ func setupAdmissionTest(t *testing.T, setupConfig func(*configapi.MasterConfig))
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
-	openshiftClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
+	clusterAdminConfig, err := testutil.GetClusterAdminClientConfig(kubeConfigFile)
 	if err != nil {
 		t.Fatalf("error getting openshift client: %v", err)
 	}
-	return kubeClient, openshiftClient, func() {
+	return kubeClient, clusterAdminConfig, func() {
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 }
@@ -241,12 +242,12 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 
 func TestOpenshiftAdmissionPluginOrderOverride(t *testing.T) {
 	registerAdmissionPlugins(t, "plugin1", "plugin2", "plugin3")
-	_, openshiftClient, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
+	_, clusterAdminConfig, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
 	defer fn()
 
-	createdBuild, err := openshiftClient.Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err != nil {
 		t.Errorf("Unexpected error creating build: %v", err)
 	}
@@ -259,7 +260,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 	registerAdmissionPluginTestConfigType()
 	configFile := setupAdmissionPluginTestConfig(t, "plugin2configvalue")
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
-	_, openshiftClient, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
+	_, clusterAdminConfig, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin2": {
@@ -268,7 +269,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 		}
 	})
 	defer fn()
-	createdBuild, err := openshiftClient.Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "plugin2configvalue"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestOpenshiftAdmissionPluginConfigFile(t *testing.T) {
 func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 	registerAdmissionPluginTestConfigType()
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
-	_, openshiftClient, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
+	_, clusterAdminConfig, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
 		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin2": {
@@ -288,7 +289,7 @@ func TestOpenshiftAdmissionPluginEmbeddedConfig(t *testing.T) {
 		}
 	})
 	defer fn()
-	createdBuild, err := openshiftClient.Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
+	createdBuild, err := buildclient.NewForConfigOrDie(clusterAdminConfig).Builds(metav1.NamespaceDefault).Create(admissionTestBuild())
 	if err = checkAdmissionObjectLabelValues(createdBuild.Labels, map[string]string{"plugin1": "default", "plugin2": "embeddedvalue2"}); err != nil {
 		t.Errorf("Error: %v", err)
 	}

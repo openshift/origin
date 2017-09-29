@@ -12,9 +12,9 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -43,7 +43,7 @@ func TestImageAddSignature(t *testing.T) {
 	}
 	signature.Name = sigName
 
-	created, err := userClient.ImageSignatures().Create(&signature)
+	created, err := userClient.Image().ImageSignatures().Create(&signature)
 	if err == nil {
 		t.Fatalf("unexpected success updating image signatures")
 	}
@@ -54,11 +54,11 @@ func TestImageAddSignature(t *testing.T) {
 	makeUserAnImageSigner(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig), userKubeClient, testUserName)
 
 	// try to create the signature again
-	created, err = userClient.ImageSignatures().Create(&signature)
+	created, err = userClient.Image().ImageSignatures().Create(&signature)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	image, err = adminClient.Images().Get(image.Name, metav1.GetOptions{})
+	image, err = adminClient.Image().Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestImageAddSignature(t *testing.T) {
 	compareSignatures(t, image.Signatures[0], *created)
 
 	// try to create the signature yet again
-	created, err = userClient.ImageSignatures().Create(&signature)
+	created, err = userClient.Image().ImageSignatures().Create(&signature)
 	if !kerrors.IsAlreadyExists(err) {
 		t.Fatalf("expected already exists error, not: %v", err)
 	}
@@ -85,7 +85,7 @@ func TestImageAddSignature(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	signature.Name = newName
-	created, err = userClient.ImageSignatures().Create(&signature)
+	created, err = userClient.Image().ImageSignatures().Create(&signature)
 	if !kerrors.IsAlreadyExists(err) {
 		t.Fatalf("expected already exists error, not: %v", err)
 	}
@@ -93,7 +93,7 @@ func TestImageAddSignature(t *testing.T) {
 	// try to create a signature with the same name but different content
 	signature.Name = sigName
 	signature.Content = []byte("different")
-	_, err = userClient.ImageSignatures().Create(&signature)
+	_, err = userClient.Image().ImageSignatures().Create(&signature)
 	if !kerrors.IsAlreadyExists(err) {
 		t.Fatalf("expected already exists error, not: %v", err)
 	}
@@ -126,13 +126,13 @@ func TestImageRemoveSignature(t *testing.T) {
 			Type:    "unknown",
 			Content: []byte(d.content),
 		}
-		_, err = userClient.ImageSignatures().Create(&signature)
+		_, err = userClient.Image().ImageSignatures().Create(&signature)
 		if err != nil {
 			t.Fatalf("creating signature %d: unexpected error: %v", i, err)
 		}
 	}
 
-	image, err := userClient.Images().Get(image.Name, metav1.GetOptions{})
+	image, err := userClient.Image().Images().Get(image.Name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -142,25 +142,25 @@ func TestImageRemoveSignature(t *testing.T) {
 	}
 
 	// try to delete blob that does not exist
-	err = userClient.ImageSignatures().Delete(image.Name + "@doesnotexist")
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@doesnotexist", nil)
 	if !kerrors.IsNotFound(err) {
 		t.Fatalf("expected not found error, not: %#+v", err)
 	}
 
 	// try to delete blob with missing signature name
-	err = userClient.ImageSignatures().Delete(image.Name + "@")
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@", nil)
 	if !kerrors.IsBadRequest(err) {
 		t.Fatalf("expected bad request, not: %#+v", err)
 	}
 
 	// delete the first
-	err = userClient.ImageSignatures().Delete(image.Name + "@" + sigData[0].sigName)
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@"+sigData[0].sigName, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// try to delete it once more
-	err = userClient.ImageSignatures().Delete(image.Name + "@" + sigData[0].sigName)
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@"+sigData[0].sigName, nil)
 	if err == nil {
 		t.Fatalf("unexpected nont error")
 	} else if !kerrors.IsNotFound(err) {
@@ -168,53 +168,54 @@ func TestImageRemoveSignature(t *testing.T) {
 	}
 
 	// delete the one in the middle
-	err = userClient.ImageSignatures().Delete(image.Name + "@" + sigData[2].sigName)
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@"+sigData[2].sigName, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if image, err = userClient.Images().Get(image.Name, metav1.GetOptions{}); err != nil {
+	if image, err = userClient.Image().Images().Get(image.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if len(image.Signatures) != 2 {
 		t.Fatalf("expected 2 signatures, not %d", len(image.Signatures))
 	}
 
 	// delete the one at the end
-	err = userClient.ImageSignatures().Delete(image.Name + "@" + sigData[3].sigName)
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@"+sigData[3].sigName, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// delete the last one
-	err = userClient.ImageSignatures().Delete(image.Name + "@" + sigData[1].sigName)
+	err = userClient.Image().ImageSignatures().Delete(image.Name+"@"+sigData[1].sigName, nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if image, err = userClient.Images().Get(image.Name, metav1.GetOptions{}); err != nil {
+	if image, err = userClient.Image().Images().Get(image.Name, metav1.GetOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	} else if len(image.Signatures) != 0 {
 		t.Fatalf("expected 2 signatures, not %d", len(image.Signatures))
 	}
 }
 
-func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminClientConfig *rest.Config, userKubeClient kclientset.Interface, adminClient *client.Client, userClient *client.Client, image *imageapi.Image, cleanup func()) {
+func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminClientConfig *rest.Config, userKubeClient kclientset.Interface, clusterAdminImageClient, userClient imageclient.Interface, image *imageapi.Image, cleanup func()) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	adminClient, err = testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminImageClient = imageclient.NewForConfigOrDie(clusterAdminConfig)
 
 	image, err = testutil.GetImageFixture("testdata/test-image.json")
 	if err != nil {
 		t.Fatalf("failed to read image fixture: %v", err)
 	}
 
-	image, err = adminClient.Images().Create(image)
+	image, err = clusterAdminImageClient.Image().Images().Create(image)
 	if err != nil {
 		t.Fatalf("unexpected error creating image: %v", err)
 	}
@@ -223,16 +224,13 @@ func testSetupImageSignatureTest(t *testing.T, userName string) (clusterAdminCli
 		t.Fatalf("expected empty signatures, not: %s", diff.ObjectDiff(image.Signatures, []imageapi.ImageSignature{}))
 	}
 
-	clusterAdminConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	userClient, userKubeClient, _, err = testutil.GetClientForUser(*clusterAdminConfig, userName)
+	var userConfig *rest.Config
+	userKubeClient, userConfig, err = testutil.GetClientForUser(clusterAdminConfig, userName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	return clusterAdminConfig, userKubeClient, adminClient, userClient, image, func() {
+	return clusterAdminConfig, userKubeClient, clusterAdminImageClient, imageclient.NewForConfigOrDie(userConfig), image, func() {
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 }
