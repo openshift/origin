@@ -16,6 +16,7 @@ go_library(
     ],
     tags = ["automanaged"],
     deps = [
+        "//pkg/api:go_default_library",
         "//pkg/api/v1:go_default_library",
         "//pkg/api/v1/endpoints:go_default_library",
         "//pkg/api/v1/pod:go_default_library",
@@ -52,6 +53,7 @@ go_test(
         "//vendor:k8s.io/apimachinery/pkg/runtime",
         "//vendor/k8s.io/apimachinery/pkg/util/sets:go_default_library",
         "//vendor:k8s.io/apimachinery/pkg/util/intstr",
+        "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",	
         "//vendor:k8s.io/client-go/rest",
         "//vendor:k8s.io/client-go/tools/cache",
         "//vendor:k8s.io/client-go/util/testing",
