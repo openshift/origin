@@ -74,6 +74,9 @@ type GraphBuilder struct {
 	// each monitor list/watches a resource, the results are funneled to the
 	// dependencyGraphBuilder
 	monitors []cache.Controller
+	// informersStarted is closed after after all of the controllers have been initialized and are running.
+	// After that it is safe to start them here, before that it is not.
+	informersStarted <-chan struct{}
 	// metaOnlyClientPool uses a special codec, which removes fields except for
 	// apiVersion, kind, and metadata during decoding.
 	metaOnlyClientPool dynamic.ClientPool
@@ -164,6 +167,7 @@ func (gb *GraphBuilder) controllerFor(resource schema.GroupVersionResource, kind
 		// need to clone because it's from a shared cache
 		shared.Informer().AddEventHandlerWithResyncPeriod(handlers, ResourceResyncTime)
 		if gb.stopCh != nil {
+			<-gb.informersStarted
 			// if gb.stopCh is set, it means we've already gotten past the initial gb.Run() call, so this
 			// means we've re-loaded and re-read discovery and we are adding a new monitor for a
 			// previously unseen resource, so we need to call Start on the shared informers again (this
