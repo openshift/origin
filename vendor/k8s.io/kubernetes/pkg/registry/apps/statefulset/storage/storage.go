@@ -26,6 +26,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/registry/apps/statefulset"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 )
 
 // rest implements a RESTStorage for replication controllers against etcd
@@ -41,6 +42,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		NewListFunc:              func() runtime.Object { return &appsapi.StatefulSetList{} },
 		PredicateFunc:            statefulset.MatchStatefulSet,
 		DefaultQualifiedResource: appsapi.Resource("statefulsets"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("statefulsets"),
 
 		CreateStrategy: statefulset.Strategy,
 		UpdateStrategy: statefulset.Strategy,

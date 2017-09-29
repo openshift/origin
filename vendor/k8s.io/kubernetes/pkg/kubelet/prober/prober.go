@@ -46,14 +46,10 @@ const maxProbeRetries = 3
 
 // Prober helps to check the liveness/readiness of a container.
 type prober struct {
-	exec execprobe.ExecProber
-	// probe types needs different httprobe instances so they don't
-	// share a connection pool which can cause collsions to the
-	// same host:port and transient failures. See #49740.
-	readinessHttp httprobe.HTTPProber
-	livenessHttp  httprobe.HTTPProber
-	tcp           tcprobe.TCPProber
-	runner        kubecontainer.ContainerCommandRunner
+	exec   execprobe.ExecProber
+	http   httprobe.HTTPProber
+	tcp    tcprobe.TCPProber
+	runner kubecontainer.ContainerCommandRunner
 
 	refManager *kubecontainer.RefManager
 	recorder   record.EventRecorder
@@ -67,13 +63,12 @@ func newProber(
 	recorder record.EventRecorder) *prober {
 
 	return &prober{
-		exec:          execprobe.New(),
-		readinessHttp: httprobe.New(),
-		livenessHttp:  httprobe.New(),
-		tcp:           tcprobe.New(),
-		runner:        runner,
-		refManager:    refManager,
-		recorder:      recorder,
+		exec:       execprobe.New(),
+		http:       httprobe.New(),
+		tcp:        tcprobe.New(),
+		runner:     runner,
+		refManager: refManager,
+		recorder:   recorder,
 	}
 }
 
@@ -95,7 +90,7 @@ func (pb *prober) probe(probeType probeType, pod *v1.Pod, status v1.PodStatus, c
 		return results.Success, nil
 	}
 
-	result, output, err := pb.runProbeWithRetries(probeType, probeSpec, pod, status, container, containerID, maxProbeRetries)
+	result, output, err := pb.runProbeWithRetries(probeSpec, pod, status, container, containerID, maxProbeRetries)
 	if err != nil || result != probe.Success {
 		// Probe failed in one way or another.
 		ref, hasRef := pb.refManager.GetRef(containerID)
@@ -121,12 +116,12 @@ func (pb *prober) probe(probeType probeType, pod *v1.Pod, status v1.PodStatus, c
 
 // runProbeWithRetries tries to probe the container in a finite loop, it returns the last result
 // if it never succeeds.
-func (pb *prober) runProbeWithRetries(probeType probeType, p *v1.Probe, pod *v1.Pod, status v1.PodStatus, container v1.Container, containerID kubecontainer.ContainerID, retries int) (probe.Result, string, error) {
+func (pb *prober) runProbeWithRetries(p *v1.Probe, pod *v1.Pod, status v1.PodStatus, container v1.Container, containerID kubecontainer.ContainerID, retries int) (probe.Result, string, error) {
 	var err error
 	var result probe.Result
 	var output string
 	for i := 0; i < retries; i++ {
-		result, output, err = pb.runProbe(probeType, p, pod, status, container, containerID)
+		result, output, err = pb.runProbe(p, pod, status, container, containerID)
 		if err == nil {
 			return result, output, nil
 		}
@@ -144,7 +139,7 @@ func buildHeader(headerList []v1.HTTPHeader) http.Header {
 	return headers
 }
 
-func (pb *prober) runProbe(probeType probeType, p *v1.Probe, pod *v1.Pod, status v1.PodStatus, container v1.Container, containerID kubecontainer.ContainerID) (probe.Result, string, error) {
+func (pb *prober) runProbe(p *v1.Probe, pod *v1.Pod, status v1.PodStatus, container v1.Container, containerID kubecontainer.ContainerID) (probe.Result, string, error) {
 	timeout := time.Duration(p.TimeoutSeconds) * time.Second
 	if p.Exec != nil {
 		glog.V(4).Infof("Exec-Probe Pod: %v, Container: %v, Command: %v", pod, container, p.Exec.Command)
@@ -166,11 +161,7 @@ func (pb *prober) runProbe(probeType probeType, p *v1.Probe, pod *v1.Pod, status
 		url := formatURL(scheme, host, port, path)
 		headers := buildHeader(p.HTTPGet.HTTPHeaders)
 		glog.V(4).Infof("HTTP-Probe Headers: %v", headers)
-		if probeType == liveness {
-			return pb.livenessHttp.Probe(url, headers, timeout)
-		} else { // readiness
-			return pb.readinessHttp.Probe(url, headers, timeout)
-		}
+		return pb.http.Probe(url, headers, timeout)
 	}
 	if p.TCPSocket != nil {
 		port, err := extractPort(p.TCPSocket.Port, container)

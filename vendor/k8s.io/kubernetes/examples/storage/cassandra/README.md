@@ -177,7 +177,7 @@ The StatefulSet manifest that is included below, creates a Cassandra ring that c
 of three pods.
 
 This example includes using a GCE Storage Class, please update appropriately depending
-on the cloud you are working with. 
+on the cloud you are working with.
 
 <!-- BEGIN MUNGE: EXAMPLE cassandra-statefulset.yaml -->
 

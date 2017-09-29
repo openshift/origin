@@ -32,6 +32,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/extensions/deployment"
 )
 
@@ -67,6 +68,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST, *Rollbac
 		NewListFunc:              func() runtime.Object { return &extensions.DeploymentList{} },
 		PredicateFunc:            deployment.MatchDeployment,
 		DefaultQualifiedResource: extensions.Resource("deployments"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("deployments"),
 
 		CreateStrategy: deployment.Strategy,
 		UpdateStrategy: deployment.Strategy,

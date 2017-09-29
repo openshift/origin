@@ -94,14 +94,14 @@ You can automate the process with the following script, as it might take more th
 
 ```shell
 $ while [ ${#PUBLIC_OPENSHIFT_IP} -lt 1 ]; do
-  	echo -n .
-  	sleep 1
-  	{
-	  	export PUBLIC_OPENSHIFT_IP=$(kubectl get services openshift  --namespace="openshift-origin" --template="{{ index .status.loadBalancer.ingress 0 \"ip\" }}")
+	echo -n .
+	sleep 1
+	{
+		export PUBLIC_OPENSHIFT_IP=$(kubectl get services openshift  --namespace="openshift-origin" --template="{{ index .status.loadBalancer.ingress 0 \"ip\" }}")
 	  } 2> ${OPENSHIFT_EXAMPLE}/openshift-startup.log
 	  if [[ ! ${PUBLIC_OPENSHIFT_IP} =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
 		  export PUBLIC_OPENSHIFT_IP=""
-  	fi
+	fi
   done
 $ echo
 $ echo "Public OpenShift IP set to: ${PUBLIC_OPENSHIFT_IP}"

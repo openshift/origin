@@ -33,4 +33,3 @@ for cell in 'global' $cells; do
   echo "Deleting etcd service for $cell cell..."
   $KUBECTL delete service etcd-$cell
 done
-

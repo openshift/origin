@@ -29,4 +29,3 @@ spec:
     name: http
   selector:
     app: echoheaders
-

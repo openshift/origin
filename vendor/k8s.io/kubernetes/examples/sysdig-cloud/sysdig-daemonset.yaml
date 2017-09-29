@@ -1,7 +1,7 @@
 #Use this sysdig.yaml when Daemon Sets are enabled on Kubernetes (minimum version 1.1.1). Otherwise use the RC method.
 
 apiVersion: extensions/v1beta1
-kind: DaemonSet                     
+kind: DaemonSet
 metadata:
   name: sysdig-agent
   labels:
@@ -42,10 +42,10 @@ spec:
         - name: ACCESS_KEY                                  #REQUIRED - replace with your Sysdig Cloud access key
           value: 8312341g-5678-abcd-4a2b2c-33bcsd655
 #        - name: TAGS                                       #OPTIONAL
-#          value: linux:ubuntu,dept:dev,local:nyc 
+#          value: linux:ubuntu,dept:dev,local:nyc
 #        - name: COLLECTOR                                  #OPTIONAL - on-prem install only
-#          value: 192.168.183.200 
-#        - name: SECURE                                     #OPTIONAL - on-prem install only       
+#          value: 192.168.183.200
+#        - name: SECURE                                     #OPTIONAL - on-prem install only
 #          value: false
 #        - name: CHECK_CERTIFICATE                          #OPTIONAL - on-prem install only
 #          value: false

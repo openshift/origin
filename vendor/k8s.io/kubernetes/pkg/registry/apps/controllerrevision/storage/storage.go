@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/apps"
 	"k8s.io/kubernetes/pkg/registry/apps/controllerrevision"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 )
 
 // REST implements a RESTStorage for ControllerRevision
@@ -38,6 +39,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &apps.ControllerRevisionList{} },
 		PredicateFunc:            controllerrevision.MatchControllerRevision,
 		DefaultQualifiedResource: apps.Resource("controllerrevisions"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("controllerrevisions"),
 
 		CreateStrategy: controllerrevision.Strategy,
 		UpdateStrategy: controllerrevision.Strategy,

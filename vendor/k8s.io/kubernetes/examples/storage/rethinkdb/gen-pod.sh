@@ -32,7 +32,7 @@ if [[ ${NAME} == "admin" ]]; then
 fi
 
 NODE=""
-# One needs to label a node with the same key/value pair, 
+# One needs to label a node with the same key/value pair,
 # i.e., 'kubectl label nodes <node-name> name=${2}'
 if [[ ! -z "${2-}" ]]; then
   NODE="nodeSelector: { name: ${2} }"

@@ -22,6 +22,7 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/core/serviceaccount"
 )
 
@@ -37,6 +38,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &api.ServiceAccountList{} },
 		PredicateFunc:            serviceaccount.Matcher,
 		DefaultQualifiedResource: api.Resource("serviceaccounts"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("serviceaccounts"),
 
 		CreateStrategy:      serviceaccount.Strategy,
 		UpdateStrategy:      serviceaccount.Strategy,

@@ -51,4 +51,3 @@ spec:
               -initial-advertise-peer-urls http://$ipaddr:7001
               -listen-client-urls http://$ipaddr:4001
               -listen-peer-urls http://$ipaddr:7001
-

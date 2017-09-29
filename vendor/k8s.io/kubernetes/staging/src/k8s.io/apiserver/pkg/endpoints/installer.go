@@ -554,9 +554,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 		reqScope.MetaGroupVersion = *a.group.MetaGroupVersion
 	}
 	for _, action := range actions {
-		producedObject := storageMeta.ProducesObject(action.Verb)
-		if producedObject == nil {
-			producedObject = defaultVersionedObject
+		versionedObject := storageMeta.ProducesObject(action.Verb)
+		if versionedObject == nil {
+			versionedObject = defaultVersionedObject
 		}
 		reqScope.Namer = action.Namer
 
@@ -589,6 +589,15 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 
 		routes := []*restful.RouteBuilder{}
 
+		// If there is a subresource, kind should be the parent's kind.
+		if hasSubresource {
+			fqParentKind, err := a.getResourceKind(resource, a.group.Storage[resource])
+			if err != nil {
+				return nil, err
+			}
+			kind = fqParentKind.Kind
+		}
+
 		verbOverrider, needOverride := storage.(StorageMetricsOverride)
 
 		switch action.Verb {
@@ -616,8 +625,8 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
 				Operation("read"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
-				Writes(producedObject)
+				Returns(http.StatusOK, "OK", versionedObject).
+				Writes(versionedObject)
 			if isGetterWithOptions {
 				if err := addObjectParams(ws, route, versionedGetOptions); err != nil {
 					return nil, err
@@ -673,9 +682,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
 				Operation("replace"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
-				Reads(defaultVersionedObject).
-				Writes(producedObject)
+				Returns(http.StatusOK, "OK", versionedObject).
+				Reads(versionedObject).
+				Writes(versionedObject)
 			addParams(route, action.Params)
 			routes = append(routes, route)
 		case "PATCH": // Partially update a resource
@@ -690,9 +699,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Consumes(string(types.JSONPatchType), string(types.MergePatchType), string(types.StrategicMergePatchType)).
 				Operation("patch"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
+				Returns(http.StatusOK, "OK", versionedObject).
 				Reads(metav1.Patch{}).
-				Writes(producedObject)
+				Writes(versionedObject)
 			addParams(route, action.Params)
 			routes = append(routes, route)
 		case "POST": // Create a resource.
@@ -713,9 +722,9 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 				Param(ws.QueryParameter("pretty", "If 'true', then the output is pretty printed.")).
 				Operation("create"+namespaced+kind+strings.Title(subresource)+operationSuffix).
 				Produces(append(storageMeta.ProducesMIMETypes(action.Verb), mediaTypes...)...).
-				Returns(http.StatusOK, "OK", producedObject).
-				Reads(defaultVersionedObject).
-				Writes(producedObject)
+				Returns(http.StatusOK, "OK", versionedObject).
+				Reads(versionedObject).
+				Writes(versionedObject)
 			addParams(route, action.Params)
 			routes = append(routes, route)
 		case "DELETE": // Delete a resource.
@@ -810,10 +819,6 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 			routes = append(routes, buildProxyRoute(ws, "OPTIONS", a.prefix, action.Path, kind, resource, subresource, namespaced, requestScope, hasSubresource, action.Params, proxyHandler, operationSuffix))
 		case "CONNECT":
 			for _, method := range connecter.ConnectMethods() {
-				connectProducedObject := storageMeta.ProducesObject(method)
-				if connectProducedObject == nil {
-					connectProducedObject = "string"
-				}
 				doc := "connect " + method + " requests to " + kind
 				if hasSubresource {
 					doc = "connect " + method + " requests to " + subresource + " of " + kind
@@ -825,7 +830,7 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 					Operation("connect" + strings.Title(strings.ToLower(method)) + namespaced + kind + strings.Title(subresource) + operationSuffix).
 					Produces("*/*").
 					Consumes("*/*").
-					Writes(connectProducedObject)
+					Writes("string")
 				if versionedConnectOptions != nil {
 					if err := addObjectParams(ws, route, versionedConnectOptions); err != nil {
 						return nil, err

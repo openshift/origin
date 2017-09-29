@@ -167,6 +167,10 @@ type Store struct {
 	Storage storage.Interface
 	// Called to cleanup clients used by the underlying Storage; optional.
 	DestroyFunc func()
+	// Maximum size of the watch history cached in memory, in number of entries.
+	// This value is ignored if Storage is non-nil. Nil is replaced with a default value.
+	// A zero integer will disable caching.
+	WatchCacheSize *int
 }
 
 // Note: the rest.StandardStorage interface aggregates the common REST verbs
@@ -409,7 +413,7 @@ func (e *Store) WaitForInitialized(ctx genericapirequest.Context, obj runtime.Ob
 
 // shouldDeleteDuringUpdate checks if a Update is removing all the object's
 // finalizers. If so, it further checks if the object's
-// DeletionGracePeriodSeconds is 0.
+// DeletionGracePeriodSeconds is 0. If so, it returns true.
 func (e *Store) shouldDeleteDuringUpdate(ctx genericapirequest.Context, key string, obj, existing runtime.Object) bool {
 	newMeta, err := meta.Accessor(obj)
 	if err != nil {
@@ -827,8 +831,8 @@ func (e *Store) updateForGracefulDeletionAndFinalizers(ctx genericapirequest.Con
 			if err != nil {
 				return nil, err
 			}
-			needsUpdate, newFinalizers := deletionFinalizersForGarbageCollection(e, existingAccessor, options)
-			if needsUpdate {
+			shouldUpdate, newFinalizers := deletionFinalizersForGarbageCollection(e, existingAccessor, options)
+			if shouldUpdate {
 				existingAccessor.SetFinalizers(newFinalizers)
 			}
 
@@ -1309,6 +1313,7 @@ func (e *Store) CompleteWithOptions(options *generic.StoreOptions) error {
 		e.Storage, e.DestroyFunc = opts.Decorator(
 			e.Copier,
 			opts.StorageConfig,
+			e.WatchCacheSize,
 			e.NewFunc(),
 			prefix,
 			keyFunc,

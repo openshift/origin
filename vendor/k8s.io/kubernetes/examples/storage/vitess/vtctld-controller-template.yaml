@@ -52,4 +52,3 @@ spec:
           emptyDir: {}
         - name: certs
           hostPath: {path: /etc/ssl/certs}
-

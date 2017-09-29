@@ -23,6 +23,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/kubernetes/pkg/api"
 	storageapi "k8s.io/kubernetes/pkg/apis/storage"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/storage/storageclass"
 )
 
@@ -38,6 +39,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &storageapi.StorageClassList{} },
 		PredicateFunc:            storageclass.MatchStorageClasses,
 		DefaultQualifiedResource: storageapi.Resource("storageclasses"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("storageclass"),
 
 		CreateStrategy:      storageclass.Strategy,
 		UpdateStrategy:      storageclass.Strategy,

@@ -22,6 +22,7 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api"
 	networkingapi "k8s.io/kubernetes/pkg/apis/networking"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/networking/networkpolicy"
 )
 
@@ -38,6 +39,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &networkingapi.NetworkPolicyList{} },
 		PredicateFunc:            networkpolicy.Matcher,
 		DefaultQualifiedResource: networkingapi.Resource("networkpolicies"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("networkpolicies"),
 
 		CreateStrategy: networkpolicy.Strategy,
 		UpdateStrategy: networkpolicy.Strategy,

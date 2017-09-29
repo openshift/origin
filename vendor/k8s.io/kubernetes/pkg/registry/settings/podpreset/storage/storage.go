@@ -22,6 +22,7 @@ import (
 	genericregistry "k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/kubernetes/pkg/api"
 	settingsapi "k8s.io/kubernetes/pkg/apis/settings"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/settings/podpreset"
 )
 
@@ -38,6 +39,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		NewListFunc:              func() runtime.Object { return &settingsapi.PodPresetList{} },
 		PredicateFunc:            podpreset.Matcher,
 		DefaultQualifiedResource: settingsapi.Resource("podpresets"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("podpresets"),
 
 		CreateStrategy: podpreset.Strategy,
 		UpdateStrategy: podpreset.Strategy,

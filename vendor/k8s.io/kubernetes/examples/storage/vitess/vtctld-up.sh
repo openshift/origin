@@ -37,4 +37,3 @@ cat vtctld-controller-template.yaml | sed -e "$sed_script" | $KUBECTL create -f 
 server=$(get_vtctld_addr)
 echo
 echo "vtctld address: http://$server"
-

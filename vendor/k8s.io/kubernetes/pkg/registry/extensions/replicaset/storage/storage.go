@@ -31,6 +31,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/extensions"
 	extvalidation "k8s.io/kubernetes/pkg/apis/extensions/validation"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 	"k8s.io/kubernetes/pkg/registry/extensions/replicaset"
 )
 
@@ -64,6 +65,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) (*REST, *StatusREST) {
 		NewListFunc:              func() runtime.Object { return &extensions.ReplicaSetList{} },
 		PredicateFunc:            replicaset.MatchReplicaSet,
 		DefaultQualifiedResource: extensions.Resource("replicasets"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("replicasets"),
 
 		CreateStrategy: replicaset.Strategy,
 		UpdateStrategy: replicaset.Strategy,

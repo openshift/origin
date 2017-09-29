@@ -5,4 +5,3 @@ CREATE TABLE messages (
   message VARCHAR(10000),
   PRIMARY KEY (page, time_created_ns)
 ) ENGINE=InnoDB
-

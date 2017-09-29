@@ -2097,15 +2097,10 @@ func (d *ServiceAccountDescriber) Describe(namespace, name string, describerSett
 		}
 	}
 
-	var events *api.EventList
-	if describerSettings.ShowEvents {
-		events, _ = d.Core().Events(namespace).Search(api.Scheme, serviceAccount)
-	}
-
-	return describeServiceAccount(serviceAccount, tokens, missingSecrets, events)
+	return describeServiceAccount(serviceAccount, tokens, missingSecrets)
 }
 
-func describeServiceAccount(serviceAccount *api.ServiceAccount, tokens []api.Secret, missingSecrets sets.String, events *api.EventList) (string, error) {
+func describeServiceAccount(serviceAccount *api.ServiceAccount, tokens []api.Secret, missingSecrets sets.String) (string, error) {
 	return tabbedString(func(out io.Writer) error {
 		w := NewPrefixWriter(out)
 		w.Write(LEVEL_0, "Name:\t%s\n", serviceAccount.Name)
@@ -2155,10 +2150,6 @@ func describeServiceAccount(serviceAccount *api.ServiceAccount, tokens []api.Sec
 				}
 			}
 			w.WriteLine()
-		}
-
-		if events != nil {
-			DescribeEvents(events, w)
 		}
 
 		return nil

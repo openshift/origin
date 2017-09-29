@@ -23,6 +23,7 @@ import (
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/admissionregistration"
 	"k8s.io/kubernetes/pkg/registry/admissionregistration/externaladmissionhookconfiguration"
+	"k8s.io/kubernetes/pkg/registry/cachesize"
 )
 
 // rest implements a RESTStorage for pod disruption budgets against etcd
@@ -41,6 +42,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		},
 		PredicateFunc:            externaladmissionhookconfiguration.MatchExternalAdmissionHookConfiguration,
 		DefaultQualifiedResource: admissionregistration.Resource("externaladmissionhookconfigurations"),
+		WatchCacheSize:           cachesize.GetWatchCacheSizeByResource("externaladmissionhookconfigurations"),
 
 		CreateStrategy: externaladmissionhookconfiguration.Strategy,
 		UpdateStrategy: externaladmissionhookconfiguration.Strategy,
