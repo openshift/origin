@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagesourcebuild
+    name: imagesourcebuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
