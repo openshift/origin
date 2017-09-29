@@ -75,6 +75,7 @@ func TestAPIServerDefaults(t *testing.T) {
 			MaxRequestsInFlight:         400,
 			MaxMutatingRequestsInFlight: 200,
 			MinRequestTimeout:           1800,
+			RequestTimeout:              time.Duration(60) * time.Second,
 		},
 		Admission: &apiserveroptions.AdmissionOptions{
 			PluginNames: []string{"AlwaysAdmit"},
