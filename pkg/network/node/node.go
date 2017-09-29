@@ -293,6 +293,8 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 }
 
 func (node *OsdnNode) Start() error {
+	log.V(2).Infof("Starting openshift-sdn network plugin")
+
 	var err error
 	node.networkInfo, err = common.GetNetworkInfo(node.networkClient)
 	if err != nil {
@@ -340,7 +342,7 @@ func (node *OsdnNode) Start() error {
 		node.watchServices()
 	}
 
-	log.V(5).Infof("Starting openshift-sdn pod manager")
+	log.V(2).Infof("Starting openshift-sdn pod manager")
 	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
 		return err
 	}
@@ -383,7 +385,7 @@ func (node *OsdnNode) Start() error {
 		gatherPeriodicMetrics(node.oc.ovs)
 	}, time.Minute*2)
 
-	log.V(5).Infof("openshift-sdn network plugin ready")
+	log.V(2).Infof("openshift-sdn network plugin ready")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready
