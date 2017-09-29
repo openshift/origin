@@ -15,6 +15,7 @@ import (
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/experimental/images"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -197,7 +198,9 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 	experimental := &cobra.Command{
 		Use: "ex", // Because this command exposes no description, it will not be shown in help
 	}
-	experimental.AddCommand()
+	experimental.AddCommand(
+		images.NewCmdImages(fullName, f, out, errout),
+	)
 	cmds.AddCommand(experimental)
 
 	cmds.AddCommand(cmd.NewCmdPlugin(fullName, f, in, out, errout))

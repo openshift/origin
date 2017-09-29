@@ -3,6 +3,7 @@ package client
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/apimachinery/pkg/watch"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 )
@@ -19,6 +20,7 @@ type ImageInterface interface {
 	Create(image *imageapi.Image) (*imageapi.Image, error)
 	Update(image *imageapi.Image) (*imageapi.Image, error)
 	Delete(name string) error
+	Watch(opts metav1.ListOptions) (watch.Interface, error)
 }
 
 // images implements ImagesInterface.
@@ -70,4 +72,13 @@ func (c *images) Update(image *imageapi.Image) (result *imageapi.Image, err erro
 func (c *images) Delete(name string) (err error) {
 	err = c.r.Delete().Resource("images").Name(name).Do().Error()
 	return
+}
+
+// Watch returns a watch.Interface that watches the requested images.
+func (c *images) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.r.Get().
+		Prefix("watch").
+		Resource("images").
+		VersionedParams(&opts, kapi.ParameterCodec).
+		Watch()
 }

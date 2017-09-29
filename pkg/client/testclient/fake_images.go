@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgotesting "k8s.io/client-go/testing"
+	"k8s.io/apimachinery/pkg/watch"
 
 	"github.com/openshift/origin/pkg/client"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -60,4 +61,8 @@ func (c *FakeImages) Update(inObj *imageapi.Image) (*imageapi.Image, error) {
 func (c *FakeImages) Delete(name string) error {
 	_, err := c.Fake.Invokes(clientgotesting.NewRootDeleteAction(imagesResource, name), &imageapi.Image{})
 	return err
+}
+
+func (c *FakeImages) Watch(opts metav1.ListOptions) (watch.Interface, error) {
+	return c.Fake.InvokesWatch(clientgotesting.NewRootWatchAction(imagesResource, opts))
 }
