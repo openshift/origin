@@ -1,5 +1,3 @@
-// +build linux
-
 package master
 
 import (
@@ -22,8 +20,11 @@ import (
 	osapivalidation "github.com/openshift/origin/pkg/network/apis/network/validation"
 	"github.com/openshift/origin/pkg/network/common"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
-	"github.com/openshift/origin/pkg/network/node"
 	"github.com/openshift/origin/pkg/util/netutils"
+)
+
+const (
+	tun0 = "tun0"
 )
 
 type OsdnMaster struct {
@@ -147,7 +148,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 }
 
 func (master *OsdnMaster) checkClusterNetworkAgainstLocalNetworks() error {
-	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{node.Tun0})
+	hostIPNets, _, err := netutils.GetHostIPNetworks([]string{tun0})
 	if err != nil {
 		return err
 	}
