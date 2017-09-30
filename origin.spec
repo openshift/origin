@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 4389c49ea5be501c8bed3f17af31f55dce8ffe2b
+%global commit d3d286f526e19078fdd08a2837f1c71429718bbc
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.133.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=4389c49
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.134.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=d3d286f
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.134.0%{?dist}
+Release:        0.135.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,53 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sat Sep 30 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.135.0
+- Deleted eventQueue, no longer used (rpenta@redhat.com)
+- Replaced event queue based watching resources in router with shared informers
+  (rpenta@redhat.com)
+- remove legacy client from integration tests (deads@redhat.com)
+- remove legacy client! (deads@redhat.com)
+- remove last of the client usage (deads@redhat.com)
+- convert to groupified scc (deads@redhat.com)
+- fix LSAR client (deads@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  58d1eebe8b46a16b53c0f47051f48824002fc394 (eparis+openshiftbot@redhat.com)
+- tolerate cross-platform building of crio/cgroup build logic
+  (bparees@redhat.com)
+- sdn: promote setup log messages to V(2) (dcbw@redhat.com)
+- Implement the node side of automatic egress IP support (danw@redhat.com)
+- Regenerate files (danw@redhat.com)
+- refactor apiserver start to avoid multiple overwrites and side channels
+  (deads@redhat.com)
+- convert CLI to use generated clients (deads@redhat.com)
+- UPSTREAM: <carry>: update namespace lifecycle to allow review APIs
+  (deads@redhat.com)
+- add NetNamespace.EgressIPs and HostSubnet.EgressIPs (danw@redhat.com)
+- UPSTREAM: 52864: dockershim: fine-tune network-ready handling on sandbox
+  teardown and removal (dcbw@redhat.com)
+- switch to the upstream factory client method where possible
+  (deads@redhat.com)
+- fix generated clients (deads@redhat.com)
+- cli: update generate and bootstrap to use generated clients
+  (mfojtik@redhat.com)
+- don't explicitly set the jvm architecture, let the image pick one
+  (bparees@redhat.com)
+- Router support for Strict-Transport-Security (hsts) (pcameron@redhat.com)
+- fix up image gc settings in defaults tests (sjenning@redhat.com)
+- UPSTREAM: 53069: Align imagefs eviction defaults with image gc defaults
+  (sjenning@redhat.com)
+- fix tag race condition in images.sh (bparees@redhat.com)
+- sdn: add some prometheus metrics (dcbw@redhat.com)
+- auto generated files (jtanenba@redhat.com)
+- Allowing multiple CIDR addresses for allocation of Nodes
+  (jtanenba@redhat.com)
+- update rolebindingaccessor to use generated clients (deads@redhat.com)
+- Allow oc extract to output to stdout (ccoleman@redhat.com)
+- UPSTREAM: 47806: kubelet: fix inconsistent display of terminated pod IPs by
+  using events instead (dcbw@redhat.com)
+- Modify nonroot, hostaccess, and hostmount-anyuid SCCs to drop some
+  capabilities. (vsemushi@redhat.com)
+
 * Thu Sep 28 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.134.0
 - Return error instead of glog.Fatalf (maszulik@redhat.com)
 - bump(github.com/openshift/origin-web-console):
