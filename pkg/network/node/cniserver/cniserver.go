@@ -126,8 +126,11 @@ func (s *CNIServer) Start(requestFunc cniRequestFunc) error {
 
 	// Remove and re-create the socket directory with root-only permissions
 	dirName := path.Dir(s.path)
-	if err := os.RemoveAll(dirName); err != nil {
-		return fmt.Errorf("failed to removing old pod info socket: %v", err)
+	if err := os.RemoveAll(s.path); err != nil && !os.IsNotExist(err) {
+		utilruntime.HandleError(fmt.Errorf("failed to remove old pod info socket: %v", err))
+	}
+	if err := os.RemoveAll(dirName); err != nil && !os.IsNotExist(err) {
+		utilruntime.HandleError(fmt.Errorf("failed to remove contents of socket directory: %v", err))
 	}
 	if err := os.MkdirAll(dirName, 0700); err != nil {
 		return fmt.Errorf("failed to create pod info socket directory: %v", err)
