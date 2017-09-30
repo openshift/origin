@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network"
+	networkoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/network/options"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -129,6 +130,7 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 	options.NodeArgs.ListenArg.ListenAddr.DefaultPort = ports.ProxyHealthzPort
 	options.NodeArgs.Components = NewNetworkComponentFlag()
 	BindNodeNetworkArgs(options.NodeArgs, flags, "")
+	BindListenArg(options.NodeArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 
@@ -219,7 +221,23 @@ func (o NodeOptions) RunNode() error {
 		return err
 	}
 
-	validationResults := validation.ValidateNodeConfig(nodeConfig, nil)
+	// allow listen address to be overriden
+	if addr := o.NodeArgs.ListenArg.ListenAddr; addr.Provided {
+		nodeConfig.ServingInfo.BindAddress = addr.HostPort(o.NodeArgs.ListenArg.ListenAddr.DefaultPort)
+	}
+
+	var validationResults validation.ValidationResults
+	switch {
+	case o.NodeArgs.Components.Calculated().Equal(NewNetworkComponentFlag().Calculated()):
+		if len(nodeConfig.NodeName) == 0 {
+			nodeConfig.NodeName = o.NodeArgs.NodeName
+		}
+		nodeConfig.MasterKubeConfig = o.NodeArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath
+		validationResults = validation.ValidateInClusterNodeConfig(nodeConfig, nil)
+	default:
+		validationResults = validation.ValidateNodeConfig(nodeConfig, nil)
+	}
+
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("Warning: %v, node start will continue.", warning)
@@ -231,6 +249,7 @@ func (o NodeOptions) RunNode() error {
 	}
 
 	if err := ValidateRuntime(nodeConfig, o.NodeArgs.Components); err != nil {
+		glog.V(4).Infof("Unable to validate runtime configuration: %v", err)
 		return err
 	}
 
@@ -412,8 +431,9 @@ func execKubelet(server *kubeletoptions.KubeletServer) (bool, error) {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	server, proxyConfig, err := nodeoptions.Build(nodeConfig)
+	server, err := nodeoptions.Build(nodeConfig)
 	if err != nil {
+		glog.V(4).Infof("Unable to build node options: %v", err)
 		return err
 	}
 
@@ -429,33 +449,34 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		}
 	}
 
+	proxyConfig, err := networkoptions.Build(nodeConfig)
+	if err != nil {
+		glog.V(4).Infof("Unable to build network options: %v", err)
+		return err
+	}
 	networkConfig, err := network.New(nodeConfig, server.ClusterDomain, proxyConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
 	if err != nil {
-		return err
-	}
-
-	config, err := node.New(nodeConfig, server)
-	if err != nil {
+		glog.V(4).Infof("Unable to initialize network configuration: %v", err)
 		return err
 	}
 
 	if components.Enabled(ComponentKubelet) {
+		config, err := node.New(nodeConfig, server)
+		if err != nil {
+			glog.V(4).Infof("Unable to create node configuration: %v", err)
+			return err
+		}
 		glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
-	} else {
-		glog.Infof("Starting node networking %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
-	}
 
-	// preconditions
-	if components.Enabled(ComponentKubelet) {
 		config.EnsureKubeletAccess()
 		config.EnsureVolumeDir()
 		config.EnsureDocker(docker.NewHelper())
 		config.EnsureLocalQuota(nodeConfig) // must be performed after EnsureVolumeDir
+		config.RunKubelet()
+	} else {
+		glog.Infof("Starting node networking %s (%s)", nodeConfig.NodeName, version.Get().String())
 	}
 
-	if components.Enabled(ComponentKubelet) {
-		config.RunKubelet()
-	}
 	if components.Enabled(ComponentPlugins) {
 		networkConfig.RunSDN()
 	}

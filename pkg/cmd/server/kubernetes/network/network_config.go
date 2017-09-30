@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/golang/glog"
-
 	miekgdns "github.com/miekg/dns"
 
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
+	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -45,11 +44,15 @@ type NetworkConfig struct {
 
 // New creates a new network config object for running the networking components of the OpenShift node.
 func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *componentconfig.KubeProxyConfiguration, enableProxy, enableDNS bool) (*NetworkConfig, error) {
-	internalKubeClient, kubeConfig, err := configapi.GetInternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	kubeConfig, err := configapi.GetKubeConfigOrInClusterConfig(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
 	if err != nil {
 		return nil, err
 	}
-	externalKubeClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	internalKubeClient, err := kclientsetinternal.NewForConfig(kubeConfig)
+	if err != nil {
+		return nil, err
+	}
+	externalKubeClient, err := kclientsetexternal.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +130,6 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 
 		// TODO: use kubeletConfig.ResolverConfig as an argument to etcd in the event the
 		//   user sets it, instead of passing it to the kubelet.
-		glog.Infof("DNS Bind to %s", options.DNSBindAddress)
 		config.DNSServer = dns.NewServer(
 			dnsConfig,
 			services,

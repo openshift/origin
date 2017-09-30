@@ -128,7 +128,7 @@ func ValidateServingInfo(info api.ServingInfo, certificatesRequired bool, fldPat
 			validationResults.AddErrors(ValidateFile(info.ClientCA, fldPath.Child("clientCA"))...)
 		}
 	} else {
-		if len(info.ClientCA) > 0 {
+		if certificatesRequired && len(info.ClientCA) > 0 {
 			validationResults.AddErrors(field.Invalid(fldPath.Child("clientCA"), info.ClientCA, "cannot specify a clientCA without a certFile"))
 		}
 	}
