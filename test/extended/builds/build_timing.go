@@ -37,66 +37,68 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		oc                    = exutil.NewCLI("build-timing", exutil.KubeConfigPath())
 	)
 
-	g.JustBeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+	g.Context("test context", func() {
+		g.JustBeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
 
-	g.It("should record build stages and durations for s2i", func() {
+		g.It("should record build stages and durations for s2i", func() {
 
-		expectedBuildStages := make(map[string][]string)
-		expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
-		expectedBuildStages["CommitContainer"] = []string{"1s", "1000s"}
-		expectedBuildStages["Assemble"] = []string{"1s", "1000s"}
-		expectedBuildStages["PostCommit"] = []string{"", "1000s"}
-		expectedBuildStages["PushImage"] = []string{"1s", "1000s"}
+			expectedBuildStages := make(map[string][]string)
+			expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
+			expectedBuildStages["CommitContainer"] = []string{"1s", "1000s"}
+			expectedBuildStages["Assemble"] = []string{"1s", "1000s"}
+			expectedBuildStages["PostCommit"] = []string{"", "1000s"}
+			expectedBuildStages["PushImage"] = []string{"1s", "1000s"}
 
-		g.By("creating test image stream")
-		err := oc.Run("create").Args("-f", isFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("creating test image stream")
+			err := oc.Run("create").Args("-f", isFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("creating test build config")
-		err = oc.Run("create").Args("-f", sourceBuildFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("creating test build config")
+			err = oc.Run("create").Args("-f", sourceBuildFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("starting the test source build")
-		br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", sourceBuildBinDir)
-		br.AssertSuccess()
+			g.By("starting the test source build")
+			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", sourceBuildBinDir)
+			br.AssertSuccess()
 
-		verifyStages(br.Build.Status.Stages, expectedBuildStages)
-	})
+			verifyStages(br.Build.Status.Stages, expectedBuildStages)
+		})
 
-	g.It("should record build stages and durations for docker", func() {
+		g.It("should record build stages and durations for docker", func() {
 
-		expectedBuildStages := make(map[string][]string)
-		expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
-		expectedBuildStages["CommitContainer"] = []string{"", "1000s"}
-		expectedBuildStages["PullImages"] = []string{"", "1000s"}
-		expectedBuildStages["Build"] = []string{"1s", "1000s"}
-		expectedBuildStages["PostCommit"] = []string{"", "1000s"}
-		expectedBuildStages["PushImage"] = []string{"1s", "1000s"}
+			expectedBuildStages := make(map[string][]string)
+			expectedBuildStages["FetchInputs"] = []string{"", "1000s"}
+			expectedBuildStages["CommitContainer"] = []string{"", "1000s"}
+			expectedBuildStages["PullImages"] = []string{"", "1000s"}
+			expectedBuildStages["Build"] = []string{"1s", "1000s"}
+			expectedBuildStages["PostCommit"] = []string{"", "1000s"}
+			expectedBuildStages["PushImage"] = []string{"1s", "1000s"}
 
-		g.By("creating test image stream")
-		err := oc.Run("create").Args("-f", isFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("creating test image stream")
+			err := oc.Run("create").Args("-f", isFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("creating test build config")
-		err = oc.Run("create").Args("-f", dockerBuildFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("creating test build config")
+			err = oc.Run("create").Args("-f", dockerBuildFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("starting the test docker build")
-		br, _ := exutil.StartBuildAndWait(oc, "test", "--from-file", dockerBuildDockerfile)
-		br.AssertSuccess()
+			g.By("starting the test docker build")
+			br, _ := exutil.StartBuildAndWait(oc, "test", "--from-file", dockerBuildDockerfile)
+			br.AssertSuccess()
 
-		verifyStages(br.Build.Status.Stages, expectedBuildStages)
+			verifyStages(br.Build.Status.Stages, expectedBuildStages)
 
+		})
 	})
 })

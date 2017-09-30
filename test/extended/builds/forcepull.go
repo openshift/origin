@@ -73,36 +73,36 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
+	g.Context("test context", func() {
 
-	g.BeforeEach(func() {
-		g.By("waiting for openshift/ruby:latest ImageStreamTag")
-		err := exutil.WaitForAnImageStreamTag(oc, "openshift", "ruby", "latest")
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		// grant access to the custom build strategy
-		g.By("granting system:build-strategy-custom")
-		err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		defer func() {
-			err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
+		g.BeforeEach(func() {
+			g.By("waiting for openshift/ruby:latest ImageStreamTag")
+			err := exutil.WaitForAnImageStreamTag(oc, "openshift", "ruby", "latest")
 			o.Expect(err).NotTo(o.HaveOccurred())
-		}()
 
-		g.By("create application build configs for 3 strategies")
-		apps := exutil.FixturePath("testdata", "forcepull-test.json")
-		err = exutil.CreateResource(apps, oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
+			// grant access to the custom build strategy
+			g.By("granting system:build-strategy-custom")
+			err = oc.AsAdmin().Run("adm").Args("policy", "add-cluster-role-to-user", "system:build-strategy-custom", oc.Username()).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	})
+			defer func() {
+				err = oc.AsAdmin().Run("adm").Args("policy", "remove-cluster-role-from-user", "system:build-strategy-custom", oc.Username()).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+			}()
 
-	g.Context("ForcePull test context  ", func() {
+			g.By("create application build configs for 3 strategies")
+			apps := exutil.FixturePath("testdata", "forcepull-test.json")
+			err = exutil.CreateResource(apps, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+		})
+
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")

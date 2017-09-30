@@ -18,35 +18,37 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		oc           = exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
 	)
 
-	g.JustBeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
-
-	g.Describe("Building using an image with a root default user", func() {
-		g.It("should fail the build immediately", func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
-
-			g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
-			err := oc.Run("create").Args("-f", buildFixture).Execute()
+	g.Context("test context", func() {
+		g.JustBeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
 			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 
-			g.By("starting a test build")
-			// this uses the build-quota dir as the binary input source on purpose - we don't really care what we upload
-			// to the build since it will fail before we ever consume the inputs.
-			br, _ := exutil.StartBuildAndWait(oc, "s2i-build-root", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
-			br.AssertFailure()
-			o.Expect(string(br.Build.Status.Reason)).To(o.Equal(string(s2istatus.ReasonPullBuilderImageFailed)))
-			o.Expect(string(br.Build.Status.Message)).To(o.Equal(string(s2istatus.ReasonMessagePullBuilderImageFailed)))
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
 
+		g.Describe("Building using an image with a root default user", func() {
+			g.It("should fail the build immediately", func() {
+				oc.SetOutputDir(exutil.TestContext.OutputDir)
+
+				g.By(fmt.Sprintf("calling oc create -f %q", buildFixture))
+				err := oc.Run("create").Args("-f", buildFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("starting a test build")
+				// this uses the build-quota dir as the binary input source on purpose - we don't really care what we upload
+				// to the build since it will fail before we ever consume the inputs.
+				br, _ := exutil.StartBuildAndWait(oc, "s2i-build-root", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
+				br.AssertFailure()
+				o.Expect(string(br.Build.Status.Reason)).To(o.Equal(string(s2istatus.ReasonPullBuilderImageFailed)))
+				o.Expect(string(br.Build.Status.Message)).To(o.Equal(string(s2istatus.ReasonMessagePullBuilderImageFailed)))
+
+			})
 		})
 	})
 })

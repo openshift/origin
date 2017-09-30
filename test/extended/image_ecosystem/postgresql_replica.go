@@ -32,18 +32,21 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 	defer g.GinkgoRecover()
 
 	var oc *exutil.CLI
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
+
+	g.Context("test context", func() {
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
+
+		for i, image := range postgreSQLImages {
+			oc = exutil.NewCLI(fmt.Sprintf("postgresql-replication-%d", i), exutil.KubeConfigPath())
+			testFn := PostgreSQLReplicationTestFactory(oc, image)
+			g.It(fmt.Sprintf("postgresql replication works for %s", image), testFn)
 		}
 	})
-
-	for i, image := range postgreSQLImages {
-		oc = exutil.NewCLI(fmt.Sprintf("postgresql-replication-%d", i), exutil.KubeConfigPath())
-		testFn := PostgreSQLReplicationTestFactory(oc, image)
-		g.It(fmt.Sprintf("postgresql replication works for %s", image), testFn)
-	}
 })
 
 // CreatePostgreSQLReplicationHelpers creates a set of PostgreSQL helpers for master,

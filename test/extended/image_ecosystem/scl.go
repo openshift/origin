@@ -100,22 +100,24 @@ var _ = g.Describe("[image_ecosystem][Slow] openshift images should be SCL enabl
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("s2i-usage", exutil.KubeConfigPath())
 
-	g.JustBeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+	g.Context("test context", func() {
+		g.JustBeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
+
+		for image, tcs := range GetTestCaseForImages() {
+			for _, t := range tcs {
+				defineTest(image, t, oc)
+			}
 		}
 	})
-
-	for image, tcs := range GetTestCaseForImages() {
-		for _, t := range tcs {
-			defineTest(image, t, oc)
-		}
-	}
 })

@@ -15,34 +15,36 @@ var _ = g.Describe("[Feature:Builds] buildconfig secret injector", func() {
 		oc        = exutil.NewCLI("buildconfigsecretinjector", exutil.KubeConfigPath())
 	)
 
-	g.JustBeforeEach(func() {
-		g.By("creating buildconfigs")
-		err := oc.Run("create").Args("-f", itemsPath).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+	g.Context("test context", func() {
+		g.JustBeforeEach(func() {
+			g.By("creating buildconfigs")
+			err := oc.Run("create").Args("-f", itemsPath).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+		})
 
-	g.It("should inject secrets to the appropriate buildconfigs", func() {
-		out, err := oc.Run("get").Args("bc/test1", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal("secret1"))
+		g.It("should inject secrets to the appropriate buildconfigs", func() {
+			out, err := oc.Run("get").Args("bc/test1", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.Equal("secret1"))
 
-		out, err = oc.Run("get").Args("bc/test2", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal("secret2"))
+			out, err = oc.Run("get").Args("bc/test2", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.Equal("secret2"))
 
-		out, err = oc.Run("get").Args("bc/test3", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal("secret3"))
+			out, err = oc.Run("get").Args("bc/test3", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.Equal("secret3"))
 
-		out, err = oc.Run("get").Args("bc/test4", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
-		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(out).To(o.Equal("<no value>"))
+			out, err = oc.Run("get").Args("bc/test4", "-o", "template", "--template", "{{.spec.source.sourceSecret.name}}").Output()
+			o.Expect(err).NotTo(o.HaveOccurred())
+			o.Expect(out).To(o.Equal("<no value>"))
+		})
 	})
 })
