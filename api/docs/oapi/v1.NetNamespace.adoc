@@ -19,7 +19,9 @@ Expand or mouse-over a field for more information about it.
 ++++
 <pre>
 <div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
-</div><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
+</div><details><summary><span title="(array) EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)">egressIPs</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
+</div></details><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
 </div><details open><summary><span title="(v1.ObjectMeta) Standard object&#39;s metadata.">metadata</span>:
 </summary><details><summary>  <span title="(object) Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. They are not queryable and should be preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations">annotations</span>:
 </summary><div style="margin-left:13px;">    <span title="(string)">[string]</span>:

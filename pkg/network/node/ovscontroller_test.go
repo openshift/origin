@@ -16,10 +16,10 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 )
 
-func setup(t *testing.T) (ovs.Interface, *ovsController, []string) {
+func setupOVSController(t *testing.T) (ovs.Interface, *ovsController, []string) {
 	ovsif := ovs.NewFake(Br0)
-	oc := NewOVSController(ovsif, 0, true)
-	err := oc.SetupOVS([]string{"10.128.0.0/14"}, "172.30.0.0/16", "10.128.0.0/23", "10.128.0.1", "172.17.0.4")
+	oc := NewOVSController(ovsif, 0, true, "172.17.0.4")
+	err := oc.SetupOVS([]string{"10.128.0.0/14"}, "172.30.0.0/16", "10.128.0.0/23", "10.128.0.1")
 	if err != nil {
 		t.Fatalf("Unexpected error setting up OVS: %v", err)
 	}
@@ -100,7 +100,7 @@ func assertFlowChanges(origFlows, newFlows []string, changes ...flowChange) erro
 }
 
 func TestOVSHostSubnet(t *testing.T) {
-	ovsif, oc, origFlows := setup(t)
+	ovsif, oc, origFlows := setupOVSController(t)
 
 	hs := networkapi.HostSubnet{
 		TypeMeta: metav1.TypeMeta{
@@ -156,7 +156,7 @@ func TestOVSHostSubnet(t *testing.T) {
 }
 
 func TestOVSService(t *testing.T) {
-	ovsif, oc, origFlows := setup(t)
+	ovsif, oc, origFlows := setupOVSController(t)
 
 	svc := kapi.Service{
 		TypeMeta: metav1.TypeMeta{
@@ -223,7 +223,7 @@ const (
 )
 
 func TestOVSPod(t *testing.T) {
-	ovsif, oc, origFlows := setup(t)
+	ovsif, oc, origFlows := setupOVSController(t)
 
 	// Add
 	ofport, err := oc.SetUpPod("veth1", "10.128.0.2", "11:22:33:44:55:66", sandboxID, 42)
@@ -423,7 +423,7 @@ func TestGetPodDetails(t *testing.T) {
 }
 
 func TestOVSMulticast(t *testing.T) {
-	ovsif, oc, origFlows := setup(t)
+	ovsif, oc, origFlows := setupOVSController(t)
 
 	// local flows
 	err := oc.UpdateLocalMulticastFlows(99, true, []int{4, 5, 6})
@@ -631,7 +631,7 @@ func assertENPFlowAdditions(origFlows, newFlows []string, additions ...enpFlowAd
 			var change flowChange
 			change.kind = flowAdded
 			change.match = []string{
-				"table=100",
+				"table=101",
 				fmt.Sprintf("reg0=%d", addition.vnid),
 				fmt.Sprintf("priority=%d", len(addition.policy.Spec.Egress)-i),
 			}
@@ -653,7 +653,7 @@ func assertENPFlowAdditions(origFlows, newFlows []string, additions ...enpFlowAd
 }
 
 func TestOVSEgressNetworkPolicy(t *testing.T) {
-	ovsif, oc, origFlows := setup(t)
+	ovsif, oc, origFlows := setupOVSController(t)
 
 	// SUCCESSFUL CASES
 
@@ -951,25 +951,21 @@ func TestOVSEgressNetworkPolicy(t *testing.T) {
 func TestAlreadySetUp(t *testing.T) {
 	testcases := []struct {
 		flow    string
-		note    string
 		success bool
 	}{
 		{
 			// Good note
-			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.04.00.00.00.00",
-			note:    "00.04",
+			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=note:00.05.00.00.00.00",
 			success: true,
 		},
 		{
 			// Wrong table
-			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.04.00.00.00.00",
-			note:    "00.04",
+			flow:    "cookie=0x0, duration=4.796s, table=10, n_packets=0, n_bytes=0, actions=note:00.05.00.00.00.00",
 			success: false,
 		},
 		{
 			// No note
 			flow:    "cookie=0x0, duration=4.796s, table=253, n_packets=0, n_bytes=0, actions=goto_table:50",
-			note:    "00.04",
 			success: false,
 		},
 	}
@@ -979,7 +975,7 @@ func TestAlreadySetUp(t *testing.T) {
 		if err := ovsif.AddBridge("fail-mode=secure", "protocols=OpenFlow13"); err != nil {
 			t.Fatalf("(%d) unexpected error from AddBridge: %v", i, err)
 		}
-		oc := NewOVSController(ovsif, 0, true)
+		oc := NewOVSController(ovsif, 0, true, "172.17.0.4")
 
 		otx := ovsif.NewTransaction()
 		otx.AddFlow(tc.flow)
@@ -1091,7 +1087,7 @@ func TestSyncVNIDRules(t *testing.T) {
 	}
 
 	for i, tc := range testcases {
-		_, oc, _ := setup(t)
+		_, oc, _ := setupOVSController(t)
 
 		otx := oc.NewTransaction()
 		for _, flow := range tc.flows {

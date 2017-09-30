@@ -204,3 +204,24 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 		})
 	return chainArray
 }
+
+func (n *NodeIPTables) AddEgressIPRules(egressIP, egressHex string) error {
+	for _, cidr := range n.clusterNetworkCIDR {
+		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", egressHex, "-j", "SNAT", "--to-source", egressIP)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := n.ipt.EnsureRule(iptables.Append, iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+	return err
+}
+
+func (n *NodeIPTables) DeleteEgressIPRules(egressIP, egressHex string) error {
+	for _, cidr := range n.clusterNetworkCIDR {
+		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", egressHex, "-j", "SNAT", "--to-source", egressIP)
+		if err != nil {
+			return err
+		}
+	}
+	return n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+}

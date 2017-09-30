@@ -166,6 +166,11 @@ func DeepCopy_v1_HostSubnet(in interface{}, out interface{}, c *conversion.Clone
 		} else {
 			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
 		}
+		if in.EgressIPs != nil {
+			in, out := &in.EgressIPs, &out.EgressIPs
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 		return nil
 	}
 }
@@ -199,6 +204,11 @@ func DeepCopy_v1_NetNamespace(in interface{}, out interface{}, c *conversion.Clo
 			return err
 		} else {
 			out.ObjectMeta = *newVal.(*meta_v1.ObjectMeta)
+		}
+		if in.EgressIPs != nil {
+			in, out := &in.EgressIPs, &out.EgressIPs
+			*out = make([]string, len(*in))
+			copy(*out, *in)
 		}
 		return nil
 	}

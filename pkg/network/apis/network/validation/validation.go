@@ -102,8 +102,6 @@ func ValidateClusterNetworkUpdate(obj *networkapi.ClusterNetwork, old *networkap
 	return allErrs
 }
 
-// ValidateHostSubnet tests fields for the host subnet, the host should be a network resolvable string,
-//  and subnet should be a valid CIDR
 func ValidateHostSubnet(hs *networkapi.HostSubnet) field.ErrorList {
 	allErrs := validation.ValidateObjectMeta(&hs.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 
@@ -125,6 +123,13 @@ func ValidateHostSubnet(hs *networkapi.HostSubnet) field.ErrorList {
 	if net.ParseIP(hs.HostIP) == nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("hostIP"), hs.HostIP, "invalid IP address"))
 	}
+
+	for i, egressIP := range hs.EgressIPs {
+		if net.ParseIP(egressIP) == nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("egressIPs").Index(i), egressIP, "invalid IP address"))
+		}
+	}
+
 	return allErrs
 }
 
@@ -150,6 +155,13 @@ func ValidateNetNamespace(netnamespace *networkapi.NetNamespace) field.ErrorList
 	if err := network.ValidVNID(netnamespace.NetID); err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("netid"), netnamespace.NetID, err.Error()))
 	}
+
+	for i, ip := range netnamespace.EgressIPs {
+		if net.ParseIP(ip) == nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("egressIPs").Index(i), ip, "invalid IP address"))
+		}
+	}
+
 	return allErrs
 }
 

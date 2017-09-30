@@ -114,6 +114,9 @@ message HostSubnet {
 
   // Subnet is the CIDR range of the overlay network assigned to the node for its pods
   optional string subnet = 4;
+
+  // EgressIPs is the list of automatic egress IP addresses currently hosted by this node
+  repeated string egressIPs = 5;
 }
 
 // HostSubnetList is a collection of HostSubnets
@@ -137,6 +140,10 @@ message NetNamespace {
 
   // NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oc adm pod-network" commands.
   optional uint32 netid = 3;
+
+  // EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)
+  // +optional
+  repeated string egressIPs = 4;
 }
 
 // NetNamespaceList is a collection of NetNamespaces
