@@ -1,12 +1,17 @@
 package network
 
 import (
+	"fmt"
 	"net"
+	"net/http"
+	"time"
 
 	"github.com/golang/glog"
+	"github.com/prometheus/client_golang/prometheus"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	kv1core "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -73,16 +78,16 @@ func (c *NetworkConfig) RunProxy() {
 	var proxier proxy.ProxyProvider
 	var servicesHandler pconfig.ServiceHandler
 	var endpointsHandler pconfig.EndpointsHandler
+	var healthzServer *healthcheck.HealthzServer
+	if len(c.ProxyConfig.HealthzBindAddress) > 0 {
+		healthzServer = healthcheck.NewDefaultHealthzServer(c.ProxyConfig.HealthzBindAddress, 2*c.ProxyConfig.IPTables.SyncPeriod.Duration)
+	}
 
 	switch c.ProxyConfig.Mode {
 	case componentconfig.ProxyModeIPTables:
 		glog.V(0).Info("Using iptables Proxier.")
 		if bindAddr.Equal(net.IPv4zero) {
 			bindAddr = getNodeIP(c.ExternalKubeClientset.CoreV1(), hostname)
-		}
-		var healthzServer *healthcheck.HealthzServer
-		if len(c.ProxyConfig.HealthzBindAddress) > 0 {
-			healthzServer = healthcheck.NewDefaultHealthzServer(c.ProxyConfig.HealthzBindAddress, 2*c.ProxyConfig.IPTables.SyncPeriod.Duration)
 		}
 		if c.ProxyConfig.IPTables.MasqueradeBit == nil {
 			// IPTablesMasqueradeBit must be specified or defaulted.
@@ -102,6 +107,7 @@ func (c *NetworkConfig) RunProxy() {
 			recorder,
 			healthzServer,
 		)
+		iptables.RegisterMetrics()
 
 		if err != nil {
 			glog.Fatalf("error: Could not initialize Kubernetes Proxy. You must run this process as root (and if containerized, in the host network namespace as privileged) to use the service proxy: %v", err)
@@ -194,6 +200,26 @@ func (c *NetworkConfig) RunProxy() {
 	}
 	endpointsConfig.RegisterEventHandler(endpointsHandler)
 	go endpointsConfig.Run(utilwait.NeverStop)
+
+	// Start up healthz server
+	if len(c.ProxyConfig.HealthzBindAddress) > 0 {
+		healthzServer.Run()
+	}
+
+	// Start up a metrics server if requested
+	if len(c.ProxyConfig.MetricsBindAddress) > 0 {
+		mux := http.NewServeMux()
+		mux.HandleFunc("/proxyMode", func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, "%s", c.ProxyConfig.Mode)
+		})
+		mux.Handle("/metrics", prometheus.Handler())
+		go utilwait.Until(func() {
+			err := http.ListenAndServe(c.ProxyConfig.MetricsBindAddress, mux)
+			if err != nil {
+				utilruntime.HandleError(fmt.Errorf("starting metrics server failed: %v", err))
+			}
+		}, 5*time.Second, utilwait.NeverStop)
+	}
 
 	// periodically sync k8s iptables rules
 	go utilwait.Forever(proxier.SyncLoop, 0)

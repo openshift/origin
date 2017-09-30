@@ -158,9 +158,7 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubePr
 		return nil, fmt.Errorf("The provided value to bind to must be an ip:port: %q", addr)
 	}
 	proxyconfig.BindAddress = ip.String()
-
-	// HealthzPort, HealthzBindAddress - disable
-	proxyconfig.HealthzBindAddress = ""
+	// MetricsBindAddress - disable
 	proxyconfig.MetricsBindAddress = ""
 
 	// OOMScoreAdj, ResourceContainer - clear, we don't run in a container
@@ -197,6 +195,10 @@ func buildKubeProxyConfig(options configapi.NodeConfig) (*componentconfig.KubePr
 	// Resolve cmd flags to add any user overrides
 	if err := cmdflags.Resolve(options.ProxyArguments, proxyOptions.AddFlags); len(err) > 0 {
 		return nil, kerrors.NewAggregate(err)
+	}
+
+	if err := proxyOptions.Complete(); err != nil {
+		return nil, err
 	}
 
 	return proxyconfig, nil
