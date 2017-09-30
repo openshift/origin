@@ -90,11 +90,9 @@ func TestRouterNamespaceSync(t *testing.T) {
 	waitForRouterToHaveRoute(t, templatePlugin, route, false)
 }
 
-// TestRouterReloadSuppressionOnSync validates that the router will
-// not be reloaded until all events from the initial sync have been
-// processed.  Reload should similarly suppressed on subsequent
-// resyncs.
-func TestRouterReloadSuppressionOnSync(t *testing.T) {
+// TestRouterFirstReloadSuppressionOnSync validates that the router will not be reloaded
+// until all events from the initial sync have been processed.
+func TestRouterFirstReloadSuppressionOnSync(t *testing.T) {
 	stressRouter(
 		t,
 		// Allow the test to be configured to enable experimentation
@@ -380,7 +378,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 		plugin = NewDelayPlugin(plugin, maxDelay)
 	}
 
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient.Route(), kc)
+	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, kc)
 	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
@@ -409,7 +407,7 @@ func launchRouter(routeclient routeinternalclientset.Interface, projectclient pr
 	templatePlugin, plugin := initializeRouterPlugins(routeclient, projectclient, "test-router", 0, func() error {
 		return nil
 	})
-	factory := routerSelection.NewFactory(routeclient.Route(), projectclient.Project().Projects(), kc)
+	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	ctrl := factory.Create(plugin, false, false)
 
 	// Minimize resync latency
