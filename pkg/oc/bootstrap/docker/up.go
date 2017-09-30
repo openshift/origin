@@ -26,7 +26,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -721,12 +720,15 @@ func (c *CommonStartConfig) EnsureHostDirectories(io.Writer) error {
 
 // EnsureDefaultRedirectURIs merges a default URL to an auth client's RedirectURIs array
 func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
-	oc, _, err := c.Clients()
+	factory, err := c.Factory()
 	if err != nil {
-		return nil
+		return err
 	}
-
-	webConsoleOAuth, err := oc.OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
+	oauthClient, err := factory.OpenshiftInternalOAuthClient()
+	if err != nil {
+		return err
+	}
+	webConsoleOAuth, err := oauthClient.Oauth().OAuthClients().Get(defaultRedirectClient, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			fmt.Fprintf(out, "Unable to find OAuthClient %q\n", defaultRedirectClient)
@@ -748,7 +750,7 @@ func (c *ClientStartConfig) EnsureDefaultRedirectURIs(out io.Writer) error {
 
 	webConsoleOAuth.RedirectURIs = append(webConsoleOAuth.RedirectURIs, developmentRedirectURI)
 
-	_, err = oc.OAuthClients().Update(webConsoleOAuth)
+	_, err = oauthClient.Oauth().OAuthClients().Update(webConsoleOAuth)
 	if err != nil {
 		// announce error without interrupting remaining tasks
 		suggestedCmd := fmt.Sprintf("oc patch %s/%s -p '{%q:[%q]}'", "oauthclient", defaultRedirectClient, "redirectURIs", developmentRedirectURI)
@@ -885,7 +887,19 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 	}()
 
 	// Setup persistent storage
-	osClient, kClient, err := c.Clients()
+	_, kClient, err := c.Clients()
+	if err != nil {
+		return err
+	}
+	factory, err := c.Factory()
+	if err != nil {
+		return err
+	}
+	authorizationClient, err := factory.OpenshiftInternalAuthorizationClient()
+	if err != nil {
+		return err
+	}
+	securityClient, err := factory.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return err
 	}
@@ -896,7 +910,7 @@ func (c *ClientStartConfig) StartOpenShift(out io.Writer) error {
 		return err
 	}
 
-	err = c.OpenShiftHelper().SetupPersistentStorage(osClient, kClient, c.HostPersistentVolumesDir)
+	err = c.OpenShiftHelper().SetupPersistentStorage(authorizationClient.Authorization(), kClient, securityClient, c.HostPersistentVolumesDir)
 	if err != nil {
 		return err
 	}
@@ -1210,16 +1224,17 @@ func (c *ClientStartConfig) Factory() (*clientcmd.Factory, error) {
 }
 
 // Clients returns clients for OpenShift and Kube
-func (c *ClientStartConfig) Clients() (*client.Client, kclientset.Interface, error) {
+// FIXME: Refactor this to KubernetesInternal() call.
+func (c *ClientStartConfig) Clients() (interface{}, kclientset.Interface, error) {
 	f, err := c.Factory()
 	if err != nil {
 		return nil, nil, err
 	}
-	oc, kcset, err := f.Clients()
+	kcset, err := f.ClientSet()
 	if err != nil {
 		return nil, nil, err
 	}
-	return oc, kcset, nil
+	return nil, kcset, nil
 }
 
 // OpenShiftHelper returns a helper object to work with OpenShift on the server

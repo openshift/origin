@@ -23,7 +23,7 @@ import (
 	routesapi "github.com/openshift/origin/pkg/route/apis/route"
 	routetypedclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 // AggregatedLogging is a Diagnostic to check the configurations
@@ -38,6 +38,7 @@ type AggregatedLogging struct {
 	RouteClient       routetypedclient.RoutesGetter
 	CRBClient         oauthorizationtypedclient.ClusterRoleBindingsGetter
 	DCClient          appstypedclient.DeploymentConfigsGetter
+	SCCClient         securitytypedclient.SecurityContextConstraintsGetter
 	KubeClient        kclientset.Interface
 	result            types.DiagnosticResult
 }
@@ -64,6 +65,7 @@ func NewAggregatedLogging(
 	routeClient routetypedclient.RoutesGetter,
 	crbClient oauthorizationtypedclient.ClusterRoleBindingsGetter,
 	dcClient appstypedclient.DeploymentConfigsGetter,
+	sccClient securitytypedclient.SecurityContextConstraintsGetter,
 ) *AggregatedLogging {
 	return &AggregatedLogging{
 		masterConfig:      nil,
@@ -73,13 +75,14 @@ func NewAggregatedLogging(
 		RouteClient:       routeClient,
 		CRBClient:         crbClient,
 		DCClient:          dcClient,
+		SCCClient:         sccClient,
 		KubeClient:        kclient,
 		result:            types.NewDiagnosticResult(AggregatedLoggingName),
 	}
 }
 
 func (d *AggregatedLogging) getScc(name string) (*securityapi.SecurityContextConstraints, error) {
-	return legacyclient.NewFromClient(d.KubeClient.Core().RESTClient()).Get(name, metav1.GetOptions{})
+	return d.SCCClient.SecurityContextConstraints().Get(name, metav1.GetOptions{})
 }
 
 func (d *AggregatedLogging) getClusterRoleBinding(name string) (*authapi.ClusterRoleBinding, error) {

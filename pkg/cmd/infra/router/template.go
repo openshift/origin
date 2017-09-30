@@ -340,7 +340,7 @@ func (o *TemplateRouterOptions) Run() error {
 		StrictSNI:                o.StrictSNI,
 	}
 
-	_, kc, err := o.Config.Clients()
+	kc, err := o.Config.Clients()
 	if err != nil {
 		return err
 	}

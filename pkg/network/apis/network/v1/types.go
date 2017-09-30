@@ -21,16 +21,26 @@ type ClusterNetwork struct {
 	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Network is a CIDR string specifying the global overlay network's L3 space
-	Network string `json:"network" protobuf:"bytes,2,opt,name=network"`
+	Network string `json:"network,omitempty" protobuf:"bytes,2,opt,name=network"`
 	// HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods
-	HostSubnetLength uint32 `json:"hostsubnetlength" protobuf:"varint,3,opt,name=hostsubnetlength"`
+	HostSubnetLength uint32 `json:"hostsubnetlength,omitempty" protobuf:"varint,3,opt,name=hostsubnetlength"`
 	// ServiceNetwork is the CIDR range that Service IP addresses are allocated from
 	ServiceNetwork string `json:"serviceNetwork" protobuf:"bytes,4,opt,name=serviceNetwork"`
 	// PluginName is the name of the network plugin being used
 	PluginName string `json:"pluginName,omitempty" protobuf:"bytes,5,opt,name=pluginName"`
+	// ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.
+	ClusterNetworks []ClusterNetworkEntry `json:"clusterNetworks" protobuf:"bytes,6,rep,name=clusterNetworks"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.
+type ClusterNetworkEntry struct {
+	// CIDR defines the total range of a cluster networks address space.
+	CIDR string `json:"CIDR" protobuf:"bytes,1,opt,name=cidr"`
+	// HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods.
+	HostSubnetLength uint32 `json:"hostSubnetLength" protobuf:"varint,2,opt,name=hostSubnetLength"`
+}
 
 // ClusterNetworkList is a collection of ClusterNetworks
 type ClusterNetworkList struct {
@@ -58,6 +68,9 @@ type HostSubnet struct {
 	HostIP string `json:"hostIP" protobuf:"bytes,3,opt,name=hostIP"`
 	// Subnet is the CIDR range of the overlay network assigned to the node for its pods
 	Subnet string `json:"subnet" protobuf:"bytes,4,opt,name=subnet"`
+
+	// EgressIPs is the list of automatic egress IP addresses currently hosted by this node
+	EgressIPs []string `json:"egressIPs" protobuf:"bytes,5,rep,name=egressIPs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -87,6 +100,10 @@ type NetNamespace struct {
 	NetName string `json:"netname" protobuf:"bytes,2,opt,name=netname"`
 	// NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the "oc adm pod-network" commands.
 	NetID uint32 `json:"netid" protobuf:"varint,3,opt,name=netid"`
+
+	// EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)
+	// +optional
+	EgressIPs []string `json:"egressIPs" protobuf:"bytes,4,rep,name=egressIPs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

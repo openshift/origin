@@ -528,7 +528,7 @@ func getClients(f *clientcmd.Factory) (appsclient.AppsInterface, buildclient.Bui
 		return nil, nil, nil, nil, errNoToken
 	}
 
-	_, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

@@ -23,7 +23,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/generate/app"
@@ -31,6 +30,8 @@ import (
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templatevalidation "github.com/openshift/origin/pkg/template/apis/template/validation"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	"github.com/openshift/origin/pkg/template/generator"
 )
 
@@ -171,7 +172,7 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		infos   []*resource.Info
 
 		mapper meta.RESTMapper
-		client *client.Client
+		client templateclient.TemplateInterface
 	)
 
 	if local {
@@ -179,11 +180,11 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 		mapper = kapi.Registry.RESTMapper()
 		// client is deliberately left nil
 	} else {
-		client, _, err = f.Clients()
+		templateClient, err := f.OpenshiftInternalTemplateClient()
 		if err != nil {
 			return err
 		}
-
+		client = templateClient.Template()
 		mapper, _ = f.Object()
 	}
 	mapping, err := mapper.RESTMapping(templateapi.Kind("Template"))
@@ -280,7 +281,8 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 			return err
 		}
 	} else {
-		resultObj, err = client.TemplateConfigs(namespace).Create(obj)
+		processor := templateinternalclient.NewTemplateProcessorClient(client.RESTClient(), namespace)
+		resultObj, err = processor.Process(obj)
 		if err != nil {
 			return fmt.Errorf("error processing the template %q: %v\n", obj.Name, err)
 		}

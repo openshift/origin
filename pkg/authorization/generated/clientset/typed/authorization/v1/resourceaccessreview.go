@@ -13,7 +13,8 @@ type ResourceAccessReviewsGetter interface {
 
 // ResourceAccessReviewInterface has methods to work with ResourceAccessReview resources.
 type ResourceAccessReviewInterface interface {
-	Create(*v1.ResourceAccessReview) (*v1.ResourceAccessReview, error)
+	Create(*v1.ResourceAccessReview) (*v1.ResourceAccessReviewResponse, error)
+
 	ResourceAccessReviewExpansion
 }
 
@@ -29,9 +30,9 @@ func newResourceAccessReviews(c *AuthorizationV1Client) *resourceAccessReviews {
 	}
 }
 
-// Create takes the representation of a resourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReview, and an error, if there is any.
-func (c *resourceAccessReviews) Create(resourceAccessReview *v1.ResourceAccessReview) (result *v1.ResourceAccessReview, err error) {
-	result = &v1.ResourceAccessReview{}
+// Create takes the representation of a resourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReviewResponse, and an error, if there is any.
+func (c *resourceAccessReviews) Create(resourceAccessReview *v1.ResourceAccessReview) (result *v1.ResourceAccessReviewResponse, err error) {
+	result = &v1.ResourceAccessReviewResponse{}
 	err = c.client.Post().
 		Resource("resourceaccessreviews").
 		Body(resourceAccessReview).

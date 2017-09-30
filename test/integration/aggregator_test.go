@@ -75,10 +75,6 @@ func TestAggregator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	openshiftClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 	openshiftProjectClient, err := projectclientset.NewForConfig(clusterAdminClientConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -98,7 +94,7 @@ func TestAggregator(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Legacy openshift resource
-	if _, err := openshiftClient.Projects().Get("default", metav1.GetOptions{}); err != nil {
+	if _, err := openshiftProjectClient.Projects().Get("default", metav1.GetOptions{}); err != nil {
 		t.Fatal(err)
 	}
 	// Groupified openshift resource

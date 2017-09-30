@@ -17,7 +17,7 @@ import (
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	defaultsapi "github.com/openshift/origin/pkg/build/controller/build/defaults/api"
 	overridesapi "github.com/openshift/origin/pkg/build/controller/build/overrides/api"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	testutil "github.com/openshift/origin/test/util"
@@ -196,10 +196,10 @@ func buildPodAdmissionTestDockerBuild() *buildapi.Build {
 	return build
 }
 
-func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset kclientset.Interface, build *buildapi.Build) (*buildapi.Build, *v1.Pod) {
+func runBuildPodAdmissionTest(t *testing.T, client buildclient.Interface, kclientset kclientset.Interface, build *buildapi.Build) (*buildapi.Build, *v1.Pod) {
 
 	ns := testutil.Namespace()
-	_, err := client.Builds(ns).Create(build)
+	_, err := client.Build().Builds(ns).Create(build)
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -242,7 +242,7 @@ func runBuildPodAdmissionTest(t *testing.T, client *client.Client, kclientset kc
 	return nil, nil
 }
 
-func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (*client.Client, kclientset.Interface, func()) {
+func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.BuildDefaultsConfig) (buildclient.Interface, kclientset.Interface, func()) {
 	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
 		"BuildDefaults": {
 			Configuration: defaultsConfig,
@@ -250,7 +250,7 @@ func setupBuildDefaultsAdmissionTest(t *testing.T, defaultsConfig *defaultsapi.B
 	})
 }
 
-func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (*client.Client, kclientset.Interface, func()) {
+func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesapi.BuildOverridesConfig) (buildclient.Interface, kclientset.Interface, func()) {
 	return setupBuildPodAdmissionTest(t, map[string]configapi.AdmissionPluginConfig{
 		"BuildOverrides": {
 			Configuration: overridesConfig,
@@ -258,17 +258,13 @@ func setupBuildOverridesAdmissionTest(t *testing.T, overridesConfig *overridesap
 	})
 }
 
-func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (*client.Client, kclientset.Interface, func()) {
+func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.AdmissionPluginConfig) (buildclient.Interface, kclientset.Interface, func()) {
 	master, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatal(err)
 	}
 	master.AdmissionConfig.PluginConfig = pluginConfig
 	clusterAdminKubeConfig, err := testserver.StartConfiguredMaster(master)
-	if err != nil {
-		t.Fatal(err)
-	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,7 +300,7 @@ func setupBuildPodAdmissionTest(t *testing.T, pluginConfig map[string]configapi.
 		t.Fatalf("%v", err)
 	}
 
-	return clusterAdminClient, clusterAdminKubeClientset, func() {
+	return buildclient.NewForConfigOrDie(clientConfig), clusterAdminKubeClientset, func() {
 		testserver.CleanupMasterEtcd(t, master)
 	}
 }

@@ -20,13 +20,14 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	"github.com/openshift/origin/pkg/client"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/generate/app"
 	appcmd "github.com/openshift/origin/pkg/generate/app/cmd"
 	"github.com/openshift/origin/pkg/generate/appjson"
+	templateinternalclient "github.com/openshift/origin/pkg/template/client/internalversion"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
 const AppJSONV1GeneratorName = "app-json/v1"
@@ -67,7 +68,7 @@ type AppJSONOptions struct {
 	OutputVersions []schema.GroupVersion
 
 	Namespace string
-	Client    client.TemplateConfigsNamespacer
+	Client    templateclient.TemplateInterface
 }
 
 // NewCmdAppJSON imports an app.json file (schema described here: https://devcenter.heroku.com/articles/app-json-schema)
@@ -136,8 +137,13 @@ func (o *AppJSONOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	}
 	o.Namespace = ns
 
-	o.Client, _, err = f.Clients()
-	return err
+	templateClient, err := f.OpenshiftInternalTemplateClient()
+	if err != nil {
+		return err
+	}
+	o.Client = templateClient.Template()
+
+	return nil
 }
 
 func (o *AppJSONOptions) Validate() error {
@@ -199,7 +205,8 @@ func (o *AppJSONOptions) Run() error {
 		return o.PrintObject(out)
 	}
 
-	result, err := appcmd.TransformTemplate(template, o.Client, o.Namespace, nil, false)
+	templateProcessor := templateinternalclient.NewTemplateProcessorClient(o.Client.RESTClient(), o.Namespace)
+	result, err := appcmd.TransformTemplate(template, templateProcessor, o.Namespace, nil, false)
 	if err != nil {
 		return err
 	}

@@ -12,10 +12,21 @@ var map_ClusterNetwork = map[string]string{
 	"hostsubnetlength": "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
 	"serviceNetwork":   "ServiceNetwork is the CIDR range that Service IP addresses are allocated from",
 	"pluginName":       "PluginName is the name of the network plugin being used",
+	"clusterNetworks":  "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.",
 }
 
 func (ClusterNetwork) SwaggerDoc() map[string]string {
 	return map_ClusterNetwork
+}
+
+var map_ClusterNetworkEntry = map[string]string{
+	"":                 "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
+	"CIDR":             "CIDR defines the total range of a cluster networks address space.",
+	"hostSubnetLength": "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods.",
+}
+
+func (ClusterNetworkEntry) SwaggerDoc() map[string]string {
+	return map_ClusterNetworkEntry
 }
 
 var map_ClusterNetworkList = map[string]string{
@@ -78,11 +89,12 @@ func (EgressNetworkPolicySpec) SwaggerDoc() map[string]string {
 }
 
 var map_HostSubnet = map[string]string{
-	"":         "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
-	"metadata": "Standard object's metadata.",
-	"host":     "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
-	"hostIP":   "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
-	"subnet":   "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
+	"":          "HostSubnet describes the container subnet network on a node. The HostSubnet object must have the same name as the Node object it corresponds to.",
+	"metadata":  "Standard object's metadata.",
+	"host":      "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
+	"hostIP":    "HostIP is the IP address to be used as a VTEP by other nodes in the overlay network",
+	"subnet":    "Subnet is the CIDR range of the overlay network assigned to the node for its pods",
+	"egressIPs": "EgressIPs is the list of automatic egress IP addresses currently hosted by this node",
 }
 
 func (HostSubnet) SwaggerDoc() map[string]string {
@@ -100,10 +112,11 @@ func (HostSubnetList) SwaggerDoc() map[string]string {
 }
 
 var map_NetNamespace = map[string]string{
-	"":         "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
-	"metadata": "Standard object's metadata.",
-	"netname":  "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
-	"netid":    "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
+	"":          "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
+	"metadata":  "Standard object's metadata.",
+	"netname":   "NetName is the name of the network namespace. (This is the same as the object's name, but both fields must be set.)",
+	"netid":     "NetID is the network identifier of the network namespace assigned to each overlay network packet. This can be manipulated with the \"oc adm pod-network\" commands.",
+	"egressIPs": "EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)",
 }
 
 func (NetNamespace) SwaggerDoc() map[string]string {

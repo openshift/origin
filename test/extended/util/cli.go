@@ -108,7 +108,7 @@ func (c *CLI) ChangeUser(name string) *CLI {
 	if err != nil {
 		FatalErr(err)
 	}
-	_, _, clientConfig, err := testutil.GetClientForUser(*adminClientConfig, name)
+	_, clientConfig, err := testutil.GetClientForUser(adminClientConfig, name)
 	if err != nil {
 		FatalErr(err)
 	}

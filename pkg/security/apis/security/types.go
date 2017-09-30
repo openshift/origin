@@ -227,6 +227,8 @@ type SecurityContextConstraintsList struct {
 	Items []SecurityContextConstraints
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PodSecurityPolicySubjectReview checks whether a particular user/SA tuple can create the PodTemplateSpec.
@@ -271,6 +273,8 @@ type PodSecurityPolicySubjectReviewStatus struct {
 	Template kapi.PodTemplateSpec
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PodSecurityPolicySelfSubjectReview checks whether this user/SA tuple can create the PodTemplateSpec.
@@ -290,6 +294,8 @@ type PodSecurityPolicySelfSubjectReviewSpec struct {
 	Template kapi.PodTemplateSpec
 }
 
+// +genclient
+// +genclient:onlyVerbs=create
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // PodSecurityPolicyReview checks which service accounts (not users, since that would be cluster-wide) can create the `PodTemplateSpec` in question.

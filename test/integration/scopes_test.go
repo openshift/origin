@@ -12,11 +12,13 @@ import (
 	authenticationapi "github.com/openshift/origin/pkg/auth/api"
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -28,11 +30,6 @@ func TestScopedTokens(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -40,16 +37,16 @@ func TestScopedTokens(t *testing.T) {
 
 	projectName := "hammer-project"
 	userName := "harold"
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName)
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, userName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := haroldClient.Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldUser, err := haroldClient.Users().Get("~", metav1.GetOptions{})
+	haroldUser, err := userclient.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,22 +59,18 @@ func TestScopedTokens(t *testing.T) {
 		UserName:   userName,
 		UserUID:    string(haroldUser.UID),
 	}
-	if _, err := clusterAdminClient.OAuthAccessTokens().Create(whoamiOnlyToken); err != nil {
+	if _, err := oauthclient.NewForConfigOrDie(clusterAdminClientConfig).OAuthAccessTokens().Create(whoamiOnlyToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	whoamiConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 	whoamiConfig.BearerToken = whoamiOnlyToken.Name
-	whoamiClient, err := client.New(&whoamiConfig)
-	if err != nil {
+
+	if _, err := buildclient.NewForConfigOrDie(&whoamiConfig).Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := whoamiClient.Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	user, err := whoamiClient.Users().Get("~", metav1.GetOptions{})
+	user, err := userclient.NewForConfigOrDie(&whoamiConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -87,11 +80,7 @@ func TestScopedTokens(t *testing.T) {
 
 	// try to impersonate a service account using this token
 	whoamiConfig.Impersonate = rest.ImpersonationConfig{UserName: apiserverserviceaccount.MakeUsername(projectName, "default")}
-	impersonatingClient, err := client.New(&whoamiConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	impersonatedUser, err := impersonatingClient.Users().Get("~", metav1.GetOptions{})
+	impersonatedUser, err := userclient.NewForConfigOrDie(&whoamiConfig).Users().Get("~", metav1.GetOptions{})
 	if !kapierrors.IsForbidden(err) {
 		t.Fatalf("missing error: %v got user %#v", err, impersonatedUser)
 	}
@@ -104,23 +93,19 @@ func TestScopedImpersonation(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminBuildClient := buildclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	projectName := "hammer-project"
 	userName := "harold"
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, userName); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	err = clusterAdminClient.Get().
+	err = clusterAdminBuildClient.Build().RESTClient().Get().
 		SetHeader(authenticationapi.ImpersonateUserHeader, "harold").
 		SetHeader(authenticationapi.ImpersonateUserScopeHeader, "user:info").
 		Namespace(projectName).Resource("builds").Name("name").Do().Into(&buildapi.Build{})
@@ -129,7 +114,7 @@ func TestScopedImpersonation(t *testing.T) {
 	}
 
 	user := &userapi.User{}
-	err = clusterAdminClient.Get().
+	err = userclient.NewForConfigOrDie(clusterAdminClientConfig).RESTClient().Get().
 		SetHeader(authenticationapi.ImpersonateUserHeader, "harold").
 		SetHeader(authenticationapi.ImpersonateUserScopeHeader, "user:info").
 		Resource("users").Name("~").Do().Into(user)
@@ -148,28 +133,24 @@ func TestScopeEscalations(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	projectName := "hammer-project"
 	userName := "harold"
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, userName)
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, userName)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := haroldClient.Builds(projectName).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildclient.NewForConfigOrDie(haroldConfig).Builds(projectName).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	haroldUser, err := haroldClient.Users().Get("~", metav1.GetOptions{})
+	haroldUser, err := userclient.NewForConfigOrDie(haroldConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -182,7 +163,7 @@ func TestScopeEscalations(t *testing.T) {
 		UserName:   userName,
 		UserUID:    string(haroldUser.UID),
 	}
-	if _, err := clusterAdminClient.OAuthAccessTokens().Create(nonEscalatingEditToken); err != nil {
+	if _, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(nonEscalatingEditToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -205,7 +186,7 @@ func TestScopeEscalations(t *testing.T) {
 		UserName:   userName,
 		UserUID:    string(haroldUser.UID),
 	}
-	if _, err := clusterAdminClient.OAuthAccessTokens().Create(escalatingEditToken); err != nil {
+	if _, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(escalatingEditToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -228,10 +209,11 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminOAuthClient := oauthclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	client := &oauthapi.OAuthClient{
 		ObjectMeta: metav1.ObjectMeta{Name: "testing-client"},
@@ -246,7 +228,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 			},
 		},
 	}
-	if _, err := clusterAdminClient.OAuthClients().Create(client); err != nil {
+	if _, err := clusterAdminOAuthClient.OAuthClients().Create(client); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -299,7 +281,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		},
 	}
 	for _, tc := range clientAuthorizationTests {
-		_, err := clusterAdminClient.OAuthClientAuthorizations().Create(tc.obj)
+		_, err := clusterAdminOAuthClient.OAuthClientAuthorizations().Create(tc.obj)
 		switch {
 		case err == nil && !tc.fail:
 		case err != nil && tc.fail:
@@ -358,7 +340,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		},
 	}
 	for _, tc := range accessTokenTests {
-		_, err := clusterAdminClient.OAuthAccessTokens().Create(tc.obj)
+		_, err := clusterAdminOAuthClient.OAuthAccessTokens().Create(tc.obj)
 		switch {
 		case err == nil && !tc.fail:
 		case err != nil && tc.fail:
@@ -417,7 +399,7 @@ func TestTokensWithIllegalScopes(t *testing.T) {
 		},
 	}
 	for _, tc := range authorizeTokenTests {
-		_, err := clusterAdminClient.OAuthAuthorizeTokens().Create(tc.obj)
+		_, err := clusterAdminOAuthClient.OAuthAuthorizeTokens().Create(tc.obj)
 		switch {
 		case err == nil && !tc.fail:
 		case err != nil && tc.fail:

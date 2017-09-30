@@ -26,10 +26,10 @@ import (
 	"k8s.io/kubernetes/pkg/client/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 	"github.com/openshift/origin/pkg/version"
 	testutil "github.com/openshift/origin/test/util"
 )
@@ -212,25 +212,33 @@ func createTestingNS(baseName string, c kclientset.Interface, labels map[string]
 
 	// Add anyuid and privileged permissions for upstream tests
 	if isKubernetesE2ETest() && !skipTestNamespaceCustomization() {
-		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
-		// add the "privileged" scc to ensure pods that explicitly
-		// request extra capabilities are not rejected
-		addE2EServiceAccountsToSCC(c, []kapiv1.Namespace{*ns}, "privileged")
-		// add the "anyuid" scc to ensure pods that don't specify a
-		// uid don't get forced into a range (mimics upstream
-		// behavior)
-		addE2EServiceAccountsToSCC(c, []kapiv1.Namespace{*ns}, "anyuid")
-		// add the "hostmount-anyuid" scc to ensure pods using hostPath
-		// can execute tests
-		addE2EServiceAccountsToSCC(c, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
-
-		// The intra-pod test requires that the service account have
-		// permission to retrieve service endpoints.
-		osClient, err := testutil.GetClusterAdminClient(KubeConfigPath())
+		clientConfig, err := testutil.GetClusterAdminClientConfig(KubeConfigPath())
 		if err != nil {
 			return ns, err
 		}
-		addRoleToE2EServiceAccounts(osClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
+		securityClient, err := securityclient.NewForConfig(clientConfig)
+		if err != nil {
+			return ns, err
+		}
+		e2e.Logf("About to run a Kube e2e test, ensuring namespace is privileged")
+		// add the "privileged" scc to ensure pods that explicitly
+		// request extra capabilities are not rejected
+		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "privileged")
+		// add the "anyuid" scc to ensure pods that don't specify a
+		// uid don't get forced into a range (mimics upstream
+		// behavior)
+		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "anyuid")
+		// add the "hostmount-anyuid" scc to ensure pods using hostPath
+		// can execute tests
+		addE2EServiceAccountsToSCC(securityClient, []kapiv1.Namespace{*ns}, "hostmount-anyuid")
+
+		// The intra-pod test requires that the service account have
+		// permission to retrieve service endpoints.
+		authorizationClient, err := authorizationclient.NewForConfig(clientConfig)
+		if err != nil {
+			return ns, err
+		}
+		addRoleToE2EServiceAccounts(authorizationClient, []kapiv1.Namespace{*ns}, bootstrappolicy.ViewRoleName)
 	}
 
 	// some test suites assume they can schedule to all nodes
@@ -434,11 +442,11 @@ func allowAllNodeScheduling(c kclientset.Interface, namespace string) {
 	}
 }
 
-func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Namespace, sccName string) {
+func addE2EServiceAccountsToSCC(securityClient securityclient.Interface, namespaces []kapiv1.Namespace, sccName string) {
 	// Because updates can race, we need to set the backoff retries to be > than the number of possible
 	// parallel jobs starting at once. Set very high to allow future high parallelism.
 	err := retry.RetryOnConflict(longRetry, func() error {
-		scc, err := legacyclient.NewVersionedFromClient(c.Core().RESTClient()).Get(sccName, metav1.GetOptions{})
+		scc, err := securityClient.Security().SecurityContextConstraints().Get(sccName, metav1.GetOptions{})
 		if err != nil {
 			if apierrs.IsNotFound(err) {
 				return nil
@@ -451,7 +459,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Name
 				scc.Groups = append(scc.Groups, fmt.Sprintf("system:serviceaccounts:%s", ns.Name))
 			}
 		}
-		if _, err := legacyclient.NewVersionedFromClient(c.Core().RESTClient()).Update(scc); err != nil {
+		if _, err := securityClient.Security().SecurityContextConstraints().Update(scc); err != nil {
 			return err
 		}
 		return nil
@@ -461,7 +469,7 @@ func addE2EServiceAccountsToSCC(c kclientset.Interface, namespaces []kapiv1.Name
 	}
 }
 
-func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapiv1.Namespace, roleName string) {
+func addRoleToE2EServiceAccounts(c authorizationclient.Interface, namespaces []kapiv1.Namespace, roleName string) {
 	err := retry.RetryOnConflict(longRetry, func() error {
 		for _, ns := range namespaces {
 			if strings.HasPrefix(ns.Name, "e2e-") && ns.Status.Phase != kapiv1.NamespaceTerminating {
@@ -469,7 +477,7 @@ func addRoleToE2EServiceAccounts(c *client.Client, namespaces []kapiv1.Namespace
 				addRole := &policy.RoleModificationOptions{
 					RoleNamespace:       "",
 					RoleName:            roleName,
-					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c),
+					RoleBindingAccessor: policy.NewLocalRoleBindingAccessor(ns.Name, c.Authorization()),
 					Users:               []string{sa},
 				}
 				if err := addRole.AddRole(); err != nil {

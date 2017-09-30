@@ -100,7 +100,7 @@ func (o *ProjectsOptions) Complete(f *clientcmd.Factory, args []string, commandN
 		return err
 	}
 
-	_, o.KubeClient, err = f.Clients()
+	o.KubeClient, err = f.ClientSet()
 	if err != nil {
 		return err
 	}

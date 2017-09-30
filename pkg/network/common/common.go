@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang/glog"
 
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 	"github.com/openshift/origin/pkg/util/netutils"
@@ -33,20 +34,40 @@ func ClusterNetworkToString(n *networkapi.ClusterNetwork) string {
 	return fmt.Sprintf("%s (network: %q, hostSubnetBits: %d, serviceNetwork: %q, pluginName: %q)", n.Name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
 }
 
-type NetworkInfo struct {
-	ClusterNetwork *net.IPNet
-	ServiceNetwork *net.IPNet
+func ClusterNetworkListContains(clusterNetworks []ClusterNetwork, ipaddr net.IP) (*net.IPNet, bool) {
+	for _, cn := range clusterNetworks {
+		if cn.ClusterCIDR.Contains(ipaddr) {
+			return cn.ClusterCIDR, true
+		}
+	}
+	return nil, false
 }
 
-func ParseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInfo, error) {
-	cn, err := netutils.ParseCIDRMask(clusterNetwork)
-	if err != nil {
-		_, cn, err := net.ParseCIDR(clusterNetwork)
+type NetworkInfo struct {
+	ClusterNetworks []ClusterNetwork
+	ServiceNetwork  *net.IPNet
+}
+
+type ClusterNetwork struct {
+	ClusterCIDR      *net.IPNet
+	HostSubnetLength uint32
+}
+
+func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNetwork string) (*NetworkInfo, error) {
+	var cns []ClusterNetwork
+
+	for _, entry := range clusterNetwork {
+		cidr, err := netutils.ParseCIDRMask(entry.CIDR)
 		if err != nil {
-			return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", clusterNetwork, err)
+			_, cidr, err := net.ParseCIDR(entry.CIDR)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", cidr, err)
+			}
+			glog.Errorf("Configured clusterNetworks value %q is invalid; treating it as %q", entry.CIDR, cidr.String())
 		}
-		glog.Errorf("Configured clusterNetworkCIDR value %q is invalid; treating it as %q", clusterNetwork, cn.String())
+		cns = append(cns, ClusterNetwork{ClusterCIDR: cidr, HostSubnetLength: entry.HostSubnetLength})
 	}
+
 	sn, err := netutils.ParseCIDRMask(serviceNetwork)
 	if err != nil {
 		_, sn, err := net.ParseCIDR(serviceNetwork)
@@ -57,8 +78,8 @@ func ParseNetworkInfo(clusterNetwork string, serviceNetwork string) (*NetworkInf
 	}
 
 	return &NetworkInfo{
-		ClusterNetwork: cn,
-		ServiceNetwork: sn,
+		ClusterNetworks: cns,
+		ServiceNetwork:  sn,
 	}, nil
 }
 
@@ -74,8 +95,8 @@ func (ni *NetworkInfo) ValidateNodeIP(nodeIP string) error {
 		return fmt.Errorf("failed to parse node IP %s", nodeIP)
 	}
 
-	if ni.ClusterNetwork.Contains(ipaddr) {
-		return fmt.Errorf("node IP %s conflicts with cluster network %s", nodeIP, ni.ClusterNetwork.String())
+	if conflictingCIDR, found := ClusterNetworkListContains(ni.ClusterNetworks, ipaddr); found {
+		return fmt.Errorf("node IP %s conflicts with cluster network %s", nodeIP, conflictingCIDR.String())
 	}
 	if ni.ServiceNetwork.Contains(ipaddr) {
 		return fmt.Errorf("node IP %s conflicts with service network %s", nodeIP, ni.ServiceNetwork.String())
@@ -87,17 +108,13 @@ func (ni *NetworkInfo) ValidateNodeIP(nodeIP string) error {
 func (ni *NetworkInfo) CheckHostNetworks(hostIPNets []*net.IPNet) error {
 	errList := []error{}
 	for _, ipNet := range hostIPNets {
-		if ipNet.Contains(ni.ClusterNetwork.IP) {
-			errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", ni.ClusterNetwork.IP.String(), ipNet.String()))
+		for _, clusterNetwork := range ni.ClusterNetworks {
+			if configapi.CIDRsOverlap(ipNet.String(), clusterNetwork.ClusterCIDR.String()) {
+				errList = append(errList, fmt.Errorf("cluster IP: %s conflicts with host network: %s", clusterNetwork.ClusterCIDR.IP.String(), ipNet.String()))
+			}
 		}
-		if ni.ClusterNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with cluster network: %s", ipNet.IP.String(), ni.ClusterNetwork.String()))
-		}
-		if ipNet.Contains(ni.ServiceNetwork.IP) {
+		if configapi.CIDRsOverlap(ipNet.String(), ni.ServiceNetwork.String()) {
 			errList = append(errList, fmt.Errorf("service IP: %s conflicts with host network: %s", ni.ServiceNetwork.String(), ipNet.String()))
-		}
-		if ni.ServiceNetwork.Contains(ipNet.IP) {
-			errList = append(errList, fmt.Errorf("host network with IP: %s conflicts with service network: %s", ipNet.IP.String(), ni.ServiceNetwork.String()))
 		}
 	}
 	return kerrors.NewAggregate(errList)
@@ -110,8 +127,8 @@ func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods
 		subnetIP, _, _ := net.ParseCIDR(subnet.Subnet)
 		if subnetIP == nil {
 			errList = append(errList, fmt.Errorf("failed to parse network address: %s", subnet.Subnet))
-		} else if !ni.ClusterNetwork.Contains(subnetIP) {
-			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of cluster network: %s", subnet.Subnet, ni.ClusterNetwork.String()))
+		} else if _, contains := ClusterNetworkListContains(ni.ClusterNetworks, subnetIP); !contains {
+			errList = append(errList, fmt.Errorf("existing node subnet: %s is not part of any cluster network CIDR", subnet.Subnet))
 		}
 		if len(errList) >= 10 {
 			break
@@ -121,8 +138,8 @@ func (ni *NetworkInfo) CheckClusterObjects(subnets []networkapi.HostSubnet, pods
 		if pod.Spec.SecurityContext != nil && pod.Spec.SecurityContext.HostNetwork {
 			continue
 		}
-		if pod.Status.PodIP != "" && !ni.ClusterNetwork.Contains(net.ParseIP(pod.Status.PodIP)) {
-			errList = append(errList, fmt.Errorf("existing pod %s:%s with IP %s is not part of cluster network %s", pod.Namespace, pod.Name, pod.Status.PodIP, ni.ClusterNetwork.String()))
+		if _, contains := ClusterNetworkListContains(ni.ClusterNetworks, net.ParseIP(pod.Status.PodIP)); !contains && pod.Status.PodIP != "" {
+			errList = append(errList, fmt.Errorf("existing pod %s:%s with IP %s is not part of cluster network", pod.Namespace, pod.Name, pod.Status.PodIP))
 			if len(errList) >= 10 {
 				break
 			}
@@ -150,7 +167,7 @@ func GetNetworkInfo(networkClient networkclient.Interface) (*NetworkInfo, error)
 		return nil, err
 	}
 
-	return ParseNetworkInfo(cn.Network, cn.ServiceNetwork)
+	return ParseNetworkInfo(cn.ClusterNetworks, cn.ServiceNetwork)
 }
 
 type ResourceName string

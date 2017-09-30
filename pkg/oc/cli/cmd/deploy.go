@@ -141,7 +141,7 @@ func (o *DeployOptions) Complete(f *clientcmd.Factory, args []string, out io.Wri
 	}
 	var err error
 
-	_, o.kubeClient, err = f.Clients()
+	o.kubeClient, err = f.ClientSet()
 	if err != nil {
 		return err
 	}

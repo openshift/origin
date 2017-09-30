@@ -13,7 +13,8 @@ type SubjectAccessReviewsGetter interface {
 
 // SubjectAccessReviewInterface has methods to work with SubjectAccessReview resources.
 type SubjectAccessReviewInterface interface {
-	Create(*v1.SubjectAccessReview) (*v1.SubjectAccessReview, error)
+	Create(*v1.SubjectAccessReview) (*v1.SubjectAccessReviewResponse, error)
+
 	SubjectAccessReviewExpansion
 }
 
@@ -29,9 +30,9 @@ func newSubjectAccessReviews(c *AuthorizationV1Client) *subjectAccessReviews {
 	}
 }
 
-// Create takes the representation of a subjectAccessReview and creates it.  Returns the server's representation of the subjectAccessReview, and an error, if there is any.
-func (c *subjectAccessReviews) Create(subjectAccessReview *v1.SubjectAccessReview) (result *v1.SubjectAccessReview, err error) {
-	result = &v1.SubjectAccessReview{}
+// Create takes the representation of a subjectAccessReview and creates it.  Returns the server's representation of the subjectAccessReviewResponse, and an error, if there is any.
+func (c *subjectAccessReviews) Create(subjectAccessReview *v1.SubjectAccessReview) (result *v1.SubjectAccessReviewResponse, err error) {
+	result = &v1.SubjectAccessReviewResponse{}
 	err = c.client.Post().
 		Resource("subjectaccessreviews").
 		Body(subjectAccessReview).

@@ -13,12 +13,15 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
+	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -39,10 +42,6 @@ func TestNodeAuth(t *testing.T) {
 
 	// Cluster admin clients and client configs
 	adminClient, err := testutil.GetClusterAdminKubeClient(adminKubeConfigFile)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	originAdminClient, err := testutil.GetClusterAdminClient(adminKubeConfigFile)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -68,15 +67,15 @@ func TestNodeAuth(t *testing.T) {
 	badTokenConfig := clientcmd.AnonymousClientConfig(adminConfig)
 	badTokenConfig.BearerToken = "bad-token"
 
-	bobClient, bobKubeClient, bobConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
-	_, _, aliceConfig, err := testutil.GetClientForUser(*adminConfig, "alice")
-	_, sa1KubeClient, sa1Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa1")
-	_, _, sa2Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa2")
+	bobKubeClient, bobConfig, err := testutil.GetClientForUser(adminConfig, "bob")
+	_, aliceConfig, err := testutil.GetClientForUser(adminConfig, "alice")
+	sa1KubeClient, sa1Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa1")
+	_, sa2Config, err := testutil.GetClientForServiceAccount(adminClient, *adminConfig, "default", "sa2")
 
 	// Grant Bob system:node-reader, which should let them read metrics and stats
 	addBob := &policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.NodeReaderRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(originAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig)),
 		Subjects:            []kapi.ObjectReference{{Kind: "User", Name: "bob"}},
 	}
 	if err := addBob.AddRole(); err != nil {
@@ -84,7 +83,7 @@ func TestNodeAuth(t *testing.T) {
 	}
 
 	// create a scoped token for bob that is only good for getting user info
-	bobUser, err := bobClient.Users().Get("~", metav1.GetOptions{})
+	bobUser, err := userclient.NewForConfigOrDie(bobConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -96,16 +95,16 @@ func TestNodeAuth(t *testing.T) {
 		UserName:   bobUser.Name,
 		UserUID:    string(bobUser.UID),
 	}
-	if _, err := originAdminClient.OAuthAccessTokens().Create(whoamiOnlyBobToken); err != nil {
+	if _, err := oauthclient.NewForConfigOrDie(adminConfig).OAuthAccessTokens().Create(whoamiOnlyBobToken); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, _, bobWhoamiOnlyConfig, err := testutil.GetClientForUser(*adminConfig, "bob")
+	_, bobWhoamiOnlyConfig, err := testutil.GetClientForUser(adminConfig, "bob")
 	bobWhoamiOnlyConfig.BearerToken = whoamiOnlyBobToken.Name
 
 	// Grant sa1 system:cluster-reader, which should let them read metrics and stats
 	addSA1 := &policy.RoleModificationOptions{
 		RoleName:            bootstrappolicy.ClusterReaderRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(originAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(adminConfig)),
 		Subjects:            []kapi.ObjectReference{{Kind: "ServiceAccount", Namespace: "default", Name: "sa1"}},
 	}
 	if err := addSA1.AddRole(); err != nil {

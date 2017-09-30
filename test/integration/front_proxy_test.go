@@ -19,12 +19,14 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectapiv1 "github.com/openshift/origin/pkg/project/apis/project/v1"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -75,10 +77,7 @@ func TestFrontProxy(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	proxyHTTPHandler, err := newFrontProxyHandler(clusterAdminClientConfig.Host, masterConfig.ServingInfo.ClientCA, proxyUserHeader, proxyGroupHeader, proxyCert)
 	if err != nil {
@@ -88,14 +87,14 @@ func TestFrontProxy(t *testing.T) {
 	defer proxyServer.Close()
 	t.Logf("front proxy server is on %v\n", proxyServer.URL)
 
-	w, err := clusterAdminClient.Projects().Watch(metav1.ListOptions{})
+	w, err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Watch(metav1.ListOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer w.Stop()
 
 	listProjectsRoleName := "list-projects-role"
-	if _, err := clusterAdminClient.ClusterRoles().Create(
+	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(
 		&authorizationapi.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{Name: listProjectsRoleName},
 			Rules: []authorizationapi.PolicyRule{
@@ -108,13 +107,13 @@ func TestFrontProxy(t *testing.T) {
 
 	for _, username := range []string{"david", "jordan"} {
 		projectName := username + "-project"
-		if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projectName, username); err != nil {
+		if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projectName, username); err != nil {
 			t.Fatal(err)
 		}
 		waitForAdd(projectName, w, t)
 
 		// make it so that the user can list projects without any groups
-		if _, err := clusterAdminClient.ClusterRoleBindings().Create(
+		if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(
 			&authorizationapi.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{Name: username + "-clusterrolebinding"},
 				Subjects: []kapi.ObjectReference{

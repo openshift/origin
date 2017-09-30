@@ -14,17 +14,16 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
 // TemplateSearcher resolves stored template arguments into template objects
 type TemplateSearcher struct {
-	Client                    client.TemplatesNamespacer
-	TemplateConfigsNamespacer client.TemplateConfigsNamespacer
-	Namespaces                []string
-	StopOnExactMatch          bool
+	Client           templateclient.TemplatesGetter
+	Namespaces       []string
+	StopOnExactMatch bool
 }
 
 // Search searches for a template and returns matches with the object representation

@@ -18,13 +18,13 @@ import (
 	kapi "k8s.io/kubernetes/pkg/api"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	configcmd "github.com/openshift/origin/pkg/config/cmd"
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 const (
@@ -47,7 +47,11 @@ func (h *Helper) InstallRegistry(kubeClient kclientset.Interface, f *clientcmd.F
 		return errors.NewError("error retrieving docker registry service").WithCause(err).WithDetails(h.OriginLog())
 	}
 
-	err = AddSCCToServiceAccount(kubeClient, "privileged", "registry", "default", out)
+	securityClient, err := f.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return err
+	}
+	err = AddSCCToServiceAccount(securityClient.Security(), "privileged", "registry", "default", out)
 	if err != nil {
 		return errors.NewError("cannot add privileged SCC to registry service account").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -117,12 +121,16 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	}
 
 	// Add router SA to privileged SCC
-	privilegedSCC, err := legacyclient.NewFromClient(kubeClient.Core().RESTClient()).Get("privileged", metav1.GetOptions{})
+	securityClient, err := f.OpenshiftInternalSecurityClient()
+	if err != nil {
+		return err
+	}
+	privilegedSCC, err := securityClient.Security().SecurityContextConstraints().Get("privileged", metav1.GetOptions{})
 	if err != nil {
 		return errors.NewError("cannot retrieve privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
 	privilegedSCC.Users = append(privilegedSCC.Users, serviceaccount.MakeUsername("default", "router"))
-	_, err = legacyclient.NewFromClient(kubeClient.Core().RESTClient()).Update(privilegedSCC)
+	_, err = securityClient.Security().SecurityContextConstraints().Update(privilegedSCC)
 	if err != nil {
 		return errors.NewError("cannot update privileged SCC").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -189,8 +197,8 @@ func (h *Helper) InstallRouter(kubeClient kclientset.Interface, f *clientcmd.Fac
 	return nil
 }
 
-func AddClusterRole(osClient client.Interface, role, user string) error {
-	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(osClient)
+func AddClusterRole(authorizationClient authorizationtypedclient.ClusterRoleBindingsGetter, role, user string) error {
+	clusterRoleBindingAccessor := policy.NewClusterRoleBindingAccessor(authorizationClient)
 	addClusterReaderRole := policy.RoleModificationOptions{
 		RoleName:            role,
 		RoleBindingAccessor: clusterRoleBindingAccessor,
@@ -199,8 +207,8 @@ func AddClusterRole(osClient client.Interface, role, user string) error {
 	return addClusterReaderRole.AddRole()
 }
 
-func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace string) error {
-	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(namespace, osClient)
+func AddRoleToServiceAccount(authorizationClient authorizationtypedclient.RoleBindingsGetter, role, sa, namespace string) error {
+	roleBindingAccessor := policy.NewLocalRoleBindingAccessor(namespace, authorizationClient)
 	addRole := policy.RoleModificationOptions{
 		RoleName:            role,
 		RoleBindingAccessor: roleBindingAccessor,
@@ -215,10 +223,10 @@ func AddRoleToServiceAccount(osClient client.Interface, role, sa, namespace stri
 	return addRole.AddRole()
 }
 
-func AddSCCToServiceAccount(kubeClient kclientset.Interface, scc, sa, namespace string, out io.Writer) error {
+func AddSCCToServiceAccount(securityClient securitytypedclient.SecurityContextConstraintsGetter, scc, sa, namespace string, out io.Writer) error {
 	modifySCC := policy.SCCModificationOptions{
 		SCCName:      scc,
-		SCCInterface: legacyclient.NewFromClient(kubeClient.Core().RESTClient()),
+		SCCInterface: securityClient.SecurityContextConstraints(),
 		Subjects: []kapi.ObjectReference{
 			{
 				Namespace: namespace,

@@ -18,10 +18,10 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 var (
@@ -43,8 +43,8 @@ var (
 const SubjectReviewRecommendedName = "scc-subject-review"
 
 type sccSubjectReviewOptions struct {
-	sccSubjectReviewClient     client.PodSecurityPolicySubjectReviewsNamespacer
-	sccSelfSubjectReviewClient client.PodSecurityPolicySelfSubjectReviewsNamespacer
+	sccSubjectReviewClient     securitytypedclient.PodSecurityPolicySubjectReviewsGetter
+	sccSelfSubjectReviewClient securitytypedclient.PodSecurityPolicySelfSubjectReviewsGetter
 	namespace                  string
 	enforceNamespace           bool
 	out                        io.Writer
@@ -102,12 +102,12 @@ func (o *sccSubjectReviewOptions) Complete(f *clientcmd.Factory, args []string, 
 	if err != nil {
 		return err
 	}
-	oclient, _, err := f.Clients()
+	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}
-	o.sccSubjectReviewClient = oclient
-	o.sccSelfSubjectReviewClient = oclient
+	o.sccSubjectReviewClient = securityClient.Security()
+	o.sccSelfSubjectReviewClient = securityClient.Security()
 	o.builder = f.NewBuilder(true)
 	o.RESTClientFactory = f.ClientForMapping
 

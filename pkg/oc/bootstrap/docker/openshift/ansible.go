@@ -17,6 +17,7 @@ import (
 
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/errors"
 	"github.com/openshift/origin/pkg/oc/bootstrap/docker/host"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset"
 )
 
 const (
@@ -109,19 +110,21 @@ type ansibleInventoryParams struct {
 
 type ansibleRunner struct {
 	*Helper
-	KubeClient   kclient.Interface
-	ImageStreams string
-	Prefix       string
-	Namespace    string
+	KubeClient     kclient.Interface
+	SecurityClient securityclient.Interface
+	ImageStreams   string
+	Prefix         string
+	Namespace      string
 }
 
-func newAnsibleRunner(h *Helper, kubeClient kclient.Interface, namespace, imageStreams, prefix string) *ansibleRunner {
+func newAnsibleRunner(h *Helper, kubeClient kclient.Interface, securityClient securityclient.Interface, namespace, imageStreams, prefix string) *ansibleRunner {
 	return &ansibleRunner{
-		Helper:       h,
-		KubeClient:   kubeClient,
-		ImageStreams: imageStreams,
-		Prefix:       prefix,
-		Namespace:    namespace,
+		Helper:         h,
+		KubeClient:     kubeClient,
+		SecurityClient: securityClient,
+		ImageStreams:   imageStreams,
+		Prefix:         prefix,
+		Namespace:      namespace,
 	}
 }
 func newAnsibleInventoryParams() ansibleInventoryParams {
@@ -195,7 +198,7 @@ func (r *ansibleRunner) createServiceAccount(namespace string) error {
 		return errors.NewError(fmt.Sprintf("cannot create %s service account", serviceAccount.Name)).WithCause(err).WithDetails(r.Helper.OriginLog())
 	}
 	// Add privileged SCC to serviceAccount
-	if err = AddSCCToServiceAccount(r.KubeClient, "privileged", serviceAccount.Name, namespace, &bytes.Buffer{}); err != nil {
+	if err = AddSCCToServiceAccount(r.SecurityClient.Security(), "privileged", serviceAccount.Name, namespace, &bytes.Buffer{}); err != nil {
 		return errors.NewError("cannot add privileged security context constraint to service account").WithCause(err).WithDetails(r.Helper.OriginLog())
 	}
 	return nil

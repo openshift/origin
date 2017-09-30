@@ -259,7 +259,7 @@ func (opts *RegistryOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, 
 		return fmt.Errorf("error getting namespace: %v", nsErr)
 	}
 
-	_, kClient, kClientErr := f.Clients()
+	kClient, kClientErr := f.ClientSet()
 	if kClientErr != nil {
 		return fmt.Errorf("error getting client: %v", kClientErr)
 	}

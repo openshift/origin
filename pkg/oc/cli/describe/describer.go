@@ -45,7 +45,7 @@ import (
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securityclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
@@ -99,6 +99,10 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 	if err != nil {
 		glog.V(1).Info(err)
 	}
+	securityClient, err := securityclient.NewForConfig(clientConfig)
+	if err != nil {
+		glog.V(1).Info(err)
+	}
 
 	m := map[schema.GroupKind]kprinters.Describer{
 		buildapi.Kind("Build"):                          &BuildDescriber{buildClient, kclient},
@@ -131,7 +135,7 @@ func describerMap(clientConfig *rest.Config, kclient kclientset.Interface, host 
 		networkapi.Kind("HostSubnet"):                   &HostSubnetDescriber{onetworkClient},
 		networkapi.Kind("NetNamespace"):                 &NetNamespaceDescriber{onetworkClient},
 		networkapi.Kind("EgressNetworkPolicy"):          &EgressNetworkPolicyDescriber{onetworkClient},
-		securityapi.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{kclient},
+		securityapi.Kind("SecurityContextConstraints"):  &SecurityContextConstraintsDescriber{securityClient},
 	}
 
 	// Register the legacy ("core") API group for all kinds as well.
@@ -1714,10 +1718,14 @@ func (d *ClusterNetworkDescriber) Describe(namespace, name string, settings kpri
 	}
 	return tabbedString(func(out *tabwriter.Writer) error {
 		formatMeta(out, cn.ObjectMeta)
-		formatString(out, "Cluster Network", cn.Network)
-		formatString(out, "Host Subnet Length", cn.HostSubnetLength)
 		formatString(out, "Service Network", cn.ServiceNetwork)
 		formatString(out, "Plugin Name", cn.PluginName)
+		fmt.Fprintf(out, "ClusterNetworks:\n")
+		fmt.Fprintf(out, "CIDR\tHost Subnet Length\n")
+		fmt.Fprintf(out, "----\t------------------\n")
+		for _, clusterNetwork := range cn.ClusterNetworks {
+			fmt.Fprintf(out, "%s\t%d\n", clusterNetwork.CIDR, clusterNetwork.HostSubnetLength)
+		}
 		return nil
 	})
 }
@@ -1737,6 +1745,7 @@ func (d *HostSubnetDescriber) Describe(namespace, name string, settings kprinter
 		formatString(out, "Node", hs.Host)
 		formatString(out, "Node IP", hs.HostIP)
 		formatString(out, "Pod Subnet", hs.Subnet)
+		formatString(out, "Egress IPs", strings.Join(hs.EgressIPs, ", "))
 		return nil
 	})
 }
@@ -1755,6 +1764,7 @@ func (d *NetNamespaceDescriber) Describe(namespace, name string, settings kprint
 		formatMeta(out, netns.ObjectMeta)
 		formatString(out, "Name", netns.NetName)
 		formatString(out, "ID", netns.NetID)
+		formatString(out, "Egress IPs", strings.Join(netns.EgressIPs, ", "))
 		return nil
 	})
 }
@@ -1846,11 +1856,11 @@ func (d *RoleBindingRestrictionDescriber) Describe(namespace, name string, setti
 
 // SecurityContextConstraintsDescriber generates information about an SCC
 type SecurityContextConstraintsDescriber struct {
-	kclientset.Interface
+	c securityclient.SecurityContextConstraintsGetter
 }
 
 func (d *SecurityContextConstraintsDescriber) Describe(namespace, name string, s kprinters.DescriberSettings) (string, error) {
-	scc, err := legacyclient.NewFromClient(d.Core().RESTClient()).Get(name, metav1.GetOptions{})
+	scc, err := d.c.SecurityContextConstraints().Get(name, metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}

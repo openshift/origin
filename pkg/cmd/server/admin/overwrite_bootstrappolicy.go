@@ -100,7 +100,7 @@ func (o OverwriteBootstrapPolicyOptions) Validate(args []string) error {
 }
 
 func (o OverwriteBootstrapPolicyOptions) Complete(f *clientcmd.Factory) error {
-	_, kclient, err := f.Clients()
+	kclient, err := f.ClientSet()
 	if err != nil {
 		return err
 	}

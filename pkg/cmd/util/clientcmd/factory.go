@@ -177,7 +177,7 @@ func (f *Factory) ApproximatePodTemplateForObject(object runtime.Object) (*api.P
 	case *deployapi.DeploymentConfig:
 		fallback := t.Spec.Template
 
-		_, kc, err := f.Clients()
+		kc, err := f.ClientSet()
 		if err != nil {
 			return fallback, err
 		}
@@ -259,11 +259,15 @@ func (f *Factory) PodForResource(resource string, timeout time.Duration) (string
 		}
 		return pod.Name, nil
 	case deployapi.Resource("deploymentconfigs"), deployapi.LegacyResource("deploymentconfigs"):
-		oc, kc, err := f.Clients()
+		appsClient, err := f.OpenshiftInternalAppsClient()
 		if err != nil {
 			return "", err
 		}
-		dc, err := oc.DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
+		kc, err := f.ClientSet()
+		if err != nil {
+			return "", err
+		}
+		dc, err := appsClient.Apps().DeploymentConfigs(namespace).Get(name, metav1.GetOptions{})
 		if err != nil {
 			return "", err
 		}

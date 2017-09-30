@@ -35,7 +35,6 @@ import (
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	deploycmd "github.com/openshift/origin/pkg/apps/cmd"
-	"github.com/openshift/origin/pkg/client"
 	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset"
 	"github.com/openshift/origin/pkg/oc/cli/config"
 	"github.com/openshift/origin/pkg/oc/cli/describe"
@@ -53,9 +52,6 @@ type ring0Factory struct {
 type ClientAccessFactory interface {
 	kcmdutil.ClientAccessFactory
 	CLIClientBuilder
-
-	// TODO: this should be removed when we finally get rid of pkg/client
-	Clients() (*client.Client, kclientset.Interface, error)
 
 	OpenShiftClientConfig() kclientcmd.ClientConfig
 	ImageResolutionOptions() FlagBinder
@@ -99,7 +95,7 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	cfg.Burst = 100
 
 	// at this point we've negotiated and can get the client
-	oclient, err := client.New(cfg)
+	kubeClient, err := kclientset.NewForConfig(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +103,7 @@ func (f *discoveryFactory) DiscoveryClient() (discovery.CachedDiscoveryInterface
 	// TODO: k8s dir is different, I guess we should align
 	// cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube", "cache", "discovery"), cfg.Host)
 	cacheDir := computeDiscoverCacheDir(filepath.Join(homedir.HomeDir(), ".kube"), cfg.Host)
-	return kcmdutil.NewCachedDiscoveryClient(client.NewDiscoveryClient(oclient.RESTClient), cacheDir, time.Duration(10*time.Minute)), nil
+	return kcmdutil.NewCachedDiscoveryClient(newLegacyDiscoveryClient(kubeClient.Discovery().RESTClient()), cacheDir, time.Duration(10*time.Minute)), nil
 }
 
 func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
@@ -132,24 +128,6 @@ func DefaultClientConfig(flags *pflag.FlagSet) kclientcmd.ClientConfig {
 	clientConfig := kclientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 
 	return clientConfig
-}
-
-func (f *ring0Factory) Clients() (*client.Client, kclientset.Interface, error) {
-	kubeClientSet, err := f.ClientSet()
-	if err != nil {
-		return nil, nil, err
-	}
-	cfg, err := f.clientConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	openShiftClient, err := client.New(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return openShiftClient, kubeClientSet, nil
 }
 
 func (f *ring0Factory) OpenShiftClientConfig() kclientcmd.ClientConfig {

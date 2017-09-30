@@ -6,9 +6,9 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
+	userclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -36,12 +36,8 @@ func TestCLIGetToken(t *testing.T) {
 
 	clientConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
 	clientConfig.BearerToken = accessToken
-	osClient, err := client.New(&clientConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 
-	user, err := osClient.Users().Get("~", metav1.GetOptions{})
+	user, err := userclient.NewForConfigOrDie(&clientConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

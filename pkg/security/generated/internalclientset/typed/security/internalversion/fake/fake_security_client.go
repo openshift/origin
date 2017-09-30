@@ -10,6 +10,18 @@ type FakeSecurity struct {
 	*testing.Fake
 }
 
+func (c *FakeSecurity) PodSecurityPolicyReviews(namespace string) internalversion.PodSecurityPolicyReviewInterface {
+	return &FakePodSecurityPolicyReviews{c, namespace}
+}
+
+func (c *FakeSecurity) PodSecurityPolicySelfSubjectReviews(namespace string) internalversion.PodSecurityPolicySelfSubjectReviewInterface {
+	return &FakePodSecurityPolicySelfSubjectReviews{c, namespace}
+}
+
+func (c *FakeSecurity) PodSecurityPolicySubjectReviews(namespace string) internalversion.PodSecurityPolicySubjectReviewInterface {
+	return &FakePodSecurityPolicySubjectReviews{c, namespace}
+}
+
 func (c *FakeSecurity) SecurityContextConstraints() internalversion.SecurityContextConstraintsInterface {
 	return &FakeSecurityContextConstraints{c}
 }

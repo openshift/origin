@@ -20,10 +20,10 @@ import (
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
 	ometa "github.com/openshift/origin/pkg/api/meta"
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	securityapiv1 "github.com/openshift/origin/pkg/security/apis/security/v1"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 var (
@@ -51,7 +51,7 @@ var (
 const ReviewRecommendedName = "scc-review"
 
 type sccReviewOptions struct {
-	client                   client.PodSecurityPolicyReviewsNamespacer
+	client                   securitytypedclient.PodSecurityPolicyReviewsGetter
 	namespace                string
 	enforceNamespace         bool
 	out                      io.Writer
@@ -102,10 +102,11 @@ func (o *sccReviewOptions) Complete(f *clientcmd.Factory, args []string, cmd *co
 	if err != nil {
 		return err
 	}
-	o.client, _, err = f.Clients()
+	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return fmt.Errorf("unable to obtain client: %v", err)
 	}
+	o.client = securityClient.Security()
 	o.builder = f.NewBuilder(true)
 	o.RESTClientFactory = f.ClientForMapping
 

@@ -16,13 +16,13 @@ var localresourceaccessreviewsResource = schema.GroupVersionResource{Group: "aut
 
 var localresourceaccessreviewsKind = schema.GroupVersionKind{Group: "authorization.openshift.io", Version: "v1", Kind: "LocalResourceAccessReview"}
 
-// Create takes the representation of a localResourceAccessReview and creates it.  Returns the server's representation of the localResourceAccessReview, and an error, if there is any.
-func (c *FakeLocalResourceAccessReviews) Create(localResourceAccessReview *v1.LocalResourceAccessReview) (result *v1.LocalResourceAccessReview, err error) {
+// Create takes the representation of a localResourceAccessReview and creates it.  Returns the server's representation of the resourceAccessReviewResponse, and an error, if there is any.
+func (c *FakeLocalResourceAccessReviews) Create(localResourceAccessReview *v1.LocalResourceAccessReview) (result *v1.ResourceAccessReviewResponse, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(localresourceaccessreviewsResource, c.ns, localResourceAccessReview), &v1.LocalResourceAccessReview{})
+		Invokes(testing.NewCreateAction(localresourceaccessreviewsResource, c.ns, localResourceAccessReview), &v1.ResourceAccessReviewResponse{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1.LocalResourceAccessReview), err
+	return obj.(*v1.ResourceAccessReviewResponse), err
 }

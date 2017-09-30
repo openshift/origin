@@ -60,9 +60,9 @@ var (
 	// IsPersonalSubjectAccessReviewColumns contains known custom role extensions
 	IsPersonalSubjectAccessReviewColumns = []string{"NAME"}
 
-	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET"}
-	netNamespaceColumns        = []string{"NAME", "NETID"}
-	clusterNetworkColumns      = []string{"NAME", "NETWORK", "HOST SUBNET LENGTH", "SERVICE NETWORK", "PLUGIN NAME"}
+	hostSubnetColumns          = []string{"NAME", "HOST", "HOST IP", "SUBNET", "EGRESS IPS"}
+	netNamespaceColumns        = []string{"NAME", "NETID", "EGRESS IPS"}
+	clusterNetworkColumns      = []string{"NAME", "CLUSTER NETWORKS", "SERVICE NETWORK", "PLUGIN NAME"}
 	egressNetworkPolicyColumns = []string{"NAME"}
 
 	clusterResourceQuotaColumns = []string{"NAME", "LABEL SELECTOR", "ANNOTATION SELECTOR"}
@@ -1028,7 +1028,7 @@ func printGroupList(list *userapi.GroupList, w io.Writer, opts kprinters.PrintOp
 
 func printHostSubnet(h *networkapi.HostSubnet, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, h.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", name, h.Host, h.HostIP, h.Subnet)
+	_, err := fmt.Fprintf(w, "%s\t%s\t%s\t%s\t[%s]\n", name, h.Host, h.HostIP, h.Subnet, strings.Join(h.EgressIPs, ", "))
 	return err
 }
 
@@ -1041,9 +1041,9 @@ func printHostSubnetList(list *networkapi.HostSubnetList, w io.Writer, opts kpri
 	return nil
 }
 
-func printNetNamespace(h *networkapi.NetNamespace, w io.Writer, opts kprinters.PrintOptions) error {
-	name := formatResourceName(opts.Kind, h.NetName, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%d\n", name, h.NetID)
+func printNetNamespace(n *networkapi.NetNamespace, w io.Writer, opts kprinters.PrintOptions) error {
+	name := formatResourceName(opts.Kind, n.NetName, opts.WithKind)
+	_, err := fmt.Fprintf(w, "%s\t%d\t[%s]\n", name, n.NetID, strings.Join(n.EgressIPs, ", "))
 	return err
 }
 
@@ -1058,7 +1058,24 @@ func printNetNamespaceList(list *networkapi.NetNamespaceList, w io.Writer, opts 
 
 func printClusterNetwork(n *networkapi.ClusterNetwork, w io.Writer, opts kprinters.PrintOptions) error {
 	name := formatResourceName(opts.Kind, n.Name, opts.WithKind)
-	_, err := fmt.Fprintf(w, "%s\t%s\t%d\t%s\t%s\n", name, n.Network, n.HostSubnetLength, n.ServiceNetwork, n.PluginName)
+	const numOfNetworksShown = 3
+	var networksList []string
+	var networks string
+	for _, cidr := range n.ClusterNetworks {
+		networksList = append(networksList, fmt.Sprintf("%s:%d", cidr.CIDR, cidr.HostSubnetLength))
+	}
+
+	if _, err := fmt.Fprintf(w, "%s", name); err != nil {
+		return err
+	}
+	if len(networksList) > numOfNetworksShown {
+		networks = fmt.Sprintf("%s + %d more...",
+			strings.Join(networksList[:numOfNetworksShown], ", "),
+			len(networksList)-numOfNetworksShown)
+	} else {
+		networks = strings.Join(networksList, ", ")
+	}
+	_, err := fmt.Fprintf(w, "\t%s\t%s\t%s\n", networks, n.ServiceNetwork, n.PluginName)
 	return err
 }
 

@@ -21,7 +21,6 @@ import (
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
 	"github.com/openshift/origin/pkg/auth/ldaputil/ldapclient"
-	osclient "github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/server/api"
 	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
@@ -30,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/interfaces"
 	"github.com/openshift/origin/pkg/oc/admin/groups/sync/syncerror"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const SyncRecommendedName = "sync"
@@ -95,8 +95,8 @@ type SyncOptions struct {
 	// Confirm determines whether or not to write to OpenShift
 	Confirm bool
 
-	// GroupsInterface is the interface used to interact with OpenShift Group objects
-	GroupInterface osclient.GroupInterface
+	// GroupInterface is the interface used to interact with OpenShift Group objects
+	GroupInterface usertypedclient.GroupInterface
 
 	// Stderr is the writer to write warnings and errors to
 	Stderr io.Writer
@@ -221,11 +221,11 @@ func (o *SyncOptions) Complete(typeArg, whitelistFile, blacklistFile, configFile
 		}
 	}
 
-	osClient, _, err := f.Clients()
+	userClient, err := f.OpenshiftInternalUserClient()
 	if err != nil {
 		return err
 	}
-	o.GroupInterface = osClient.Groups()
+	o.GroupInterface = userClient.User().Groups()
 
 	return nil
 }
@@ -502,7 +502,7 @@ func (o *SyncOptions) GetBlacklist() []string {
 	return o.Blacklist
 }
 
-func (o *SyncOptions) GetClient() osclient.GroupInterface {
+func (o *SyncOptions) GetClient() usertypedclient.GroupInterface {
 	return o.GroupInterface
 }
 

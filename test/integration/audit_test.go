@@ -6,12 +6,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
-	"github.com/openshift/origin/pkg/client"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client, func()) {
+func setupAuditTest(t *testing.T) (kclientset.Interface, func()) {
 	masterConfig, err := testserver.DefaultMasterOptions()
 	if err != nil {
 		t.Fatalf("error creating config: %v", err)
@@ -25,17 +24,13 @@ func setupAuditTest(t *testing.T) (kclientset.Interface, *client.Client, func())
 	if err != nil {
 		t.Fatalf("error getting client: %v", err)
 	}
-	openshiftClient, err := testutil.GetClusterAdminClient(kubeConfigFile)
-	if err != nil {
-		t.Fatalf("error getting openshift client: %v", err)
-	}
-	return kubeClient, openshiftClient, func() {
+	return kubeClient, func() {
 		testserver.CleanupMasterEtcd(t, masterConfig)
 	}
 }
 
 func TestBasicFunctionalityWithAudit(t *testing.T) {
-	kubeClient, _, fn := setupAuditTest(t)
+	kubeClient, fn := setupAuditTest(t)
 	defer fn()
 
 	if _, err := kubeClient.Core().Pods(metav1.NamespaceDefault).Watch(metav1.ListOptions{}); err != nil {

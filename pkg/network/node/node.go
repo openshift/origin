@@ -111,6 +111,8 @@ type OsdnNode struct {
 	runtimeEndpoint       string
 	runtimeRequestTimeout time.Duration
 	runtimeService        kubeletapi.RuntimeService
+
+	egressIP *egressIPWatcher
 }
 
 // Called by higher layers to create the plugin SDN node instance
@@ -172,7 +174,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	if err != nil {
 		return nil, err
 	}
-	oc := NewOVSController(ovsif, pluginId, useConnTrack)
+	oc := NewOVSController(ovsif, pluginId, useConnTrack, c.SelfIP)
 
 	plugin := &OsdnNode{
 		policy:             policy,
@@ -188,6 +190,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		egressPolicies:     make(map[uint32][]networkapi.EgressNetworkPolicy),
 		egressDNS:          common.NewEgressDNS(),
 		kubeInformers:      c.KubeInformers,
+		egressIP:           newEgressIPWatcher(c.SelfIP, oc),
 
 		runtimeEndpoint: c.RuntimeEndpoint,
 		// 2 minutes is the current default value used in kubelet
@@ -199,6 +202,8 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 	if err := plugin.dockerPreCNICleanup(); err != nil {
 		return nil, err
 	}
+
+	RegisterMetrics()
 
 	return plugin, nil
 }
@@ -291,6 +296,8 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 }
 
 func (node *OsdnNode) Start() error {
+	log.V(2).Infof("Starting openshift-sdn network plugin")
+
 	var err error
 	node.networkInfo, err = common.GetNetworkInfo(node.networkClient)
 	if err != nil {
@@ -311,7 +318,12 @@ func (node *OsdnNode) Start() error {
 		return err
 	}
 
-	nodeIPTables := newNodeIPTables(node.networkInfo.ClusterNetwork.String(), node.iptablesSyncPeriod, !node.useConnTrack)
+	var cidrList []string
+	for _, cn := range node.networkInfo.ClusterNetworks {
+		cidrList = append(cidrList, cn.ClusterCIDR.String())
+	}
+	nodeIPTables := newNodeIPTables(cidrList, node.iptablesSyncPeriod, !node.useConnTrack)
+
 	if err = nodeIPTables.Setup(); err != nil {
 		return fmt.Errorf("failed to set up iptables: %v", err)
 	}
@@ -325,7 +337,9 @@ func (node *OsdnNode) Start() error {
 	if err != nil {
 		return err
 	}
-
+	if err = node.egressIP.Start(node.networkClient, nodeIPTables); err != nil {
+		return err
+	}
 	if err = node.policy.Start(node); err != nil {
 		return err
 	}
@@ -333,8 +347,8 @@ func (node *OsdnNode) Start() error {
 		node.watchServices()
 	}
 
-	log.V(5).Infof("Starting openshift-sdn pod manager")
-	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetwork); err != nil {
+	log.V(2).Infof("Starting openshift-sdn pod manager")
+	if err := node.podManager.Start(cniserver.CNIServerSocketPath, node.localSubnetCIDR, node.networkInfo.ClusterNetworks); err != nil {
 		return err
 	}
 
@@ -372,8 +386,11 @@ func (node *OsdnNode) Start() error {
 	}
 
 	go kwait.Forever(node.policy.SyncVNIDRules, time.Hour)
+	go kwait.Forever(func() {
+		gatherPeriodicMetrics(node.oc.ovs)
+	}, time.Minute*2)
 
-	log.V(5).Infof("openshift-sdn network plugin ready")
+	log.V(2).Infof("openshift-sdn network plugin ready")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready

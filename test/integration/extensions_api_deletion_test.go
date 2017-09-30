@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -25,11 +26,6 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -41,10 +37,10 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 	}
 
 	// create the containing project
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, projName, "admin"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, projName, "admin"); err != nil {
 		t.Fatalf("unexpected error creating the project: %v", err)
 	}
-	_, projectAdminKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "admin")
+	projectAdminKubeClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "admin")
 	if err != nil {
 		t.Fatalf("unexpected error getting project admin client: %v", err)
 	}
@@ -90,7 +86,7 @@ func TestExtensionsAPIDeletion(t *testing.T) {
 		t.Fatalf("unexpected error creating the job object: %v", err)
 	}
 
-	if err := clusterAdminClient.Projects().Delete(projName); err != nil {
+	if err := projectclient.NewForConfigOrDie(clusterAdminClientConfig).Projects().Delete(projName, nil); err != nil {
 		t.Fatalf("unexpected error deleting the project: %v", err)
 	}
 	err = wait.PollImmediate(1*time.Second, 30*time.Second, func() (bool, error) {

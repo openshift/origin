@@ -9,6 +9,7 @@ import (
 
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
+	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -19,10 +20,11 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
+	clusterAdminRouteClient := routeclient.NewForConfigOrDie(clusterAdminClientConfig)
 	clusterAdminKubeClientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
@@ -59,7 +61,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "route"},
 		Spec:       routeapi.RouteSpec{To: routeapi.RouteTargetReference{Kind: "Service", Name: "test"}},
 	}
-	route, err = clusterAdminClient.Routes(ns.Name).Create(route)
+	route, err = clusterAdminRouteClient.Routes(ns.Name).Create(route)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +94,7 @@ func TestNamespaceLifecycleAdmission(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "route2"},
 		Spec:       routeapi.RouteSpec{To: routeapi.RouteTargetReference{Kind: "Service", Name: "test"}},
 	}
-	_, err = clusterAdminClient.Routes(ns.Name).Create(route)
+	_, err = clusterAdminRouteClient.Routes(ns.Name).Create(route)
 	if err == nil || !strings.Contains(err.Error(), "it is being terminated") {
 		t.Fatalf("Expected forbidden error because of a terminating namespace, got %v", err)
 	}

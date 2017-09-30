@@ -2,23 +2,15 @@ package builder
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
 
-	"github.com/google/cadvisor/container/crio"
-	crioclient "github.com/kubernetes-incubator/cri-o/client"
-	"github.com/kubernetes-incubator/cri-o/pkg/annotations"
-
 	docker "github.com/fsouza/go-dockerclient"
-
-	s2iapi "github.com/openshift/source-to-image/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 )
@@ -27,134 +19,6 @@ var (
 	// procCGroupPattern is a regular expression that parses the entries in /proc/self/cgroup
 	procCGroupPattern = regexp.MustCompile(`\d+:([a-z_,]+):/.*/(\w+-|)([a-z0-9]+).*`)
 )
-
-// readNetClsCGroup parses /proc/self/cgroup in order to determine the container id that can be used
-// the network namespace that this process is running on, it returns the cgroup and container type
-// (docker vs crio).
-func readNetClsCGroup(reader io.Reader) (string, string) {
-
-	containerType := "docker"
-
-	cgroups := make(map[string]string)
-	scanner := bufio.NewScanner(reader)
-	for scanner.Scan() {
-		if match := procCGroupPattern.FindStringSubmatch(scanner.Text()); match != nil {
-			containerType = strings.TrimSuffix(match[2], "-")
-
-			list := strings.Split(match[1], ",")
-			containerId := match[3]
-			if len(list) > 0 {
-				for _, key := range list {
-					cgroups[key] = containerId
-				}
-			} else {
-				cgroups[match[1]] = containerId
-			}
-		}
-	}
-
-	names := []string{"net_cls", "cpu"}
-	for _, group := range names {
-		if value, ok := cgroups[group]; ok {
-			return value, containerType
-		}
-	}
-
-	return "", containerType
-}
-
-// getContainerNetworkConfig determines whether the builder is running as a container
-// by examining /proc/self/cgroup. This context is then passed to source-to-image.
-// It returns a suitable argument for NetworkMode.  If the container platform is
-// CRI-O, it also returns a path for /etc/resolv.conf, suitable for bindmounting.
-func getContainerNetworkConfig() (string, string, error) {
-	file, err := os.Open("/proc/self/cgroup")
-	if err != nil {
-		return "", "", err
-	}
-	defer file.Close()
-
-	if id, containerType := readNetClsCGroup(file); id != "" {
-		glog.V(5).Infof("container type=%s", containerType)
-		if containerType != "crio" {
-			return s2iapi.DockerNetworkModeContainerPrefix + id, "", nil
-		}
-
-		crioClient, err := crioclient.New(crio.CrioSocket)
-		if err != nil {
-			return "", "", err
-		}
-		info, err := crioClient.ContainerInfo(id)
-		if err != nil {
-			return "", "", err
-		}
-		pid := strconv.Itoa(info.Pid)
-		resolvConfHostPath := info.CrioAnnotations[annotations.ResolvPath]
-		if len(resolvConfHostPath) == 0 {
-			return "", "", errors.New("/etc/resolv.conf hostpath is empty")
-		}
-
-		return fmt.Sprintf("netns:/proc/%s/ns/net", pid), resolvConfHostPath, nil
-	}
-	return "", "", nil
-}
-
-// GetCGroupLimits returns a struct populated with cgroup limit values gathered
-// from the local /sys/fs/cgroup filesystem.  Overflow values are set to
-// math.MaxInt64.
-func GetCGroupLimits() (*s2iapi.CGroupLimits, error) {
-	byteLimit, err := readInt64("/sys/fs/cgroup/memory/memory.limit_in_bytes")
-	if err != nil {
-		// for systems without cgroups builds should succeed
-		if _, err := os.Stat("/sys/fs/cgroup"); os.IsNotExist(err) {
-			return &s2iapi.CGroupLimits{}, nil
-		}
-		return nil, fmt.Errorf("cannot determine cgroup limits: %v", err)
-	}
-	// math.MaxInt64 seems to give cgroups trouble, this value is
-	// still 92 terabytes, so it ought to be sufficiently large for
-	// our purposes.
-	if byteLimit > 92233720368547 {
-		byteLimit = 92233720368547
-	}
-
-	parent, err := getCgroupParent()
-	if err != nil {
-		return nil, fmt.Errorf("read cgroup parent: %v", err)
-	}
-
-	return &s2iapi.CGroupLimits{
-		// Though we are capped on memory and cpu at the cgroup parent level,
-		// some build containers care what their memory limit is so they can
-		// adapt, thus we need to set the memory limit at the container level
-		// too, so that information is available to them.
-		MemoryLimitBytes: byteLimit,
-		// Set memoryswap==memorylimit, this ensures no swapping occurs.
-		// see: https://docs.docker.com/engine/reference/run/#runtime-constraints-on-cpu-and-memory
-		MemorySwap: byteLimit,
-		Parent:     parent,
-	}, nil
-}
-
-func readInt64(filePath string) (int64, error) {
-	data, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return -1, err
-	}
-	s := strings.TrimSpace(string(data))
-	val, err := strconv.ParseInt(s, 10, 64)
-	// overflow errors are ok, we'll get return a math.MaxInt64 value which is more
-	// than enough anyway.  For underflow we'll return MinInt64 and the error.
-	if err != nil && err.(*strconv.NumError).Err == strconv.ErrRange {
-		if s[0] == '-' {
-			return math.MinInt64, err
-		}
-		return math.MaxInt64, nil
-	} else if err != nil {
-		return -1, err
-	}
-	return val, nil
-}
 
 // MergeEnv will take an existing environment and merge it with a new set of
 // variables. For variables with the same name in both, only the one in the
@@ -202,6 +66,65 @@ func reportPushFailure(err error, authPresent bool, pushAuthConfig docker.AuthCo
 func addBuildLabels(labels map[string]string, build *buildapi.Build) {
 	labels[buildapi.DefaultDockerLabelNamespace+"build.name"] = build.Name
 	labels[buildapi.DefaultDockerLabelNamespace+"build.namespace"] = build.Namespace
+}
+
+// readInt64 reads a file containing a 64 bit integer value
+// and returns the value as an int64.  If the file contains
+// a value larger than an int64, it returns MaxInt64,
+// if the value is smaller than an int64, it returns MinInt64.
+func readInt64(filePath string) (int64, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return -1, err
+	}
+	s := strings.TrimSpace(string(data))
+	val, err := strconv.ParseInt(s, 10, 64)
+	// overflow errors are ok, we'll get return a math.MaxInt64 value which is more
+	// than enough anyway.  For underflow we'll return MinInt64 and the error.
+	if err != nil && err.(*strconv.NumError).Err == strconv.ErrRange {
+		if s[0] == '-' {
+			return math.MinInt64, err
+		}
+		return math.MaxInt64, nil
+	} else if err != nil {
+		return -1, err
+	}
+	return val, nil
+}
+
+// readNetClsCGroup parses /proc/self/cgroup in order to determine the container id that can be used
+// the network namespace that this process is running on, it returns the cgroup and container type
+// (docker vs crio).
+func readNetClsCGroup(reader io.Reader) (string, string) {
+
+	containerType := "docker"
+
+	cgroups := make(map[string]string)
+	scanner := bufio.NewScanner(reader)
+	for scanner.Scan() {
+		if match := procCGroupPattern.FindStringSubmatch(scanner.Text()); match != nil {
+			containerType = strings.TrimSuffix(match[2], "-")
+
+			list := strings.Split(match[1], ",")
+			containerId := match[3]
+			if len(list) > 0 {
+				for _, key := range list {
+					cgroups[key] = containerId
+				}
+			} else {
+				cgroups[match[1]] = containerId
+			}
+		}
+	}
+
+	names := []string{"net_cls", "cpu"}
+	for _, group := range names {
+		if value, ok := cgroups[group]; ok {
+			return value, containerType
+		}
+	}
+
+	return "", containerType
 }
 
 // extractParentFromCgroupMap finds the cgroup parent in the cgroup map

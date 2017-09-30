@@ -2,17 +2,22 @@ package describe
 
 import (
 	"bytes"
+	"io/ioutil"
 	"strings"
 	"testing"
 	"text/tabwriter"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/yaml"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kubefakeclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
+	kubeclientscheme "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/scheme"
 
 	oapi "github.com/openshift/origin/pkg/api"
 	osgraph "github.com/openshift/origin/pkg/api/graph"
@@ -20,7 +25,6 @@ import (
 	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
 	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 	buildclientscheme "github.com/openshift/origin/pkg/build/generated/internalclientset/scheme"
-	"github.com/openshift/origin/pkg/client/testclient"
 	imagefakeclient "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
 	imageclientscheme "github.com/openshift/origin/pkg/image/generated/internalclientset/scheme"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -425,7 +429,7 @@ func TestProjectStatus(t *testing.T) {
 		if len(test.File) > 0 {
 			// Load data from a folder dedicated to mock data, which is never loaded into the API during tests
 			var err error
-			objs, err = testclient.ReadObjectsFromPath("../../../../pkg/api/graph/test/"+test.File, "example", kapi.Codecs.UniversalDecoder(), kapi.Scheme)
+			objs, err = readObjectsFromPath("../../../../pkg/api/graph/test/"+test.File, "example", kapi.Codecs.UniversalDecoder(), kapi.Scheme)
 			if err != nil {
 				t.Errorf("%s: unexpected error: %v", k, err)
 			}
@@ -433,8 +437,8 @@ func TestProjectStatus(t *testing.T) {
 		for _, o := range test.Extra {
 			objs = append(objs, o)
 		}
-		_, kc := testclient.NewFixtureClients(objs...)
 
+		kc := kubefakeclient.NewSimpleClientset(filterByScheme(kubeclientscheme.Scheme, objs...)...)
 		projectClient := projectfakeclient.NewSimpleClientset(filterByScheme(projectclientscheme.Scheme, objs...)...)
 		buildClient := buildfakeclient.NewSimpleClientset(filterByScheme(buildclientscheme.Scheme, objs...)...)
 		imageClient := imagefakeclient.NewSimpleClientset(filterByScheme(imageclientscheme.Scheme, objs...)...)
@@ -498,7 +502,11 @@ func TestProjectStatusErrors(t *testing.T) {
 		projectClient.PrependReactor("*", "*", func(_ clientgotesting.Action) (bool, runtime.Object, error) {
 			return true, nil, test.Err
 		})
-		_, kc := testclient.NewErrorClients(test.Err)
+		kc := kubefakeclient.NewSimpleClientset()
+		kc.PrependReactor("*", "*", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+			return true, nil, test.Err
+		})
+
 		d := ProjectStatusDescriber{
 			K:                           kc,
 			ProjectClient:               projectClient.Project(),
@@ -578,4 +586,67 @@ func TestPrintMarkerSuggestions(t *testing.T) {
 			t.Errorf("unexpected output, wanted %q, got %q", test.expected, out.String())
 		}
 	}
+}
+
+// ReadObjectsFromPath reads objects from the specified file for testing.
+func readObjectsFromPath(path, namespace string, decoder runtime.Decoder, typer runtime.ObjectTyper) ([]runtime.Object, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	data, err = yaml.ToJSON(data)
+	if err != nil {
+		return nil, err
+	}
+	obj, err := runtime.Decode(decoder, data)
+	if err != nil {
+		return nil, err
+	}
+	if !meta.IsListType(obj) {
+		if err := setNamespace(typer, obj, namespace); err != nil {
+			return nil, err
+		}
+		return []runtime.Object{obj}, nil
+	}
+	list, err := meta.ExtractList(obj)
+	if err != nil {
+		return nil, err
+	}
+	errs := runtime.DecodeList(list, decoder)
+	if len(errs) > 0 {
+		return nil, errs[0]
+	}
+	for _, o := range list {
+		if err := setNamespace(typer, o, namespace); err != nil {
+			return nil, err
+		}
+	}
+	return list, nil
+}
+
+func setNamespace(typer runtime.ObjectTyper, obj runtime.Object, namespace string) error {
+	itemMeta, err := meta.Accessor(obj)
+	if err != nil {
+		return err
+	}
+	gvks, _, err := typer.ObjectKinds(obj)
+	if err != nil {
+		return err
+	}
+	group, err := kapi.Registry.Group(gvks[0].Group)
+	if err != nil {
+		return err
+	}
+	mapping, err := group.RESTMapper.RESTMappings(gvks[0].GroupKind(), gvks[0].Version)
+	if err != nil {
+		return err
+	}
+	switch mapping[0].Scope.Name() {
+	case meta.RESTScopeNameNamespace:
+		if len(itemMeta.GetNamespace()) == 0 {
+			itemMeta.SetNamespace(namespace)
+		}
+	}
+
+	return nil
 }

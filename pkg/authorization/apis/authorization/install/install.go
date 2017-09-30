@@ -15,7 +15,7 @@ import (
 
 func init() {
 	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
-		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding"),
+		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
 		kapi.Registry, kapi.Scheme,
 	)
 	Install(kapi.GroupFactoryRegistry, kapi.Registry, kapi.Scheme)
@@ -28,7 +28,7 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 			GroupName:                  authorizationapi.GroupName,
 			VersionPreferenceOrder:     []string{authorizationapiv1.SchemeGroupVersion.Version},
 			AddInternalObjectsToScheme: internalObjectsToScheme,
-			RootScopedKinds:            sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "SubjectAccessReview", "ResourceAccessReview"),
+			RootScopedKinds:            sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "SubjectAccessReview", "ResourceAccessReview", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
 		},
 		announced.VersionToSchemeFunc{
 			authorizationapiv1.SchemeGroupVersion.Version: authorizationapiv1.AddToScheme,

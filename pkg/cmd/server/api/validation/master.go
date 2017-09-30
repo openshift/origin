@@ -165,6 +165,7 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 	}
 
 	validationResults.AddErrors(ValidateIngressIPNetworkCIDR(config, fldPath.Child("networkConfig", "ingressIPNetworkCIDR").Index(0))...)
+	validationResults.Append(ValidateDeprecatedClusterNetworkConfig(config, fldPath.Child("networkConfig")))
 
 	validationResults.AddErrors(ValidateKubeConfig(config.MasterClients.OpenShiftLoopbackKubeConfig, fldPath.Child("masterClients", "openShiftLoopbackKubeConfig"))...)
 
@@ -830,8 +831,10 @@ func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path)
 	noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 
 	if noCloudProvider {
-		if api.CIDRsOverlap(cidr, config.NetworkConfig.ClusterNetworkCIDR) {
-			addError("conflicts with cluster network CIDR")
+		for _, entry := range config.NetworkConfig.ClusterNetworks {
+			if api.CIDRsOverlap(cidr, entry.CIDR) {
+				addError(fmt.Sprintf("conflicts with cluster network CIDR: %s", entry.CIDR))
+			}
 		}
 		if api.CIDRsOverlap(cidr, config.NetworkConfig.ServiceNetworkCIDR) {
 			addError("conflicts with service network CIDR")
@@ -841,4 +844,16 @@ func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path)
 	}
 
 	return
+}
+
+func ValidateDeprecatedClusterNetworkConfig(config *api.MasterConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidationResults{}
+
+	if len(config.NetworkConfig.ClusterNetworks) > 0 && config.NetworkConfig.DeprecatedHostSubnetLength != 0 {
+		validationResults.AddErrors(field.Invalid(fldPath.Child("hostSubnetLength"), config.NetworkConfig.DeprecatedHostSubnetLength, "cannot set hostSubnetLength and clusterNetworks, please use clusterNetworks"))
+	}
+	if len(config.NetworkConfig.ClusterNetworks) > 0 && config.NetworkConfig.DeprecatedClusterNetworkCIDR != "" {
+		validationResults.AddErrors(field.Invalid(fldPath.Child("clusterNetworkCIDR"), config.NetworkConfig.DeprecatedClusterNetworkCIDR, "cannot set clusterNetworkCIDR and clusterNetworks, please use clusterNetworks"))
+	}
+	return validationResults
 }

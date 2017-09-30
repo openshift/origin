@@ -19,7 +19,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/util/variable"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
-	routeclient "github.com/openshift/origin/pkg/route/generated/internalclientset/typed/route/internalversion"
+	routeinternalclientset "github.com/openshift/origin/pkg/route/generated/internalclientset"
 	"github.com/openshift/origin/pkg/router/controller"
 	controllerfactory "github.com/openshift/origin/pkg/router/controller/factory"
 )
@@ -33,9 +33,7 @@ type RouterSelection struct {
 	OverrideHostname bool
 
 	LabelSelector string
-	Labels        labels.Selector
 	FieldSelector string
-	Fields        fields.Selector
 
 	Namespace              string
 	NamespaceLabelSelector string
@@ -165,23 +163,15 @@ func (o *RouterSelection) Complete() error {
 		return fmt.Errorf("--override-hostname requires that --hostname-template be specified")
 	}
 	if len(o.LabelSelector) > 0 {
-		s, err := labels.Parse(o.LabelSelector)
-		if err != nil {
+		if _, err := labels.Parse(o.LabelSelector); err != nil {
 			return fmt.Errorf("label selector is not valid: %v", err)
 		}
-		o.Labels = s
-	} else {
-		o.Labels = labels.Everything()
 	}
 
 	if len(o.FieldSelector) > 0 {
-		s, err := fields.ParseSelector(o.FieldSelector)
-		if err != nil {
+		if _, err := fields.ParseSelector(o.FieldSelector); err != nil {
 			return fmt.Errorf("field selector is not valid: %v", err)
 		}
-		o.Fields = s
-	} else {
-		o.Fields = fields.Everything()
 	}
 
 	if len(o.ProjectLabelSelector) > 0 {
@@ -221,10 +211,10 @@ func (o *RouterSelection) Complete() error {
 }
 
 // NewFactory initializes a factory that will watch the requested routes
-func (o *RouterSelection) NewFactory(routeclient routeclient.RoutesGetter, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
+func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
 	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, kc)
-	factory.Labels = o.Labels
-	factory.Fields = o.Fields
+	factory.LabelSelector = o.LabelSelector
+	factory.FieldSelector = o.FieldSelector
 	factory.Namespace = o.Namespace
 	factory.ResyncInterval = o.ResyncInterval
 	switch {

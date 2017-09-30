@@ -7,13 +7,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/openshift/origin/pkg/client"
-	"github.com/openshift/origin/pkg/client/testclient"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templatefake "github.com/openshift/origin/pkg/template/generated/internalclientset/fake"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset/typed/template/internalversion"
 )
 
-func testTemplateClient(templates *templateapi.TemplateList) client.Interface {
-	fake := &testclient.Fake{}
+func testTemplateClient(templates *templateapi.TemplateList) templateclient.TemplateInterface {
+	fake := &templatefake.Clientset{}
 	fake.AddReactor("list", "templates", func(action clientgotesting.Action) (handled bool, ret runtime.Object, err error) {
 		if len(action.GetNamespace()) > 0 {
 			matchingTemplates := &templateapi.TemplateList{
@@ -29,7 +29,7 @@ func testTemplateClient(templates *templateapi.TemplateList) client.Interface {
 			return true, templates, nil
 		}
 	})
-	return fake
+	return fake.Template()
 }
 
 func TestTemplateSearcher(t *testing.T) {

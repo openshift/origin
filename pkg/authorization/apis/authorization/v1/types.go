@@ -235,7 +235,8 @@ type ResourceAccessReviewResponse struct {
 
 // +genclient
 // +genclient:nonNamespaced
-// +genclient:onlyVerbs=create
+// +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+// +genclient:method=Create,verb=create,result=ResourceAccessReviewResponse
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ResourceAccessReview is a means to request a list of which users and groups are authorized to perform the
@@ -276,7 +277,8 @@ func (t OptionalScopes) String() string {
 
 // +genclient
 // +genclient:nonNamespaced
-// +genclient:onlyVerbs=create
+// +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+// +genclient:method=Create,verb=create,result=SubjectAccessReviewResponse
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // SubjectAccessReview is an object for requesting information about whether a user or group can perform an action
@@ -298,7 +300,8 @@ type SubjectAccessReview struct {
 }
 
 // +genclient
-// +genclient:onlyVerbs=create
+// +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+// +genclient:method=Create,verb=create,result=ResourceAccessReviewResponse
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // LocalResourceAccessReview is a means to request a list of which users and groups are authorized to perform the action specified by spec in a particular namespace
@@ -310,7 +313,8 @@ type LocalResourceAccessReview struct {
 }
 
 // +genclient
-// +genclient:onlyVerbs=create
+// +genclient:skipVerbs=get,list,create,update,patch,delete,deleteCollection,watch
+// +genclient:method=Create,verb=create,result=SubjectAccessReviewResponse
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // LocalSubjectAccessReview is an object for requesting information about whether a user or group can perform an action in a particular namespace

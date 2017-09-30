@@ -15,7 +15,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
-	"github.com/openshift/origin/pkg/security/legacyclient"
+	securitytypedclient "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 const (
@@ -36,7 +36,7 @@ var (
 
 type SCCModificationOptions struct {
 	SCCName      string
-	SCCInterface legacyclient.SecurityContextConstraintInterface
+	SCCInterface securitytypedclient.SecurityContextConstraintsInterface
 
 	DefaultSubjectNamespace string
 	Subjects                []kapi.ObjectReference
@@ -170,11 +170,11 @@ func (o *SCCModificationOptions) CompleteUsers(f *clientcmd.Factory, cmd *cobra.
 		return f.PrintObject(cmd, false, mapper, obj, out)
 	}
 
-	_, kc, err := f.Clients()
+	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = legacyclient.NewFromClient(kc.Core().RESTClient())
+	o.SCCInterface = securityClient.Security().SecurityContextConstraints()
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {
@@ -208,11 +208,11 @@ func (o *SCCModificationOptions) CompleteGroups(f *clientcmd.Factory, cmd *cobra
 
 	o.DryRun = kcmdutil.GetFlagBool(cmd, "dry-run")
 
-	_, kc, err := f.Clients()
+	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return err
 	}
-	o.SCCInterface = legacyclient.NewFromClient(kc.Core().RESTClient())
+	o.SCCInterface = securityClient.Security().SecurityContextConstraints()
 
 	o.DefaultSubjectNamespace, _, err = f.DefaultNamespace()
 	if err != nil {

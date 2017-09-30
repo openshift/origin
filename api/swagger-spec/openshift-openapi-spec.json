@@ -90742,14 +90742,20 @@
    "com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetwork": {
     "description": "ClusterNetwork describes the cluster network. There is normally only one object of this type, named \"default\", which is created by the SDN network plugin based on the master configuration when the cluster is brought up for the first time.",
     "required": [
-     "network",
-     "hostsubnetlength",
-     "serviceNetwork"
+     "serviceNetwork",
+     "clusterNetworks"
     ],
     "properties": {
      "apiVersion": {
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
       "type": "string"
+     },
+     "clusterNetworks": {
+      "description": "ClusterNetworks is a list of ClusterNetwork objects that defines the global overlay network's L3 space by specifying a set of CIDR and netmasks that the SDN can allocate addressed from.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetworkEntry"
+      }
      },
      "hostsubnetlength": {
       "description": "HostSubnetLength is the number of bits of network to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods",
@@ -90789,6 +90795,24 @@
       "kind": "ClusterNetwork"
      }
     ]
+   },
+   "com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetworkEntry": {
+    "description": "ClusterNetworkEntry defines an individual cluster network. The CIDRs cannot overlap with other cluster network CIDRs, CIDRs reserved for external ips, CIDRs reserved for service networks, and CIDRs reserved for ingress ips.",
+    "required": [
+     "CIDR",
+     "hostSubnetLength"
+    ],
+    "properties": {
+     "CIDR": {
+      "description": "CIDR defines the total range of a cluster networks address space.",
+      "type": "string"
+     },
+     "hostSubnetLength": {
+      "description": "HostSubnetLength is the number of bits of the accompanying CIDR address to allocate to each node. eg, 8 would mean that each node would have a /24 slice of the overlay network for its pods.",
+      "type": "integer",
+      "format": "int64"
+     }
+    }
    },
    "com.github.openshift.origin.pkg.network.apis.network.v1.ClusterNetworkList": {
     "description": "ClusterNetworkList is a collection of ClusterNetworks",
@@ -90954,12 +90978,20 @@
     "required": [
      "host",
      "hostIP",
-     "subnet"
+     "subnet",
+     "egressIPs"
     ],
     "properties": {
      "apiVersion": {
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
       "type": "string"
+     },
+     "egressIPs": {
+      "description": "EgressIPs is the list of automatic egress IP addresses currently hosted by this node",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
      },
      "host": {
       "description": "Host is the name of the node. (This is the same as the object's name, but both fields must be set.)",
@@ -91044,6 +91076,13 @@
      "apiVersion": {
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
       "type": "string"
+     },
+     "egressIPs": {
+      "description": "EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
      },
      "kind": {
       "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",

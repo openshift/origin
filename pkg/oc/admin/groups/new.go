@@ -13,9 +13,9 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	kprinters "k8s.io/kubernetes/pkg/printers"
 
-	"github.com/openshift/origin/pkg/client"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	usertypedclient "github.com/openshift/origin/pkg/user/generated/internalclientset/typed/user/internalversion"
 )
 
 const NewGroupRecommendedName = "new"
@@ -38,7 +38,7 @@ var (
 )
 
 type NewGroupOptions struct {
-	GroupClient client.GroupInterface
+	GroupClient usertypedclient.GroupInterface
 
 	Group string
 	Users []string
@@ -79,12 +79,12 @@ func (o *NewGroupOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, arg
 		o.Users = append(o.Users, args[1:]...)
 	}
 
-	osClient, _, err := f.Clients()
+	userClient, err := f.OpenshiftInternalUserClient()
 	if err != nil {
 		return err
 	}
 
-	o.GroupClient = osClient.Groups()
+	o.GroupClient = userClient.User().Groups()
 
 	printer, err := f.PrinterForCommand(cmd, true, nil, kprinters.PrintOptions{})
 	if err != nil {

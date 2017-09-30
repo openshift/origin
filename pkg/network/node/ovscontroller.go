@@ -24,6 +24,7 @@ type ovsController struct {
 	ovs          ovs.Interface
 	pluginId     int
 	useConnTrack bool
+	localIP      string
 }
 
 const (
@@ -32,13 +33,13 @@ const (
 	Vxlan0 = "vxlan0"
 
 	// rule versioning; increment each time flow rules change
-	ruleVersion = 4
+	ruleVersion = 5
 
 	ruleVersionTable = 253
 )
 
-func NewOVSController(ovsif ovs.Interface, pluginId int, useConnTrack bool) *ovsController {
-	return &ovsController{ovs: ovsif, pluginId: pluginId, useConnTrack: useConnTrack}
+func NewOVSController(ovsif ovs.Interface, pluginId int, useConnTrack bool, localIP string) *ovsController {
+	return &ovsController{ovs: ovsif, pluginId: pluginId, useConnTrack: useConnTrack, localIP: localIP}
 }
 
 func (oc *ovsController) getVersionNote() string {
@@ -63,7 +64,7 @@ func (oc *ovsController) AlreadySetUp() bool {
 	return false
 }
 
-func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway, nodeIP string) error {
+func (oc *ovsController) SetupOVS(clusterNetworkCIDR []string, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway string) error {
 	err := oc.ovs.AddBridge("fail-mode=secure", "protocols=OpenFlow13")
 	if err != nil {
 		return err
@@ -84,22 +85,29 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	}
 
 	otx := oc.ovs.NewTransaction()
+
 	// Table 0: initial dispatch based on in_port
 	if oc.useConnTrack {
 		otx.AddFlow("table=0, priority=300, ip, ct_state=-trk, actions=ct(table=0)")
 	}
 	// vxlan0
-	otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR, localSubnetCIDR)
-	otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=224.0.0.0/4, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterNetworkCIDR)
+	for _, clusterCIDR := range clusterNetworkCIDR {
+		otx.AddFlow("table=0, priority=200, in_port=1, arp, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterCIDR, localSubnetCIDR)
+		otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=%s, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterCIDR, localSubnetCIDR)
+		otx.AddFlow("table=0, priority=200, in_port=1, ip, nw_src=%s, nw_dst=224.0.0.0/4, actions=move:NXM_NX_TUN_ID[0..31]->NXM_NX_REG0[],goto_table:10", clusterCIDR)
+	}
 	otx.AddFlow("table=0, priority=150, in_port=1, actions=drop")
 	// tun0
 	if oc.useConnTrack {
 		otx.AddFlow("table=0, priority=400, in_port=2, ip, nw_src=%s, actions=goto_table:30", localSubnetGateway)
-		otx.AddFlow("table=0, priority=300, in_port=2, ip, nw_src=%s, nw_dst=%s, actions=goto_table:25", localSubnetCIDR, clusterNetworkCIDR)
+		for _, clusterCIDR := range clusterNetworkCIDR {
+			otx.AddFlow("table=0, priority=300, in_port=2, ip, nw_src=%s, nw_dst=%s, actions=goto_table:25", localSubnetCIDR, clusterCIDR)
+		}
 	}
 	otx.AddFlow("table=0, priority=250, in_port=2, ip, nw_dst=224.0.0.0/4, actions=drop")
-	otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:30", localSubnetGateway, clusterNetworkCIDR)
+	for _, clusterCIDR := range clusterNetworkCIDR {
+		otx.AddFlow("table=0, priority=200, in_port=2, arp, nw_src=%s, nw_dst=%s, actions=goto_table:30", localSubnetGateway, clusterCIDR)
+	}
 	otx.AddFlow("table=0, priority=200, in_port=2, ip, actions=goto_table:30")
 	otx.AddFlow("table=0, priority=150, in_port=2, actions=drop")
 	// else, from a container
@@ -129,14 +137,18 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	// Table 30: general routing
 	otx.AddFlow("table=30, priority=300, arp, nw_dst=%s, actions=output:2", localSubnetGateway)
 	otx.AddFlow("table=30, priority=200, arp, nw_dst=%s, actions=goto_table:40", localSubnetCIDR)
-	otx.AddFlow("table=30, priority=100, arp, nw_dst=%s, actions=goto_table:50", clusterNetworkCIDR)
+	for _, clusterCIDR := range clusterNetworkCIDR {
+		otx.AddFlow("table=30, priority=100, arp, nw_dst=%s, actions=goto_table:50", clusterCIDR)
+	}
 	otx.AddFlow("table=30, priority=300, ip, nw_dst=%s, actions=output:2", localSubnetGateway)
 	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:60", serviceNetworkCIDR)
 	if oc.useConnTrack {
 		otx.AddFlow("table=30, priority=300, ip, nw_dst=%s, ct_state=+rpl, actions=ct(nat,table=70)", localSubnetCIDR)
 	}
 	otx.AddFlow("table=30, priority=200, ip, nw_dst=%s, actions=goto_table:70", localSubnetCIDR)
-	otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:90", clusterNetworkCIDR)
+	for _, clusterCIDR := range clusterNetworkCIDR {
+		otx.AddFlow("table=30, priority=100, ip, nw_dst=%s, actions=goto_table:90", clusterCIDR)
+	}
 
 	// Multicast coming from the VXLAN
 	otx.AddFlow("table=30, priority=50, in_port=1, ip, nw_dst=224.0.0.0/4, actions=goto_table:120")
@@ -177,11 +189,15 @@ func (oc *ovsController) SetupOVS(clusterNetworkCIDR, serviceNetworkCIDR, localS
 	// eg, "table=90, priority=100, ip, nw_dst=${remote_subnet_cidr}, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31], set_field:${remote_node_ip}->tun_dst,output:1"
 	otx.AddFlow("table=90, priority=0, actions=drop")
 
-	// Table 100: egress network policy dispatch; edited by UpdateEgressNetworkPolicy()
-	// eg, "table=100, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
-	otx.AddFlow("table=100, priority=0, actions=output:2")
-	otx.AddFlow("table=100, priority=%d,tcp,tcp_dst=53,nw_dst=%s,actions=output:2", networkapi.EgressNetworkPolicyMaxRules+1, nodeIP)
-	otx.AddFlow("table=100, priority=%d,udp,udp_dst=53,nw_dst=%s,actions=output:2", networkapi.EgressNetworkPolicyMaxRules+1, nodeIP)
+	// Table 100: egress routing; edited by UpdateNamespaceEgressRules()
+	// eg, "table=100, priority=100, reg0=${tenant_id}, ip, actions=set_field:${egress_ip_hex}->pkt_mark,output:2"
+	otx.AddFlow("table=100, priority=0, actions=goto_table:101")
+
+	// Table 101: egress network policy dispatch; edited by UpdateEgressNetworkPolicy()
+	// eg, "table=101, reg0=${tenant_id}, priority=2, ip, nw_dst=${external_cidr}, actions=drop
+	otx.AddFlow("table=101, priority=%d,tcp,tcp_dst=53,nw_dst=%s,actions=output:2", networkapi.EgressNetworkPolicyMaxRules+1, oc.localIP)
+	otx.AddFlow("table=101, priority=%d,udp,udp_dst=53,nw_dst=%s,actions=output:2", networkapi.EgressNetworkPolicyMaxRules+1, oc.localIP)
+	otx.AddFlow("table=101, priority=0, actions=output:2")
 
 	// Table 110: outbound multicast filtering, updated by UpdateLocalMulticastFlows()
 	// eg, "table=110, priority=100, reg0=${tenant_id}, actions=goto_table:111
@@ -261,11 +277,22 @@ func getPodNote(sandboxID string) (string, error) {
 }
 
 func (oc *ovsController) SetUpPod(hostVeth, podIP, podMAC, sandboxID string, vnid uint32) (int, error) {
-	note, err := getPodNote(sandboxID)
+	var (
+		err    error
+		note   string
+		ofport int
+	)
+	defer func() {
+		if err != nil {
+			PodSetupErrors.Inc()
+		}
+	}()
+
+	note, err = getPodNote(sandboxID)
 	if err != nil {
 		return -1, err
 	}
-	ofport, err := oc.ensureOvsPort(hostVeth)
+	ofport, err = oc.ensureOvsPort(hostVeth)
 	if err != nil {
 		return -1, err
 	}
@@ -384,7 +411,14 @@ func (oc *ovsController) TearDownPod(hostVeth, podIP, sandboxID string) error {
 		podIP = ip
 	}
 
-	err := oc.cleanupPodFlows(podIP)
+	var err error
+	defer func() {
+		if err != nil {
+			PodTeardownErrors.Inc()
+		}
+	}()
+
+	err = oc.cleanupPodFlows(podIP)
 	if err != nil {
 		return err
 	}
@@ -405,7 +439,7 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 	var inputErr error
 
 	if len(policies) == 0 {
-		otx.DeleteFlows("table=100, reg0=%d", vnid)
+		otx.DeleteFlows("table=101, reg0=%d", vnid)
 	} else if vnid == 0 {
 		inputErr = fmt.Errorf("EgressNetworkPolicy in global network namespace is not allowed (%s); ignoring", policyNames(policies))
 	} else if len(namespaces) > 1 {
@@ -413,18 +447,18 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 		// Even though Egress network policy is defined per namespace, its implementation is based on VNIDs.
 		// So in case of shared network namespaces, egress policy of one namespace will affect all other namespaces that are sharing the network which might not be desirable.
 		inputErr = fmt.Errorf("EgressNetworkPolicy not allowed in shared NetNamespace (%s); dropping all traffic", strings.Join(namespaces, ", "))
-		otx.DeleteFlows("table=100, reg0=%d", vnid)
-		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
+		otx.DeleteFlows("table=101, reg0=%d", vnid)
+		otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 	} else if len(policies) > 1 {
 		// Rationale: If we have allowed more than one policy, we could end up with different network restrictions depending
 		// on the order of policies that were processed and also it doesn't give more expressive power than a single policy.
 		inputErr = fmt.Errorf("multiple EgressNetworkPolicies in same network namespace (%s) is not allowed; dropping all traffic", policyNames(policies))
-		otx.DeleteFlows("table=100, reg0=%d", vnid)
-		otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
+		otx.DeleteFlows("table=101, reg0=%d", vnid)
+		otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 	} else /* vnid != 0 && len(policies) == 1 */ {
 		// Temporarily drop all outgoing traffic, to avoid race conditions while modifying the other rules
-		otx.AddFlow("table=100, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
-		otx.DeleteFlows("table=100, reg0=%d, cookie=0/1", vnid)
+		otx.AddFlow("table=101, reg0=%d, cookie=1, priority=65535, actions=drop", vnid)
+		otx.DeleteFlows("table=101, reg0=%d, cookie=0/1", vnid)
 
 		dnsFound := false
 		for i, rule := range policies[0].Spec.Egress {
@@ -459,18 +493,18 @@ func (oc *ovsController) UpdateEgressNetworkPolicyRules(policies []networkapi.Eg
 					dst = fmt.Sprintf(", nw_dst=%s", selector)
 				}
 
-				otx.AddFlow("table=100, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
+				otx.AddFlow("table=101, reg0=%d, priority=%d, ip%s, actions=%s", vnid, priority, dst, action)
 			}
 		}
 
 		if dnsFound {
 			if err := common.CheckDNSResolver(); err != nil {
 				inputErr = fmt.Errorf("DNS resolver failed: %v, dropping all traffic for namespace: %q", err, namespaces[0])
-				otx.DeleteFlows("table=100, reg0=%d", vnid)
-				otx.AddFlow("table=100, reg0=%d, priority=1, actions=drop", vnid)
+				otx.DeleteFlows("table=101, reg0=%d", vnid)
+				otx.AddFlow("table=101, reg0=%d, priority=1, actions=drop", vnid)
 			}
 		}
-		otx.DeleteFlows("table=100, reg0=%d, cookie=1/1", vnid)
+		otx.DeleteFlows("table=101, reg0=%d, cookie=1/1", vnid)
 	}
 
 	txErr := otx.EndTransaction()
@@ -647,4 +681,23 @@ func (oc *ovsController) FindUnusedVNIDs() []int {
 	}
 
 	return policyVNIDs.Difference(inUseVNIDs).UnsortedList()
+}
+
+func (oc *ovsController) UpdateNamespaceEgressRules(vnid uint32, nodeIP, egressHex string) error {
+	otx := oc.ovs.NewTransaction()
+	otx.DeleteFlows("table=100, reg0=%d", vnid)
+
+	if egressHex == "" {
+		// Namespace no longer has an EgressIP; no VNID-specific rules needed
+	} else if nodeIP == "" {
+		// Namespace has Egress IP, but it is unavailable, so drop egress traffic
+		otx.AddFlow("table=100, priority=100, reg0=%d, actions=drop", vnid)
+	} else if nodeIP == oc.localIP {
+		// Local Egress IP
+		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=set_field:%s->pkt_mark,output:2", vnid, egressHex)
+	} else {
+		// Remote Egress IP; send via VXLAN
+		otx.AddFlow("table=100, priority=100, reg0=%d, ip, actions=move:NXM_NX_REG0[]->NXM_NX_TUN_ID[0..31],set_field:%s->tun_dst,output:1", vnid, nodeIP)
+	}
+	return otx.EndTransaction()
 }

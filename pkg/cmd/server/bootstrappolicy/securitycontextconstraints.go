@@ -114,6 +114,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
 				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SETUID", "SETGID"},
 		},
 		// SecurityContextConstraintHostMountAndAnyUID is the same as the restricted scc but allows the use of the hostPath and NFS plugins, and running as any UID.
 		// Used by the PV recycler.
@@ -143,6 +144,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
 				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			RequiredDropCapabilities: []kapi.Capability{"MKNOD"},
 		},
 		// SecurityContextConstraintHostNS allows access to everything except privileged on the host
 		// but still allocates UIDs and SELinux.
@@ -176,6 +178,7 @@ func GetBootstrapSecurityContextConstraints(sccNameToAdditionalGroups map[string
 			SupplementalGroups: securityapi.SupplementalGroupsStrategyOptions{
 				Type: securityapi.SupplementalGroupsStrategyRunAsAny,
 			},
+			RequiredDropCapabilities: []kapi.Capability{"KILL", "MKNOD", "SETUID", "SETGID"},
 		},
 		// SecurityContextConstraintRestricted allows no host access and allocates UIDs and SELinux.
 		{

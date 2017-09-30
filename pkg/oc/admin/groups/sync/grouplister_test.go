@@ -10,9 +10,9 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"github.com/openshift/origin/pkg/auth/ldaputil"
-	"github.com/openshift/origin/pkg/client/testclient"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
 	_ "github.com/openshift/origin/pkg/user/apis/user/install"
+	userfakeclient "github.com/openshift/origin/pkg/user/generated/internalclientset/fake"
 )
 
 func TestListAllOpenShiftGroups(t *testing.T) {
@@ -87,8 +87,8 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		fakeClient := testclient.NewSimpleFake(testCase.startingGroups...)
-		lister := NewAllOpenShiftGroupLister(testCase.blacklist, "test-host:port", fakeClient.Groups())
+		fakeClient := userfakeclient.NewSimpleClientset(testCase.startingGroups...)
+		lister := NewAllOpenShiftGroupLister(testCase.blacklist, "test-host:port", fakeClient.User().Groups())
 
 		groupNames, err := lister.ListGroups()
 		if err != nil {
@@ -110,12 +110,12 @@ func TestListAllOpenShiftGroups(t *testing.T) {
 }
 
 func TestListAllOpenShiftGroupsListErr(t *testing.T) {
-	listFailClient := testclient.NewSimpleFake()
+	listFailClient := userfakeclient.NewSimpleClientset()
 	listFailClient.PrependReactor("list", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 
-	lister := NewAllOpenShiftGroupLister([]string{}, "test-host:port", listFailClient.Groups())
+	lister := NewAllOpenShiftGroupLister([]string{}, "test-host:port", listFailClient.User().Groups())
 	groupUIDs, err := lister.ListGroups()
 	if err == nil {
 		t.Error("expected an error listing groups, got none")
@@ -201,7 +201,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 	}
 
 	for name, testCase := range testCases {
-		fakeClient := testclient.NewSimpleFake()
+		fakeClient := userfakeclient.NewSimpleClientset()
 		fakeClient.PrependReactor("get", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 			groups := map[string]*userapi.Group{}
 			for _, group := range testCase.startingGroups {
@@ -212,7 +212,7 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 			}
 			return false, nil, nil
 		})
-		lister := NewOpenShiftGroupLister(testCase.whitelist, testCase.blacklist, "test-host:port", fakeClient.Groups())
+		lister := NewOpenShiftGroupLister(testCase.whitelist, testCase.blacklist, "test-host:port", fakeClient.User().Groups())
 
 		groupNames, err := lister.ListGroups()
 		if err != nil {
@@ -234,12 +234,12 @@ func TestListWhitelistOpenShiftGroups(t *testing.T) {
 }
 
 func TestListOpenShiftGroupsListErr(t *testing.T) {
-	listFailClient := testclient.NewSimpleFake()
+	listFailClient := userfakeclient.NewSimpleClientset()
 	listFailClient.PrependReactor("get", "groups", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, errors.New("fail")
 	})
 
-	lister := NewOpenShiftGroupLister([]string{"alpha", "beta"}, []string{"beta"}, "", listFailClient.Groups())
+	lister := NewOpenShiftGroupLister([]string{"alpha", "beta"}, []string{"beta"}, "", listFailClient.User().Groups())
 	groupUIDs, err := lister.ListGroups()
 	if err == nil {
 		t.Error("expected an error listing groups, got none")

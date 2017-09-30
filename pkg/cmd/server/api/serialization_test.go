@@ -112,13 +112,33 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 				}
 			}
+			if len(obj.NetworkConfig.ClusterNetworks) == 0 {
+				clusterNetwork := []configapi.ClusterNetworkEntry{
+					{
+						CIDR:             "10.128.0.0/14",
+						HostSubnetLength: 9,
+					},
+				}
+				obj.NetworkConfig.ClusterNetworks = clusterNetwork
+			}
 
 			// TODO stop duplicating the conversion in the test.
 			kubeConfig := obj.KubernetesMasterConfig
 			noCloudProvider := kubeConfig != nil && (len(kubeConfig.ControllerArguments["cloud-provider"]) == 0 || kubeConfig.ControllerArguments["cloud-provider"][0] == "")
 			if noCloudProvider && len(obj.NetworkConfig.IngressIPNetworkCIDR) == 0 {
 				cidr := configapi.DefaultIngressIPNetworkCIDR
-				if !(configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ClusterNetworkCIDR) || configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR)) {
+				setCIDR := true
+				if configapi.CIDRsOverlap(cidr, obj.NetworkConfig.ServiceNetworkCIDR) {
+					setCIDR = false
+				} else {
+					for _, clusterNetwork := range obj.NetworkConfig.ClusterNetworks {
+						if configapi.CIDRsOverlap(cidr, clusterNetwork.CIDR) {
+							setCIDR = false
+							break
+						}
+					}
+				}
+				if setCIDR {
 					obj.NetworkConfig.IngressIPNetworkCIDR = cidr
 				}
 			}

@@ -26,22 +26,17 @@ func TestGCDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	originClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatal(err)
-	}
 	kubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	newBuildClient, err := buildclient.NewForConfig(clusterAdminConfig)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	ns := "some-ns-old"
-	if _, _, err := testserver.CreateNewProject(originClient, *clusterAdminConfig, ns, "adminUser"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminConfig, ns, "adminUser"); err != nil {
 		t.Fatal(err)
 	}
 

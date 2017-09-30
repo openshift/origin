@@ -17,14 +17,14 @@ import (
 
 type NodeIPTables struct {
 	ipt                iptables.Interface
-	clusterNetworkCIDR string
+	clusterNetworkCIDR []string
 	syncPeriod         time.Duration
 	masqueradeServices bool
 
 	mu sync.Mutex // Protects concurrent access to syncIPTableRules()
 }
 
-func newNodeIPTables(clusterNetworkCIDR string, syncPeriod time.Duration, masqueradeServices bool) *NodeIPTables {
+func newNodeIPTables(clusterNetworkCIDR []string, syncPeriod time.Duration, masqueradeServices bool) *NodeIPTables {
 	return &NodeIPTables{
 		ipt:                iptables.New(kexec.New(), utildbus.New(), iptables.ProtocolIpv4),
 		clusterNetworkCIDR: clusterNetworkCIDR,
@@ -105,13 +105,12 @@ func (n *NodeIPTables) syncIPTableRules() error {
 		if err != nil {
 			return fmt.Errorf("failed to ensure chain %s exists: %v", chain.name, err)
 		}
-
 		// Create the rule pointing to it from its parent chain. Note that since we
 		// use iptables.Prepend each time, chains with the same table and srcChain
 		// (ie, OPENSHIFT-FIREWALL-FORWARD and OPENSHIFT-ADMIN-OUTPUT-RULES) will
 		// run in *reverse* order of how they are listed in getNodeIPTablesChains().
 		_, err = n.ipt.EnsureRule(iptables.Prepend, iptables.Table(chain.table), iptables.Chain(chain.srcChain), append(chain.srcRule, "-j", chain.name)...)
-		if err != nil {
+		if err != nil && chain.name != "OPENSHIFT-MASQUERADE-2" {
 			return fmt.Errorf("failed to ensure rule from %s to %s exists: %v", chain.srcChain, chain.name, err)
 		}
 
@@ -139,24 +138,11 @@ func (n *NodeIPTables) syncIPTableRules() error {
 const vxlanPort = "4789"
 
 func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
-	var masqRule []string
-	if n.masqueradeServices {
-		masqRule = []string{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "masquerade pod-to-service and pod-to-external traffic", "-j", "MASQUERADE"}
-	} else {
-		masqRule = []string{"-s", n.clusterNetworkCIDR, "!", "-d", n.clusterNetworkCIDR, "-m", "comment", "--comment", "masquerade pod-to-external traffic", "-j", "MASQUERADE"}
-	}
 
-	return []Chain{
-		{
-			table:    "nat",
-			name:     "OPENSHIFT-MASQUERADE",
-			srcChain: "POSTROUTING",
-			srcRule:  []string{"-m", "comment", "--comment", "rules for masquerading OpenShift traffic"},
-			rules: [][]string{
-				masqRule,
-			},
-		},
-		{
+	var chainArray []Chain
+
+	chainArray = append(chainArray,
+		Chain{
 			table:    "filter",
 			name:     "OPENSHIFT-FIREWALL-ALLOW",
 			srcChain: "INPUT",
@@ -167,23 +153,75 @@ func (n *NodeIPTables) getNodeIPTablesChains() []Chain {
 				{"-i", "docker0", "-m", "comment", "--comment", "from docker to localhost", "-j", "ACCEPT"},
 			},
 		},
-		{
-			table:    "filter",
-			name:     "OPENSHIFT-FIREWALL-FORWARD",
-			srcChain: "FORWARD",
-			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
-			rules: [][]string{
-				{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "attempted resend after connection close", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"},
-				{"-d", n.clusterNetworkCIDR, "-m", "comment", "--comment", "forward traffic from SDN", "-j", "ACCEPT"},
-				{"-s", n.clusterNetworkCIDR, "-m", "comment", "--comment", "forward traffic to SDN", "-j", "ACCEPT"},
-			},
-		},
-		{
+		Chain{
 			table:    "filter",
 			name:     "OPENSHIFT-ADMIN-OUTPUT-RULES",
 			srcChain: "FORWARD",
 			srcRule:  []string{"-i", Tun0, "!", "-o", Tun0, "-m", "comment", "--comment", "administrator overrides"},
 			rules:    nil,
-		},
+		})
+
+	var masqRules [][]string
+	var masq2Rules [][]string
+	var filterRules [][]string
+	for _, cidr := range n.clusterNetworkCIDR {
+		if n.masqueradeServices {
+			masqRules = append(masqRules, []string{"-s", cidr, "-m", "comment", "--comment", "masquerade pod-to-service and pod-to-external traffic", "-j", "MASQUERADE"})
+		} else {
+			masqRules = append(masqRules, []string{"-s", cidr, "-m", "comment", "--comment", "masquerade pod-to-external traffic", "-j", "OPENSHIFT-MASQUERADE-2"})
+			masq2Rules = append(masq2Rules, []string{"-d", cidr, "-m", "comment", "--comment", "masquerade pod-to-external traffic", "-j", "RETURN"})
+		}
+
+		filterRules = append(filterRules, []string{"-s", cidr, "-m", "comment", "--comment", "attempted resend after connection close", "-m", "conntrack", "--ctstate", "INVALID", "-j", "DROP"})
+		filterRules = append(filterRules, []string{"-d", cidr, "-m", "comment", "--comment", "forward traffic from SDN", "-j", "ACCEPT"})
+		filterRules = append(filterRules, []string{"-s", cidr, "-m", "comment", "--comment", "forward traffic to SDN", "-j", "ACCEPT"})
 	}
+
+	if !n.masqueradeServices {
+		masq2Rules = append(masq2Rules, []string{"-j", "MASQUERADE"})
+		chainArray = append(chainArray,
+			Chain{
+				table: "nat",
+				name:  "OPENSHIFT-MASQUERADE-2",
+				rules: masq2Rules,
+			})
+	}
+
+	chainArray = append(chainArray,
+		Chain{
+			table:    "nat",
+			name:     "OPENSHIFT-MASQUERADE",
+			srcChain: "POSTROUTING",
+			srcRule:  []string{"-m", "comment", "--comment", "rules for masquerading OpenShift traffic"},
+			rules:    masqRules,
+		},
+		Chain{
+			table:    "filter",
+			name:     "OPENSHIFT-FIREWALL-FORWARD",
+			srcChain: "FORWARD",
+			srcRule:  []string{"-m", "comment", "--comment", "firewall overrides"},
+			rules:    filterRules,
+		})
+	return chainArray
+}
+
+func (n *NodeIPTables) AddEgressIPRules(egressIP, egressHex string) error {
+	for _, cidr := range n.clusterNetworkCIDR {
+		_, err := n.ipt.EnsureRule(iptables.Prepend, iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", egressHex, "-j", "SNAT", "--to-source", egressIP)
+		if err != nil {
+			return err
+		}
+	}
+	_, err := n.ipt.EnsureRule(iptables.Append, iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
+	return err
+}
+
+func (n *NodeIPTables) DeleteEgressIPRules(egressIP, egressHex string) error {
+	for _, cidr := range n.clusterNetworkCIDR {
+		err := n.ipt.DeleteRule(iptables.TableNAT, iptables.Chain("OPENSHIFT-MASQUERADE"), "-s", cidr, "-m", "mark", "--mark", egressHex, "-j", "SNAT", "--to-source", egressIP)
+		if err != nil {
+			return err
+		}
+	}
+	return n.ipt.DeleteRule(iptables.TableFilter, iptables.Chain("OPENSHIFT-FIREWALL-ALLOW"), "-d", egressIP, "-m", "conntrack", "--ctstate", "NEW", "-j", "REJECT")
 }

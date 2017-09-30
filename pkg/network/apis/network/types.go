@@ -17,10 +17,16 @@ type ClusterNetwork struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
+	ClusterNetworks  []ClusterNetworkEntry
 	Network          string
 	HostSubnetLength uint32
 	ServiceNetwork   string
 	PluginName       string
+}
+
+type ClusterNetworkEntry struct {
+	CIDR             string
+	HostSubnetLength uint32
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -44,6 +50,8 @@ type HostSubnet struct {
 	Host   string
 	HostIP string
 	Subnet string
+
+	EgressIPs []string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -59,13 +67,15 @@ type HostSubnetList struct {
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// NetNamespace holds the network id against its name
+// NetNamespace holds information about the SDN configuration of a Namespace
 type NetNamespace struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
 	NetName string
 	NetID   uint32
+
+	EgressIPs []string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

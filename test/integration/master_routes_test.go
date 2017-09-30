@@ -21,8 +21,10 @@ import (
 
 	build "github.com/openshift/origin/pkg/build/apis/build"
 	buildv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+	"k8s.io/client-go/rest"
 )
 
 // expectedIndex contains the routes expected at the api root /. Keep them sorted.
@@ -89,7 +91,6 @@ var expectedIndex = []string{
 	"/healthz",
 	"/healthz/autoregister-completion",
 	"/healthz/ping",
-	"/healthz/poststarthook/admission.openshift.io-RefreshRESTMapper",
 	"/healthz/poststarthook/apiservice-registration-controller",
 	"/healthz/poststarthook/apiservice-status-available-controller",
 	"/healthz/poststarthook/authorization.openshift.io-bootstrapclusterroles",
@@ -101,6 +102,8 @@ var expectedIndex = []string{
 	"/healthz/poststarthook/generic-apiserver-start-informers",
 	"/healthz/poststarthook/kube-apiserver-autoregistration",
 	"/healthz/poststarthook/oauth.openshift.io-EnsureBootstrapOAuthClients",
+	"/healthz/poststarthook/openshift.io-AdmissionInit",
+	"/healthz/poststarthook/openshift.io-StartInformers",
 	"/healthz/poststarthook/project.openshift.io-projectauthorizationcache",
 	"/healthz/poststarthook/project.openshift.io-projectcache",
 	"/healthz/poststarthook/quota.openshift.io-clusterquotamapping",
@@ -329,10 +332,11 @@ func TestApiGroups(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	client, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
 	kclientset, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -389,7 +393,7 @@ func TestApiGroups(t *testing.T) {
 	t.Logf("GETting builds")
 	req, err := http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version), nil)
 	req.Header.Set("Accept", "*/*")
-	resp, err := client.Client.Transport.RoundTrip(req)
+	resp, err := kclientset.Discovery().RESTClient().(*rest.RESTClient).Client.Transport.RoundTrip(req)
 	if err != nil {
 		t.Fatalf("Unexpected GET error: %v", err)
 	}
@@ -399,7 +403,7 @@ func TestApiGroups(t *testing.T) {
 
 	t.Logf("Creating a Build")
 	originalBuild := testBuild()
-	_, err = client.Builds(ns).Create(originalBuild)
+	_, err = buildclient.NewForConfigOrDie(clusterAdminClientConfig).Builds(ns).Create(originalBuild)
 	if err != nil {
 		t.Fatalf("Unexpected BuildConfig create error: %v", err)
 	}
@@ -407,7 +411,7 @@ func TestApiGroups(t *testing.T) {
 	t.Logf("GETting builds again")
 	req, err = http.NewRequest("GET", masterConfig.AssetConfig.MasterPublicURL+fmt.Sprintf("/apis/%s/%s/namespaces/%s/builds/%s", buildv1.GroupName, buildv1.SchemeGroupVersion.Version, ns, originalBuild.Name), nil)
 	req.Header.Set("Accept", "*/*")
-	resp, err = client.Client.Transport.RoundTrip(req)
+	resp, err = kclientset.Discovery().RESTClient().(*rest.RESTClient).Client.Transport.RoundTrip(req)
 	if err != nil {
 		t.Fatalf("Unexpected GET error: %v", err)
 	}

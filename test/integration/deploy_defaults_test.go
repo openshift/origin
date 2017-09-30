@@ -6,16 +6,22 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
-	deployapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
-	"github.com/openshift/origin/pkg/apps/generated/clientset"
-	"github.com/openshift/origin/pkg/client"
+	appsapiv1 "github.com/openshift/origin/pkg/apps/apis/apps/v1"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
+	appsclientscheme "github.com/openshift/origin/pkg/apps/generated/internalclientset/scheme"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
+
+	"github.com/openshift/origin/pkg/api/legacy"
+	_ "github.com/openshift/origin/pkg/apps/apis/apps/install"
 )
 
 var (
@@ -108,15 +114,15 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 		t.Fatalf("Failed to get cluster admin client config: %v", err)
 	}
 
-	legacyClient, err := client.New(adminClientConfig)
-	if err != nil {
-		t.Fatalf("Failed to create legacyClient: %v", err)
-	}
-
-	appsClient, err := clientset.NewForConfig(adminClientConfig)
+	appsClient, err := appsclient.NewForConfig(adminClientConfig)
 	if err != nil {
 		t.Fatalf("Failed to create appsClient: %v", err)
 	}
+	// install the legacy types into the client for decoding
+	legacy.InstallLegacy(deployapi.GroupName, deployapi.AddToSchemeInCoreGroup, appsapiv1.AddToSchemeInCoreGroup,
+		sets.NewString(),
+		appsclientscheme.Registry, appsclientscheme.Scheme,
+	)
 
 	ttLegacy := []struct {
 		obj    *deployapi.DeploymentConfig
@@ -153,10 +159,15 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	t.Run("Legacy API", func(t *testing.T) {
 		for _, tc := range ttLegacy {
 			t.Run("", func(t *testing.T) {
-				legacyDC, err := legacyClient.DeploymentConfigs(namespace).Create(tc.obj)
+				dcBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), tc.obj)
+				if err != nil {
+					t.Fatal(err)
+				}
+				legacyObj, err := appsClient.Apps().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + namespace + "/deploymentconfigs").Body(dcBytes).Do().Get()
 				if err != nil {
 					t.Fatalf("Failed to create DC: %v", err)
 				}
+				legacyDC := legacyObj.(*deployapi.DeploymentConfig)
 
 				clearTransient(legacyDC)
 				if !reflect.DeepEqual(legacyDC, tc.legacy) {
@@ -201,23 +212,13 @@ func TestDeploymentConfigDefaults(t *testing.T) {
 	t.Run("apps.openshift.io", func(t *testing.T) {
 		for _, tc := range ttApps {
 			t.Run("", func(t *testing.T) {
-				var objV1 deployapiv1.DeploymentConfig
-				err := kapi.Scheme.Convert(tc.obj, &objV1, nil)
-				if err != nil {
-					t.Fatalf("Failed to convert internal DC to v1: %v", err)
-				}
-				appsDCV1, err := appsClient.AppsV1().DeploymentConfigs(namespace).Create(&objV1)
+				appsDC, err := appsClient.Apps().DeploymentConfigs(namespace).Create(tc.obj)
 				if err != nil {
 					t.Fatalf("Failed to create DC: %v", err)
 				}
 
-				var appsDC deployapi.DeploymentConfig
-				err = kapi.Scheme.Convert(appsDCV1, &appsDC, nil)
-				if err != nil {
-					t.Fatalf("Failed to convert v1 to internal DC: %v", err)
-				}
-				clearTransient(&appsDC)
-				if !reflect.DeepEqual(&appsDC, tc.apps) {
+				clearTransient(appsDC)
+				if !reflect.DeepEqual(appsDC, tc.apps) {
 					t.Errorf("Apps DC differs from expected output: %s", diff.ObjectReflectDiff(&appsDC, tc.apps))
 				}
 			})

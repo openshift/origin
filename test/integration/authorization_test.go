@@ -9,10 +9,12 @@ import (
 
 	kapierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/util/flowcontrol"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 	appsapi "k8s.io/kubernetes/pkg/apis/apps"
 	kubeauthorizationapi "k8s.io/kubernetes/pkg/apis/authorization"
@@ -20,15 +22,21 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	"github.com/openshift/origin/pkg/api/legacy"
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
+	appsclient "github.com/openshift/origin/pkg/apps/generated/internalclientset"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	authorizationapiv1 "github.com/openshift/origin/pkg/authorization/apis/authorization/v1"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
+	authorizationclientscheme "github.com/openshift/origin/pkg/authorization/generated/internalclientset/scheme"
+	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client"
+	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	policy "github.com/openshift/origin/pkg/oc/admin/policy"
+	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -97,12 +105,11 @@ func TestClusterReaderCoverage(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
-	discoveryClient := client.NewDiscoveryClient(clusterAdminClient.RESTClient)
+	discoveryClient := discovery.NewDiscoveryClientForConfigOrDie(clusterAdminClientConfig)
 
 	// (map[string]*metav1.APIResourceList, error)
 	allResourceList, err := discoveryClient.ServerResources()
@@ -139,7 +146,7 @@ func TestClusterReaderCoverage(t *testing.T) {
 		kapi.Resource("services/proxy"):                 true,
 	}
 
-	readerRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
+	readerRole, err := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).ClusterRoles().Get(bootstrappolicy.ClusterReaderRoleName, metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -202,57 +209,52 @@ func TestAuthorizationRestrictedAccessForProjectAdmins(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = haroldClient.DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
+	_, err = appsclient.NewForConfigOrDie(haroldConfig).DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, err = markClient.DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
+	_, err = appsclient.NewForConfigOrDie(markConfig).DeploymentConfigs("hammer-project").List(metav1.ListOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// projects are a special case where a get of a project actually sets a namespace.  Make sure that
 	// the namespace is properly special cased and set for authorization rules
-	_, err = haroldClient.Projects().Get("hammer-project", metav1.GetOptions{})
+	_, err = projectclient.NewForConfigOrDie(haroldConfig).Projects().Get("hammer-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err = markClient.Projects().Get("hammer-project", metav1.GetOptions{})
+	_, err = projectclient.NewForConfigOrDie(markConfig).Projects().Get("hammer-project", metav1.GetOptions{})
 	if (err == nil) || !kapierror.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// wait for the project authorization cache to catch the change.  It is on a one second period
-	waitForProject(t, haroldClient, "hammer-project", 1*time.Second, 10)
-	waitForProject(t, markClient, "mallet-project", 1*time.Second, 10)
+	waitForProject(t, projectclient.NewForConfigOrDie(haroldConfig), "hammer-project", 1*time.Second, 10)
+	waitForProject(t, projectclient.NewForConfigOrDie(markConfig), "mallet-project", 1*time.Second, 10)
 }
 
 // waitForProject will execute a client list of projects looking for the project with specified name
 // if not found, it will retry up to numRetries at the specified delayInterval
-func waitForProject(t *testing.T, client client.Interface, projectName string, delayInterval time.Duration, numRetries int) {
+func waitForProject(t *testing.T, client projectclient.Interface, projectName string, delayInterval time.Duration, numRetries int) {
 	for i := 0; i <= numRetries; i++ {
-		projects, err := client.Projects().List(metav1.ListOptions{})
+		projects, err := client.Project().Projects().List(metav1.ListOptions{})
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -273,29 +275,30 @@ func TestAuthorizationResolution(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if err = clusterAdminClient.ClusterRoles().Delete(bootstrappolicy.ViewRoleName); err != nil {
+	if err = clusterAdminAuthorizationClient.ClusterRoles().Delete(bootstrappolicy.ViewRoleName, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -309,17 +312,18 @@ func TestAuthorizationResolution(t *testing.T) {
 	roleWithGroup := &authorizationapi.ClusterRole{}
 	roleWithGroup.Name = "with-group"
 	roleWithGroup.Rules = append(roleWithGroup.Rules, authorizationapi.PolicyRule{
+		APIGroups: []string{buildapi.GroupName},
 		Verbs:     sets.NewString("list"),
 		Resources: sets.NewString("builds"),
 	})
-	if _, err := clusterAdminClient.ClusterRoles().Create(roleWithGroup); err != nil {
+	if _, err := clusterAdminAuthorizationClient.ClusterRoles().Create(roleWithGroup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	addBuildLister := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            "with-group",
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
+		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"build-lister"},
 	}
 	if err := addBuildLister.AddRole(); err != nil {
@@ -331,14 +335,16 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	buildListerClient, _, _, err := testutil.GetClientForUser(*clusterAdminConfig, "build-lister")
+	_, userClientConfig, err := testutil.GetClientForUser(clusterAdminConfig, "build-lister")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	buildClient := buildclient.NewForConfigOrDie(userClientConfig)
+	appsClient := appsclient.NewForConfigOrDie(userClientConfig)
 
 	// the authorization cache may not be up to date, retry
 	if err := wait.Poll(10*time.Millisecond, 2*time.Minute, func() (bool, error) {
-		_, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metav1.ListOptions{})
+		_, err := buildClient.Builds(metav1.NamespaceDefault).List(metav1.ListOptions{})
 		if kapierror.IsForbidden(err) {
 			return false, nil
 		}
@@ -347,19 +353,15 @@ func TestAuthorizationResolution(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.Builds(metav1.NamespaceDefault).List(metav1.ListOptions{}); err != nil {
+	if _, err := buildClient.Builds(metav1.NamespaceDefault).List(metav1.ListOptions{}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if _, err := buildListerClient.DeploymentConfigs(metav1.NamespaceDefault).List(metav1.ListOptions{}); !kapierror.IsForbidden(err) {
+	if _, err := appsClient.Apps().DeploymentConfigs(metav1.NamespaceDefault).List(metav1.ListOptions{}); !kapierror.IsForbidden(err) {
 		t.Errorf("expected forbidden, got %v", err)
 	}
 
 }
-
-// TODO this list should start collapsing as we continue to tighten access on generated system ids
-var globalClusterAdminUsers = sets.NewString("system:admin")
-var globalClusterAdminGroups = sets.NewString("system:cluster-admins", "system:masters")
 
 // This list includes the admins from above, plus users or groups known to have global view access
 var globalClusterReaderUsers = sets.NewString("system:admin")
@@ -378,7 +380,7 @@ var globalDeploymentConfigGetterUsers = sets.NewString(
 
 type resourceAccessReviewTest struct {
 	description     string
-	clientInterface client.ResourceAccessReviewInterface
+	clientInterface authorizationtypedclient.ResourceAccessReviewInterface
 	review          *authorizationapi.ResourceAccessReview
 
 	response authorizationapi.ResourceAccessReviewResponse
@@ -431,7 +433,7 @@ func (test resourceAccessReviewTest) run(t *testing.T) {
 
 type localResourceAccessReviewTest struct {
 	description     string
-	clientInterface client.LocalResourceAccessReviewInterface
+	clientInterface authorizationtypedclient.LocalResourceAccessReviewInterface
 	review          *authorizationapi.LocalResourceAccessReview
 
 	response authorizationapi.ResourceAccessReviewResponse
@@ -499,30 +501,28 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig)
 
-	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	markAuthorizationClient := authorizationclient.NewForConfigOrDie(markConfig)
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", haroldClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -532,7 +532,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", markClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig)),
 		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -550,7 +550,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	{
 		test := localResourceAccessReviewTest{
 			description:     "who can view deploymentconfigs in hammer by harold",
-			clientInterface: haroldClient.LocalResourceAccessReviews("hammer-project"),
+			clientInterface: haroldAuthorizationClient.LocalResourceAccessReviews("hammer-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:     sets.NewString("harold", "valerie"),
@@ -566,7 +566,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	{
 		test := localResourceAccessReviewTest{
 			description:     "who can view deploymentconfigs in mallet by mark",
-			clientInterface: markClient.LocalResourceAccessReviews("mallet-project"),
+			clientInterface: markAuthorizationClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:     sets.NewString("mark", "edgar"),
@@ -584,7 +584,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	{
 		test := resourceAccessReviewTest{
 			description:     "who can view deploymentconfigs in all by mark",
-			clientInterface: markClient.ResourceAccessReviews(),
+			clientInterface: markAuthorizationClient.ResourceAccessReviews(),
 			review:          requestWhoCanViewDeploymentConfigs,
 			err:             "cannot ",
 		}
@@ -595,7 +595,7 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	{
 		test := resourceAccessReviewTest{
 			description:     "who can view deploymentconfigs in all by cluster-admin",
-			clientInterface: clusterAdminClient.ResourceAccessReviews(),
+			clientInterface: clusterAdminAuthorizationClient.ResourceAccessReviews(),
 			review:          requestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:  sets.NewString(),
@@ -609,12 +609,12 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 	}
 
 	{
-		if err := clusterAdminClient.ClusterRoles().Delete(bootstrappolicy.AdminRoleName); err != nil {
+		if err := clusterAdminAuthorizationClient.ClusterRoles().Delete(bootstrappolicy.AdminRoleName, nil); err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
 		test := localResourceAccessReviewTest{
 			description:     "who can view deploymentconfigs in mallet by cluster-admin",
-			clientInterface: clusterAdminClient.LocalResourceAccessReviews("mallet-project"),
+			clientInterface: clusterAdminAuthorizationClient.LocalResourceAccessReviews("mallet-project"),
 			review:          localRequestWhoCanViewDeploymentConfigs,
 			response: authorizationapi.ResourceAccessReviewResponse{
 				Users:           sets.NewString("edgar"),
@@ -633,8 +633,8 @@ func TestAuthorizationResourceAccessReview(t *testing.T) {
 
 type subjectAccessReviewTest struct {
 	description      string
-	localInterface   client.LocalSubjectAccessReviewInterface
-	clusterInterface client.SubjectAccessReviewInterface
+	localInterface   authorizationtypedclient.LocalSubjectAccessReviewInterface
+	clusterInterface authorizationtypedclient.SubjectAccessReviewInterface
 	localReview      *authorizationapi.LocalSubjectAccessReview
 	clusterReview    *authorizationapi.SubjectAccessReview
 
@@ -836,24 +836,19 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	clusterAdminSARGetter := clusterAdminKubeClient.Authorization()
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	_, _, err = testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, _, err = testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -861,7 +856,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	// SAR honors API Group
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold can get extensions.horizontalpodautoscalers in project hammer-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
 			Action: authorizationapi.Action{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
@@ -875,7 +870,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold cannot get horizontalpodautoscalers (with no API group) in project hammer-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
 			Action: authorizationapi.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
@@ -889,7 +884,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold cannot get horizontalpodautoscalers (with invalid API group) in project hammer-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
 			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
@@ -903,7 +898,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:    "cluster admin told harold cannot get horizontalpodautoscalers (with * API group) in project hammer-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "harold",
 			Action: authorizationapi.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
@@ -919,7 +914,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	// SAR honors API Group for cluster admin self SAR
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get extensions.horizontalpodautoscalers in project hammer-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			Action: authorizationapi.Action{Verb: "get", Group: "extensions", Resource: "horizontalpodautoscalers"},
 		},
@@ -932,7 +927,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get horizontalpodautoscalers (with no API group) in project any-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			Action: authorizationapi.Action{Verb: "get", Group: "", Resource: "horizontalpodautoscalers"},
 		},
@@ -945,7 +940,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get horizontalpodautoscalers (with invalid API group) in project any-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			Action: authorizationapi.Action{Verb: "get", Group: "foo", Resource: "horizontalpodautoscalers"},
 		},
@@ -958,7 +953,7 @@ func TestAuthorizationSubjectAccessReviewAPIGroup(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:    "cluster admin told they can get horizontalpodautoscalers (with * API group) in project any-project",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("any-project"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("any-project"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			Action: authorizationapi.Action{Verb: "get", Group: "*", Resource: "horizontalpodautoscalers"},
 		},
@@ -978,55 +973,50 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-
 	clusterAdminLocalSARGetter := clusterAdminKubeClient.Authorization()
 
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, haroldKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "harold")
+	haroldKubeClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	haroldAuthorizationClient := authorizationclient.NewForConfigOrDie(haroldConfig)
 	haroldSARGetter := haroldKubeClient.Authorization()
 
-	_, markClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "mallet-project", "mark")
+	_, markConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "mallet-project", "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, markKubeClient, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "mark")
+	markKubeClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "mark")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	markAuthorizationClient := authorizationclient.NewForConfigOrDie(markConfig)
 	markSARGetter := markKubeClient.Authorization()
 
-	dannyClient, dannyKubeClient, dannyConfig, err := testutil.GetClientForUser(*clusterAdminClientConfig, "danny")
+	dannyKubeClient, dannyConfig, err := testutil.GetClientForUser(clusterAdminClientConfig, "danny")
 	if err != nil {
 		t.Fatalf("error requesting token: %v", err)
 	}
+	dannyAuthorizationClient := authorizationclient.NewForConfigOrDie(dannyConfig)
 	dannySARGetter := dannyKubeClient.Authorization()
 
-	anonymousConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
-	anonymousClient, err := client.New(&anonymousConfig)
-	if err != nil {
-		t.Fatalf("error getting anonymous client: %v", err)
-	}
-	anonymousKubeClient, err := kclientset.NewForConfig(&anonymousConfig)
+	anonymousConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
+	anonymousAuthorizationClient := authorizationclient.NewForConfigOrDie(anonymousConfig)
+	anonymousKubeClient, err := kclientset.NewForConfig(anonymousConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1035,7 +1025,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addAnonymous := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", clusterAdminClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"system:anonymous"},
 	}
 	if err := addAnonymous.AddRole(); err != nil {
@@ -1045,7 +1035,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addDanny := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", clusterAdminClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("default", authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)),
 		Users:               []string{"danny"},
 	}
 	if err := addDanny.AddRole(); err != nil {
@@ -1057,7 +1047,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:    "cluster admin told danny can get project default",
-		localInterface: clusterAdminClient.LocalSubjectAccessReviews("default"),
+		localInterface: clusterAdminAuthorizationClient.LocalSubjectAccessReviews("default"),
 		localReview: &authorizationapi.LocalSubjectAccessReview{
 			User:   "danny",
 			Action: authorizationapi.Action{Verb: "get", Resource: "projects"},
@@ -1071,7 +1061,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "cluster admin told danny cannot get projects cluster-wide",
-		clusterInterface:  clusterAdminClient.SubjectAccessReviews(),
+		clusterInterface:  clusterAdminAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1082,25 +1072,25 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "as danny, can I make cluster subject access reviews",
-		clusterInterface:  dannyClient.SubjectAccessReviews(),
+		clusterInterface:  dannyAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: dannySARGetter,
-		err:               `User "danny" cannot create subjectaccessreviews at the cluster scope`,
+		err:               `User "danny" cannot create subjectaccessreviews.authorization.openshift.io at the cluster scope`,
 		kubeErr:           `User "danny" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "as anonymous, can I make cluster subject access reviews",
-		clusterInterface:  anonymousClient.SubjectAccessReviews(),
+		clusterInterface:  anonymousAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanDannyGetProject,
 		kubeAuthInterface: anonymousSARGetter,
-		err:               `User "system:anonymous" cannot create subjectaccessreviews at the cluster scope`,
+		err:               `User "system:anonymous" cannot create subjectaccessreviews.authorization.openshift.io at the cluster scope`,
 		kubeErr:           `User "system:anonymous" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
 	}.run(t)
 
 	addValerie := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.ViewRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", haroldClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("hammer-project", authorizationclient.NewForConfigOrDie(haroldConfig)),
 		Users:               []string{"valerie"},
 	}
 	if err := addValerie.AddRole(); err != nil {
@@ -1110,7 +1100,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	addEdgar := &policy.RoleModificationOptions{
 		RoleNamespace:       "",
 		RoleName:            bootstrappolicy.EditRoleName,
-		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", markClient),
+		RoleBindingAccessor: policy.NewLocalRoleBindingAccessor("mallet-project", authorizationclient.NewForConfigOrDie(markConfig)),
 		Users:               []string{"edgar"},
 	}
 	if err := addEdgar.AddRole(); err != nil {
@@ -1123,7 +1113,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "harold told valerie can get project hammer-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanValerieGetProject,
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1134,7 +1124,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "mark told valerie cannot get project mallet-project",
-		localInterface:    markClient.LocalSubjectAccessReviews("mallet-project"),
+		localInterface:    markAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanValerieGetProject,
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1150,7 +1140,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "mark told edgar can delete pods in mallet-project",
-		localInterface:    markClient.LocalSubjectAccessReviews("mallet-project"),
+		localInterface:    markAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: markSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1162,39 +1152,39 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	// ensure unprivileged users cannot check other users' access
 	subjectAccessReviewTest{
 		description:       "harold denied ability to run subject access review in project mallet-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("mallet-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `User "harold" cannot create localsubjectaccessreviews in the namespace "mallet-project"`,
+		err:               `User "harold" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "mallet-project"`,
 		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project mallet-project",
-		localInterface:    anonymousClient.LocalSubjectAccessReviews("mallet-project"),
+		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "mallet-project",
-		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in the namespace "mallet-project"`,
+		err:               `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "mallet-project"`,
 		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "mallet-project"`,
 	}.run(t)
 	// ensure message does not leak whether the namespace exists or not
 	subjectAccessReviewTest{
 		description:       "harold denied ability to run subject access review in project nonexistent-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: haroldSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `User "harold" cannot create localsubjectaccessreviews in the namespace "nonexistent-project"`,
+		err:               `User "harold" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "nonexistent-project"`,
 		kubeErr:           `User "harold" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous denied ability to run subject access review in project nonexistent-project",
-		localInterface:    anonymousClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 		localReview:       askCanEdgarDeletePods,
 		kubeAuthInterface: anonymousSARGetter,
 		kubeNamespace:     "nonexistent-project",
-		err:               `User "system:anonymous" cannot create localsubjectaccessreviews in the namespace "nonexistent-project"`,
+		err:               `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.openshift.io in the namespace "nonexistent-project"`,
 		kubeErr:           `User "system:anonymous" cannot create localsubjectaccessreviews.authorization.k8s.io in the namespace "nonexistent-project"`,
 	}.run(t)
 
@@ -1204,7 +1194,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "harold told harold can update project hammer-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanHaroldUpdateProject,
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1220,7 +1210,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "cluster admin told cluster admins can create projects",
-		clusterInterface:  clusterAdminClient.SubjectAccessReviews(),
+		clusterInterface:  clusterAdminAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanClusterAdminsCreateProject,
 		kubeAuthInterface: clusterAdminLocalSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1231,10 +1221,10 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "harold denied ability to run cluster subject access review",
-		clusterInterface:  haroldClient.SubjectAccessReviews(),
+		clusterInterface:  haroldAuthorizationClient.SubjectAccessReviews(),
 		clusterReview:     askCanClusterAdminsCreateProject,
 		kubeAuthInterface: haroldSARGetter,
-		err:               `User "harold" cannot create subjectaccessreviews at the cluster scope`,
+		err:               `User "harold" cannot create subjectaccessreviews.authorization.openshift.io at the cluster scope`,
 		kubeErr:           `User "harold" cannot create subjectaccessreviews.authorization.k8s.io at the cluster scope`,
 	}.run(t)
 
@@ -1243,7 +1233,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "harold told he can create pods in project hammer-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1254,7 +1244,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous told he can create pods in project hammer-project",
-		localInterface:    anonymousClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1267,7 +1257,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	// test checking self permissions when denied
 	subjectAccessReviewTest{
 		description:       "harold told he cannot create pods in project mallet-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("mallet-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1278,7 +1268,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous told he cannot create pods in project mallet-project",
-		localInterface:    anonymousClient.LocalSubjectAccessReviews("mallet-project"),
+		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("mallet-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1292,7 +1282,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	// We carry a patch to allow this
 	subjectAccessReviewTest{
 		description:       "harold told he cannot create pods in project nonexistent-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: haroldSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1303,7 +1293,7 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}.run(t)
 	subjectAccessReviewTest{
 		description:       "system:anonymous told he cannot create pods in project nonexistent-project",
-		localInterface:    anonymousClient.LocalSubjectAccessReviews("nonexistent-project"),
+		localInterface:    anonymousAuthorizationClient.LocalSubjectAccessReviews("nonexistent-project"),
 		localReview:       askCanICreatePods,
 		kubeAuthInterface: anonymousSARGetter,
 		response: authorizationapi.SubjectAccessReviewResponse{
@@ -1318,95 +1308,13 @@ func TestAuthorizationSubjectAccessReview(t *testing.T) {
 	}
 	subjectAccessReviewTest{
 		description:       "harold told he can create policybindings in project hammer-project",
-		localInterface:    haroldClient.LocalSubjectAccessReviews("hammer-project"),
+		localInterface:    haroldAuthorizationClient.LocalSubjectAccessReviews("hammer-project"),
 		kubeAuthInterface: haroldSARGetter,
 		localReview:       askCanICreatePolicyBindings,
 		response: authorizationapi.SubjectAccessReviewResponse{
 			Allowed:   false,
 			Reason:    `User "harold" cannot create policybindings in project "hammer-project"`,
 			Namespace: "hammer-project",
-		},
-	}.run(t)
-
-	// impersonate SAR tests
-	// impersonated empty token SAR shouldn't be allowed at all
-	// impersonated danny token SAR shouldn't be allowed to see pods in hammer or in cluster
-	// impersonated danny token SAR should be allowed to see pods in default
-	// we need a token client for overriding
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	otherAdminClient, _, _, err := testutil.GetClientForUser(*clusterAdminClientConfig, "other-admin")
-	if err != nil {
-		t.Fatalf("error requesting token: %v", err)
-	}
-
-	addOtherAdmin := &policy.RoleModificationOptions{
-		RoleNamespace:       "",
-		RoleName:            bootstrappolicy.ClusterAdminRoleName,
-		RoleBindingAccessor: policy.NewClusterRoleBindingAccessor(clusterAdminClient),
-		Users:               []string{"other-admin"},
-	}
-	if err := addOtherAdmin.AddRole(); err != nil {
-		t.Errorf("unexpected error: %v", err)
-	}
-
-	subjectAccessReviewTest{
-		description:    "empty token impersonate can't see pods in namespace",
-		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("hammer-project", ""),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
-		},
-		kubeSkip: true, // cannot do impersonation with kube clientset
-		err:      `impersonating token may not be empty`,
-	}.run(t)
-	subjectAccessReviewTest{
-		description:      "empty token impersonate can't see pods in cluster",
-		clusterInterface: otherAdminClient.ImpersonateSubjectAccessReviews(""),
-		clusterReview: &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
-		},
-		kubeSkip: true, // cannot do impersonation with kube clientset
-		err:      `impersonating token may not be empty`,
-	}.run(t)
-
-	subjectAccessReviewTest{
-		description:    "danny impersonate can't see pods in hammer namespace",
-		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("hammer-project", dannyConfig.BearerToken),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
-		},
-		kubeSkip: true, // cannot do impersonation with kube clientset
-		response: authorizationapi.SubjectAccessReviewResponse{
-			Allowed:   false,
-			Reason:    `User "danny" cannot list pods in project "hammer-project"`,
-			Namespace: "hammer-project",
-		},
-	}.run(t)
-	subjectAccessReviewTest{
-		description:      "danny impersonate can't see pods in cluster",
-		clusterInterface: otherAdminClient.ImpersonateSubjectAccessReviews(dannyConfig.BearerToken),
-		clusterReview: &authorizationapi.SubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
-		},
-		kubeSkip: true, // cannot do impersonation with kube clientset
-		response: authorizationapi.SubjectAccessReviewResponse{
-			Allowed: false,
-			Reason:  `User "danny" cannot list all pods in the cluster`,
-		},
-	}.run(t)
-	subjectAccessReviewTest{
-		description:    "danny impersonate can see pods in default",
-		localInterface: otherAdminClient.ImpersonateLocalSubjectAccessReviews("default", dannyConfig.BearerToken),
-		localReview: &authorizationapi.LocalSubjectAccessReview{
-			Action: authorizationapi.Action{Verb: "list", Resource: "pods"},
-		},
-		kubeSkip: true, // cannot do impersonation with kube clientset
-		response: authorizationapi.SubjectAccessReviewResponse{
-			Allowed:   true,
-			Reason:    `allowed by openshift authorizer`,
-			Namespace: "default",
 		},
 	}.run(t)
 }
@@ -1420,20 +1328,23 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	haroldClient := authorizationclient.NewForConfigOrDie(haroldConfig)
+
+	// install the legacy types into the client for decoding
+	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
+		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
+		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
+	)
 
 	namespace := "hammer-project"
 
@@ -1445,8 +1356,12 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
+		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		if err != nil {
+			t.Fatal(err)
+		}
 		actualResponse := &authorizationapi.SubjectAccessReviewResponse{}
-		err := haroldClient.Post().Namespace(namespace).Resource("subjectAccessReviews").Body(sar).Do().Into(actualResponse)
+		err = haroldClient.Authorization().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + namespace + "/subjectaccessreviews").Body(sarBytes).Do().Into(actualResponse)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -1472,8 +1387,12 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource:  "imagestreams/layers",
 			},
 		}
+		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		if err != nil {
+			t.Fatal(err)
+		}
 		actualResponse := &authorizationapi.SubjectAccessReviewResponse{}
-		err := haroldClient.Post().Namespace(namespace).Resource("subjectAccessReviews").Body(sar).Do().Into(actualResponse)
+		err = haroldClient.Authorization().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + namespace + "/subjectaccessreviews").Body(sarBytes).Do().Into(actualResponse)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -1495,12 +1414,12 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 		otherNamespace := "chisel-project"
 		// we need a real project for this to make it past admission.
 		// TODO, this is an information leaking problem.  This admission plugin leaks knowledge of which projects exist via SARs
-		if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
+		if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, otherNamespace, "charlie"); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		// remove the new permission for localSAR
-		basicUserRole, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.BasicUserRoleName, metav1.GetOptions{})
+		basicUserRole, err := clusterAdminAuthorizationClient.ClusterRoles().Get(bootstrappolicy.BasicUserRoleName, metav1.GetOptions{})
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -1508,7 +1427,7 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 			basicUserRole.Rules[i].Resources.Delete("localsubjectaccessreviews")
 		}
 
-		if _, err := clusterAdminClient.ClusterRoles().Update(basicUserRole); err != nil {
+		if _, err := clusterAdminAuthorizationClient.ClusterRoles().Update(basicUserRole); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -1518,8 +1437,12 @@ func TestOldLocalSubjectAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
+		sarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), sar)
+		if err != nil {
+			t.Fatal(err)
+		}
 		actualResponse := &authorizationapi.SubjectAccessReviewResponse{}
-		err = haroldClient.Post().Namespace(otherNamespace).Resource("subjectAccessReviews").Body(sar).Do().Into(actualResponse)
+		err = haroldClient.Authorization().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + otherNamespace + "/subjectaccessreviews").Body(sarBytes).Do().Into(actualResponse)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -1547,22 +1470,24 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	_, haroldClient, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "hammer-project", "harold")
+	_, haroldConfig, err := testserver.CreateNewProject(clusterAdminClientConfig, "hammer-project", "harold")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	haroldClient := authorizationclient.NewForConfigOrDie(haroldConfig)
 
 	namespace := "hammer-project"
+
+	// install the legacy types into the client for decoding
+	legacy.InstallLegacy(authorizationapi.GroupName, authorizationapi.AddToSchemeInCoreGroup, authorizationapiv1.AddToSchemeInCoreGroup,
+		sets.NewString("ClusterRole", "ClusterRoleBinding", "ClusterPolicy", "ClusterPolicyBinding", "ResourceAccessReviewResponse", "SubjectAccessReviewResponse"),
+		authorizationclientscheme.Registry, authorizationclientscheme.Scheme,
+	)
 
 	// simple check
 	{
@@ -1572,8 +1497,12 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 				Resource: "imagestreams/layers",
 			},
 		}
+		rarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
+		if err != nil {
+			t.Fatal(err)
+		}
 		actualResponse := &authorizationapi.ResourceAccessReviewResponse{}
-		err := haroldClient.Post().Namespace(namespace).Resource("resourceAccessReviews").Body(rar).Do().Into(actualResponse)
+		err = haroldClient.Authorization().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + namespace + "/resourceaccessreviews").Body(rarBytes).Do().Into(actualResponse)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -1599,8 +1528,12 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 				Resource:  "imagestreams/layers",
 			},
 		}
+		rarBytes, err := runtime.Encode(kapi.Codecs.LegacyCodec(schema.GroupVersion{Version: "v1"}), rar)
+		if err != nil {
+			t.Fatal(err)
+		}
 		actualResponse := &authorizationapi.ResourceAccessReviewResponse{}
-		err := haroldClient.Post().Namespace(namespace).Resource("resourceAccessReviews").Body(rar).Do().Into(actualResponse)
+		err = haroldClient.Authorization().RESTClient().Post().AbsPath("/oapi/v1/namespaces/" + namespace + "/resourceaccessreviews").Body(rarBytes).Do().Into(actualResponse)
 		if err != nil {
 			t.Errorf("unexpected error: %v", err)
 		}
@@ -1626,15 +1559,18 @@ func TestClusterPolicyCache(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
+	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminClient.RESTClient.Throttle = flowcontrol.NewFakeAlwaysRateLimiter() // turn off rate limiting so cache misses are more likely
+	// turn off rate limiting so cache misses are more likely
+	clusterAdminClientConfig.Burst = 9999999
+	clusterAdminClientConfig.QPS = 9999999
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	for i := 0; i < 100; i++ { // usually takes less than 60 attempts for this to cache miss
 		clusterRole := &authorizationapi.ClusterRole{ObjectMeta: metav1.ObjectMeta{GenerateName: time.Now().String()}}
-		clusterRole, err = clusterAdminClient.ClusterRoles().Create(clusterRole)
+		clusterRole, err = clusterAdminAuthorizationClient.ClusterRoles().Create(clusterRole)
 		if err != nil {
 			t.Fatalf("unexpected error creating cluster role %q: %v", clusterRole.Name, err)
 		}
@@ -1642,7 +1578,7 @@ func TestClusterPolicyCache(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: clusterRole.Name},
 			Subjects:   []kapi.ObjectReference{{Name: "user", Kind: authorizationapi.UserKind}},
 			RoleRef:    kapi.ObjectReference{Name: clusterRole.Name}}
-		if _, err := clusterAdminClient.ClusterRoleBindings().Create(clusterRoleBinding); err != nil {
+		if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(clusterRoleBinding); err != nil {
 			t.Fatalf("cache error creating cluster role binding %d %q: %v", i, clusterRoleBinding.Name, err)
 		}
 	}

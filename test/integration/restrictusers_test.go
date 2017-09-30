@@ -10,6 +10,7 @@ import (
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/apis/authorization/rbacconversion"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
@@ -33,11 +34,6 @@ func TestRestrictUsers(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminKubeClient, err := testutil.GetClusterAdminKubeClient(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -47,8 +43,9 @@ func TestRestrictUsers(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	if _, _, err := testserver.CreateNewProject(clusterAdminClient, *clusterAdminClientConfig, "namespace", "carol"); err != nil {
+	if _, _, err := testserver.CreateNewProject(clusterAdminClientConfig, "namespace", "carol"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -58,7 +55,7 @@ func TestRestrictUsers(t *testing.T) {
 			Name:      "role",
 		},
 	}
-	if _, err := clusterAdminClient.Roles("namespace").Create(role); err != nil {
+	if _, err := clusterAdminAuthorizationClient.Roles("namespace").Create(role); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -78,7 +75,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	// Creating a rolebinding when no restrictions exist should succeed.
-	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingAlice); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindings("namespace").Create(rolebindingAlice); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -94,7 +91,7 @@ func TestRestrictUsers(t *testing.T) {
 		},
 	}
 
-	if _, err := clusterAdminClient.RoleBindingRestrictions("namespace").Create(allowAlice); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindingRestrictions("namespace").Create(allowAlice); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -114,7 +111,7 @@ func TestRestrictUsers(t *testing.T) {
 	}
 
 	// Creating a rolebinding when the subject is already bound should succeed.
-	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingAliceDup); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindings("namespace").Create(rolebindingAliceDup); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -135,7 +132,7 @@ func TestRestrictUsers(t *testing.T) {
 
 	// Creating a rolebinding when the subject is not already bound and is not
 	// permitted by any RoleBindingRestrictions should fail.
-	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingBob); !kapierrors.IsForbidden(err) {
+	if _, err := clusterAdminAuthorizationClient.RoleBindings("namespace").Create(rolebindingBob); !kapierrors.IsForbidden(err) {
 		t.Fatalf("expected forbidden, got %v", err)
 	}
 
@@ -161,13 +158,13 @@ func TestRestrictUsers(t *testing.T) {
 		},
 	}
 
-	if _, err := clusterAdminClient.RoleBindingRestrictions("namespace").Create(allowBob); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindingRestrictions("namespace").Create(allowBob); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	// Creating a rolebinding when the subject is permitted by some
 	// RoleBindingRestrictions should succeed.
-	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingBob); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindings("namespace").Create(rolebindingBob); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -185,7 +182,7 @@ func TestRestrictUsers(t *testing.T) {
 		},
 	}
 
-	if _, err := clusterAdminClient.RoleBindingRestrictions("namespace").Create(allowWithNonExisting); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindingRestrictions("namespace").Create(allowWithNonExisting); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -204,7 +201,7 @@ func TestRestrictUsers(t *testing.T) {
 		RoleRef: kapi.ObjectReference{Name: "role", Namespace: "namespace"},
 	}
 
-	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingEve); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindings("namespace").Create(rolebindingEve); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -223,7 +220,7 @@ func TestRestrictUsers(t *testing.T) {
 		RoleRef: kapi.ObjectReference{Name: "role", Namespace: "namespace"},
 	}
 
-	if _, err := clusterAdminClient.RoleBindings("namespace").Create(rolebindingNonExisting); err != nil {
+	if _, err := clusterAdminAuthorizationClient.RoleBindings("namespace").Create(rolebindingNonExisting); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

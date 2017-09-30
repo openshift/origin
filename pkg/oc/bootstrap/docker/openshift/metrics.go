@@ -23,7 +23,11 @@ const (
 
 // InstallMetricsViaAnsible checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, publicHostname, hostName, imagePrefix, imageVersion, hostConfigDir, imageStreams string) error {
-	_, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
+	securityClient, err := f.OpenshiftInternalSecurityClient()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -47,7 +51,7 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, public
 	params.HawkularHostName = hostName
 	params.MetricsResolution = "10s"
 
-	runner := newAnsibleRunner(h, kubeClient, infraNamespace, imageStreams, "metrics")
+	runner := newAnsibleRunner(h, kubeClient, securityClient, infraNamespace, imageStreams, "metrics")
 
 	//run playbook
 	return runner.RunPlaybook(params, metricsPlaybook, hostConfigDir, imagePrefix, imageVersion)
@@ -55,7 +59,11 @@ func (h *Helper) InstallMetricsViaAnsible(f *clientcmd.Factory, serverIP, public
 
 // InstallMetrics checks whether metrics is installed and installs it if not already installed
 func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, imageVersion string) error {
-	osClient, kubeClient, err := f.Clients()
+	kubeClient, err := f.ClientSet()
+	if err != nil {
+		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
+	}
+	authorizationClient, err := f.OpenshiftInternalAuthorizationClient()
 	if err != nil {
 		return errors.NewError("cannot obtain API clients").WithCause(err).WithDetails(h.OriginLog())
 	}
@@ -78,17 +86,17 @@ func (h *Helper) InstallMetrics(f *clientcmd.Factory, hostName, imagePrefix, ima
 	}
 
 	// Add edit role to deployer service account
-	if err = AddRoleToServiceAccount(osClient, "edit", metricsDeployerSA, infraNamespace); err != nil {
+	if err = AddRoleToServiceAccount(authorizationClient.Authorization(), "edit", metricsDeployerSA, infraNamespace); err != nil {
 		return errors.NewError("cannot add edit role to metrics deployer service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add view role to the hawkular service account
-	if err = AddRoleToServiceAccount(osClient, "view", "hawkular", infraNamespace); err != nil {
+	if err = AddRoleToServiceAccount(authorizationClient.Authorization(), "view", "hawkular", infraNamespace); err != nil {
 		return errors.NewError("cannot add view role to the hawkular service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 
 	// Add cluster reader role to heapster service account
-	if err = AddClusterRole(osClient, "cluster-reader", "system:serviceaccount:openshift-infra:heapster"); err != nil {
+	if err = AddClusterRole(authorizationClient.Authorization(), "cluster-reader", "system:serviceaccount:openshift-infra:heapster"); err != nil {
 		return errors.NewError("cannot add cluster reader role to heapster service account").WithCause(err).WithDetails(h.OriginLog())
 	}
 

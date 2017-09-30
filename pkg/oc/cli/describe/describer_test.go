@@ -17,7 +17,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/client/testclient"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
@@ -36,7 +35,6 @@ type describeClient struct {
 	T         *testing.T
 	Namespace string
 	Err       error
-	*testclient.Fake
 }
 
 // DescriberCoverageExceptions is the list of API types that do NOT have corresponding describers

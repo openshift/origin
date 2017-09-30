@@ -19,7 +19,9 @@ Expand or mouse-over a field for more information about it.
 ++++
 <pre>
 <div style="margin-left:13px;"><span title="(string) APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources">apiVersion</span>:
-</div><div style="margin-left:13px;"><span title="(string) Host is the name of the node. (This is the same as the object&#39;s name, but both fields must be set.)">host</span>:
+</div><details><summary><span title="(array) EgressIPs is the list of automatic egress IP addresses currently hosted by this node">egressIPs</span>:
+</summary><div style="margin-left:13px;">- <span title="(string)">[string]</span>:
+</div></details><div style="margin-left:13px;"><span title="(string) Host is the name of the node. (This is the same as the object&#39;s name, but both fields must be set.)">host</span>:
 </div><div style="margin-left:13px;"><span title="(string) HostIP is the IP address to be used as a VTEP by other nodes in the overlay network">hostIP</span>:
 </div><div style="margin-left:13px;"><span title="(string) Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds">kind</span>:
 </div><details open><summary><span title="(v1.ObjectMeta) Standard object&#39;s metadata.">metadata</span>:

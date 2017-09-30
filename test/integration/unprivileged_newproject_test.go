@@ -10,12 +10,13 @@ import (
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
-	"github.com/openshift/origin/pkg/client"
+	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	oc "github.com/openshift/origin/pkg/oc/cli/cmd"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	templateclient "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 
@@ -43,6 +44,7 @@ import (
 	_ "github.com/openshift/origin/pkg/template/generated/internalclientset"
 	_ "github.com/openshift/origin/pkg/user/generated/clientset"
 	_ "github.com/openshift/origin/pkg/user/generated/internalclientset"
+	"k8s.io/client-go/rest"
 )
 
 func TestUnprivilegedNewProject(t *testing.T) {
@@ -73,10 +75,6 @@ func TestUnprivilegedNewProject(t *testing.T) {
 
 	valerieClientConfig.BearerToken = accessToken
 	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 
 	// confirm that we have access to request the project
 
@@ -101,7 +99,7 @@ func TestUnprivilegedNewProject(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
+	waitForProject(t, valerieProjectClient, "new-project", 5*time.Second, 10)
 
 	actualProject, err := valerieProjectClient.Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
@@ -136,10 +134,8 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
+	clusterAdminProjectClient := projectclient.NewForConfigOrDie(clusterAdminClientConfig)
+	clusterAdminTemplateClient := templateclient.NewForConfigOrDie(clusterAdminClientConfig)
 
 	valerieClientConfig := *clusterAdminClientConfig
 	valerieClientConfig.Username = ""
@@ -156,13 +152,9 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	valerieOpenshiftClient, err := client.New(&valerieClientConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
 
-	if _, err := clusterAdminClient.Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
+	if _, err := clusterAdminProjectClient.Projects().Create(&projectapi.Project{ObjectMeta: metav1.ObjectMeta{Name: namespace}}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -173,7 +165,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 	template.Name = templateName
 	template.Namespace = namespace
 
-	_, err = clusterAdminClient.Templates(namespace).Create(template)
+	_, err = clusterAdminTemplateClient.Templates(namespace).Create(template)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -191,8 +183,8 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	waitForProject(t, valerieOpenshiftClient, "new-project", 5*time.Second, 10)
-	project, err := valerieOpenshiftClient.Projects().Get("new-project", metav1.GetOptions{})
+	waitForProject(t, valerieProjectClient, "new-project", 5*time.Second, 10)
+	project, err := valerieProjectClient.Projects().Get("new-project", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -200,7 +192,7 @@ func TestUnprivilegedNewProjectFromTemplate(t *testing.T) {
 		t.Errorf("unexpected project %#v", project)
 	}
 
-	if err := clusterAdminClient.Templates(namespace).Delete(templateName); err != nil {
+	if err := clusterAdminTemplateClient.Templates(namespace).Delete(templateName, nil); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -219,44 +211,31 @@ func TestUnprivilegedNewProjectDenied(t *testing.T) {
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
 
-	clusterAdminClient, err := testutil.GetClusterAdminClient(clusterAdminKubeConfig)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	role, err := clusterAdminClient.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName, metav1.GetOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	role.Rules = []authorizationapi.PolicyRule{}
-	if _, err := clusterAdminClient.ClusterRoles().Update(role); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
 	clusterAdminClientConfig, err := testutil.GetClusterAdminClientConfig(clusterAdminKubeConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	clusterAdminAuthorizationConfig := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
+	role, err := clusterAdminAuthorizationConfig.ClusterRoles().Get(bootstrappolicy.SelfProvisionerRoleName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	role.Rules = []authorizationapi.PolicyRule{}
+	if _, err := clusterAdminAuthorizationConfig.ClusterRoles().Update(role); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	valerieClientConfig := *clusterAdminClientConfig
-	valerieClientConfig.Username = ""
-	valerieClientConfig.Password = ""
-	valerieClientConfig.BearerToken = ""
-	valerieClientConfig.CertFile = ""
-	valerieClientConfig.KeyFile = ""
-	valerieClientConfig.CertData = nil
-	valerieClientConfig.KeyData = nil
+	valerieClientConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 
-	accessToken, err := tokencmd.RequestToken(&valerieClientConfig, nil, "valerie", "security!")
+	accessToken, err := tokencmd.RequestToken(valerieClientConfig, nil, "valerie", "security!")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	valerieClientConfig.BearerToken = accessToken
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	valerieProjectClient := projectclient.NewForConfigOrDie(&valerieClientConfig)
-	valerieKubeClient := kclientset.NewForConfigOrDie(&valerieClientConfig)
+
+	valerieProjectClient := projectclient.NewForConfigOrDie(valerieClientConfig)
+	valerieKubeClient := kclientset.NewForConfigOrDie(valerieClientConfig)
 
 	if err := testutil.WaitForClusterPolicyUpdate(valerieKubeClient.Authorization(), "create", projectapi.Resource("projectrequests"), false); err != nil {
 		t.Fatalf("unexpected error: %v", err)

@@ -220,9 +220,8 @@ masterClients:
   openshiftLoopbackKubeConfig: ""
 masterPublicURL: ""
 networkConfig:
-  clusterNetworkCIDR: ""
+  clusterNetworks: null
   externalIPNetworkCIDRs: null
-  hostSubnetLength: 0
   ingressIPNetworkCIDR: ""
   networkPluginName: ""
   serviceNetworkCIDR: ""
