@@ -52,6 +52,12 @@ func (e gitNotFoundError) Error() string {
 
 // GitClone clones the source associated with a build(if any) into the specified directory
 func GitClone(ctx context.Context, gitClient GitClient, gitSource *buildapi.GitBuildSource, revision *buildapi.SourceRevision, dir string) (*git.SourceInfo, error) {
+
+	// It is possible for the initcontainer to get restarted, thus we must wipe out the directory if it already exists.
+	err := os.RemoveAll(dir)
+	if err != nil {
+		return nil, err
+	}
 	os.MkdirAll(dir, 0777)
 
 	hasGitSource, err := extractGitSource(ctx, gitClient, gitSource, revision, dir, initialURLCheckTimeout)
