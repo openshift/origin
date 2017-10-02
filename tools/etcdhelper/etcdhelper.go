@@ -19,8 +19,13 @@ import (
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
+	apiregistration "k8s.io/kube-aggregator/pkg/apis/apiregistration/install"
 	_ "k8s.io/kubernetes/pkg/api/install"
 )
+
+func init() {
+	apiregistration.Install(api.GroupFactoryRegistry, api.Registry, api.Scheme)
+}
 
 func main() {
 	var endpoint, keyFile, certFile, caFile string
@@ -151,7 +156,7 @@ func dump(client *clientv3.Client) error {
 	for _, kv := range response.Kvs {
 		obj, _, err := decoder.Decode(kv.Value, nil, nil)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "WARN: error decoding value %s: %v\n", string(kv.Value), err)
+			fmt.Fprintf(os.Stderr, "WARN: error decoding value %q: %v\n", string(kv.Value), err)
 			continue
 		}
 		objJSON.Reset()
