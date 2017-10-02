@@ -11,9 +11,11 @@ import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/pkg/apis/rbac"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/registry/util"
+	authorizationutil "github.com/openshift/origin/pkg/authorization/util"
 )
 
 type resourceAccessTest struct {
@@ -42,12 +44,11 @@ func (a *testAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed b
 
 	return false, "", errors.New("unsupported")
 }
-func (a *testAuthorizer) GetAllowedSubjects(passedAttributes kauthorizer.Attributes) (sets.String, sets.String, error) {
+
+func (a *testAuthorizer) AllowedSubjects(passedAttributes kauthorizer.Attributes) ([]rbac.Subject, error) {
 	a.actualAttributes = passedAttributes
-	if len(a.err) == 0 {
-		return a.users, a.groups, nil
-	}
-	return a.users, a.groups, errors.New(a.err)
+	subjects := authorizationutil.BuildRBACSubjects(a.users.List(), a.groups.List())
+	return subjects, errors.New(a.err)
 }
 
 func TestDeniedNamespace(t *testing.T) {

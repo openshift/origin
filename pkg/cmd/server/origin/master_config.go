@@ -23,8 +23,8 @@ import (
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 	kubeapiserver "k8s.io/kubernetes/pkg/master"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
+	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
-	"github.com/openshift/origin/pkg/authorization/authorizer"
 	authorizationinformer "github.com/openshift/origin/pkg/authorization/generated/informers/internalversion"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	kubernetes "github.com/openshift/origin/pkg/cmd/server/kubernetes/master"
@@ -55,7 +55,7 @@ type MasterConfig struct {
 	RESTOptionsGetter restoptions.Getter
 
 	RuleResolver   rbacregistryvalidation.AuthorizationRuleResolver
-	SubjectLocator authorizer.SubjectLocator
+	SubjectLocator authorizerrbac.SubjectLocator
 
 	ProjectAuthorizationCache     *projectauth.AuthorizationCache
 	ProjectCache                  *projectcache.ProjectCache
@@ -243,7 +243,7 @@ func newProjectCache(informers InformerAccess, privilegedLoopbackConfig *restcli
 		defaultNodeSelector), nil
 }
 
-func newProjectAuthorizationCache(subjectLocator authorizer.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
+func newProjectAuthorizationCache(subjectLocator authorizerrbac.SubjectLocator, namespaces cache.SharedIndexInformer, internalRBACInformers rbacinformers.Interface) *projectauth.AuthorizationCache {
 	return projectauth.NewAuthorizationCache(
 		namespaces,
 		projectauth.NewAuthorizerReviewer(subjectLocator),

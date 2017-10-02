@@ -11,7 +11,7 @@ import (
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	rbacregistryvalidation "k8s.io/kubernetes/pkg/registry/rbac/validation"
 	"k8s.io/kubernetes/plugin/pkg/auth/authorizer/node"
-	rbacauthorizer "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
+	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 	kbootstrappolicy "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac/bootstrappolicy"
 
 	"github.com/openshift/origin/pkg/authorization/authorizer"
@@ -19,42 +19,39 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 )
 
-func NewAuthorizer(informers InformerAccess, projectRequestMessage string) (kauthorizer.Authorizer, authorizer.SubjectLocator, rbacregistryvalidation.AuthorizationRuleResolver) {
+func NewAuthorizer(informers InformerAccess, projectRequestMessage string) (kauthorizer.Authorizer, authorizerrbac.SubjectLocator, rbacregistryvalidation.AuthorizationRuleResolver) {
 	kubeAuthorizer, ruleResolver, kubeSubjectLocator := buildKubeAuth(informers.GetInternalKubeInformers().Rbac().InternalVersion())
-	authorizer, subjectLocator := newAuthorizer(
+	authorizer := newAuthorizer(
 		kubeAuthorizer,
-		kubeSubjectLocator,
 		informers.GetInternalKubeInformers().Rbac().InternalVersion().ClusterRoles().Lister(),
 		informers.GetInternalKubeInformers().Core().InternalVersion().Pods(),
 		informers.GetInternalKubeInformers().Core().InternalVersion().PersistentVolumes(),
 		projectRequestMessage,
 	)
 
-	return authorizer, subjectLocator, ruleResolver
+	return authorizer, kubeSubjectLocator, ruleResolver
 }
 
-func buildKubeAuth(r rbacinformers.Interface) (kauthorizer.Authorizer, rbacregistryvalidation.AuthorizationRuleResolver, rbacauthorizer.SubjectLocator) {
-	roles := &rbacauthorizer.RoleGetter{Lister: r.Roles().Lister()}
-	roleBindings := &rbacauthorizer.RoleBindingLister{Lister: r.RoleBindings().Lister()}
-	clusterRoles := &rbacauthorizer.ClusterRoleGetter{Lister: r.ClusterRoles().Lister()}
-	clusterRoleBindings := &rbacauthorizer.ClusterRoleBindingLister{Lister: r.ClusterRoleBindings().Lister()}
-	kubeAuthorizer := rbacauthorizer.New(roles, roleBindings, clusterRoles, clusterRoleBindings)
+func buildKubeAuth(r rbacinformers.Interface) (kauthorizer.Authorizer, rbacregistryvalidation.AuthorizationRuleResolver, authorizerrbac.SubjectLocator) {
+	roles := &authorizerrbac.RoleGetter{Lister: r.Roles().Lister()}
+	roleBindings := &authorizerrbac.RoleBindingLister{Lister: r.RoleBindings().Lister()}
+	clusterRoles := &authorizerrbac.ClusterRoleGetter{Lister: r.ClusterRoles().Lister()}
+	clusterRoleBindings := &authorizerrbac.ClusterRoleBindingLister{Lister: r.ClusterRoleBindings().Lister()}
+	kubeAuthorizer := authorizerrbac.New(roles, roleBindings, clusterRoles, clusterRoleBindings)
 	ruleResolver := rbacregistryvalidation.NewDefaultRuleResolver(roles, roleBindings, clusterRoles, clusterRoleBindings)
-	kubeSubjectLocator := rbacauthorizer.NewSubjectAccessEvaluator(roles, roleBindings, clusterRoles, clusterRoleBindings, "")
+	kubeSubjectLocator := authorizerrbac.NewSubjectAccessEvaluator(roles, roleBindings, clusterRoles, clusterRoleBindings, "")
 	return kubeAuthorizer, ruleResolver, kubeSubjectLocator
 }
 
 func newAuthorizer(
 	kubeAuthorizer kauthorizer.Authorizer,
-	kubeSubjectLocator rbacauthorizer.SubjectLocator,
 	clusterRoleGetter rbaclisters.ClusterRoleLister,
 	podInformer coreinformers.PodInformer,
 	pvInformer coreinformers.PersistentVolumeInformer,
 	projectRequestDenyMessage string,
-) (kauthorizer.Authorizer, authorizer.SubjectLocator) {
+) kauthorizer.Authorizer {
 	messageMaker := authorizer.NewForbiddenMessageResolver(projectRequestDenyMessage)
 	roleBasedAuthorizer := authorizer.NewAuthorizer(kubeAuthorizer, messageMaker)
-	subjectLocator := authorizer.NewSubjectLocator(kubeSubjectLocator)
 
 	scopeLimitedAuthorizer := scope.NewAuthorizer(roleBasedAuthorizer, clusterRoleGetter, messageMaker)
 	// Wrap with an authorizer that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
@@ -70,5 +67,5 @@ func newAuthorizer(
 		browserSafeAuthorizer,
 	)
 
-	return authorizer, subjectLocator
+	return authorizer
 }
