@@ -22,8 +22,8 @@ import (
 // the order of default kube must follow the order of default combined
 func TestAdmissionPluginChains(t *testing.T) {
 	individualSet := sets.NewString(openshiftAdmissionControlPlugins...)
-	individualSet.Insert(KubeAdmissionPlugins...)
-	combinedSet := sets.NewString(CombinedAdmissionControlPlugins...)
+	individualSet.Insert(kubeAdmissionPlugins...)
+	combinedSet := sets.NewString(combinedAdmissionControlPlugins...)
 
 	if !individualSet.Equal(combinedSet) {
 		t.Fatalf("individualSets are missing: %v combinedSet is missing: %v", combinedSet.Difference(individualSet), individualSet.Difference(combinedSet))
@@ -31,26 +31,26 @@ func TestAdmissionPluginChains(t *testing.T) {
 
 	lastCurrIndex := -1
 	for _, plugin := range openshiftAdmissionControlPlugins {
-		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(CombinedAdmissionControlPlugins); lastCurrIndex++ {
-			if CombinedAdmissionControlPlugins[lastCurrIndex] == plugin {
+		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(combinedAdmissionControlPlugins); lastCurrIndex++ {
+			if combinedAdmissionControlPlugins[lastCurrIndex] == plugin {
 				break
 			}
 		}
 
-		if lastCurrIndex >= len(CombinedAdmissionControlPlugins) {
+		if lastCurrIndex >= len(combinedAdmissionControlPlugins) {
 			t.Errorf("openshift admission plugins are out of order compared to the combined list.  Failed at %v", plugin)
 		}
 	}
 
 	lastCurrIndex = -1
-	for _, plugin := range KubeAdmissionPlugins {
-		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(CombinedAdmissionControlPlugins); lastCurrIndex++ {
-			if CombinedAdmissionControlPlugins[lastCurrIndex] == plugin {
+	for _, plugin := range kubeAdmissionPlugins {
+		for lastCurrIndex = lastCurrIndex + 1; lastCurrIndex < len(combinedAdmissionControlPlugins); lastCurrIndex++ {
+			if combinedAdmissionControlPlugins[lastCurrIndex] == plugin {
 				break
 			}
 		}
 
-		if lastCurrIndex >= len(CombinedAdmissionControlPlugins) {
+		if lastCurrIndex >= len(combinedAdmissionControlPlugins) {
 			t.Errorf("kube admission plugins are out of order compared to the combined list.  Failed at %v", plugin)
 		}
 	}
@@ -73,7 +73,7 @@ var legacyOpenshiftAdmissionPlugins = sets.NewString(
 )
 
 // kubeAdmissionPlugins tracks kube plugins we use.  You may add to this list, but ONLY if they're from upstream kube
-var kubeAdmissionPlugins = sets.NewString(
+var usedKubeAdmissionPlugins = sets.NewString(
 	lifecycle.PluginName,
 	"PodPreset",
 	"LimitRanger",
@@ -96,8 +96,8 @@ var kubeAdmissionPlugins = sets.NewString(
 
 // TestAdmissionPluginNames makes sure that openshift admission plugins are prefixed with `openshift.io/`.
 func TestAdmissionPluginNames(t *testing.T) {
-	for _, plugin := range CombinedAdmissionControlPlugins {
-		if !strings.HasPrefix(plugin, "openshift.io/") && !kubeAdmissionPlugins.Has(plugin) && !legacyOpenshiftAdmissionPlugins.Has(plugin) {
+	for _, plugin := range combinedAdmissionControlPlugins {
+		if !strings.HasPrefix(plugin, "openshift.io/") && !usedKubeAdmissionPlugins.Has(plugin) && !legacyOpenshiftAdmissionPlugins.Has(plugin) {
 			t.Errorf("openshift admission plugins must be prefixed with openshift.io/ %v", plugin)
 		}
 	}
@@ -111,72 +111,32 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 	}{
 		{
 			name: "stock everything",
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
-					t.Errorf("%s: expected %v, got %v", "stock everything", CombinedAdmissionControlPlugins, pluginNames)
-				}
-				return nil, nil
-			},
-		},
-		{
-			name: "specified kube admission order 01",
 			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginOrderOverride: []string{"foo"},
-					},
-				},
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				expectedKube := []string{"foo"}
-				isKube := reflect.DeepEqual(pluginNames, expectedKube)
-
-				isOrigin := reflect.DeepEqual(pluginNames, openshiftAdmissionControlPlugins)
-
-				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified kube admission order 01", expectedKube, openshiftAdmissionControlPlugins, pluginNames)
+				if !reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins) {
+					t.Errorf("%s: expected %v, got %v", "stock everything", combinedAdmissionControlPlugins, pluginNames)
 				}
-
-				return nil, nil
-			},
-		},
-		{
-			name: "specified kube admission order 02",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					APIServerArguments: configapi.ExtendedArguments{
-						"admission-control": []string{"foo"},
-					},
-				},
-			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				expectedKube := []string{"foo"}
-				isKube := reflect.DeepEqual(pluginNames, expectedKube)
-
-				isOrigin := reflect.DeepEqual(pluginNames, openshiftAdmissionControlPlugins)
-
-				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified kube admission order 01", expectedKube, openshiftAdmissionControlPlugins, pluginNames)
-				}
-
 				return nil, nil
 			},
 		},
 		{
 			name: "specified origin admission order",
 			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
 				AdmissionConfig: configapi.AdmissionConfig{
 					PluginOrderOverride: []string{"foo"},
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				isKube := reflect.DeepEqual(pluginNames, KubeAdmissionPlugins)
+				isKube := reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins)
 
 				expectedOrigin := []string{"foo"}
 				isOrigin := reflect.DeepEqual(pluginNames, expectedOrigin)
 
 				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified origin admission order", KubeAdmissionPlugins, expectedOrigin, pluginNames)
+					t.Errorf("%s: expected either %v or %v, got %v", "specified origin admission order", kubeAdmissionPlugins, expectedOrigin, pluginNames)
 				}
 
 				return nil, nil
@@ -192,10 +152,10 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				isKube := reflect.DeepEqual(pluginNames, KubeAdmissionPlugins)
-				isOrigin := reflect.DeepEqual(pluginNames, openshiftAdmissionControlPlugins)
+				isKube := reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins)
+				isOrigin := reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins)
 				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", KubeAdmissionPlugins, openshiftAdmissionControlPlugins, pluginNames)
+					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", kubeAdmissionPlugins, openshiftAdmissionControlPlugins, pluginNames)
 				}
 				return nil, nil
 			},
@@ -203,6 +163,7 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 		{
 			name: "specified, non-conflicting plugin configs 01",
 			options: configapi.MasterConfig{
+				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{},
 				AdmissionConfig: configapi.AdmissionConfig{
 					PluginConfig: map[string]configapi.AdmissionPluginConfig{
 						"foo": {
@@ -212,92 +173,9 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 				},
 			},
 			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
-					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 01", CombinedAdmissionControlPlugins, pluginNames)
+				if !reflect.DeepEqual(pluginNames, combinedAdmissionControlPlugins) {
+					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 01", combinedAdmissionControlPlugins, pluginNames)
 				}
-				return nil, nil
-			},
-		},
-		{
-			name: "specified, non-conflicting plugin configs 02",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]configapi.AdmissionPluginConfig{
-							"foo": {
-								Location: "bar",
-							},
-							"third": {
-								Location: "bar",
-							},
-						},
-					},
-				},
-				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
-						"foo": {
-							Location: "bar",
-						},
-					},
-				},
-			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
-					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 02", CombinedAdmissionControlPlugins, pluginNames)
-				}
-				return nil, nil
-			},
-		},
-		{
-			name: "specified, non-conflicting plugin configs 03",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]configapi.AdmissionPluginConfig{
-							"foo": {
-								Location: "bar",
-							},
-							"third": {
-								Location: "bar",
-							},
-						},
-					},
-				},
-			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				if !reflect.DeepEqual(pluginNames, CombinedAdmissionControlPlugins) {
-					t.Errorf("%s: expected %v, got %v", "specified, non-conflicting plugin configs 03", CombinedAdmissionControlPlugins, pluginNames)
-				}
-				return nil, nil
-			},
-		},
-		{
-			name: "specified conflicting plugin configs 01",
-			options: configapi.MasterConfig{
-				KubernetesMasterConfig: &configapi.KubernetesMasterConfig{
-					AdmissionConfig: configapi.AdmissionConfig{
-						PluginConfig: map[string]configapi.AdmissionPluginConfig{
-							"foo": {
-								Location: "different",
-							},
-						},
-					},
-				},
-				AdmissionConfig: configapi.AdmissionConfig{
-					PluginConfig: map[string]configapi.AdmissionPluginConfig{
-						"foo": {
-							Location: "bar",
-						},
-					},
-				},
-			},
-			admissionChainBuilder: func(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientset.Interface, pluginInitializer admission.PluginInitializer) (admission.Interface, error) {
-				isKube := reflect.DeepEqual(pluginNames, KubeAdmissionPlugins)
-				isOrigin := reflect.DeepEqual(pluginNames, openshiftAdmissionControlPlugins)
-				if !isKube && !isOrigin {
-					t.Errorf("%s: expected either %v or %v, got %v", "specified conflicting plugin configs 01", KubeAdmissionPlugins, openshiftAdmissionControlPlugins, pluginNames)
-				}
-
 				return nil, nil
 			},
 		},
@@ -305,31 +183,31 @@ func TestSeparateAdmissionChainDetection(t *testing.T) {
 
 	for _, tc := range testCases {
 		newAdmissionChainFunc = tc.admissionChainBuilder
-		_, _, _ = NewAdmissionChains(tc.options, nil, nil)
+		_, _ = NewAdmissionChains(tc.options, nil, nil)
 	}
 }
 
 func TestQuotaAdmissionPluginsAreLast(t *testing.T) {
-	kubeLen := len(KubeAdmissionPlugins)
+	kubeLen := len(kubeAdmissionPlugins)
 	if kubeLen < 2 {
 		t.Fatalf("must have at least the 2 quota plugins")
 	}
 
-	if KubeAdmissionPlugins[kubeLen-2] != "ResourceQuota" {
-		t.Errorf("KubeAdmissionPlugins must have %s as the next to last plugin", "ResourceQuota")
+	if kubeAdmissionPlugins[kubeLen-2] != "ResourceQuota" {
+		t.Errorf("kubeAdmissionPlugins must have %s as the next to last plugin", "ResourceQuota")
 	}
 
-	if KubeAdmissionPlugins[kubeLen-1] != "openshift.io/ClusterResourceQuota" {
-		t.Errorf("KubeAdmissionPlugins must have ClusterResourceQuota as the last plugin")
+	if kubeAdmissionPlugins[kubeLen-1] != "openshift.io/ClusterResourceQuota" {
+		t.Errorf("kubeAdmissionPlugins must have ClusterResourceQuota as the last plugin")
 	}
 
-	combinedLen := len(CombinedAdmissionControlPlugins)
-	if CombinedAdmissionControlPlugins[combinedLen-2] != "ResourceQuota" {
-		t.Errorf("CombinedAdmissionControlPlugins must have %s as the next to last plugin", "ResourceQuota")
+	combinedLen := len(combinedAdmissionControlPlugins)
+	if combinedAdmissionControlPlugins[combinedLen-2] != "ResourceQuota" {
+		t.Errorf("combinedAdmissionControlPlugins must have %s as the next to last plugin", "ResourceQuota")
 	}
 
-	if CombinedAdmissionControlPlugins[combinedLen-1] != "openshift.io/ClusterResourceQuota" {
-		t.Errorf("CombinedAdmissionControlPlugins must have ClusterResourceQuota as the last plugin")
+	if combinedAdmissionControlPlugins[combinedLen-1] != "openshift.io/ClusterResourceQuota" {
+		t.Errorf("combinedAdmissionControlPlugins must have ClusterResourceQuota as the last plugin")
 	}
 }
 func TestFixupAdmissionPlugins(t *testing.T) {

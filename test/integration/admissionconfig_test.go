@@ -188,7 +188,7 @@ func setupAdmissionPluginTestConfig(t *testing.T, value string) string {
 func TestKubernetesAdmissionPluginOrderOverride(t *testing.T) {
 	registerAdmissionPlugins(t, "plugin1", "plugin2", "plugin3")
 	kubeClient, _, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
-		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
+		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
 	})
 	defer fn()
 
@@ -206,8 +206,8 @@ func TestKubernetesAdmissionPluginConfigFile(t *testing.T) {
 	configFile := setupAdmissionPluginTestConfig(t, "plugin1configvalue")
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	kubeClient, _, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
-		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
-		config.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
+		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin1": {
 				Location: configFile,
 			},
@@ -224,8 +224,8 @@ func TestKubernetesAdmissionPluginEmbeddedConfig(t *testing.T) {
 	registerAdmissionPluginTestConfigType()
 	registerAdmissionPlugins(t, "plugin1", "plugin2")
 	kubeClient, _, fn := setupAdmissionTest(t, func(config *configapi.MasterConfig) {
-		config.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
-		config.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+		config.AdmissionConfig.PluginOrderOverride = []string{"plugin1", "plugin2"}
+		config.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 			"plugin1": {
 				Configuration: &testtypes.TestPluginConfig{
 					Data: "embeddedvalue1",
@@ -301,7 +301,7 @@ func TestAlwaysPullImagesOn(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		"AlwaysPullImages": {
 			Configuration: &configapi.DefaultAdmissionConfig{},
 		},

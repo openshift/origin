@@ -9,7 +9,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/audit"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	kubeclientgoinformers "k8s.io/client-go/informers"
@@ -62,8 +61,6 @@ type MasterConfig struct {
 	ProjectCache                  *projectcache.ProjectCache
 	ClusterQuotaMappingController *clusterquotamapping.ClusterQuotaMappingController
 	LimitVerifier                 imageadmission.LimitVerifier
-
-	AdmissionControl admission.Interface
 
 	// RegistryHostnameRetriever retrieves the name of the integrated registry, or false if no such registry
 	// is available.
@@ -152,14 +149,14 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	originAdmission, kubeAdmission, err := originadmission.NewAdmissionChains(options, kubeInternalClient, admissionInitializer)
+	admission, err := originadmission.NewAdmissionChains(options, kubeInternalClient, admissionInitializer)
 	if err != nil {
 		return nil, err
 	}
 
 	kubeAPIServerConfig, err := kubernetes.BuildKubernetesMasterConfig(
 		options,
-		kubeAdmission,
+		admission,
 		authenticator,
 		authorizer,
 		informers.GetClientGoKubeInformers(),
@@ -192,8 +189,6 @@ func BuildMasterConfig(
 		),
 		ProjectCache:                  projectCache,
 		ClusterQuotaMappingController: clusterQuotaMappingController,
-
-		AdmissionControl: originAdmission,
 
 		RegistryHostnameRetriever: imageapi.DefaultRegistryHostnameRetriever(defaultRegistryFunc, options.ImagePolicyConfig.ExternalRegistryHostname, options.ImagePolicyConfig.InternalRegistryHostname),
 

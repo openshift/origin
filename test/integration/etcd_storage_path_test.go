@@ -886,8 +886,7 @@ func testEtcdStoragePath(t *testing.T, etcdServer *etcdtest.EtcdTestServer, gett
 	if err != nil {
 		t.Fatalf("error getting master config: %#v", err)
 	}
-	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"}                        // remove most admission checks to make testing easier
-	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"} // remove most admission checks to make testing easier
+	masterConfig.AdmissionConfig.PluginOrderOverride = []string{"PodNodeSelector"} // remove most admission checks to make testing easier
 	// enable APIs that are off by default
 	masterConfig.KubernetesMasterConfig.APIServerArguments = map[string][]string{
 		"runtime-config": {

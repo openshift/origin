@@ -37,14 +37,7 @@ func getResourceOverrideConfig(masterConfigOptions configapi.MasterConfig) (*clu
 	if overrideConfig != nil {
 		return overrideConfig, nil
 	}
-	if masterConfigOptions.KubernetesMasterConfig == nil { // external kube gets you a nil pointer here
-		return nil, nil
-	}
-	overrideConfig, err = checkForOverrideConfig(masterConfigOptions.KubernetesMasterConfig.AdmissionConfig)
-	if err != nil {
-		return nil, err
-	}
-	return overrideConfig, nil
+	return nil, nil
 }
 
 // checkForOverrideConfig looks for ClusterResourceOverrideConfig plugin cfg in the admission PluginConfig

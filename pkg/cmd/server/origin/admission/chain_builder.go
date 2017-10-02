@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net"
 	"reflect"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -25,7 +24,6 @@ import (
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
 	overrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
-
 	serviceadmit "github.com/openshift/origin/pkg/service/admission"
 )
 
@@ -35,19 +33,19 @@ var (
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"openshift.io/RestrictSubjectBindings",
-		"PodNodeConstraints",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
 		imageadmission.PluginName,
+		"PodNodeConstraints",
 		"OwnerReferencesPermissionEnforcement",
 		"Initializers",
 		"GenericAdmissionWebhook",
 		"ResourceQuota",
 	}
 
-	// KubeAdmissionPlugins gives the in-order default admission chain for kube resources.
-	KubeAdmissionPlugins = []string{
+	// kubeAdmissionPlugins gives the in-order default admission chain for kube resources.
+	kubeAdmissionPlugins = []string{
 		lifecycle.PluginName,
 		"RunOnceDuration",
 		"PodNodeConstraints",
@@ -80,15 +78,14 @@ var (
 		"openshift.io/ClusterResourceQuota",
 	}
 
-	// CombinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
+	// combinedAdmissionControlPlugins gives the in-order default admission chain for all resources resources.
 	// When possible, this list is used.  The set of openshift+kube chains must exactly match this set.  In addition,
 	// the order specified in the openshift and kube chains must match the order here.
-	CombinedAdmissionControlPlugins = []string{
+	combinedAdmissionControlPlugins = []string{
 		lifecycle.PluginName,
 		"ProjectRequestLimit",
 		"OriginNamespaceLifecycle",
 		"openshift.io/RestrictSubjectBindings",
-		"PodNodeConstraints",
 		"openshift.io/JenkinsBootstrapper",
 		"openshift.io/BuildConfigSecretInjector",
 		"BuildByStrategy",
@@ -136,89 +133,30 @@ func NewAdmissionChains(
 	options configapi.MasterConfig,
 	kubeClientSet kclientsetinternal.Interface,
 	admissionInitializer admission.PluginInitializer,
-) (admission.Interface /*origin*/, admission.Interface /*kube*/, error) {
-	// check to see if they've taken explicit control of the kube admission chain
-	// this happens when any of the following are true:
-	// 1. extended kube server args are used to change the admission plugin list
-	// 2. kube explicit config changes the admission plugin list
-	// 3. extended kube server args are used to change the admission config file
-	// 4. openshift explicit config changes the admission plugins list
-	// 5. kube and openshift plugin config try to configure the same plugin differently
-	// TODO: one release from now, I think we should start failing on setting the kube admission config
-	//       two releases from now, I think we should start removing it
-	//       two releases from now, I think we should remove the PluginOverrideOrder entirely
-	hasSeparateKubeAdmissionChain := false
-	KubeAdmissionPlugins := KubeAdmissionPlugins
-	if options.KubernetesMasterConfig != nil && len(options.KubernetesMasterConfig.APIServerArguments["admission-control"]) > 0 {
-		KubeAdmissionPlugins = strings.Split(options.KubernetesMasterConfig.APIServerArguments["admission-control"][0], ",")
-		hasSeparateKubeAdmissionChain = true
-	}
-	if options.KubernetesMasterConfig != nil && len(options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride) > 0 {
-		KubeAdmissionPlugins = options.KubernetesMasterConfig.AdmissionConfig.PluginOrderOverride
-		hasSeparateKubeAdmissionChain = true
-	}
-	KubeAdmissionPlugins = fixupAdmissionPlugins(KubeAdmissionPlugins)
-
-	kubeAdmissionPluginConfigFilename := ""
-	if options.KubernetesMasterConfig != nil && len(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"]) > 0 {
-		kubeAdmissionPluginConfigFilename = options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"][0]
-		hasSeparateKubeAdmissionChain = true
+) (admission.Interface, error) {
+	admissionPluginConfigFilename := ""
+	if len(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"]) > 0 {
+		admissionPluginConfigFilename = options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"][0]
 	}
 
-	openshiftAdmissionPlugins := openshiftAdmissionControlPlugins
+	admissionPluginNames := combinedAdmissionControlPlugins
 	if len(options.AdmissionConfig.PluginOrderOverride) > 0 {
-		openshiftAdmissionPlugins = options.AdmissionConfig.PluginOrderOverride
-		hasSeparateKubeAdmissionChain = true
+		admissionPluginNames = options.AdmissionConfig.PluginOrderOverride
 	}
-	openshiftAdmissionPlugins = fixupAdmissionPlugins(openshiftAdmissionPlugins)
-
-	if options.KubernetesMasterConfig != nil && !hasSeparateKubeAdmissionChain {
-		// check for collisions between openshift and kube plugin config
-		for pluginName, kubeConfig := range options.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			if openshiftConfig, exists := options.AdmissionConfig.PluginConfig[pluginName]; exists && !reflect.DeepEqual(kubeConfig, openshiftConfig) {
-				hasSeparateKubeAdmissionChain = true
-				break
-			}
-		}
-	}
-
-	if hasSeparateKubeAdmissionChain {
-		// build kube admission
-		var kubeAdmission admission.Interface
-		if options.KubernetesMasterConfig != nil {
-			var err error
-			kubeAdmission, err = newAdmissionChainFunc(KubeAdmissionPlugins, kubeAdmissionPluginConfigFilename, options.KubernetesMasterConfig.AdmissionConfig.PluginConfig, options, kubeClientSet, admissionInitializer)
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-
-		// build openshift admission
-		openshiftAdmission, err := newAdmissionChainFunc(openshiftAdmissionPlugins, "", options.AdmissionConfig.PluginConfig, options, kubeClientSet, admissionInitializer)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return openshiftAdmission, kubeAdmission, nil
-	}
+	admissionPluginNames = fixupAdmissionPlugins(admissionPluginNames)
 
 	// if we have a unified chain, build the combined config
 	pluginConfig := map[string]configapi.AdmissionPluginConfig{}
-	if options.KubernetesMasterConfig != nil {
-		for pluginName, config := range options.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			pluginConfig[pluginName] = config
-		}
-	}
 	for pluginName, config := range options.AdmissionConfig.PluginConfig {
 		pluginConfig[pluginName] = config
 	}
 
-	admissionChain, err := newAdmissionChainFunc(CombinedAdmissionControlPlugins, "", pluginConfig, options, kubeClientSet, admissionInitializer)
+	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, pluginConfig, options, kubeClientSet, admissionInitializer)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return admissionChain, admissionChain, err
+	return admissionChain, err
 }
 
 // newAdmissionChainFunc is for unit testing only.  You should NEVER OVERRIDE THIS outside of a unit test.
