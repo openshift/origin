@@ -1,7 +1,6 @@
 package strategy
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
-	"k8s.io/apiserver/pkg/admission"
+	clienttesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -21,21 +20,26 @@ import (
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
 	"github.com/openshift/origin/pkg/build/util"
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/security/apis/security"
+	securityinternalversion "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
+	"github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion/fake"
 )
 
-type FakeAdmissionControl struct {
-	admit bool
-}
+func newFakeSecurityClient(rootAllowed bool) securityinternalversion.SecurityInterface {
+	securityClient := &fake.FakeSecurity{Fake: &clienttesting.Fake{}}
+	securityClient.AddReactor("*", "*", func(clienttesting.Action) (bool, runtime.Object, error) {
+		var ref *kapi.ObjectReference
+		if rootAllowed {
+			ref = &kapi.ObjectReference{} // i.e., not nil
+		}
 
-func (a *FakeAdmissionControl) Admit(attr admission.Attributes) (err error) {
-	if a.admit {
-		return nil
-	}
-	return fmt.Errorf("pod not allowed")
-}
-
-func (a *FakeAdmissionControl) Handles(operation admission.Operation) bool {
-	return true
+		return true, &security.PodSecurityPolicySubjectReview{
+			Status: security.PodSecurityPolicySubjectReviewStatus{
+				AllowedBy: ref,
+			},
+		}, nil
+	})
+	return securityClient
 }
 
 func TestSTICreateBuildPodRootNotAllowed(t *testing.T) {
@@ -50,9 +54,9 @@ var nodeSelector = map[string]string{"node": "mynode"}
 
 func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 	strategy := &SourceBuildStrategy{
-		Image:            "sti-test-image",
-		Codec:            kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-		AdmissionControl: &FakeAdmissionControl{admit: rootAllowed},
+		Image:          "sti-test-image",
+		Codec:          kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
+		SecurityClient: newFakeSecurityClient(rootAllowed),
 	}
 
 	build := mockSTIBuild()
@@ -169,9 +173,9 @@ func testSTICreateBuildPod(t *testing.T, rootAllowed bool) {
 
 func TestS2IBuildLongName(t *testing.T) {
 	strategy := &SourceBuildStrategy{
-		Image:            "sti-test-image",
-		Codec:            kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
-		AdmissionControl: &FakeAdmissionControl{admit: true},
+		Image:          "sti-test-image",
+		Codec:          kapi.Codecs.LegacyCodec(buildapi.LegacySchemeGroupVersion),
+		SecurityClient: newFakeSecurityClient(true),
 	}
 	build := mockSTIBuild()
 	build.Name = strings.Repeat("a", validation.DNS1123LabelMaxLength*2)

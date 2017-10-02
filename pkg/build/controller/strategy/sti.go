@@ -4,17 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apiserver/pkg/admission"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/pkg/serviceaccount"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-
 	buildutil "github.com/openshift/origin/pkg/build/util"
+	"github.com/openshift/origin/pkg/security/apis/security"
+	securityinternalversion "github.com/openshift/origin/pkg/security/generated/internalclientset/typed/security/internalversion"
 )
 
 // SourceBuildStrategy creates STI(source to image) builds
@@ -23,8 +22,8 @@ type SourceBuildStrategy struct {
 	// Codec is the codec to use for encoding the output pod.
 	// IMPORTANT: This may break backwards compatibility when
 	// it changes.
-	Codec            runtime.Codec
-	AdmissionControl admission.Interface
+	Codec          runtime.Codec
+	SecurityClient securityinternalversion.SecurityInterface
 }
 
 // DefaultDropCaps is the list of capabilities to drop if the current user cannot run as root
@@ -189,32 +188,29 @@ func (bs *SourceBuildStrategy) CreateBuildPod(build *buildapi.Build) (*v1.Pod, e
 }
 
 func (bs *SourceBuildStrategy) canRunAsRoot(build *buildapi.Build) bool {
-	var rootUser int64
-	rootUser = 0
-	pod := &kapi.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      buildapi.GetBuildPodName(build) + "-admissioncheck",
-			Namespace: build.Namespace,
-		},
-		Spec: kapi.PodSpec{
-			ServiceAccountName: build.Spec.ServiceAccount,
-			Containers: []kapi.Container{
-				{
-					Name:  "sti-build",
-					Image: bs.Image,
-					SecurityContext: &kapi.SecurityContext{
-						RunAsUser: &rootUser,
+	rootUser := int64(0)
+
+	review, err := bs.SecurityClient.PodSecurityPolicySubjectReviews(build.Namespace).Create(
+		&security.PodSecurityPolicySubjectReview{
+			Spec: security.PodSecurityPolicySubjectReviewSpec{
+				Template: kapi.PodTemplateSpec{
+					Spec: kapi.PodSpec{
+						ServiceAccountName: build.Spec.ServiceAccount,
+						Containers: []kapi.Container{
+							{
+								SecurityContext: &kapi.SecurityContext{
+									RunAsUser: &rootUser,
+								},
+							},
+						},
 					},
 				},
 			},
-			RestartPolicy: kapi.RestartPolicyNever,
 		},
-	}
-	userInfo := serviceaccount.UserInfo(build.Namespace, build.Spec.ServiceAccount, "")
-	attrs := admission.NewAttributesRecord(pod, nil, kapi.Kind("Pod").WithVersion(""), pod.Namespace, pod.Name, kapi.Resource("pods").WithVersion(""), "", admission.Create, userInfo)
-	err := bs.AdmissionControl.Admit(attrs)
+	)
 	if err != nil {
-		glog.V(2).Infof("Admit for root user returned error: %v", err)
+		utilruntime.HandleError(err)
+		return false
 	}
-	return err == nil
+	return review.Status.AllowedBy != nil
 }
