@@ -63,6 +63,10 @@ func GetOperationIDAndTags(r *restful.Route) (string, []string, error) {
 	op := r.Operation
 	path := r.Path
 	var tags []string
+	// FIXME: this is hacky way to get rid of conflict name
+	if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/rollback") {
+		op = op + "Rollback"
+	}
 	prefix, exists := verbs.GetPrefix(op)
 	if !exists {
 		return op, tags, fmt.Errorf("operation names should start with a verb. Cannot determine operation verb from %v", op)
