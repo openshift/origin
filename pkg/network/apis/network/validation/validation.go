@@ -28,22 +28,7 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 	allErrs := validation.ValidateObjectMeta(&clusterNet.ObjectMeta, false, path.ValidatePathSegmentName, field.NewPath("metadata"))
 	var testedCIDRS []*net.IPNet
 
-	if len(clusterNet.Network) != 0 || clusterNet.HostSubnetLength != 0 {
-		//In the case that a user manually makes a clusterNetwork object with clusterNet.Network and clusterNet.HostubnetLength at least make sure they are valid values
-		clusterIPNet, err := netutils.ParseCIDRMask(clusterNet.Network)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
-		} else {
-			maskLen, addrLen := clusterIPNet.Mask.Size()
-			if clusterNet.HostSubnetLength > uint32(addrLen-maskLen) {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length is too large for clusterNetwork"))
-			} else if clusterNet.HostSubnetLength < 2 {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("hostSubnetLength"), clusterNet.HostSubnetLength, "subnet length must be at least 2"))
-			}
-		}
-	}
-
-	if len(clusterNet.ClusterNetworks) == 0 && len(clusterNet.Network) == 0 {
+	if len(clusterNet.ClusterNetworks) == 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("clusterNetworks"), clusterNet.ClusterNetworks, "must have at least one cluster network CIDR"))
 	}
 	serviceIPNet, err := netutils.ParseCIDRMask(clusterNet.ServiceNetwork)
