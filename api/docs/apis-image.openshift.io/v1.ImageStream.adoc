@@ -922,7 +922,7 @@ $ curl -k \
 
 [[Get-apis-image.openshift.io-v1-namespaces-namespace-imagestreams-name-secrets]]
 === Get secrets of a ImageStream in a namespace
-Read secrets of the specified SecretList
+Read secrets of the specified ImageStream
 
 ==== HTTP request
 ----

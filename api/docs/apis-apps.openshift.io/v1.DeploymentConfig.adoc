@@ -1831,7 +1831,7 @@ $ curl -k \
 
 [[Post-apis-apps.openshift.io-v1-namespaces-namespace-deploymentconfigs-name-instantiate]]
 === Create instantiate of a DeploymentConfig in a namespace
-Create instantiate of a DeploymentRequest
+Create instantiate of a DeploymentConfig
 
 ==== HTTP request
 ----
@@ -1909,7 +1909,7 @@ EOF
 
 [[Get-apis-apps.openshift.io-v1-namespaces-namespace-deploymentconfigs-name-log]]
 === Get log of a DeploymentConfig in a namespace
-Read log of the specified DeploymentLog
+Read log of the specified DeploymentConfig
 
 ==== HTTP request
 ----
@@ -1972,7 +1972,7 @@ $ curl -k \
 
 [[Post-apis-apps.openshift.io-v1-namespaces-namespace-deploymentconfigs-name-rollback]]
 === Create rollback of a DeploymentConfig in a namespace
-Create rollback of a DeploymentConfigRollback
+Create rollback of a DeploymentConfig
 
 ==== HTTP request
 ----
@@ -2050,7 +2050,7 @@ EOF
 
 [[Get-apis-apps.openshift.io-v1-namespaces-namespace-deploymentconfigs-name-scale]]
 === Get scale of a DeploymentConfig in a namespace
-Read scale of the specified Scale
+Read scale of the specified DeploymentConfig
 
 ==== HTTP request
 ----
@@ -2104,7 +2104,7 @@ $ curl -k \
 
 [[Put-apis-apps.openshift.io-v1-namespaces-namespace-deploymentconfigs-name-scale]]
 === Update scale of a DeploymentConfig in a namespace
-Replace scale of the specified Scale
+Replace scale of the specified DeploymentConfig
 
 ==== HTTP request
 ----
@@ -2182,7 +2182,7 @@ EOF
 
 [[Patch-apis-apps.openshift.io-v1-namespaces-namespace-deploymentconfigs-name-scale]]
 === Patch scale of a DeploymentConfig in a namespace
-Partially update scale of the specified Scale
+Partially update scale of the specified DeploymentConfig
 
 ==== HTTP request
 ----

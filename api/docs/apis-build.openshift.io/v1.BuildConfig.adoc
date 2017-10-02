@@ -1144,7 +1144,7 @@ $ curl -k \
 
 [[Post-apis-build.openshift.io-v1-namespaces-namespace-buildconfigs-name-instantiate]]
 === Create instantiate of a BuildConfig in a namespace
-Create instantiate of a BuildRequest
+Create instantiate of a BuildConfig
 
 ==== HTTP request
 ----
@@ -1222,7 +1222,7 @@ EOF
 
 [[Post-apis-build.openshift.io-v1-namespaces-namespace-buildconfigs-name-instantiatebinary]]
 === Create instantiatebinary of a BuildConfig in a namespace
-Connect POST requests to instantiatebinary of BinaryBuildRequestOptions
+Connect POST requests to instantiatebinary of BuildConfig
 
 ==== HTTP request
 ----
@@ -1281,7 +1281,7 @@ $ curl -k \
 
 [[Post-apis-build.openshift.io-v1-namespaces-namespace-buildconfigs-name-webhooks]]
 === Create webhooks of a BuildConfig in a namespace
-Connect POST requests to webhooks of Build
+Connect POST requests to webhooks of BuildConfig
 
 ==== HTTP request
 ----
@@ -1334,7 +1334,7 @@ $ curl -k \
 
 [[Post-apis-build.openshift.io-v1-namespaces-namespace-buildconfigs-name-webhooks-path]]
 === Create webhooks/{path} of a BuildConfig in a namespace
-Connect POST requests to webhooks of Build
+Connect POST requests to webhooks of BuildConfig
 
 ==== HTTP request
 ----

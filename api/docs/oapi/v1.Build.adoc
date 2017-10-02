@@ -1208,7 +1208,7 @@ $ curl -k \
 
 [[Post-oapi-v1-namespaces-namespace-builds-name-clone]]
 === Create clone of a Build in a namespace
-Create clone of a BuildRequest
+Create clone of a Build
 
 ==== HTTP request
 ----
@@ -1364,7 +1364,7 @@ EOF
 
 [[Get-oapi-v1-namespaces-namespace-builds-name-log]]
 === Get log of a Build in a namespace
-Read log of the specified BuildLog
+Read log of the specified Build
 
 ==== HTTP request
 ----

@@ -1150,8 +1150,8 @@
      {
       "type": "v1.Build",
       "method": "POST",
-      "summary": "create instantiate of a BuildRequest",
-      "nickname": "createNamespacedBuildRequestInstantiate",
+      "summary": "create instantiate of a BuildConfig",
+      "nickname": "createNamespacedBuildConfigInstantiate",
       "parameters": [
        {
         "type": "string",
@@ -1211,8 +1211,8 @@
      {
       "type": "v1.Build",
       "method": "POST",
-      "summary": "connect POST requests to instantiatebinary of BinaryBuildRequestOptions",
-      "nickname": "connectPostNamespacedBinaryBuildRequestOptionsInstantiatebinary",
+      "summary": "connect POST requests to instantiatebinary of BuildConfig",
+      "nickname": "connectPostNamespacedBuildConfigInstantiatebinary",
       "parameters": [
        {
         "type": "string",
@@ -1303,8 +1303,8 @@
      {
       "type": "string",
       "method": "POST",
-      "summary": "connect POST requests to webhooks of Build",
-      "nickname": "connectPostNamespacedBuildWebhooks",
+      "summary": "connect POST requests to webhooks of BuildConfig",
+      "nickname": "connectPostNamespacedBuildConfigWebhooks",
       "parameters": [
        {
         "type": "string",
@@ -1347,8 +1347,8 @@
      {
       "type": "string",
       "method": "POST",
-      "summary": "connect POST requests to webhooks of Build",
-      "nickname": "connectPostNamespacedBuildWebhooksWithPath",
+      "summary": "connect POST requests to webhooks of BuildConfig",
+      "nickname": "connectPostNamespacedBuildConfigWebhooksWithPath",
       "parameters": [
        {
         "type": "string",
@@ -2299,8 +2299,8 @@
      {
       "type": "v1.BuildRequest",
       "method": "POST",
-      "summary": "create clone of a BuildRequest",
-      "nickname": "createNamespacedBuildRequestClone",
+      "summary": "create clone of a Build",
+      "nickname": "createNamespacedBuildClone",
       "parameters": [
        {
         "type": "string",
@@ -2421,8 +2421,8 @@
      {
       "type": "v1.BuildLog",
       "method": "GET",
-      "summary": "read log of the specified BuildLog",
-      "nickname": "readNamespacedBuildLogLog",
+      "summary": "read log of the specified Build",
+      "nickname": "readNamespacedBuildLog",
       "parameters": [
        {
         "type": "string",
@@ -5591,8 +5591,8 @@
      {
       "type": "v1.DeploymentRequest",
       "method": "POST",
-      "summary": "create instantiate of a DeploymentRequest",
-      "nickname": "createNamespacedDeploymentRequestInstantiate",
+      "summary": "create instantiate of a DeploymentConfig",
+      "nickname": "createNamespacedDeploymentConfigInstantiate",
       "parameters": [
        {
         "type": "string",
@@ -5652,8 +5652,8 @@
      {
       "type": "v1.DeploymentLog",
       "method": "GET",
-      "summary": "read log of the specified DeploymentLog",
-      "nickname": "readNamespacedDeploymentLogLog",
+      "summary": "read log of the specified DeploymentConfig",
+      "nickname": "readNamespacedDeploymentConfigLog",
       "parameters": [
        {
         "type": "string",
@@ -5777,8 +5777,8 @@
      {
       "type": "v1.DeploymentConfigRollback",
       "method": "POST",
-      "summary": "create rollback of a DeploymentConfigRollback",
-      "nickname": "createNamespacedDeploymentConfigRollbackRollback",
+      "summary": "create rollback of a DeploymentConfig",
+      "nickname": "createNamespacedDeploymentConfigRollback",
       "parameters": [
        {
         "type": "string",
@@ -5838,8 +5838,8 @@
      {
       "type": "v1beta1.Scale",
       "method": "GET",
-      "summary": "read scale of the specified Scale",
-      "nickname": "readNamespacedScaleScale",
+      "summary": "read scale of the specified DeploymentConfig",
+      "nickname": "readNamespacedDeploymentConfigScale",
       "parameters": [
        {
         "type": "string",
@@ -5885,8 +5885,8 @@
      {
       "type": "v1beta1.Scale",
       "method": "PUT",
-      "summary": "replace scale of the specified Scale",
-      "nickname": "replaceNamespacedScaleScale",
+      "summary": "replace scale of the specified DeploymentConfig",
+      "nickname": "replaceNamespacedDeploymentConfigScale",
       "parameters": [
        {
         "type": "string",
@@ -5940,8 +5940,8 @@
      {
       "type": "v1beta1.Scale",
       "method": "PATCH",
-      "summary": "partially update scale of the specified Scale",
-      "nickname": "patchNamespacedScaleScale",
+      "summary": "partially update scale of the specified DeploymentConfig",
+      "nickname": "patchNamespacedDeploymentConfigScale",
       "parameters": [
        {
         "type": "string",
@@ -10767,8 +10767,8 @@
      {
       "type": "v1.SecretList",
       "method": "GET",
-      "summary": "read secrets of the specified SecretList",
-      "nickname": "readNamespacedSecretListSecrets",
+      "summary": "read secrets of the specified ImageStream",
+      "nickname": "readNamespacedImageStreamSecrets",
       "parameters": [
        {
         "type": "string",
