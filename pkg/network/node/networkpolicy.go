@@ -72,6 +72,10 @@ func (np *networkPolicyPlugin) Name() string {
 	return network.NetworkPolicyPluginName
 }
 
+func (np *networkPolicyPlugin) SupportsVNIDs() bool {
+	return true
+}
+
 func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.node = node
 	np.kubeInformers = node.kubeInformers
@@ -90,9 +94,6 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	}
 
 	if err := np.initNamespaces(); err != nil {
-		return err
-	}
-	if err := np.node.SetupEgressNetworkPolicy(); err != nil {
 		return err
 	}
 
