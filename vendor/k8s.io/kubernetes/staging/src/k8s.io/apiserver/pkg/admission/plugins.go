@@ -98,7 +98,7 @@ func (ps *Plugins) getPlugin(name string, config io.Reader) (Interface, bool, er
 		return nil, true, nil
 	}
 
-	ret, err := f(config2)
+	ret, err := FactoryFilterFn(f)(config2)
 	return ret, true, err
 }
 
