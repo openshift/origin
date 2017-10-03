@@ -97,12 +97,12 @@ func (eip *egressIPWatcher) watchHostSubnets() {
 			egressIPs = hs.EgressIPs
 		}
 
-		eip.updateNode(hs.HostIP, egressIPs)
+		eip.updateNodeEgress(hs.HostIP, egressIPs)
 		return nil
 	})
 }
 
-func (eip *egressIPWatcher) updateNode(nodeIP string, nodeEgressIPs []string) {
+func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []string) {
 	eip.Lock()
 	defer eip.Unlock()
 
@@ -121,6 +121,11 @@ func (eip *egressIPWatcher) updateNode(nodeIP string, nodeEgressIPs []string) {
 
 	// Process new EgressIPs
 	for _, ip := range node.egressIPs.Difference(oldEgressIPs).UnsortedList() {
+		if oldNode := eip.nodesByEgressIP[ip]; oldNode != nil {
+			glog.Errorf("Multiple nodes claiming EgressIP %q (nodes %q, %q)", ip, node.nodeIP, oldNode.nodeIP)
+			continue
+		}
+
 		eip.nodesByEgressIP[ip] = node
 		hex := ipToHex(ip)
 		claimedNodeIP := nodeIP
@@ -172,29 +177,32 @@ func (eip *egressIPWatcher) watchNetNamespaces() {
 	common.RunEventQueue(eip.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
 		netns := delta.Object.(*networkapi.NetNamespace)
 
-		var egressIP string
 		if delta.Type != cache.Deleted && len(netns.EgressIPs) != 0 {
-			egressIP = netns.EgressIPs[0]
+			if len(netns.EgressIPs) > 1 {
+				glog.Warningf("Ignoring extra EgressIPs (%v) in NetNamespace %q", netns.EgressIPs[1:], netns.Name)
+			}
+			eip.updateNamespaceEgress(netns.NetID, netns.EgressIPs[0])
+		} else {
+			eip.deleteNamespaceEgress(netns.NetID)
 		}
-
-		eip.updateNamespace(netns.NetID, egressIP)
 		return nil
 	})
 }
 
-func (eip *egressIPWatcher) updateNamespace(vnid uint32, egressIP string) {
+func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) {
 	eip.Lock()
 	defer eip.Unlock()
 
 	ns := eip.namespacesByVNID[vnid]
 	if ns == nil {
-		if egressIP == "" {
-			return
-		}
 		ns = &namespaceEgress{vnid: vnid}
 		eip.namespacesByVNID[vnid] = ns
 	}
 	if ns.claimedIP == egressIP {
+		return
+	}
+	if oldNS := eip.namespacesByEgressIP[egressIP]; oldNS != nil {
+		glog.Errorf("Multiple NetNamespaces claiming EgressIP %q (NetIDs %d, %d)", egressIP, ns.vnid, oldNS.vnid)
 		return
 	}
 
@@ -210,12 +218,27 @@ func (eip *egressIPWatcher) updateNamespace(vnid uint32, egressIP string) {
 		ns.nodeIP = node.nodeIP
 	}
 
-	egressHex := ""
-	if egressIP != "" {
-		egressHex = ipToHex(egressIP)
+	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, ipToHex(egressIP))
+	if err != nil {
+		glog.Errorf("Error updating Namespace egress rules: %v", err)
+	}
+}
+
+func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
+	eip.Lock()
+	defer eip.Unlock()
+
+	ns := eip.namespacesByVNID[vnid]
+	if ns == nil {
+		return
 	}
 
-	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, ns.nodeIP, egressHex)
+	if ns.claimedIP != "" {
+		delete(eip.namespacesByEgressIP, ns.claimedIP)
+	}
+	delete(eip.namespacesByVNID, vnid)
+
+	err := eip.oc.UpdateNamespaceEgressRules(ns.vnid, "", "")
 	if err != nil {
 		glog.Errorf("Error updating Namespace egress rules: %v", err)
 	}
@@ -236,7 +259,8 @@ func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
 		for _, link := range links {
 			addrs, err := netlink.AddrList(link, syscall.AF_INET)
 			if err != nil {
-				return fmt.Errorf("could not get addresses of interface %q while adding egress IP: %v", link.Attrs().Name, err)
+				glog.Warningf("Could not get addresses of interface %q while trying to find egress interface: %v", link.Attrs().Name, err)
+				continue
 			}
 
 			for _, addr := range addrs {
