@@ -24470,15 +24470,13 @@ parameters:
   value: openshift/oauth-proxy:v1.0.0
 - description: The location of the prometheus image
   name: IMAGE_PROMETHEUS
-  value: openshift/prometheus:v2.0.0-dev
+  value: openshift/prometheus:v2.0.0-dev.3
 - description: The location of the alertmanager image
   name: IMAGE_ALERTMANAGER
-  # TODO: Change to official openshift build
-  value: openshift/prometheus-alertmanager:dev
+  value: openshift/prometheus-alertmanager:v0.9.1
 - description: The location of alert-buffer image
   name: IMAGE_ALERT_BUFFER
-  # TODO: change to official openshift build
-  value: ilackarms/message-buffer
+  value: openshift/prometheus-alert-buffer:v0.0.2
 - description: The session secret for the proxy
   name: SESSION_SECRET
   generate: expression
@@ -24504,7 +24502,7 @@ objects:
     name: prometheus
     namespace: "${NAMESPACE}"
 
-# Create a fully end-to-end TLS connection to the proxy
+# Create a fully end-to-end TLS connection to the prometheus proxy
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
@@ -24515,6 +24513,7 @@ objects:
       name: prometheus
     tls:
       termination: Reencrypt
+      insecureEdgeTerminationPolicy: Redirect
 - apiVersion: v1
   kind: Service
   metadata:
@@ -24541,15 +24540,17 @@ objects:
     namespace: "${NAMESPACE}"
   stringData:
     session_secret: "${SESSION_SECRET}="
-- apiVersion: extensions/v1beta1
-  kind: Deployment
+- apiVersion: apps/v1beta1
+  kind: StatefulSet
   metadata:
     labels:
       app: prometheus
     name: prometheus
     namespace: "${NAMESPACE}"
   spec:
-    replicas: 1
+    updateStrategy:
+      type: RollingUpdate
+    podManagementPolicy: Parallel
     selector:
       matchLabels:
         app: prometheus
@@ -24593,6 +24594,7 @@ objects:
         - name: prometheus
           args:
           - --storage.tsdb.retention=6h
+          - --storage.tsdb.min-block-duration=2m
           - --config.file=/etc/prometheus/prometheus.yml
           - --web.listen-address=localhost:9090
           image: ${IMAGE_PROMETHEUS}
@@ -24885,7 +24887,7 @@ objects:
           - targets:
             - "localhost:9093"
 
-# Create a route to expose prometheus alerts for external use
+# Create a fully end-to-end TLS connection to the alert proxy
 - apiVersion: route.openshift.io/v1
   kind: Route
   metadata:
@@ -24896,8 +24898,7 @@ objects:
       name: alerts
     tls:
       termination: Reencrypt
-
-# Create a service to access alerts via auth-proxy
+      insecureEdgeTerminationPolicy: Redirect
 - apiVersion: v1
   kind: Service
   metadata:
