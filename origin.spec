@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit c95f60031ad306268a6c8b0f28686e6cf75826fd
+%global commit 80cc30d9e7af33c4df04ab3fda4a61509158a815
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.140.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=2d890d8
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.141.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=80cc30d
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.141.0%{?dist}
+Release:        0.142.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,18 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Tue Oct 03 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.142.0
+- add e2e test for rsh to statefulset (mfojtik@redhat.com)
+- cli: add statefulsets to PodForResource (mfojtik@redhat.com)
+- more build metric massage; add unit test; adjust integration test
+  (gmontero@redhat.com)
+- apps: record cause of rollout and deployer pods timestamps back to rc
+  (mfojtik@redhat.com)
+- apps: fix logic error in last failed rollout metric (mfojtik@redhat.com)
+- UPSTREAM: 53318: create separate transports for liveness and readiness probes
+  (sjenning@redhat.com)
+- Fix missing sizes for manifest schema 1 images (miminar@redhat.com)
+
 * Tue Oct 03 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.141.0
 - bump(github.com/openshift/origin-web-console):
   9c144f35a308a00a12b1fcdde253cb740157f2bd (eparis+openshiftbot@redhat.com)
