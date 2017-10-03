@@ -90978,8 +90978,7 @@
     "required": [
      "host",
      "hostIP",
-     "subnet",
-     "egressIPs"
+     "subnet"
     ],
     "properties": {
      "apiVersion": {
