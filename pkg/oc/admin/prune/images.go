@@ -341,7 +341,10 @@ func (o PruneImagesOptions) Run() error {
 	if o.Namespace != metav1.NamespaceAll {
 		options.Namespace = o.Namespace
 	}
-	pruner := prune.NewPruner(options)
+	pruner, err := prune.NewPruner(options)
+	if err != nil {
+		return err
+	}
 
 	w := tabwriter.NewWriter(o.Out, 10, 4, 3, ' ', 0)
 	defer w.Flush()

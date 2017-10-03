@@ -208,7 +208,7 @@ var _ Pruner = &pruner{}
 //
 // Also automatically remove any image layer that is no longer referenced by any
 // images.
-func NewPruner(options PrunerOptions) Pruner {
+func NewPruner(options PrunerOptions) (Pruner, error) {
 	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s, allImages=%s",
 		options.KeepYoungerThan, getValue(options.KeepTagRevisions), getValue(options.PruneOverSizeLimit), getValue(options.AllImages))
 
@@ -233,7 +233,9 @@ func NewPruner(options PrunerOptions) Pruner {
 	addImageStreamsToGraph(g, options.Streams, options.LimitRanges, algorithm)
 	addPodsToGraph(g, options.Pods, algorithm)
 	addReplicationControllersToGraph(g, options.RCs)
-	addBuildConfigsToGraph(g, options.BCs)
+	if err := addBuildConfigsToGraph(g, options.BCs); err != nil {
+		return nil, err
+	}
 	addBuildsToGraph(g, options.Builds)
 	addDeploymentConfigsToGraph(g, options.DCs)
 
@@ -242,7 +244,7 @@ func NewPruner(options PrunerOptions) Pruner {
 		algorithm:      algorithm,
 		registryClient: options.RegistryClient,
 		registryURL:    options.RegistryURL,
-	}
+	}, nil
 }
 
 func getValue(option interface{}) string {
@@ -484,13 +486,16 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 // addBuildConfigsToGraph adds build configs to the graph.
 //
 // Edges are added to the graph from each build config to the image specified by its strategy.from.
-func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) {
+func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) error {
 	for i := range bcs.Items {
 		bc := &bcs.Items[i]
 		glog.V(4).Infof("Examining BuildConfig %s", getName(bc))
 		bcNode := buildgraph.EnsureBuildConfigNode(g, bc)
-		addBuildStrategyImageReferencesToGraph(g, bc.Spec.Strategy, bcNode)
+		if err := addBuildStrategyImageReferencesToGraph(g, bc.Spec.Strategy, bcNode); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // addBuildsToGraph adds builds to the graph.
@@ -511,11 +516,11 @@ func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 // Edges are added to the graph from each predecessor (build or build config)
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
-func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) {
+func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) error {
 	from := buildapi.GetInputReference(strategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
-		return
+		return nil
 	}
 
 	glog.V(4).Infof("Examining build strategy with from: %#v", from)
@@ -527,29 +532,31 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 		_, id, err := imageapi.ParseImageStreamImageName(from.Name)
 		if err != nil {
 			glog.V(2).Infof("Error parsing ImageStreamImage name %q: %v - skipping", from.Name, err)
-			return
+			return err
 		}
 		imageID = id
 	case "DockerImage":
 		ref, err := imageapi.ParseDockerImageReference(from.Name)
 		if err != nil {
 			glog.V(2).Infof("Error parsing DockerImage name %q: %v - skipping", from.Name, err)
-			return
+			return err
 		}
 		imageID = ref.ID
 	default:
-		return
+		return nil
 	}
 
 	glog.V(4).Infof("Looking for image %q in graph", imageID)
 	imageNode := imagegraph.FindImage(g, imageID)
 	if imageNode == nil {
 		glog.V(4).Infof("Unable to find image %q in graph - skipping", imageID)
-		return
+		return nil
 	}
 
 	glog.V(4).Infof("Adding edge from %v to %v", predecessor, imageNode)
 	g.AddEdge(predecessor, imageNode, ReferencedImageEdgeKind)
+
+	return nil
 }
 
 // getImageNodes returns only nodes of type ImageNode.
@@ -766,27 +773,31 @@ func (p *pruner) Prune(
 
 	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes, p.algorithm)
 
-	errs := []error{}
-	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
+	var errs []error
+
+	errs = pruneStreams(p.g, prunableImageNodes, streamPruner)
 	// if namespace is specified prune only ImageStreams and nothing more
-	if len(p.algorithm.namespace) > 0 {
+	// if we have any errors after ImageStreams pruning this may mean that
+	// we still have references to images.
+	if len(p.algorithm.namespace) > 0 || len(errs) > 0 {
 		return kerrors.NewAggregate(errs)
 	}
 
 	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
 	prunableComponents := calculatePrunableImageComponents(graphWithoutPrunableImages)
+
 	errs = append(errs, pruneImageComponents(p.g, p.registryClient, p.registryURL, prunableComponents, layerLinkPruner)...)
 	errs = append(errs, pruneBlobs(p.g, p.registryClient, p.registryURL, prunableComponents, blobPruner)...)
 	errs = append(errs, pruneManifests(p.g, p.registryClient, p.registryURL, prunableImageNodes, manifestPruner)...)
 
 	if len(errs) > 0 {
-		// If we had any errors removing image references from image streams or deleting
-		// layers, blobs, or manifest data from the registry, stop here and don't
-		// delete any images. This way, you can rerun prune and retry things that failed.
+		// If we had any errors deleting layers, blobs, or manifest data from the registry,
+		// stop here and don't delete any images. This way, you can rerun prune and retry
+		// things that failed.
 		return kerrors.NewAggregate(errs)
 	}
 
-	errs = append(errs, pruneImages(p.g, prunableImageNodes, imagePruner)...)
+	errs = pruneImages(p.g, prunableImageNodes, imagePruner)
 	return kerrors.NewAggregate(errs)
 }
 
