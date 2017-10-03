@@ -1,21 +1,34 @@
 package images
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 
 	g "github.com/onsi/ginkgo"
-	//o "github.com/onsi/gomega"
+
+	"github.com/docker/distribution"
+	"github.com/docker/distribution/context"
+	"github.com/docker/distribution/manifest/schema1"
+	"github.com/docker/distribution/manifest/schema2"
+	"github.com/docker/distribution/reference"
+	distclient "github.com/docker/distribution/registry/client"
+	"github.com/docker/distribution/registry/client/auth"
+	"github.com/docker/distribution/registry/client/auth/challenge"
+	"github.com/docker/distribution/registry/client/transport"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	restclient "k8s.io/client-go/rest"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/core/v1"
 
 	dockerregistryserver "github.com/openshift/origin/pkg/dockerregistry/server"
+	"github.com/openshift/origin/pkg/dockerregistry/testutil"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -166,4 +179,152 @@ func EnsureRegistryAcceptsSchema2(oc *exutil.CLI, accept bool) error {
 
 func makeReadonlyEnvValue(on bool) string {
 	return fmt.Sprintf(`{"enabled":%t}`, on)
+}
+
+// GetRegistryClientRepository creates a repository interface to the integrated registry.
+// If actions are not provided, only pull action will be requested.
+func GetRegistryClientRepository(oc *exutil.CLI, repoName string, actions ...string) (distribution.Repository, error) {
+	endpoint, err := GetDockerRegistryURL(oc)
+	if err != nil {
+		return nil, err
+	}
+	repoName = completeRepoName(oc, repoName)
+	if len(actions) == 0 {
+		actions = []string{"pull"}
+	}
+	named, err := reference.ParseNamed(repoName)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := oc.Run("whoami").Args("-t").Output()
+	if err != nil {
+		return nil, err
+	}
+
+	creds := testutil.NewBasicCredentialStore(oc.Username(), token)
+	challengeManager := challenge.NewSimpleManager()
+
+	url, versions, err := ping(challengeManager, endpoint, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to ping registry endpoint %s: %v", endpoint, err)
+	}
+
+	fmt.Fprintf(g.GinkgoWriter, "pinged registry at %s, got api versions: %v\n", url, versions)
+	var rt http.RoundTripper
+	// TODO: use cluster certificate
+	rt, err = restclient.TransportFor(&restclient.Config{TLSClientConfig: restclient.TLSClientConfig{Insecure: true}})
+	if err != nil {
+		return nil, err
+	}
+	rt = transport.NewTransport(
+		rt,
+		auth.NewAuthorizer(
+			challengeManager,
+			auth.NewTokenHandler(rt, creds, repoName, actions...),
+			auth.NewBasicHandler(creds)))
+
+	ctx := context.Background()
+	repo, err := distclient.NewRepository(ctx, named, url, rt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get repository %q: %v", repoName, err)
+	}
+
+	return repo, nil
+}
+
+// GetManifestAndConfigByTag fetches manifest and corresponding config blob from the given repository:tag from
+// the integrated registry. If the manifest is of schema 1, nil will be returned instead of config blob.
+func GetManifestAndConfigByTag(oc *exutil.CLI, repoName, tag string) (
+	manifest distribution.Manifest,
+	manifestBlob []byte,
+	configBlob []byte,
+	err error,
+) {
+	repo, err := GetRegistryClientRepository(oc, repoName)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	ctx := context.Background()
+
+	desc, err := repo.Tags(ctx).Get(ctx, tag)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	ms, err := repo.Manifests(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	manifest, err = ms.Get(ctx, desc.Digest)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	switch t := manifest.(type) {
+	case *schema1.SignedManifest:
+		manifestBlob, err = t.MarshalJSON()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	case *schema2.DeserializedManifest:
+		manifestBlob, err = t.MarshalJSON()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		configBlob, err = repo.Blobs(ctx).Get(ctx, t.Config.Digest)
+	default:
+		return nil, nil, nil, fmt.Errorf("got unexpected manifest type: %T", manifest)
+	}
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return
+}
+
+func completeRepoName(oc *exutil.CLI, name string) string {
+	parts := strings.SplitN(name, "/", 2)
+	if len(parts) > 1 {
+		return name
+	}
+	return strings.Join(append([]string{oc.Namespace()}, parts...), "/")
+}
+
+func ping(manager challenge.Manager, endpoint, versionHeader string) (
+	url string,
+	apiVersions []auth.APIVersion,
+	err error,
+) {
+	var resp *http.Response
+	for _, s := range []string{"https", "http"} {
+		tr := &http.Transport{}
+		if s == "https" {
+			// TODO: use cluster certificate
+			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+		client := &http.Client{Transport: tr}
+		resp, err = client.Get(fmt.Sprintf("%s://%s/v2/", s, endpoint))
+		if err == nil {
+			url = fmt.Sprintf("%s://%s", s, endpoint)
+			break
+		}
+		fmt.Fprintf(g.GinkgoWriter, "failed to ping registry at %s://%v: %v\n", s, endpoint, err)
+	}
+	if err != nil {
+		return "", nil, err
+	}
+	defer resp.Body.Close()
+
+	if err := manager.AddResponse(resp); err != nil {
+		return "", nil, err
+	}
+
+	if versionHeader == "" {
+		versionHeader = "Docker-Distribution-API-Version"
+	}
+
+	return url, auth.APIVersions(resp, versionHeader), nil
 }

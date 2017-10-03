@@ -133,7 +133,7 @@ func TestPullthroughServeBlob(t *testing.T) {
 			expectedLocalCalls: map[string]int{"Stat": 1},
 		},
 	} {
-		localBlobStore := newTestBlobStore(tc.localBlobs)
+		localBlobStore := newTestBlobStore(nil, tc.localBlobs)
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 		repo := newTestRepository(t, namespace, name, testRepositoryOptions{
@@ -284,7 +284,7 @@ func TestPullthroughServeNotSeekableBlob(t *testing.T) {
 	})
 	registrytest.AddImage(t, fos, testImage, namespace, name, "latest")
 
-	localBlobStore := newTestBlobStore(nil)
+	localBlobStore := newTestBlobStore(nil, nil)
 
 	ctx := WithTestPassthroughToUpstream(context.Background(), false)
 	repo := newTestRepository(t, namespace, name, testRepositoryOptions{
@@ -602,7 +602,7 @@ func TestPullthroughServeBlobInsecure(t *testing.T) {
 
 		tc.fakeOpenShiftInit(fos)
 
-		localBlobStore := newTestBlobStore(tc.localBlobs)
+		localBlobStore := newTestBlobStore(nil, tc.localBlobs)
 
 		ctx := WithTestPassthroughToUpstream(context.Background(), false)
 
@@ -680,9 +680,13 @@ func makeDigestFromBytes(data []byte) digest.Digest {
 	return digest.Digest(fmt.Sprintf("sha256:%x", sha256.Sum256(data)))
 }
 
+type blobContents map[digest.Digest][]byte
+type blobDescriptors map[digest.Digest]distribution.Descriptor
+
 type testBlobStore struct {
+	blobDescriptors blobDescriptors
 	// blob digest mapped to content
-	blobs map[digest.Digest][]byte
+	blobs blobContents
 	// method name mapped to number of invocations
 	calls       map[string]int
 	bytesServed int64
@@ -690,19 +694,29 @@ type testBlobStore struct {
 
 var _ distribution.BlobStore = &testBlobStore{}
 
-func newTestBlobStore(blobs map[digest.Digest][]byte) *testBlobStore {
-	b := make(map[digest.Digest][]byte)
+func newTestBlobStore(blobDescriptors blobDescriptors, blobs blobContents) *testBlobStore {
+	bs := make(map[digest.Digest][]byte)
 	for d, content := range blobs {
-		b[d] = content
+		bs[d] = content
+	}
+	bds := make(map[digest.Digest]distribution.Descriptor)
+	for d, desc := range blobDescriptors {
+		bds[d] = desc
 	}
 	return &testBlobStore{
-		blobs: b,
-		calls: make(map[string]int),
+		blobDescriptors: bds,
+		blobs:           bs,
+		calls:           make(map[string]int),
 	}
 }
 
 func (t *testBlobStore) Stat(ctx context.Context, dgst digest.Digest) (distribution.Descriptor, error) {
 	t.calls["Stat"]++
+	desc, exists := t.blobDescriptors[dgst]
+	if exists {
+		return desc, nil
+	}
+
 	content, exists := t.blobs[dgst]
 	if !exists {
 		return distribution.Descriptor{}, distribution.ErrBlobUnknown

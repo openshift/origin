@@ -3,13 +3,13 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"reflect"
 
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
-
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 var (
@@ -23,28 +23,42 @@ func unmarshalManifestSchema2(content []byte) (distribution.Manifest, error) {
 		return nil, err
 	}
 
+	if !reflect.DeepEqual(deserializedManifest.Versioned, schema2.SchemaVersion) {
+		return nil, fmt.Errorf("unexpected manifest schema version=%d, mediaType=%q",
+			deserializedManifest.SchemaVersion,
+			deserializedManifest.MediaType)
+	}
+
 	return &deserializedManifest, nil
 }
 
 type manifestSchema2Handler struct {
-	repo     *repository
-	manifest *schema2.DeserializedManifest
+	repo         *repository
+	manifest     *schema2.DeserializedManifest
+	cachedConfig []byte
 }
 
 var _ ManifestHandler = &manifestSchema2Handler{}
 
-func (h *manifestSchema2Handler) FillImageMetadata(ctx context.Context, image *imageapiv1.Image) error {
-	// The manifest.Config references a configuration object for a container by its digest.
-	// It needs to be fetched in order to fill an image object metadata below.
-	configBytes, err := h.repo.Blobs(ctx).Get(ctx, h.manifest.Config.Digest)
-	if err != nil {
-		context.GetLogger(ctx).Errorf("failed to get image config %s: %v", h.manifest.Config.Digest.String(), err)
-		return err
+func (h *manifestSchema2Handler) Config(ctx context.Context) ([]byte, error) {
+	if h.cachedConfig == nil {
+		blob, err := h.repo.Blobs(ctx).Get(ctx, h.manifest.Config.Digest)
+		if err != nil {
+			context.GetLogger(ctx).Errorf("failed to get manifest config: %v", err)
+			return nil, err
+		}
+		h.cachedConfig = blob
 	}
-	image.DockerImageConfig = string(configBytes)
 
-	// We need to populate the image metadata using the manifest.
-	return imageMetadataFromManifest(image)
+	return h.cachedConfig, nil
+}
+
+func (h *manifestSchema2Handler) Digest() (digest.Digest, error) {
+	_, p, err := h.manifest.Payload()
+	if err != nil {
+		return "", err
+	}
+	return digest.FromBytes(p), nil
 }
 
 func (h *manifestSchema2Handler) Manifest() distribution.Manifest {
@@ -111,12 +125,4 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 		return errs
 	}
 	return nil
-}
-
-func (h *manifestSchema2Handler) Digest() (digest.Digest, error) {
-	_, p, err := h.manifest.Payload()
-	if err != nil {
-		return "", err
-	}
-	return digest.FromBytes(p), nil
 }
