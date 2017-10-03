@@ -51,6 +51,10 @@ const (
 	// downconverted.
 	ImporterPreferOSAnnotation = "importer.image.openshift.io/prefer-os"
 
+	// ImageManifestBlobStoredAnnotation indicates that manifest and config blobs of image are stored in on
+	// storage of integrated Docker registry.
+	ImageManifestBlobStoredAnnotation = "image.openshift.io/manifestBlobStored"
+
 	// DefaultImageTag is used when an image tag is needed and the configuration does not specify a tag to use.
 	DefaultImageTag = "latest"
 

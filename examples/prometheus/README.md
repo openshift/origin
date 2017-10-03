@@ -119,26 +119,26 @@ Returns PLEG (pod lifecycle event generator) latency metrics.  This represents t
 
 ### OpenShift build related queries
 
-> count(openshift_build_running_phase_start_time_seconds{} < time() - 600)
+> count(openshift_build_active_time_seconds{phase="running"} < time() - 600)
 
 Returns the number of builds that have been running for more than 10 minutes (600 seconds).
 
-> count(openshift_build_new_pending_phase_creation_time_seconds{} < time() - 600)
+> count(openshift_build_active_time_seconds{phase="pending"} < time() - 600)
 
 Returns the number of build that have been waiting at least 10 minutes (600 seconds) to start.
 
-> sum(openshift_build_failed_phase_total{})
+> sum(openshift_build_total{phase="failed"})
 
 Returns the number of failed builds, regardless of the failure reason.
 
-> sum(openshift_build_terminal_phase_total{phase="complete"})
+> openshift_build_total{phase="failed",reason="fetchsourcefailed"}
+
+Returns the number of failed builds because of problems retrieving source from the associated Git repository.
+
+> sum(openshift_build_total{phase="complete"})
 
 Returns the number of successfully completed builds.
 
-> openshift_build_failed_phase_total{}
-
-Returns the latest totals, per failure reason, for any failed builds.
-
-> openshift_build_failed_phase_total{} offset 5m
+> openshift_build_total{phase="failed"} offset 5m
 
 Returns the failed builds totals, per failure reason, from 5 minutes ago.

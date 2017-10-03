@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -12,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	regclient "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	imagesutil "github.com/openshift/origin/test/extended/images"
 	registryutil "github.com/openshift/origin/test/extended/registry/util"
 	exutil "github.com/openshift/origin/test/extended/util"
@@ -28,6 +28,29 @@ const (
 var _ = g.Describe("[Conformance][registry][migration] manifest migration from etcd to registry storage", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("registry-migration", exutil.KubeConfigPath())
+
+	var originalAcceptSchema2 *bool
+
+	g.JustBeforeEach(func() {
+		if originalAcceptSchema2 == nil {
+			accepts, err := registryutil.DoesRegistryAcceptSchema2(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+			originalAcceptSchema2 = &accepts
+		}
+
+		if !*originalAcceptSchema2 {
+			g.By("ensure the registry accepts schema 2")
+			err := registryutil.EnsureRegistryAcceptsSchema2(oc, true)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
+
+	g.AfterEach(func() {
+		if !*originalAcceptSchema2 {
+			err := registryutil.EnsureRegistryAcceptsSchema2(oc, false)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		}
+	})
 
 	g.It("registry can get access to manifest [local]", func() {
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
@@ -49,19 +72,18 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		o.Expect(err).NotTo(o.HaveOccurred())
 		cleanUp.AddImage(imageDigest, "", "")
 
-		g.By("checking that the image converted...")
+		g.By("checking that the image doesn't have the manifest...")
 		image, err := oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.Equal(0))
 		imageMetadataNotEmpty(image)
+		o.Expect(image.Annotations[imageapi.ImageManifestBlobStoredAnnotation]).To(o.Equal("true"))
 
 		g.By("getting image manifest from docker-registry...")
-		conn, err := regclient.NewClient(10*time.Second, true).Connect(registryURL, true)
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		_, manifest, err := conn.ImageManifest(oc.Namespace(), repoName, tagName)
+		_, manifest, config, err := registryutil.GetManifestAndConfigByTag(oc, repoName, tagName)
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(manifest)).Should(o.BeNumerically(">", 0))
+		o.Expect(len(config)).Should(o.BeNumerically(">", 0))
 
 		g.By("restoring manifest...")
 		image, err = oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
@@ -69,6 +91,8 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		imageMetadataNotEmpty(image)
 
 		image.DockerImageManifest = string(manifest)
+		image.DockerImageConfig = string(config)
+		delete(image.Annotations, imageapi.ImageManifestBlobStoredAnnotation)
 
 		newImage, err := oc.AsAdmin().ImageClient().Image().Images().Update(image)
 		o.Expect(err).NotTo(o.HaveOccurred())
@@ -77,14 +101,16 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		g.By("checking that the manifest is present in the image...")
 		image, err = oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(image.DockerImageManifest)).Should(o.BeNumerically(">", 0))
 		o.Expect(image.DockerImageManifest).Should(o.Equal(string(manifest)))
+		o.Expect(image.DockerImageConfig).Should(o.Equal(string(config)))
 		imageMetadataNotEmpty(image)
+		o.Expect(image.Annotations[imageapi.ImageManifestBlobStoredAnnotation]).To(o.Equal(""))
 
 		g.By("getting image manifest from docker-registry one more time...")
-		_, manifest, err = conn.ImageManifest(oc.Namespace(), repoName, tagName)
+		_, newManifest, newConfig, err := registryutil.GetManifestAndConfigByTag(oc, repoName, tagName)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(manifest)).Should(o.BeNumerically(">", 0))
+		o.Expect(string(manifest)).Should(o.Equal(string(newManifest)))
+		o.Expect(string(config)).Should(o.Equal(string(newConfig)))
 
 		g.By("waiting until image is updated...")
 		err = waitForImageUpdate(oc, image)
@@ -94,12 +120,15 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 		image, err = oc.AsAdmin().ImageClient().Image().Images().Get(imageDigest, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(len(image.DockerImageManifest)).Should(o.Equal(0))
+		o.Expect(len(image.DockerImageConfig)).Should(o.Equal(0))
 		imageMetadataNotEmpty(image)
+		o.Expect(image.Annotations[imageapi.ImageManifestBlobStoredAnnotation]).To(o.Equal("true"))
 
-		g.By("getting image manifest from docker-registry to check if he's available...")
-		_, manifest, err = conn.ImageManifest(oc.Namespace(), repoName, tagName)
+		g.By("getting image manifest from docker-registry to check if it's available...")
+		_, newManifest, newConfig, err = registryutil.GetManifestAndConfigByTag(oc, repoName, tagName)
 		o.Expect(err).NotTo(o.HaveOccurred())
-		o.Expect(len(manifest)).Should(o.BeNumerically(">", 0))
+		o.Expect(string(manifest)).Should(o.Equal(string(newManifest)))
+		o.Expect(string(config)).Should(o.Equal(string(newConfig)))
 
 		g.By("pulling image...")
 		authCfg, err := exutil.BuildAuthConfiguration(registryURL, oc)
@@ -114,7 +143,9 @@ var _ = g.Describe("[Conformance][registry][migration] manifest migration from e
 
 		g.By("removing image...")
 		err = dClient.RemoveImage(opts.Repository)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		if err != nil {
+			fmt.Fprintf(g.GinkgoWriter, "failed to remove image: %v\n", err)
+		}
 	})
 })
 

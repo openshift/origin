@@ -37,6 +37,17 @@ const (
 	// annotation value is the name of the deployer Pod which will act upon the ReplicationController
 	// to implement the deployment behavior.
 	DeploymentPodAnnotation = "openshift.io/deployer-pod.name"
+	// DeployerPodCreatedAtAnnotation is an annotation on a deployment that
+	// records the time in RFC3339 format of when the deployer pod for this particular
+	// deployment was created.
+	DeployerPodCreatedAtAnnotation = "openshift.io/deployer-pod.created-at"
+	// DeployerPodStartedAtAnnotation is an annotation on a deployment that
+	// records the time in RFC3339 format of when the deployer pod for this particular
+	// deployment was started.
+	DeployerPodStartedAtAnnotation = "openshift.io/deployer-pod.started-at"
+	// DeployerPodCompletedAtAnnotation is an annotation on deployment that records
+	// the time in RFC3339 format of when the deployer pod finished.
+	DeployerPodCompletedAtAnnotation = "openshift.io/deployer-pod.completed-at"
 	// DeploymentIgnorePodAnnotation is an annotation on a deployment config that will bypass creating
 	// a deployment pod with the deployment. The caller is responsible for setting the deployment
 	// status and running the deployment process.

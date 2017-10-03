@@ -43,6 +43,10 @@ func (s imageStrategy) PrepareForCreate(ctx apirequest.Context, obj runtime.Obje
 	if err := util.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
 	}
+	if newImage.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
+		newImage.DockerImageManifest = ""
+		newImage.DockerImageConfig = ""
+	}
 }
 
 // Validate validates a new image.
@@ -115,6 +119,11 @@ func (s imageStrategy) PrepareForUpdate(ctx apirequest.Context, obj, old runtime
 
 	if err = util.ImageWithMetadata(newImage); err != nil {
 		utilruntime.HandleError(fmt.Errorf("Unable to update image metadata for %q: %v", newImage.Name, err))
+	}
+
+	if newImage.Annotations[imageapi.ImageManifestBlobStoredAnnotation] == "true" {
+		newImage.DockerImageManifest = ""
+		newImage.DockerImageConfig = ""
 	}
 }
 

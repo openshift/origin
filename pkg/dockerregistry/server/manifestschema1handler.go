@@ -11,11 +11,6 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/reference"
 	"github.com/docker/libtrust"
-
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	imageapi "github.com/openshift/origin/pkg/image/apis/image"
-	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 func unmarshalManifestSchema1(content []byte, signatures [][]byte) (distribution.Manifest, error) {
@@ -52,57 +47,12 @@ type manifestSchema1Handler struct {
 
 var _ ManifestHandler = &manifestSchema1Handler{}
 
-func (h *manifestSchema1Handler) FillImageMetadata(ctx context.Context, image *imageapiv1.Image) error {
-	signatures, err := h.manifest.Signatures()
-	if err != nil {
-		return err
-	}
+func (h *manifestSchema1Handler) Config(ctx context.Context) ([]byte, error) {
+	return nil, nil
+}
 
-	for _, signDigest := range signatures {
-		image.DockerImageSignatures = append(image.DockerImageSignatures, signDigest)
-	}
-
-	refs := h.manifest.References()
-
-	if err := imageMetadataFromManifest(image); err != nil {
-		return fmt.Errorf("unable to fill image %s metadata: %v", image.Name, err)
-	}
-
-	blobSet := sets.NewString()
-	meta, ok := image.DockerImageMetadata.Object.(*imageapi.DockerImage)
-	if !ok {
-		return fmt.Errorf("image %q does not have metadata", image.Name)
-	}
-	meta.Size = int64(0)
-
-	blobs := h.repo.Blobs(ctx)
-	for i := range image.DockerImageLayers {
-		layer := &image.DockerImageLayers[i]
-		// DockerImageLayers represents h.manifest.Manifest.FSLayers in reversed order
-		desc, err := blobs.Stat(ctx, refs[len(image.DockerImageLayers)-i-1].Digest)
-		if err != nil {
-			context.GetLogger(ctx).Errorf("failed to stat blob %s of image %s", layer.Name, image.DockerImageReference)
-			return err
-		}
-		// The MediaType appeared in manifest schema v2. We need to fill it
-		// manually in the old images if it is not already filled.
-		if len(layer.MediaType) == 0 {
-			if len(desc.MediaType) > 0 {
-				layer.MediaType = desc.MediaType
-			} else {
-				layer.MediaType = schema1.MediaTypeManifestLayer
-			}
-		}
-		layer.LayerSize = desc.Size
-		// count empty layer just once (empty layer may actually have non-zero size)
-		if !blobSet.Has(layer.Name) {
-			meta.Size += desc.Size
-			blobSet.Insert(layer.Name)
-		}
-	}
-	image.DockerImageMetadata.Object = meta
-
-	return nil
+func (h *manifestSchema1Handler) Digest() (digest.Digest, error) {
+	return digest.FromBytes(h.manifest.Canonical), nil
 }
 
 func (h *manifestSchema1Handler) Manifest() distribution.Manifest {
@@ -182,8 +132,4 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 		return errs
 	}
 	return nil
-}
-
-func (h *manifestSchema1Handler) Digest() (digest.Digest, error) {
-	return digest.FromBytes(h.manifest.Canonical), nil
 }

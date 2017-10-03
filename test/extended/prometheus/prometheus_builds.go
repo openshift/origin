@@ -34,9 +34,8 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 	g.Describe("when installed to the cluster", func() {
 		g.It("should start and expose a secured proxy and verify build metrics", func() {
 			const (
-				terminalBuildCountQuery = "openshift_build_terminal_phase_total"
-				activeBuildCountQuery   = "openshift_build_running_phase_start_time_seconds"
-				failedBuildCountQuery   = "openshift_build_failed_phase_total"
+				buildCountQuery  = "openshift_build_total"
+				activeBuildQuery = "openshift_build_active_time_seconds"
 			)
 
 			appTemplate := exutil.FixturePath("..", "..", "examples", "jenkins", "application-template.json")
@@ -61,7 +60,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			// timing has been a bit tricky when attempting to query after the build is complete based on the
 			// default prometheus scrapping window, so we do the active query while the build is running
 			activeTests := map[string][]metricTest{
-				activeBuildCountQuery: {
+				activeBuildQuery: {
 					metricTest{
 						labels:      map[string]string{"name": "frontend-1"},
 						greaterThan: true,
@@ -77,7 +76,7 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 
 			g.By("verifying a service account token is able to query terminal build metrics from the Prometheus API")
 			terminalTests := map[string][]metricTest{
-				terminalBuildCountQuery: {
+				buildCountQuery: {
 					metricTest{
 						labels:      map[string]string{"phase": "complete"},
 						greaterThan: true,
@@ -85,19 +84,12 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 					metricTest{
 						labels: map[string]string{"phase": "cancelled"},
 					},
-				},
-			}
-			runQueries(terminalTests)
-
-			g.By("verifying a service account token is able to query failed build metrics from the Prometheus API")
-			failedTests := map[string][]metricTest{
-				failedBuildCountQuery: {
 					metricTest{
-						labels: map[string]string{"reason": ""},
+						labels: map[string]string{"phase": "failed"},
 					},
 				},
 			}
-			runQueries(failedTests)
+			runQueries(terminalTests)
 
 			// NOTE:  in manual testing on a laptop, starting several serial builds in succession was sufficient for catching
 			// at least a few builds in new/pending state with the default prometheus query interval;  but that has not
