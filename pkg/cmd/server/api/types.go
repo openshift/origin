@@ -154,6 +154,7 @@ var (
 		{DomainName: "quay.io"},
 		// FIXME: Probably need to have more fine-tuned pattern defined
 		{DomainName: "*.amazonaws.com"},
+		{DomainName: "127.0.0.1.nip.io"},
 	}
 )
 
