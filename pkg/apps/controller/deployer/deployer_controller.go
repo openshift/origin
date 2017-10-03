@@ -149,6 +149,10 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 				return actionableError(fmt.Sprintf("couldn't create deployer pod for %q: %v", deployutil.LabelForDeploymentV1(deployment), err))
 			}
 			updatedAnnotations[deployapi.DeploymentPodAnnotation] = deploymentPod.Name
+			updatedAnnotations[deployapi.DeployerPodCreatedAtAnnotation] = deploymentPod.CreationTimestamp.String()
+			if deploymentPod.Status.StartTime != nil {
+				updatedAnnotations[deployapi.DeployerPodStartedAtAnnotation] = deploymentPod.Status.StartTime.String()
+			}
 			nextStatus = deployapi.DeploymentStatusPending
 			glog.V(4).Infof("Created deployer pod %q for %q", deploymentPod.Name, deployutil.LabelForDeploymentV1(deployment))
 
@@ -176,6 +180,10 @@ func (c *DeploymentController) handle(deployment *v1.ReplicationController, will
 			} else {
 				// Update to pending or to the appropriate status relative to the existing validated deployer pod.
 				updatedAnnotations[deployapi.DeploymentPodAnnotation] = deployer.Name
+				updatedAnnotations[deployapi.DeployerPodCreatedAtAnnotation] = deployer.CreationTimestamp.String()
+				if deployer.Status.StartTime != nil {
+					updatedAnnotations[deployapi.DeployerPodStartedAtAnnotation] = deployer.Status.StartTime.String()
+				}
 				nextStatus = nextStatusComp(nextStatus, deployapi.DeploymentStatusPending)
 			}
 		}
@@ -293,14 +301,33 @@ func (c *DeploymentController) nextStatus(pod *v1.Pod, deployment *v1.Replicatio
 		}
 		// Sync the internal replica annotation with the target so that we can
 		// distinguish deployer updates from other scaling events.
+		completedTimestamp := getPodTerminatedTimestamp(pod)
+		if completedTimestamp != nil {
+			updatedAnnotations[deployapi.DeployerPodCompletedAtAnnotation] = completedTimestamp.String()
+		}
 		updatedAnnotations[deployapi.DeploymentReplicasAnnotation] = updatedAnnotations[deployapi.DesiredReplicasAnnotation]
 		delete(updatedAnnotations, deployapi.DesiredReplicasAnnotation)
 		return deployapi.DeploymentStatusComplete
 
 	case v1.PodFailed:
+		completedTimestamp := getPodTerminatedTimestamp(pod)
+		if completedTimestamp != nil {
+			updatedAnnotations[deployapi.DeployerPodCompletedAtAnnotation] = completedTimestamp.String()
+		}
 		return deployapi.DeploymentStatusFailed
 	}
 	return deployapi.DeploymentStatusNew
+}
+
+// getPodTerminatedTimestamp gets the first terminated container in a pod and
+// return its termination timestamp.
+func getPodTerminatedTimestamp(pod *v1.Pod) *metav1.Time {
+	for _, c := range pod.Status.ContainerStatuses {
+		if t := c.State.Terminated; t != nil {
+			return &t.FinishedAt
+		}
+	}
+	return nil
 }
 
 func nextStatusComp(fromDeployer, fromPath deployapi.DeploymentStatus) deployapi.DeploymentStatus {
