@@ -158,7 +158,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Type:    templateapi.TemplateInstanceInstantiateFailure,
 				Status:  kapi.ConditionTrue,
 				Reason:  "Failed",
-				Message: err.Error(),
+				Message: formatError(err),
 			})
 		}
 	}
@@ -174,7 +174,7 @@ func (c *TemplateInstanceController) sync(key string) error {
 				Type:    templateapi.TemplateInstanceInstantiateFailure,
 				Status:  kapi.ConditionTrue,
 				Reason:  "Failed",
-				Message: err.Error(),
+				Message: formatError(err),
 			})
 			templateInstance.SetCondition(templateapi.TemplateInstanceCondition{
 				Type:    templateapi.TemplateInstanceReady,
@@ -546,4 +546,18 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 	}
 
 	return nil
+}
+
+// formatError returns err.Error(), unless err is an Aggregate, in which case it
+// "\n"-separates the contained errors.
+func formatError(err error) string {
+	if err, ok := err.(kerrs.Aggregate); ok {
+		var errorStrings []string
+		for _, err := range err.Errors() {
+			errorStrings = append(errorStrings, err.Error())
+		}
+		return strings.Join(errorStrings, "\n")
+	}
+
+	return err.Error()
 }
