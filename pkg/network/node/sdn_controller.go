@@ -89,9 +89,9 @@ func (plugin *OsdnNode) alreadySetUp(localSubnetGatewayCIDR string, clusterNetwo
 	if err != nil {
 		return false
 	}
-	for _, route := range routes {
+	for _, clusterCIDR := range clusterNetworkCIDR {
 		found = false
-		for _, clusterCIDR := range clusterNetworkCIDR {
+		for _, route := range routes {
 			if route.Dst != nil && route.Dst.String() == clusterCIDR {
 				found = true
 				break
