@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -38,6 +39,8 @@ const PruneImagesRecommendedName = "images"
 
 var errNoToken = errors.New("you must use a client config with a token")
 
+const registryURLNotReachable = `(?:operation|connection) timed out|no such host`
+
 var (
 	imagesLongDesc = templates.LongDesc(`
 		Remove image stream tags, images, and image layers by age or usage
@@ -48,7 +51,9 @@ var (
 		registry by supplying --all=false flag.
 
 		By default, the prune operation performs a dry run making no changes to internal registry. A
-		--confirm flag is needed for changes to be effective.
+		--confirm flag is needed for changes to be effective. The flag requires a valid route to the
+		integrated Docker registry. If this command is run outside of the cluster network, the route
+		needs to be provided using --registry-url.
 
 		Only a user with a cluster role %s or higher who is logged-in will be able to actually
 		delete the images.
@@ -60,9 +65,9 @@ var (
 		Insecure connection is allowed in the following cases unless certificate-authority is
 		specified:
 
-		 1. --force-insecure is given
-		 2. provided registry-url is prefixed with http://
-		 3. registry url is a private or link-local address
+		 1. --force-insecure is given  
+		 2. provided registry-url is prefixed with http://  
+		 3. registry url is a private or link-local address  
 		 4. user's config allows for insecure connection (the user logged in to the cluster with
 			--insecure-skip-tls-verify or allowed for insecure connection)`)
 
@@ -139,7 +144,7 @@ func NewCmdPruneImages(f *clientcmd.Factory, parentName, name string, out io.Wri
 		},
 	}
 
-	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything.")
+	cmd.Flags().BoolVar(&opts.Confirm, "confirm", opts.Confirm, "If true, specify that image pruning should proceed. Defaults to false, displaying what would be deleted but not actually deleting anything. Requires a valid route to the integrated Docker registry (see --registry-url).")
 	cmd.Flags().BoolVar(opts.AllImages, "all", *opts.AllImages, "Include images that were not pushed to the registry but have been mirrored by pullthrough.")
 	cmd.Flags().DurationVar(opts.KeepYoungerThan, "keep-younger-than", *opts.KeepYoungerThan, "Specify the minimum age of an image for it to be considered a candidate for pruning.")
 	cmd.Flags().IntVar(opts.KeepTagRevisions, "keep-tag-revisions", *opts.KeepTagRevisions, "Specify the number of image revisions for a tag in an image stream that will be preserved.")
@@ -310,7 +315,10 @@ func (o PruneImagesOptions) Run() error {
 
 	registryURL, err := registryPinger.Ping(registryHost)
 	if err != nil {
-		return fmt.Errorf("error communicating with registry %s: %v", registryHost, err)
+		if len(o.RegistryUrlOverride) == 0 && regexp.MustCompile(registryURLNotReachable).MatchString(err.Error()) {
+			err = fmt.Errorf("%s\n* Please provide a reachable route to the integrated registry using --registry-url.", err.Error())
+		}
+		return fmt.Errorf("failed to ping registry %s: %v", registryHost, err)
 	}
 
 	options := prune.PrunerOptions{
