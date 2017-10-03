@@ -70,7 +70,8 @@ type HostSubnet struct {
 	Subnet string `json:"subnet" protobuf:"bytes,4,opt,name=subnet"`
 
 	// EgressIPs is the list of automatic egress IP addresses currently hosted by this node
-	EgressIPs []string `json:"egressIPs" protobuf:"bytes,5,rep,name=egressIPs"`
+	// +optional
+	EgressIPs []string `json:"egressIPs,omitempty" protobuf:"bytes,5,rep,name=egressIPs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -103,7 +104,7 @@ type NetNamespace struct {
 
 	// EgressIPs is a list of reserved IPs that will be used as the source for external traffic coming from pods in this namespace. (If empty, external traffic will be masqueraded to Node IPs.)
 	// +optional
-	EgressIPs []string `json:"egressIPs" protobuf:"bytes,4,rep,name=egressIPs"`
+	EgressIPs []string `json:"egressIPs,omitempty" protobuf:"bytes,4,rep,name=egressIPs"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
