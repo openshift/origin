@@ -15,7 +15,7 @@ var metricsRegexp = regexp.MustCompile("(?m)^# HELP ([^ ]*)")
 
 func TestMetrics(t *testing.T) {
 	expectedMetrics := []string{
-		"openshift_build_terminal_phase_total",
+		"openshift_build_total",
 		"openshift_template_instance_total",
 	}
 
