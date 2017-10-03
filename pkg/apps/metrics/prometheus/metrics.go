@@ -38,13 +38,13 @@ var (
 	lastFailedRolloutTimeDesc = prometheus.NewDesc(
 		nameToQuery(lastFailedRolloutTime),
 		"Tracks the time of last failure rollout per deployment config",
-		[]string{"namespace", "name", "generation"}, nil,
+		[]string{"namespace", "name", "latest_version"}, nil,
 	)
 
 	activeRolloutDurationSecondsDesc = prometheus.NewDesc(
 		nameToQuery(activeRolloutDurationSeconds),
 		"Tracks the active rollout duration in seconds",
-		[]string{"namespace", "name", "phase", "generation"}, nil,
+		[]string{"namespace", "name", "phase", "latest_version"}, nil,
 	)
 
 	apps       = appsCollector{}
@@ -70,8 +70,8 @@ func (c *appsCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 type failedRollout struct {
-	timestamp  float64
-	generation int64
+	timestamp     float64
+	latestVersion int64
 }
 
 // Collect implements the prometheus.Collector interface.
@@ -91,6 +91,7 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 		if len(dcName) == 0 {
 			continue
 		}
+		latestVersion := util.DeploymentVersionFor(d)
 
 		if util.IsTerminatedDeployment(d) {
 			if util.IsDeploymentCancelled(d) {
@@ -99,19 +100,13 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 			}
 			if util.IsFailedDeployment(d) {
 				failed++
-
 				// Track the latest failed rollout per deployment config
-				shouldUpdate := false
-				if r, exists := latestFailedRollouts[d.Namespace+"/"+dcName]; exists {
-					if d.Status.ObservedGeneration > r.generation {
-						shouldUpdate = true
-					}
+				if r, exists := latestFailedRollouts[d.Namespace+"/"+dcName]; exists && latestVersion <= r.latestVersion {
+					continue
 				}
-				if shouldUpdate {
-					latestFailedRollouts[d.Namespace+"/"+dcName] = failedRollout{
-						timestamp:  float64(d.CreationTimestamp.Unix()),
-						generation: d.Status.ObservedGeneration,
-					}
+				latestFailedRollouts[d.Namespace+"/"+dcName] = failedRollout{
+					timestamp:     float64(d.CreationTimestamp.Unix()),
+					latestVersion: latestVersion,
 				}
 				continue
 			}
@@ -128,7 +123,7 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 		}
 
 		// Record duration in seconds for active rollouts
-		// TODO: possible time screw?
+		// TODO: possible time skew?
 		durationSeconds := time.Now().Unix() - d.CreationTimestamp.Unix()
 		ch <- prometheus.MustNewConstMetric(
 			activeRolloutDurationSecondsDesc,
@@ -138,7 +133,7 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 				d.Namespace,
 				dcName,
 				phase,
-				fmt.Sprintf("%d", d.Status.ObservedGeneration),
+				fmt.Sprintf("%d", latestVersion),
 			}...)
 	}
 
@@ -152,7 +147,7 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 			[]string{
 				parts[0],
 				parts[1],
-				fmt.Sprintf("%d", r.generation),
+				fmt.Sprintf("%d", r.latestVersion),
 			}...)
 	}
 
