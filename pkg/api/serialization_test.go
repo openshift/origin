@@ -1,6 +1,7 @@
 package api_test
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -11,16 +12,21 @@ import (
 	apitesting "k8s.io/apimachinery/pkg/api/testing"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapitesting "k8s.io/kubernetes/pkg/api/testing"
+	"k8s.io/kubernetes/pkg/api/v1"
 	"k8s.io/kubernetes/pkg/api/validation"
+	"k8s.io/kubernetes/pkg/apis/componentconfig"
+	"k8s.io/kubernetes/pkg/apis/extensions"
+	extensionsv1beta1 "k8s.io/kubernetes/pkg/apis/extensions/v1beta1"
 
-	_ "github.com/openshift/origin/pkg/api/latest"
 	deploy "github.com/openshift/origin/pkg/apps/apis/apps"
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	build "github.com/openshift/origin/pkg/build/apis/build"
+	buildv1 "github.com/openshift/origin/pkg/build/apis/build/v1"
 	image "github.com/openshift/origin/pkg/image/apis/image"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	route "github.com/openshift/origin/pkg/route/apis/route"
@@ -30,10 +36,9 @@ import (
 
 	// install all APIs
 	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/origin/pkg/api/latest"
 	_ "github.com/openshift/origin/pkg/quota/apis/quota/install"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	_ "k8s.io/kubernetes/pkg/api/install"
-	"k8s.io/kubernetes/pkg/apis/componentconfig"
 )
 
 func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
@@ -169,10 +174,47 @@ func originFuzzer(t *testing.T, seed int64) *fuzz.Fuzzer {
 			}
 		},
 		func(j *template.Template, c fuzz.Continue) {
-			c.Fuzz(&j.ObjectMeta)
-			c.Fuzz(&j.Parameters)
-			// TODO: replace with structured type definition
-			j.Objects = []runtime.Object{}
+			c.FuzzNoCustom(j)
+			j.Objects = nil
+
+			objs := []runtime.Object{
+				&kapi.Pod{},
+				&extensions.Deployment{},
+				&kapi.Service{},
+				&build.BuildConfig{},
+			}
+
+			for _, obj := range objs {
+				c.Fuzz(obj)
+
+				var codec runtime.Codec
+				switch obj.(type) {
+				case *extensions.Deployment:
+					codec = apitesting.TestCodec(kapi.Codecs, extensionsv1beta1.SchemeGroupVersion)
+				case *build.BuildConfig:
+					codec = apitesting.TestCodec(kapi.Codecs, buildv1.SchemeGroupVersion)
+				default:
+					codec = apitesting.TestCodec(kapi.Codecs, v1.SchemeGroupVersion)
+				}
+
+				b, err := runtime.Encode(codec, obj)
+				if err != nil {
+					t.Error(err)
+					return
+				}
+
+				j.Objects = append(j.Objects,
+					&runtime.Unknown{
+						ContentType: "application/json",
+						Raw:         bytes.TrimRight(b, "\n"),
+					},
+				)
+			}
+
+			j.Objects = append(j.Objects, &runtime.Unknown{
+				ContentType: "application/json",
+				Raw:         []byte(`{"kind":"Foo","apiVersion":"mygroup/v1","complex":{"a":true},"list":["item"],"bool":true,"int":1,"string":"hello"}`),
+			})
 		},
 		func(j *image.Image, c fuzz.Continue) {
 			c.Fuzz(&j.ObjectMeta)
