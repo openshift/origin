@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 80cc30d9e7af33c4df04ab3fda4a61509158a815
+%global commit e638aee97bab0456bae386edbbd3fe96694aed5b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.141.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=80cc30d
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.142.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=e638aee
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.142.0%{?dist}
+Release:        0.143.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,25 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Oct 04 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.143.0
+- wrap aftereach in a context so it runs before the k8s namespace cleanup
+  (bparees@redhat.com)
+- format error returned from failed templateinstance less unpleasantly
+  (jminter@redhat.com)
+- regenerate files (danw@redhat.com)
+- Misc auto egress IP fixes (danw@redhat.com)
+- Only watch EgressIPs with multitenant and networkpolicy plugins
+  (danw@redhat.com)
+- Switch to stateful set in prometheus (ccoleman@redhat.com)
+- Test for bug 1487408 (obulatov@redhat.com)
+- Pruning should take all the images into account (agladkov@redhat.com)
+- Switch from defaulting to converting clusterNetworkCIDR (ccoleman@redhat.com)
+- reverse default for jenkins ext test mem monitor (gmontero@redhat.com)
+- annotate TemplateInstance objects created by TSB with instance UUID
+  (jminter@redhat.com)
+- separate openshift_template_instance_status_condition_total and
+  openshift_template_instance_total metrics (jminter@redhat.com)
+
 * Tue Oct 03 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.142.0
 - add e2e test for rsh to statefulset (mfojtik@redhat.com)
 - cli: add statefulsets to PodForResource (mfojtik@redhat.com)
