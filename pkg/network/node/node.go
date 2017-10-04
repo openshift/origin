@@ -51,6 +51,7 @@ const (
 type osdnPolicy interface {
 	Name() string
 	Start(node *OsdnNode) error
+	SupportsVNIDs() bool
 
 	AddNetNamespace(netns *networkapi.NetNamespace)
 	UpdateNetNamespace(netns *networkapi.NetNamespace, oldNetID uint32)
@@ -337,11 +338,16 @@ func (node *OsdnNode) Start() error {
 	if err != nil {
 		return err
 	}
-	if err = node.egressIP.Start(node.networkClient, nodeIPTables); err != nil {
-		return err
-	}
 	if err = node.policy.Start(node); err != nil {
 		return err
+	}
+	if node.policy.SupportsVNIDs() {
+		if err := node.SetupEgressNetworkPolicy(); err != nil {
+			return err
+		}
+		if err = node.egressIP.Start(node.networkClient, nodeIPTables); err != nil {
+			return err
+		}
 	}
 	if !node.useConnTrack {
 		node.watchServices()

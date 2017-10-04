@@ -13,6 +13,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -46,6 +47,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	)
 
 	g.BeforeEach(func() {
+		framework.SkipIfProviderIs("gce")
+
 		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
@@ -165,6 +168,10 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				Name:      secret.Name,
 				UID:       secret.UID,
 			},
+		}))
+
+		o.Expect(templateInstance.Annotations).To(o.Equal(map[string]string{
+			api.OpenServiceBrokerInstanceExternalID: templateInstance.Name,
 		}))
 
 		o.Expect(templateInstance.Spec).To(o.Equal(templateapi.TemplateInstanceSpec{

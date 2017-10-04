@@ -32,236 +32,238 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		timeout               = time.Minute
 	)
 
-	g.JustBeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
+	g.Context("test context", func() {
 
-		g.By("waiting for openshift namespace imagestreams")
-		err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
+		g.JustBeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("creating test image stream")
-		err = oc.Run("create").Args("-f", isFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+			g.By("waiting for openshift namespace imagestreams")
+			err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	})
+			g.By("creating test image stream")
+			err = oc.Run("create").Args("-f", isFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
-
-	g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting", func() {
-
-		g.By("creating test successful build config")
-		err := oc.Run("create").Args("-f", successfulBuildConfig).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("starting four test builds")
-		for i := 0; i < 4; i++ {
-			br, _ := exutil.StartBuildAndWait(oc, "myphp")
-			br.AssertSuccess()
-		}
-
-		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-
-		var builds *buildapi.BuildList
-
-		g.By("waiting up to one minute for pruning to complete")
-		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
-			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				return false, err
-			}
-			if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
-				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-				return true, nil
-			}
-			return false, nil
 		})
 
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-
-		passed := false
-		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-			passed = true
-		}
-		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
-
-	})
-
-	g.It("should prune failed builds based on the failedBuildsHistoryLimit setting", func() {
-
-		g.By("creating test failed build config")
-		err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("starting four test builds")
-		for i := 0; i < 4; i++ {
-			br, _ := exutil.StartBuildAndWait(oc, "myphp")
-			br.AssertFailure()
-		}
-
-		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-
-		var builds *buildapi.BuildList
-
-		g.By("waiting up to one minute for pruning to complete")
-		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
-			if err != nil {
-				fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				return false, err
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
 			}
-			if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
-				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-				return true, nil
-			}
-			return false, nil
 		})
 
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
+		g.It("should prune completed builds based on the successfulBuildsHistoryLimit setting", func() {
 
-		passed := false
-		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-			passed = true
-		}
-		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+			g.By("creating test successful build config")
+			err := oc.Run("create").Args("-f", successfulBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	})
+			g.By("starting four test builds")
+			for i := 0; i < 4; i++ {
+				br, _ := exutil.StartBuildAndWait(oc, "myphp")
+				br.AssertSuccess()
+			}
 
-	g.It("should prune canceled builds based on the failedBuildsHistoryLimit setting", func() {
-
-		g.By("creating test successful build config")
-		err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("starting and canceling three test builds")
-		for i := 1; i < 4; i++ {
-			_, _, _ = exutil.StartBuild(oc, "myphp")
-			err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
-		}
-
-		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-
-		var builds *buildapi.BuildList
-
-		g.By("waiting up to one minute for pruning to complete")
-		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				return false, err
 			}
-			if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
-				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-				return true, nil
-			}
-			return false, nil
-		})
 
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
+			var builds *buildapi.BuildList
 
-		passed := false
-		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-			passed = true
-		}
-		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+			g.By("waiting up to one minute for pruning to complete")
+			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					return false, err
+				}
+				if int32(len(builds.Items)) == *buildConfig.Spec.SuccessfulBuildsHistoryLimit {
+					fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+					return true, nil
+				}
+				return false, nil
+			})
 
-	})
-
-	g.It("should prune errored builds based on the failedBuildsHistoryLimit setting", func() {
-
-		g.By("creating test failed build config")
-		err := oc.Run("create").Args("-f", erroredBuildConfig).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		g.By("starting four test builds")
-		for i := 0; i < 4; i++ {
-			br, _ := exutil.StartBuildAndWait(oc, "myphp")
-			br.AssertFailure()
-		}
-
-		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-
-		var builds *buildapi.BuildList
-
-		g.By("waiting up to one minute for pruning to complete")
-		err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
-			builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
 			if err != nil {
 				fmt.Fprintf(g.GinkgoWriter, "%v", err)
-				return false, err
 			}
-			if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
-				fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
-				return true, nil
+
+			passed := false
+			if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+				passed = true
 			}
-			return false, nil
+			o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
 		})
 
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
+		g.It("should prune failed builds based on the failedBuildsHistoryLimit setting", func() {
 
-		passed := false
-		if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
-			passed = true
-		}
-		o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+			g.By("creating test failed build config")
+			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
+			g.By("starting four test builds")
+			for i := 0; i < 4; i++ {
+				br, _ := exutil.StartBuildAndWait(oc, "myphp")
+				br.AssertFailure()
+			}
+
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			var builds *buildapi.BuildList
+
+			g.By("waiting up to one minute for pruning to complete")
+			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					return false, err
+				}
+				if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+					fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+					return true, nil
+				}
+				return false, nil
+			})
+
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			passed := false
+			if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+				passed = true
+			}
+			o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+		})
+
+		g.It("should prune canceled builds based on the failedBuildsHistoryLimit setting", func() {
+
+			g.By("creating test successful build config")
+			err := oc.Run("create").Args("-f", failedBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting and canceling three test builds")
+			for i := 1; i < 4; i++ {
+				_, _, _ = exutil.StartBuild(oc, "myphp")
+				err = oc.Run("cancel-build").Args(fmt.Sprintf("myphp-%d", i)).Execute()
+			}
+
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			var builds *buildapi.BuildList
+
+			g.By("waiting up to one minute for pruning to complete")
+			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					return false, err
+				}
+				if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+					fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+					return true, nil
+				}
+				return false, nil
+			})
+
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			passed := false
+			if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+				passed = true
+			}
+			o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+		})
+
+		g.It("should prune errored builds based on the failedBuildsHistoryLimit setting", func() {
+
+			g.By("creating test failed build config")
+			err := oc.Run("create").Args("-f", erroredBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			g.By("starting four test builds")
+			for i := 0; i < 4; i++ {
+				br, _ := exutil.StartBuildAndWait(oc, "myphp")
+				br.AssertFailure()
+			}
+
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			var builds *buildapi.BuildList
+
+			g.By("waiting up to one minute for pruning to complete")
+			err = wait.PollImmediate(pollingInterval, timeout, func() (bool, error) {
+				builds, err = oc.BuildClient().Build().Builds(oc.Namespace()).List(metav1.ListOptions{})
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "%v", err)
+					return false, err
+				}
+				if int32(len(builds.Items)) == *buildConfig.Spec.FailedBuildsHistoryLimit {
+					fmt.Fprintf(g.GinkgoWriter, "%v builds exist, retrying...", len(builds.Items))
+					return true, nil
+				}
+				return false, nil
+			})
+
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+
+			passed := false
+			if int32(len(builds.Items)) == 2 || int32(len(builds.Items)) == 3 {
+				passed = true
+			}
+			o.Expect(passed).To(o.BeTrue(), "there should be 2-3 completed builds left after pruning, but instead there were %v", len(builds.Items))
+
+		})
+
+		g.It("[Conformance] buildconfigs should have a default history limit set when created via the group api", func() {
+
+			g.By("creating a build config with the group api")
+			err := oc.Run("create").Args("-f", groupBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+			o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default successful history limit set")
+			o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default failed history limit set")
+			o.Expect(*buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.Equal(buildapi.DefaultSuccessfulBuildsHistoryLimit), "the buildconfig should have the default successful history limit set")
+			o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(buildapi.DefaultFailedBuildsHistoryLimit), "the buildconfig should have the default failed history limit set")
+		})
+
+		g.It("[Conformance] buildconfigs should not have a default history limit set when created via the legacy api", func() {
+
+			g.By("creating a build config with the legacy api")
+			err := oc.Run("create").Args("-f", legacyBuildConfig).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "%v", err)
+			}
+			o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.BeNil(), "the buildconfig should not have the default successful history limit set")
+			o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).To(o.BeNil(), "the buildconfig should not have the default failed history limit set")
+		})
 	})
-
-	g.It("[Conformance] buildconfigs should have a default history limit set when created via the group api", func() {
-
-		g.By("creating a build config with the group api")
-		err := oc.Run("create").Args("-f", groupBuildConfig).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-		o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default successful history limit set")
-		o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).NotTo(o.BeNil(), "the buildconfig should have the default failed history limit set")
-		o.Expect(*buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.Equal(buildapi.DefaultSuccessfulBuildsHistoryLimit), "the buildconfig should have the default successful history limit set")
-		o.Expect(*buildConfig.Spec.FailedBuildsHistoryLimit).To(o.Equal(buildapi.DefaultFailedBuildsHistoryLimit), "the buildconfig should have the default failed history limit set")
-	})
-
-	g.It("[Conformance] buildconfigs should not have a default history limit set when created via the legacy api", func() {
-
-		g.By("creating a build config with the legacy api")
-		err := oc.Run("create").Args("-f", legacyBuildConfig).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-
-		buildConfig, err := oc.BuildClient().Build().BuildConfigs(oc.Namespace()).Get("myphp", metav1.GetOptions{})
-		if err != nil {
-			fmt.Fprintf(g.GinkgoWriter, "%v", err)
-		}
-		o.Expect(buildConfig.Spec.SuccessfulBuildsHistoryLimit).To(o.BeNil(), "the buildconfig should not have the default successful history limit set")
-		o.Expect(buildConfig.Spec.FailedBuildsHistoryLimit).To(o.BeNil(), "the buildconfig should not have the default failed history limit set")
-	})
-
 })

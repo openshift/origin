@@ -90,12 +90,6 @@ func SetDefaults_MasterConfig(obj *MasterConfig) {
 			obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 		}
 	}
-	if len(obj.NetworkConfig.ClusterNetworks) == 0 {
-		obj.NetworkConfig.ClusterNetworks = []ClusterNetworkEntry{{CIDR: obj.NetworkConfig.DeprecatedClusterNetworkCIDR, HostSubnetLength: obj.NetworkConfig.DeprecatedHostSubnetLength}}
-
-		obj.NetworkConfig.DeprecatedClusterNetworkCIDR = ""
-		obj.NetworkConfig.DeprecatedHostSubnetLength = 0
-	}
 
 	// TODO Detect cloud provider when not using built-in kubernetes
 	kubeConfig := obj.KubernetesMasterConfig
@@ -369,6 +363,35 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		func(in *internal.MasterVolumeConfig, out *MasterVolumeConfig, s conversion.Scope) error {
 			enabled := in.DynamicProvisioningEnabled
 			out.DynamicProvisioningEnabled = &enabled
+			return nil
+		},
+		func(in *MasterNetworkConfig, out *internal.MasterNetworkConfig, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if len(in.DeprecatedClusterNetworkCIDR) > 0 || in.DeprecatedHostSubnetLength > 0 {
+				if len(out.ClusterNetworks) > 0 {
+					out.ClusterNetworks[0].CIDR = in.DeprecatedClusterNetworkCIDR
+					out.ClusterNetworks[0].HostSubnetLength = in.DeprecatedHostSubnetLength
+				} else {
+					out.ClusterNetworks = []internal.ClusterNetworkEntry{
+						{
+							CIDR:             in.DeprecatedClusterNetworkCIDR,
+							HostSubnetLength: in.DeprecatedHostSubnetLength,
+						},
+					}
+				}
+			}
+			return nil
+		},
+		func(in *internal.MasterNetworkConfig, out *MasterNetworkConfig, s conversion.Scope) error {
+			if err := s.DefaultConvert(in, out, conversion.IgnoreMissingFields); err != nil {
+				return err
+			}
+			if len(in.ClusterNetworks) > 0 {
+				out.DeprecatedHostSubnetLength = in.ClusterNetworks[0].HostSubnetLength
+				out.DeprecatedClusterNetworkCIDR = in.ClusterNetworks[0].CIDR
+			}
 			return nil
 		},
 

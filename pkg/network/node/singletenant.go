@@ -17,6 +17,10 @@ func (sp *singleTenantPlugin) Name() string {
 	return network.SingleTenantPluginName
 }
 
+func (sp *singleTenantPlugin) SupportsVNIDs() bool {
+	return false
+}
+
 func (sp *singleTenantPlugin) Start(node *OsdnNode) error {
 	otx := node.oc.NewTransaction()
 	otx.AddFlow("table=80, priority=200, actions=output:NXM_NX_REG2[]")

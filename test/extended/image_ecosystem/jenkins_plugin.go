@@ -126,7 +126,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 
 	g.AfterEach(func() {
 
-		if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 			ticker.Stop()
 		}
 
@@ -217,7 +217,7 @@ var _ = g.Describe("[image_ecosystem][jenkins][Slow] openshift pipeline plugin",
 			o.Expect(err).NotTo(o.HaveOccurred())
 		}
 
-		if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 			ticker = jenkins.StartJenkinsMemoryTracking(oc, jenkinsNamespace)
 		}
 

@@ -143,7 +143,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	g.BeforeEach(func() {
 		setupJenkins()
 
-		if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 			ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
 		}
 
@@ -152,16 +152,13 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
-
 	g.Context("Pipeline with maven slave", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
 			}
 		})
@@ -192,7 +189,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using config map slave", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
 				ticker.Stop()
 			}
@@ -228,7 +229,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using imagestream slave", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
 				ticker.Stop()
 			}
@@ -264,7 +269,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using imagestreamtag slave", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
 				ticker.Stop()
 			}
@@ -300,7 +309,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline using jenkins-client-plugin", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
 			}
 		})
@@ -331,7 +344,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Pipeline with env vars", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
 			}
 		})
@@ -417,7 +434,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	/*g.Context("Orchestration pipeline", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsGCStats) == "" {
+			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
 				ticker.Stop()
 			}
@@ -447,7 +464,11 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 
 	g.Context("Blue-green pipeline", func() {
 		g.AfterEach(func() {
-			if os.Getenv(jenkins.DisableJenkinsMemoryStats) == "" {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
 				ticker.Stop()
 			}
 		})

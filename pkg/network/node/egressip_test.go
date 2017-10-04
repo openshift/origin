@@ -34,10 +34,10 @@ func TestEgressIP(t *testing.T) {
 	eip := newEgressIPWatcher("172.17.0.4", oc)
 	eip.testModeChan = make(chan string, 10)
 
-	eip.updateNode("172.17.0.3", []string{})
-	eip.updateNode("172.17.0.4", []string{})
-	eip.updateNamespace(42, "")
-	eip.updateNamespace(43, "")
+	eip.updateNodeEgress("172.17.0.3", []string{})
+	eip.updateNodeEgress("172.17.0.4", []string{})
+	eip.deleteNamespaceEgress(42)
+	eip.deleteNamespaceEgress(43)
 
 	// No namespaces use egress yet, so should be no changes
 	err := assertNoNetlinkChanges(eip)
@@ -54,7 +54,7 @@ func TestEgressIP(t *testing.T) {
 	}
 
 	// Assign NetNamespace.EgressIP first, then HostSubnet.EgressIP, with a remote EgressIP
-	eip.updateNamespace(42, "172.17.0.100")
+	eip.updateNamespaceEgress(42, "172.17.0.100")
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -73,7 +73,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("Unexpected flow changes: %v", err)
 	}
 
-	eip.updateNode("172.17.0.3", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -94,7 +94,7 @@ func TestEgressIP(t *testing.T) {
 	origFlows = flows
 
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a remote EgressIP
-	eip.updateNode("172.17.0.3", []string{"172.17.0.101", "172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.101", "172.17.0.100"})
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -108,7 +108,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("Unexpected flow changes: %v", err)
 	}
 
-	eip.updateNamespace(43, "172.17.0.101")
+	eip.updateNamespaceEgress(43, "172.17.0.101")
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -129,7 +129,7 @@ func TestEgressIP(t *testing.T) {
 	origFlows = flows
 
 	// Assign NetNamespace.EgressIP first, then HostSubnet.EgressIP, with a local EgressIP
-	eip.updateNamespace(44, "172.17.0.102")
+	eip.updateNamespaceEgress(44, "172.17.0.102")
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -148,7 +148,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("Unexpected flow changes: %v", err)
 	}
 
-	eip.updateNode("172.17.0.4", []string{"172.17.0.102"})
+	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102"})
 	err = assertNetlinkChange(eip, "claim 172.17.0.102")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -169,7 +169,7 @@ func TestEgressIP(t *testing.T) {
 	origFlows = flows
 
 	// Assign HostSubnet.EgressIP first, then NetNamespace.EgressIP, with a local EgressIP
-	eip.updateNode("172.17.0.4", []string{"172.17.0.102", "172.17.0.103"})
+	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102", "172.17.0.103"})
 	err = assertNetlinkChange(eip, "claim 172.17.0.103")
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -183,7 +183,7 @@ func TestEgressIP(t *testing.T) {
 		t.Fatalf("Unexpected flow changes: %v", err)
 	}
 
-	eip.updateNamespace(45, "172.17.0.103")
+	eip.updateNamespaceEgress(45, "172.17.0.103")
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -204,7 +204,7 @@ func TestEgressIP(t *testing.T) {
 	origFlows = flows
 
 	// Drop namespace EgressIP
-	eip.updateNamespace(44, "")
+	eip.deleteNamespaceEgress(44)
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -225,7 +225,7 @@ func TestEgressIP(t *testing.T) {
 	origFlows = flows
 
 	// Drop remote node EgressIP
-	eip.updateNode("172.17.0.3", []string{"172.17.0.100"})
+	eip.updateNodeEgress("172.17.0.3", []string{"172.17.0.100"})
 	err = assertNoNetlinkChanges(eip)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -250,7 +250,7 @@ func TestEgressIP(t *testing.T) {
 	origFlows = flows
 
 	// Drop local node EgressIP
-	eip.updateNode("172.17.0.4", []string{"172.17.0.102"})
+	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.102"})
 	err = assertNetlinkChange(eip, "release 172.17.0.103")
 	if err != nil {
 		t.Fatalf("%v", err)
