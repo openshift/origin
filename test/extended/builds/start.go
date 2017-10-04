@@ -29,7 +29,7 @@ var _ = g.Describe("[Feature:Builds][Slow] starting a build using CLI", func() {
 		oc                = exutil.NewCLI("cli-start-build", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

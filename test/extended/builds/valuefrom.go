@@ -23,7 +23,7 @@ var _ = g.Describe("[Feature:Builds][Conformance][valueFrom] process valueFrom i
 		oc                             = exutil.NewCLI("build-valuefrom", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

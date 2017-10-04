@@ -73,7 +73,7 @@ var _ = g.Describe("[Feature:Builds] forcePull should affect pulling builder ima
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("forcepull", exutil.KubeConfigPath())
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.BeforeEach(func() {
 			g.By("waiting for openshift/ruby:latest ImageStreamTag")
