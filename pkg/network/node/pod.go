@@ -72,6 +72,10 @@ type podManager struct {
 	ovs     *ovsController
 
 	enableHostports bool
+	// true if hostports have been synced at least once
+	hostportsSynced bool
+	// true if at least one running pod has a hostport mapping
+	activeHostports bool
 
 	// Things only accessed through the processCNIRequests() goroutine
 	// and thus can be set from Start()
@@ -188,12 +192,33 @@ func (m *podManager) getPod(request *cniserver.PodRequest) *kubehostport.PodPort
 }
 
 // Return a list of Kubernetes RunningPod objects for hostport operations
-func (m *podManager) getRunningPods() []*kubehostport.PodPortMapping {
-	pods := make([]*kubehostport.PodPortMapping, 0)
-	for _, runningPod := range m.runningPods {
-		pods = append(pods, runningPod.podPortMapping)
+func (m *podManager) shouldSyncHostports(newPod *kubehostport.PodPortMapping) []*kubehostport.PodPortMapping {
+	if m.hostportSyncer == nil {
+		return nil
 	}
-	return pods
+
+	newActiveHostports := false
+	mappings := make([]*kubehostport.PodPortMapping, 0)
+	for _, runningPod := range m.runningPods {
+		mappings = append(mappings, runningPod.podPortMapping)
+		if !newActiveHostports && len(runningPod.podPortMapping.PortMappings) > 0 {
+			newActiveHostports = true
+		}
+	}
+	if newPod != nil && len(newPod.PortMappings) > 0 {
+		newActiveHostports = true
+	}
+
+	// Sync the first time a pod is started (to clear out stale mappings
+	// if kubelet crashed), or when there are any/will be active hostports.
+	// Otherwise don't bother.
+	if !m.hostportsSynced || m.activeHostports || newActiveHostports {
+		m.hostportsSynced = true
+		m.activeHostports = newActiveHostports
+		return mappings
+	}
+
+	return nil
 }
 
 // Add a request to the podManager CNI request queue
@@ -513,8 +538,8 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 	defer func() {
 		if !success {
 			m.ipamDel(req.SandboxID)
-			if m.hostportSyncer != nil {
-				if err := m.hostportSyncer.SyncHostports(Tun0, m.getRunningPods()); err != nil {
+			if mappings := m.shouldSyncHostports(nil); mappings != nil {
+				if err := m.hostportSyncer.SyncHostports(Tun0, mappings); err != nil {
 					glog.Warningf("failed syncing hostports: %v", err)
 				}
 			}
@@ -527,8 +552,8 @@ func (m *podManager) setup(req *cniserver.PodRequest) (cnitypes.Result, *running
 		return nil, nil, err
 	}
 	podPortMapping := kubehostport.ConstructPodPortMapping(&v1Pod, podIP)
-	if m.hostportSyncer != nil {
-		if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, m.getRunningPods()); err != nil {
+	if mappings := m.shouldSyncHostports(podPortMapping); mappings != nil {
+		if err := m.hostportSyncer.OpenPodHostportsAndSync(podPortMapping, Tun0, mappings); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -651,8 +676,8 @@ func (m *podManager) teardown(req *cniserver.PodRequest) error {
 		errList = append(errList, err)
 	}
 
-	if m.hostportSyncer != nil {
-		if err := m.hostportSyncer.SyncHostports(Tun0, m.getRunningPods()); err != nil {
+	if mappings := m.shouldSyncHostports(nil); mappings != nil {
+		if err := m.hostportSyncer.SyncHostports(Tun0, mappings); err != nil {
 			errList = append(errList, err)
 		}
 	}
