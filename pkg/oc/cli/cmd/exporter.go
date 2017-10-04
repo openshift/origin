@@ -208,6 +208,17 @@ func (e *DefaultExporter) Export(obj runtime.Object, exact bool) error {
 			}
 			for name, ref := range t.Spec.Tags {
 				if _, ok := t.Status.Tags[name]; ok {
+					// if the original spec tag contained an ImportedFromAnnotation,
+					// replace the status tag with it
+					if origSrc, ok := ref.Annotations[imageapi.ImportedFromAnnotation]; ok {
+						newTag, exists := newSpec.Tags[name]
+						if !exists {
+							continue
+						}
+						newTag.From.Name = origSrc
+						newSpec.Tags[name] = newTag
+					}
+
 					continue
 				}
 				// TODO: potentially trim some of these
