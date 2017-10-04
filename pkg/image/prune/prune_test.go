@@ -914,6 +914,14 @@ func TestImagePruning(t *testing.T) {
 			},
 		},
 
+		"layers shared with young images are not pruned": {
+			images: imageList(
+				agedImage("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", 43200),
+				agedImage("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", 5),
+			),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+		},
+
 		"image exceeding limits": {
 			pruneOverSizeLimit: newBool(true),
 			images: imageList(
@@ -1378,7 +1386,7 @@ func TestImageIsPrunable(t *testing.T) {
 	g.AddEdge(streamNode, imageNode, ReferencedImageEdgeKind)
 	g.AddEdge(streamNode, imageNode, WeakReferencedImageEdgeKind)
 
-	if imageIsPrunable(g, imageNode.(*imagegraph.ImageNode)) {
+	if imageIsPrunable(g, imageNode.(*imagegraph.ImageNode), pruneAlgorithm{}) {
 		t.Fatalf("Image is prunable although it should not")
 	}
 }

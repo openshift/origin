@@ -260,21 +260,6 @@ func addImagesToGraph(g graph.Graph, images *imageapi.ImageList, algorithm prune
 	for i := range images.Items {
 		image := &images.Items[i]
 
-		glog.V(4).Infof("Examining image %q", image.Name)
-
-		if !algorithm.allImages {
-			if image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
-				glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping", image.Name, image.DockerImageReference)
-				continue
-			}
-		}
-
-		age := metav1.Now().Sub(image.CreationTimestamp.Time)
-		if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
-			glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%v)", image.Name, age)
-			continue
-		}
-
 		glog.V(4).Infof("Adding image %q to graph", image.Name)
 		imageNode := imagegraph.EnsureImageNode(g, image)
 
@@ -596,12 +581,26 @@ func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 	return kinds.Has(desiredKind)
 }
 
-// imageIsPrunable returns true iff the image node only has weak references
+// imageIsPrunable returns true if the image node only has weak references
 // from its predecessors to it. A weak reference to an image is a reference
 // from an image stream to an image where the image is not the current image
 // for a tag and the image stream is at least as old as the minimum pruning
 // age.
-func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode) bool {
+func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode, algorithm pruneAlgorithm) bool {
+	if !algorithm.allImages {
+		if imageNode.Image.Annotations[imageapi.ManagedByOpenShiftAnnotation] != "true" {
+			glog.V(4).Infof("Image %q with DockerImageReference %q belongs to an external registry - skipping",
+				imageNode.Image.Name, imageNode.Image.DockerImageReference)
+			return false
+		}
+	}
+
+	age := metav1.Now().Sub(imageNode.Image.CreationTimestamp.Time)
+	if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
+		glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%v)", imageNode.Image.Name, age)
+		return false
+	}
+
 	for _, n := range g.To(imageNode) {
 		glog.V(4).Infof("Examining predecessor %#v", n)
 		if edgeKind(g, n, imageNode, ReferencedImageEdgeKind) {
@@ -615,14 +614,14 @@ func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode) bool {
 
 // calculatePrunableImages returns the list of prunable images and a
 // graph.NodeSet containing the image node IDs.
-func calculatePrunableImages(g graph.Graph, imageNodes []*imagegraph.ImageNode) ([]*imagegraph.ImageNode, graph.NodeSet) {
+func calculatePrunableImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, algorithm pruneAlgorithm) ([]*imagegraph.ImageNode, graph.NodeSet) {
 	prunable := []*imagegraph.ImageNode{}
 	ids := make(graph.NodeSet)
 
 	for _, imageNode := range imageNodes {
 		glog.V(4).Infof("Examining image %q", imageNode.Image.Name)
 
-		if imageIsPrunable(g, imageNode) {
+		if imageIsPrunable(g, imageNode, algorithm) {
 			glog.V(4).Infof("Image %q is prunable", imageNode.Image.Name)
 			prunable = append(prunable, imageNode)
 			ids.Add(imageNode.ID())
@@ -765,7 +764,7 @@ func (p *pruner) Prune(
 		return nil
 	}
 
-	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes)
+	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes, p.algorithm)
 
 	errs := []error{}
 	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
