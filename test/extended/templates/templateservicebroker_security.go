@@ -2,6 +2,7 @@ package templates
 
 import (
 	"net/http"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
@@ -102,7 +103,10 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 
 	provision := func(username string) error {
 		g.By("provisioning a service")
-		_, err := brokercli.Provision(context.Background(), &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, &api.ProvisionRequest{
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+		defer cancel()
+
+		_, err := brokercli.Provision(ctx, &user.DefaultInfo{Name: username, Groups: []string{"system:authenticated"}}, instanceID, &api.ProvisionRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
 			Context: api.KubernetesContext{
