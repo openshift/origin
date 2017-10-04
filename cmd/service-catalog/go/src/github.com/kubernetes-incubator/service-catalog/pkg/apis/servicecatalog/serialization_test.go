@@ -28,16 +28,15 @@ import (
 	proto "github.com/golang/protobuf/proto"
 	flag "github.com/spf13/pflag"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	testapi "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
 	apitesting "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testing"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/pkg/api"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 
@@ -101,7 +100,7 @@ func doRoundTripTest(group testapi.TestGroup, kind string, t *testing.T) {
 	if !nonInternalRoundTrippableTypes.Has(kind) && api.Scheme.Recognizes(gvk) {
 		roundTrip(t, group.Codec(), fuzzInternalObject(t, group.InternalGroupVersion(), item, rand.Int63()))
 	} else {
-		fmt.Printf("skipped roundTrip for gvk: %v\n", gvk)
+		t.Logf("skipped roundTrip for gvk: %v\n", gvk)
 	}
 }
 
@@ -207,7 +206,7 @@ func TestSpecificKind(t *testing.T) {
 	group := serviceCatalogAPIGroup()
 
 	for _, kind := range group.InternalTypes() {
-		fmt.Println(kind)
+		t.Log(kind)
 	}
 
 	kind := "ServiceClass"
@@ -270,38 +269,13 @@ func TestRoundTripTypes(t *testing.T) {
 	}
 }
 
-func testEncodePtr(t *testing.T) {
-	broker := &servicecatalog.ServiceBroker{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ServiceBroker",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Labels: map[string]string{"name": "broker_foo"},
-		},
-	}
-
-	obj := runtime.Object(broker)
-	data, err := runtime.Encode(testapi.Default.Codec(), obj)
-	obj2, err2 := runtime.Decode(testapi.Default.Codec(), data)
-	if err != nil || err2 != nil {
-		t.Fatalf("Failure: '%v' '%v'", err, err2)
-	}
-	if _, ok := obj2.(*api.Pod); !ok {
-		t.Fatalf("Got wrong type")
-	}
-	if !equality.Semantic.DeepEqual(obj2, broker) {
-		t.Errorf("\nExpected:\n\n %#v,\n\nGot:\n\n %#vDiff: %v\n\n", broker, obj2, diff.ObjectDiff(obj2, broker))
-
-	}
-}
-
 func TestBadJSONRejection(t *testing.T) {
 	badJSONMissingKind := []byte(`{ }`)
-	if _, err := runtime.Decode(testapi.Default.Codec(), badJSONMissingKind); err == nil {
+	if _, err := runtime.Decode(testapi.ServiceCatalog.Codec(), badJSONMissingKind); err == nil {
 		t.Errorf("Did not reject despite lack of kind field: %s", badJSONMissingKind)
 	}
 	badJSONUnknownType := []byte(`{"kind": "bar"}`)
-	if _, err1 := runtime.Decode(testapi.Default.Codec(), badJSONUnknownType); err1 == nil {
+	if _, err1 := runtime.Decode(testapi.ServiceCatalog.Codec(), badJSONUnknownType); err1 == nil {
 		t.Errorf("Did not reject despite use of unknown type: %s", badJSONUnknownType)
 	}
 }

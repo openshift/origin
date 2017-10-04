@@ -46,9 +46,6 @@ spec:
         {{- if eq .Values.apiserver.storage.type "etcd" }}
         - --etcd-servers
         - {{ .Values.apiserver.storage.etcd.servers }}
-        {{- else if eq .Values.apiserver.storage.type "tpr" }}
-        - --global-namespace
-        - {{ .Values.apiserver.storage.tpr.globalNamespace }}
         {{- end }}
         - -v
         - "{{ .Values.apiserver.verbosity }}"
@@ -57,6 +54,10 @@ spec:
         {{- end }}
         {{- if not .Values.apiserver.auth.enabled }}
         - --disable-auth
+        {{- end }}
+        {{- if .Values.originatingIdentityEnabled }}
+        - --feature-gates
+        - OriginatingIdentity=true
         {{- end }}
         ports:
         - containerPort: 8443

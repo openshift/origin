@@ -30,11 +30,8 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/changevalidator"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/defaultserviceplan"
 	"github.com/spf13/cobra"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/admission"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
-	clientset "k8s.io/client-go/kubernetes"
-	restclient "k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/util/interrupt"
 )
 
@@ -51,8 +48,7 @@ const (
 	// GroupName I made this up. Maybe we'll need it.
 	GroupName = "service-catalog.k8s.io"
 
-	storageTypeFlagName    = "storageType"
-	tprGlobalNamespaceName = "tprGlobalNamespace"
+	storageTypeFlagName = "storageType"
 )
 
 // NewCommandServer creates a new cobra command to run our server.
@@ -78,7 +74,6 @@ func NewCommandServer(
 		AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
 		AuditOptions:            genericserveroptions.NewAuditOptions(),
 		EtcdOptions:             NewEtcdOptions(),
-		TPROptions:              NewTPROptions(),
 		StopCh:                  stopCh,
 		StandaloneMode:          standaloneMode(),
 	}
@@ -104,23 +99,8 @@ func NewCommandServer(
 		// Store resources in etcd under our special prefix
 		opts.EtcdOptions.StorageConfig.Prefix = etcdPathPrefix
 	} else {
-		cfg, err := restclient.InClusterConfig()
-		if err != nil {
-			glog.Errorf("Failed to get kube client config (%s)", err)
-			return nil, err
-		}
-		cfg.GroupVersion = &schema.GroupVersion{}
-
-		clIface, err := clientset.NewForConfig(cfg)
-		if err != nil {
-			glog.Errorf("Failed to create clientset Interface (%s)", err)
-			return nil, err
-		}
-
-		glog.Infof("using third party resources for storage")
-		opts.TPROptions.DefaultGlobalNamespace = "servicecatalog"
-		opts.TPROptions.RESTClient = clIface.Core().RESTClient()
-		opts.TPROptions.InstallTPRsFunc = installTPRsToCore(clIface)
+		// This should never happen, catch for potential bugs
+		panic("Unexpected storage type: " + storageType)
 	}
 
 	cmd.Run = func(c *cobra.Command, args []string) {

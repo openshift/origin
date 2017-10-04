@@ -20,6 +20,6 @@ type ServiceBrokerExpansion interface{}
 
 type ServiceClassExpansion interface{}
 
-type ServiceInstanceExpansion interface{}
-
 type ServiceInstanceCredentialExpansion interface{}
+
+type ServicePlanExpansion interface{}

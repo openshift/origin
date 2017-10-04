@@ -19,8 +19,8 @@ package options
 import (
 	"strings"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/pkg/api"
 
 	"github.com/spf13/pflag"
 )

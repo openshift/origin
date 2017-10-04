@@ -45,6 +45,10 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		By("Creating a ups-broker service")
 		_, err = f.KubeClientSet.CoreV1().Services(f.Namespace.Name).Create(NewUPSBrokerService(upsbrokername))
 		Expect(err).NotTo(HaveOccurred(), "failed to create upsbroker service")
+
+		By("Waiting for service endpoint")
+		err = framework.WaitForEndpoint(f.KubeClientSet, f.Namespace.Name, upsbrokername)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -62,9 +66,12 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		var (
 			brokerName       = upsbrokername
 			serviceclassName = "user-provided-service"
+			serviceclassID   = "4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468"
+			serviceplanID    = "86064792-7ea2-467b-af93-ac9694d96d52"
 			testns           = "test-ns"
 			instanceName     = "ups-instance"
 			bindingName      = "ups-instance-credential"
+			instanceNameDef  = "ups-instance-def"
 		)
 
 		// Broker and ServiceClass should become ready
@@ -102,7 +109,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		Expect(err).NotTo(HaveOccurred(), "failed to wait ServiceBroker to be ready")
 
 		By("Waiting for ServiceClass to be ready")
-		err = util.WaitForServiceClassToExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), serviceclassName)
+		err = util.WaitForServiceClassToExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), serviceclassID)
 		Expect(err).NotTo(HaveOccurred(), "failed to wait serviceclass to be ready")
 
 		// Provisioning a ServiceInstance and binding to it
@@ -117,8 +124,8 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 				Namespace: testnamespace.Name,
 			},
 			Spec: v1alpha1.ServiceInstanceSpec{
-				ServiceClassName: serviceclassName,
-				PlanName:         "default",
+				ExternalServiceClassName: serviceclassName,
+				ExternalServicePlanName:  "default",
 			},
 		}
 		instance, err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceInstances(testnamespace.Name).Create(instance)
@@ -135,6 +142,15 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 			},
 		)
 		Expect(err).NotTo(HaveOccurred(), "failed to wait instance to be ready")
+
+		// Make sure references have been resolved
+		By("References should have been resolved before ServiceInstance is ready ")
+		sc, err := f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceInstances(testnamespace.Name).Get(instanceName, metav1.GetOptions{})
+		Expect(err).NotTo(HaveOccurred(), "failed to get ServiceInstance after binding")
+		Expect(sc.Spec.ServiceClassRef).NotTo(BeNil())
+		Expect(sc.Spec.ServicePlanRef).NotTo(BeNil())
+		Expect(sc.Spec.ServiceClassRef.Name).To(Equal(serviceclassID))
+		Expect(sc.Spec.ServicePlanRef.Name).To(Equal(serviceplanID))
 
 		// Binding to the ServiceInstance
 		By("Creating a ServiceInstanceCredential")
@@ -191,6 +207,40 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		err = util.WaitForInstanceToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), testnamespace.Name, instanceName)
 		Expect(err).NotTo(HaveOccurred())
 
+		By("Creating a ServiceInstance using a default plan")
+		instanceDef := &v1alpha1.ServiceInstance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      instanceNameDef,
+				Namespace: testnamespace.Name,
+			},
+			Spec: v1alpha1.ServiceInstanceSpec{
+				ExternalServiceClassName: serviceclassName,
+			},
+		}
+		instance, err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceInstances(testnamespace.Name).Create(instanceDef)
+		Expect(err).NotTo(HaveOccurred(), "failed to create instance with default plan")
+		Expect(instanceDef).NotTo(BeNil())
+
+		By("Waiting for ServiceInstance to be ready")
+		err = util.WaitForInstanceCondition(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(),
+			testnamespace.Name,
+			instanceNameDef,
+			v1alpha1.ServiceInstanceCondition{
+				Type:   v1alpha1.ServiceInstanceConditionReady,
+				Status: v1alpha1.ConditionTrue,
+			},
+		)
+		Expect(err).NotTo(HaveOccurred(), "failed to wait instance with default plan to be ready")
+
+		// Deprovisioning the ServiceInstance with default plan
+		By("Deleting the ServiceInstance with default plan")
+		err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceInstances(testnamespace.Name).Delete(instanceNameDef, nil)
+		Expect(err).NotTo(HaveOccurred(), "failed to delete the instance with default plan")
+
+		By("Waiting for ServiceInstance with default plan to not exist")
+		err = util.WaitForInstanceToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), testnamespace.Name, instanceNameDef)
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Deleting the test namespace")
 		err = framework.DeleteKubeNamespace(f.KubeClientSet, testnamespace.Name)
 		Expect(err).NotTo(HaveOccurred())
@@ -205,7 +255,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Waiting for ServiceClass to not exist")
-		err = util.WaitForServiceClassToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), serviceclassName)
+		err = util.WaitForServiceClassToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), serviceclassID)
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

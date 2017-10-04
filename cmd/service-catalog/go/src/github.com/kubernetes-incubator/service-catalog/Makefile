@@ -45,6 +45,10 @@ endif
 
 NEWEST_GO_FILE = $(shell find $(SRC_DIRS) -name \*.go -exec $(STAT) {} \; \
                    | sort -r | head -n 1 | sed "s/.* //")
+
+NEWEST_E2ETEST_SOURCE = $(shell find test/e2e -name \*.go -exec $(STAT) {} \; \
+                   | sort -r | head -n 1 | sed "s/.* //")
+
 TYPES_FILES    = $(shell find pkg/apis -name types.go)
 GO_VERSION     = 1.9
 
@@ -108,12 +112,14 @@ NON_VENDOR_DIRS = $(shell $(DOCKER_CMD) glide nv)
 # "apiserver" instead of "bin/apiserver".
 #########################################################################
 build: .init .generate_files \
-       $(BINDIR)/controller-manager $(BINDIR)/apiserver \
-       $(BINDIR)/user-broker
+	$(BINDIR)/apiserver \
+	$(BINDIR)/controller-manager \
+	$(BINDIR)/user-broker
 
 user-broker: $(BINDIR)/user-broker
 $(BINDIR)/user-broker: .init contrib/cmd/user-broker \
-	  $(shell find contrib/cmd/user-broker -type f)
+	  $(shell find contrib/cmd/user-broker -type f) \
+	  $(shell find contrib/pkg/broker -type f)
 	$(DOCKER_CMD) $(GO_BUILD) -o $@ $(SC_PKG)/contrib/cmd/user-broker
 
 # We'll rebuild apiserver if any go file has changed (ie. NEWEST_GO_FILE)
@@ -157,7 +163,7 @@ $(BINDIR)/informer-gen: .init
 $(BINDIR)/openapi-gen: vendor/k8s.io/kubernetes/cmd/libs/go2idl/openapi-gen
 	$(DOCKER_CMD) go build -o $@ $(SC_PKG)/$^
 
-$(BINDIR)/e2e.test: .init
+$(BINDIR)/e2e.test: .init $(NEWEST_E2ETEST_SOURCE) $(NEWEST_GO_FILE)
 	$(DOCKER_CMD) go test -c -o $@ $(SC_PKG)/test/e2e
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed

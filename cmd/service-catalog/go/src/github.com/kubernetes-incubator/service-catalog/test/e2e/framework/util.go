@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -40,6 +41,9 @@ const (
 
 	// Default time to wait for operations to complete
 	defaultTimeout = 30 * time.Second
+
+	// Default time to wait for an endpoint to register
+	EndpointRegisterTimeout = time.Minute
 )
 
 func nowStamp() string {
@@ -141,6 +145,28 @@ func WaitForPodRunningInNamespace(c kubernetes.Interface, pod *v1.Pod) error {
 
 func waitTimeoutForPodRunningInNamespace(c kubernetes.Interface, podName, namespace string, timeout time.Duration) error {
 	return wait.PollImmediate(Poll, defaultTimeout, podRunning(c, podName, namespace))
+}
+
+func WaitForEndpoint(c kubernetes.Interface, namespace, name string) error {
+	return wait.PollImmediate(Poll, EndpointRegisterTimeout, endpointAvailable(c, namespace, name))
+}
+
+func endpointAvailable(c kubernetes.Interface, namespace, name string) wait.ConditionFunc {
+	return func() (bool, error) {
+		endpoint, err := c.CoreV1().Endpoints(namespace).Get(name, metav1.GetOptions{})
+		if err != nil {
+			if apierrs.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+
+		if len(endpoint.Subsets) == 0 || len(endpoint.Subsets[0].Addresses) == 0 {
+			return false, nil
+		}
+
+		return true, nil
+	}
 }
 
 func podRunning(c kubernetes.Interface, podName, namespace string) wait.ConditionFunc {

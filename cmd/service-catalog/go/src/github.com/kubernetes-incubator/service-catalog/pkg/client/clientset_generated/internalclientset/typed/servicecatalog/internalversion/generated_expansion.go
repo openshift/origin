@@ -23,3 +23,5 @@ type ServiceClassExpansion interface{}
 type ServiceInstanceExpansion interface{}
 
 type ServiceInstanceCredentialExpansion interface{}
+
+type ServicePlanExpansion interface{}

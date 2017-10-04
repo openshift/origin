@@ -53,6 +53,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ServiceBrokerList{},
 		&ServiceClass{},
 		&ServiceClassList{},
+		&ServicePlan{},
+		&ServicePlanList{},
 		&ServiceInstance{},
 		&ServiceInstanceList{},
 		&ServiceInstanceCredential{},
@@ -60,6 +62,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	scheme.AddKnownTypes(schema.GroupVersion{Version: "v1"}, &metav1.Status{})
-
+	scheme.AddFieldLabelConversionFunc("servicecatalog.k8s.io/v1alpha1", "ServiceClass", ServiceClassFieldLabelConversionFunc)
+	scheme.AddFieldLabelConversionFunc("servicecatalog.k8s.io/v1alpha1", "ServicePlan", ServicePlanFieldLabelConversionFunc)
 	return nil
 }

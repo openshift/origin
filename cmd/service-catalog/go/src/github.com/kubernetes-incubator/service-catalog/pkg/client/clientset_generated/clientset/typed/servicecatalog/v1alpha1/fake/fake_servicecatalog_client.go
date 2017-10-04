@@ -42,6 +42,10 @@ func (c *FakeServicecatalogV1alpha1) ServiceInstanceCredentials(namespace string
 	return &FakeServiceInstanceCredentials{c, namespace}
 }
 
+func (c *FakeServicecatalogV1alpha1) ServicePlans() v1alpha1.ServicePlanInterface {
+	return &FakeServicePlans{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeServicecatalogV1alpha1) RESTClient() rest.Interface {
