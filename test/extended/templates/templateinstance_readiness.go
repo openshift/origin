@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
-	"k8s.io/kubernetes/test/e2e/framework"
 
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
@@ -98,8 +97,6 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 	}
 
 	g.BeforeEach(func() {
-		framework.SkipIfProviderIs("gce")
-
 		err := cli.Run("create").Args("-f", templatefixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
