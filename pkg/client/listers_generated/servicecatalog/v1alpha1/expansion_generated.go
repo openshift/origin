@@ -41,3 +41,7 @@ type ServiceInstanceCredentialListerExpansion interface{}
 // ServiceInstanceCredentialNamespaceListerExpansion allows custom methods to be added to
 // ServiceInstanceCredentialNamespaceLister.
 type ServiceInstanceCredentialNamespaceListerExpansion interface{}
+
+// ServicePlanListerExpansion allows custom methods to be added to
+// ServicePlanLister.
+type ServicePlanListerExpansion interface{}

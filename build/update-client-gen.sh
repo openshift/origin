@@ -19,6 +19,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -o xtrace
 
 REPO_ROOT=$(realpath $(dirname "${BASH_SOURCE}")/..)
 BINDIR=${REPO_ROOT}/bin

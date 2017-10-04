@@ -260,6 +260,27 @@ cluster you regularly use and are familiar with.  One of the choices you can
 make when deploying the catalog is whether to make the API server store its
 resources in an external etcd server, or in third party resources.
 
+If you have recently merged changes that haven't yet made it into a
+release, you probably want to deploy the canary images. Always use the
+canary images when testing local changes.
+
+For more information see the
+[installation instructions](./install-1.7.md). The last two lines of
+the following `helm install` example show the canary images being
+installed with the other standard installation options.
+
+```
+helm install ../charts/catalog \
+    --name ${HELM_RELEASE_NAME} --namespace ${SVCCAT_NAMESPACE} \
+    --set apiserver.auth.enabled=true \
+    --set useAggregator=true \
+    --set apiserver.tls.ca=$(base64 --wrap 0 ${SC_SERVING_CA}) \
+    --set apiserver.tls.cert=$(base64 --wrap 0 ${SC_SERVING_CERT}) \
+    --set apiserver.tls.key=$(base64 --wrap 0 ${SC_SERVING_KEY}) \
+    --set apiserver.image=quay.io/kubernetes-service-catalog/apiserver:canary \
+    --set controllerManager.image=quay.io/kubernetes-service-catalog/controller-manager:canary
+```
+
 If you choose etcd storage, the helm chart will launch an etcd server for you
 in the same pod as the service-catalog API server. You will be responsible for
 the data in the etcd server container.

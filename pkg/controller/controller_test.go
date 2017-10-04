@@ -18,12 +18,13 @@ package controller
 
 import (
 	"encoding/json"
-	"net/http/httptest"
+	"fmt"
 	"reflect"
 	"runtime/debug"
 	"testing"
 	"time"
 
+	"github.com/ghodss/yaml"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
 	fakeosb "github.com/pmorie/go-open-service-broker-client/v2/fake"
 
@@ -38,8 +39,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/diff"
 
-	fakebrokerserver "github.com/kubernetes-incubator/service-catalog/pkg/brokerapi/fake/server"
+	"github.com/kubernetes-incubator/service-catalog/test/fake"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/pkg/api/v1"
 	clientgotesting "k8s.io/client-go/testing"
@@ -67,8 +69,8 @@ const (
 	testServiceBrokerName                   = "test-broker"
 	testServiceClassName                    = "test-serviceclass"
 	testNonbindableServiceClassName         = "test-unbindable-serviceclass"
-	testPlanName                            = "test-plan"
-	testNonbindablePlanName                 = "test-unbindable-plan"
+	testServicePlanName                     = "test-plan"
+	testNonbindableServicePlanName          = "test-unbindable-plan"
 	testServiceInstanceName                 = "test-instance"
 	testServiceInstanceCredentialName       = "test-binding"
 	testNamespace                           = "test-ns"
@@ -284,6 +286,20 @@ const instanceParameterSchemaBytes = `{
   ]
 }`
 
+type testTimeoutError struct{}
+
+func (e testTimeoutError) Error() string {
+	return "timed out"
+}
+
+func (e testTimeoutError) Timeout() bool {
+	return true
+}
+
+func getTestTimeoutError() error {
+	return testTimeoutError{}
+}
+
 type originatingIdentityTestCase struct {
 	name                        string
 	includeUserInfo             bool
@@ -367,24 +383,41 @@ func getTestServiceBrokerWithAuth(authInfo *v1alpha1.ServiceBrokerAuthInfo) *v1a
 // a bindable service class wired to the result of getTestServiceBroker()
 func getTestServiceClass() *v1alpha1.ServiceClass {
 	return &v1alpha1.ServiceClass{
-		ObjectMeta:        metav1.ObjectMeta{Name: testServiceClassName},
-		ServiceBrokerName: testServiceBrokerName,
-		Description:       "a test service",
-		ExternalID:        serviceClassGUID,
-		Bindable:          true,
-		Plans: []v1alpha1.ServicePlan{
-			{
-				Name:        testPlanName,
-				Description: "a test plan",
-				Free:        true,
-				ExternalID:  planGUID,
+		ObjectMeta: metav1.ObjectMeta{Name: serviceClassGUID},
+		Spec: v1alpha1.ServiceClassSpec{
+			ServiceBrokerName: testServiceBrokerName,
+			Description:       "a test service",
+			ExternalName:      testServiceClassName,
+			ExternalID:        serviceClassGUID,
+			Bindable:          true,
+		},
+	}
+}
+
+func getTestServicePlan() *v1alpha1.ServicePlan {
+	return &v1alpha1.ServicePlan{
+		ObjectMeta: metav1.ObjectMeta{Name: planGUID},
+		Spec: v1alpha1.ServicePlanSpec{
+			ServiceBrokerName: testServiceBrokerName,
+			ExternalID:        planGUID,
+			ExternalName:      testServicePlanName,
+			Bindable:          truePtr(),
+			ServiceClassRef: v1.LocalObjectReference{
+				Name: serviceClassGUID,
 			},
-			{
-				Name:        testNonbindablePlanName,
-				Description: "a test plan",
-				Free:        true,
-				ExternalID:  nonbindablePlanGUID,
-				Bindable:    falsePtr(),
+		},
+	}
+}
+
+func getTestServicePlanNonbindable() *v1alpha1.ServicePlan {
+	return &v1alpha1.ServicePlan{
+		ObjectMeta: metav1.ObjectMeta{Name: nonbindablePlanGUID},
+		Spec: v1alpha1.ServicePlanSpec{
+			ExternalName: testNonbindableServicePlanName,
+			ExternalID:   nonbindablePlanGUID,
+			Bindable:     falsePtr(),
+			ServiceClassRef: v1.LocalObjectReference{
+				Name: serviceClassGUID,
 			},
 		},
 	}
@@ -393,23 +426,12 @@ func getTestServiceClass() *v1alpha1.ServiceClass {
 // an unbindable service class wired to the result of getTestServiceBroker()
 func getTestNonbindableServiceClass() *v1alpha1.ServiceClass {
 	return &v1alpha1.ServiceClass{
-		ObjectMeta:        metav1.ObjectMeta{Name: testNonbindableServiceClassName},
-		ServiceBrokerName: testServiceBrokerName,
-		ExternalID:        nonbindableServiceClassGUID,
-		Bindable:          false,
-		Plans: []v1alpha1.ServicePlan{
-			{
-				Name:       testPlanName,
-				Free:       true,
-				ExternalID: planGUID,
-				Bindable:   truePtr(),
-			},
-			{
-				Name:       testNonbindablePlanName,
-				Free:       true,
-				ExternalID: nonbindablePlanGUID,
-				Bindable:   falsePtr(),
-			},
+		ObjectMeta: metav1.ObjectMeta{Name: nonbindableServiceClassGUID},
+		Spec: v1alpha1.ServiceClassSpec{
+			ServiceBrokerName: testServiceBrokerName,
+			ExternalName:      testNonbindableServiceClassName,
+			ExternalID:        nonbindableServiceClassGUID,
+			Bindable:          false,
 		},
 	}
 }
@@ -426,13 +448,13 @@ func getTestCatalog() *osb.CatalogResponse {
 				Bindable:    true,
 				Plans: []osb.Plan{
 					{
-						Name:        testPlanName,
+						Name:        testServicePlanName,
 						Free:        truePtr(),
 						ID:          planGUID,
 						Description: "a test plan",
 					},
 					{
-						Name:        testNonbindablePlanName,
+						Name:        testNonbindableServicePlanName,
 						Free:        truePtr(),
 						ID:          nonbindablePlanGUID,
 						Description: "a test plan",
@@ -445,6 +467,25 @@ func getTestCatalog() *osb.CatalogResponse {
 }
 
 // instance referencing the result of getTestServiceClass()
+// and getTestServicePlan()
+// This version sets:
+// ExternalServiceClassName and ExternalServicePlanName as well
+// as ServiceClassRef and ServicePlanRef which means that the
+// ServiceClass and ServicePlan are fetched using
+// Service[Class|Plan]Lister.get(spec.Service[Class|Plan]Ref.Name)
+func getTestServiceInstanceWithRefs() *v1alpha1.ServiceInstance {
+	sc := getTestServiceInstance()
+	sc.Spec.ServiceClassRef = &v1.ObjectReference{Name: serviceClassGUID}
+	sc.Spec.ServicePlanRef = &v1.ObjectReference{Name: planGUID}
+	return sc
+}
+
+// instance referencing the result of getTestServiceClass()
+// and getTestServicePlan()
+// This version sets:
+// ExternalServiceClassName and ExternalServicePlanName, so depending on the
+// test, you may need to add reactors that deal with List due to the need
+// to resolve Names to IDs for both ServiceClass and ServicePlan
 func getTestServiceInstance() *v1alpha1.ServiceInstance {
 	return &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{
@@ -453,9 +494,9 @@ func getTestServiceInstance() *v1alpha1.ServiceInstance {
 			Generation: 1,
 		},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         testPlanName,
-			ExternalID:       instanceGUID,
+			ExternalServiceClassName: testServiceClassName,
+			ExternalServicePlanName:  testServicePlanName,
+			ExternalID:               instanceGUID,
 		},
 	}
 }
@@ -463,8 +504,10 @@ func getTestServiceInstance() *v1alpha1.ServiceInstance {
 // an instance referencing the result of getTestNonbindableServiceClass, on the non-bindable plan.
 func getTestNonbindableServiceInstance() *v1alpha1.ServiceInstance {
 	i := getTestServiceInstance()
-	i.Spec.ServiceClassName = testNonbindableServiceClassName
-	i.Spec.PlanName = testNonbindablePlanName
+	i.Spec.ExternalServiceClassName = testNonbindableServiceClassName
+	i.Spec.ExternalServicePlanName = testNonbindableServicePlanName
+	i.Spec.ServiceClassRef = &v1.ObjectReference{Name: nonbindableServiceClassGUID}
+	i.Spec.ServicePlanRef = &v1.ObjectReference{Name: nonbindablePlanGUID}
 
 	return i
 }
@@ -472,20 +515,22 @@ func getTestNonbindableServiceInstance() *v1alpha1.ServiceInstance {
 // an instance referencing the result of getTestNonbindableServiceClass, on the bindable plan.
 func getTestServiceInstanceNonbindableServiceBindablePlan() *v1alpha1.ServiceInstance {
 	i := getTestNonbindableServiceInstance()
-	i.Spec.PlanName = testPlanName
+	i.Spec.ExternalServicePlanName = testServicePlanName
+	i.Spec.ServicePlanRef = &v1.ObjectReference{Name: planGUID}
 
 	return i
 }
 
 func getTestServiceInstanceBindableServiceNonbindablePlan() *v1alpha1.ServiceInstance {
-	i := getTestServiceInstance()
-	i.Spec.PlanName = testNonbindablePlanName
+	i := getTestServiceInstanceWithRefs()
+	i.Spec.ExternalServicePlanName = testNonbindableServicePlanName
+	i.Spec.ServicePlanRef = &v1.ObjectReference{Name: nonbindablePlanGUID}
 
 	return i
 }
 
 func getTestServiceInstanceWithStatus(status v1alpha1.ConditionStatus) *v1alpha1.ServiceInstance {
-	instance := getTestServiceInstance()
+	instance := getTestServiceInstanceWithRefs()
 	instance.Status = v1alpha1.ServiceInstanceStatus{
 		Conditions: []v1alpha1.ServiceInstanceCondition{{
 			Type:               v1alpha1.ServiceInstanceConditionReady,
@@ -498,7 +543,7 @@ func getTestServiceInstanceWithStatus(status v1alpha1.ConditionStatus) *v1alpha1
 }
 
 func getTestServiceInstanceWithFailedStatus() *v1alpha1.ServiceInstance {
-	instance := getTestServiceInstance()
+	instance := getTestServiceInstanceWithRefs()
 	instance.Status = v1alpha1.ServiceInstanceStatus{
 		Conditions: []v1alpha1.ServiceInstanceCondition{{
 			Type:   v1alpha1.ServiceInstanceConditionFailed,
@@ -511,10 +556,11 @@ func getTestServiceInstanceWithFailedStatus() *v1alpha1.ServiceInstance {
 
 // getTestServiceInstanceAsync returns an instance in async mode
 func getTestServiceInstanceAsyncProvisioning(operation string) *v1alpha1.ServiceInstance {
-	instance := getTestServiceInstance()
+	instance := getTestServiceInstanceWithRefs()
 	if operation != "" {
 		instance.Status.LastOperation = &operation
 	}
+
 	operationStartTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
 	instance.Status = v1alpha1.ServiceInstanceStatus{
 		Conditions: []v1alpha1.ServiceInstanceCondition{{
@@ -525,16 +571,25 @@ func getTestServiceInstanceAsyncProvisioning(operation string) *v1alpha1.Service
 		}},
 		AsyncOpInProgress:  true,
 		OperationStartTime: &operationStartTime,
+		CurrentOperation:   v1alpha1.ServiceInstanceOperationProvision,
+		InProgressProperties: &v1alpha1.ServiceInstancePropertiesState{
+			ExternalServicePlanName: testServicePlanName,
+		},
+	}
+	if operation != "" {
+		instance.Status.LastOperation = &operation
 	}
 
 	return instance
 }
 
 func getTestServiceInstanceAsyncDeprovisioning(operation string) *v1alpha1.ServiceInstance {
-	instance := getTestServiceInstance()
+	instance := getTestServiceInstanceWithRefs()
+	instance.Generation = 2
 	if operation != "" {
 		instance.Status.LastOperation = &operation
 	}
+
 	operationStartTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
 	instance.Status = v1alpha1.ServiceInstanceStatus{
 		Conditions: []v1alpha1.ServiceInstanceCondition{{
@@ -543,8 +598,16 @@ func getTestServiceInstanceAsyncDeprovisioning(operation string) *v1alpha1.Servi
 			Message:            "Deprovisioning",
 			LastTransitionTime: metav1.NewTime(time.Now().Add(-5 * time.Minute)),
 		}},
-		AsyncOpInProgress:  true,
-		OperationStartTime: &operationStartTime,
+		AsyncOpInProgress:    true,
+		OperationStartTime:   &operationStartTime,
+		CurrentOperation:     v1alpha1.ServiceInstanceOperationDeprovision,
+		ReconciledGeneration: 1,
+		ExternalProperties: &v1alpha1.ServiceInstancePropertiesState{
+			ExternalServicePlanName: testServicePlanName,
+		},
+	}
+	if operation != "" {
+		instance.Status.LastOperation = &operation
 	}
 
 	// Set the deleted timestamp to simulate deletion
@@ -597,12 +660,15 @@ type bindingParameters struct {
 }
 
 func TestEmptyCatalogConversion(t *testing.T) {
-	serviceClasses, err := convertCatalog(&osb.CatalogResponse{})
+	serviceClasses, servicePlans, err := convertCatalog(&osb.CatalogResponse{})
 	if err != nil {
 		t.Fatalf("Failed to convertCatalog: %v", err)
 	}
 	if len(serviceClasses) != 0 {
 		t.Fatalf("Expected 0 serviceclasses for empty catalog, but got: %d", len(serviceClasses))
+	}
+	if len(servicePlans) != 0 {
+		t.Fatalf("Expected 0 serviceplans for empty catalog, but got: %d", len(servicePlans))
 	}
 }
 
@@ -612,20 +678,19 @@ func TestCatalogConversion(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to unmarshal test catalog: %v", err)
 	}
-	serviceClasses, err := convertCatalog(catalog)
+	serviceClasses, servicePlans, err := convertCatalog(catalog)
 	if err != nil {
 		t.Fatalf("Failed to convertCatalog: %v", err)
 	}
 	if len(serviceClasses) != 1 {
 		t.Fatalf("Expected 1 serviceclasses for testCatalog, but got: %d", len(serviceClasses))
 	}
-	serviceClass := serviceClasses[0]
-	if len(serviceClass.Plans) != 2 {
-		t.Fatalf("Expected 2 plans for testCatalog, but got: %d", len(serviceClass.Plans))
+	if len(servicePlans) != 2 {
+		t.Fatalf("Expected 2 plans for testCatalog, but got: %d", len(servicePlans))
 	}
 
-	checkPlan(serviceClass, 0, "fake-plan-1", "Shared fake Server, 5tb persistent disk, 40 max concurrent connections", t)
-	checkPlan(serviceClass, 1, "fake-plan-2", "Shared fake Server, 5tb persistent disk, 40 max concurrent connections. 100 async", t)
+	checkPlan(servicePlans[0], "d3031751-XXXX-XXXX-XXXX-a42377d3320e", "fake-plan-1", "Shared fake Server, 5tb persistent disk, 40 max concurrent connections", t)
+	checkPlan(servicePlans[1], "0f4008b5-XXXX-XXXX-XXXX-dace631cd648", "fake-plan-2", "Shared fake Server, 5tb persistent disk, 40 max concurrent connections. 100 async", t)
 }
 
 func TestCatalogConversionWithAlphaParameterSchemas(t *testing.T) {
@@ -634,63 +699,67 @@ func TestCatalogConversionWithAlphaParameterSchemas(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to unmarshal test catalog: %v", err)
 	}
-	serviceClasses, err := convertCatalog(catalog)
+	serviceClasses, servicePlans, err := convertCatalog(catalog)
 	if err != nil {
 		t.Fatalf("Failed to convertCatalog: %v", err)
 	}
 	if len(serviceClasses) != 1 {
 		t.Fatalf("Expected 1 serviceclasses for testCatalog, but got: %d", len(serviceClasses))
 	}
-	serviceClass := serviceClasses[0]
-	if len(serviceClass.Plans) != 1 {
-		t.Fatalf("Expected 1 plan for testCatalog, but got: %d", len(serviceClass.Plans))
+	if len(servicePlans) != 1 {
+		t.Fatalf("Expected 1 plan for testCatalog, but got: %d", len(servicePlans))
 	}
 
-	plan := serviceClass.Plans[0]
-	if plan.ServiceInstanceCreateParameterSchema == nil {
+	plan := servicePlans[0]
+	if plan.Spec.ServiceInstanceCreateParameterSchema == nil {
 		t.Fatalf("Expected plan.ServiceInstanceCreateParameterSchema to be set, but was nil")
 	}
 
 	cSchema := make(map[string]interface{})
-	if err := json.Unmarshal(plan.ServiceInstanceCreateParameterSchema.Raw, &cSchema); err == nil {
+	if err := json.Unmarshal(plan.Spec.ServiceInstanceCreateParameterSchema.Raw, &cSchema); err == nil {
 		schema := make(map[string]interface{})
 		if err := json.Unmarshal([]byte(instanceParameterSchemaBytes), &schema); err != nil {
 			t.Fatalf("Error unmarshalling schema bytes: %v", err)
 		}
 
 		if e, a := schema, cSchema; !reflect.DeepEqual(e, a) {
-			t.Fatalf("Unexpected value of alphaServiceInstanceCreateParameterSchema; expected %v, got %v", e, a)
+			t.Fatalf("Unexpected value of alphaInstanceCreateParameterSchema; expected %v, got %v", e, a)
 		}
 	}
 
-	if plan.ServiceInstanceUpdateParameterSchema == nil {
+	if plan.Spec.ServiceInstanceUpdateParameterSchema == nil {
 		t.Fatalf("Expected plan.ServiceInstanceUpdateParameterSchema to be set, but was nil")
 	}
 	m := make(map[string]string)
-	if err := json.Unmarshal(plan.ServiceInstanceUpdateParameterSchema.Raw, &m); err == nil {
+	if err := json.Unmarshal(plan.Spec.ServiceInstanceUpdateParameterSchema.Raw, &m); err == nil {
 		if e, a := "zap", m["baz"]; e != a {
-			t.Fatalf("Unexpected value of alphaServiceInstanceUpdateParameterSchema; expected %v, got %v", e, a)
+			t.Fatalf("Unexpected value of alphaInstanceUpdateParameterSchema; expected %v, got %v", e, a)
 		}
 	}
 
-	if plan.ServiceInstanceCredentialCreateParameterSchema == nil {
+	if plan.Spec.ServiceInstanceCredentialCreateParameterSchema == nil {
 		t.Fatalf("Expected plan.ServiceInstanceCredentialCreateParameterSchema to be set, but was nil")
 	}
 	m = make(map[string]string)
-	if err := json.Unmarshal(plan.ServiceInstanceCredentialCreateParameterSchema.Raw, &m); err == nil {
+	if err := json.Unmarshal(plan.Spec.ServiceInstanceCredentialCreateParameterSchema.Raw, &m); err == nil {
 		if e, a := "blu", m["zoo"]; e != a {
 			t.Fatalf("Unexpected value of alphaServiceInstanceCredentialCreateParameterSchema; expected %v, got %v", e, a)
 		}
 	}
 }
 
-func checkPlan(serviceClass *v1alpha1.ServiceClass, index int, planName, planDescription string, t *testing.T) {
-	plan := serviceClass.Plans[index]
-	if plan.Name != planName {
-		t.Fatalf("Expected plan %d's name to be \"%s\", but was: %s", index, planName, plan.Name)
+func checkPlan(plan *v1alpha1.ServicePlan, planID, planName, planDescription string, t *testing.T) {
+	if plan.Name != planID {
+		t.Errorf("Expected plan name to be %q, but was: %q", planID, plan.Name)
 	}
-	if plan.Description != planDescription {
-		t.Fatalf("Expected plan %d's description to be \"%s\", but was: %s", index, planDescription, plan.Description)
+	if plan.Spec.ExternalID != planID {
+		t.Errorf("Expected plan ExternalID to be %q, but was: %q", planID, plan.Spec.ExternalID)
+	}
+	if plan.Spec.ExternalName != planName {
+		t.Errorf("Expected plan ExternalName to be %q, but was: %q", planName, plan.Spec.ExternalName)
+	}
+	if plan.Spec.Description != planDescription {
+		t.Errorf("Expected plan description to be %q, but was: %q", planDescription, plan.Spec.Description)
 	}
 }
 
@@ -839,6 +908,7 @@ const testCatalogForServicePlanBindableOverride = `{
   "services": [
     {
       "name": "bindable",
+      "id": "bindable-id",
       "bindable": true,
       "plans": [{
         "name": "bindable-bindable",
@@ -852,6 +922,7 @@ const testCatalogForServicePlanBindableOverride = `{
     },
     {
       "name": "unbindable",
+      "id": "unbindable-id",
       "bindable": false,
       "plans": [{
         "name": "unbindable-unbindable",
@@ -886,51 +957,96 @@ func TestCatalogConversionServicePlanBindable(t *testing.T) {
 		t.Fatalf("Failed to unmarshal test catalog: %v", err)
 	}
 
-	actual, err := convertCatalog(catalog)
+	aclasses, aplans, err := convertCatalog(catalog)
 	if err != nil {
 		t.Fatalf("Failed to convertCatalog: %v", err)
 	}
 
-	expected := []*v1alpha1.ServiceClass{
+	eclasses := []*v1alpha1.ServiceClass{
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "bindable",
+				Name: "bindable-id",
 			},
-			Bindable: true,
-			Plans: []v1alpha1.ServicePlan{
-				{
-					Name:       "bindable-bindable",
-					ExternalID: "s1_plan1_id",
-				},
-				{
-					Name:       "bindable-unbindable",
-					ExternalID: "s1_plan2_id",
-					Bindable:   falsePtr(),
+			Spec: v1alpha1.ServiceClassSpec{
+				ExternalName: "bindable",
+				ExternalID:   "bindable-id",
+				Bindable:     true,
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "unbindable-id",
+			},
+			Spec: v1alpha1.ServiceClassSpec{
+				ExternalName: "unbindable",
+				ExternalID:   "unbindable-id",
+				Bindable:     false,
+			},
+		},
+	}
+
+	eplans := []*v1alpha1.ServicePlan{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "s1_plan1_id",
+			},
+			Spec: v1alpha1.ServicePlanSpec{
+				ExternalID:   "s1_plan1_id",
+				ExternalName: "bindable-bindable",
+				Bindable:     nil,
+				ServiceClassRef: v1.LocalObjectReference{
+					Name: "bindable-id",
 				},
 			},
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "unbindable",
+				Name: "s1_plan2_id",
 			},
-			Bindable: false,
-			Plans: []v1alpha1.ServicePlan{
-				{
-					Name:       "unbindable-unbindable",
-					ExternalID: "s2_plan1_id",
+			Spec: v1alpha1.ServicePlanSpec{
+				ExternalName: "bindable-unbindable",
+				ExternalID:   "s1_plan2_id",
+				Bindable:     falsePtr(),
+				ServiceClassRef: v1.LocalObjectReference{
+					Name: "bindable-id",
 				},
-				{
-					Name:       "unbindable-bindable",
-					ExternalID: "s2_plan2_id",
-					Bindable:   truePtr(),
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "s2_plan1_id",
+			},
+			Spec: v1alpha1.ServicePlanSpec{
+				ExternalName: "unbindable-unbindable",
+				ExternalID:   "s2_plan1_id",
+				Bindable:     nil,
+				ServiceClassRef: v1.LocalObjectReference{
+					Name: "unbindable-id",
+				},
+			},
+		},
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "s2_plan2_id",
+			},
+			Spec: v1alpha1.ServicePlanSpec{
+				ExternalName: "unbindable-bindable",
+				ExternalID:   "s2_plan2_id",
+				Bindable:     truePtr(),
+				ServiceClassRef: v1.LocalObjectReference{
+					Name: "unbindable-id",
 				},
 			},
 		},
 	}
 
-	if !reflect.DeepEqual(expected, actual) {
-		t.Fatalf("Unexpected diff between expected and actual catalogs: %v", diff.ObjectReflectDiff(expected, actual))
+	if !reflect.DeepEqual(eclasses, aclasses) {
+		t.Errorf("Unexpected diff between expected and actual serviceclasses: %v", diff.ObjectReflectDiff(eclasses, aclasses))
 	}
+	if !reflect.DeepEqual(eplans, aplans) {
+		t.Errorf("Unexpected diff between expected and actual serviceplans: %v", diff.ObjectReflectDiff(eplans, aplans))
+	}
+
 }
 
 func TestIsServiceBrokerReady(t *testing.T) {
@@ -966,13 +1082,15 @@ func TestIsServiceBrokerReady(t *testing.T) {
 func TestIsPlanBindable(t *testing.T) {
 	serviceClass := func(bindable bool) *v1alpha1.ServiceClass {
 		serviceClass := getTestServiceClass()
-		serviceClass.Bindable = bindable
+		serviceClass.Spec.Bindable = bindable
 		return serviceClass
 	}
 
 	servicePlan := func(bindable *bool) *v1alpha1.ServicePlan {
 		return &v1alpha1.ServicePlan{
-			Bindable: bindable,
+			Spec: v1alpha1.ServicePlanSpec{
+				Bindable: bindable,
+			},
 		}
 	}
 
@@ -1041,14 +1159,14 @@ func TestIsPlanBindable(t *testing.T) {
 // testing.T.
 func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	*clientgofake.Clientset,
-	*servicecatalogclientset.Clientset,
+	*fake.Clientset,
 	*fakeosb.FakeClient,
 	*controller,
 	v1alpha1informers.Interface) {
 	// create a fake kube client
 	fakeKubeClient := &clientgofake.Clientset{}
 	// create a fake sc client
-	fakeCatalogClient := &servicecatalogclientset.Clientset{}
+	fakeCatalogClient := &fake.Clientset{&servicecatalogclientset.Clientset{}}
 
 	fakeOSBClient := fakeosb.NewFakeClient(config) // error should always be nil
 	brokerClFunc := fakeosb.ReturnFakeClientFunc(fakeOSBClient)
@@ -1067,6 +1185,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 		serviceCatalogSharedInformers.ServiceClasses(),
 		serviceCatalogSharedInformers.ServiceInstances(),
 		serviceCatalogSharedInformers.ServiceInstanceCredentials(),
+		serviceCatalogSharedInformers.ServicePlans(),
 		brokerClFunc,
 		24*time.Hour,
 		osb.LatestAPIVersion().HeaderValue(),
@@ -1078,65 +1197,6 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	}
 
 	return fakeKubeClient, fakeCatalogClient, fakeOSBClient, testController.(*controller), serviceCatalogSharedInformers
-}
-
-type testControllerWithServiceBrokerServer struct {
-	FakeKubeClient             *clientgofake.Clientset
-	FakeCatalogClient          *servicecatalogclientset.Clientset
-	Controller                 *controller
-	Informers                  v1alpha1informers.Interface
-	ServiceBrokerServerHandler *fakebrokerserver.Handler
-	ServiceBrokerServer        *httptest.Server
-}
-
-func (t *testControllerWithServiceBrokerServer) Close() {
-	t.ServiceBrokerServer.Close()
-}
-
-func newTestControllerWithServiceBrokerServer(
-	brokerUsername,
-	brokerPassword string,
-) (*testControllerWithServiceBrokerServer, error) {
-	// create a fake kube client
-	fakeKubeClient := &clientgofake.Clientset{}
-	// create a fake sc client
-	fakeCatalogClient := &servicecatalogclientset.Clientset{}
-
-	brokerHandler := fakebrokerserver.NewHandler()
-	brokerServer := fakebrokerserver.Run(brokerHandler, brokerUsername, brokerPassword)
-
-	// create informers
-	informerFactory := servicecataloginformers.NewSharedInformerFactory(fakeCatalogClient, 0)
-	serviceCatalogSharedInformers := informerFactory.Servicecatalog().V1alpha1()
-
-	fakeRecorder := record.NewFakeRecorder(5)
-
-	// create a test controller
-	testController, err := NewController(
-		fakeKubeClient,
-		fakeCatalogClient.ServicecatalogV1alpha1(),
-		serviceCatalogSharedInformers.ServiceBrokers(),
-		serviceCatalogSharedInformers.ServiceClasses(),
-		serviceCatalogSharedInformers.ServiceInstances(),
-		serviceCatalogSharedInformers.ServiceInstanceCredentials(),
-		osb.NewClient,
-		24*time.Hour,
-		osb.LatestAPIVersion().HeaderValue(),
-		fakeRecorder,
-		7*24*time.Hour,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &testControllerWithServiceBrokerServer{
-		FakeKubeClient:             fakeKubeClient,
-		FakeCatalogClient:          fakeCatalogClient,
-		Controller:                 testController.(*controller),
-		Informers:                  serviceCatalogSharedInformers,
-		ServiceBrokerServerHandler: brokerHandler,
-		ServiceBrokerServer:        brokerServer,
-	}, nil
 }
 
 func getRecordedEvents(testController *controller) []string {
@@ -1207,6 +1267,12 @@ func assertGet(t *testing.T, action clientgotesting.Action, obj interface{}) {
 	assertActionFor(t, action, "get", "" /* subresource */, obj)
 }
 
+func assertList(t *testing.T, action clientgotesting.Action, obj interface{}, listRestrictions clientgotesting.ListRestrictions) {
+	assertActionFor(t, action, "list", "" /* subresource */, obj)
+	// Cast is ok since in the method above it's checked to be ListAction
+	assertListRestrictions(t, listRestrictions, action.(clientgotesting.ListAction).GetListRestrictions())
+}
+
 func assertCreate(t *testing.T, action clientgotesting.Action, obj interface{}) runtime.Object {
 	return assertActionFor(t, action, "create", "" /* subresource */, obj)
 }
@@ -1217,6 +1283,10 @@ func assertUpdate(t *testing.T, action clientgotesting.Action, obj interface{}) 
 
 func assertUpdateStatus(t *testing.T, action clientgotesting.Action, obj interface{}) runtime.Object {
 	return assertActionFor(t, action, "update", "status", obj)
+}
+
+func assertUpdateReference(t *testing.T, action clientgotesting.Action, obj interface{}) runtime.Object {
+	return assertActionFor(t, action, "update", "reference", obj)
 }
 
 func expectUpdateStatus(t *testing.T, name string, action clientgotesting.Action, obj interface{}) (runtime.Object, bool) {
@@ -1239,7 +1309,7 @@ func testActionFor(t *testing.T, name string, f failfFunc, action clientgotestin
 	}
 
 	if e, a := verb, action.GetVerb(); e != a {
-		f(t, "%vUnexpected verb: expected %v, got %v", logContext, e, a)
+		f(t, "%vUnexpected verb: expected %v, got %v\n\tactual action %q", logContext, e, a, action)
 		return nil, false
 	}
 
@@ -1250,6 +1320,8 @@ func testActionFor(t *testing.T, name string, f failfFunc, action clientgotestin
 		resource = "servicebrokers"
 	case *v1alpha1.ServiceClass:
 		resource = "serviceclasses"
+	case *v1alpha1.ServicePlan:
+		resource = "serviceplans"
 	case *v1alpha1.ServiceInstance:
 		resource = "serviceinstances"
 	case *v1alpha1.ServiceInstanceCredential:
@@ -1296,6 +1368,13 @@ func testActionFor(t *testing.T, name string, f failfFunc, action clientgotestin
 			return nil, false
 		}
 
+		return nil, true
+	case "list":
+		_, ok := action.(clientgotesting.ListAction)
+		if !ok {
+			f(t, "%vUnexpected type; failed to convert action %+v to ListAction", logContext, action)
+			return nil, false
+		}
 		return nil, true
 	case "delete":
 		deleteAction, ok := action.(clientgotesting.DeleteAction)
@@ -1390,8 +1469,8 @@ func assertServiceBrokerOperationStartTimeSet(t *testing.T, obj runtime.Object, 
 	}
 }
 
-func assertServiceInstanceReadyTrue(t *testing.T, obj runtime.Object) {
-	assertServiceInstanceReadyCondition(t, obj, v1alpha1.ConditionTrue)
+func assertServiceInstanceReadyTrue(t *testing.T, obj runtime.Object, reason ...string) {
+	assertServiceInstanceReadyCondition(t, obj, v1alpha1.ConditionTrue, reason...)
 }
 
 func assertServiceInstanceReadyFalse(t *testing.T, obj runtime.Object, reason ...string) {
@@ -1434,6 +1513,21 @@ func assertServiceInstanceConditionsCount(t *testing.T, obj runtime.Object, coun
 
 	if e, a := count, len(instance.Status.Conditions); e != a {
 		t.Fatalf("Expected %v condition, got %v", e, a)
+	}
+}
+
+func assertServiceInstanceCurrentOperationClear(t *testing.T, obj runtime.Object) {
+	assertServiceInstanceCurrentOperation(t, obj, "")
+}
+
+func assertServiceInstanceCurrentOperation(t *testing.T, obj runtime.Object, currentOperation v1alpha1.ServiceInstanceOperation) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+
+	if e, a := currentOperation, instance.Status.CurrentOperation; e != a {
+		fatalf(t, "unexpected current operation: expected %q, got %q", e, a)
 	}
 }
 
@@ -1483,6 +1577,42 @@ func assertAsyncOpInProgressFalse(t *testing.T, obj runtime.Object) {
 	}
 }
 
+func assertServiceInstanceOrphanMitigationInProgressTrue(t *testing.T, obj runtime.Object) {
+	testServiceInstanceOrphanMitigationInProgress(t, "" /* name */, fatalf, obj, true)
+}
+
+func assertServiceInstanceOrphanMitigationInProgressFalse(t *testing.T, obj runtime.Object) {
+	testServiceInstanceOrphanMitigationInProgress(t, "" /* name */, fatalf, obj, false)
+}
+
+func expectServiceInstanceOrphanMitigationInProgressTrue(t *testing.T, name string, obj runtime.Object) bool {
+	return testServiceInstanceOrphanMitigationInProgress(t, name, fatalf, obj, true)
+}
+
+func expectServiceInstanceOrphanMitigationInProgressFalse(t *testing.T, name string, obj runtime.Object) bool {
+	return testServiceInstanceOrphanMitigationInProgress(t, name, fatalf, obj, false)
+}
+
+func testServiceInstanceOrphanMitigationInProgress(t *testing.T, name string, f failfFunc, obj runtime.Object, expected bool) bool {
+	logContext := ""
+	if len(name) > 0 {
+		logContext = name + ": "
+	}
+
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		f(t, "%vCouldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+
+	actual := instance.Status.OrphanMitigationInProgress
+	if actual != expected {
+		f(t, "%vexpected OrphanMitigationInProgress to be %v but was %v", logContext, expected, actual)
+		return false
+	}
+
+	return true
+}
+
 func assertServiceInstanceLastOperation(t *testing.T, obj runtime.Object, operation string) {
 	instance, ok := obj.(*v1alpha1.ServiceInstance)
 	if !ok {
@@ -1506,6 +1636,302 @@ func assertServiceInstanceDashboardURL(t *testing.T, obj runtime.Object, dashboa
 		fatalf(t, "DashboardURL was nil")
 	} else if *instance.Status.DashboardURL != dashboardURL {
 		fatalf(t, "Unexpected DashboardURL: expected %q, got %q", dashboardURL, *instance.Status.DashboardURL)
+	}
+}
+
+func assertServiceInstanceErrorBeforeRequest(t *testing.T, obj runtime.Object, reason string, originalInstance *v1alpha1.ServiceInstance) {
+	assertServiceInstanceReadyFalse(t, obj, reason)
+	assertServiceInstanceCurrentOperationClear(t, obj)
+	assertServiceInstanceOperationStartTimeSet(t, obj, false)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Status.ReconciledGeneration)
+	assertAsyncOpInProgressFalse(t, obj)
+	assertServiceInstanceOrphanMitigationInProgressFalse(t, obj)
+	assertServiceInstanceInProgressPropertiesNil(t, obj)
+	assertServiceInstanceExternalPropertiesUnchanged(t, obj, originalInstance)
+}
+
+func assertServiceInstanceOperationInProgress(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, planName string, originalInstance *v1alpha1.ServiceInstance) {
+	assertServiceInstanceOperationInProgressWithParameters(t, obj, operation, planName, nil, "", originalInstance)
+}
+
+func assertServiceInstanceOperationInProgressWithParameters(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, planName string, inProgressParameters map[string]interface{}, inProgressParametersChecksum string, originalInstance *v1alpha1.ServiceInstance) {
+	reason := ""
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		reason = provisioningInFlightReason
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		reason = deprovisioningInFlightReason
+	}
+	assertServiceInstanceReadyFalse(t, obj, reason)
+	assertServiceInstanceCurrentOperation(t, obj, operation)
+	assertServiceInstanceOperationStartTimeSet(t, obj, true)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Status.ReconciledGeneration)
+	assertAsyncOpInProgressFalse(t, obj)
+	assertServiceInstanceOrphanMitigationInProgressFalse(t, obj)
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		assertServiceInstanceInProgressPropertiesPlanName(t, obj, planName)
+		assertServiceInstanceInProgressPropertiesParameters(t, obj, inProgressParameters, inProgressParametersChecksum)
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		assertServiceInstanceInProgressPropertiesNil(t, obj)
+	}
+	assertServiceInstanceExternalPropertiesUnchanged(t, obj, originalInstance)
+}
+
+func assertServiceInstanceOperationSuccess(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, planName string, originalInstance *v1alpha1.ServiceInstance) {
+	assertServiceInstanceOperationSuccessWithParameters(t, obj, operation, planName, nil, "", originalInstance)
+}
+
+func assertServiceInstanceOperationSuccessWithParameters(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, planName string, externalParameters map[string]interface{}, externalParametersChecksum string, originalInstance *v1alpha1.ServiceInstance) {
+	var (
+		reason      string
+		readyStatus v1alpha1.ConditionStatus
+	)
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		reason = successProvisionReason
+		readyStatus = v1alpha1.ConditionTrue
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		reason = successDeprovisionReason
+		readyStatus = v1alpha1.ConditionFalse
+	}
+	assertServiceInstanceReadyCondition(t, obj, readyStatus, reason)
+	assertServiceInstanceCurrentOperationClear(t, obj)
+	assertServiceInstanceOperationStartTimeSet(t, obj, false)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Generation)
+	assertAsyncOpInProgressFalse(t, obj)
+	assertServiceInstanceOrphanMitigationInProgressFalse(t, obj)
+	if operation == v1alpha1.ServiceInstanceOperationDeprovision {
+		assertEmptyFinalizers(t, obj)
+	}
+	assertServiceInstanceInProgressPropertiesNil(t, obj)
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		assertServiceInstanceExternalPropertiesPlanName(t, obj, planName)
+		assertServiceInstanceExternalPropertiesParameters(t, obj, externalParameters, externalParametersChecksum)
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		assertServiceInstanceExternalPropertiesNil(t, obj)
+	}
+}
+
+func assertServiceInstanceRequestFailingError(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, readyReason string, failureReason string, originalInstance *v1alpha1.ServiceInstance) {
+	var readyStatus v1alpha1.ConditionStatus
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		readyStatus = v1alpha1.ConditionFalse
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		readyStatus = v1alpha1.ConditionUnknown
+	}
+	assertServiceInstanceReadyCondition(t, obj, readyStatus, readyReason)
+	assertServiceInstanceCondition(t, obj, v1alpha1.ServiceInstanceConditionFailed, v1alpha1.ConditionTrue, failureReason)
+	assertServiceInstanceOperationStartTimeSet(t, obj, false)
+	assertAsyncOpInProgressFalse(t, obj)
+	assertServiceInstanceInProgressPropertiesNil(t, obj)
+	assertServiceInstanceExternalPropertiesUnchanged(t, obj, originalInstance)
+}
+
+func assertServiceInstanceRequestFailingErrorNoOrphanMitigation(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, readyReason string, failureReason string, originalInstance *v1alpha1.ServiceInstance) {
+	assertServiceInstanceRequestFailingError(t, obj, operation, readyReason, failureReason, originalInstance)
+	assertServiceInstanceCurrentOperationClear(t, obj)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Generation)
+	assertServiceInstanceOrphanMitigationInProgressFalse(t, obj)
+}
+
+func assertServiceInstanceRequestFailingErrorStartOrphanMitigation(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, readyReason string, failureReason string, originalInstance *v1alpha1.ServiceInstance) {
+	assertServiceInstanceRequestFailingError(t, obj, operation, readyReason, failureReason, originalInstance)
+	assertServiceInstanceCurrentOperation(t, obj, v1alpha1.ServiceInstanceOperationProvision)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Status.ReconciledGeneration)
+	assertServiceInstanceOrphanMitigationInProgressTrue(t, obj)
+}
+
+func assertServiceInstanceRequestRetriableError(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, reason string, planName string, originalInstance *v1alpha1.ServiceInstance) {
+	assertServiceInstanceRequestRetriableErrorWithParameters(t, obj, operation, reason, planName, nil, "", originalInstance)
+}
+
+func assertServiceInstanceRequestRetriableErrorWithParameters(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, reason string, planName string, inProgressParameters map[string]interface{}, inProgressParametersChecksum string, originalInstance *v1alpha1.ServiceInstance) {
+	var readyStatus v1alpha1.ConditionStatus
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		readyStatus = v1alpha1.ConditionFalse
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		readyStatus = v1alpha1.ConditionUnknown
+	}
+	assertServiceInstanceReadyCondition(t, obj, readyStatus, reason)
+	assertServiceInstanceCurrentOperation(t, obj, operation)
+	assertServiceInstanceOperationStartTimeSet(t, obj, true)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Status.ReconciledGeneration)
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		assertServiceInstanceInProgressPropertiesPlanName(t, obj, planName)
+		assertServiceInstanceInProgressPropertiesParameters(t, obj, inProgressParameters, inProgressParametersChecksum)
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		assertServiceInstanceInProgressPropertiesNil(t, obj)
+	}
+	assertServiceInstanceExternalPropertiesUnchanged(t, obj, originalInstance)
+}
+
+func assertServiceInstanceAsyncInProgress(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, operationKey string, planName string, originalInstance *v1alpha1.ServiceInstance) {
+	reason := ""
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		reason = asyncProvisioningReason
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		reason = asyncDeprovisioningReason
+	}
+	assertServiceInstanceReadyFalse(t, obj, reason)
+	assertServiceInstanceLastOperation(t, obj, operationKey)
+	assertServiceInstanceCurrentOperation(t, obj, operation)
+	assertServiceInstanceOperationStartTimeSet(t, obj, true)
+	assertServiceInstanceReconciledGeneration(t, obj, originalInstance.Status.ReconciledGeneration)
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		assertServiceInstanceInProgressPropertiesPlanName(t, obj, planName)
+		assertServiceInstanceInProgressPropertiesParameters(t, obj, nil, "")
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		assertServiceInstanceInProgressPropertiesNil(t, obj)
+	}
+	assertAsyncOpInProgressTrue(t, obj)
+}
+
+func assertServiceInstanceConditionHasLastOperationDescription(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceOperation, lastOperationDescription string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	var expected string
+	switch operation {
+	case v1alpha1.ServiceInstanceOperationProvision:
+		expected = fmt.Sprintf("%s (%s)", asyncProvisioningMessage, lastOperationDescription)
+	case v1alpha1.ServiceInstanceOperationDeprovision:
+		expected = fmt.Sprintf("%s (%s)", asyncDeprovisioningMessage, lastOperationDescription)
+	}
+	if e, a := expected, instance.Status.Conditions[0].Message; e != a {
+		fatalf(t, "unexpected condition message: expected %q, got %q", e, a)
+	}
+}
+
+func assertServiceInstanceInProgressPropertiesNil(t *testing.T, obj runtime.Object) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+
+	if a := instance.Status.InProgressProperties; a != nil {
+		fatalf(t, "expected in-progress properties to be nil: actual %v", a)
+	}
+}
+
+func assertServiceInstanceInProgressPropertiesPlanName(t *testing.T, obj runtime.Object, planName string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	assertServiceInstancePropertiesStatePlanName(t, "in-progress", instance.Status.InProgressProperties, planName)
+}
+
+func assertServiceInstanceInProgressPropertiesParameters(t *testing.T, obj runtime.Object, params map[string]interface{}, checksum string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	assertServiceInstancePropertiesStateParameters(t, "in-progress", instance.Status.InProgressProperties, params, checksum)
+}
+
+func assertServiceInstanceInProgressPropertiesUnchanged(t *testing.T, obj runtime.Object, originalInstance *v1alpha1.ServiceInstance) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	if originalInstance.Status.InProgressProperties == nil {
+		assertServiceInstanceInProgressPropertiesNil(t, obj)
+	} else {
+		assertServiceInstancePropertiesStateParametersUnchanged(t, "in-progress", instance.Status.InProgressProperties, *originalInstance.Status.InProgressProperties)
+	}
+}
+
+func assertServiceInstanceExternalPropertiesNil(t *testing.T, obj runtime.Object) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+
+	if a := instance.Status.ExternalProperties; a != nil {
+		fatalf(t, "expected external properties to be nil: actual %v", a)
+	}
+}
+
+func assertServiceInstanceExternalPropertiesPlanName(t *testing.T, obj runtime.Object, planName string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	assertServiceInstancePropertiesStatePlanName(t, "external", instance.Status.ExternalProperties, planName)
+}
+
+func assertServiceInstanceExternalPropertiesParameters(t *testing.T, obj runtime.Object, params map[string]interface{}, checksum string) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	assertServiceInstancePropertiesStateParameters(t, "external", instance.Status.ExternalProperties, params, checksum)
+}
+
+func assertServiceInstanceExternalPropertiesUnchanged(t *testing.T, obj runtime.Object, originalInstance *v1alpha1.ServiceInstance) {
+	instance, ok := obj.(*v1alpha1.ServiceInstance)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstance", obj)
+	}
+	if originalInstance.Status.ExternalProperties == nil {
+		assertServiceInstanceExternalPropertiesNil(t, obj)
+	} else {
+		assertServiceInstancePropertiesStateParametersUnchanged(t, "external", instance.Status.ExternalProperties, *originalInstance.Status.ExternalProperties)
+	}
+}
+
+func assertServiceInstancePropertiesStatePlanName(t *testing.T, propsLabel string, actualProps *v1alpha1.ServiceInstancePropertiesState, expectedPlanName string) {
+	if actualProps == nil {
+		fatalf(t, "expected %v properties to not be nil", propsLabel)
+	}
+	if e, a := expectedPlanName, actualProps.ExternalServicePlanName; e != a {
+		fatalf(t, "unexpected %v properties external service plan name: expected %v, actual %v", propsLabel, e, a)
+	}
+}
+
+func assertServiceInstancePropertiesStateParameters(t *testing.T, propsLabel string, actualProps *v1alpha1.ServiceInstancePropertiesState, expectedParams map[string]interface{}, expectedChecksum string) {
+	if actualProps == nil {
+		fatalf(t, "expected %v properties to not be nil", propsLabel)
+	}
+	assertPropertiesStateParameters(t, propsLabel, actualProps.Parameters, expectedParams)
+	if e, a := expectedChecksum, actualProps.ParametersChecksum; e != a {
+		fatalf(t, "unexpected %v properties parameters checksum: expected %v, actual %v", propsLabel, e, a)
+	}
+}
+
+func assertPropertiesStateParameters(t *testing.T, propsLabel string, marshalledParams *runtime.RawExtension, expectedParams map[string]interface{}) {
+	if expectedParams == nil {
+		if a := marshalledParams; a != nil {
+			fatalf(t, "expected %v properties parameters to be nil: actual %v", propsLabel, a)
+		}
+	} else {
+		if marshalledParams == nil {
+			fatalf(t, "expected %v properties parameters to not be nil", propsLabel)
+		}
+		actualParams := make(map[string]interface{})
+		if err := yaml.Unmarshal(marshalledParams.Raw, &actualParams); err != nil {
+			fatalf(t, "%v properties parameters could not be unmarshalled: %v", propsLabel, err)
+		}
+		if e, a := expectedParams, actualParams; !reflect.DeepEqual(e, a) {
+			fatalf(t, "unexpected %v properties parameters: expected %v, actual %v", propsLabel, e, a)
+		}
+	}
+}
+
+func assertServiceInstancePropertiesStateParametersUnchanged(t *testing.T, propsLabel string, new *v1alpha1.ServiceInstancePropertiesState, old v1alpha1.ServiceInstancePropertiesState) {
+	if new == nil {
+		fatalf(t, "expected %v properties to not be nil", propsLabel)
+	}
+	if e, a := old, *new; !reflect.DeepEqual(e, a) {
+		fatalf(t, "unexpected %v properties: expected %v, actual %v", propsLabel, e, a)
 	}
 }
 
@@ -1557,6 +1983,16 @@ func assertServiceInstanceCredentialReconciledGeneration(t *testing.T, obj runti
 	}
 }
 
+func assertServiceInstanceCredentialReconciliationNotComplete(t *testing.T, obj runtime.Object) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+	if g, rg := binding.Generation, binding.Status.ReconciledGeneration; g <= rg {
+		fatalf(t, "expected ReconciledGeneration to be less than Generation: Generation %v, ReconciledGeneration %v", g, rg)
+	}
+}
+
 func assertServiceInstanceCredentialOperationStartTimeSet(t *testing.T, obj runtime.Object, isOperationStartTimeSet bool) {
 	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
 	if !ok {
@@ -1572,6 +2008,211 @@ func assertServiceInstanceCredentialOperationStartTimeSet(t *testing.T, obj runt
 	}
 }
 
+func assertServiceInstanceCredentialCurrentOperationClear(t *testing.T, obj runtime.Object) {
+	assertServiceInstanceCredentialCurrentOperation(t, obj, "")
+}
+
+func assertServiceInstanceCredentialCurrentOperation(t *testing.T, obj runtime.Object, currentOperation v1alpha1.ServiceInstanceCredentialOperation) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+
+	if e, a := currentOperation, binding.Status.CurrentOperation; e != a {
+		fatalf(t, "unexpected current operation: expected %q, got %q", e, a)
+	}
+}
+
+func assertServiceInstanceCredentialErrorBeforeRequest(t *testing.T, obj runtime.Object, reason string, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	assertServiceInstanceCredentialReadyFalse(t, obj, reason)
+	assertServiceInstanceCredentialCurrentOperationClear(t, obj)
+	assertServiceInstanceCredentialOperationStartTimeSet(t, obj, false)
+	assertServiceInstanceCredentialReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	assertServiceInstanceCredentialInProgressPropertiesNil(t, obj)
+	assertServiceInstanceCredentialExternalPropertiesUnchanged(t, obj, originalBinding)
+}
+
+func assertServiceInstanceCredentialOperationInProgress(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	assertServiceInstanceCredentialOperationInProgressWithParameters(t, obj, operation, nil, "", originalBinding)
+}
+
+func assertServiceInstanceCredentialOperationInProgressWithParameters(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, inProgressParameters map[string]interface{}, inProgressParametersChecksum string, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	reason := ""
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		reason = bindingInFlightReason
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		reason = unbindingInFlightReason
+	}
+	assertServiceInstanceCredentialReadyFalse(t, obj, reason)
+	assertServiceInstanceCredentialCurrentOperation(t, obj, operation)
+	assertServiceInstanceCredentialOperationStartTimeSet(t, obj, true)
+	assertServiceInstanceCredentialReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		assertServiceInstanceCredentialInProgressPropertiesParameters(t, obj, inProgressParameters, inProgressParametersChecksum)
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		assertServiceInstanceCredentialInProgressPropertiesNil(t, obj)
+	}
+	assertServiceInstanceCredentialExternalPropertiesUnchanged(t, obj, originalBinding)
+}
+
+func assertServiceInstanceCredentialOperationSuccess(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	assertServiceInstanceCredentialOperationSuccessWithParameters(t, obj, operation, nil, "", originalBinding)
+}
+
+func assertServiceInstanceCredentialOperationSuccessWithParameters(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, externalParameters map[string]interface{}, externalParametersChecksum string, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	var (
+		reason      string
+		readyStatus v1alpha1.ConditionStatus
+	)
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		reason = successInjectedBindResultReason
+		readyStatus = v1alpha1.ConditionTrue
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		reason = successUnboundReason
+		readyStatus = v1alpha1.ConditionFalse
+	}
+	assertServiceInstanceCredentialReadyCondition(t, obj, readyStatus, reason)
+	assertServiceInstanceCredentialCurrentOperationClear(t, obj)
+	assertServiceInstanceCredentialOperationStartTimeSet(t, obj, false)
+	assertServiceInstanceCredentialReconciledGeneration(t, obj, originalBinding.Generation)
+	if operation == v1alpha1.ServiceInstanceCredentialOperationUnbind {
+		assertEmptyFinalizers(t, obj)
+	}
+	assertServiceInstanceCredentialInProgressPropertiesNil(t, obj)
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		assertServiceInstanceCredentialExternalPropertiesParameters(t, obj, externalParameters, externalParametersChecksum)
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		assertServiceInstanceCredentialExternalPropertiesNil(t, obj)
+	}
+}
+
+func assertServiceInstanceCredentialRequestFailingError(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, readyReason string, failureReason string, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	var readyStatus v1alpha1.ConditionStatus
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		readyStatus = v1alpha1.ConditionFalse
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		readyStatus = v1alpha1.ConditionUnknown
+	}
+	assertServiceInstanceCredentialReadyCondition(t, obj, readyStatus, readyReason)
+	assertServiceInstanceCredentialCondition(t, obj, v1alpha1.ServiceInstanceCredentialConditionFailed, v1alpha1.ConditionTrue, failureReason)
+	assertServiceInstanceCredentialCurrentOperationClear(t, obj)
+	assertServiceInstanceCredentialOperationStartTimeSet(t, obj, false)
+	assertServiceInstanceCredentialReconciledGeneration(t, obj, originalBinding.Generation)
+	assertServiceInstanceCredentialInProgressPropertiesNil(t, obj)
+	assertServiceInstanceCredentialExternalPropertiesUnchanged(t, obj, originalBinding)
+}
+
+func assertServiceInstanceCredentialRequestRetriableError(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, reason string, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	assertServiceInstanceCredentialRequestRetriableErrorWithParameters(t, obj, operation, reason, nil, "", originalBinding)
+}
+
+func assertServiceInstanceCredentialRequestRetriableErrorWithParameters(t *testing.T, obj runtime.Object, operation v1alpha1.ServiceInstanceCredentialOperation, reason string, inProgressParameters map[string]interface{}, inProgressParametersChecksum string, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	var readyStatus v1alpha1.ConditionStatus
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		readyStatus = v1alpha1.ConditionFalse
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		readyStatus = v1alpha1.ConditionUnknown
+	}
+	assertServiceInstanceCredentialReadyCondition(t, obj, readyStatus, reason)
+	assertServiceInstanceCredentialCurrentOperation(t, obj, operation)
+	assertServiceInstanceCredentialOperationStartTimeSet(t, obj, true)
+	assertServiceInstanceCredentialReconciledGeneration(t, obj, originalBinding.Status.ReconciledGeneration)
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		assertServiceInstanceCredentialInProgressPropertiesParameters(t, obj, inProgressParameters, inProgressParametersChecksum)
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		assertServiceInstanceCredentialInProgressPropertiesNil(t, obj)
+	}
+	assertServiceInstanceCredentialExternalPropertiesUnchanged(t, obj, originalBinding)
+}
+
+func assertServiceInstanceCredentialInProgressPropertiesNil(t *testing.T, obj runtime.Object) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+
+	if a := binding.Status.InProgressProperties; a != nil {
+		fatalf(t, "expected in-progress properties to be nil: actual %v", a)
+	}
+}
+
+func assertServiceInstanceCredentialInProgressPropertiesParameters(t *testing.T, obj runtime.Object, params map[string]interface{}, checksum string) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+	assertServiceInstanceCredentialPropertiesStateParameters(t, "in-progress", binding.Status.InProgressProperties, params, checksum)
+}
+
+func assertServiceInstanceCredentialInProgressPropertiesUnchanged(t *testing.T, obj runtime.Object, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+	if originalBinding.Status.InProgressProperties == nil {
+		assertServiceInstanceCredentialInProgressPropertiesNil(t, obj)
+	} else {
+		assertServiceInstanceCredentialPropertiesStateParametersUnchanged(t, "in-progress", binding.Status.InProgressProperties, *originalBinding.Status.InProgressProperties)
+	}
+}
+
+func assertServiceInstanceCredentialExternalPropertiesNil(t *testing.T, obj runtime.Object) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+
+	if a := binding.Status.ExternalProperties; a != nil {
+		fatalf(t, "expected external properties to be nil: actual %v", a)
+	}
+}
+
+func assertServiceInstanceCredentialExternalPropertiesParameters(t *testing.T, obj runtime.Object, params map[string]interface{}, checksum string) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+	assertServiceInstanceCredentialPropertiesStateParameters(t, "external", binding.Status.ExternalProperties, params, checksum)
+}
+
+func assertServiceInstanceCredentialExternalPropertiesUnchanged(t *testing.T, obj runtime.Object, originalBinding *v1alpha1.ServiceInstanceCredential) {
+	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
+	if !ok {
+		fatalf(t, "Couldn't convert object %+v into a *v1alpha1.ServiceInstanceCredential", obj)
+	}
+	if originalBinding.Status.ExternalProperties == nil {
+		assertServiceInstanceCredentialExternalPropertiesNil(t, obj)
+	} else {
+		assertServiceInstanceCredentialPropertiesStateParametersUnchanged(t, "external", binding.Status.ExternalProperties, *originalBinding.Status.ExternalProperties)
+	}
+}
+
+func assertServiceInstanceCredentialPropertiesStateParameters(t *testing.T, propsLabel string, actualProps *v1alpha1.ServiceInstanceCredentialPropertiesState, expectedParams map[string]interface{}, expectedChecksum string) {
+	if actualProps == nil {
+		fatalf(t, "expected %v properties to not be nil", propsLabel)
+	}
+	assertPropertiesStateParameters(t, propsLabel, actualProps.Parameters, expectedParams)
+	if e, a := expectedChecksum, actualProps.ParametersChecksum; e != a {
+		fatalf(t, "unexpected %v properties parameters checksum: expected %v, actual %v", propsLabel, e, a)
+	}
+}
+
+func assertServiceInstanceCredentialPropertiesStateParametersUnchanged(t *testing.T, propsLabel string, new *v1alpha1.ServiceInstanceCredentialPropertiesState, old v1alpha1.ServiceInstanceCredentialPropertiesState) {
+	if new == nil {
+		fatalf(t, "expected %v properties to not be nil", propsLabel)
+	}
+	if e, a := old, *new; !reflect.DeepEqual(e, a) {
+		fatalf(t, "unexpected %v properties: expected %v, actual %v", propsLabel, e, a)
+	}
+}
+
 func assertEmptyFinalizers(t *testing.T, obj runtime.Object) {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
@@ -1583,8 +2224,47 @@ func assertEmptyFinalizers(t *testing.T, obj runtime.Object) {
 	}
 }
 
+func assertCatalogFinalizerExists(t *testing.T, obj runtime.Object) {
+	testCatalogFinalizerExists(t, "" /* name */, fatalf, obj)
+}
+
+func expectCatalogFinalizerExists(t *testing.T, name string, obj runtime.Object) bool {
+	return testCatalogFinalizerExists(t, name, errorf, obj)
+}
+
+func testCatalogFinalizerExists(t *testing.T, name string, f failfFunc, obj runtime.Object) bool {
+	logContext := ""
+	if len(name) > 0 {
+		logContext = name + ": "
+	}
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		f(t, "%vError creating ObjectMetaAccessor for param object %+v: %v", logContext, obj, err)
+		return false
+	}
+
+	finalizers := sets.NewString(accessor.GetFinalizers()...)
+	if !finalizers.Has(v1alpha1.FinalizerServiceCatalog) {
+		f(t, "%vExpected Service Catalog finalizer but was not there", logContext)
+		return false
+	}
+
+	return true
+}
+
 func assertNumberOfServiceBrokerActions(t *testing.T, actions []fakeosb.Action, number int) {
 	testNumberOfServiceBrokerActions(t, "" /* name */, fatalf, actions, number)
+}
+
+// assertListRestrictions compares expected Fields / Labels on a list options.
+func assertListRestrictions(t *testing.T, e, a clientgotesting.ListRestrictions) {
+	if el, al := e.Labels.String(), a.Labels.String(); el != al {
+		fatalf(t, "ListRestrictions.Labels don't match, expected %q got %q", el, al)
+	}
+	if ef, af := e.Fields.String(), a.Fields.String(); ef != af {
+		fatalf(t, "ListRestrictions.Fields don't match, expected %q got %q", ef, af)
+	}
 }
 
 func expectNumberOfServiceBrokerActions(t *testing.T, name string, actions []fakeosb.Action, number int) bool {

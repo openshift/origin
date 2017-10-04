@@ -23,16 +23,16 @@ import (
 	scmeta "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
-	"github.com/kubernetes-incubator/service-catalog/pkg/storage/tpr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/client-go/pkg/api"
+	coreapi "k8s.io/client-go/pkg/api"
 )
 
 var (
@@ -44,7 +44,7 @@ var (
 func NewSingular(ns, name string) runtime.Object {
 	return &servicecatalog.ServiceInstance{
 		TypeMeta: metav1.TypeMeta{
-			Kind: tpr.ServiceInstanceKind.String(),
+			Kind: "ServiceInstance",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -62,7 +62,7 @@ func EmptyObject() runtime.Object {
 func NewList() runtime.Object {
 	return &servicecatalog.ServiceInstanceList{
 		TypeMeta: metav1.TypeMeta{
-			Kind: tpr.ServiceInstanceListKind.String(),
+			Kind: "ServiceInstanceList",
 		},
 		Items: []servicecatalog.ServiceInstance{},
 	}
@@ -104,7 +104,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 
 // NewStorage creates a new rest.Storage responsible for accessing ServiceInstance
 // resources
-func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
+func NewStorage(opts server.Options) (rest.Storage, rest.Storage, rest.Storage) {
 	prefix := "/" + opts.ResourcePrefix()
 
 	storageInterface, dFunc := opts.GetStorage(
@@ -129,7 +129,7 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,
 		// QualifiedResource should always be plural
-		QualifiedResource: api.Resource("serviceinstances"),
+		QualifiedResource: coreapi.Resource("serviceinstances"),
 
 		CreateStrategy:          instanceRESTStrategies,
 		UpdateStrategy:          instanceRESTStrategies,
@@ -143,5 +143,55 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 	statusStore := store
 	statusStore.UpdateStrategy = instanceStatusUpdateStrategy
 
-	return &store, &statusStore
+	referenceStore := store
+	referenceStore.UpdateStrategy = instanceReferenceUpdateStrategy
+
+	return &store, &StatusREST{&statusStore}, &ReferenceREST{&referenceStore}
+
+}
+
+// StatusREST defines the REST operations for the status subresource via
+// implementation of various rest interfaces.  It supports the http verbs GET,
+// PATCH, and PUT.
+type StatusREST struct {
+	store *registry.Store
+}
+
+// New returns a new ServiceInstance
+func (r *StatusREST) New() runtime.Object {
+	return &servicecatalog.ServiceInstance{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch
+// and to implement the rest.Getter interface.
+func (r *StatusREST) Get(ctx genericapirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	return r.store.Get(ctx, name, options)
+}
+
+// Update alters the status subset of an object and it
+// implements rest.Updater interface
+func (r *StatusREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
+}
+
+// ReferenceREST defines the REST operations for the reference subresource.
+type ReferenceREST struct {
+	store *registry.Store
+}
+
+// New returns a new ServiceInstance
+func (r *ReferenceREST) New() runtime.Object {
+	return &servicecatalog.ServiceInstance{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch
+// and to implement the rest.Getter interface.
+func (r *ReferenceREST) Get(ctx genericapirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	return r.store.Get(ctx, name, options)
+}
+
+// Update alters the reference subset of an object and it
+// implements rest.Updater interface
+func (r *ReferenceREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }

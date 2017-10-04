@@ -36,19 +36,24 @@ func TestBuildParameters(t *testing.T) {
 	}
 
 	cases := []struct {
-		name           string
-		parametersFrom []v1alpha1.ParametersFromSource
-		parameters     *runtime.RawExtension
-		secret         *v1.Secret
-		expected       map[string]interface{}
-		shouldSucceed  bool
+		name                                  string
+		parametersFrom                        []v1alpha1.ParametersFromSource
+		parameters                            *runtime.RawExtension
+		secret                                *v1.Secret
+		expectedParameters                    map[string]interface{}
+		expectedParametersWithSecretsRedacted map[string]interface{}
+		shouldSucceed                         bool
 	}{
 		{
 			name: "parameters: basic",
 			parameters: &runtime.RawExtension{
 				Raw: []byte(`{ "p1": "v1", "p2": "v2" }`),
 			},
-			expected: map[string]interface{}{
+			expectedParameters: map[string]interface{}{
+				"p1": "v1",
+				"p2": "v2",
+			},
+			expectedParametersWithSecretsRedacted: map[string]interface{}{
 				"p1": "v1",
 				"p2": "v2",
 			},
@@ -72,8 +77,11 @@ func TestBuildParameters(t *testing.T) {
 				},
 			},
 			secret: secret,
-			expected: map[string]interface{}{
+			expectedParameters: map[string]interface{}{
 				"json": true,
+			},
+			expectedParametersWithSecretsRedacted: map[string]interface{}{
+				"json": "<redacted>",
 			},
 			shouldSucceed: true,
 		},
@@ -104,8 +112,12 @@ func TestBuildParameters(t *testing.T) {
 				Raw: []byte(`{ "p1": "v1" }`),
 			},
 			secret: secret,
-			expected: map[string]interface{}{
+			expectedParameters: map[string]interface{}{
 				"json": true,
+				"p1":   "v1",
+			},
+			expectedParametersWithSecretsRedacted: map[string]interface{}{
+				"json": "<redacted>",
 				"p1":   "v1",
 			},
 			shouldSucceed: true,
@@ -130,12 +142,12 @@ func TestBuildParameters(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			testBuildParameters(t, tc.parametersFrom, tc.parameters, tc.secret, tc.expected, tc.shouldSucceed)
+			testBuildParameters(t, tc.parametersFrom, tc.parameters, tc.secret, tc.expectedParameters, tc.expectedParametersWithSecretsRedacted, tc.shouldSucceed)
 		})
 	}
 }
 
-func testBuildParameters(t *testing.T, parametersFrom []v1alpha1.ParametersFromSource, parameters *runtime.RawExtension, secret *v1.Secret, expected map[string]interface{}, shouldSucceed bool) {
+func testBuildParameters(t *testing.T, parametersFrom []v1alpha1.ParametersFromSource, parameters *runtime.RawExtension, secret *v1.Secret, expected map[string]interface{}, expectedWithSecretsRdacted map[string]interface{}, shouldSucceed bool) {
 	// create a fake kube client
 	fakeKubeClient := &clientgofake.Clientset{}
 	if secret != nil {
@@ -144,7 +156,7 @@ func testBuildParameters(t *testing.T, parametersFrom []v1alpha1.ParametersFromS
 		addGetSecretNotFoundReaction(fakeKubeClient)
 	}
 
-	actual, err := buildParameters(fakeKubeClient, "test-ns", parametersFrom, parameters)
+	actual, actualWithSecretsRedacted, err := buildParameters(fakeKubeClient, "test-ns", parametersFrom, parameters)
 	if shouldSucceed {
 		if err != nil {
 			t.Fatalf("Failed to build parameters: %v", err)
@@ -152,9 +164,66 @@ func testBuildParameters(t *testing.T, parametersFrom []v1alpha1.ParametersFromS
 		if !reflect.DeepEqual(actual, expected) {
 			t.Fatalf("incorrect result: diff \n%v", diff.ObjectGoPrintSideBySide(expected, actual))
 		}
+		if !reflect.DeepEqual(actualWithSecretsRedacted, expectedWithSecretsRdacted) {
+			t.Fatalf("incorrect result with redacted secrets: diff \n%v", diff.ObjectGoPrintSideBySide(expectedWithSecretsRdacted, actualWithSecretsRedacted))
+		}
 	} else {
 		if err == nil {
 			t.Fatal("Expected error, but got success")
 		}
+	}
+}
+
+func TestGenerateChecksumOfParameters(t *testing.T) {
+	cases := []struct {
+		name             string
+		oldParams        map[string]interface{}
+		newParams        map[string]interface{}
+		expectedEquality bool
+	}{
+		{
+			name: "same",
+			oldParams: map[string]interface{}{
+				"a": "first",
+				"b": 2,
+			},
+			newParams: map[string]interface{}{
+				"a": "first",
+				"b": 2,
+			},
+			expectedEquality: true,
+		},
+		{
+			name: "different",
+			oldParams: map[string]interface{}{
+				"a": "first",
+				"b": 2,
+			},
+			newParams: map[string]interface{}{
+				"a": "first",
+				"b": 3,
+			},
+			expectedEquality: false,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			oldChecksum, err := generateChecksumOfParameters(tc.oldParams)
+			if err != nil {
+				t.Fatalf("failed to generate checksum: %v", err)
+			}
+			newChecksum, err := generateChecksumOfParameters(tc.newParams)
+			if err != nil {
+				t.Fatalf("failed to generate checksum: %v", err)
+			}
+			actualEquality := oldChecksum == newChecksum
+			if e, a := tc.expectedEquality, actualEquality; e != a {
+				expectedCondition := "be equal"
+				if !tc.expectedEquality {
+					expectedCondition = "not be equal"
+				}
+				t.Fatalf("expected checksums to %s: old %q, new %q", expectedCondition, oldChecksum, newChecksum)
+			}
+		})
 	}
 }

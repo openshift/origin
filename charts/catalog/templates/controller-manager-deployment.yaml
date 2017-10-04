@@ -66,6 +66,10 @@ spec:
         - --broker-relist-interval
         - {{ .Values.controllerManager.brokerRelistInterval }}
         {{- end }}
+        {{- if .Values.originatingIdentityEnabled }}
+        - --feature-gates
+        - OriginatingIdentity=true
+        {{- end }}
         ports:
         - containerPort: 8080
         volumeMounts:

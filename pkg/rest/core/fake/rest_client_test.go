@@ -230,16 +230,7 @@ func TestCreateItem(t *testing.T) {
 			1,
 		},
 		{
-			"Create misformed item(no Kind)",
-			make(NamespacedStorage),
-			NewWatcher(),
-			newResponseWriter(),
-			fmt.Sprintf("/apis/servicecatalog.k8s.io/v1alpha1/namespaces/%s/%s", ns1, tipe1),
-			&servicecatalog.ServiceBroker{}, http.StatusInternalServerError,
-			0,
-		},
-		{
-			"Create Item(non-empty storage)",
+			"Create Item (non-empty storage)",
 			createMultipleItemStorage(),
 			NewWatcher(),
 			newResponseWriter(),

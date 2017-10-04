@@ -23,7 +23,6 @@ import (
 	scmeta "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
-	"github.com/kubernetes-incubator/service-catalog/pkg/storage/tpr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -32,7 +31,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/client-go/pkg/api"
+	coreapi "k8s.io/client-go/pkg/api"
 )
 
 var (
@@ -44,7 +43,7 @@ var (
 func NewSingular(ns, name string) runtime.Object {
 	return &servicecatalog.ServiceClass{
 		TypeMeta: metav1.TypeMeta{
-			Kind: tpr.ServiceClassKind.String(),
+			Kind: "ServiceClass",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -62,7 +61,7 @@ func EmptyObject() runtime.Object {
 func NewList() runtime.Object {
 	return &servicecatalog.ServiceClassList{
 		TypeMeta: metav1.TypeMeta{
-			Kind: tpr.ServiceClassListKind.String(),
+			Kind: "ServiceClassList",
 		},
 		Items: []servicecatalog.ServiceClass{},
 	}
@@ -89,8 +88,15 @@ func Match(label labels.Selector, field fields.Selector) storage.SelectionPredic
 
 // toSelectableFields returns a field set that represents the object for matching purposes.
 func toSelectableFields(serviceClass *servicecatalog.ServiceClass) fields.Set {
-	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&serviceClass.ObjectMeta, true)
-	return generic.MergeFieldsSets(objectMetaFieldsSet, nil)
+	// The purpose of allocation with a given number of elements is to reduce
+	// amount of allocations needed to create the fields.Set. If you add any
+	// field here or the number of object-meta related fields changes, this should
+	// be adjusted.
+	scSpecificFieldsSet := make(fields.Set, 3)
+	scSpecificFieldsSet["spec.serviceBrokerName"] = serviceClass.Spec.ServiceBrokerName
+	scSpecificFieldsSet["spec.externalName"] = serviceClass.Spec.ExternalName
+	scSpecificFieldsSet["spec.externalID"] = serviceClass.Spec.ExternalID
+	return generic.AddObjectMetaFieldsSet(scSpecificFieldsSet, &serviceClass.ObjectMeta, true)
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
@@ -130,7 +136,7 @@ func NewStorage(opts server.Options) rest.Storage {
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,
 		// QualifiedResource should always be plural
-		QualifiedResource: api.Resource("serviceclasses"),
+		QualifiedResource: coreapi.Resource("serviceclasses"),
 
 		CreateStrategy: serviceclassRESTStrategies,
 		UpdateStrategy: serviceclassRESTStrategies,

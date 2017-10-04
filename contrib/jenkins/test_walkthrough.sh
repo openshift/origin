@@ -124,6 +124,10 @@ ${ROOT}/contrib/jenkins/install_catalog.sh ${FLAGS} \
 
 echo 'Creating broker...'
 
+# This is the ID of the user-provided-service
+# Defined in ../pkg/broker/user_provided/controller/controller.go
+USER_PROVIDED_SERVICE_ID="4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468"
+
 kubectl --context=service-catalog create -f "${ROOT}/contrib/examples/walkthrough/ups-broker.yaml" \
   || error_exit 'Error when creating ups-broker.'
 
@@ -140,8 +144,8 @@ wait_for_expected_output -e 'FetchedCatalog' \
     error_exit 'Failure status reported when attempting to fetch catalog from ups-broker.'
   }
 
-[[ "$(kubectl --context=service-catalog get serviceclasses)" == *user-provided-service* ]] \
-  || error_exit 'user-provided-service not listed when fetching service classes.'
+[[ "$(kubectl --context=service-catalog get serviceclasses)" == *${USER_PROVIDED_SERVICE_ID}* ]] \
+  || error_exit 'user-provided-service ID not listed when fetching service classes.'
 
 # Provision an instance
 
@@ -211,7 +215,7 @@ echo 'Deleting broker...'
 kubectl --context=service-catalog delete servicebrokers ups-broker \
   || error_exit 'Error when deleting ups-broker.'
 
-wait_for_expected_output -x -e 'user-provided-service' \
+wait_for_expected_output -x -e ${USER_PROVIDED_SERVICE_ID} \
     kubectl --context=service-catalog get serviceclasses \
   || {
     kubectl --context=service-catalog get serviceclasses

@@ -148,7 +148,6 @@ func validateServiceBrokerSpec(spec *sc.ServiceBrokerSpec, fldPath *field.Path) 
 func ValidateServiceBrokerUpdate(new *sc.ServiceBroker, old *sc.ServiceBroker) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, ValidateServiceBroker(new)...)
-	allErrs = append(allErrs, ValidateServiceBroker(old)...)
 	return allErrs
 }
 

@@ -17,11 +17,11 @@ limitations under the License.
 package server
 
 import (
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/pborman/uuid"
 	"github.com/spf13/pflag"
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	"k8s.io/client-go/pkg/api"
 )
 
 // EtcdOptions contains the complete configuration for an API server that

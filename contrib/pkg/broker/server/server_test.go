@@ -24,7 +24,7 @@ import (
 	"testing"
 
 	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/broker/controller"
-	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi"
+	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/brokerapi"
 )
 
 //

@@ -55,7 +55,9 @@ const (
 	testNamespace        = "test-namespace"
 	testBrokerName       = "test-broker"
 	testServiceClassName = "test-service"
+	testServiceClassID   = "12345"
 	testPlanName         = "test-plan"
+	testPlanExternalID   = "34567"
 	testInstanceName     = "test-instance"
 	testBindingName      = "test-binding"
 	testSecretName       = "test-secret"
@@ -84,26 +86,9 @@ func truePtr() *bool {
 //
 // ...using purely synchronous provision/deprovision.
 func TestBasicFlowsSync(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
-			Response: &osb.CatalogResponse{
-				Services: []osb.Service{
-					{
-						Name:        testServiceClassName,
-						ID:          "12345",
-						Description: "a test service",
-						Bindable:    true,
-						Plans: []osb.Plan{
-							{
-								Name:        testPlanName,
-								Free:        truePtr(),
-								ID:          "34567",
-								Description: "a test plan",
-							},
-						},
-					},
-				},
-			},
+			Response: getTestCatalogResponse(),
 		},
 		ProvisionReaction: &fakeosb.ProvisionReaction{
 			Response: &osb.ProvisionResponse{
@@ -125,6 +110,7 @@ func TestBasicFlowsSync(t *testing.T) {
 			},
 		},
 	})
+	defer shutdownController()
 	defer shutdownServer()
 
 	client := catalogClient.ServicecatalogV1alpha1()
@@ -151,7 +137,7 @@ func TestBasicFlowsSync(t *testing.T) {
 		t.Fatalf("error waiting for broker to become ready: %v", err)
 	}
 
-	err = util.WaitForServiceClassToExist(client, testServiceClassName)
+	err = util.WaitForServiceClassToExist(client, testServiceClassID)
 	if nil != err {
 		t.Fatalf("error waiting from ServiceClass to exist: %v", err)
 	}
@@ -164,9 +150,9 @@ func TestBasicFlowsSync(t *testing.T) {
 	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         testPlanName,
-			ExternalID:       testExternalID,
+			ExternalServiceClassName: testServiceClassName,
+			ExternalServicePlanName:  testPlanName,
+			ExternalID:               testExternalID,
 		},
 	}
 
@@ -264,26 +250,9 @@ func TestBasicFlowsSync(t *testing.T) {
 // TestBasicFlowsAsync tests the same flows as TestBasicFlowsSync, using
 // asynchronous provision/deprovision.
 func TestBasicFlowsAsync(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
-			Response: &osb.CatalogResponse{
-				Services: []osb.Service{
-					{
-						Name:        testServiceClassName,
-						ID:          "12345",
-						Description: "a test service",
-						Bindable:    true,
-						Plans: []osb.Plan{
-							{
-								Name:        testPlanName,
-								Free:        truePtr(),
-								ID:          "34567",
-								Description: "a test plan",
-							},
-						},
-					},
-				},
-			},
+			Response: getTestCatalogResponse(),
 		},
 		ProvisionReaction: &fakeosb.ProvisionReaction{
 			Response: &osb.ProvisionResponse{
@@ -310,6 +279,7 @@ func TestBasicFlowsAsync(t *testing.T) {
 			},
 		},
 	})
+	defer shutdownController()
 	defer shutdownServer()
 
 	client := catalogClient.ServicecatalogV1alpha1()
@@ -336,7 +306,7 @@ func TestBasicFlowsAsync(t *testing.T) {
 		t.Fatalf("error waiting for broker to become ready: %v", err)
 	}
 
-	err = util.WaitForServiceClassToExist(client, testServiceClassName)
+	err = util.WaitForServiceClassToExist(client, testServiceClassID)
 	if nil != err {
 		t.Fatalf("error waiting from ServiceClass to exist: %v", err)
 	}
@@ -349,9 +319,9 @@ func TestBasicFlowsAsync(t *testing.T) {
 	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         testPlanName,
-			ExternalID:       testExternalID,
+			ExternalServiceClassName: testServiceClassName,
+			ExternalServicePlanName:  testPlanName,
+			ExternalID:               testExternalID,
 		},
 	}
 
@@ -452,26 +422,9 @@ func TestBasicFlowsAsync(t *testing.T) {
 // TODO: additional tests for scenarios like this will be needed once we
 // implement orphan mitigation.
 func TestProvisionFailure(t *testing.T) {
-	_, catalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
-			Response: &osb.CatalogResponse{
-				Services: []osb.Service{
-					{
-						Name:        testServiceClassName,
-						ID:          "12345",
-						Description: "a test service",
-						Bindable:    true,
-						Plans: []osb.Plan{
-							{
-								Name:        testPlanName,
-								Free:        truePtr(),
-								ID:          "34567",
-								Description: "a test plan",
-							},
-						},
-					},
-				},
-			},
+			Response: getTestCatalogResponse(),
 		},
 		ProvisionReaction: &fakeosb.ProvisionReaction{
 			Error: osb.HTTPStatusCodeError{
@@ -484,6 +437,7 @@ func TestProvisionFailure(t *testing.T) {
 		// return an unexpected call error message if deprovision is called on
 		// the broker.
 	})
+	defer shutdownController()
 	defer shutdownServer()
 
 	client := catalogClient.ServicecatalogV1alpha1()
@@ -510,7 +464,7 @@ func TestProvisionFailure(t *testing.T) {
 		t.Fatalf("error waiting for broker to become ready: %v", err)
 	}
 
-	err = util.WaitForServiceClassToExist(client, testServiceClassName)
+	err = util.WaitForServiceClassToExist(client, testServiceClassID)
 	if nil != err {
 		t.Fatalf("error waiting from ServiceClass to exist: %v", err)
 	}
@@ -523,9 +477,9 @@ func TestProvisionFailure(t *testing.T) {
 	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         testPlanName,
-			ExternalID:       testExternalID,
+			ExternalServiceClassName: testServiceClassName,
+			ExternalServicePlanName:  testPlanName,
+			ExternalID:               testExternalID,
 		},
 	}
 
@@ -585,26 +539,9 @@ func TestProvisionFailure(t *testing.T) {
 // TestBindingFailure tests that a binding gets a failure condition when the
 // broker returns a failure response for a bind operation.
 func TestBindingFailure(t *testing.T) {
-	_, fakeCatalogClient, _, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, fakeCatalogClient, _, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
-			Response: &osb.CatalogResponse{
-				Services: []osb.Service{
-					{
-						Name:        testServiceClassName,
-						ID:          "12345",
-						Description: "a test service",
-						Bindable:    true,
-						Plans: []osb.Plan{
-							{
-								Name:        testPlanName,
-								Free:        truePtr(),
-								ID:          "34567",
-								Description: "a test plan",
-							},
-						},
-					},
-				},
-			},
+			Response: getTestCatalogResponse(),
 		},
 		BindReaction: &fakeosb.BindReaction{
 			Error: osb.HTTPStatusCodeError{
@@ -625,6 +562,7 @@ func TestBindingFailure(t *testing.T) {
 			},
 		},
 	})
+	defer shutdownController()
 	defer shutdownServer()
 
 	client := fakeCatalogClient.ServicecatalogV1alpha1()
@@ -651,7 +589,7 @@ func TestBindingFailure(t *testing.T) {
 		t.Fatalf("error waiting for broker to become ready: %v", err)
 	}
 
-	err = util.WaitForServiceClassToExist(client, testServiceClassName)
+	err = util.WaitForServiceClassToExist(client, testServiceClassID)
 	if nil != err {
 		t.Fatalf("error waiting from ServiceClass to exist: %v", err)
 	}
@@ -664,9 +602,9 @@ func TestBindingFailure(t *testing.T) {
 	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         testPlanName,
-			ExternalID:       testExternalID,
+			ExternalServiceClassName: testServiceClassName,
+			ExternalServicePlanName:  testPlanName,
+			ExternalID:               testExternalID,
 		},
 	}
 
@@ -768,7 +706,7 @@ func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
 	utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=true", scfeatures.OriginatingIdentity))
 	defer utilfeature.DefaultFeatureGate.Set(fmt.Sprintf("%v=false", scfeatures.OriginatingIdentity))
 
-	_, catalogClient, catalogClientConfig, _, _, _, shutdownServer := newTestController(t, fakeosb.FakeClientConfiguration{
+	_, catalogClient, catalogClientConfig, _, _, _, shutdownServer, shutdownController := newTestController(t, fakeosb.FakeClientConfiguration{
 		CatalogReaction: &fakeosb.CatalogReaction{
 			Response: &osb.CatalogResponse{
 				Services: []osb.Service{
@@ -809,6 +747,7 @@ func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
 			},
 		},
 	})
+	defer shutdownController()
 	defer shutdownServer()
 
 	client := catalogClient.ServicecatalogV1alpha1()
@@ -835,7 +774,7 @@ func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
 		t.Fatalf("error waiting for broker to become ready: %v", err)
 	}
 
-	err = util.WaitForServiceClassToExist(client, testServiceClassName)
+	err = util.WaitForServiceClassToExist(client, testServiceClassID)
 	if nil != err {
 		t.Fatalf("error waiting from ServiceClass to exist: %v", err)
 	}
@@ -855,9 +794,9 @@ func TestBasicFlowsWithOriginatingIdentity(t *testing.T) {
 	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace, Name: testInstanceName},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: testServiceClassName,
-			PlanName:         testPlanName,
-			ExternalID:       testExternalID,
+			ExternalServiceClassName: testServiceClassName,
+			ExternalServicePlanName:  testPlanName,
+			ExternalID:               testExternalID,
 		},
 	}
 
@@ -1029,6 +968,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	*fakeosb.FakeClient,
 	controller.Controller,
 	informers.Interface,
+	func(),
 	func()) {
 
 	// create a fake kube client
@@ -1057,6 +997,7 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 		serviceCatalogSharedInformers.ServiceClasses(),
 		serviceCatalogSharedInformers.ServiceInstances(),
 		serviceCatalogSharedInformers.ServiceInstanceCredentials(),
+		serviceCatalogSharedInformers.ServicePlans(),
 		brokerClFunc,
 		24*time.Hour,
 		osb.LatestAPIVersion().HeaderValue(),
@@ -1069,10 +1010,20 @@ func newTestController(t *testing.T, config fakeosb.FakeClientConfiguration) (
 	}
 
 	stopCh := make(chan struct{})
-	go testController.Run(1, stopCh)
+	controllerStopped := make(chan struct{})
+	go func() {
+		testController.Run(1, stopCh)
+		controllerStopped <- struct{}{}
+	}()
 	informerFactory.Start(stopCh)
 	t.Log("informers start")
-	return fakeKubeClient, catalogClient, catalogClientConfig, fakeOSBClient, testController, serviceCatalogSharedInformers, shutdownServer
+
+	shutdownController := func() {
+		close(stopCh)
+		<-controllerStopped
+	}
+
+	return fakeKubeClient, catalogClient, catalogClientConfig, fakeOSBClient, testController, serviceCatalogSharedInformers, shutdownServer, shutdownController
 }
 
 func changeUsernameForCatalogClient(catalogClient clientset.Interface, catalogClientConfig *restclient.Config, username string) (clientset.Interface, error) {
@@ -1089,4 +1040,25 @@ func addGetSecretNotFoundReaction(fakeKubeClient *fake.Clientset) {
 	fakeKubeClient.AddReactor("get", "secrets", func(action clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, apierrors.NewNotFound(action.GetResource().GroupResource(), action.(clientgotesting.GetAction).GetName())
 	})
+}
+
+func getTestCatalogResponse() *osb.CatalogResponse {
+	return &osb.CatalogResponse{
+		Services: []osb.Service{
+			{
+				Name:        testServiceClassName,
+				ID:          "12345",
+				Description: "a test service",
+				Bindable:    true,
+				Plans: []osb.Plan{
+					{
+						Name:        testPlanName,
+						Free:        truePtr(),
+						ID:          testPlanExternalID,
+						Description: "a test plan",
+					},
+				},
+			},
+		},
+	}
 }

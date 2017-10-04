@@ -30,62 +30,19 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer/recognizer"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/apis/apps"
-	"k8s.io/client-go/pkg/apis/authorization"
-	"k8s.io/client-go/pkg/apis/autoscaling"
-	"k8s.io/client-go/pkg/apis/batch"
-	"k8s.io/client-go/pkg/apis/certificates"
-	"k8s.io/client-go/pkg/apis/extensions"
-	"k8s.io/client-go/pkg/apis/policy"
-	"k8s.io/client-go/pkg/apis/rbac"
-	"k8s.io/client-go/pkg/apis/storage"
-
-	// Ensure that client-go /api... is initialized
-	_ "k8s.io/client-go/pkg/api/install"
-	_ "k8s.io/client-go/pkg/apis/apps/install"
-	_ "k8s.io/client-go/pkg/apis/authentication/install"
-	_ "k8s.io/client-go/pkg/apis/authorization/install"
-	_ "k8s.io/client-go/pkg/apis/autoscaling/install"
-	_ "k8s.io/client-go/pkg/apis/batch/install"
-	_ "k8s.io/client-go/pkg/apis/certificates/install"
-	_ "k8s.io/client-go/pkg/apis/extensions/install"
-	_ "k8s.io/client-go/pkg/apis/policy/install"
-	_ "k8s.io/client-go/pkg/apis/rbac/install"
-	_ "k8s.io/client-go/pkg/apis/storage/install"
 )
 
 var (
 	// Groups exported on purpose
 	Groups = make(map[string]TestGroup)
-	// Default exported on purpose
-	Default TestGroup
-	// Authorization exported on purpose
-	Authorization TestGroup
-	// Autoscaling exported on purpose
-	Autoscaling TestGroup
-	// Batch exported on purpose
-	Batch TestGroup
-	// Extensions exported on purpose
-	Extensions TestGroup
-	// Apps exported on purpose
-	Apps TestGroup
-	// Policy exported on purpose
-	Policy TestGroup
-	// Federation exported on purpose
-	Federation TestGroup
-	// Rbac exported on purpose
-	Rbac TestGroup
-	// Certificates exported on purpose
-	Certificates TestGroup
-	// Storage exported on purpose
-	Storage TestGroup
-	// ImagePolicy exported on purpose
-	ImagePolicy TestGroup
+	// ServiceCatalog exported on purpose
+	ServiceCatalog TestGroup
 
 	serializer        runtime.SerializerInfo
 	storageSerializer runtime.SerializerInfo
@@ -145,130 +102,17 @@ func init() {
 		}
 	}
 
-	if _, ok := Groups[api.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: api.GroupName, Version: api.Registry.GroupOrDie(api.GroupName).GroupVersion.Version}
-		Groups[api.GroupName] = TestGroup{
+	if _, ok := Groups[servicecatalog.GroupName]; !ok {
+		externalGroupVersion := schema.GroupVersion{Group: servicecatalog.GroupName, Version: api.Registry.GroupOrDie(servicecatalog.GroupName).GroupVersion.Version}
+		Groups[servicecatalog.GroupName] = TestGroup{
 			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: api.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(api.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[extensions.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: extensions.GroupName, Version: api.Registry.GroupOrDie(extensions.GroupName).GroupVersion.Version}
-		Groups[extensions.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: extensions.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(extensions.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[autoscaling.GroupName]; !ok {
-		internalTypes := make(map[string]reflect.Type)
-		for k, t := range api.Scheme.KnownTypes(extensions.SchemeGroupVersion) {
-			if k == "Scale" {
-				continue
-			}
-			internalTypes[k] = t
-		}
-		externalGroupVersion := schema.GroupVersion{Group: autoscaling.GroupName, Version: api.Registry.GroupOrDie(autoscaling.GroupName).GroupVersion.Version}
-		Groups[autoscaling.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: extensions.SchemeGroupVersion,
-			internalTypes:        internalTypes,
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[autoscaling.GroupName+"IntraGroup"]; !ok {
-		internalTypes := make(map[string]reflect.Type)
-		for k, t := range api.Scheme.KnownTypes(extensions.SchemeGroupVersion) {
-			if k == "Scale" {
-				internalTypes[k] = t
-				break
-			}
-		}
-		externalGroupVersion := schema.GroupVersion{Group: autoscaling.GroupName, Version: api.Registry.GroupOrDie(autoscaling.GroupName).GroupVersion.Version}
-		Groups[autoscaling.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: autoscaling.SchemeGroupVersion,
-			internalTypes:        internalTypes,
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[batch.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: batch.GroupName, Version: api.Registry.GroupOrDie(batch.GroupName).GroupVersion.Version}
-		Groups[batch.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: batch.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(batch.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[apps.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: apps.GroupName, Version: api.Registry.GroupOrDie(apps.GroupName).GroupVersion.Version}
-		Groups[apps.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: apps.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(apps.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[policy.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: policy.GroupName, Version: api.Registry.GroupOrDie(policy.GroupName).GroupVersion.Version}
-		Groups[policy.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: policy.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(policy.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[rbac.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: rbac.GroupName, Version: api.Registry.GroupOrDie(rbac.GroupName).GroupVersion.Version}
-		Groups[rbac.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: rbac.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(rbac.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[storage.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: storage.GroupName, Version: api.Registry.GroupOrDie(storage.GroupName).GroupVersion.Version}
-		Groups[storage.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: storage.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(storage.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[certificates.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: certificates.GroupName, Version: api.Registry.GroupOrDie(certificates.GroupName).GroupVersion.Version}
-		Groups[certificates.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: certificates.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(certificates.SchemeGroupVersion),
-			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
-		}
-	}
-	if _, ok := Groups[authorization.GroupName]; !ok {
-		externalGroupVersion := schema.GroupVersion{Group: authorization.GroupName, Version: api.Registry.GroupOrDie(authorization.GroupName).GroupVersion.Version}
-		Groups[authorization.GroupName] = TestGroup{
-			externalGroupVersion: externalGroupVersion,
-			internalGroupVersion: authorization.SchemeGroupVersion,
-			internalTypes:        api.Scheme.KnownTypes(authorization.SchemeGroupVersion),
+			internalGroupVersion: servicecatalog.SchemeGroupVersion,
+			internalTypes:        api.Scheme.KnownTypes(servicecatalog.SchemeGroupVersion),
 			externalTypes:        api.Scheme.KnownTypes(externalGroupVersion),
 		}
 	}
 
-	Default = Groups[api.GroupName]
-	Autoscaling = Groups[autoscaling.GroupName]
-	Batch = Groups[batch.GroupName]
-	Apps = Groups[apps.GroupName]
-	Policy = Groups[policy.GroupName]
-	Certificates = Groups[certificates.GroupName]
-	Extensions = Groups[extensions.GroupName]
-	Rbac = Groups[rbac.GroupName]
-	Storage = Groups[storage.GroupName]
-	Authorization = Groups[authorization.GroupName]
+	ServiceCatalog = Groups[servicecatalog.GroupName]
 }
 
 // ContentConfig returns group, version, and codec
@@ -360,7 +204,7 @@ func (g TestGroup) MetadataAccessor() meta.MetadataAccessor {
 // 'resource' should be the resource path, e.g. "pods" for the Pod type. 'name' should be
 // empty for lists.
 func (g TestGroup) SelfLink(resource, name string) string {
-	if g.externalGroupVersion.Group == api.GroupName {
+	if g.externalGroupVersion.Group == servicecatalog.GroupName {
 		if name == "" {
 			return fmt.Sprintf("/api/%s/%s", g.externalGroupVersion.Version, resource)
 		}
@@ -379,7 +223,7 @@ func (g TestGroup) SelfLink(resource, name string) string {
 // /api/v1/watch/namespaces/foo/pods/pod0 for v1.
 func (g TestGroup) ResourcePathWithPrefix(prefix, resource, namespace, name string) string {
 	var path string
-	if g.externalGroupVersion.Group == api.GroupName {
+	if g.externalGroupVersion.Group == servicecatalog.GroupName {
 		path = "/api/" + g.externalGroupVersion.Version
 	} else {
 		// TODO: switch back once we have proper multiple group support

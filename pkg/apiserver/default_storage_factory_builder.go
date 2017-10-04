@@ -21,12 +21,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 	utilflag "k8s.io/apiserver/pkg/util/flag"
-	"k8s.io/client-go/pkg/api"
 )
 
 // NewStorageFactory builds the DefaultStorageFactory.
