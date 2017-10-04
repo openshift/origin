@@ -21,46 +21,49 @@ var _ = g.Describe("[Feature:Builds][Conformance] oc new-app", func() {
 
 	oc := exutil.NewCLI("new-app", exutil.KubeConfigPath())
 
-	g.JustBeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
+	g.Context("test context", func() {
 
-		g.By("waiting for openshift namespace imagestreams")
-		err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+		g.JustBeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-		deployutil.DeploymentConfigFailureTrap(oc, a58, g.CurrentGinkgoTestDescription().Failed)
-		deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentGinkgoTestDescription().Failed)
-	})
+			g.By("waiting for openshift namespace imagestreams")
+			err = exutil.WaitForOpenShiftNamespaceImageStreams(oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
 
-	g.It("should succeed with a --name of 58 characters", func() {
-		g.By("calling oc new-app")
-		err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a58).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
+			deployutil.DeploymentConfigFailureTrap(oc, a58, g.CurrentGinkgoTestDescription().Failed)
+			deployutil.DeploymentConfigFailureTrap(oc, a59, g.CurrentGinkgoTestDescription().Failed)
+		})
 
-		g.By("waiting for the build to complete")
-		err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
-		if err != nil {
-			exutil.DumpBuildLogs(a58, oc)
-		}
-		o.Expect(err).NotTo(o.HaveOccurred())
+		g.It("should succeed with a --name of 58 characters", func() {
+			g.By("calling oc new-app")
+			err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a58).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-		g.By("waiting for the deployment to complete")
-		err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), a58, 1, oc)
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+			g.By("waiting for the build to complete")
+			err = exutil.WaitForABuild(oc.BuildClient().Build().Builds(oc.Namespace()), a58+"-1", nil, nil, nil)
+			if err != nil {
+				exutil.DumpBuildLogs(a58, oc)
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.It("should fail with a --name longer than 58 characters", func() {
-		g.By("calling oc new-app")
-		out, err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a59).Output()
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
+			g.By("waiting for the deployment to complete")
+			err = exutil.WaitForDeploymentConfig(oc.KubeClient(), oc.AppsClient().Apps(), oc.Namespace(), a58, 1, oc)
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
+		g.It("should fail with a --name longer than 58 characters", func() {
+			g.By("calling oc new-app")
+			out, err := oc.Run("new-app").Args("https://github.com/openshift/nodejs-ex", "--name", a59).Output()
+			o.Expect(err).To(o.HaveOccurred())
+			o.Expect(out).To(o.ContainSubstring("error: invalid name: "))
+		})
 	})
 })

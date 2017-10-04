@@ -19,116 +19,117 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 
 	oc := exutil.NewCLI("mongodb-petset-replica", exutil.KubeConfigPath()).Verbose()
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
-
-	g.Describe("creating from a template", func() {
+	g.Context("test context", func() {
 		g.AfterEach(func() {
-			for i := 0; i < 3; i++ {
-				pod := fmt.Sprintf("mongodb-replicaset-%d", i)
-				podLogs, err := oc.Run("logs").Args(pod, "--timestamps").Output()
-				if err != nil {
-					ginkgolog("error retrieving pod logs for %s: %v", pod, err)
-					continue
-				}
-				ginkgolog("pod logs for %s:\n%s", podLogs, err)
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
 			}
 		})
-		g.It(fmt.Sprintf("should instantiate the template"), func() {
-			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-			g.By("creating persistent volumes")
-			_, err := exutil.SetupHostPathVolumes(
-				oc.AdminKubeClient().Core().PersistentVolumes(),
-				oc.Namespace(),
-				"256Mi",
-				3,
-			)
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			defer func() {
-				// We're removing only PVs because all other things will be removed
-				// together with namespace.
-				err := exutil.CleanupHostPathVolumes(oc.AdminKubeClient().Core().PersistentVolumes(), oc.Namespace())
-				if err != nil {
-					ginkgolog("WARNING: couldn't cleanup persistent volumes: %v", err)
+		g.Describe("creating from a template", func() {
+			g.AfterEach(func() {
+				for i := 0; i < 3; i++ {
+					pod := fmt.Sprintf("mongodb-replicaset-%d", i)
+					podLogs, err := oc.Run("logs").Args(pod, "--timestamps").Output()
+					if err != nil {
+						ginkgolog("error retrieving pod logs for %s: %v", pod, err)
+						continue
+					}
+					ginkgolog("pod logs for %s:\n%s", podLogs, err)
 				}
-			}()
+			})
+			g.It(fmt.Sprintf("should instantiate the template"), func() {
+				oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-			g.By("creating a new app")
-			o.Expect(
-				oc.Run("new-app").Args(
-					"-f", templatePath,
-					"-p", "VOLUME_CAPACITY=256Mi",
-					"-p", "MEMORY_LIMIT=512Mi",
-					"-p", "MONGODB_IMAGE=centos/mongodb-32-centos7",
-					"-p", "MONGODB_SERVICE_NAME=mongodb-replicaset",
-				).Execute(),
-			).Should(o.Succeed())
+				g.By("creating persistent volumes")
+				_, err := exutil.SetupHostPathVolumes(
+					oc.AdminKubeClient().Core().PersistentVolumes(),
+					oc.Namespace(),
+					"256Mi",
+					3,
+				)
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("waiting for all pods to reach ready status")
-			podNames, err := exutil.WaitForPods(
-				oc.KubeClient().Core().Pods(oc.Namespace()),
-				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				exutil.CheckPodIsReadyFn,
-				3,
-				8*time.Minute,
-			)
-			if err != nil {
-				desc, _ := oc.Run("describe").Args("statefulset").Output()
-				ginkgolog("\n\nStatefulset at failure:\n%s\n\n", desc)
-				desc, _ = oc.Run("describe").Args("pods").Output()
-				ginkgolog("\n\nPods at statefulset failure:\n%s\n\n", desc)
-			}
-			o.Expect(err).NotTo(o.HaveOccurred())
+				defer func() {
+					// We're removing only PVs because all other things will be removed
+					// together with namespace.
+					err := exutil.CleanupHostPathVolumes(oc.AdminKubeClient().Core().PersistentVolumes(), oc.Namespace())
+					if err != nil {
+						ginkgolog("WARNING: couldn't cleanup persistent volumes: %v", err)
+					}
+				}()
 
-			g.By("expecting that we can insert a new record on primary node")
-			mongo := dbutil.NewMongoDB(podNames[0])
-			replicaSet := mongo.(exutil.ReplicaSet)
-			out, err := replicaSet.QueryPrimary(oc, `db.test.save({ "status" : "passed" })`)
-			ginkgolog("save result: %s\n", out)
-			o.Expect(err).ShouldNot(o.HaveOccurred())
+				g.By("creating a new app")
+				o.Expect(
+					oc.Run("new-app").Args(
+						"-f", templatePath,
+						"-p", "VOLUME_CAPACITY=256Mi",
+						"-p", "MEMORY_LIMIT=512Mi",
+						"-p", "MONGODB_IMAGE=centos/mongodb-32-centos7",
+						"-p", "MONGODB_SERVICE_NAME=mongodb-replicaset",
+					).Execute(),
+				).Should(o.Succeed())
 
-			g.By("expecting that we can read a record from all members")
-			for _, podName := range podNames {
-				o.Expect(readRecordFromPod(oc, podName)).To(o.Succeed())
-			}
+				g.By("waiting for all pods to reach ready status")
+				podNames, err := exutil.WaitForPods(
+					oc.KubeClient().Core().Pods(oc.Namespace()),
+					exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
+					exutil.CheckPodIsReadyFn,
+					3,
+					8*time.Minute,
+				)
+				if err != nil {
+					desc, _ := oc.Run("describe").Args("statefulset").Output()
+					ginkgolog("\n\nStatefulset at failure:\n%s\n\n", desc)
+					desc, _ = oc.Run("describe").Args("pods").Output()
+					ginkgolog("\n\nPods at statefulset failure:\n%s\n\n", desc)
+				}
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("restarting replica set")
-			err = oc.Run("delete").Args("pods", "--all", "-n", oc.Namespace()).Execute()
-			o.Expect(err).ShouldNot(o.HaveOccurred())
+				g.By("expecting that we can insert a new record on primary node")
+				mongo := dbutil.NewMongoDB(podNames[0])
+				replicaSet := mongo.(exutil.ReplicaSet)
+				out, err := replicaSet.QueryPrimary(oc, `db.test.save({ "status" : "passed" })`)
+				ginkgolog("save result: %s\n", out)
+				o.Expect(err).ShouldNot(o.HaveOccurred())
 
-			g.By("waiting for all pods to be gracefully deleted")
-			podNames, err = exutil.WaitForPods(
-				oc.KubeClient().Core().Pods(oc.Namespace()),
-				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				func(pod kapiv1.Pod) bool { return pod.DeletionTimestamp != nil },
-				0,
-				4*time.Minute,
-			)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("expecting that we can read a record from all members")
+				for _, podName := range podNames {
+					o.Expect(readRecordFromPod(oc, podName)).To(o.Succeed())
+				}
 
-			g.By("waiting for all pods to reach ready status")
-			podNames, err = exutil.WaitForPods(
-				oc.KubeClient().Core().Pods(oc.Namespace()),
-				exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
-				exutil.CheckPodIsReadyFn,
-				3,
-				4*time.Minute,
-			)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("restarting replica set")
+				err = oc.Run("delete").Args("pods", "--all", "-n", oc.Namespace()).Execute()
+				o.Expect(err).ShouldNot(o.HaveOccurred())
 
-			g.By("expecting that we can read a record from all members after its restart")
-			for _, podName := range podNames {
-				o.Expect(readRecordFromPod(oc, podName)).To(o.Succeed())
-			}
+				g.By("waiting for all pods to be gracefully deleted")
+				podNames, err = exutil.WaitForPods(
+					oc.KubeClient().Core().Pods(oc.Namespace()),
+					exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
+					func(pod kapiv1.Pod) bool { return pod.DeletionTimestamp != nil },
+					0,
+					4*time.Minute,
+				)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("waiting for all pods to reach ready status")
+				podNames, err = exutil.WaitForPods(
+					oc.KubeClient().Core().Pods(oc.Namespace()),
+					exutil.ParseLabelsOrDie("name=mongodb-replicaset"),
+					exutil.CheckPodIsReadyFn,
+					3,
+					4*time.Minute,
+				)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("expecting that we can read a record from all members after its restart")
+				for _, podName := range podNames {
+					o.Expect(readRecordFromPod(oc, podName)).To(o.Succeed())
+				}
+			})
 		})
 	})
-
 })
 
 func readRecordFromPod(oc *exutil.CLI, podName string) error {

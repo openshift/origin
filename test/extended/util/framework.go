@@ -190,7 +190,7 @@ func DumpApplicationPodLogs(dcName string, oc *CLI) {
 
 func DumpPodStates(oc *CLI) {
 	e2e.Logf("Dumping pod state for namespace %s", oc.Namespace())
-	out, err := oc.Run("get").Args("pods", "-o yaml").Output()
+	out, err := oc.Run("get").Args("pods", "-o", "yaml").Output()
 	if err != nil {
 		e2e.Logf("Error dumping pod states: %v", err)
 		return

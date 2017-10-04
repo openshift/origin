@@ -19,40 +19,43 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
 	)
 
-	g.BeforeEach(func() {
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
+	g.Context("test context", func() {
 
-		g.By("creating test imagestream")
-		err = oc.Run("create").Args("-f", imageStreamFixture).Execute()
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
+		g.BeforeEach(func() {
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
-
-	g.Describe("S2I build", func() {
-		g.Describe("started with normal log level", func() {
-			testBuildDigest(oc, stiBuildFixture, 0)
+			g.By("creating test imagestream")
+			err = oc.Run("create").Args("-f", imageStreamFixture).Execute()
+			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 
-		g.Describe("started with log level >5", func() {
-			testBuildDigest(oc, stiBuildFixture, 7)
-		})
-	})
-
-	g.Describe("Docker build", func() {
-		g.Describe("started with normal log level", func() {
-			testBuildDigest(oc, dockerBuildFixture, 0)
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
 		})
 
-		g.Describe("started with log level >5", func() {
-			testBuildDigest(oc, dockerBuildFixture, 7)
+		g.Describe("S2I build", func() {
+			g.Describe("started with normal log level", func() {
+				testBuildDigest(oc, stiBuildFixture, 0)
+			})
+
+			g.Describe("started with log level >5", func() {
+				testBuildDigest(oc, stiBuildFixture, 7)
+			})
+		})
+
+		g.Describe("Docker build", func() {
+			g.Describe("started with normal log level", func() {
+				testBuildDigest(oc, dockerBuildFixture, 0)
+			})
+
+			g.Describe("started with log level >5", func() {
+				testBuildDigest(oc, dockerBuildFixture, 7)
+			})
 		})
 	})
 })

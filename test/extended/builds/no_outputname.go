@@ -17,46 +17,49 @@ var _ = g.Describe("[Feature:Builds][Conformance] build without output image", f
 		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
 	)
 
-	g.AfterEach(func() {
-		if g.CurrentGinkgoTestDescription().Failed {
-			exutil.DumpPodStates(oc)
-			exutil.DumpPodLogsStartingWith("", oc)
-		}
-	})
+	g.Context("test context", func() {
 
-	g.Describe("building from templates", func() {
-		oc.SetOutputDir(exutil.TestContext.OutputDir)
-
-		g.It(fmt.Sprintf("should create an image from a docker template without an output image reference defined"), func() {
-			err := oc.Run("create").Args("-f", dockerImageFixture).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
-
-			g.By("expecting build to pass without an output image reference specified")
-			br, err := exutil.StartBuildAndWait(oc, "test-docker")
-			br.AssertSuccess()
-
-			g.By("verifying the build test-docker-1 output")
-			buildLog, err := br.Logs()
-			fmt.Fprintf(g.GinkgoWriter, "\nBuild log:\n%s\n", buildLog)
-			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(oc)
+				exutil.DumpPodLogsStartingWith("", oc)
+			}
 		})
 
-		g.It(fmt.Sprintf("should create an image from a S2i template without an output image reference defined"), func() {
-			err := oc.Run("create").Args("-f", s2iImageFixture).Execute()
-			o.Expect(err).NotTo(o.HaveOccurred())
+		g.Describe("building from templates", func() {
+			oc.SetOutputDir(exutil.TestContext.OutputDir)
 
-			g.By("expecting build to pass without an output image reference specified")
-			br, err := exutil.StartBuildAndWait(oc, "test-sti")
-			o.Expect(err).NotTo(o.HaveOccurred())
-			br.AssertSuccess()
+			g.It(fmt.Sprintf("should create an image from a docker template without an output image reference defined"), func() {
+				err := oc.Run("create").Args("-f", dockerImageFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("verifying the build test-sti-1 output")
-			buildLog, err := br.Logs()
-			fmt.Fprintf(g.GinkgoWriter, "\nBuild log:\n%s\n", buildLog)
-			o.Expect(err).NotTo(o.HaveOccurred())
+				g.By("expecting build to pass without an output image reference specified")
+				br, err := exutil.StartBuildAndWait(oc, "test-docker")
+				br.AssertSuccess()
 
-			o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
+				g.By("verifying the build test-docker-1 output")
+				buildLog, err := br.Logs()
+				fmt.Fprintf(g.GinkgoWriter, "\nBuild log:\n%s\n", buildLog)
+				o.Expect(err).NotTo(o.HaveOccurred())
+				o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
+			})
+
+			g.It(fmt.Sprintf("should create an image from a S2i template without an output image reference defined"), func() {
+				err := oc.Run("create").Args("-f", s2iImageFixture).Execute()
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				g.By("expecting build to pass without an output image reference specified")
+				br, err := exutil.StartBuildAndWait(oc, "test-sti")
+				o.Expect(err).NotTo(o.HaveOccurred())
+				br.AssertSuccess()
+
+				g.By("verifying the build test-sti-1 output")
+				buildLog, err := br.Logs()
+				fmt.Fprintf(g.GinkgoWriter, "\nBuild log:\n%s\n", buildLog)
+				o.Expect(err).NotTo(o.HaveOccurred())
+
+				o.Expect(buildLog).Should(o.ContainSubstring(`Build complete, no image push requested`))
+			})
 		})
 	})
 })
