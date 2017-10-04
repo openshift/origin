@@ -112,14 +112,22 @@ func fuzzInternalObject(t *testing.T, forVersion schema.GroupVersion, item runti
 					obj.NetworkConfig.ServiceNetworkCIDR = "10.0.0.0/24"
 				}
 			}
-			if len(obj.NetworkConfig.ClusterNetworks) == 0 {
-				clusterNetwork := []configapi.ClusterNetworkEntry{
-					{
-						CIDR:             "10.128.0.0/14",
-						HostSubnetLength: 9,
-					},
+			if c.RandBool() {
+				if len(obj.NetworkConfig.ClusterNetworks) == 0 {
+					clusterNetwork := []configapi.ClusterNetworkEntry{
+						{
+							CIDR:             "10.128.0.0/14",
+							HostSubnetLength: 9,
+						},
+					}
+					obj.NetworkConfig.ClusterNetworks = clusterNetwork
 				}
-				obj.NetworkConfig.ClusterNetworks = clusterNetwork
+				obj.NetworkConfig.DeprecatedClusterNetworkCIDR = obj.NetworkConfig.ClusterNetworks[0].CIDR
+				obj.NetworkConfig.DeprecatedHostSubnetLength = obj.NetworkConfig.ClusterNetworks[0].HostSubnetLength
+			} else {
+				obj.NetworkConfig.ClusterNetworks = nil
+				obj.NetworkConfig.DeprecatedClusterNetworkCIDR = ""
+				obj.NetworkConfig.DeprecatedHostSubnetLength = 0
 			}
 
 			// TODO stop duplicating the conversion in the test.
