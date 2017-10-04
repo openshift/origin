@@ -53,10 +53,12 @@ var (
 
 type appsCollector struct {
 	lister kcorelisters.ReplicationControllerLister
+	nowFn  func() time.Time
 }
 
-func IntializeMetricsCollector(rcLister kcorelisters.ReplicationControllerLister) {
+func InitializeMetricsCollector(rcLister kcorelisters.ReplicationControllerLister) {
 	apps.lister = rcLister
+	apps.nowFn = func() time.Time { return time.Now() }
 	if !registered {
 		prometheus.MustRegister(&apps)
 		registered = true
@@ -124,7 +126,7 @@ func (c *appsCollector) Collect(ch chan<- prometheus.Metric) {
 
 		// Record duration in seconds for active rollouts
 		// TODO: possible time skew?
-		durationSeconds := time.Now().Unix() - d.CreationTimestamp.Unix()
+		durationSeconds := c.nowFn().Unix() - d.CreationTimestamp.Unix()
 		ch <- prometheus.MustNewConstMetric(
 			activeRolloutDurationSecondsDesc,
 			prometheus.CounterValue,
