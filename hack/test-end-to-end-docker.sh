@@ -62,6 +62,7 @@ os::log::info "Using images:							${USE_IMAGES}"
 
 os::log::info "Starting OpenShift containerized server"
 oc cluster up --server-loglevel=4 --version="${TAG}" \
+        --host-config-dir="${SERVER_CONFIG_DIR}" \
         --host-data-dir="${VOLUME_DIR}/etcd" \
         --host-volumes-dir="${VOLUME_DIR}"
 

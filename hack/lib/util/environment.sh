@@ -210,7 +210,7 @@ readonly -f os::util::environment::setup_etcd_vars
 # os::util::environment::setup_server_vars sets up environment variables necessary for interacting with the server
 #
 # Globals:
-#  - BASETMPDIR
+#  - BASEOUTDIR
 #  - KUBELET_HOST
 #  - API_BIND_HOST
 #  - API_HOST
@@ -246,7 +246,7 @@ function os::util::environment::setup_server_vars() {
     PUBLIC_MASTER_HOST="${PUBLIC_MASTER_HOST:-${API_HOST}}"
     export PUBLIC_MASTER_HOST
 
-    SERVER_CONFIG_DIR="${BASETMPDIR}/openshift.local.config"
+    SERVER_CONFIG_DIR="${BASEOUTDIR}/openshift.local.config"
     export SERVER_CONFIG_DIR
     MASTER_CONFIG_DIR="${SERVER_CONFIG_DIR}/master"
     export MASTER_CONFIG_DIR
