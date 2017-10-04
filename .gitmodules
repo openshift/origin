@@ -1,0 +1,5 @@
+[submodule "kubernetes"]
+	path = vendor/k8s.io/kubernetes
+	url = https://github.com/openshift/kubernetes.git
+  branch = openshift-3.7
+  shallow = true
