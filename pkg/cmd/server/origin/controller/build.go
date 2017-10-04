@@ -42,6 +42,7 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 	kubeClient := ctx.ClientBuilder.KubeInternalClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	buildClient := ctx.ClientBuilder.OpenshiftInternalBuildClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 	externalKubeClient := ctx.ClientBuilder.ClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
+	securityClient := ctx.ClientBuilder.OpenshiftInternalSecurityClientOrDie(bootstrappolicy.InfraBuildControllerServiceAccountName)
 
 	buildInformer := ctx.BuildInformers.Build().InternalVersion().Builds()
 	buildConfigInformer := ctx.BuildInformers.Build().InternalVersion().BuildConfigs()
@@ -66,8 +67,8 @@ func (c *BuildControllerConfig) RunController(ctx ControllerContext) (bool, erro
 		SourceBuildStrategy: &buildstrategy.SourceBuildStrategy{
 			Image: c.S2IImage,
 			// TODO: this will be set to --storage-version (the internal schema we use)
-			Codec:            c.Codec,
-			AdmissionControl: sccAdmission,
+			Codec:          c.Codec,
+			SecurityClient: securityClient.Security(),
 		},
 		CustomBuildStrategy: &buildstrategy.CustomBuildStrategy{
 			// TODO: this will be set to --storage-version (the internal schema we use)
