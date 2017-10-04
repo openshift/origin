@@ -3,7 +3,7 @@ kind: DeploymentConfig
 metadata:
   name: deployment-simple
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     name: deployment-simple
   strategy:

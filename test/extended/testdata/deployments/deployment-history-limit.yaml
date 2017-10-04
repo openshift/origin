@@ -12,7 +12,7 @@ spec:
         name: history-limit
     spec:
       containers:
-      - image: "docker.io/alpine:3.6"
+      - image: "docker.io/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
