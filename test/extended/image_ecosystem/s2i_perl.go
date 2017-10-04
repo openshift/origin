@@ -65,7 +65,10 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 				_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 4*time.Minute)
 				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, dcName, "", pageCountFn(i))
+				result, err := CheckPageContains(oc, dcName, "", pageCountFn(i), i)
+				if err != nil || !result {
+					exutil.DumpApplicationPodLogs(dcName, oc)
+				}
 				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 				o.ExpectWithOffset(1, result).To(o.BeTrue())
 			}

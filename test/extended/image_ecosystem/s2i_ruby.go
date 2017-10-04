@@ -65,7 +65,7 @@ var _ = g.Describe("[image_ecosystem][ruby][Slow] hot deploy for openshift ruby 
 				_, err := exutil.WaitForPods(oc.KubeClient().Core().Pods(oc.Namespace()), dcLabel, exutil.CheckPodIsRunningFn, 1, 4*time.Minute)
 				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 
-				result, err := CheckPageContains(oc, dcName, "", content)
+				result, err := CheckPageContains(oc, dcName, "", content, 0)
 				o.ExpectWithOffset(1, err).NotTo(o.HaveOccurred())
 				o.ExpectWithOffset(1, result).To(o.BeTrue())
 			}

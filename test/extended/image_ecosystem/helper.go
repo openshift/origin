@@ -38,13 +38,13 @@ func RunInPodContainer(oc *exutil.CLI, selector labels.Selector, cmd []string) e
 
 // CheckPageContains makes a http request for an example application and checks
 // that the result contains given string
-func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string) (bool, error) {
+func CheckPageContains(oc *exutil.CLI, endpoint, path, contents string, number int) (bool, error) {
 	address, err := exutil.GetEndpointAddress(oc, endpoint)
 	if err != nil {
 		return false, err
 	}
 
-	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s", address, path), 3*time.Minute)
+	response, err := exutil.FetchURL(fmt.Sprintf("http://%s/%s?number=%v", address, path, number), 3*time.Minute)
 	if err != nil {
 		return false, err
 	}
