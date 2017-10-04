@@ -156,6 +156,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdApply(fullName, f, out, errout),
 				cmd.NewCmdPatch(fullName, f, out),
 				cmd.NewCmdProcess(fullName, f, in, out, errout),
+				cmd.NewCmdParameterize(fullName, f, in, out, errout),
 				cmd.NewCmdExport(fullName, f, in, out),
 				cmd.NewCmdExtract(fullName, f, in, out, errout),
 				cmd.NewCmdIdle(fullName, f, out, errout),

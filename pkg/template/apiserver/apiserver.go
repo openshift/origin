@@ -12,9 +12,10 @@ import (
 	restclient "k8s.io/client-go/rest"
 	authorizationclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/authorization/internalversion"
 
+	templateparameterizer "github.com/openshift/origin/pkg/template/registry/parameterizer"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	brokertemplateinstanceetcd "github.com/openshift/origin/pkg/template/registry/brokertemplateinstance/etcd"
-	templateregistry "github.com/openshift/origin/pkg/template/registry/template"
+	templateprocessor "github.com/openshift/origin/pkg/template/registry/processor"
 	templateetcd "github.com/openshift/origin/pkg/template/registry/template/etcd"
 	templateinstanceetcd "github.com/openshift/origin/pkg/template/registry/templateinstance/etcd"
 )
@@ -109,7 +110,8 @@ func (c *TemplateConfig) newV1RESTStorage() (map[string]rest.Storage, error) {
 	}
 
 	v1Storage := map[string]rest.Storage{}
-	v1Storage["processedTemplates"] = templateregistry.NewREST()
+	v1Storage["processedTemplates"] = templateprocessor.NewREST()
+	v1Storage["parameterizedTemplates"] = templateparameterizer.NewREST()
 	v1Storage["templates"] = templateStorage
 	v1Storage["templateinstances"] = templateInstanceStorage
 	v1Storage["templateinstances/status"] = templateInstanceStatusStorage

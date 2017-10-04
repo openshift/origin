@@ -37,6 +37,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&TemplateInstanceList{},
 		&BrokerTemplateInstance{},
 		&BrokerTemplateInstanceList{},
+		&ParameterizeTemplateRequest{},
 		&kapiv1.List{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)

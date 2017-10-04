@@ -188,6 +188,29 @@ type TemplateInstanceList struct {
 	Items []TemplateInstance
 }
 
+// ParameterizeTemplateRequest is a request to create a parameterized template
+// from an existing template. Existing parameters in the template will not be
+// modified. Only new parameters will be created.
+type ParameterizeTemplateRequest struct {
+	metav1.TypeMeta
+	metav1.ObjectMeta
+
+	// Aspects specifies which aspects of the passed template to parameterize
+	Aspects []ParameterizableAspect
+
+	// Template is the template to parameterize. It should at least have a name
+	// and a valid list of objects.
+	Template Template
+}
+
+// ParameterizableAspect is an aspect of a set of objects that can be parameterized
+type ParameterizableAspect string
+
+const (
+	// ImageReferencesAspect represents all image references in a set of objects
+	ImageReferencesAspect ParameterizableAspect = "ImageRefs"
+)
+
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

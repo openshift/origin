@@ -218,6 +218,30 @@ type TemplateInstanceList struct {
 	Items []TemplateInstance `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// ParameterizeTemplateRequest is a request to create a parameterized template
+// from an existing template. Existing parameters in the template will not be
+// modified. Only new parameters will be created.
+type ParameterizeTemplateRequest struct {
+	metav1.TypeMeta `json:",inline"`
+	// Standard object metadata.
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+
+	// Aspects specifies which aspects of the passed template to parameterize
+	Aspects []ParameterizableAspect `json:"aspects" protobuf:"bytes,2,opt,name=aspects"`
+
+	// Template is the template to parameterize. It should at least have a name
+	// and a valid list of objects.
+	Template Template `json:"template" protobuf:"bytes,3,rep,name=template"`
+}
+
+// ParameterizableAspect is an aspect of a set of objects that can be parameterized
+type ParameterizableAspect string
+
+const (
+	// ImageReferencesAspect represents all image references in a set of objects
+	ImageReferencesAspect ParameterizableAspect = "ImageReferences"
+)
+
 // +genclient
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

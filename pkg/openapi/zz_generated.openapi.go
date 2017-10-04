@@ -9771,6 +9771,58 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 			},
 			Dependencies: []string{},
 		},
+		"github.com/openshift/origin/pkg/template/apis/template/v1.ParameterizeTemplateRequest": {
+			Schema: spec.Schema{
+				SchemaProps: spec.SchemaProps{
+					Description: "ParameterizeTemplateRequest is a request to create a parameterized template from an existing template. Existing parameters in the template will not be modified. Only new parameters will be created.",
+					Properties: map[string]spec.Schema{
+						"kind": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"apiVersion": {
+							SchemaProps: spec.SchemaProps{
+								Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+								Type:        []string{"string"},
+								Format:      "",
+							},
+						},
+						"metadata": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Standard object metadata.",
+								Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+							},
+						},
+						"aspects": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Aspects specifies which aspects of the passed template to parameterize",
+								Type:        []string{"array"},
+								Items: &spec.SchemaOrArray{
+									Schema: &spec.Schema{
+										SchemaProps: spec.SchemaProps{
+											Type:   []string{"string"},
+											Format: "",
+										},
+									},
+								},
+							},
+						},
+						"template": {
+							SchemaProps: spec.SchemaProps{
+								Description: "Template is the template to parameterize. It should at least have a name and a valid list of objects.",
+								Ref:         ref("github.com/openshift/origin/pkg/template/apis/template/v1.Template"),
+							},
+						},
+					},
+					Required: []string{"aspects", "template"},
+				},
+			},
+			Dependencies: []string{
+				"github.com/openshift/origin/pkg/template/apis/template/v1.Template", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+		},
 		"github.com/openshift/origin/pkg/template/apis/template/v1.Template": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{

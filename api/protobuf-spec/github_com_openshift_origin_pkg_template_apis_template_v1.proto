@@ -101,6 +101,21 @@ message Parameter {
   optional bool required = 7;
 }
 
+// ParameterizeTemplateRequest is a request to create a parameterized template
+// from an existing template. Existing parameters in the template will not be
+// modified. Only new parameters will be created.
+message ParameterizeTemplateRequest {
+  // Standard object metadata.
+  optional k8s.io.apimachinery.pkg.apis.meta.v1.ObjectMeta metadata = 1;
+
+  // Aspects specifies which aspects of the passed template to parameterize
+  repeated string aspects = 2;
+
+  // Template is the template to parameterize. It should at least have a name
+  // and a valid list of objects.
+  optional Template template = 3;
+}
+
 // Template contains the inputs needed to produce a Config.
 message Template {
   // Standard object's metadata.

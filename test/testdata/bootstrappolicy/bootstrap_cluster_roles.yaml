@@ -369,6 +369,7 @@ items:
     - ""
     - template.openshift.io
     resources:
+    - parameterizedtemplates
     - processedtemplates
     - templateconfigs
     - templateinstances
@@ -983,6 +984,7 @@ items:
     - ""
     - template.openshift.io
     resources:
+    - parameterizedtemplates
     - processedtemplates
     - templateconfigs
     - templateinstances
@@ -1342,6 +1344,7 @@ items:
     - ""
     - template.openshift.io
     resources:
+    - parameterizedtemplates
     - processedtemplates
     - templateconfigs
     - templateinstances
@@ -1571,6 +1574,7 @@ items:
     - ""
     - template.openshift.io
     resources:
+    - parameterizedtemplates
     - processedtemplates
     - templateconfigs
     - templateinstances

@@ -1,7 +1,6 @@
-package template
+package processor
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -14,11 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	kapi "k8s.io/kubernetes/pkg/api"
 
+	templateutil "github.com/openshift/origin/pkg/template"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/template/generator"
 
 	_ "github.com/openshift/origin/pkg/api/install"
+	_ "github.com/openshift/origin/pkg/template/apis/template/install"
 )
 
 func makeParameter(name, value, generate string, required bool) templateapi.Parameter {
@@ -27,24 +28,6 @@ func makeParameter(name, value, generate string, required bool) templateapi.Para
 		Value:    value,
 		Generate: generate,
 		Required: required,
-	}
-}
-
-func TestAddParameter(t *testing.T) {
-	var template templateapi.Template
-
-	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
-	json.Unmarshal(jsonData, &template)
-
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "1", "", false))
-	AddParameter(&template, makeParameter("CUSTOM_PARAM", "2", "", false))
-
-	if p := GetParameterByName(&template, "CUSTOM_PARAM"); p == nil {
-		t.Errorf("Unable to add a custom parameter to the template")
-	} else {
-		if p.Value != "2" {
-			t.Errorf("Unable to replace the custom parameter value in template")
-		}
 	}
 }
 
@@ -214,14 +197,14 @@ func TestProcessValue(t *testing.T) {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("VALUE", "1", "", false))
-	AddParameter(&template, makeParameter("STRING_1", "string1", "", false))
-	AddParameter(&template, makeParameter("STRING_2", "string2", "", false))
-	AddParameter(&template, makeParameter("INT_1", "1", "", false))
-	AddParameter(&template, makeParameter("VALID_JSON_MAP", "{\"key\":\"value\"}", "", false))
-	AddParameter(&template, makeParameter("INVALID_JSON_MAP", "{\"key\":\"value\"", "", false))
-	AddParameter(&template, makeParameter("VALID_JSON_ARRAY", "[\"key\",\"value\"]", "", false))
-	AddParameter(&template, makeParameter("INVALID_JSON_ARRAY", "[\"key\":\"value\"", "", false))
+	templateutil.AddParameter(&template, makeParameter("VALUE", "1", "", false))
+	templateutil.AddParameter(&template, makeParameter("STRING_1", "string1", "", false))
+	templateutil.AddParameter(&template, makeParameter("STRING_2", "string2", "", false))
+	templateutil.AddParameter(&template, makeParameter("INT_1", "1", "", false))
+	templateutil.AddParameter(&template, makeParameter("VALID_JSON_MAP", "{\"key\":\"value\"}", "", false))
+	templateutil.AddParameter(&template, makeParameter("INVALID_JSON_MAP", "{\"key\":\"value\"", "", false))
+	templateutil.AddParameter(&template, makeParameter("VALID_JSON_ARRAY", "[\"key\",\"value\"]", "", false))
+	templateutil.AddParameter(&template, makeParameter("INVALID_JSON_ARRAY", "[\"key\":\"value\"", "", false))
 
 	// Transform the template config into the result config
 	errs := processor.Process(&template)
@@ -378,12 +361,12 @@ func TestEvaluateLabels(t *testing.T) {
 
 func TestProcessTemplateParameters(t *testing.T) {
 	var template, expectedTemplate templateapi.Template
-	jsonData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook.json")
+	jsonData, _ := ioutil.ReadFile("../../../test/templates/testdata/guestbook.json")
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), jsonData, &template); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	expectedData, _ := ioutil.ReadFile("../../test/templates/testdata/guestbook_list.json")
+	expectedData, _ := ioutil.ReadFile("../../../test/templates/testdata/guestbook_list.json")
 	if err := runtime.DecodeInto(kapi.Codecs.UniversalDecoder(), expectedData, &expectedTemplate); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -394,7 +377,7 @@ func TestProcessTemplateParameters(t *testing.T) {
 	processor := NewProcessor(generators)
 
 	// Define custom parameter for the transformation:
-	AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
+	templateutil.AddParameter(&template, makeParameter("CUSTOM_PARAM1", "1", "", false))
 
 	// Transform the template config into the result config
 	errs := processor.Process(&template)

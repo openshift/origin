@@ -136,6 +136,14 @@ func ValidateBrokerTemplateInstanceUpdate(brokerTemplateInstance, oldBrokerTempl
 	return
 }
 
+// ValidateParameterizeTemplateRequest validates a template parameterization request
+func ValidateParameterizeTemplateRequest(request *templateapi.ParameterizeTemplateRequest) (allErrs field.ErrorList) {
+	allErrs = field.ErrorList{}
+	allErrs = append(allErrs, validation.ValidateObjectMeta(&request.Template.ObjectMeta, false, oapi.GetNameValidationFunc(validation.ValidatePodName), field.NewPath("template", "metadata"))...)
+	allErrs = append(allErrs, validateTemplateBody(&request.Template)...)
+	return allErrs
+}
+
 var uuidRegex = regexp.MustCompile("^(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 func nameIsUUID(name string, prefix bool) []string {

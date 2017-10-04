@@ -60993,6 +60993,70 @@
      }
     ]
    },
+   "/apis/template.openshift.io/v1/namespaces/{namespace}/parameterizedtemplates": {
+    "post": {
+     "description": "create a ParameterizeTemplateRequest",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "templateOpenshiftIo_v1"
+     ],
+     "operationId": "createTemplateOpenshiftIoV1NamespacedParameterizeTemplateRequest",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.ParameterizeTemplateRequest"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.ParameterizeTemplateRequest"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "template.openshift.io",
+      "version": "v1",
+      "kind": "ParameterizeTemplateRequest"
+     }
+    },
+    "parameters": [
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "object name and auth scope, such as for teams and projects",
+      "name": "namespace",
+      "in": "path",
+      "required": true
+     },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
    "/apis/template.openshift.io/v1/namespaces/{namespace}/processedtemplates": {
     "post": {
      "description": "create a Template",
@@ -62119,6 +62183,62 @@
       "in": "path",
       "required": true
      },
+     {
+      "uniqueItems": true,
+      "type": "string",
+      "description": "If 'true', then the output is pretty printed.",
+      "name": "pretty",
+      "in": "query"
+     }
+    ]
+   },
+   "/apis/template.openshift.io/v1/parameterizedtemplates": {
+    "post": {
+     "description": "create a ParameterizeTemplateRequest",
+     "consumes": [
+      "*/*"
+     ],
+     "produces": [
+      "application/json",
+      "application/yaml",
+      "application/vnd.kubernetes.protobuf"
+     ],
+     "schemes": [
+      "https"
+     ],
+     "tags": [
+      "templateOpenshiftIo_v1"
+     ],
+     "operationId": "createTemplateOpenshiftIoV1ParameterizeTemplateRequestForAllNamespaces",
+     "parameters": [
+      {
+       "name": "body",
+       "in": "body",
+       "required": true,
+       "schema": {
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.ParameterizeTemplateRequest"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK",
+       "schema": {
+        "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.ParameterizeTemplateRequest"
+       }
+      },
+      "401": {
+       "description": "Unauthorized"
+      }
+     },
+     "x-kubernetes-action": "post",
+     "x-kubernetes-group-version-kind": {
+      "group": "template.openshift.io",
+      "version": "v1",
+      "kind": "ParameterizeTemplateRequest"
+     }
+    },
+    "parameters": [
      {
       "uniqueItems": true,
       "type": "string",
@@ -92853,6 +92973,45 @@
       "type": "string"
      }
     }
+   },
+   "com.github.openshift.origin.pkg.template.apis.template.v1.ParameterizeTemplateRequest": {
+    "description": "ParameterizeTemplateRequest is a request to create a parameterized template from an existing template. Existing parameters in the template will not be modified. Only new parameters will be created.",
+    "required": [
+     "aspects",
+     "template"
+    ],
+    "properties": {
+     "apiVersion": {
+      "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+      "type": "string"
+     },
+     "aspects": {
+      "description": "Aspects specifies which aspects of the passed template to parameterize",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "kind": {
+      "description": "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+      "type": "string"
+     },
+     "metadata": {
+      "description": "Standard object metadata.",
+      "$ref": "#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta"
+     },
+     "template": {
+      "description": "Template is the template to parameterize. It should at least have a name and a valid list of objects.",
+      "$ref": "#/definitions/com.github.openshift.origin.pkg.template.apis.template.v1.Template"
+     }
+    },
+    "x-kubernetes-group-version-kind": [
+     {
+      "group": "template.openshift.io",
+      "version": "v1",
+      "kind": "ParameterizeTemplateRequest"
+     }
+    ]
    },
    "com.github.openshift.origin.pkg.template.apis.template.v1.Template": {
     "description": "Template contains the inputs needed to produce a Config.",

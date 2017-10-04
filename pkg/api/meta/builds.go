@@ -24,8 +24,8 @@ func NewBuildMutator(build *buildapi.Build) ImageReferenceMutator {
 
 func (m *buildSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
-	for i, image := range m.spec.Source.Images {
-		if err := fn(&image.From); err != nil {
+	for i := range m.spec.Source.Images {
+		if err := fn(&m.spec.Source.Images[i].From); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("source", "images").Index(i).Child("from", "name")))
 			continue
 		}

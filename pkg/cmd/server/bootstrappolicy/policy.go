@@ -321,7 +321,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				// an admin can run routers that write back conditions to the route
 				rbac.NewRule("update").Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
+				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances", "parameterizedtemplates").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
@@ -380,7 +380,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("create").Groups(routeGroup, legacyRouteGroup).Resources("routes/custom-host").RuleOrDie(),
 				rbac.NewRule(read...).Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 
-				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
+				rbac.NewRule(readWrite...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances", "parameterizedtemplates").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(readWrite...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
@@ -432,7 +432,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule(read...).Groups(routeGroup, legacyRouteGroup).Resources("routes").RuleOrDie(),
 				rbac.NewRule(read...).Groups(routeGroup, legacyRouteGroup).Resources("routes/status").RuleOrDie(),
 
-				rbac.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances").RuleOrDie(),
+				rbac.NewRule(read...).Groups(templateGroup, legacyTemplateGroup).Resources("templates", "templateconfigs", "processedtemplates", "templateinstances", "parameterizedtemplates").RuleOrDie(),
 
 				// backwards compatibility
 				rbac.NewRule(read...).Groups(buildGroup, legacyBuildGroup).Resources("buildlogs").RuleOrDie(),
