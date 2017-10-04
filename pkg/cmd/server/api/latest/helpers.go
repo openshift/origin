@@ -16,6 +16,17 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
 
+type AdmissionPluginInitMode int
+
+const (
+	// Disabled by default or with DefaultAdmissionConfig
+	Disabled AdmissionPluginInitMode = iota
+	// Enabled by default or with CustomConfig
+	Enabled
+	// Enabled with DefaultAdmissionConfig
+	EnabledWithDefaultAdmissionConfig
+)
+
 func ReadSessionSecrets(filename string) (*configapi.SessionSecrets, error) {
 	config := &configapi.SessionSecrets{}
 	if err := ReadYAMLFileInto(filename, config); err != nil {
@@ -140,21 +151,32 @@ func captureSurroundingJSONForError(prefix string, data []byte, err error) error
 
 // IsAdmissionPluginActivated returns true if the admission plugin is activated using configapi.DefaultAdmissionConfig
 // otherwise it returns a default value
-func IsAdmissionPluginActivated(reader io.Reader, defaultValue bool) (bool, error) {
+// It also returns true if configapi.DefaultAdmissionConfig is passed or false if the admission plugin's
+// configuration is passed to avoid passing configapi.DefaultAdmissionConfig to admission plugins.
+func IsAdmissionPluginActivated(reader io.Reader, defaultValue bool) AdmissionPluginInitMode {
 	obj, err := ReadYAML(reader)
 	if err != nil {
-		return false, err
+		fmt.Errorf("error reading admission plugin config: %v", err)
+		return Disabled
 	}
 	if obj == nil {
-		return defaultValue, nil
+		if defaultValue {
+			return Enabled
+		} else {
+			return Disabled
+		}
 	}
 	activationConfig, ok := obj.(*configapi.DefaultAdmissionConfig)
 	if !ok {
 		// if we failed the cast, then we've got a config object specified for this admission plugin
 		// that means that this must be enabled and all additional validation is up to the
 		// admission plugin itself
-		return true, nil
+		return Enabled
 	}
 
-	return !activationConfig.Disable, nil
+	if activationConfig.Disable {
+		return Disabled
+	}
+
+	return EnabledWithDefaultAdmissionConfig
 }
