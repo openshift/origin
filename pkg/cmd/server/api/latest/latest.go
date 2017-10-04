@@ -22,4 +22,8 @@ var OldestVersion = schema.GroupVersion{Group: "", Version: "v1"}
 // with a set of versions to choose.
 var Versions = []schema.GroupVersion{{Group: "", Version: "v1"}}
 
-var Codec = serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(schema.GroupVersion{Group: "", Version: "v1"})
+var Codec = serializer.NewCodecFactory(configapi.Scheme).LegacyCodec(
+	schema.GroupVersion{Group: "", Version: "v1"},
+	schema.GroupVersion{Group: "apiserver.k8s.io", Version: "v1alpha1"},
+	schema.GroupVersion{Group: "audit.k8s.io", Version: "v1alpha1"},
+)

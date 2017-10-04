@@ -5,21 +5,20 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"os"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/apiserver/pkg/admission/plugin/namespace/lifecycle"
-	kclientsetinternal "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
 	noderestriction "k8s.io/kubernetes/plugin/pkg/admission/noderestriction"
 	saadmit "k8s.io/kubernetes/plugin/pkg/admission/serviceaccount"
 	storageclassdefaultadmission "k8s.io/kubernetes/plugin/pkg/admission/storageclass/setdefault"
 
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
-	"github.com/openshift/origin/pkg/cmd/util/pluginconfig"
+	configapilatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	imageadmission "github.com/openshift/origin/pkg/image/admission"
 	imagepolicy "github.com/openshift/origin/pkg/image/admission/imagepolicy/api"
 	ingressadmission "github.com/openshift/origin/pkg/ingress/admission"
@@ -131,12 +130,36 @@ func fixupAdmissionPlugins(plugins []string) []string {
 
 func NewAdmissionChains(
 	options configapi.MasterConfig,
-	kubeClientSet kclientsetinternal.Interface,
 	admissionInitializer admission.PluginInitializer,
 ) (admission.Interface, error) {
 	admissionPluginConfigFilename := ""
 	if len(options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"]) > 0 {
 		admissionPluginConfigFilename = options.KubernetesMasterConfig.APIServerArguments["admission-control-config-file"][0]
+
+	} else {
+		pluginConfig := map[string]configapi.AdmissionPluginConfig{}
+		for pluginName, config := range options.AdmissionConfig.PluginConfig {
+			pluginConfig[pluginName] = config
+		}
+		upstreamAdmissionConfig, err := configapilatest.ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(pluginConfig)
+		if err != nil {
+			return nil, err
+		}
+		configBytes, err := configapilatest.WriteYAML(upstreamAdmissionConfig)
+		if err != nil {
+			return nil, err
+		}
+
+		tempFile, err := ioutil.TempFile("", "master-config.yaml")
+		if err != nil {
+			return nil, err
+		}
+		defer os.Remove(tempFile.Name())
+		if _, err := tempFile.Write(configBytes); err != nil {
+			return nil, err
+		}
+		tempFile.Close()
+		admissionPluginConfigFilename = tempFile.Name()
 	}
 
 	admissionPluginNames := combinedAdmissionControlPlugins
@@ -145,13 +168,8 @@ func NewAdmissionChains(
 	}
 	admissionPluginNames = fixupAdmissionPlugins(admissionPluginNames)
 
-	// if we have a unified chain, build the combined config
-	pluginConfig := map[string]configapi.AdmissionPluginConfig{}
-	for pluginName, config := range options.AdmissionConfig.PluginConfig {
-		pluginConfig[pluginName] = config
-	}
+	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, options, admissionInitializer)
 
-	admissionChain, err := newAdmissionChainFunc(admissionPluginNames, admissionPluginConfigFilename, pluginConfig, options, kubeClientSet, admissionInitializer)
 	if err != nil {
 		return nil, err
 	}
@@ -162,12 +180,11 @@ func NewAdmissionChains(
 // newAdmissionChainFunc is for unit testing only.  You should NEVER OVERRIDE THIS outside of a unit test.
 var newAdmissionChainFunc = newAdmissionChain
 
-func newAdmissionChain(pluginNames []string, admissionConfigFilename string, pluginConfig map[string]configapi.AdmissionPluginConfig, options configapi.MasterConfig, kubeClientSet kclientsetinternal.Interface, admissionInitializer admission.PluginInitializer) (admission.Interface, error) {
+func newAdmissionChain(pluginNames []string, admissionConfigFilename string, options configapi.MasterConfig, admissionInitializer admission.PluginInitializer) (admission.Interface, error) {
 	plugins := []admission.Interface{}
 	for _, pluginName := range pluginNames {
 		var (
-			plugin             admission.Interface
-			skipInitialization bool
+			plugin admission.Interface
 		)
 
 		switch pluginName {
@@ -189,6 +206,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				return nil, err
 			}
 			plugin = lc
+			admissionInitializer.Initialize(plugin)
 
 		case serviceadmit.ExternalIPPluginName:
 			// this needs to be moved upstream to be part of core config
@@ -202,6 +220,7 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				allowIngressIP = true
 			}
 			plugin = serviceadmit.NewExternalIPRanger(reject, admit, allowIngressIP)
+			admissionInitializer.Initialize(plugin)
 
 		case serviceadmit.RestrictedEndpointsPluginName:
 			// we need to set some customer parameters, so create by hand
@@ -216,29 +235,21 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 				return nil, err
 			}
 			plugin = serviceadmit.NewRestrictedEndpointsAdmission(restrictedNetworks)
+			admissionInitializer.Initialize(plugin)
 
 		case saadmit.PluginName:
 			// we need to set some custom parameters on the service account admission controller, so create that one by hand
 			saAdmitter := saadmit.NewServiceAccount()
-			saAdmitter.SetInternalKubeClientSet(kubeClientSet)
 			saAdmitter.LimitSecretReferences = options.ServiceAccountConfig.LimitSecretReferences
 			plugin = saAdmitter
+			admissionInitializer.Initialize(plugin)
 
 		default:
-			configFile, err := pluginconfig.GetAdmissionConfigurationFile(pluginConfig, pluginName, admissionConfigFilename)
+			pluginsConfigProvider, err := admission.ReadAdmissionConfiguration([]string{pluginName}, admissionConfigFilename)
 			if err != nil {
 				return nil, err
 			}
-			configReader, err := admission.ReadAdmissionConfiguration([]string{pluginName}, configFile)
-			if err != nil {
-				return nil, err
-			}
-			pluginConfigReader, err := configReader.ConfigFor(pluginName)
-			if err != nil {
-				return nil, err
-			}
-
-			plugin, err = OriginAdmissionPlugins.InitPlugin(pluginName, pluginConfigReader, admissionInitializer)
+			plugin, err = OriginAdmissionPlugins.NewFromPlugins([]string{pluginName}, pluginsConfigProvider, admissionInitializer)
 			if err != nil {
 				// should have been caught with validation
 				return nil, err
@@ -246,16 +257,10 @@ func newAdmissionChain(pluginNames []string, admissionConfigFilename string, plu
 			if plugin == nil {
 				continue
 			}
-
-			// skip initialization below because admission.InitPlugin does all the work
-			skipInitialization = true
 		}
 
 		plugins = append(plugins, plugin)
 
-		if !skipInitialization {
-			admissionInitializer.Initialize(plugin)
-		}
 	}
 
 	// ensure that plugins have been properly initialized
@@ -307,7 +312,7 @@ func filterEnableAdmissionConfigs(delegate admission.Factory) admission.Factory 
 		}
 		// if the config isn't a DefaultAdmissionConfig, then assume we're enabled (we were called after all)
 		// if the config *is* a DefaultAdmissionConfig and it explicitly said
-		obj, err := configlatest.ReadYAML(config1)
+		obj, err := configapilatest.ReadYAML(config1)
 		// if we can't read it, let the plugin deal with it
 		if err != nil {
 			return delegate(config2)

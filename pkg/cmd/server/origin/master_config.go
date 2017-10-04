@@ -149,7 +149,7 @@ func BuildMasterConfig(
 	if err != nil {
 		return nil, err
 	}
-	admission, err := originadmission.NewAdmissionChains(options, kubeInternalClient, admissionInitializer)
+	admission, err := originadmission.NewAdmissionChains(options, admissionInitializer)
 	if err != nil {
 		return nil, err
 	}

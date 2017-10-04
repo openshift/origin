@@ -11,7 +11,9 @@ import (
 	"github.com/ghodss/yaml"
 
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kyaml "k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/apiserver/pkg/apis/apiserver"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 )
@@ -157,4 +159,32 @@ func IsAdmissionPluginActivated(reader io.Reader, defaultValue bool) (bool, erro
 	}
 
 	return !activationConfig.Disable, nil
+}
+
+func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configapi.AdmissionPluginConfig) (*apiserver.AdmissionConfiguration, error) {
+	ret := &apiserver.AdmissionConfiguration{}
+
+	for _, pluginName := range sets.StringKeySet(in).List() {
+		openshiftConfig := in[pluginName]
+
+		fmt.Printf("#### adding for %T\n", openshiftConfig.Configuration)
+		kubeConfig := apiserver.AdmissionPluginConfiguration{
+			Name: pluginName,
+			Path: openshiftConfig.Location,
+		}
+
+		if openshiftConfig.Configuration != nil {
+			configBytes, err := runtime.Encode(Codec, openshiftConfig.Configuration)
+			if err != nil {
+				return nil, err
+			}
+			kubeConfig.Configuration = &runtime.Unknown{
+				Raw: configBytes,
+			}
+		}
+
+		ret.Plugins = append(ret.Plugins, kubeConfig)
+	}
+
+	return ret, nil
 }
