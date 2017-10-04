@@ -313,3 +313,16 @@ build-images: build-rpms
 vendor-console:
 	GIT_REF=$(GIT_REF) CONSOLE_REPO_PATH=$(CONSOLE_REPO_PATH) hack/vendor-console.sh
 .PHONY: vendor-console
+
+vendor: .git/modules/kubernetes/info/sparse-checkout
+.PHONY: submodules
+
+.git/modules/kubernetes/info/sparse-checkout: .git/modules/kubernetes .gitmodules-kubernetes-info-sparse-checkout Makefile
+	git diff-index --quiet HEAD
+	cp -f .gitmodules-kubernetes-info-sparse-checkout .git/modules/kubernetes/info/sparse-checkout
+	git submodule foreach git config core.sparsecheckout true
+	git submodule foreach git read-tree -um HEAD
+	touch .git/modules/kubernetes/info/sparse-checkout
+
+.git/modules/kubernetes: .gitmodules
+	git submodule update --init --recursive
