@@ -67,7 +67,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
-	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/election"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -76,6 +75,9 @@ import (
 	openapigenerated "github.com/openshift/origin/pkg/openapi"
 	securityapi "github.com/openshift/origin/pkg/security/apis/security"
 	"github.com/openshift/origin/pkg/version"
+
+	// TODO fix this install, it is required for TestPreferredGroupVersions to pass
+	_ "github.com/openshift/origin/pkg/authorization/apis/authorization/install"
 )
 
 // request paths that match this regular expression will be treated as long running
@@ -400,7 +402,7 @@ func buildKubeApiserverConfig(
 	// This disables the ThirdPartyController which removes handlers from our go-restful containers.  The remove functionality is broken and destroys the serve mux.
 	genericConfig.DisabledPostStartHooks.Insert("extensions/third-party-resources")
 	genericConfig.AdmissionControl = admissionControl
-	genericConfig.RequestInfoResolver = openshiftRequestInfoResolver(genericConfig.RequestContextMapper)
+	genericConfig.RequestInfoResolver = openshiftRequestInfoResolver()
 	genericConfig.OpenAPIConfig = defaultOpenAPIConfig(masterConfig)
 	genericConfig.SwaggerConfig = apiserver.DefaultSwaggerConfig()
 	genericConfig.SwaggerConfig.PostBuildHandler = customizeSwaggerDefinition
@@ -751,18 +753,14 @@ func newMasterLeases(storage storage.Interface, masterEndpointReconcileTTL int) 
 	return election.NewLeases(storage, "/masterleases/", uint64(masterEndpointReconcileTTL))
 }
 
-func openshiftRequestInfoResolver(requestContextMapper apirequest.RequestContextMapper) apirequest.RequestInfoResolver {
+func openshiftRequestInfoResolver() apirequest.RequestInfoResolver {
 	// Default API request info factory
-	requestInfoFactory := &apirequest.RequestInfoFactory{APIPrefixes: sets.NewString("api", "osapi", "oapi", "apis"), GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi")}
-	// Wrap with a request info factory that detects unsafe requests and modifies verbs/resources appropriately so policy can address them separately
-	browserSafeRequestInfoResolver := oauthorizer.NewBrowserSafeRequestInfoResolver(
-		requestContextMapper,
-		sets.NewString(bootstrappolicy.AuthenticatedGroup),
-		requestInfoFactory,
-	)
-	personalSARRequestInfoResolver := oauthorizer.NewPersonalSARRequestInfoResolver(browserSafeRequestInfoResolver)
+	requestInfoFactory := &apirequest.RequestInfoFactory{
+		APIPrefixes:          sets.NewString("api", "osapi", "oapi", "apis"),
+		GrouplessAPIPrefixes: sets.NewString("api", "osapi", "oapi"),
+	}
+	personalSARRequestInfoResolver := oauthorizer.NewPersonalSARRequestInfoResolver(requestInfoFactory)
 	projectRequestInfoResolver := oauthorizer.NewProjectRequestInfoResolver(personalSARRequestInfoResolver)
-
 	return projectRequestInfoResolver
 }
 
