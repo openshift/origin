@@ -55,21 +55,25 @@ var _ = g.Describe("[Feature:Prometheus][Conformance] Prometheus", func() {
 					e2e.Logf("unable to get unsecured metrics: %v", err)
 					continue
 				}
-				//e2e.Logf("Metrics:\n%s", results)
 
 				p := expfmt.TextParser{}
 				metrics, err = p.TextToMetricFamilies(bytes.NewBufferString(results))
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				counts := findCountersWithLabels(metrics["tsdb_samples_appended_total"], labels{})
-				if len(counts) == 0 || counts[0] == 0 {
-					time.Sleep(time.Second)
-					continue
+				if len(counts) != 0 && counts[0] > 0 {
+					success = true
+					break
 				}
-				success = true
-				break
+				counts = findCountersWithLabels(metrics["tsdb_head_samples_appended_total"], labels{})
+				if len(counts) != 0 && counts[0] > 0 {
+					success = true
+					break
+				}
+				time.Sleep(time.Second)
+				continue
 			}
-			o.Expect(success).To(o.BeTrue(), fmt.Sprintf("Did not find tsdb_samples_appended_total in:\n%#v,", metrics))
+			o.Expect(success).To(o.BeTrue(), fmt.Sprintf("Did not find tsdb_samples_appended_total or tsdb_head_samples_appended_total in:\n%#v,", metrics))
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
 			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d", host, statsPort), 403)
