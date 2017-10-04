@@ -145,9 +145,6 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 		cmd.NewCmdOptions(out),
 	)
 
-	if name == fullName {
-		cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{}))
-	}
-
+	cmds.AddCommand(cmd.NewCmdVersion(fullName, f, out, cmd.VersionOptions{}))
 	return cmds
 }
