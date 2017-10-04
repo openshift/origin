@@ -287,11 +287,7 @@ func autoConvert_network_HostSubnet_To_v1_HostSubnet(in *network.HostSubnet, out
 	out.Host = in.Host
 	out.HostIP = in.HostIP
 	out.Subnet = in.Subnet
-	if in.EgressIPs == nil {
-		out.EgressIPs = make([]string, 0)
-	} else {
-		out.EgressIPs = *(*[]string)(unsafe.Pointer(&in.EgressIPs))
-	}
+	out.EgressIPs = *(*[]string)(unsafe.Pointer(&in.EgressIPs))
 	return nil
 }
 
@@ -343,11 +339,7 @@ func autoConvert_network_NetNamespace_To_v1_NetNamespace(in *network.NetNamespac
 	out.ObjectMeta = in.ObjectMeta
 	out.NetName = in.NetName
 	out.NetID = in.NetID
-	if in.EgressIPs == nil {
-		out.EgressIPs = make([]string, 0)
-	} else {
-		out.EgressIPs = *(*[]string)(unsafe.Pointer(&in.EgressIPs))
-	}
+	out.EgressIPs = *(*[]string)(unsafe.Pointer(&in.EgressIPs))
 	return nil
 }
 

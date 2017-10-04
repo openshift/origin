@@ -116,6 +116,7 @@ message HostSubnet {
   optional string subnet = 4;
 
   // EgressIPs is the list of automatic egress IP addresses currently hosted by this node
+  // +optional
   repeated string egressIPs = 5;
 }
 

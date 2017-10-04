@@ -25756,8 +25756,7 @@
     "required": [
      "host",
      "hostIP",
-     "subnet",
-     "egressIPs"
+     "subnet"
     ],
     "properties": {
      "kind": {
@@ -26916,8 +26915,7 @@
     "description": "NetNamespace describes a single isolated network. When using the redhat/openshift-ovs-multitenant plugin, every Namespace will have a corresponding NetNamespace object with the same name. (When using redhat/openshift-ovs-subnet, NetNamespaces are not used.)",
     "required": [
      "netname",
-     "netid",
-     "egressIPs"
+     "netid"
     ],
     "properties": {
      "kind": {

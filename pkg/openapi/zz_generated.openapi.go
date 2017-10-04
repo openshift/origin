@@ -7145,7 +7145,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 							},
 						},
 					},
-					Required: []string{"host", "hostIP", "subnet", "egressIPs"},
+					Required: []string{"host", "hostIP", "subnet"},
 				},
 			},
 			Dependencies: []string{
