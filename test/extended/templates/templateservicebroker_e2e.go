@@ -49,10 +49,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	g.BeforeEach(func() {
 		framework.SkipIfProviderIs("gce")
 
+		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
-		var err error
 
 		// should have been created before the extended test runs
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
