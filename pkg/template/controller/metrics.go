@@ -11,6 +11,14 @@ import (
 var templateInstancesTotal = prometheus.NewGaugeVec(
 	prometheus.GaugeOpts{
 		Name: "openshift_template_instance_total",
+		Help: "Counts TemplateInstance objects",
+	},
+	nil,
+)
+
+var templateInstanceStatusCondition = prometheus.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "openshift_template_instance_status_condition_total",
 		Help: "Counts TemplateInstance objects by condition type and status",
 	},
 	[]string{"type", "status"},
@@ -26,6 +34,7 @@ var templateInstancesActiveStartTime = prometheus.NewGaugeVec(
 
 func (c *TemplateInstanceController) Describe(ch chan<- *prometheus.Desc) {
 	templateInstancesTotal.Describe(ch)
+	templateInstanceStatusCondition.Describe(ch)
 	templateInstancesActiveStartTime.Describe(ch)
 }
 
@@ -37,17 +46,18 @@ func (c *TemplateInstanceController) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	templateInstancesTotal.Reset()
+	templateInstanceStatusCondition.Reset()
 	templateInstancesActiveStartTime.Reset()
 
-	templateInstancesTotal.WithLabelValues("", "").Set(0)
+	templateInstancesTotal.WithLabelValues().Set(0)
 
 	for _, templateInstance := range templateInstances {
 		waiting := true
 
-		templateInstancesTotal.WithLabelValues("", "").Inc()
+		templateInstancesTotal.WithLabelValues().Inc()
 
 		for _, cond := range templateInstance.Status.Conditions {
-			templateInstancesTotal.WithLabelValues(string(cond.Type), string(cond.Status)).Inc()
+			templateInstanceStatusCondition.WithLabelValues(string(cond.Type), string(cond.Status)).Inc()
 
 			if cond.Status == kapi.ConditionTrue &&
 				(cond.Type == templateapi.TemplateInstanceInstantiateFailure || cond.Type == templateapi.TemplateInstanceReady) {
@@ -61,5 +71,6 @@ func (c *TemplateInstanceController) Collect(ch chan<- prometheus.Metric) {
 	}
 
 	templateInstancesTotal.Collect(ch)
+	templateInstanceStatusCondition.Collect(ch)
 	templateInstancesActiveStartTime.Collect(ch)
 }
