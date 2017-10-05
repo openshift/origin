@@ -9,9 +9,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/retry"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 
@@ -58,7 +56,7 @@ func (master *OsdnMaster) SubnetStartMaster(clusterNetworks []common.ClusterNetw
 	master.subnetAllocatorList = subnetAllocatorList
 
 	master.watchNodes()
-	go utilwait.Forever(master.watchSubnets, 0)
+	master.watchSubnets()
 	return nil
 }
 
@@ -206,8 +204,7 @@ func GetNodeCondition(status *kapi.NodeStatus, conditionType kapi.NodeConditionT
 }
 
 func (master *OsdnMaster) watchNodes() {
-	common.RegisterSharedInformerEventHandlers(master.informers,
-		master.handleAddOrUpdateNode, master.handleDeleteNode, common.Nodes)
+	common.RegisterSharedInformer(master.informers, master.handleAddOrUpdateNode, master.handleDeleteNode, common.Nodes)
 }
 
 func (master *OsdnMaster) handleAddOrUpdateNode(obj, _ interface{}, eventType watch.EventType) {
@@ -245,55 +242,64 @@ func (master *OsdnMaster) handleDeleteNode(obj interface{}) {
 }
 
 // Watch for all hostsubnet events and if one is found with the right annotation, use the SubnetAllocator to dole a real subnet
+// This is mainly to handle F5 use case, allocate/release subnet with no real node in the cluster.
+// - Admin manually creates HostSubnet with 'AssignHostSubnetAnnotation' to allocate a subnet.
+// - Admin manually deletes HostSubnet to release the allocated subnet because there won't be
+//   node deletion event to trigger HostSubnet deletion in this case.
 func (master *OsdnMaster) watchSubnets() {
-	common.RunEventQueue(master.networkClient.Network().RESTClient(), common.HostSubnets, func(delta cache.Delta) error {
-		hs := delta.Object.(*networkapi.HostSubnet)
-		name := hs.ObjectMeta.Name
-		hostIP := hs.HostIP
-		subnet := hs.Subnet
+	common.RegisterSharedInformer(master.informers, master.handleAddOrUpdateSubnet, master.handleDeleteSubnet, common.HostSubnets)
+}
 
-		glog.V(5).Infof("Watch %s event for HostSubnet %q", delta.Type, hs.ObjectMeta.Name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; ok {
-				// Delete the annotated hostsubnet and create a new one with an assigned subnet
-				// We do not update (instead of delete+create) because the watchSubnets on the nodes
-				// will skip the event if it finds that the hostsubnet has the same host
-				// And we cannot fix the watchSubnets code for node because it will break migration if
-				// nodes are upgraded after the master
-				err := master.networkClient.Network().HostSubnets().Delete(name, &metav1.DeleteOptions{})
-				if err != nil {
-					glog.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", name, hostIP, err)
-					return nil
-				}
-				var hsAnnotations map[string]string
-				if vnid, ok := hs.Annotations[networkapi.FixedVNIDHostAnnotation]; ok {
-					vnidInt, err := strconv.Atoi(vnid)
-					if err == nil && vnidInt >= 0 && uint32(vnidInt) <= network.MaxVNID {
-						hsAnnotations = make(map[string]string)
-						hsAnnotations[networkapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
-					} else {
-						glog.Errorf("Vnid %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation)
-					}
-				}
-				_, err = master.addNode(name, hostIP, hsAnnotations, nil)
-				if err != nil {
-					glog.Errorf("Error creating subnet for node %s, ip %s: %v", name, hostIP, err)
-					return nil
-				}
-			}
-		case cache.Deleted:
-			if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; !ok {
-				// release the subnet
-				_, ipnet, err := net.ParseCIDR(subnet)
-				if err != nil {
-					return fmt.Errorf("error parsing subnet %q for node %q for deletion: %v", subnet, name, err)
-				}
-				for _, possibleSubnetAllocator := range master.subnetAllocatorList {
-					possibleSubnetAllocator.ReleaseNetwork(ipnet)
-				}
-			}
+func (master *OsdnMaster) handleAddOrUpdateSubnet(obj, _ interface{}, eventType watch.EventType) {
+	hs := obj.(*networkapi.HostSubnet)
+	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
+
+	if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; !ok {
+		return
+	}
+
+	// Delete the annotated hostsubnet and create a new one with an assigned subnet
+	// We do not update (instead of delete+create) because the watchSubnets on the nodes
+	// will skip the event if it finds that the hostsubnet has the same host
+	// And we cannot fix the watchSubnets code for node because it will break migration if
+	// nodes are upgraded after the master
+	err := master.networkClient.Network().HostSubnets().Delete(hs.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		glog.Errorf("Error in deleting annotated subnet from master, name: %s, ip %s: %v", hs.Name, hs.HostIP, err)
+		return
+	}
+	var hsAnnotations map[string]string
+	if vnid, ok := hs.Annotations[networkapi.FixedVNIDHostAnnotation]; ok {
+		vnidInt, err := strconv.Atoi(vnid)
+		if err == nil && vnidInt >= 0 && uint32(vnidInt) <= network.MaxVNID {
+			hsAnnotations = make(map[string]string)
+			hsAnnotations[networkapi.FixedVNIDHostAnnotation] = strconv.Itoa(vnidInt)
+		} else {
+			glog.Errorf("VNID %s is an invalid value for annotation %s. Annotation will be ignored.", vnid, networkapi.FixedVNIDHostAnnotation)
 		}
-		return nil
-	})
+	}
+	_, err = master.addNode(hs.Name, hs.HostIP, hsAnnotations, nil)
+	if err != nil {
+		glog.Errorf("Error creating subnet for node %s, ip %s: %v", hs.Name, hs.HostIP, err)
+		return
+	}
+}
+
+func (master *OsdnMaster) handleDeleteSubnet(obj interface{}) {
+	hs := obj.(*networkapi.HostSubnet)
+	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
+
+	if _, ok := hs.Annotations[networkapi.AssignHostSubnetAnnotation]; !ok {
+		return
+	}
+
+	// release the subnet
+	_, ipnet, err := net.ParseCIDR(hs.Subnet)
+	if err != nil {
+		glog.Errorf("Error parsing subnet %q for node %q for deletion: %v", hs.Subnet, hs.Name, err)
+		return
+	}
+	for _, possibleSubnetAllocator := range master.subnetAllocatorList {
+		possibleSubnetAllocator.ReleaseNetwork(ipnet)
+	}
 }

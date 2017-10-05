@@ -17,12 +17,9 @@ import (
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 	kapi "k8s.io/kubernetes/pkg/apis/core"
 	"k8s.io/kubernetes/pkg/apis/networking"
-	kinternalinformers "k8s.io/kubernetes/pkg/client/informers/informers_generated/internalversion"
 
 	"github.com/openshift/origin/pkg/network"
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
@@ -37,8 +34,6 @@ type networkPolicyPlugin struct {
 	namespaces  map[uint32]*npNamespace
 	kNamespaces map[string]kapi.Namespace
 	pods        map[ktypes.UID]kapi.Pod
-
-	kubeInformers kinternalinformers.SharedInformerFactory
 }
 
 // npNamespace tracks NetworkPolicy-related data for a Namespace
@@ -78,9 +73,8 @@ func (np *networkPolicyPlugin) SupportsVNIDs() bool {
 
 func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 	np.node = node
-	np.kubeInformers = node.kubeInformers
 	np.vnids = newNodeVNIDMap(np, node.networkClient)
-	if err := np.vnids.Start(); err != nil {
+	if err := np.vnids.Start(node.informers); err != nil {
 		return err
 	}
 
@@ -99,7 +93,7 @@ func (np *networkPolicyPlugin) Start(node *OsdnNode) error {
 
 	np.watchNamespaces()
 	np.watchPods()
-	go utilwait.Forever(np.watchNetworkPolicies, 0)
+	np.watchNetworkPolicies()
 	return nil
 }
 
@@ -398,45 +392,54 @@ func (np *networkPolicyPlugin) updateNetworkPolicy(npns *npNamespace, policy *ne
 }
 
 func (np *networkPolicyPlugin) watchNetworkPolicies() {
-	common.RunEventQueue(np.node.kClient.Extensions().RESTClient(), common.NetworkPolicies, func(delta cache.Delta) error {
-		policy := delta.Object.(*networking.NetworkPolicy)
+	common.RegisterSharedInformer(np.node.informers, np.handleAddOrUpdateNetworkPolicy, np.handleDeleteNetworkPolicy, common.NetworkPolicies)
+}
 
-		glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", delta.Type, policy.Namespace, policy.Name)
+func (np *networkPolicyPlugin) handleAddOrUpdateNetworkPolicy(obj, _ interface{}, eventType watch.EventType) {
+	policy := obj.(*networking.NetworkPolicy)
+	glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", eventType, policy.Namespace, policy.Name)
 
-		vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
-		if err != nil {
-			return err
-		}
+	vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
+	if err != nil {
+		glog.Errorf("Could not find VNID for NetworkPolicy %s/%s", policy.Namespace, policy.Name)
+		return
+	}
 
-		np.lock.Lock()
-		defer np.lock.Unlock()
-		npns, exists := np.namespaces[vnid]
-		if !exists {
-			// NetNamespace was deleted after WaitAndGetVNID() returned!
-			return nil
-		}
+	np.lock.Lock()
+	defer np.lock.Unlock()
 
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			if changed := np.updateNetworkPolicy(npns, policy); changed {
-				if npns.inUse {
-					np.syncNamespace(npns)
-				}
-			}
-		case cache.Deleted:
-			delete(npns.policies, policy.UID)
+	if npns, exists := np.namespaces[vnid]; exists {
+		if changed := np.updateNetworkPolicy(npns, policy); changed {
 			if npns.inUse {
 				np.syncNamespace(npns)
 			}
 		}
+	}
+}
 
-		return nil
-	})
+func (np *networkPolicyPlugin) handleDeleteNetworkPolicy(obj interface{}) {
+	policy := obj.(*networking.NetworkPolicy)
+	glog.V(5).Infof("Watch %s event for NetworkPolicy %s/%s", watch.Deleted, policy.Namespace, policy.Name)
+
+	vnid, err := np.vnids.WaitAndGetVNID(policy.Namespace)
+	if err != nil {
+		glog.Errorf("Could not find VNID for NetworkPolicy %s/%s", policy.Namespace, policy.Name)
+		return
+	}
+
+	np.lock.Lock()
+	defer np.lock.Unlock()
+
+	if npns, exists := np.namespaces[vnid]; exists {
+		delete(npns.policies, policy.UID)
+		if npns.inUse {
+			np.syncNamespace(npns)
+		}
+	}
 }
 
 func (np *networkPolicyPlugin) watchPods() {
-	common.RegisterSharedInformerEventHandlers(np.kubeInformers,
-		np.handleAddOrUpdatePod, np.handleDeletePod, common.Pods)
+	common.RegisterSharedInformer(np.node.informers, np.handleAddOrUpdatePod, np.handleDeletePod, common.Pods)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdatePod(obj, _ interface{}, eventType watch.EventType) {
@@ -484,8 +487,7 @@ func (np *networkPolicyPlugin) handleDeletePod(obj interface{}) {
 }
 
 func (np *networkPolicyPlugin) watchNamespaces() {
-	common.RegisterSharedInformerEventHandlers(np.kubeInformers,
-		np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, common.Namespaces)
+	common.RegisterSharedInformer(np.node.informers, np.handleAddOrUpdateNamespace, np.handleDeleteNamespace, common.Namespaces)
 }
 
 func (np *networkPolicyPlugin) handleAddOrUpdateNamespace(obj, _ interface{}, eventType watch.EventType) {

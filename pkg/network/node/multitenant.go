@@ -40,7 +40,7 @@ func (mp *multiTenantPlugin) SupportsVNIDs() bool {
 func (mp *multiTenantPlugin) Start(node *OsdnNode) error {
 	mp.node = node
 	mp.vnids = newNodeVNIDMap(mp, node.networkClient)
-	if err := mp.vnids.Start(); err != nil {
+	if err := mp.vnids.Start(node.informers); err != nil {
 		return err
 	}
 

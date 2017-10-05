@@ -9,12 +9,10 @@ import (
 	"github.com/golang/glog"
 
 	"k8s.io/apimachinery/pkg/util/sets"
-	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/apimachinery/pkg/watch"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
-	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 
 	"github.com/vishvananda/netlink"
 )
@@ -40,8 +38,8 @@ type egressIPWatcher struct {
 	localIP string
 	oc      *ovsController
 
-	networkClient networkclient.Interface
-	iptables      *NodeIPTables
+	informers common.SDNInformers
+	iptables  *NodeIPTables
 
 	// from HostSubnets
 	nodesByNodeIP   map[string]*nodeEgress
@@ -70,18 +68,18 @@ func newEgressIPWatcher(localIP string, oc *ovsController) *egressIPWatcher {
 	}
 }
 
-func (eip *egressIPWatcher) Start(networkClient networkclient.Interface, iptables *NodeIPTables) error {
+func (eip *egressIPWatcher) Start(informers common.SDNInformers, iptables *NodeIPTables) error {
 	var err error
 	if eip.localEgressLink, eip.localEgressNet, err = GetLinkDetails(eip.localIP); err != nil {
 		// Not expected, should already be caught by node.New()
 		return nil
 	}
 
+	eip.informers = informers
 	eip.iptables = iptables
-	eip.networkClient = networkClient
 
-	go utilwait.Forever(eip.watchHostSubnets, 0)
-	go utilwait.Forever(eip.watchNetNamespaces, 0)
+	eip.watchHostSubnets()
+	eip.watchNetNamespaces()
 	return nil
 }
 
@@ -95,17 +93,21 @@ func ipToHex(ip string) string {
 }
 
 func (eip *egressIPWatcher) watchHostSubnets() {
-	common.RunEventQueue(eip.networkClient.Network().RESTClient(), common.HostSubnets, func(delta cache.Delta) error {
-		hs := delta.Object.(*networkapi.HostSubnet)
+	common.RegisterSharedInformer(eip.informers, eip.handleAddOrUpdateHostSubnet, eip.handleDeleteHostSubnet, common.HostSubnets)
+}
 
-		var egressIPs []string
-		if delta.Type != cache.Deleted {
-			egressIPs = hs.EgressIPs
-		}
+func (eip *egressIPWatcher) handleAddOrUpdateHostSubnet(obj, _ interface{}, eventType watch.EventType) {
+	hs := obj.(*networkapi.HostSubnet)
+	glog.V(5).Infof("Watch %s event for HostSubnet %q", eventType, hs.Name)
 
-		eip.updateNodeEgress(hs.HostIP, egressIPs)
-		return nil
-	})
+	eip.updateNodeEgress(hs.HostIP, hs.EgressIPs)
+}
+
+func (eip *egressIPWatcher) handleDeleteHostSubnet(obj interface{}) {
+	hs := obj.(*networkapi.HostSubnet)
+	glog.V(5).Infof("Watch %s event for HostSubnet %q", watch.Deleted, hs.Name)
+
+	eip.updateNodeEgress(hs.HostIP, nil)
 }
 
 func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []string) {
@@ -180,19 +182,26 @@ func (eip *egressIPWatcher) updateNodeEgress(nodeIP string, nodeEgressIPs []stri
 }
 
 func (eip *egressIPWatcher) watchNetNamespaces() {
-	common.RunEventQueue(eip.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
-		netns := delta.Object.(*networkapi.NetNamespace)
+	common.RegisterSharedInformer(eip.informers, eip.handleAddOrUpdateNetNamespace, eip.handleDeleteNetNamespace, common.NetNamespaces)
+}
 
-		if delta.Type != cache.Deleted && len(netns.EgressIPs) != 0 {
-			if len(netns.EgressIPs) > 1 {
-				glog.Warningf("Ignoring extra EgressIPs (%v) in NetNamespace %q", netns.EgressIPs[1:], netns.Name)
-			}
-			eip.updateNamespaceEgress(netns.NetID, netns.EgressIPs[0])
-		} else {
-			eip.deleteNamespaceEgress(netns.NetID)
+func (eip *egressIPWatcher) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
+	netns := obj.(*networkapi.NetNamespace)
+	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
+
+	if len(netns.EgressIPs) != 0 {
+		if len(netns.EgressIPs) > 1 {
+			glog.Warningf("Ignoring extra EgressIPs (%v) in NetNamespace %q", netns.EgressIPs[1:], netns.Name)
 		}
-		return nil
-	})
+		eip.updateNamespaceEgress(netns.NetID, netns.EgressIPs[0])
+	}
+}
+
+func (eip *egressIPWatcher) handleDeleteNetNamespace(obj interface{}) {
+	netns := obj.(*networkapi.NetNamespace)
+	glog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
+
+	eip.deleteNamespaceEgress(netns.NetID)
 }
 
 func (eip *egressIPWatcher) updateNamespaceEgress(vnid uint32, egressIP string) {

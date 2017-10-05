@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network/transport"
 	"github.com/openshift/origin/pkg/dns"
 	"github.com/openshift/origin/pkg/network"
+	networkinformers "github.com/openshift/origin/pkg/network/generated/informers/internalversion"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
@@ -33,6 +34,8 @@ type NetworkConfig struct {
 	ExternalKubeClientset kclientsetexternal.Interface
 	// Internal kubernetes shared informer factory.
 	InternalKubeInformers kinternalinformers.SharedInformerFactory
+	// Internal network shared informer factory.
+	InternalNetworkInformers networkinformers.SharedInformerFactory
 
 	// ProxyConfig is the configuration for the kube-proxy, fully initialized
 	ProxyConfig *kubeproxyconfig.KubeProxyConfiguration
@@ -94,15 +97,6 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 
 	internalKubeInformers := kinternalinformers.NewSharedInformerFactory(internalKubeClient, proxyConfig.ConfigSyncPeriod.Duration)
 
-	var sdnNode network.NodeInterface
-	var sdnProxy network.ProxyInterface
-	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
-		sdnNode, sdnProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, internalKubeInformers, proxyConfig)
-		if err != nil {
-			return nil, fmt.Errorf("SDN initialization failed: %v", err)
-		}
-	}
-
 	config := &NetworkConfig{
 		KubeClientset:         kubeClient,
 		ExternalKubeClientset: externalKubeClient,
@@ -110,9 +104,15 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *kubepr
 
 		ProxyConfig:    proxyConfig,
 		EnableUnidling: options.EnableUnidling,
+	}
 
-		SDNNode:  sdnNode,
-		SDNProxy: sdnProxy,
+	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
+		config.InternalNetworkInformers = networkinformers.NewSharedInformerFactory(networkClient, network.DefaultInformerResyncPeriod)
+
+		config.SDNNode, config.SDNProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, internalKubeInformers, config.InternalNetworkInformers, proxyConfig)
+		if err != nil {
+			return nil, fmt.Errorf("SDN initialization failed: %v", err)
+		}
 	}
 
 	if enableDNS {

@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/cache"
+	"k8s.io/apimachinery/pkg/watch"
 
 	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	"github.com/openshift/origin/pkg/network/common"
@@ -22,6 +22,7 @@ import (
 type nodeVNIDMap struct {
 	policy        osdnPolicy
 	networkClient networkclient.Interface
+	informers     common.SDNInformers
 
 	// Synchronizes add or remove ids/namespaces
 	lock       sync.Mutex
@@ -178,43 +179,48 @@ func (vmap *nodeVNIDMap) populateVNIDs() error {
 	return nil
 }
 
-func (vmap *nodeVNIDMap) Start() error {
+func (vmap *nodeVNIDMap) Start(informers common.SDNInformers) error {
+	vmap.informers = informers
+
 	// Populate vnid map synchronously so that existing services can fetch vnid
 	err := vmap.populateVNIDs()
 	if err != nil {
 		return err
 	}
 
-	go utilwait.Forever(vmap.watchNetNamespaces, 0)
+	vmap.watchNetNamespaces()
 	return nil
 }
 
 func (vmap *nodeVNIDMap) watchNetNamespaces() {
-	common.RunEventQueue(vmap.networkClient.Network().RESTClient(), common.NetNamespaces, func(delta cache.Delta) error {
-		netns := delta.Object.(*networkapi.NetNamespace)
+	common.RegisterSharedInformer(vmap.informers, vmap.handleAddOrUpdateNetNamespace, vmap.handleDeleteNetNamespace, common.NetNamespaces)
+}
 
-		glog.V(5).Infof("Watch %s event for NetNamespace %q", delta.Type, netns.ObjectMeta.Name)
-		switch delta.Type {
-		case cache.Sync, cache.Added, cache.Updated:
-			// Skip this event if nothing has changed
-			oldNetID, err := vmap.getVNID(netns.NetName)
-			oldMCEnabled := vmap.mcEnabled[netns.NetName]
-			mcEnabled := netnsIsMulticastEnabled(netns)
-			if err == nil && oldNetID == netns.NetID && oldMCEnabled == mcEnabled {
-				break
-			}
-			vmap.setVNID(netns.NetName, netns.NetID, mcEnabled)
+func (vmap *nodeVNIDMap) handleAddOrUpdateNetNamespace(obj, _ interface{}, eventType watch.EventType) {
+	netns := obj.(*networkapi.NetNamespace)
+	glog.V(5).Infof("Watch %s event for NetNamespace %q", eventType, netns.Name)
 
-			if delta.Type == cache.Added {
-				vmap.policy.AddNetNamespace(netns)
-			} else {
-				vmap.policy.UpdateNetNamespace(netns, oldNetID)
-			}
-		case cache.Deleted:
-			// Unset VNID first so further operations don't see the deleted VNID
-			vmap.unsetVNID(netns.NetName)
-			vmap.policy.DeleteNetNamespace(netns)
-		}
-		return nil
-	})
+	// Skip this event if nothing has changed
+	oldNetID, err := vmap.getVNID(netns.NetName)
+	oldMCEnabled := vmap.mcEnabled[netns.NetName]
+	mcEnabled := netnsIsMulticastEnabled(netns)
+	if err == nil && oldNetID == netns.NetID && oldMCEnabled == mcEnabled {
+		return
+	}
+	vmap.setVNID(netns.NetName, netns.NetID, mcEnabled)
+
+	if eventType == watch.Added {
+		vmap.policy.AddNetNamespace(netns)
+	} else {
+		vmap.policy.UpdateNetNamespace(netns, oldNetID)
+	}
+}
+
+func (vmap *nodeVNIDMap) handleDeleteNetNamespace(obj interface{}) {
+	netns := obj.(*networkapi.NetNamespace)
+	glog.V(5).Infof("Watch %s event for NetNamespace %q", watch.Deleted, netns.Name)
+
+	// Unset VNID first so further operations don't see the deleted VNID
+	vmap.unsetVNID(netns.NetName)
+	vmap.policy.DeleteNetNamespace(netns)
 }
