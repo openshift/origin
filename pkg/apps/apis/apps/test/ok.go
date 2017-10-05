@@ -166,6 +166,7 @@ func OkPodTemplate() *kapi.PodTemplateSpec {
 			DNSPolicy:                     kapi.DNSClusterFirst,
 			TerminationGracePeriodSeconds: &one,
 			SchedulerName:                 kapi.DefaultSchedulerName,
+			SecurityContext:               &kapi.PodSecurityContext{},
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: OkSelector(),

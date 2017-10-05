@@ -32,19 +32,6 @@ var (
 	// deployment config. This is used in the ownerRef and GC client picks the appropriate
 	// client to get the deployment config.
 	DeploymentConfigControllerRefKind = deployapiv1.SchemeGroupVersion.WithKind("DeploymentConfig")
-
-	// annotationsToSkip is list of replication controller pod template annotations we skip
-	annotationsToSkip = sets.NewString(
-		deployapi.DeploymentVersionAnnotation,
-		deployapi.DeploymentConfigAnnotation,
-		deployapi.DeploymentAnnotation,
-	)
-
-	// labelsToSkip is list of replication controller pod template labels we skip
-	labelsToSkip = sets.NewString(
-		deployapi.DeploymentLabel,
-		deployapi.DeploymentConfigLabel,
-	)
 )
 
 // NewDeploymentCondition creates a new deployment condition.
@@ -358,20 +345,26 @@ func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTe
 	return out
 }
 
-// HasLatestPodTemplate checks if the provided replication controller has the latest
-// deployment config pod template. If not it will return false and the string diff.
-func HasLatestPodTemplate(dc *deployapi.DeploymentConfig, rc *v1.ReplicationController) (bool, string, error) {
-	configTemplate := CopyPodTemplateSpecToV1PodTemplateSpec(dc.Spec.Template)
-	configTemplate = filterOutTemplateAnnotationsAndLabels(configTemplate)
-	rcCopy, err := DeploymentDeepCopyV1(rc)
+// HasLatestPodTemplate checks for differences between current deployment config
+// template and deployment config template encoded in the latest replication
+// controller. If they are different it will return an string diff containing
+// the change.
+func HasLatestPodTemplate(currentConfig *deployapi.DeploymentConfig, rc *v1.ReplicationController, codec runtime.Codec) (bool, string, error) {
+	latestConfig, err := DecodeDeploymentConfig(rc, codec)
 	if err != nil {
 		return true, "", err
 	}
-	rcTemplate := filterOutTemplateAnnotationsAndLabels(rcCopy.Spec.Template)
-	if reflect.DeepEqual(configTemplate, rcTemplate) {
+	// The latestConfig represents an encoded DC in the latest deployment (RC).
+	// TODO: This diverges from the upstream behavior where we compare deployment
+	// template vs. replicaset template. Doing that will disallow any
+	// modifications to the RC the deployment config controller create and manage
+	// as a change to the RC will cause the DC to be reconciled and ultimately
+	// trigger a new rollout because of skew between latest RC template and DC
+	// template.
+	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
 		return true, "", nil
 	}
-	return false, diff.ObjectReflectDiff(configTemplate, rcTemplate), nil
+	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
 }
 
 // HasUpdatedImages indicates if the deployment configuration images were updated.
@@ -390,29 +383,6 @@ func HasUpdatedImages(dc *deployapi.DeploymentConfig, rc *v1.ReplicationControll
 		return false, nil
 	}
 	return true, updatedImages
-}
-
-// filterOutTemplateAnnotationsAndLabels filters out annotations and labels we skip when
-// comparing replication controller template with deployment config template.
-func filterOutTemplateAnnotationsAndLabels(in *v1.PodTemplateSpec) *v1.PodTemplateSpec {
-	out := *in
-	out.Annotations = map[string]string{}
-	out.Labels = map[string]string{}
-	if in.Annotations != nil {
-		for k, v := range in.Annotations {
-			if !annotationsToSkip.Has(k) {
-				out.Annotations[k] = v
-			}
-		}
-	}
-	if in.Labels != nil {
-		for k, v := range in.Labels {
-			if !labelsToSkip.Has(k) {
-				out.Labels[k] = v
-			}
-		}
-	}
-	return &out
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

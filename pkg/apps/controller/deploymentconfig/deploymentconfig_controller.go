@@ -134,7 +134,7 @@ func (c *DeploymentConfigController) Handle(config *deployapi.DeploymentConfig) 
 		glog.Errorf("Unable to copy deployment config: %v", err)
 		return c.updateStatus(config, existingDeployments)
 	}
-	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestIsDeployed, latestDeployment)
+	shouldTrigger, shouldSkip := triggerActivated(configCopy, latestIsDeployed, latestDeployment, c.codec)
 	if !shouldSkip && shouldTrigger {
 		configCopy.Status.LatestVersion++
 		return c.updateStatus(configCopy, existingDeployments)
@@ -544,7 +544,7 @@ func (c *DeploymentConfigController) cleanupOldDeployments(existingDeployments [
 // triggers were activated (config change or image change). The first bool indicates that
 // the triggers are active and second indicates if we should skip the rollout because we
 // are waiting for the trigger to complete update (waiting for image for example).
-func triggerActivated(config *deployapi.DeploymentConfig, latestIsDeployed bool, latestDeployment *v1.ReplicationController) (bool, bool) {
+func triggerActivated(config *deployapi.DeploymentConfig, latestIsDeployed bool, latestDeployment *v1.ReplicationController, codec runtime.Codec) (bool, bool) {
 	if config.Spec.Paused {
 		return false, false
 	}
@@ -601,7 +601,7 @@ func triggerActivated(config *deployapi.DeploymentConfig, latestIsDeployed bool,
 	}
 
 	if configTrigger {
-		isLatest, changes, err := deployutil.HasLatestPodTemplate(config, latestDeployment)
+		isLatest, changes, err := deployutil.HasLatestPodTemplate(config, latestDeployment, codec)
 		if err != nil {
 			glog.Errorf("Error while checking for latest pod template in replication controller: %v", err)
 			return false, true
