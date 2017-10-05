@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	metainternal "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,11 +15,12 @@ import (
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	genericrest "k8s.io/apiserver/pkg/registry/generic/rest"
 	"k8s.io/apiserver/pkg/registry/rest"
+	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kubeletclient "k8s.io/kubernetes/pkg/kubelet/client"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	"github.com/openshift/origin/pkg/build/registry/test"
+	buildfakeclient "github.com/openshift/origin/pkg/build/generated/internalclientset/fake"
 )
 
 type testPodGetter struct{}
@@ -139,26 +139,20 @@ func TestWaitForBuild(t *testing.T) {
 
 	for _, tt := range tests {
 		build := mockBuild(buildapi.BuildPhasePending, "running", 1)
-		ch := make(chan watch.Event)
-		watcher := &buildWatcher{
-			Build: build,
-			Watcher: &fakeWatch{
-				Channel: ch,
-			},
-		}
+		buildClient := buildfakeclient.NewSimpleClientset(build)
+		fakeWatcher := watch.NewFake()
+		buildClient.PrependWatchReactor("builds", func(action clientgotesting.Action) (handled bool, ret watch.Interface, err error) {
+			return true, fakeWatcher, nil
+		})
 		storage := REST{
-			Getter:         watcher,
-			Watcher:        watcher,
+			BuildClient:    buildClient.Build(),
 			PodGetter:      &testPodGetter{},
 			ConnectionInfo: &fakeConnectionInfoGetter{},
 			Timeout:        defaultTimeout,
 		}
 		go func() {
 			for _, status := range tt.status {
-				ch <- watch.Event{
-					Type:   watch.Modified,
-					Object: mockBuild(status, "running", 1),
-				}
+				fakeWatcher.Modify(mockBuild(status, "running", 1))
 			}
 		}()
 		_, err := storage.Get(ctx, build.Name, &buildapi.BuildLogOptions{})
@@ -172,18 +166,11 @@ func TestWaitForBuild(t *testing.T) {
 }
 
 func TestWaitForBuildTimeout(t *testing.T) {
-	ctx := apirequest.NewDefaultContext()
 	build := mockBuild(buildapi.BuildPhasePending, "running", 1)
-	ch := make(chan watch.Event)
-	watcher := &buildWatcher{
-		Build: build,
-		Watcher: &fakeWatch{
-			Channel: ch,
-		},
-	}
+	buildClient := buildfakeclient.NewSimpleClientset(build)
+	ctx := apirequest.NewDefaultContext()
 	storage := REST{
-		Getter:         watcher,
-		Watcher:        watcher,
+		BuildClient:    buildClient.Build(),
 		PodGetter:      &testPodGetter{},
 		ConnectionInfo: &fakeConnectionInfoGetter{},
 		Timeout:        100 * time.Millisecond,
@@ -194,44 +181,18 @@ func TestWaitForBuildTimeout(t *testing.T) {
 	}
 }
 
-type buildWatcher struct {
-	Build   *buildapi.Build
-	Watcher watch.Interface
-	Err     error
-}
-
-func (r *buildWatcher) Get(ctx apirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
-	return r.Build, nil
-}
-
-func (r *buildWatcher) Watch(ctx apirequest.Context, options *metainternal.ListOptions) (watch.Interface, error) {
-	return r.Watcher, r.Err
-}
-
-type fakeWatch struct {
-	Channel chan watch.Event
-}
-
-func (w *fakeWatch) Stop() {
-	close(w.Channel)
-}
-
-func (w *fakeWatch) ResultChan() <-chan watch.Event {
-	return w.Channel
-}
-
 func resourceLocationHelper(BuildPhase buildapi.BuildPhase, podPhase string, ctx apirequest.Context, version int) (string, error) {
 	expectedBuild := mockBuild(BuildPhase, podPhase, version)
-	internal := &test.BuildStorage{Build: expectedBuild}
+	buildClient := buildfakeclient.NewSimpleClientset(expectedBuild)
 
 	storage := &REST{
-		Getter:         internal,
+		BuildClient:    buildClient.Build(),
 		PodGetter:      &testPodGetter{},
 		ConnectionInfo: &fakeConnectionInfoGetter{},
 		Timeout:        defaultTimeout,
 	}
 	getter := rest.GetterWithOptions(storage)
-	obj, err := getter.Get(ctx, "foo-build", &buildapi.BuildLogOptions{NoWait: true})
+	obj, err := getter.Get(ctx, expectedBuild.Name, &buildapi.BuildLogOptions{NoWait: true})
 	if err != nil {
 		return "", err
 	}
@@ -269,7 +230,8 @@ func mockPod(podPhase kapi.PodPhase, podName string) *kapi.Pod {
 func mockBuild(status buildapi.BuildPhase, podName string, version int) *buildapi.Build {
 	return &buildapi.Build{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: podName,
+			Namespace: "default",
+			Name:      podName,
 			Annotations: map[string]string{
 				buildapi.BuildNumberAnnotation: strconv.Itoa(version),
 			},
@@ -303,10 +265,10 @@ func TestPreviousBuildLogs(t *testing.T) {
 	first := mockBuild(buildapi.BuildPhaseComplete, "bc-1", 1)
 	second := mockBuild(buildapi.BuildPhaseComplete, "bc-2", 2)
 	third := mockBuild(buildapi.BuildPhaseComplete, "bc-3", 3)
-	internal := &test.BuildStorage{Builds: &buildapi.BuildList{Items: []buildapi.Build{*first, *second, *third}}}
+	buildClient := buildfakeclient.NewSimpleClientset(first, second, third)
 
 	storage := &REST{
-		Getter:         internal,
+		BuildClient:    buildClient.Build(),
 		PodGetter:      &anotherTestPodGetter{},
 		ConnectionInfo: &fakeConnectionInfoGetter{},
 		Timeout:        defaultTimeout,
