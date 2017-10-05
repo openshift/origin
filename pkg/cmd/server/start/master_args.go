@@ -714,16 +714,6 @@ func getHost(theURL url.URL) string {
 	return host
 }
 
-func getPort(theURL url.URL) int {
-	_, port, err := net.SplitHostPort(theURL.Host)
-	if err != nil {
-		return 0
-	}
-
-	intport, _ := strconv.Atoi(port)
-	return intport
-}
-
 // applyDefaults roundtrips the config to v1 and back to ensure proper defaults are set.
 func applyDefaults(config runtime.Object, version schema.GroupVersion) (runtime.Object, error) {
 	ext, err := configapi.Scheme.ConvertToVersion(config, version)

@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
@@ -536,8 +535,4 @@ func newImportFailedCondition(err error, gen int64, now metav1.Time) imageapi.Ta
 		c.Reason, c.Message = string(s.Reason), s.Message
 	}
 	return c
-}
-
-func invalidStatus(kind, position string, errs ...*field.Error) metav1.Status {
-	return kapierrors.NewInvalid(imageapi.Kind(kind), position, errs).ErrStatus
 }

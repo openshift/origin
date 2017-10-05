@@ -191,7 +191,3 @@ func NewProjectRequestLimit(config *requestlimitapi.ProjectRequestLimitConfig) (
 		Handler: admission.NewHandler(admission.Create),
 	}, nil
 }
-
-func projectRequester(ns *kapi.Namespace) string {
-	return ns.Annotations[projectapi.ProjectRequester]
-}

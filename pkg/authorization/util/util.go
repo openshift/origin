@@ -15,7 +15,7 @@ import (
 func AddUserToSAR(user user.Info, sar *authorization.SubjectAccessReview) *authorization.SubjectAccessReview {
 	sar.Spec.User = user.GetName()
 	// reminiscent of the bad old days of C.  Copies copy the min number of elements of both source and dest
-	sar.Spec.Groups = make([]string, len(user.GetGroups()), len(user.GetGroups()))
+	sar.Spec.Groups = make([]string, len(user.GetGroups()))
 	copy(sar.Spec.Groups, user.GetGroups())
 	sar.Spec.Extra = map[string]authorization.ExtraValue{}
 

@@ -199,13 +199,6 @@ func (c *TLSCertificateConfig) GetPEMBytes() ([]byte, []byte, error) {
 	return certBytes, keyBytes, nil
 }
 
-func (c *TLSCARoots) writeCARoots(rootFile string) error {
-	if err := writeCertificates(rootFile, c.Roots...); err != nil {
-		return err
-	}
-	return nil
-}
-
 func GetTLSCARoots(caFile string) (*TLSCARoots, error) {
 	if len(caFile) == 0 {
 		return nil, errors.New("caFile missing")

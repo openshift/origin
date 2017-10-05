@@ -124,5 +124,5 @@ func newTemplateForbiddenMessageMaker(text string) templateForbiddenMessageMaker
 func (m templateForbiddenMessageMaker) MakeMessage(attrs authorizer.Attributes) (string, error) {
 	buffer := &bytes.Buffer{}
 	err := m.parsedTemplate.Execute(buffer, attrs)
-	return string(buffer.Bytes()), err
+	return buffer.String(), err
 }

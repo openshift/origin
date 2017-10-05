@@ -14,8 +14,8 @@ import (
 func ReadPluginConfig(pluginConfig map[string]configapi.AdmissionPluginConfig, name string, config runtime.Object) error {
 
 	configFilePath, err := pluginconfig.GetPluginConfigFile(pluginConfig, name, "")
-	if configFilePath == "" {
-		return nil
+	if err != nil || len(configFilePath) == 0 {
+		return err
 	}
 
 	err = configlatest.ReadYAMLFileInto(configFilePath, config)

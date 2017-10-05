@@ -382,7 +382,6 @@ func setDefaultMiddleware(config *configuration.Configuration) {
 		})
 		log.Errorf("obsolete configuration detected, please add openshift %s middleware into registry config file", middlewareType)
 	}
-	return
 }
 
 func setDefaultLogParameters(config *configuration.Configuration) {

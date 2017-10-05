@@ -165,10 +165,3 @@ func toString(v interface{}) string {
 	}
 	return value
 }
-
-// prettyPrintGenericError prints the contents of the generic error into the buffer of a tabwriter.Writer.
-// The writer must be Flush()ed after calling this to write the buffered data.
-func prettyPrintGenericError(err error, writer *tabwriter.Writer) error {
-	_, printError := fmt.Fprintf(writer, "\t\t\t%s\n", err.Error())
-	return printError
-}

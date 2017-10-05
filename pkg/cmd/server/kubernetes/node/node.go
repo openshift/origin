@@ -28,11 +28,6 @@ import (
 	"github.com/openshift/origin/pkg/volume/emptydir"
 )
 
-type commandExecutor interface {
-	LookPath(executable string) (string, error)
-	Run(command string, args ...string) error
-}
-
 const minimumDockerAPIVersionWithPullByID = "1.18"
 
 // EnsureKubeletAccess performs a number of test operations that the Kubelet requires to properly function.

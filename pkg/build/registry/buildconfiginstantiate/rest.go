@@ -213,7 +213,7 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	}); err != nil {
 		return nil, err
 	}
-	remaining := h.r.Timeout - time.Now().Sub(start)
+	remaining := h.r.Timeout - time.Since(start)
 
 	// Attempt to cancel the build if it did not start running
 	// before we gave up.

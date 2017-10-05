@@ -75,7 +75,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 				newExtra[k] = nil
 				continue
 			}
-			newSlice := make([]string, len(v), len(v))
+			newSlice := make([]string, len(v))
 			copy(newSlice, v)
 			newExtra[k] = newSlice
 		}

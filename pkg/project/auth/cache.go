@@ -81,12 +81,6 @@ type LastSyncResourceVersioner interface {
 	LastSyncResourceVersion() string
 }
 
-type unchangingLastSyncResourceVersioner struct{}
-
-func (u unchangingLastSyncResourceVersioner) LastSyncResourceVersion() string {
-	return "0"
-}
-
 type unionLastSyncResourceVersioner []LastSyncResourceVersioner
 
 func (u unionLastSyncResourceVersioner) LastSyncResourceVersion() string {
