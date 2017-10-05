@@ -1,13 +1,14 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-echo "===== Verifying Generated OpenAPI ====="
+function cleanup() {
+    return_code=$?
+    os::test::junit::generate_report
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
 
-if ! output=`${OS_ROOT}/hack/update-generated-openapi.sh --verify-only 2>&1`
-then
-  echo "FAILURE: Verification of openapi failed:"
-  echo "$output"
-  exit 1
-fi
-
-# ex: ts=2 sw=2 et filetype=sh
+os::test::junit::declare_suite_start "verify/openapi"
+os::cmd::expect_success "${OS_ROOT}/hack/update-generated-openapi.sh --verify-only"
+os::test::junit::declare_suite_end

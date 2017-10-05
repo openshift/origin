@@ -1,9 +1,15 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-echo "===== Verifying Generated Ugorji JSON Codecs ====="
+function cleanup() {
+    return_code=$?
+    os::test::junit::generate_report
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
 
-output=$(find ${OS_ROOT}/vendor/k8s.io/kubernetes -name "types.generated.go")
-if [[ -n "${output}" ]]; then
-  os::log::fatal "FAILURE: Verification of existing ugorji JSON codecs failed. These should NOT exist:\n${output}"
-fi
+os::test::junit::declare_suite_start "verify/codecs"
+# no ugorji codecs should be checked in
+os::cmd::expect_success_and_not_text "find ${OS_ROOT}/vendor/k8s.io/kubernetes -name 'types.generated.go'" "."
+os::test::junit::declare_suite_end
