@@ -46,6 +46,8 @@ tag_prefix="${OS_IMAGE_PREFIX:-"openshift/origin"}"
 ( os::build::image "${tag_prefix}-pod"                   images/pod ) &
 ( os::build::image "${tag_prefix}-cluster-capacity"      images/cluster-capacity ) &
 ( os::build::image "${tag_prefix}-service-catalog"       images/service-catalog ) &
+( os::build::image "${tag_prefix}-template-service-broker"  images/template-service-broker ) &
+
 
 for i in `jobs -p`; do wait $i; done
 
