@@ -113,6 +113,11 @@ func ExpectOpenShiftLabels(labels map[string]string) error {
 			return fmt.Errorf("Built image doesn't contain proper Docker image labels. Missing %q label", label)
 		}
 	}
-
+	if labels["io.k8s.display-name"] != "overridden" {
+		return fmt.Errorf("Existing label was not overridden with user specified value: %s=%s", labels["io.k8s.display-name"], labels["overridden"])
+	}
+	if labels["io.openshift.builder-version"] != "overridden2" {
+		return fmt.Errorf("System generated label was not overridden with user specified value: %s=%s", labels["io.openshift.builder-version"], labels["overridden2"])
+	}
 	return nil
 }
