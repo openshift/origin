@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/diff"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
@@ -212,6 +214,60 @@ func HasImageChangeTrigger(config *deployapi.DeploymentConfig) bool {
 	return false
 }
 
+// HasTrigger returns whether the provided deployment configuration has any trigger
+// defined or not.
+func HasTrigger(config *deployapi.DeploymentConfig) bool {
+	return HasChangeTrigger(config) || HasImageChangeTrigger(config)
+}
+
+// HasLastTriggeredImage returns whether all image change triggers in provided deployment
+// configuration has the lastTriggerImage field set (iow. all images were updated for
+// them). Returns false if deployment configuration has no image change trigger defined.
+func HasLastTriggeredImage(config *deployapi.DeploymentConfig) bool {
+	hasImageTrigger := false
+	for _, trigger := range config.Spec.Triggers {
+		if trigger.Type == deployapi.DeploymentTriggerOnImageChange {
+			hasImageTrigger = true
+			if len(trigger.ImageChangeParams.LastTriggeredImage) == 0 {
+				return false
+			}
+		}
+	}
+	return hasImageTrigger
+}
+
+// IsInitialDeployment returns whether the deployment configuration is the first version
+// of this configuration.
+func IsInitialDeployment(config *deployapi.DeploymentConfig) bool {
+	return config.Status.LatestVersion == 0
+}
+
+// RecordConfigChangeCause sets a deployment config cause for config change.
+func RecordConfigChangeCause(config *deployapi.DeploymentConfig) {
+	config.Status.Details = &deployapi.DeploymentDetails{
+		Causes: []deployapi.DeploymentCause{
+			{
+				Type: deployapi.DeploymentTriggerOnConfigChange,
+			},
+		},
+		Message: "config change",
+	}
+}
+
+// RecordImageChangeCauses sets a deployment config cause for image change. It
+// takes a list of changed images and record an cause for each image.
+func RecordImageChangeCauses(config *deployapi.DeploymentConfig, imageNames []string) {
+	config.Status.Details = &deployapi.DeploymentDetails{
+		Message: "image change",
+	}
+	for _, imageName := range imageNames {
+		config.Status.Details.Causes = append(config.Status.Details.Causes, deployapi.DeploymentCause{
+			Type:         deployapi.DeploymentTriggerOnImageChange,
+			ImageTrigger: &deployapi.DeploymentCauseImageTrigger{From: api.ObjectReference{Kind: "DockerImage", Name: imageName}},
+		})
+	}
+}
+
 func DeploymentConfigDeepCopy(dc *deployapi.DeploymentConfig) (*deployapi.DeploymentConfig, error) {
 	objCopy, err := api.Scheme.DeepCopy(dc)
 	if err != nil {
@@ -274,6 +330,59 @@ func CopyApiEnvVarToV1EnvVar(in []api.EnvVar) []v1.EnvVar {
 		}
 	}
 	return out
+}
+
+func CopyPodTemplateSpecToV1PodTemplateSpec(spec *api.PodTemplateSpec) *v1.PodTemplateSpec {
+	copied, err := api.Scheme.DeepCopy(spec)
+	if err != nil {
+		panic(err)
+	}
+	in := copied.(*api.PodTemplateSpec)
+	out := &v1.PodTemplateSpec{}
+	if err := v1.Convert_api_PodTemplateSpec_To_v1_PodTemplateSpec(in, out, nil); err != nil {
+		panic(err)
+	}
+	return out
+}
+
+// HasLatestPodTemplate checks for differences between current deployment config
+// template and deployment config template encoded in the latest replication
+// controller. If they are different it will return an string diff containing
+// the change.
+func HasLatestPodTemplate(currentConfig *deployapi.DeploymentConfig, rc *v1.ReplicationController, codec runtime.Codec) (bool, string, error) {
+	latestConfig, err := DecodeDeploymentConfig(rc, codec)
+	if err != nil {
+		return true, "", err
+	}
+	// The latestConfig represents an encoded DC in the latest deployment (RC).
+	// TODO: This diverges from the upstream behavior where we compare deployment
+	// template vs. replicaset template. Doing that will disallow any
+	// modifications to the RC the deployment config controller create and manage
+	// as a change to the RC will cause the DC to be reconciled and ultimately
+	// trigger a new rollout because of skew between latest RC template and DC
+	// template.
+	if reflect.DeepEqual(currentConfig.Spec.Template, latestConfig.Spec.Template) {
+		return true, "", nil
+	}
+	return false, diff.ObjectReflectDiff(currentConfig.Spec.Template, latestConfig.Spec.Template), nil
+}
+
+// HasUpdatedImages indicates if the deployment configuration images were updated.
+func HasUpdatedImages(dc *deployapi.DeploymentConfig, rc *v1.ReplicationController) (bool, []string) {
+	updatedImages := []string{}
+	rcImages := sets.NewString()
+	for _, c := range rc.Spec.Template.Spec.Containers {
+		rcImages.Insert(c.Image)
+	}
+	for _, c := range dc.Spec.Template.Spec.Containers {
+		if !rcImages.Has(c.Image) {
+			updatedImages = append(updatedImages, c.Image)
+		}
+	}
+	if len(updatedImages) == 0 {
+		return false, nil
+	}
+	return true, updatedImages
 }
 
 // DecodeDeploymentConfig decodes a DeploymentConfig from controller using codec. An error is returned

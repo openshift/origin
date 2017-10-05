@@ -3348,61 +3348,6 @@ items:
       authorization.openshift.io/system-only: "true"
       openshift.io/reconcile-protect: "false"
     creationTimestamp: null
-    name: system:openshift:controller:deployment-trigger-controller
-  rules:
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - replicationcontrollers
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - apps.openshift.io
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - image.openshift.io
-    attributeRestrictions: null
-    resources:
-    - imagestreams
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - apps.openshift.io
-    attributeRestrictions: null
-    resources:
-    - deploymentconfigs/instantiate
-    verbs:
-    - create
-  - apiGroups:
-    - ""
-    attributeRestrictions: null
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: v1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-      openshift.io/reconcile-protect: "false"
-    creationTimestamp: null
     name: system:openshift:controller:template-instance-controller
   rules:
   - apiGroups:
@@ -6505,22 +6450,6 @@ items:
     namespace: openshift-infra
   userNames:
   - system:serviceaccount:openshift-infra:deploymentconfig-controller
-- apiVersion: v1
-  groupNames: null
-  kind: ClusterRoleBinding
-  metadata:
-    annotations:
-      openshift.io/reconcile-protect: "false"
-    creationTimestamp: null
-    name: system:openshift:controller:deployment-trigger-controller
-  roleRef:
-    name: system:openshift:controller:deployment-trigger-controller
-  subjects:
-  - kind: ServiceAccount
-    name: deployment-trigger-controller
-    namespace: openshift-infra
-  userNames:
-  - system:serviceaccount:openshift-infra:deployment-trigger-controller
 - apiVersion: v1
   groupNames: null
   kind: ClusterRoleBinding
