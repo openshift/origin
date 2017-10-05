@@ -6687,9 +6687,25 @@ items:
   subjects:
   - kind: ServiceAccount
     name: horizontal-pod-autoscaler
-    namespace: kube-system
+    namespace: openshift-infra
   userNames:
-  - system:serviceaccount:kube-system:horizontal-pod-autoscaler
+  - system:serviceaccount:openshift-infra:horizontal-pod-autoscaler
+- apiVersion: v1
+  groupNames: null
+  kind: ClusterRoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:controller:horizontal-pod-autoscaler
+  roleRef:
+    name: system:controller:horizontal-pod-autoscaler
+  subjects:
+  - kind: ServiceAccount
+    name: horizontal-pod-autoscaler
+    namespace: openshift-infra
+  userNames:
+  - system:serviceaccount:openshift-infra:horizontal-pod-autoscaler
 - apiVersion: v1
   groupNames: null
   kind: ClusterRoleBinding
