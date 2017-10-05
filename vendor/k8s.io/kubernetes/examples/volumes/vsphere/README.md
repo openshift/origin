@@ -96,10 +96,10 @@
           volumePath: "[datastore1] volumes/myDisk"
           fsType: ext4
       ```
-      In the above example datastore1 is located in the root folder. If datastore is member of Datastore Cluster or located in sub folder, the folder path needs to be provided in the VolumePath as below. 
+      In the above example datastore1 is located in the root folder. If datastore is member of Datastore Cluster or located in sub folder, the folder path needs to be provided in the VolumePath as below.
       ```yaml
       vsphereVolume:
-          VolumePath:	"[DatastoreCluster/datastore1] volumes/myDisk" 
+          VolumePath:	"[DatastoreCluster/datastore1] volumes/myDisk"
       ```
 
       [Download example](vsphere-volume-pv.yaml?raw=true)
@@ -240,7 +240,7 @@
       parameters:
           diskformat: zeroedthick
           datastore: VSANDatastore
-      ```     
+      ```
       If datastore is member of DataStore Cluster or within some sub folder, the datastore folder path needs to be provided in the datastore parameter as below.
 
        ```yaml
@@ -258,7 +258,7 @@
       Verifying storage class is created:
 
       ``` bash
-      $ kubectl describe storageclass fast 
+      $ kubectl describe storageclass fast
       Name:           fast
       IsDefaultClass: No
       Annotations:    <none>

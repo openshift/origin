@@ -693,6 +693,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("get", "create", "delete").Groups(kapiGroup).Resources("pods").RuleOrDie(),
 				// TODO: restrict to pods scheduled on the bound node once supported
 				rbac.NewRule("update").Groups(kapiGroup).Resources("pods/status").RuleOrDie(),
+				rbac.NewRule("create").Groups(kapiGroup).Resources("pods/eviction").RuleOrDie(),
 
 				// TODO: restrict to secrets and configmaps used by pods scheduled on bound node once supported
 				// Needed for imagepullsecrets, rbd/ceph and secret volumes, and secrets in envs

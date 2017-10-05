@@ -1,7 +1,7 @@
 name: env
 shortDesc: "The plugin envs plugin"
 command: "./env.sh"
-flags: 
+flags:
   - name: "test1"
     desc: "This is a flag 1"
   - name: "test2"

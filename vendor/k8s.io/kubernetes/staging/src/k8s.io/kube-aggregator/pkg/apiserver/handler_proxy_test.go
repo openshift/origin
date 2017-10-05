@@ -129,7 +129,34 @@ func TestProxyHandler(t *testing.T) {
 			expectedStatusCode: http.StatusInternalServerError,
 			expectedBody:       "missing user",
 		},
-		"proxy with user": {
+		"proxy with user, insecure": {
+			user: &user.DefaultInfo{
+				Name:   "username",
+				Groups: []string{"one", "two"},
+			},
+			path: "/request/path",
+			apiService: &apiregistration.APIService{
+				ObjectMeta: metav1.ObjectMeta{Name: "v1.foo"},
+				Spec: apiregistration.APIServiceSpec{
+					Service:               &apiregistration.ServiceReference{},
+					Group:                 "foo",
+					Version:               "v1",
+					InsecureSkipTLSVerify: true,
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedCalled:     true,
+			expectedHeaders: map[string][]string{
+				"X-Forwarded-Proto": {"https"},
+				"X-Forwarded-Uri":   {"/request/path"},
+				"X-Forwarded-For":   {"127.0.0.1"},
+				"X-Remote-User":     {"username"},
+				"User-Agent":        {"Go-http-client/1.1"},
+				"Accept-Encoding":   {"gzip"},
+				"X-Remote-Group":    {"one", "two"},
+			},
+		},
+		"proxy with user, cabundle": {
 			user: &user.DefaultInfo{
 				Name:   "username",
 				Groups: []string{"one", "two"},
@@ -229,7 +256,6 @@ func TestProxyHandler(t *testing.T) {
 }
 
 func TestProxyUpgrade(t *testing.T) {
-
 	testcases := map[string]struct {
 		APIService   *apiregistration.APIService
 		ExpectError  bool

@@ -52,7 +52,7 @@ function generate_group() {
   echo "generating clientset for group ${GROUP_NAME} and version ${VERSION} at ${SCRIPT_BASE}/${CLIENT_PKG}"
   ${clientgen} --input-base ${PREFIX} --input ${INPUT_APIS[@]} --clientset-path ${CLIENT_PKG}/clientset_generated --output-base=${SCRIPT_BASE}
   ${clientgen} --clientset-name="clientset" --input-base ${PREFIX} --input ${GROUP_NAME}/${VERSION} --clientset-path ${CLIENT_PKG}/clientset_generated --output-base=${SCRIPT_BASE}
-  
+
   echo "Building lister-gen"
   go build -o "${listergen}" ${KUBEGEN_PKG}/cmd/lister-gen
 

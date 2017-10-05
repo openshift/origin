@@ -6,8 +6,8 @@ metadata:
     app: selenium-hub
 spec:
   ports:
-  - port: 4444 
-    targetPort: 4444 
+  - port: 4444
+    targetPort: 4444
     name: port0
   selector:
     app: selenium-hub

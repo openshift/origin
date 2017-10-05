@@ -97,8 +97,8 @@ func NewCronJobControllerFromClient(kubeClient clientset.Interface) *CronJobCont
 func (jm *CronJobController) Run(stopCh <-chan struct{}) {
 	defer utilruntime.HandleCrash()
 	glog.Infof("Starting CronJob Manager")
-	// Check things every 30 second.
-	go wait.Until(jm.syncAll, 30*time.Second, stopCh)
+	// Check things every 10 second.
+	go wait.Until(jm.syncAll, 10*time.Second, stopCh)
 	<-stopCh
 	glog.Infof("Shutting down CronJob Manager")
 }

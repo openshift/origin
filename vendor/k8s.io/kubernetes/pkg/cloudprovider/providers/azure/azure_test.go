@@ -556,7 +556,7 @@ func TestProtocolTranslationTCP(t *testing.T) {
 	if *transportProto != network.TransportProtocolTCP {
 		t.Errorf("Expected TCP LoadBalancer Rule Protocol. Got %v", transportProto)
 	}
-	if *securityGroupProto != network.TCP {
+	if *securityGroupProto != network.SecurityRuleProtocolTCP {
 		t.Errorf("Expected TCP SecurityGroup Protocol. Got %v", transportProto)
 	}
 	if *probeProto != network.ProbeProtocolTCP {
@@ -570,7 +570,7 @@ func TestProtocolTranslationUDP(t *testing.T) {
 	if *transportProto != network.TransportProtocolUDP {
 		t.Errorf("Expected UDP LoadBalancer Rule Protocol. Got %v", transportProto)
 	}
-	if *securityGroupProto != network.UDP {
+	if *securityGroupProto != network.SecurityRuleProtocolUDP {
 		t.Errorf("Expected UDP SecurityGroup Protocol. Got %v", transportProto)
 	}
 	if probeProto != nil {
@@ -585,6 +585,8 @@ func TestNewCloudFromJSON(t *testing.T) {
 		"subscriptionId": "--subscription-id--",
 		"aadClientId": "--aad-client-id--",
 		"aadClientSecret": "--aad-client-secret--",
+		"aadClientCertPath": "--aad-client-cert-path--",
+		"aadClientCertPassword": "--aad-client-cert-password--",
 		"resourceGroup": "--resource-group--",
 		"location": "--location--",
 		"subnetName": "--subnet-name--",
@@ -606,15 +608,20 @@ func TestNewCloudFromJSON(t *testing.T) {
 
 // Test Backoff and Rate Limit defaults (json)
 func TestCloudDefaultConfigFromJSON(t *testing.T) {
-	config := `{}`
+	config := `{
+                "aadClientId": "--aad-client-id--",
+                "aadClientSecret": "--aad-client-secret--"
+        }`
 
 	validateEmptyConfig(t, config)
 }
 
 // Test Backoff and Rate Limit defaults (yaml)
 func TestCloudDefaultConfigFromYAML(t *testing.T) {
-	config := ``
-
+	config := `
+aadClientId: --aad-client-id--
+aadClientSecret: --aad-client-secret--
+`
 	validateEmptyConfig(t, config)
 }
 
@@ -625,6 +632,8 @@ tenantId: --tenant-id--
 subscriptionId: --subscription-id--
 aadClientId: --aad-client-id--
 aadClientSecret: --aad-client-secret--
+aadClientCertPath: --aad-client-cert-path--
+aadClientCertPassword: --aad-client-cert-password--
 resourceGroup: --resource-group--
 location: --location--
 subnetName: --subnet-name--
@@ -658,6 +667,12 @@ func validateConfig(t *testing.T, config string) {
 	}
 	if azureCloud.AADClientSecret != "--aad-client-secret--" {
 		t.Errorf("got incorrect value for AADClientSecret")
+	}
+	if azureCloud.AADClientCertPath != "--aad-client-cert-path--" {
+		t.Errorf("got incorrect value for AADClientCertPath")
+	}
+	if azureCloud.AADClientCertPassword != "--aad-client-cert-password--" {
+		t.Errorf("got incorrect value for AADClientCertPassword")
 	}
 	if azureCloud.ResourceGroup != "--resource-group--" {
 		t.Errorf("got incorrect value for ResourceGroup")

@@ -48,16 +48,16 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: chap-secret
-type: "kubernetes.io/iscsi-chap"  
+type: "kubernetes.io/iscsi-chap"
 data:
-  discovery.sendtargets.auth.username: 
-  discovery.sendtargets.auth.password: 
-  discovery.sendtargets.auth.username_in: 
-  discovery.sendtargets.auth.password_in: 
-  node.session.auth.username: 
-  node.session.auth.password: 
-  node.session.auth.username_in: 
-  node.session.auth.password_in: 
+  discovery.sendtargets.auth.username:
+  discovery.sendtargets.auth.password:
+  discovery.sendtargets.auth.username_in:
+  discovery.sendtargets.auth.password_in:
+  node.session.auth.username:
+  node.session.auth.password:
+  node.session.auth.username_in:
+  node.session.auth.password_in:
 ```
 
 These keys map to those used by Open-iSCSI initiator. Detailed documents on these keys can be found at [Open-iSCSI](https://github.com/open-iscsi/open-iscsi/blob/master/etc/iscsid.conf)

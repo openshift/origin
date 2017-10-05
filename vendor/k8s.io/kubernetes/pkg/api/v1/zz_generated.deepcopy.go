@@ -5,6 +5,7 @@
 package v1
 
 import (
+	resource "k8s.io/apimachinery/pkg/api/resource"
 	meta_v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -842,7 +843,11 @@ func DeepCopy_v1_EmptyDirVolumeSource(in interface{}, out interface{}, c *conver
 		in := in.(*EmptyDirVolumeSource)
 		out := out.(*EmptyDirVolumeSource)
 		*out = *in
-		out.SizeLimit = in.SizeLimit.DeepCopy()
+		if in.SizeLimit != nil {
+			in, out := &in.SizeLimit, &out.SizeLimit
+			*out = new(resource.Quantity)
+			**out = (*in).DeepCopy()
+		}
 		return nil
 	}
 }

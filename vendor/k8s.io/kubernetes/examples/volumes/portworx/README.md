@@ -204,7 +204,7 @@ The following examples assumes that you already have a running Kubernetes cluste
       ``` bash
       $ kubectl get pod pvpod
       NAME      READY     STATUS    RESTARTS   AGE
-      pvpod       1/1     Running   0          48m        
+      pvpod       1/1     Running   0          48m
       ```
 
 ### Using Dynamic Provisioning
@@ -361,7 +361,7 @@ create Portworx volumes out of band and they will be created automatically.
      ``` bash
      $ kubectl get pod pvpod
      NAME      READY     STATUS    RESTARTS   AGE
-     pvpod       1/1     Running   0          48m        
+     pvpod       1/1     Running   0          48m
      ```
 
 

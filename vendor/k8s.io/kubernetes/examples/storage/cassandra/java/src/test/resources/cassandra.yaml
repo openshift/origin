@@ -35,7 +35,7 @@ data_file_directories:
     - target/cassandra/data
 disk_access_mode: mmap
 seed_provider:
-    - class_name: io.k8s.cassandra.KubernetesSeedProvider 
+    - class_name: io.k8s.cassandra.KubernetesSeedProvider
       parameters:
           - seeds: "8.4.4.4,8.8.8.8"
 endpoint_snitch: org.apache.cassandra.locator.SimpleSnitch

@@ -13,4 +13,3 @@ spec:
     component: etcd
     cell: {{cell}}
     app: vitess
-

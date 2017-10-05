@@ -589,6 +589,15 @@ func (a *APIInstaller) registerResourceHandlers(path string, storage rest.Storag
 
 		routes := []*restful.RouteBuilder{}
 
+		// If there is a subresource, kind should be the parent's kind.
+		if hasSubresource {
+			fqParentKind, err := a.getResourceKind(resource, a.group.Storage[resource])
+			if err != nil {
+				return nil, err
+			}
+			kind = fqParentKind.Kind
+		}
+
 		verbOverrider, needOverride := storage.(StorageMetricsOverride)
 
 		switch action.Verb {

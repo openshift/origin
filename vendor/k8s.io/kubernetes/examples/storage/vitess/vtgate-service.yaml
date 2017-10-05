@@ -12,4 +12,3 @@ spec:
     component: vtgate
     app: vitess
   type: LoadBalancer
-

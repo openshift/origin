@@ -57,4 +57,3 @@ for cell in 'global' $cells; do
   echo "Creating etcd replicationcontroller for $cell cell..."
   cat etcd-controller-template.yaml | sed -e "$sed_script" | $KUBECTL create -f -
 done
-

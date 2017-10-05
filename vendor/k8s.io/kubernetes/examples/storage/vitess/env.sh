@@ -60,4 +60,3 @@ if [ ! -f $config_file ]; then
 fi
 
 source $config_file
-

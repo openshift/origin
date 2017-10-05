@@ -20,5 +20,5 @@ spec:
       readOnly: true
       chapAuthDiscovery: true
       chapAuthSession: true
-      secretRef: 
+      secretRef:
          name: chap-secret

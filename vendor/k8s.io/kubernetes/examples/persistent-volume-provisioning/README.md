@@ -488,7 +488,7 @@ Source:
     Type:		RBD (a Rados Block Device mount on the host that shares a pod's lifetime)
     CephMonitors:	[127.0.0.1:6789]
     RBDImage:		kubernetes-dynamic-pvc-1cfb1862-664b-11e6-9a5d-90b11c09520d
-    FSType:		
+    FSType:
     RBDPool:		kube
     RadosUser:		kube
     Keyring:		/etc/ceph/keyring

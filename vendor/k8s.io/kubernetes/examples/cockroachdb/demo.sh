@@ -31,7 +31,7 @@ function kill() {
 # Create database on second node (idempotently for convenience).
 cat <<EOF | sql 1
 CREATE DATABASE IF NOT EXISTS foo;
-CREATE TABLE IF NOT EXISTS foo.bar (k STRING PRIMARY KEY, v STRING); 
+CREATE TABLE IF NOT EXISTS foo.bar (k STRING PRIMARY KEY, v STRING);
 UPSERT INTO foo.bar VALUES ('Kuber', 'netes'), ('Cockroach', 'DB');
 EOF
 

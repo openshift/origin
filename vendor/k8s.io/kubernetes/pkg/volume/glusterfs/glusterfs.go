@@ -349,7 +349,7 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 
 		const invalidOption = "Invalid option auto_unmount"
 		if dstrings.Contains(errs.Error(), invalidOption) {
-			// Give a try without `auto_unmount mount option, because
+			// Give a try without `auto_unmount` mount option, because
 			// it could be that gluster fuse client is older version and
 			// mount.glusterfs is unaware of `auto_unmount`.
 			noAutoMountOptions := make([]string, 0, len(mountOptions))
@@ -358,7 +358,6 @@ func (b *glusterfsMounter) setUpAtInternal(dir string) error {
 					noAutoMountOptions = append(noAutoMountOptions, opt)
 				}
 			}
-
 			errs = b.mounter.Mount(ip+":"+b.path, dir, "glusterfs", noAutoMountOptions)
 			if errs == nil {
 				glog.Infof("glusterfs: successfully mounted %s", dir)

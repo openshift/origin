@@ -43,7 +43,7 @@ metadata:
   labels:
     name: hazelcast
   name: hazelcast
-spec: 
+spec:
   ports:
     - port: 5701
   selector:
@@ -74,24 +74,24 @@ Deployments will "adopt" existing pods that match their selector query, so let's
 ```yaml
 apiVersion: extensions/v1beta1
 kind: Deployment
-metadata: 
+metadata:
   name: hazelcast
-  labels: 
+  labels:
     name: hazelcast
-spec: 
-  template: 
-    metadata: 
-      labels: 
+spec:
+  template:
+    metadata:
+      labels:
         name: hazelcast
-    spec: 
-      containers: 
+    spec:
+      containers:
       - name: hazelcast
         image: quay.io/pires/hazelcast-kubernetes:0.8.0
         imagePullPolicy: Always
         env:
         - name: "DNS_DOMAIN"
           value: "cluster.local"
-        ports: 
+        ports:
         - name: hazelcast
           containerPort: 5701
 ```
@@ -184,7 +184,7 @@ kubectl logs -f hazelcast-4195412960-0tl3w
 2017-03-15 09:42:47.253  INFO 7 --- [cached.thread-3] c.hazelcast.nio.tcp.InitConnectionTask   : [172.17.0.6]:5701 [someGroup] [3.8] Connecting to /172.17.0.2:5701, timeout: 0, bind-any: true
 2017-03-15 09:42:47.262  INFO 7 --- [cached.thread-3] c.h.nio.tcp.TcpIpConnectionManager       : [172.17.0.6]:5701 [someGroup] [3.8] Established socket connection between /172.17.0.6:58073 and /172.17.0.2:5701
 2017-03-15 09:42:54.260  INFO 7 --- [ration.thread-0] com.hazelcast.system                     : [172.17.0.6]:5701 [someGroup] [3.8] Cluster version set to 3.8
-2017-03-15 09:42:54.262  INFO 7 --- [ration.thread-0] c.h.internal.cluster.ClusterService      : [172.17.0.6]:5701 [someGroup] [3.8] 
+2017-03-15 09:42:54.262  INFO 7 --- [ration.thread-0] c.h.internal.cluster.ClusterService      : [172.17.0.6]:5701 [someGroup] [3.8]
 
 Members [2] {
 	Member [172.17.0.2]:5701 - 170f6924-7888-442a-9875-ad4d25659a8a

@@ -2477,6 +2477,13 @@ items:
     - ""
     attributeRestrictions: null
     resources:
+    - pods/eviction
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
     - configmaps
     - secrets
     verbs:

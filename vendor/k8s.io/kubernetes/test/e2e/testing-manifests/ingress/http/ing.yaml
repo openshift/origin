@@ -22,4 +22,3 @@ spec:
         backend:
           serviceName: echoheadersx
           servicePort: 80
-

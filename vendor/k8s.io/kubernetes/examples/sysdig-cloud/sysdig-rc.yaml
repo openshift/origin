@@ -1,7 +1,7 @@
 #Use this sysdig.yaml when Daemon Sets are NOT enabled on Kubernetes (minimum version 1.1.1). If Daemon Sets are available, use the other example sysdig.yaml - that is the recommended method.
 
 apiVersion: v1
-kind: ReplicationController                     
+kind: ReplicationController
 metadata:
   name: sysdig-agent
   labels:
@@ -47,10 +47,10 @@ spec:
 #        - name: K8S_API_URI                                #OPTIONAL - only necessary when connecting remotely to API server
 #          value: "http[s]://[username:passwd@]host[:port]"
 #        - name: TAGS                                       #OPTIONAL
-#          value: linux:ubuntu,dept:dev,local:nyc 
+#          value: linux:ubuntu,dept:dev,local:nyc
 #        - name: COLLECTOR                                  #OPTIONAL
-#          value: 192.168.183.200 
-#        - name: SECURE                                     #OPTIONAL        
+#          value: 192.168.183.200
+#        - name: SECURE                                     #OPTIONAL
 #          value: false
 #        - name: CHECK_CERTIFICATE                          #OPTIONAL
 #          value: false

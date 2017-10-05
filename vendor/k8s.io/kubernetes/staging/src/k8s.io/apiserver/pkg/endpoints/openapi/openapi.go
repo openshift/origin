@@ -63,9 +63,9 @@ func GetOperationIDAndTags(r *restful.Route) (string, []string, error) {
 	op := r.Operation
 	path := r.Path
 	var tags []string
-	// TODO: This is hacky, figure out where this name conflict is created and fix it at the root.
-	if strings.HasPrefix(path, "/apis/extensions/v1beta1/namespaces/{namespace}/") && strings.HasSuffix(op, "ScaleScale") {
-		op = op[:len(op)-10] + strings.Title(strings.Split(path[48:], "/")[0]) + "Scale"
+	// FIXME: this is hacky way to get rid of conflict name
+	if strings.HasPrefix(path, "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/rollback") {
+		op = op + "Rollback"
 	}
 	prefix, exists := verbs.GetPrefix(op)
 	if !exists {
