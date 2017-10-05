@@ -140,19 +140,19 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 		}
 	)
 
-	g.BeforeEach(func() {
-		setupJenkins()
-
-		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
-			ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
-		}
-
-		g.By("waiting for builder service account")
-		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
-		o.Expect(err).NotTo(o.HaveOccurred())
-	})
-
 	g.Context("Pipeline with maven slave", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -188,6 +188,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})
 
 	g.Context("Pipeline using config map slave", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -228,6 +240,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})
 
 	g.Context("Pipeline using imagestream slave", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -268,6 +292,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})
 
 	g.Context("Pipeline using imagestreamtag slave", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -308,6 +344,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})
 
 	g.Context("Pipeline using jenkins-client-plugin", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -343,6 +391,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})
 
 	g.Context("Pipeline with env vars", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
@@ -433,6 +493,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})
 
 	/*g.Context("Orchestration pipeline", func() {
+	g.BeforeEach(func() {
+		setupJenkins()
+
+		if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+			ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+		}
+
+		g.By("waiting for builder service account")
+		err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+	})
+
 		g.AfterEach(func() {
 			if os.Getenv(jenkins.EnableJenkinsGCStats) != "" {
 				g.By("stopping jenkins gc tracking")
@@ -463,6 +535,18 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 	})*/
 
 	g.Context("Blue-green pipeline", func() {
+		g.BeforeEach(func() {
+			setupJenkins()
+
+			if os.Getenv(jenkins.EnableJenkinsMemoryStats) != "" {
+				ticker = jenkins.StartJenkinsMemoryTracking(oc, oc.Namespace())
+			}
+
+			g.By("waiting for builder service account")
+			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))
+			o.Expect(err).NotTo(o.HaveOccurred())
+		})
+
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

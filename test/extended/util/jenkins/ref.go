@@ -186,7 +186,7 @@ func (j *JenkinsRef) GetResourceWithStatus(validStatusList []int, timeout time.D
 			}
 		}
 		if !found {
-			ginkgolog("Expected http status [%v] during GET by recevied [%v]", validStatusList, status)
+			ginkgolog("Expected http status [%v] during GET by recevied [%v] for %s with body %s", validStatusList, status, resourcePathFormat, body)
 			return false, nil
 		}
 		retBody = body
