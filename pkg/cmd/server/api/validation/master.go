@@ -190,7 +190,6 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 
 	if config.AdmissionConfig.PluginConfig != nil {
 		validationResults.Append(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig")))
-		validationResults.Append(ValidateAdmissionPluginConfigConflicts(config))
 	}
 	if len(config.AdmissionConfig.PluginOrderOverride) != 0 {
 		validationResults.AddWarnings(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
@@ -671,10 +670,10 @@ func ValidateKubernetesMasterConfig(config *api.KubernetesMasterConfig, fldPath 
 	}
 
 	if config.AdmissionConfig.PluginConfig != nil {
-		validationResults.Append(ValidateAdmissionPluginConfig(config.AdmissionConfig.PluginConfig, fldPath.Child("admissionConfig", "pluginConfig")))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("admissionConfig", "pluginConfig"), config.AdmissionConfig.PluginConfig, "separate admission chains are no longer allowed.  Convert to admissionConfig.pluginConfig."))
 	}
 	if len(config.AdmissionConfig.PluginOrderOverride) != 0 {
-		validationResults.AddWarnings(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "specified admission ordering is being phased out.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
+		validationResults.AddErrors(field.Invalid(fldPath.Child("admissionConfig", "pluginOrderOverride"), config.AdmissionConfig.PluginOrderOverride, "separate admission chains are no longer allowed.  Convert to DefaultAdmissionConfig in admissionConfig.pluginConfig."))
 	}
 
 	validationResults.Append(ValidateAPIServerExtendedArguments(config.APIServerArguments, fldPath.Child("apiServerArguments")))
@@ -793,21 +792,6 @@ func ValidateAdmissionPluginConfig(pluginConfig map[string]api.AdmissionPluginCo
 	}
 	return validationResults
 
-}
-
-func ValidateAdmissionPluginConfigConflicts(masterConfig *api.MasterConfig) ValidationResults {
-	validationResults := ValidationResults{}
-
-	if masterConfig.KubernetesMasterConfig != nil {
-		// check for collisions between openshift and kube plugin config
-		for pluginName, kubeConfig := range masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig {
-			if openshiftConfig, exists := masterConfig.AdmissionConfig.PluginConfig[pluginName]; exists && !reflect.DeepEqual(kubeConfig, openshiftConfig) {
-				validationResults.AddWarnings(field.Invalid(field.NewPath("kubernetesMasterConfig", "admissionConfig", "pluginConfig").Key(pluginName), masterConfig.AdmissionConfig.PluginConfig[pluginName], "conflicts with kubernetesMasterConfig.admissionConfig.pluginConfig.  Separate admission chains are being phased out.  Convert to admissionConfig.pluginConfig."))
-			}
-		}
-	}
-
-	return validationResults
 }
 
 func ValidateIngressIPNetworkCIDR(config *api.MasterConfig, fldPath *field.Path) (errors field.ErrorList) {

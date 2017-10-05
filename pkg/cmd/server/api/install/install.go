@@ -5,6 +5,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apiserver/pkg/apis/apiserver"
+	apiserverv1alpha1 "k8s.io/apiserver/pkg/apis/apiserver/v1alpha1"
 	"k8s.io/apiserver/pkg/apis/audit"
 	auditv1alpha1 "k8s.io/apiserver/pkg/apis/audit/v1alpha1"
 
@@ -33,6 +35,8 @@ func init() {
 	// policy file inside master-config.yaml
 	audit.AddToScheme(configapi.Scheme)
 	auditv1alpha1.AddToScheme(configapi.Scheme)
+	apiserver.AddToScheme(configapi.Scheme)
+	apiserverv1alpha1.AddToScheme(configapi.Scheme)
 }
 
 func interfacesFor(version schema.GroupVersion) (*meta.VersionInterfaces, error) {

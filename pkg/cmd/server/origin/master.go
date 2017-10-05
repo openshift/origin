@@ -44,7 +44,6 @@ func (c *MasterConfig) newOpenshiftAPIConfig(kubeAPIServerConfig apiserver.Confi
 	// most of the config actually remains the same.  We only need to mess with a couple items
 	genericConfig := kubeAPIServerConfig
 	// TODO try to stop special casing these.  We should all agree on them.
-	genericConfig.AdmissionControl = c.AdmissionControl
 	genericConfig.RESTOptionsGetter = c.RESTOptionsGetter
 
 	ret := &OpenshiftAPIConfig{

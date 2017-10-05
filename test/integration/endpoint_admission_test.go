@@ -57,7 +57,7 @@ func TestEndpointAdmission(t *testing.T) {
 		t.Fatalf("error creating config: %v", err)
 	}
 	defer testserver.CleanupMasterEtcd(t, masterConfig)
-	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
+	masterConfig.AdmissionConfig.PluginConfig = map[string]configapi.AdmissionPluginConfig{
 		serviceadmit.RestrictedEndpointsPluginName: {
 			Configuration: &configapi.DefaultAdmissionConfig{},
 		},
