@@ -28,7 +28,7 @@ if [[ -z "$@" ]]; then
 
     os::build::make_openshift_binary_symlinks
 
-    ret=$?; ENDTIME=$(date +%s); echo "$0 took $(($ENDTIME - $STARTTIME)) seconds"; exit "$ret"
+    exit
   fi
 
   build_targets=("${OS_CROSS_COMPILE_TARGETS[@]}")
