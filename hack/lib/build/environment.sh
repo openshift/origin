@@ -72,6 +72,11 @@ function os::build::environment::create() {
     fi
     if [[ "${cmd[0]}" == "/bin/sh" || "${cmd[0]}" == "/bin/bash" ]]; then
       additional_context+=" -it"
+    else
+      # container exit races with log collection so we
+      # need to sleep at the end but preserve the exit
+      # code of whatever the user asked for us to run
+      cmd=( '/bin/bash' '-c' "${cmd[*]}; return_code=\$?; sleep 1; exit \${return_code}" )
     fi
   fi
 
