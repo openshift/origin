@@ -97,7 +97,10 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 	}
 
 	g.BeforeEach(func() {
-		err := cli.Run("create").Args("-f", templatefixture).Execute()
+		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = cli.Run("create").Args("-f", templatefixture).Execute()
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		template, err = cli.TemplateClient().Template().Templates(cli.Namespace()).Get("cakephp-mysql-example", metav1.GetOptions{})

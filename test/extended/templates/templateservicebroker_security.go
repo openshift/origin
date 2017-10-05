@@ -44,9 +44,10 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 	)
 
 	g.BeforeEach(func() {
-		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
+		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		var err error
+		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred())
