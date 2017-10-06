@@ -10,18 +10,17 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	g "github.com/onsi/ginkgo"
 
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	clientcmd "k8s.io/client-go/tools/clientcmd"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
+	authorizationapiv1 "k8s.io/kubernetes/pkg/apis/authorization/v1"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	kinternalclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	"k8s.io/kubernetes/pkg/client/retry"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	_ "github.com/openshift/origin/pkg/api/install"
@@ -167,18 +166,24 @@ func (c *CLI) SetupProject(name string, kubeClient kclientset.Interface, _ map[s
 		e2e.Logf("Failed to create a project and namespace %q: %v", c.Namespace(), err)
 		return nil, err
 	}
-	if err := wait.ExponentialBackoff(retry.DefaultBackoff, func() (bool, error) {
-		if _, err := c.KubeClient().Core().Pods(c.Namespace()).List(metav1.ListOptions{}); err != nil {
-			if apierrs.IsForbidden(err) {
-				e2e.Logf("Waiting for user to have access to the namespace")
-				return false, nil
-			}
-		}
-		return true, nil
-	}); err != nil {
+
+	e2e.Logf("Waiting on permissions in project %q ...", c.Namespace())
+	err = WaitForSelfSAR(1*time.Second, 60*time.Second, c.KubeClient(), authorizationapiv1.SelfSubjectAccessReviewSpec{
+		ResourceAttributes: &authorizationapiv1.ResourceAttributes{
+			Namespace: c.Namespace(),
+			Verb:      "create",
+			Group:     "",
+			Resource:  "pods",
+		},
+	})
+	if err != nil {
 		return nil, err
 	}
-	return &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()}}, err
+
+	// TODO: Possibly check other resources like Builds depending on a different service account.
+	// (Builds now check for this in every test.)
+
+	return &kapiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: c.Namespace()}}, nil
 }
 
 // Verbose turns on printing verbose messages when executing OpenShift commands
