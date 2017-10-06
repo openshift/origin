@@ -38,7 +38,7 @@ var _ = g.Describe("[Feature:Builds][Slow] update failure status", func() {
 		oc                           = exutil.NewCLI("update-buildstatus", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for the builder service account")

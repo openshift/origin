@@ -17,7 +17,7 @@ var _ = g.Describe("[image_ecosystem][mariadb][Slow] openshift mariadb image", f
 		oc           = exutil.NewCLI("mariadb-create", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

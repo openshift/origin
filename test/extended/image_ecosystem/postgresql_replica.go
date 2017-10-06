@@ -33,7 +33,7 @@ var _ = g.Describe("[image_ecosystem][postgresql][Slow][local] openshift postgre
 
 	var oc *exutil.CLI
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

@@ -18,7 +18,7 @@ var _ = g.Describe("[Feature:Builds][Slow] the s2i build should support proxies"
 		oc           = exutil.NewCLI("build-proxy", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")

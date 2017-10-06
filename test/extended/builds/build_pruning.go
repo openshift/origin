@@ -32,7 +32,7 @@ var _ = g.Describe("[Feature:Builds][pruning] prune builds based on settings in 
 		timeout               = time.Minute
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")

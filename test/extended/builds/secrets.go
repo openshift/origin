@@ -25,7 +25,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 		oc                    = exutil.NewCLI("build-secrets", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

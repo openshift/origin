@@ -17,7 +17,7 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql image", func(
 		oc           = exutil.NewCLI("mysql-create", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

@@ -19,7 +19,7 @@ var _ = g.Describe("[Conformance][image_ecosystem][mongodb][Slow] openshift mong
 
 	oc := exutil.NewCLI("mongodb-petset-replica", exutil.KubeConfigPath()).Verbose()
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

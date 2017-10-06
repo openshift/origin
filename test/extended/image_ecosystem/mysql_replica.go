@@ -74,10 +74,6 @@ func CreateMySQLReplicationHelpers(c kcoreclient.PodInterface, masterDeployment,
 }
 
 func cleanup(oc *exutil.CLI) {
-	//exutil.DumpImageStreams(oc)
-	oc.AsAdmin().Run("delete").Args("all", "--all", "-n", oc.Namespace()).Execute()
-	//exutil.DumpImageStreams(oc)
-	oc.AsAdmin().Run("delete").Args("pvc", "--all", "-n", oc.Namespace()).Execute()
 	exutil.CleanupHostPathVolumes(oc.AdminKubeClient().CoreV1().PersistentVolumes(), oc.Namespace())
 }
 
@@ -209,7 +205,7 @@ var _ = g.Describe("[image_ecosystem][mysql][Slow] openshift mysql replication",
 	defer g.GinkgoRecover()
 
 	var oc *exutil.CLI
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

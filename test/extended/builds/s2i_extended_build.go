@@ -22,7 +22,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i extended build", func() {
 		scriptsFromImageBc    = filepath.Join(testDataDir, "bc-scripts-in-the-image.yaml")
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

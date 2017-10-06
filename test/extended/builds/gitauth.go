@@ -44,7 +44,7 @@ var _ = g.Describe("[Feature:Builds][Slow] can use private repositories as build
 		caCertPath                = filepath.Join(filepath.Dir(exutil.KubeConfigPath()), "ca.crt")
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {

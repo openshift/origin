@@ -19,7 +19,7 @@ var _ = g.Describe("[Feature:Builds][Slow] completed builds should have digest o
 		oc                 = exutil.NewCLI("build-sti-labels", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.BeforeEach(func() {
 			g.By("waiting for builder service account")

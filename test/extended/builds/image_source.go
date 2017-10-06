@@ -20,7 +20,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 		imageDockerLabel = exutil.ParseLabelsOrDie("app=imagedockerapp")
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")

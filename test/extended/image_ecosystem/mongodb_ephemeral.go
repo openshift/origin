@@ -18,7 +18,7 @@ var _ = g.Describe("[image_ecosystem][mongodb] openshift mongodb image", func() 
 	templatePath := exutil.FixturePath("..", "..", "examples", "db-templates", "mongodb-ephemeral-template.json")
 	oc := exutil.NewCLI("mongodb-create", exutil.KubeConfigPath()).Verbose()
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

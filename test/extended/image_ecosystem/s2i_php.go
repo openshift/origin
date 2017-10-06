@@ -24,7 +24,7 @@ var _ = g.Describe("[image_ecosystem][php][Slow] hot deploy for openshift php im
 		dcLabel         = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", dcName))
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)
