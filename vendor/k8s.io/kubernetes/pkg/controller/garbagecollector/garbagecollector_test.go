@@ -60,7 +60,9 @@ func TestNewGarbageCollector(t *testing.T) {
 
 	client := fake.NewSimpleClientset()
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
-	gc, err := NewGarbageCollector(metaOnlyClientPool, clientPool, api.Registry.RESTMapper(), podResource, ignoredResources, sharedInformers)
+	alwaysStarted := make(chan struct{})
+	close(alwaysStarted)
+	gc, err := NewGarbageCollector(metaOnlyClientPool, clientPool, api.Registry.RESTMapper(), podResource, ignoredResources, sharedInformers, alwaysStarted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +133,9 @@ func setupGC(t *testing.T, config *restclient.Config) garbageCollector {
 	podResource := map[schema.GroupVersionResource]struct{}{{Version: "v1", Resource: "pods"}: {}}
 	client := fake.NewSimpleClientset()
 	sharedInformers := informers.NewSharedInformerFactory(client, 0)
-	gc, err := NewGarbageCollector(metaOnlyClientPool, clientPool, api.Registry.RESTMapper(), podResource, ignoredResources, sharedInformers)
+	alwaysStarted := make(chan struct{})
+	close(alwaysStarted)
+	gc, err := NewGarbageCollector(metaOnlyClientPool, clientPool, api.Registry.RESTMapper(), podResource, ignoredResources, sharedInformers, alwaysStarted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -315,9 +319,12 @@ func TestProcessEvent(t *testing.T) {
 		},
 	}
 
+	alwaysStarted := make(chan struct{})
+	close(alwaysStarted)
 	for _, scenario := range testScenarios {
 		dependencyGraphBuilder := &GraphBuilder{
-			graphChanges: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+			informersStarted: alwaysStarted,
+			graphChanges:     workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
 			uidToNode: &concurrentUIDToNode{
 				uidToNodeLock: sync.RWMutex{},
 				uidToNode:     make(map[types.UID]*node),
