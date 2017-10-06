@@ -2,7 +2,9 @@ package origin
 
 import (
 	"fmt"
+	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -19,6 +21,7 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/etcd"
+	"github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/plug"
 	"github.com/openshift/origin/pkg/util/leaderlease"
 )
@@ -30,7 +33,7 @@ import (
 // and the new mode do not coordinate on the same key, an upgrade must stop all controllers before
 // changing the configuration and starting controllers with the new config.
 func NewLeaderElection(options configapi.MasterConfig, leader componentconfig.LeaderElectionConfiguration, kc kclientsetexternal.Interface, eventClient v1core.EventInterface) (plug.Plug, func(), error) {
-	id := fmt.Sprintf("master-%s", kutilrand.String(8))
+	id := getUniqueLeaderID()
 
 	election := options.ControllerConfig.Election
 	if election == nil {
@@ -102,4 +105,18 @@ func NewLeaderElection(options configapi.MasterConfig, leader componentconfig.Le
 		glog.V(2).Infof("Attempting to acquire %s lease as %s, renewing every %s, holding for %s, and giving up after %s", name, id, leader.RetryPeriod.Duration, leader.LeaseDuration.Duration, leader.RenewDeadline.Duration)
 		go elector.Run()
 	}, nil
+}
+
+// getUniqueLeaderID returns a unique name based on the machine's hostname and ip.
+// This makes it easy to determine which machine is the current controller leader.
+func getUniqueLeaderID() string {
+	hostname := "unknown_hostname"
+	ip := "unknown_ip"
+	if realHostname, _ := os.Hostname(); len(realHostname) > 0 {
+		hostname = strings.ToLower(strings.TrimSpace(realHostname))
+	}
+	if realIP, _ := util.DefaultLocalIP4(); realIP != nil {
+		ip = realIP.String()
+	}
+	return fmt.Sprintf("master-%s-%s-%s", hostname, ip, kutilrand.String(8))
 }
