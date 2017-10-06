@@ -5,7 +5,7 @@
 This particular example demonstrates how to perform basic operations such as:
 
 * How to register a new ThirdPartyResource (custom Resource type)
-* How to create/get/list instances of your new Resource type (update/delete/etc work as well but are not demonstrated) 
+* How to create/get/list instances of your new Resource type (update/delete/etc work as well but are not demonstrated)
 * How to setup a controller on Resource handling create/update/delete events
 
 ## Running
@@ -23,7 +23,7 @@ These act like most other Resources in Kubernetes, and may be `kubectl apply`'d,
 Some example use cases:
 
 * Provisioning/Management of external datastores/databases (eg. CloudSQL/RDS instances)
-* Higher level abstractions around Kubernetes primitives (eg. a single Resource to define an etcd cluster, backed by a Service and a ReplicationController) 
+* Higher level abstractions around Kubernetes primitives (eg. a single Resource to define an etcd cluster, backed by a Service and a ReplicationController)
 
 ## Defining types
 

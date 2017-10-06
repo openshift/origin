@@ -46,7 +46,16 @@ var _ = g.Describe("[Feature:Prometheus][Feature:Builds] Prometheus", func() {
 			defer func() { oc.AdminKubeClient().Core().Pods(ns).Delete(execPodName, metav1.NewDeleteOptions(1)) }()
 
 			g.By("verifying the oauth-proxy reports a 403 on the root URL")
-			err := expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d", host, statsPort), 403)
+			// allow for some retry, a la prometheus.go and its initial hitting of the metrics endpoint after
+			// instantiating prometheus tempalte
+			var err error
+			for i := 0; i < 30; i++ {
+				err = expectURLStatusCodeExec(ns, execPodName, fmt.Sprintf("https://%s:%d", host, statsPort), 403)
+				if err == nil {
+					break
+				}
+				time.Sleep(time.Second)
+			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("verifying a service account token is able to authenticate")

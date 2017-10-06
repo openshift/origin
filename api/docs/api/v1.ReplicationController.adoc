@@ -1559,7 +1559,7 @@ $ curl -k \
 
 [[Get-api-v1-namespaces-namespace-replicationcontrollers-name-scale]]
 === Get scale of a ReplicationController in a namespace
-Read scale of the specified Scale
+Read scale of the specified ReplicationController
 
 ==== HTTP request
 ----
@@ -1613,7 +1613,7 @@ $ curl -k \
 
 [[Get-apis-extensions-v1beta1-namespaces-namespace-replicationcontrollers-name-scale]]
 === Get scale of a ReplicationController in a namespace
-Read scale of the specified Scale
+Read scale of the specified ReplicationControllerDummy
 
 ==== HTTP request
 ----
@@ -1667,7 +1667,7 @@ $ curl -k \
 
 [[Put-api-v1-namespaces-namespace-replicationcontrollers-name-scale]]
 === Update scale of a ReplicationController in a namespace
-Replace scale of the specified Scale
+Replace scale of the specified ReplicationController
 
 ==== HTTP request
 ----
@@ -1745,7 +1745,7 @@ EOF
 
 [[Put-apis-extensions-v1beta1-namespaces-namespace-replicationcontrollers-name-scale]]
 === Update scale of a ReplicationController in a namespace
-Replace scale of the specified Scale
+Replace scale of the specified ReplicationControllerDummy
 
 ==== HTTP request
 ----
@@ -1823,7 +1823,7 @@ EOF
 
 [[Patch-api-v1-namespaces-namespace-replicationcontrollers-name-scale]]
 === Patch scale of a ReplicationController in a namespace
-Partially update scale of the specified Scale
+Partially update scale of the specified ReplicationController
 
 ==== HTTP request
 ----
@@ -1899,7 +1899,7 @@ EOF
 
 [[Patch-apis-extensions-v1beta1-namespaces-namespace-replicationcontrollers-name-scale]]
 === Patch scale of a ReplicationController in a namespace
-Partially update scale of the specified Scale
+Partially update scale of the specified ReplicationControllerDummy
 
 ==== HTTP request
 ----

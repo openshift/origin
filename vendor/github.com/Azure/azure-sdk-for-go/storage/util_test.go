@@ -1,13 +1,81 @@
 package storage
 
 import (
+	"bytes"
+	"encoding/hex"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
+	"testing"
 	"time"
 
 	chk "gopkg.in/check.v1"
+)
+
+func TestMain(m *testing.M) {
+	exitStatus := m.Run()
+	err := fixRecordings()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "After test run, fixing recordings failed with error: %v\n", err)
+		exitStatus = 1
+	}
+	os.Exit(exitStatus)
+}
+
+func fixRecordings() error {
+	err := filepath.Walk(recordingsFolder, func(path string, file os.FileInfo, err error) error {
+		if strings.ToLower(filepath.Ext(path)) == ".yaml" {
+			recording, err := ioutil.ReadFile(path)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error reading file '%s': %v", path, err)
+			}
+
+			fixedRecording := replaceStorageAccount(string(recording))
+
+			err = ioutil.WriteFile(path, []byte(fixedRecording), 0)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error writing file '%s': %v", path, err)
+			}
+		}
+		return err
+	})
+	return err
+}
+
+func replaceStorageAccount(recording string) string {
+	name := os.Getenv("ACCOUNT_NAME")
+	if name == "" {
+		// do nothing
+		return recording
+	}
+
+	nameHex := getHex(name)
+	dummyHex := getHex(dummyStorageAccount)
+
+	r := strings.NewReplacer(name, dummyStorageAccount,
+		nameHex, dummyHex)
+
+	return r.Replace(string(recording))
+}
+
+func getHex(input string) string {
+	encoded := strings.ToUpper(hex.EncodeToString([]byte(input)))
+	formatted := bytes.Buffer{}
+	for i := 0; i < len(encoded); i += 2 {
+		formatted.WriteString(`\x`)
+		formatted.WriteString(encoded[i : i+2])
+	}
+	return formatted.String()
+}
+
+const (
+	dummyStorageAccount = "golangrocksonazure"
+	dummyMiniStorageKey = "YmFy"
+	recordingsFolder    = "recordings"
 )
 
 func (s *StorageClientSuite) Test_timeRfc1123Formatted(c *chk.C) {
@@ -35,8 +103,8 @@ func (s *StorageClientSuite) Test_prepareBlockListRequest(c *chk.C) {
 	expected := `<?xml version="1.0" encoding="utf-8"?><BlockList></BlockList>`
 	c.Assert(prepareBlockListRequest(empty), chk.DeepEquals, expected)
 
-	blocks := []Block{{"foo", BlockStatusLatest}, {"bar", BlockStatusUncommitted}}
-	expected = `<?xml version="1.0" encoding="utf-8"?><BlockList><Latest>foo</Latest><Uncommitted>bar</Uncommitted></BlockList>`
+	blocks := []Block{{"lol", BlockStatusLatest}, {"rofl", BlockStatusUncommitted}}
+	expected = `<?xml version="1.0" encoding="utf-8"?><BlockList><Latest>lol</Latest><Uncommitted>rofl</Uncommitted></BlockList>`
 	c.Assert(prepareBlockListRequest(blocks), chk.DeepEquals, expected)
 }
 
@@ -70,14 +138,47 @@ func (s *StorageClientSuite) Test_xmlMarshal(c *chk.C) {
 
 func (s *StorageClientSuite) Test_headersFromStruct(c *chk.C) {
 	type t struct {
-		header1 string `header:"HEADER1"`
-		header2 string `header:"HEADER2"`
+		Header1        string     `header:"HEADER1"`
+		Header2        string     `header:"HEADER2"`
+		TimePtr        *time.Time `header:"ptr-time-header"`
+		TimeHeader     time.Time  `header:"time-header"`
+		UintPtr        *uint      `header:"ptr-uint-header"`
+		UintHeader     uint       `header:"uint-header"`
+		IntPtr         *int       `header:"ptr-int-header"`
+		IntHeader      int        `header:"int-header"`
+		StringAliasPtr *BlobType  `header:"ptr-string-alias-header"`
+		StringAlias    BlobType   `header:"string-alias-header"`
+		NilPtr         *time.Time `header:"nil-ptr"`
+		EmptyString    string     `header:"empty-string"`
 	}
 
-	h := t{header1: "value1", header2: "value2"}
+	timeHeader := time.Date(1985, time.February, 23, 10, 0, 0, 0, time.Local)
+	uintHeader := uint(15)
+	intHeader := 30
+	alias := BlobTypeAppend
+	h := t{
+		Header1:        "value1",
+		Header2:        "value2",
+		TimePtr:        &timeHeader,
+		TimeHeader:     timeHeader,
+		UintPtr:        &uintHeader,
+		UintHeader:     uintHeader,
+		IntPtr:         &intHeader,
+		IntHeader:      intHeader,
+		StringAliasPtr: &alias,
+		StringAlias:    alias,
+	}
 	expected := map[string]string{
-		"HEADER1": "value1",
-		"HEADER2": "value2",
+		"HEADER1":                 "value1",
+		"HEADER2":                 "value2",
+		"ptr-time-header":         "Sat, 23 Feb 1985 10:00:00 GMT",
+		"time-header":             "Sat, 23 Feb 1985 10:00:00 GMT",
+		"ptr-uint-header":         "15",
+		"uint-header":             "15",
+		"ptr-int-header":          "30",
+		"int-header":              "30",
+		"ptr-string-alias-header": "AppendBlob",
+		"string-alias-header":     "AppendBlob",
 	}
 
 	out := headersFromStruct(h)

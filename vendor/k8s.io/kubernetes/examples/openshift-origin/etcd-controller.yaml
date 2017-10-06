@@ -34,7 +34,7 @@ spec:
           # ETCD_DISCOVERY_TOKEN is a unique token used by the discovery service. Conforms to etcd-cluster-[a-z0-9]{5}
         - name: ETCD_DISCOVERY_TOKEN
           value: INSERT_ETCD_DISCOVERY_TOKEN
-          # ETCD_DISCOVERY_URL connects etcd instances together by storing a list of peer addresses, 
+          # ETCD_DISCOVERY_URL connects etcd instances together by storing a list of peer addresses,
           # metadata and the initial size of the cluster under a unique address
         - name: ETCD_DISCOVERY_URL
           value: "http://etcd-discovery:2379"

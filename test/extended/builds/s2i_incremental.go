@@ -26,7 +26,7 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 		oc                   = exutil.NewCLI("build-sti-inc", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))

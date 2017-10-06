@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: selenium-hub 
+  name: selenium-hub
   labels:
     app: selenium-hub
 spec:
@@ -17,7 +17,7 @@ spec:
       - name: selenium-hub
         image: selenium/hub:2.53.0
         ports:
-          - containerPort: 4444 
+          - containerPort: 4444
         resources:
           limits:
             memory: "1000Mi"

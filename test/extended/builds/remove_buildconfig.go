@@ -18,7 +18,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] remove all builds when build c
 		oc           = exutil.NewCLI("cli-remove-build", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

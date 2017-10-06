@@ -1671,7 +1671,7 @@ $ curl -k \
 
 [[Post-api-v1-namespaces-namespace-pods-name-binding]]
 === Create binding of a Pod in a namespace
-Create binding of a Binding
+Create binding of a Pod
 
 ==== HTTP request
 ----
@@ -1749,7 +1749,7 @@ EOF
 
 [[Post-api-v1-namespaces-namespace-pods-name-eviction]]
 === Create eviction of a Pod in a namespace
-Create eviction of an Eviction
+Create eviction of a Pod
 
 ==== HTTP request
 ----

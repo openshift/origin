@@ -116,7 +116,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: redis-master
-  # these labels can be applied automatically 
+  # these labels can be applied automatically
   # from the labels in the pod template if not set
   # labels:
   #   app: redis
@@ -126,7 +126,7 @@ spec:
   # this replicas value is default
   # modify it according to your case
   replicas: 1
-  # selector can be applied automatically 
+  # selector can be applied automatically
   # from the labels in the pod template if not set
   # selector:
   #   matchLabels:
@@ -554,7 +554,7 @@ redis-slave    10.0.112.188   <none>        6379/TCP   19m
 Also list all your Deployments:
 
 ```console
-$ kubectl get deployments 
+$ kubectl get deployments
 NAME           DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
 frontend       3         3         3            3           2m
 redis-master   1         1         1            1           39m

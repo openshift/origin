@@ -17,7 +17,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] build without output image", f
 		oc                 = exutil.NewCLI("build-no-outputname", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {

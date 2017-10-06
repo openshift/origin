@@ -1,6 +1,8 @@
 package templates
 
 import (
+	"time"
+
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 	"github.com/pborman/uuid"
@@ -49,10 +51,12 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 	g.BeforeEach(func() {
 		framework.SkipIfProviderIs("gce")
 
+		err := exutil.WaitForBuilderAccount(cli.KubeClient().Core().ServiceAccounts(cli.Namespace()))
+		o.Expect(err).NotTo(o.HaveOccurred())
+
 		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
 		cliUser = &user.DefaultInfo{Name: cli.Username(), Groups: []string{"system:authenticated"}}
-		var err error
 
 		// should have been created before the extended test runs
 		template, err = cli.TemplateClient().Template().Templates("openshift").Get("cakephp-mysql-example", metav1.GetOptions{})
@@ -135,7 +139,10 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(err.Error()).To(o.ContainSubstring("not found"))
 
-		_, err = brokercli.Provision(context.Background(), cliUser, instanceID, &api.ProvisionRequest{
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Minute)
+		defer cancel()
+
+		_, err = brokercli.Provision(ctx, cliUser, instanceID, &api.ProvisionRequest{
 			ServiceID: service.ID,
 			PlanID:    plan.ID,
 			Context: api.KubernetesContext{

@@ -353,6 +353,24 @@ func SkipIfContainerRuntimeIs(runtimes ...string) {
 	}
 }
 
+func RunIfContainerRuntimeIs(runtimes ...string) {
+	for _, runtime := range runtimes {
+		if runtime == TestContext.ContainerRuntime {
+			return
+		}
+	}
+	Skipf("Skipped because container runtime %q is not in %s", TestContext.ContainerRuntime, runtimes)
+}
+
+func RunIfSystemSpecNameIs(names ...string) {
+	for _, name := range names {
+		if name == TestContext.SystemSpecName {
+			return
+		}
+	}
+	Skipf("Skipped because system spec name %q is not in %v", TestContext.SystemSpecName, names)
+}
+
 func ProviderIs(providers ...string) bool {
 	for _, provider := range providers {
 		if strings.ToLower(provider) == strings.ToLower(TestContext.Provider) {
@@ -407,6 +425,16 @@ func SkipUnlessServerVersionGTE(v *utilversion.Version, c discovery.ServerVersio
 	}
 	if !gte {
 		Skipf("Not supported for server versions before %q", v)
+	}
+}
+
+func SkipUnlessServerVersionLT(v *utilversion.Version, c discovery.ServerVersionInterface) {
+	gte, err := ServerVersionGTE(v, c)
+	if err != nil {
+		Failf("Failed to get server version: %v", err)
+	}
+	if gte {
+		Skipf("Not supported for server versions starting from %q", v)
 	}
 }
 
@@ -3736,6 +3764,24 @@ func RunHostCmdOrDie(ns, name, cmd string) string {
 	return stdout
 }
 
+// RunHostCmdWithRetries calls RunHostCmd and retries errors it thinks may be transient
+// until it succeeds or the specified timeout expires.
+// This can be used with idempotent commands to deflake transient Node issues.
+func RunHostCmdWithRetries(ns, name, cmd string, interval, timeout time.Duration) (string, error) {
+	start := time.Now()
+	for {
+		out, err := RunHostCmd(ns, name, cmd)
+		if err == nil {
+			return out, nil
+		}
+		if elapsed := time.Since(start); elapsed > timeout {
+			return out, fmt.Errorf("RunHostCmd still failed after %v: %v", elapsed, err)
+		}
+		Logf("Waiting %v to retry failed RunHostCmd: %v", interval, err)
+		time.Sleep(interval)
+	}
+}
+
 // LaunchHostExecPod launches a hostexec pod in the given namespace and waits
 // until it's Running
 func LaunchHostExecPod(client clientset.Interface, ns, name string) *v1.Pod {
@@ -4886,17 +4932,17 @@ func CheckConnectivityToHost(f *Framework, nodeName, podName, host string, timeo
 }
 
 // CoreDump SSHs to the master and all nodes and dumps their logs into dir.
-// It shells out to cluster/log-dump.sh to accomplish this.
+// It shells out to cluster/log-dump/log-dump.sh to accomplish this.
 func CoreDump(dir string) {
 	if TestContext.DisableLogDump {
 		Logf("Skipping dumping logs from cluster")
 		return
 	}
-	cmd := exec.Command(path.Join(TestContext.RepoRoot, "cluster", "log-dump.sh"), dir)
+	cmd := exec.Command(path.Join(TestContext.RepoRoot, "cluster", "log-dump", "log-dump.sh"), dir)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		Logf("Error running cluster/log-dump.sh: %v", err)
+		Logf("Error running cluster/log-dump/log-dump.sh: %v", err)
 	}
 }
 

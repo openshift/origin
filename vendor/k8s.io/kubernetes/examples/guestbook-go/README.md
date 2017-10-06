@@ -59,7 +59,7 @@ Use the `examples/guestbook-go/redis-master-controller.json` file to create a [r
 
     ```console
     me@workstation$ gcloud compute ssh --zone us-central1-b kubernetes-node-bz1p
-    
+
     me@kubernetes-node-3:~$ sudo docker ps
     CONTAINER ID        IMAGE     COMMAND                  CREATED             STATUS
     d5c458dabe50        redis     "/entrypoint.sh redis"   5 minutes ago       Up 5 minutes
@@ -195,7 +195,7 @@ This is a simple Go `net/http` ([negroni](https://github.com/codegangsta/negroni
     redis-master-xx4uv             1/1       Running   0          23m
     redis-slave-b6wj4              1/1       Running   0          6m
     redis-slave-iai40              1/1       Running   0          6m
-    ... 
+    ...
     ```
 
     Result: You see a single Redis master, two Redis slaves, and three guestbook pods.

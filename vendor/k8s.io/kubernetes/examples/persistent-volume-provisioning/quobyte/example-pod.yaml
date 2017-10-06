@@ -13,7 +13,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: nginx 
+        image: nginx
         volumeMounts:
           - mountPath: /var/lib/www/html
             name: quobytepvc

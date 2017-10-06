@@ -63,7 +63,6 @@ func setupClusterAdminPodNodeConstraintsTest(t *testing.T, pluginConfig *plugina
 		},
 	}
 	masterConfig.AdmissionConfig.PluginConfig = cfg
-	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = cfg
 
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
@@ -102,7 +101,6 @@ func setupUserPodNodeConstraintsTest(t *testing.T, pluginConfig *pluginapi.PodNo
 		},
 	}
 	masterConfig.AdmissionConfig.PluginConfig = cfg
-	masterConfig.KubernetesMasterConfig.AdmissionConfig.PluginConfig = cfg
 	kubeConfigFile, err := testserver.StartConfiguredMaster(masterConfig)
 	if err != nil {
 		t.Fatalf("error starting server: %v", err)

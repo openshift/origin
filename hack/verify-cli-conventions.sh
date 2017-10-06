@@ -1,16 +1,17 @@
 #!/bin/bash
 source "$(dirname "${BASH_SOURCE}")/lib/init.sh"
 
-echo "===== Verifying CLI Conventions ====="
+function cleanup() {
+    return_code=$?
+    os::test::junit::generate_report
+    os::util::describe_return_code "${return_code}"
+    exit "${return_code}"
+}
+trap "cleanup" EXIT
 
 # ensure we have the latest compiled binaries
 os::util::ensure::built_binary_exists 'clicheck'
 
-if ! output=$(clicheck 2>&1)
-then
-	echo "FAILURE: CLI is not following one or more required conventions:"
-	echo "$output"
-	exit 1
-else
-  echo "SUCCESS: CLI is following all tested conventions."
-fi
+os::test::junit::declare_suite_start "verify/cli-conventions"
+os::cmd::expect_success "clicheck"
+os::test::junit::declare_suite_end

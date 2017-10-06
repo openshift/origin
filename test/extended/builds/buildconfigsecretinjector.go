@@ -15,7 +15,7 @@ var _ = g.Describe("[Feature:Builds] buildconfig secret injector", func() {
 		oc        = exutil.NewCLI("buildconfigsecretinjector", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("creating buildconfigs")
 			err := oc.Run("create").Args("-f", itemsPath).Execute()

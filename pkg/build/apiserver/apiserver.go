@@ -161,12 +161,12 @@ func (c *BuildServerConfig) newV1RESTStorage() (map[string]rest.Storage, error) 
 	v1Storage := map[string]rest.Storage{}
 	v1Storage["builds"] = buildStorage
 	v1Storage["builds/clone"] = buildclone.NewStorage(buildGenerator)
-	v1Storage["builds/log"] = buildlogregistry.NewREST(buildStorage, buildStorage, kubeInternalClient.Core(), nodeConnectionInfoGetter)
+	v1Storage["builds/log"] = buildlogregistry.NewREST(buildClient.Build(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
 	v1Storage["builds/details"] = buildDetailsStorage
 
 	v1Storage["buildConfigs"] = buildConfigStorage
 	v1Storage["buildConfigs/webhooks"] = buildConfigWebHooks
 	v1Storage["buildConfigs/instantiate"] = buildconfiginstantiate.NewStorage(buildGenerator)
-	v1Storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildStorage, kubeInternalClient.Core(), nodeConnectionInfoGetter)
+	v1Storage["buildConfigs/instantiatebinary"] = buildconfiginstantiate.NewBinaryStorage(buildGenerator, buildClient.Build(), kubeInternalClient.Core(), nodeConnectionInfoGetter)
 	return v1Storage, nil
 }

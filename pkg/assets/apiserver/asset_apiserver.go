@@ -32,7 +32,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	oauthutil "github.com/openshift/origin/pkg/oauth/util"
-	clusterresourceoverrideapi "github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/util/httprequest"
 	oversion "github.com/openshift/origin/pkg/version"
 )
@@ -44,8 +43,7 @@ const (
 type AssetServerConfig struct {
 	GenericConfig *genericapiserver.Config
 
-	Options               oapi.AssetConfig
-	LimitRequestOverrides *clusterresourceoverrideapi.ClusterResourceOverrideConfig
+	Options oapi.AssetConfig
 
 	PublicURL url.URL
 }
@@ -155,7 +153,7 @@ func buildHandlerChainForAssets(consoleRedirectPath string) func(startingHandler
 			handler = genericapifilters.WithAudit(handler, c.RequestContextMapper, c.AuditBackend, c.AuditPolicyChecker, c.LongRunningFunc)
 		}
 		handler = genericfilters.WithCORS(handler, c.CorsAllowedOriginList, nil, nil, nil, "true")
-		handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.RequestContextMapper, c.LongRunningFunc)
+		handler = genericfilters.WithTimeoutForNonLongRunningRequests(handler, c.RequestContextMapper, c.LongRunningFunc, c.RequestTimeout)
 		handler = genericapifilters.WithRequestInfo(handler, genericapiserver.NewRequestInfoResolver(c), c.RequestContextMapper)
 		handler = apirequest.WithRequestContext(handler, c.RequestContextMapper)
 		handler = genericfilters.WithPanicRecovery(handler)
@@ -218,20 +216,19 @@ func (c *completedAssetServerConfig) addWebConsoleConfig(serverMux *genericmux.P
 
 	// Generated web console config and server version
 	config := assets.WebConsoleConfig{
-		APIGroupAddr:          masterURL.Host,
-		APIGroupPrefix:        server.APIGroupPrefix,
-		MasterAddr:            masterURL.Host,
-		MasterPrefix:          api.Prefix,
-		KubernetesAddr:        masterURL.Host,
-		KubernetesPrefix:      server.DefaultLegacyAPIPrefix,
-		OAuthAuthorizeURI:     oauthutil.OpenShiftOAuthAuthorizeURL(masterURL.String()),
-		OAuthTokenURI:         oauthutil.OpenShiftOAuthTokenURL(masterURL.String()),
-		OAuthRedirectBase:     c.Options.PublicURL,
-		OAuthClientID:         OpenShiftWebConsoleClientID,
-		LogoutURI:             c.Options.LogoutURL,
-		LoggingURL:            c.Options.LoggingPublicURL,
-		MetricsURL:            c.Options.MetricsPublicURL,
-		LimitRequestOverrides: c.LimitRequestOverrides,
+		APIGroupAddr:      masterURL.Host,
+		APIGroupPrefix:    server.APIGroupPrefix,
+		MasterAddr:        masterURL.Host,
+		MasterPrefix:      api.Prefix,
+		KubernetesAddr:    masterURL.Host,
+		KubernetesPrefix:  server.DefaultLegacyAPIPrefix,
+		OAuthAuthorizeURI: oauthutil.OpenShiftOAuthAuthorizeURL(masterURL.String()),
+		OAuthTokenURI:     oauthutil.OpenShiftOAuthTokenURL(masterURL.String()),
+		OAuthRedirectBase: c.Options.PublicURL,
+		OAuthClientID:     OpenShiftWebConsoleClientID,
+		LogoutURI:         c.Options.LogoutURL,
+		LoggingURL:        c.Options.LoggingPublicURL,
+		MetricsURL:        c.Options.MetricsPublicURL,
 	}
 	kVersionInfo := kversion.Get()
 	oVersionInfo := oversion.Get()

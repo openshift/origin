@@ -40,6 +40,14 @@
         {
           "name": "user-specified-label",
           "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
         }
       ]
     }

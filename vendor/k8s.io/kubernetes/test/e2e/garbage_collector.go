@@ -51,21 +51,6 @@ func getNonOrphanOptions() *metav1.DeleteOptions {
 }
 
 var zero = int64(0)
-var deploymentLabels = map[string]string{"app": "gc-test"}
-var podTemplateSpec = v1.PodTemplateSpec{
-	ObjectMeta: metav1.ObjectMeta{
-		Labels: deploymentLabels,
-	},
-	Spec: v1.PodSpec{
-		TerminationGracePeriodSeconds: &zero,
-		Containers: []v1.Container{
-			{
-				Name:  "nginx",
-				Image: "gcr.io/google_containers/nginx-slim:0.7",
-			},
-		},
-	},
-}
 
 func newOwnerDeployment(f *framework.Framework, deploymentName string) *v1beta1.Deployment {
 	replicas := int32(2)
@@ -75,11 +60,23 @@ func newOwnerDeployment(f *framework.Framework, deploymentName string) *v1beta1.
 		},
 		Spec: v1beta1.DeploymentSpec{
 			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{MatchLabels: deploymentLabels},
 			Strategy: v1beta1.DeploymentStrategy{
 				Type: v1beta1.RollingUpdateDeploymentStrategyType,
 			},
-			Template: podTemplateSpec,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: getSelector(),
+				},
+				Spec: v1.PodSpec{
+					TerminationGracePeriodSeconds: &zero,
+					Containers: []v1.Container{
+						{
+							Name:  "nginx",
+							Image: "gcr.io/google_containers/nginx-slim:0.7",
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -100,8 +97,20 @@ func newOwnerRC(f *framework.Framework, name string, replicas int32) *v1.Replica
 		},
 		Spec: v1.ReplicationControllerSpec{
 			Replicas: &replicas,
-			Selector: map[string]string{"app": "gc-test"},
-			Template: &podTemplateSpec,
+			Template: &v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: getSelector(),
+				},
+				Spec: v1.PodSpec{
+					TerminationGracePeriodSeconds: &zero,
+					Containers: []v1.Container{
+						{
+							Name:  "nginx",
+							Image: "gcr.io/google_containers/nginx-slim:0.7",
+						},
+					},
+				},
+			},
 		},
 	}
 }

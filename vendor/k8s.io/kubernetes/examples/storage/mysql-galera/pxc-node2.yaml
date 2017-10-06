@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: pxc-node2
-  labels: 
+  labels:
     node: pxc-node2
 spec:
   ports:
@@ -11,28 +11,28 @@ spec:
     - port: 4444
       name: state-snapshot-transfer
     - port: 4567
-      name: replication-traffic 
+      name: replication-traffic
     - port: 4568
-      name: incremental-state-transfer 
+      name: incremental-state-transfer
   selector:
-    node: pxc-node2 
+    node: pxc-node2
 
 ---
 apiVersion: v1
 kind: ReplicationController
 metadata:
-  name: pxc-node2 
+  name: pxc-node2
 spec:
   replicas: 1
   template:
     metadata:
       labels:
-        node: pxc-node2 
+        node: pxc-node2
         unit: pxc-cluster
     spec:
       containers:
         - resources:
-            limits: 
+            limits:
               cpu: 0.3
           image: capttofu/percona_xtradb_cluster_5_6:beta
           name: pxc-node2
@@ -55,4 +55,4 @@ spec:
             - name: MYSQL_PASSWORD
               value: mysql
             - name: MYSQL_ROOT_PASSWORD
-              value: c-krit 
+              value: c-krit

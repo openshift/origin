@@ -274,6 +274,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 		options configapi.MasterConfig
 
 		warningFields []string
+		errorFields   []string
 	}{
 		{
 			name: "stock everything",
@@ -287,7 +288,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 					},
 				},
 			},
-			warningFields: []string{"kubernetesMasterConfig.admissionConfig.pluginOrderOverride"},
+			errorFields: []string{"kubernetesMasterConfig.admissionConfig.pluginOrderOverride"},
 		},
 		{
 			name: "specified kube admission order 02",
@@ -393,7 +394,7 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 					},
 				},
 			},
-			warningFields: []string{"kubernetesMasterConfig.admissionConfig.pluginConfig[foo]"},
+			errorFields: []string{"kubernetesMasterConfig.admissionConfig.pluginConfig"},
 		},
 	}
 
@@ -436,6 +437,21 @@ func TestValidateAdmissionPluginConfigConflicts(t *testing.T) {
 				t.Errorf("%s: didn't find %q", tc.name, expectedField)
 			}
 		}
+
+		for _, expectedField := range tc.errorFields {
+			found := false
+			for _, result := range results.Errors {
+				if result.Field == expectedField {
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				t.Errorf("%s: didn't find %q", tc.name, expectedField)
+			}
+		}
+
 	}
 }
 

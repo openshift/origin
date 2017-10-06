@@ -25,4 +25,3 @@ echo "Running storage upgrade"
 source /etc/apache2/envvars
 echo "Starting Apache2"
 apache2 -D FOREGROUND
-

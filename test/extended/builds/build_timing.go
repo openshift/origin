@@ -37,7 +37,7 @@ var _ = g.Describe("[Feature:Builds][timing] capture build stages and durations"
 		oc                    = exutil.NewCLI("build-timing", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.KubeClient().Core().ServiceAccounts(oc.Namespace()))

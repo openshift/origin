@@ -47,7 +47,7 @@ More details regarding cluster authentication can be found at the documentation:
 ```sh
 flocker-volumes create -m name=my-flocker-vol -s 10G -n <node-uuid>
 
-# -n or --node= Is the initial primary node for dataset (any unique 
+# -n or --node= Is the initial primary node for dataset (any unique
 # prefix of node uuid, see flocker-volumes list-nodes)
 ```
 

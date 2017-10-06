@@ -409,7 +409,7 @@ func (e *Store) WaitForInitialized(ctx genericapirequest.Context, obj runtime.Ob
 
 // shouldDeleteDuringUpdate checks if a Update is removing all the object's
 // finalizers. If so, it further checks if the object's
-// DeletionGracePeriodSeconds is 0.
+// DeletionGracePeriodSeconds is 0. If so, it returns true.
 func (e *Store) shouldDeleteDuringUpdate(ctx genericapirequest.Context, key string, obj, existing runtime.Object) bool {
 	newMeta, err := meta.Accessor(obj)
 	if err != nil {
@@ -827,8 +827,8 @@ func (e *Store) updateForGracefulDeletionAndFinalizers(ctx genericapirequest.Con
 			if err != nil {
 				return nil, err
 			}
-			needsUpdate, newFinalizers := deletionFinalizersForGarbageCollection(e, existingAccessor, options)
-			if needsUpdate {
+			shouldUpdate, newFinalizers := deletionFinalizersForGarbageCollection(e, existingAccessor, options)
+			if shouldUpdate {
 				existingAccessor.SetFinalizers(newFinalizers)
 			}
 

@@ -2264,6 +2264,12 @@ items:
   - apiGroups:
     - ""
     resources:
+    - pods/eviction
+    verbs:
+    - create
+  - apiGroups:
+    - ""
+    resources:
     - configmaps
     - secrets
     verbs:
@@ -3049,56 +3055,6 @@ items:
     - get
     - list
     - watch
-  - apiGroups:
-    - ""
-    resources:
-    - events
-    verbs:
-    - create
-    - patch
-    - update
-- apiVersion: rbac.authorization.k8s.io/v1beta1
-  kind: ClusterRole
-  metadata:
-    annotations:
-      authorization.openshift.io/system-only: "true"
-      rbac.authorization.kubernetes.io/autoupdate: "true"
-    creationTimestamp: null
-    name: system:openshift:controller:deployment-trigger-controller
-  rules:
-  - apiGroups:
-    - ""
-    resources:
-    - replicationcontrollers
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - apps.openshift.io
-    resources:
-    - deploymentconfigs
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - image.openshift.io
-    resources:
-    - imagestreams
-    verbs:
-    - get
-    - list
-    - watch
-  - apiGroups:
-    - ""
-    - apps.openshift.io
-    resources:
-    - deploymentconfigs/instantiate
-    verbs:
-    - create
   - apiGroups:
     - ""
     resources:

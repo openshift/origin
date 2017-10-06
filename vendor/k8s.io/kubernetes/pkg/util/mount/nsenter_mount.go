@@ -199,6 +199,15 @@ func (*NsenterMounter) List() ([]MountPoint, error) {
 	return listProcMounts(hostProcMountsPath)
 }
 
+func (m *NsenterMounter) IsNotMountPoint(dir string) (bool, error) {
+	return IsNotMountPoint(m, dir)
+}
+
+func (*NsenterMounter) IsMountPointMatch(mp MountPoint, dir string) bool {
+	deletedDir := fmt.Sprintf("%s\\040(deleted)", dir)
+	return ((mp.Path == dir) || (mp.Path == deletedDir))
+}
+
 // IsLikelyNotMountPoint determines whether a path is a mountpoint by calling findmnt
 // in the host's root mount namespace.
 func (n *NsenterMounter) IsLikelyNotMountPoint(file string) (bool, error) {

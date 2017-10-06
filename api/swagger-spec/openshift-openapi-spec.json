@@ -4062,7 +4062,7 @@
    },
    "/api/v1/namespaces/{namespace}/pods/{name}/binding": {
     "post": {
-     "description": "create binding of a Binding",
+     "description": "create binding of a Pod",
      "consumes": [
       "*/*"
      ],
@@ -4077,7 +4077,7 @@
      "tags": [
       "core_v1"
      ],
-     "operationId": "createCoreV1NamespacedBindingBinding",
+     "operationId": "createCoreV1NamespacedPodBinding",
      "parameters": [
       {
        "name": "body",
@@ -4134,7 +4134,7 @@
    },
    "/api/v1/namespaces/{namespace}/pods/{name}/eviction": {
     "post": {
-     "description": "create eviction of an Eviction",
+     "description": "create eviction of a Pod",
      "consumes": [
       "*/*"
      ],
@@ -4149,7 +4149,7 @@
      "tags": [
       "core_v1"
      ],
-     "operationId": "createCoreV1NamespacedEvictionEviction",
+     "operationId": "createCoreV1NamespacedPodEviction",
      "parameters": [
       {
        "name": "body",
@@ -6137,7 +6137,7 @@
    },
    "/api/v1/namespaces/{namespace}/replicationcontrollers/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified ReplicationController",
      "consumes": [
       "*/*"
      ],
@@ -6152,7 +6152,7 @@
      "tags": [
       "core_v1"
      ],
-     "operationId": "readCoreV1NamespacedScaleScale",
+     "operationId": "readCoreV1NamespacedReplicationControllerScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -6172,7 +6172,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified ReplicationController",
      "consumes": [
       "*/*"
      ],
@@ -6187,7 +6187,7 @@
      "tags": [
       "core_v1"
      ],
-     "operationId": "replaceCoreV1NamespacedScaleScale",
+     "operationId": "replaceCoreV1NamespacedReplicationControllerScale",
      "parameters": [
       {
        "name": "body",
@@ -6217,7 +6217,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified ReplicationController",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -6234,7 +6234,7 @@
      "tags": [
       "core_v1"
      ],
-     "operationId": "patchCoreV1NamespacedScaleScale",
+     "operationId": "patchCoreV1NamespacedReplicationControllerScale",
      "parameters": [
       {
        "name": "body",
@@ -19163,7 +19163,7 @@
    },
    "/apis/apps.openshift.io/v1/namespaces/{namespace}/deploymentconfigs/{name}/instantiate": {
     "post": {
-     "description": "create instantiate of a DeploymentRequest",
+     "description": "create instantiate of a DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -19178,7 +19178,7 @@
      "tags": [
       "appsOpenshiftIo_v1"
      ],
-     "operationId": "createAppsOpenshiftIoV1NamespacedDeploymentRequestInstantiate",
+     "operationId": "createAppsOpenshiftIoV1NamespacedDeploymentConfigInstantiate",
      "parameters": [
       {
        "name": "body",
@@ -19235,7 +19235,7 @@
    },
    "/apis/apps.openshift.io/v1/namespaces/{namespace}/deploymentconfigs/{name}/log": {
     "get": {
-     "description": "read log of the specified DeploymentLog",
+     "description": "read log of the specified DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -19250,7 +19250,7 @@
      "tags": [
       "appsOpenshiftIo_v1"
      ],
-     "operationId": "readAppsOpenshiftIoV1NamespacedDeploymentLogLog",
+     "operationId": "readAppsOpenshiftIoV1NamespacedDeploymentConfigLog",
      "responses": {
       "200": {
        "description": "OK",
@@ -19360,7 +19360,7 @@
    },
    "/apis/apps.openshift.io/v1/namespaces/{namespace}/deploymentconfigs/{name}/rollback": {
     "post": {
-     "description": "create rollback of a DeploymentConfigRollback",
+     "description": "create rollback of a DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -19375,7 +19375,7 @@
      "tags": [
       "appsOpenshiftIo_v1"
      ],
-     "operationId": "createAppsOpenshiftIoV1NamespacedDeploymentConfigRollbackRollback",
+     "operationId": "createAppsOpenshiftIoV1NamespacedDeploymentConfigRollback",
      "parameters": [
       {
        "name": "body",
@@ -19432,7 +19432,7 @@
    },
    "/apis/apps.openshift.io/v1/namespaces/{namespace}/deploymentconfigs/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -19447,7 +19447,7 @@
      "tags": [
       "appsOpenshiftIo_v1"
      ],
-     "operationId": "readAppsOpenshiftIoV1NamespacedScaleScale",
+     "operationId": "readAppsOpenshiftIoV1NamespacedDeploymentConfigScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -19467,7 +19467,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -19482,7 +19482,7 @@
      "tags": [
       "appsOpenshiftIo_v1"
      ],
-     "operationId": "replaceAppsOpenshiftIoV1NamespacedScaleScale",
+     "operationId": "replaceAppsOpenshiftIoV1NamespacedDeploymentConfigScale",
      "parameters": [
       {
        "name": "body",
@@ -19512,7 +19512,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified DeploymentConfig",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -19529,7 +19529,7 @@
      "tags": [
       "appsOpenshiftIo_v1"
      ],
-     "operationId": "patchAppsOpenshiftIoV1NamespacedScaleScale",
+     "operationId": "patchAppsOpenshiftIoV1NamespacedDeploymentConfigScale",
      "parameters": [
       {
        "name": "body",
@@ -21294,7 +21294,7 @@
    },
    "/apis/apps/v1beta1/namespaces/{namespace}/deployments/{name}/rollback": {
     "post": {
-     "description": "create rollback of a DeploymentRollback",
+     "description": "create rollback of a Deployment",
      "consumes": [
       "*/*"
      ],
@@ -21309,7 +21309,7 @@
      "tags": [
       "apps_v1beta1"
      ],
-     "operationId": "createAppsV1beta1NamespacedDeploymentRollbackRollback",
+     "operationId": "createAppsV1beta1NamespacedDeploymentRollback",
      "parameters": [
       {
        "name": "body",
@@ -21366,7 +21366,7 @@
    },
    "/apis/apps/v1beta1/namespaces/{namespace}/deployments/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified Deployment",
      "consumes": [
       "*/*"
      ],
@@ -21381,7 +21381,7 @@
      "tags": [
       "apps_v1beta1"
      ],
-     "operationId": "readAppsV1beta1NamespacedScaleScale",
+     "operationId": "readAppsV1beta1NamespacedDeploymentScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -21401,7 +21401,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified Deployment",
      "consumes": [
       "*/*"
      ],
@@ -21416,7 +21416,7 @@
      "tags": [
       "apps_v1beta1"
      ],
-     "operationId": "replaceAppsV1beta1NamespacedScaleScale",
+     "operationId": "replaceAppsV1beta1NamespacedDeploymentScale",
      "parameters": [
       {
        "name": "body",
@@ -21446,7 +21446,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified Deployment",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -21463,7 +21463,7 @@
      "tags": [
       "apps_v1beta1"
      ],
-     "operationId": "patchAppsV1beta1NamespacedScaleScale",
+     "operationId": "patchAppsV1beta1NamespacedDeploymentScale",
      "parameters": [
       {
        "name": "body",
@@ -32477,7 +32477,7 @@
    },
    "/apis/build.openshift.io/v1/namespaces/{namespace}/buildconfigs/{name}/instantiate": {
     "post": {
-     "description": "create instantiate of a BuildRequest",
+     "description": "create instantiate of a BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -32492,7 +32492,7 @@
      "tags": [
       "buildOpenshiftIo_v1"
      ],
-     "operationId": "createBuildOpenshiftIoV1NamespacedBuildRequestInstantiate",
+     "operationId": "createBuildOpenshiftIoV1NamespacedBuildConfigInstantiate",
      "parameters": [
       {
        "name": "body",
@@ -32549,7 +32549,7 @@
    },
    "/apis/build.openshift.io/v1/namespaces/{namespace}/buildconfigs/{name}/instantiatebinary": {
     "post": {
-     "description": "connect POST requests to instantiatebinary of BinaryBuildRequestOptions",
+     "description": "connect POST requests to instantiatebinary of BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -32562,7 +32562,7 @@
      "tags": [
       "buildOpenshiftIo_v1"
      ],
-     "operationId": "connectBuildOpenshiftIoV1PostNamespacedBinaryBuildRequestOptionsInstantiatebinary",
+     "operationId": "connectBuildOpenshiftIoV1PostNamespacedBuildConfigInstantiatebinary",
      "responses": {
       "200": {
        "description": "OK",
@@ -32651,7 +32651,7 @@
    },
    "/apis/build.openshift.io/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks": {
     "post": {
-     "description": "connect POST requests to webhooks of Build",
+     "description": "connect POST requests to webhooks of BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -32664,7 +32664,7 @@
      "tags": [
       "buildOpenshiftIo_v1"
      ],
-     "operationId": "connectBuildOpenshiftIoV1PostNamespacedBuildWebhooks",
+     "operationId": "connectBuildOpenshiftIoV1PostNamespacedBuildConfigWebhooks",
      "responses": {
       "200": {
        "description": "OK",
@@ -32711,7 +32711,7 @@
    },
    "/apis/build.openshift.io/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks/{path}": {
     "post": {
-     "description": "connect POST requests to webhooks of Build",
+     "description": "connect POST requests to webhooks of BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -32724,7 +32724,7 @@
      "tags": [
       "buildOpenshiftIo_v1"
      ],
-     "operationId": "connectBuildOpenshiftIoV1PostNamespacedBuildWebhooksWithPath",
+     "operationId": "connectBuildOpenshiftIoV1PostNamespacedBuildConfigWebhooksWithPath",
      "responses": {
       "200": {
        "description": "OK",
@@ -33239,7 +33239,7 @@
    },
    "/apis/build.openshift.io/v1/namespaces/{namespace}/builds/{name}/clone": {
     "post": {
-     "description": "create clone of a BuildRequest",
+     "description": "create clone of a Build",
      "consumes": [
       "*/*"
      ],
@@ -33254,7 +33254,7 @@
      "tags": [
       "buildOpenshiftIo_v1"
      ],
-     "operationId": "createBuildOpenshiftIoV1NamespacedBuildRequestClone",
+     "operationId": "createBuildOpenshiftIoV1NamespacedBuildClone",
      "parameters": [
       {
        "name": "body",
@@ -33383,7 +33383,7 @@
    },
    "/apis/build.openshift.io/v1/namespaces/{namespace}/builds/{name}/log": {
     "get": {
-     "description": "read log of the specified BuildLog",
+     "description": "read log of the specified Build",
      "consumes": [
       "*/*"
      ],
@@ -33398,7 +33398,7 @@
      "tags": [
       "buildOpenshiftIo_v1"
      ],
-     "operationId": "readBuildOpenshiftIoV1NamespacedBuildLogLog",
+     "operationId": "readBuildOpenshiftIoV1NamespacedBuildLog",
      "responses": {
       "200": {
        "description": "OK",
@@ -36473,7 +36473,7 @@
    },
    "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}/rollback": {
     "post": {
-     "description": "create rollback of a DeploymentRollback",
+     "description": "create rollback of a Deployment",
      "consumes": [
       "*/*"
      ],
@@ -36488,7 +36488,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "createExtensionsV1beta1NamespacedDeploymentRollbackRollback",
+     "operationId": "createExtensionsV1beta1NamespacedDeploymentRollback",
      "parameters": [
       {
        "name": "body",
@@ -36545,7 +36545,7 @@
    },
    "/apis/extensions/v1beta1/namespaces/{namespace}/deployments/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified Deployment",
      "consumes": [
       "*/*"
      ],
@@ -36560,7 +36560,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "readExtensionsV1beta1NamespacedDeploymentsScale",
+     "operationId": "readExtensionsV1beta1NamespacedDeploymentScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -36580,7 +36580,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified Deployment",
      "consumes": [
       "*/*"
      ],
@@ -36595,7 +36595,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "replaceExtensionsV1beta1NamespacedDeploymentsScale",
+     "operationId": "replaceExtensionsV1beta1NamespacedDeploymentScale",
      "parameters": [
       {
        "name": "body",
@@ -36625,7 +36625,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified Deployment",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -36642,7 +36642,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "patchExtensionsV1beta1NamespacedDeploymentsScale",
+     "operationId": "patchExtensionsV1beta1NamespacedDeploymentScale",
      "parameters": [
       {
        "name": "body",
@@ -38387,7 +38387,7 @@
    },
    "/apis/extensions/v1beta1/namespaces/{namespace}/replicasets/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified ReplicaSet",
      "consumes": [
       "*/*"
      ],
@@ -38402,7 +38402,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "readExtensionsV1beta1NamespacedReplicasetsScale",
+     "operationId": "readExtensionsV1beta1NamespacedReplicaSetScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -38422,7 +38422,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified ReplicaSet",
      "consumes": [
       "*/*"
      ],
@@ -38437,7 +38437,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "replaceExtensionsV1beta1NamespacedReplicasetsScale",
+     "operationId": "replaceExtensionsV1beta1NamespacedReplicaSetScale",
      "parameters": [
       {
        "name": "body",
@@ -38467,7 +38467,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified ReplicaSet",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -38484,7 +38484,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "patchExtensionsV1beta1NamespacedReplicasetsScale",
+     "operationId": "patchExtensionsV1beta1NamespacedReplicaSetScale",
      "parameters": [
       {
        "name": "body",
@@ -38695,7 +38695,7 @@
    },
    "/apis/extensions/v1beta1/namespaces/{namespace}/replicationcontrollers/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified ReplicationControllerDummy",
      "consumes": [
       "*/*"
      ],
@@ -38710,7 +38710,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "readExtensionsV1beta1NamespacedReplicationcontrollersScale",
+     "operationId": "readExtensionsV1beta1NamespacedReplicationControllerDummyScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -38730,7 +38730,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified ReplicationControllerDummy",
      "consumes": [
       "*/*"
      ],
@@ -38745,7 +38745,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "replaceExtensionsV1beta1NamespacedReplicationcontrollersScale",
+     "operationId": "replaceExtensionsV1beta1NamespacedReplicationControllerDummyScale",
      "parameters": [
       {
        "name": "body",
@@ -38775,7 +38775,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified ReplicationControllerDummy",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -38792,7 +38792,7 @@
      "tags": [
       "extensions_v1beta1"
      ],
-     "operationId": "patchExtensionsV1beta1NamespacedReplicationcontrollersScale",
+     "operationId": "patchExtensionsV1beta1NamespacedReplicationControllerDummyScale",
      "parameters": [
       {
        "name": "body",
@@ -43513,7 +43513,7 @@
    },
    "/apis/image.openshift.io/v1/namespaces/{namespace}/imagestreams/{name}/secrets": {
     "get": {
-     "description": "read secrets of the specified SecretList",
+     "description": "read secrets of the specified ImageStream",
      "consumes": [
       "*/*"
      ],
@@ -43528,7 +43528,7 @@
      "tags": [
       "imageOpenshiftIo_v1"
      ],
-     "operationId": "readImageOpenshiftIoV1NamespacedSecretListSecrets",
+     "operationId": "readImageOpenshiftIoV1NamespacedImageStreamSecrets",
      "responses": {
       "200": {
        "description": "OK",
@@ -70928,7 +70928,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/instantiate": {
     "post": {
-     "description": "create instantiate of a BuildRequest",
+     "description": "create instantiate of a BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -70943,7 +70943,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "createNamespacedBuildRequestInstantiate",
+     "operationId": "createNamespacedBuildConfigInstantiate",
      "parameters": [
       {
        "name": "body",
@@ -71000,7 +71000,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/instantiatebinary": {
     "post": {
-     "description": "connect POST requests to instantiatebinary of BinaryBuildRequestOptions",
+     "description": "connect POST requests to instantiatebinary of BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -71013,7 +71013,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "connectPostNamespacedBinaryBuildRequestOptionsInstantiatebinary",
+     "operationId": "connectPostNamespacedBuildConfigInstantiatebinary",
      "responses": {
       "200": {
        "description": "OK",
@@ -71102,7 +71102,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks": {
     "post": {
-     "description": "connect POST requests to webhooks of Build",
+     "description": "connect POST requests to webhooks of BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -71115,7 +71115,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "connectPostNamespacedBuildWebhooks",
+     "operationId": "connectPostNamespacedBuildConfigWebhooks",
      "responses": {
       "200": {
        "description": "OK",
@@ -71162,7 +71162,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/buildconfigs/{name}/webhooks/{path}": {
     "post": {
-     "description": "connect POST requests to webhooks of Build",
+     "description": "connect POST requests to webhooks of BuildConfig",
      "consumes": [
       "*/*"
      ],
@@ -71175,7 +71175,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "connectPostNamespacedBuildWebhooksWithPath",
+     "operationId": "connectPostNamespacedBuildConfigWebhooksWithPath",
      "responses": {
       "200": {
        "description": "OK",
@@ -71690,7 +71690,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/builds/{name}/clone": {
     "post": {
-     "description": "create clone of a BuildRequest",
+     "description": "create clone of a Build",
      "consumes": [
       "*/*"
      ],
@@ -71705,7 +71705,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "createNamespacedBuildRequestClone",
+     "operationId": "createNamespacedBuildClone",
      "parameters": [
       {
        "name": "body",
@@ -71834,7 +71834,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/builds/{name}/log": {
     "get": {
-     "description": "read log of the specified BuildLog",
+     "description": "read log of the specified Build",
      "consumes": [
       "*/*"
      ],
@@ -71849,7 +71849,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "readNamespacedBuildLogLog",
+     "operationId": "readNamespacedBuildLog",
      "responses": {
       "200": {
        "description": "OK",
@@ -72483,7 +72483,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/instantiate": {
     "post": {
-     "description": "create instantiate of a DeploymentRequest",
+     "description": "create instantiate of a DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -72498,7 +72498,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "createNamespacedDeploymentRequestInstantiate",
+     "operationId": "createNamespacedDeploymentConfigInstantiate",
      "parameters": [
       {
        "name": "body",
@@ -72555,7 +72555,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/log": {
     "get": {
-     "description": "read log of the specified DeploymentLog",
+     "description": "read log of the specified DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -72570,7 +72570,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "readNamespacedDeploymentLogLog",
+     "operationId": "readNamespacedDeploymentConfigLog",
      "responses": {
       "200": {
        "description": "OK",
@@ -72680,7 +72680,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/rollback": {
     "post": {
-     "description": "create rollback of a DeploymentConfigRollback",
+     "description": "create rollback of a DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -72752,7 +72752,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/deploymentconfigs/{name}/scale": {
     "get": {
-     "description": "read scale of the specified Scale",
+     "description": "read scale of the specified DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -72767,7 +72767,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "readNamespacedScaleScale",
+     "operationId": "readNamespacedDeploymentConfigScale",
      "responses": {
       "200": {
        "description": "OK",
@@ -72787,7 +72787,7 @@
      }
     },
     "put": {
-     "description": "replace scale of the specified Scale",
+     "description": "replace scale of the specified DeploymentConfig",
      "consumes": [
       "*/*"
      ],
@@ -72802,7 +72802,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "replaceNamespacedScaleScale",
+     "operationId": "replaceNamespacedDeploymentConfigScale",
      "parameters": [
       {
        "name": "body",
@@ -72832,7 +72832,7 @@
      }
     },
     "patch": {
-     "description": "partially update scale of the specified Scale",
+     "description": "partially update scale of the specified DeploymentConfig",
      "consumes": [
       "application/json-patch+json",
       "application/merge-patch+json",
@@ -72849,7 +72849,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "patchNamespacedScaleScale",
+     "operationId": "patchNamespacedDeploymentConfigScale",
      "parameters": [
       {
        "name": "body",
@@ -74170,7 +74170,7 @@
    },
    "/oapi/v1/namespaces/{namespace}/imagestreams/{name}/secrets": {
     "get": {
-     "description": "read secrets of the specified SecretList",
+     "description": "read secrets of the specified ImageStream",
      "consumes": [
       "*/*"
      ],
@@ -74185,7 +74185,7 @@
      "tags": [
       "oapi"
      ],
-     "operationId": "readNamespacedSecretListSecrets",
+     "operationId": "readNamespacedImageStreamSecrets",
      "responses": {
       "200": {
        "description": "OK",

@@ -22,7 +22,7 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 		buildFixture = exutil.FixturePath("testdata", "test-docker-build-quota.json")
 		oc           = exutil.NewCLI("docker-build-quota", exutil.KubeConfigPath())
 	)
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")

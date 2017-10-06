@@ -1565,7 +1565,7 @@ $ curl -k \
 
 [[Get-apis-extensions-v1beta1-namespaces-namespace-replicasets-name-scale]]
 === Get scale of a ReplicaSet in a namespace
-Read scale of the specified Scale
+Read scale of the specified ReplicaSet
 
 ==== HTTP request
 ----
@@ -1619,7 +1619,7 @@ $ curl -k \
 
 [[Put-apis-extensions-v1beta1-namespaces-namespace-replicasets-name-scale]]
 === Update scale of a ReplicaSet in a namespace
-Replace scale of the specified Scale
+Replace scale of the specified ReplicaSet
 
 ==== HTTP request
 ----
@@ -1697,7 +1697,7 @@ EOF
 
 [[Patch-apis-extensions-v1beta1-namespaces-namespace-replicasets-name-scale]]
 === Patch scale of a ReplicaSet in a namespace
-Partially update scale of the specified Scale
+Partially update scale of the specified ReplicaSet
 
 ==== HTTP request
 ----

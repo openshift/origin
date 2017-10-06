@@ -26,14 +26,14 @@ The StorageOS provider has been pre-configured to use the StorageOS API defaults
 
 API configuration is set by using Kubernetes secrets.  The configuration secret supports the following parameters:
 
-*  `apiAddress`: The address of the StorageOS API.  This is optional and defaults to `tcp://localhost:5705`, which should be correct if the StorageOS container is running using the default settings. 
+*  `apiAddress`: The address of the StorageOS API.  This is optional and defaults to `tcp://localhost:5705`, which should be correct if the StorageOS container is running using the default settings.
 *  `apiUsername`: The username to authenticate to the StorageOS API with.
 *  `apiPassword`: The password to authenticate to the StorageOS API with.
 *  `apiVersion`: Optional, string value defaulting to `1`.  Only set this if requested in StorageOS documentation.
 
-Mutiple credentials can be used by creating different secrets.  
+Mutiple credentials can be used by creating different secrets.
 
-For Persistent Volumes, secrets must be created in the Pod namespace.  Specify the secret name using the `secretName` parameter when attaching existing volumes in Pods or creating new persistent volumes. 
+For Persistent Volumes, secrets must be created in the Pod namespace.  Specify the secret name using the `secretName` parameter when attaching existing volumes in Pods or creating new persistent volumes.
 
 For dynamically provisioned volumes using storage classes, the secret can be created in any namespace.  Note that you would want this to be an admin-controlled namespace with restricted access to users. Specify the secret namespace as parameter `adminSecretNamespace` and name as parameter `adminSecretName` in storage classes.
 

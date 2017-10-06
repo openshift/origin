@@ -25,7 +25,7 @@ Here are the commands:
 
     # create a secret if you want to use Ceph secret instead of secret file
     # kubectl create -f examples/volumes/cephfs/secret/ceph-secret.yaml
-	
+
     # kubectl create -f examples/volumes/cephfs/cephfs-with-secret.yaml
     # kubectl get pods
 ```

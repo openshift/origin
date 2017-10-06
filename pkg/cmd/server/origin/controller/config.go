@@ -44,9 +44,8 @@ type OpenshiftControllerConfig struct {
 
 	BuildControllerConfig BuildControllerConfig
 
-	DeployerControllerConfig          DeployerControllerConfig
-	DeploymentConfigControllerConfig  DeploymentConfigControllerConfig
-	DeploymentTriggerControllerConfig DeploymentTriggerControllerConfig
+	DeployerControllerConfig         DeployerControllerConfig
+	DeploymentConfigControllerConfig DeploymentConfigControllerConfig
 
 	ImageTriggerControllerConfig         ImageTriggerControllerConfig
 	ImageSignatureImportControllerConfig ImageSignatureImportControllerConfig
@@ -77,7 +76,6 @@ func (c *OpenshiftControllerConfig) GetControllerInitializers() (map[string]Init
 
 	ret["openshift.io/deployer"] = c.DeployerControllerConfig.RunController
 	ret["openshift.io/deploymentconfig"] = c.DeploymentConfigControllerConfig.RunController
-	ret["openshift.io/deploymenttrigger"] = c.DeploymentTriggerControllerConfig.RunController
 
 	ret["openshift.io/image-trigger"] = c.ImageTriggerControllerConfig.RunController
 	ret["openshift.io/image-import"] = c.ImageImportControllerConfig.RunController
@@ -185,9 +183,6 @@ func BuildOpenshiftControllerConfig(options configapi.MasterConfig) (*OpenshiftC
 		ClientEnvVars: vars,
 	}
 	ret.DeploymentConfigControllerConfig = DeploymentConfigControllerConfig{
-		Codec: annotationCodec,
-	}
-	ret.DeploymentTriggerControllerConfig = DeploymentTriggerControllerConfig{
 		Codec: annotationCodec,
 	}
 

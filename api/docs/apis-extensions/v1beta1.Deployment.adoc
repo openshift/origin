@@ -1578,7 +1578,7 @@ $ curl -k \
 
 [[Post-apis-extensions-v1beta1-namespaces-namespace-deployments-name-rollback]]
 === Create rollback of a Deployment in a namespace
-Create rollback of a DeploymentRollback
+Create rollback of a Deployment
 
 ==== HTTP request
 ----
@@ -1656,7 +1656,7 @@ EOF
 
 [[Get-apis-extensions-v1beta1-namespaces-namespace-deployments-name-scale]]
 === Get scale of a Deployment in a namespace
-Read scale of the specified Scale
+Read scale of the specified Deployment
 
 ==== HTTP request
 ----
@@ -1710,7 +1710,7 @@ $ curl -k \
 
 [[Put-apis-extensions-v1beta1-namespaces-namespace-deployments-name-scale]]
 === Update scale of a Deployment in a namespace
-Replace scale of the specified Scale
+Replace scale of the specified Deployment
 
 ==== HTTP request
 ----
@@ -1788,7 +1788,7 @@ EOF
 
 [[Patch-apis-extensions-v1beta1-namespaces-namespace-deployments-name-scale]]
 === Patch scale of a Deployment in a namespace
-Partially update scale of the specified Scale
+Partially update scale of the specified Deployment
 
 ==== HTTP request
 ----

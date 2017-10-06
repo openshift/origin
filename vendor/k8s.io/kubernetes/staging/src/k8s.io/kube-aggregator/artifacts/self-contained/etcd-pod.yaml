@@ -47,4 +47,3 @@ spec:
           defaultMode: 420
           name: etcd-ca
         name: volume-etcd-ca
-

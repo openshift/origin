@@ -19,4 +19,3 @@ spec:
     component: vtctld
     app: vitess
   type: NodePort
-

@@ -70,4 +70,3 @@ esac
 
 echo "Saving config.sh..."
 echo "backup_flags=\"$backup_flags\"" > config.sh
-

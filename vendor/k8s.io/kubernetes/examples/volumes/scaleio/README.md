@@ -42,14 +42,14 @@ This document shows how to configure Kubernetes resources to consume storage fro
 
 This document assumes you are familiar with ScaleIO and have a cluster ready to go.  If you are *not familiar* with ScaleIO, please review *Learn how to setup a 3-node* [ScaleIO cluster on Vagrant](https://github.com/codedellemc/labs/tree/master/setup-scaleio-vagrant) and see *General instructions on* [setting up ScaleIO](https://www.emc.com/products-solutions/trial-software-download/scaleio.htm)
 
-For this demonstration, ensure the following: 
+For this demonstration, ensure the following:
 
  - The ScaleIO `SDC` component is installed and properly configured on all Kubernetes nodes where deployed pods will consume ScaleIO-backed volumes.
- - You have a configured ScaleIO gateway that is accessible from the Kubernetes nodes. 
+ - You have a configured ScaleIO gateway that is accessible from the Kubernetes nodes.
 
 ## Deploy Kubernetes Secret for ScaleIO
 
-The ScaleIO plugin uses a Kubernetes Secret object to store the `username` and `password` credentials.  
+The ScaleIO plugin uses a Kubernetes Secret object to store the `username` and `password` credentials.
 Kuberenetes requires the secret values to be base64-encoded to simply obfuscate (not encrypt) the clear text as shown below.
 
 ```
@@ -58,8 +58,8 @@ c2lvdXNlcg==
 $> echo -n "sc@l3I0" | base64
 c2NAbDNJMA==
 ```
-The previous will generate `base64-encoded` values for the username and password.  
-Remember to generate the credentials for your own environment and copy them in a secret file similar to the following.  
+The previous will generate `base64-encoded` values for the username and password.
+Remember to generate the credentials for your own environment and copy them in a secret file similar to the following.
 
 File: [secret.yaml](secret.yaml)
 
@@ -82,7 +82,7 @@ $ kubectl create -f ./examples/volumes/scaleio/secret.yaml
 
 ## Deploying Pods with Persistent Volumes
 
-The example presented in this section shows how the ScaleIO volume plugin can automatically attach, format, and mount an existing ScaleIO volume for pod. 
+The example presented in this section shows how the ScaleIO volume plugin can automatically attach, format, and mount an existing ScaleIO volume for pod.
 The Kubernetes ScaleIO volume spec supports the following attributes:
 
 | Attribute | Description |
@@ -146,7 +146,7 @@ $> kubectl get pod
 NAME      READY     STATUS    RESTARTS   AGE
 pod-0     1/1       Running   0          33s
 ```
-Or for more detail, use 
+Or for more detail, use
 ```
 kubectl describe pod pod-0
 ```
@@ -232,7 +232,7 @@ spec:
 
 Note the `annotations:` entry which specifies annotation `volume.beta.kubernetes.io/storage-class: sio-small` which references the name of the storage class defined earlier.
 
-Next, we deploy PVC file for the storage class.  This step will cause the Kubernetes ScaleIO plugin to create the volume in the storage system.  
+Next, we deploy PVC file for the storage class.  This step will cause the Kubernetes ScaleIO plugin to create the volume in the storage system.
 ```
 $> kubectl create -f examples/volumes/scaleio/sc-pvc.yaml
 ```

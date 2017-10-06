@@ -24,7 +24,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 		oc           = exutil.NewCLI("s2i-build-quota", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))
