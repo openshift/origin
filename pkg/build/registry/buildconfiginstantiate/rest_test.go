@@ -4,9 +4,7 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
-	"k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/fake"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	_ "github.com/openshift/origin/pkg/build/apis/build/install"
@@ -18,13 +16,7 @@ import (
 func TestCreateInstantiate(t *testing.T) {
 	imageStream := mocks.MockImageStream("testImageStream", "registry.com/namespace/imagename", map[string]string{"test": "newImageID123"})
 	image := mocks.MockImage("testImage@id", "registry.com/namespace/imagename@id")
-	fakeSecrets := []runtime.Object{}
-	for _, s := range mocks.MockBuilderSecrets() {
-		fakeSecrets = append(fakeSecrets, s)
-	}
 	rest := InstantiateREST{&generator.BuildGenerator{
-		Secrets:         fake.NewSimpleClientset(fakeSecrets...).Core(),
-		ServiceAccounts: mocks.MockBuilderServiceAccount(mocks.MockBuilderSecrets()),
 		Client: generator.TestingClient{
 			GetBuildConfigFunc: func(ctx apirequest.Context, name string, options *metav1.GetOptions) (*buildapi.BuildConfig, error) {
 				return mocks.MockBuildConfig(mocks.MockSource(), mocks.MockSourceStrategyForImageRepository(), mocks.MockOutput()), nil

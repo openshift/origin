@@ -141,8 +141,6 @@ func (c *BuildServerConfig) newV1RESTStorage() (map[string]rest.Storage, error) 
 			ImageStreamImages: imageClient.Image(),
 			ImageStreamTags:   imageClient.Image(),
 		},
-		ServiceAccounts: kubeInternalClient.Core(),
-		Secrets:         kubeInternalClient.Core(),
 	}
 	buildConfigWebHooks := buildconfigregistry.NewWebHookREST(
 		buildClient.Build(),

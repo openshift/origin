@@ -39,7 +39,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 			}
 		})
 
-		g.Describe("build with image source", func() {
+		g.Describe("build with input source image and s2i strategy", func() {
 			g.It("should complete successfully and contain the expected file", func() {
 				g.By("Creating build configs for source build")
 				err := oc.Run("create").Args("-f", buildFixture).Execute()
@@ -66,7 +66,7 @@ var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", 
 				o.Expect(out).To(o.ContainSubstring("ruby"))
 			})
 		})
-		g.Describe("build with image docker", func() {
+		g.Describe("build with input source image and docker strategy", func() {
 			g.It("should complete successfully and contain the expected file", func() {
 				g.By("Creating build configs for docker build")
 				err := oc.Run("create").Args("-f", buildFixture).Execute()

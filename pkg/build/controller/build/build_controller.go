@@ -481,7 +481,7 @@ func (bc *BuildController) createPodSpec(build *buildapi.Build) (*v1.Pod, error)
 	return podSpec, nil
 }
 
-// resolvePushSecretAsReference returns a LocalObjectReference to a secret that should
+// resolveImageSecretAsReference returns a LocalObjectReference to a secret that should
 // be able to push to the build's image output target.  The secret must be associated
 // with the service account for the build.
 // Note that we are using controller level permissions to resolve the secret,
@@ -491,7 +491,7 @@ func (bc *BuildController) createPodSpec(build *buildapi.Build) (*v1.Pod, error)
 // and ability to use a service account implies access to its secrets, so this is considered safe.
 // Furthermore it's necessary to enable triggered builds since a triggered build is not "requested"
 // by a particular user, so there are no user permissions to validate against in that case.
-func (bc *BuildController) resolvePushSecretAsReference(build *buildapi.Build, imagename string) (*kapi.LocalObjectReference, error) {
+func (bc *BuildController) resolveImageSecretAsReference(build *buildapi.Build, imagename string) (*kapi.LocalObjectReference, error) {
 	serviceAccount := build.Spec.ServiceAccount
 	if len(serviceAccount) == 0 {
 		serviceAccount = bootstrappolicy.BuilderServiceAccountName
@@ -511,7 +511,7 @@ func (bc *BuildController) resolvePushSecretAsReference(build *buildapi.Build, i
 	}
 	pushSecret := buildutil.FindDockerSecretAsReference(builderSecrets, imagename)
 	if pushSecret == nil {
-		glog.V(4).Infof("No secrets found for pushing or pulling image named %s from the %s %s/%s", imagename, build.Spec.Output.To.Kind, build.Namespace, build.Spec.Output.To.Name)
+		glog.V(4).Infof("No secrets found for pushing or pulling image named %s for build %s/%s", imagename, build.Namespace, build.Name)
 	}
 	return pushSecret, nil
 }
@@ -723,7 +723,6 @@ func (bc *BuildController) resolveImageReferences(build *buildapi.Build, update 
 		}
 		return err
 	}
-
 	// resolve the remaining references
 	errs := m.Mutate(func(ref *kapi.ObjectReference) error {
 		switch ref.Kind {
@@ -780,7 +779,7 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 	// Only look up a push secret if the user hasn't explicitly provided one.
 	if build.Spec.Output.PushSecret == nil && build.Spec.Output.To != nil && len(build.Spec.Output.To.Name) > 0 {
 		var err error
-		pushSecret, err = bc.resolvePushSecretAsReference(build, build.Spec.Output.To.Name)
+		pushSecret, err = bc.resolveImageSecretAsReference(build, build.Spec.Output.To.Name)
 		if err != nil {
 			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
 			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
@@ -788,6 +787,61 @@ func (bc *BuildController) createBuildPod(build *buildapi.Build) (*buildUpdate, 
 		}
 	}
 	build.Spec.Output.PushSecret = pushSecret
+
+	// Set the pullSecret that will be needed by the build to push the image to the registry
+	// at the end of the build.
+	var pullSecret *kapi.LocalObjectReference
+	var imageName string
+	switch {
+	case build.Spec.Strategy.SourceStrategy != nil:
+		pullSecret = build.Spec.Strategy.SourceStrategy.PullSecret
+		imageName = build.Spec.Strategy.SourceStrategy.From.Name
+	case build.Spec.Strategy.DockerStrategy != nil:
+		pullSecret = build.Spec.Strategy.DockerStrategy.PullSecret
+		if build.Spec.Strategy.DockerStrategy.From != nil {
+			imageName = build.Spec.Strategy.DockerStrategy.From.Name
+		}
+	case build.Spec.Strategy.CustomStrategy != nil:
+		pullSecret = build.Spec.Strategy.CustomStrategy.PullSecret
+		imageName = build.Spec.Strategy.CustomStrategy.From.Name
+	}
+	// Only look up a pull secret if the user hasn't explicitly provided one.
+	if pullSecret == nil && len(imageName) != 0 {
+		var err error
+		pullSecret, err = bc.resolveImageSecretAsReference(build, imageName)
+		if err != nil {
+			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
+			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
+			return update, err
+		}
+		if pullSecret != nil {
+			switch {
+			case build.Spec.Strategy.SourceStrategy != nil:
+				build.Spec.Strategy.SourceStrategy.PullSecret = pullSecret
+			case build.Spec.Strategy.DockerStrategy != nil:
+				build.Spec.Strategy.DockerStrategy.PullSecret = pullSecret
+			case build.Spec.Strategy.CustomStrategy != nil:
+				build.Spec.Strategy.CustomStrategy.PullSecret = pullSecret
+			}
+		}
+	}
+
+	for i, s := range build.Spec.Source.Images {
+		if s.PullSecret != nil {
+			continue
+		}
+		imageInputPullSecret, err := bc.resolveImageSecretAsReference(build, s.From.Name)
+		if err != nil {
+			update.setReason(buildapi.StatusReasonCannotRetrieveServiceAccount)
+			update.setMessage(buildapi.StatusMessageCannotRetrieveServiceAccount)
+			return update, err
+		}
+		build.Spec.Source.Images[i].PullSecret = imageInputPullSecret
+	}
+
+	if build.Spec.Strategy.CustomStrategy != nil {
+		updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, build.Spec.Strategy.CustomStrategy.From.Name)
+	}
 
 	// Create the build pod spec
 	buildPod, err := bc.createPodSpec(build)
@@ -1315,4 +1369,27 @@ func hasError(err error, fns ...utilerrors.Matcher) bool {
 		}
 	}
 	return false
+}
+
+// updateCustomImageEnv updates the base image env variable reference with the new image for a custom build strategy.
+// If no env variable reference exists, create a new env variable.
+func updateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage string) {
+	if strategy.Env == nil {
+		strategy.Env = make([]kapi.EnvVar, 1)
+		strategy.Env[0] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: newImage}
+	} else {
+		found := false
+		for i := range strategy.Env {
+			glog.V(4).Infof("Checking env variable %s %s", strategy.Env[i].Name, strategy.Env[i].Value)
+			if strategy.Env[i].Name == buildapi.CustomBuildStrategyBaseImageKey {
+				found = true
+				strategy.Env[i].Value = newImage
+				glog.V(4).Infof("Updated env variable %s to %s", strategy.Env[i].Name, strategy.Env[i].Value)
+				break
+			}
+		}
+		if !found {
+			strategy.Env = append(strategy.Env, kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: newImage})
+		}
+	}
 }

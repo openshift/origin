@@ -24,8 +24,8 @@ func NewBuildMutator(build *buildapi.Build) ImageReferenceMutator {
 
 func (m *buildSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
-	for i, image := range m.spec.Source.Images {
-		if err := fn(&image.From); err != nil {
+	for i := range m.spec.Source.Images {
+		if err := fn(&m.spec.Source.Images[i].From); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("source", "images").Index(i).Child("from", "name")))
 			continue
 		}
@@ -46,6 +46,12 @@ func (m *buildSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 		if err := fn(&s.From); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("strategy", "sourceStrategy", "from", "name")))
 		}
+		if s.RuntimeImage != nil {
+			if err := fn(s.RuntimeImage); err != nil {
+				errs = append(errs, fieldErrorOrInternal(err, m.path.Child("strategy", "sourceStrategy", "runtimeImage", "from", "name")))
+			}
+		}
+
 	}
 	if m.output {
 		if s := m.spec.Output.To; s != nil {
