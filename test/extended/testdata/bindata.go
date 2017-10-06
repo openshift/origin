@@ -9324,6 +9324,14 @@ var _testExtendedTestdataTestDockerBuildJson = []byte(`{
         {
           "name": "user-specified-label",
           "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
         }
       ]
     }
@@ -10256,6 +10264,14 @@ var _testExtendedTestdataTestS2iBuildJson = []byte(`{
         {
           "name": "user-specified-label",
           "value": "arbitrary-value"
+        },
+        {
+          "name": "io.k8s.display-name",
+          "value": "overridden"
+        },
+        {
+          "name": "io.openshift.builder-version",
+          "value": "overridden2"
         }
       ]
     }

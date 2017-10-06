@@ -430,7 +430,7 @@ func createLabelsForResultingImage(builder *STI, docker dockerpkg.Docker, baseIm
 	configLabels := builder.config.Labels
 	newLabels := builder.newLabels
 
-	return mergeLabels(configLabels, generatedLabels, existingLabels, newLabels)
+	return mergeLabels(existingLabels, generatedLabels, configLabels, newLabels)
 }
 
 func mergeLabels(labels ...map[string]string) map[string]string {
