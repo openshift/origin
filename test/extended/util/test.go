@@ -260,12 +260,9 @@ var (
 		`\[Skipped\]`,
 		`\[Slow\]`,
 		`\[Flaky\]`,
-		`\[Compatibility\]`,
-
-		`\[Feature:Performance\]`,
 
 		// not enabled in Origin yet
-		`\[Feature:GarbageCollector\]`,
+		//`\[Feature:GarbageCollector\]`,
 
 		// Depends on external components, may not need yet
 		`Monitoring`,            // Not installed, should be
@@ -281,7 +278,7 @@ var (
 		`Cinder`,                                                       // requires an OpenStack cluster
 		`should support r/w`,                                           // hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 		`should check that the kubernetes-dashboard instance is alive`, // we don't create this
-		`\[Feature:ManualPerformance\]`,                                // requires /resetMetrics which we don't expose
+		//		`\[Feature:ManualPerformance\]`,                                // requires /resetMetrics which we don't expose
 
 		// See the CanSupport implementation in upstream to determine wether these work.
 		`Ceph RBD`,           // Works if ceph-common Binary installed (but we can't guarantee this on all clusters).
@@ -289,44 +286,44 @@ var (
 		`should support r/w`, // hostPath: This test expects that host's tmp dir is WRITABLE by a container.  That isn't something we need to guarantee for openshift.
 
 		// Failing because of https://github.com/openshift/origin/issues/12365 against a real cluster
-		`should allow starting 95 pods per node`,
+		//`should allow starting 95 pods per node`,
 
 		// Need fixing
-		`Horizontal pod autoscaling`,                              // needs heapster
-		`PersistentVolume`,                                        // https://github.com/openshift/origin/pull/6884 for recycler
+		`Horizontal pod autoscaling`, // needs heapster
+		//`PersistentVolume`,                                        // https://github.com/openshift/origin/pull/6884 for recycler
 		`mount an API token into pods`,                            // We add 6 secrets, not 1
 		`ServiceAccounts should ensure a single API token exists`, // We create lots of secrets
 		`Networking should function for intra-pod`,                // Needs two nodes, add equiv test for 1 node, then use networking suite
 		`should test kube-proxy`,                                  // needs 2 nodes
 		`authentication: OpenLDAP`,                                // needs separate setup and bucketing for openldap bootstrapping
 		`NFS`, // no permissions https://github.com/openshift/origin/pull/6884
-		`\[Feature:Example\]`,                                      // may need to pre-pull images
-		`NodeProblemDetector`,                                      // requires a non-master node to run on
-		`unchanging, static URL paths for kubernetes api services`, // the test needs to exclude URLs that are not part of conformance (/logs)
+		`\[Feature:Example\]`, // has cleanup issues
+		`NodeProblemDetector`, // requires a non-master node to run on
+		//`unchanging, static URL paths for kubernetes api services`, // the test needs to exclude URLs that are not part of conformance (/logs)
 
 		// Needs triage to determine why it is failing
 		`Addon update`, // TRIAGE
 		`SSH`,          // TRIAGE
-		`\[Feature:Upgrade\]`,                                                // TRIAGE
-		`SELinux relabeling`,                                                 // started failing
-		`openshift mongodb replication creating from a template`,             // flaking on deployment
-		`Update Demo should do a rolling update of a replication controller`, // this is flaky and needs triaging
+		`\[Feature:Upgrade\]`,                                    // TRIAGE
+		`SELinux relabeling`,                                     // https://github.com/openshift/origin/issues/7287
+		`openshift mongodb replication creating from a template`, // flaking on deployment
+		//`Update Demo should do a rolling update of a replication controller`, // this is flaky and needs triaging
 
 		// Test will never work
 		`should proxy to cadvisor`, // we don't expose cAdvisor port directly for security reasons
 
 		// Need to relax security restrictions
-		`validates that InterPod Affinity and AntiAffinity is respected if matching`, // this *may* now be safe
+		//`validates that InterPod Affinity and AntiAffinity is respected if matching`, // this *may* now be safe
 
 		// Requires too many pods per node for the per core defaults
-		`should ensure that critical pod is scheduled in case there is no resources available`,
+		//`should ensure that critical pod is scheduled in case there is no resources available`,
 
 		// Need multiple nodes
 		`validates that InterPodAntiAffinity is respected if matching 2`,
 
 		// Inordinately slow tests
 		`should create and stop a working application`,
-		`should always delete fast`, // will be uncommented in etcd3
+		//`should always delete fast`, // will be uncommented in etcd3
 
 		// tested by networking.sh and requires the environment that script sets up
 		`\[networking\] OVS`,
@@ -341,15 +338,13 @@ var (
 		`\[Feature:Downgrade\]`,
 
 		// upstream flakes
-		`should provide basic identity`,                             // Basic StatefulSet functionality
-		`validates resource limits of pods that are allowed to run`, // SchedulerPredicates
-		`should idle the service and DeploymentConfig properly`,     // idling with a single service and DeploymentConfig [Conformance]
+		`validates resource limits of pods that are allowed to run`, // can't schedule to master due to node label limits, also fiddly
 
 		// TODO undisable:
-		"should be schedule to node that don't match the PodAntiAffinity terms",
-		"should perfer to scheduled to nodes pod can tolerate",
-		"should adopt matching orphans and release non-matching pods",
-		"should not deadlock when a pod's predecessor fails",
+		`should provide basic identity`,                               // needs a persistent volume provisioner in single node, host path not working
+		"should adopt matching orphans and release non-matching pods", // stateful set, broken?
+		"should not deadlock when a pod's predecessor fails",          // stateful set, broken?
+		`should idle the service and DeploymentConfig properly`,       // idling with a single service and DeploymentConfig [Conformance]
 
 		// slow as sin and twice as ugly (11m each)
 		"Pod should avoid to schedule to node that have avoidPod annotation",
@@ -385,6 +380,11 @@ var (
 		`should create a pod that prints his name and namespace`,
 		`ImageLookup`,
 		`DNS for pods for Hostname and Subdomain Annotation`,
+		`Garbage collector`,
+		`Kubectl apply should apply a new configuration to an existing RC`,
+		`Simple pod should handle in-cluster config`,
+		`Simple pod should support exec`,
+		`Namespaces .* should delete fast enough`,
 	}
 	conformanceTestsFilter = regexp.MustCompile(strings.Join(conformanceTests, `|`))
 
@@ -397,6 +397,7 @@ var (
 		`\[Feature:HighDensityPerformance\]`, // requires no other namespaces
 		`Service endpoints latency`,          // requires low latency
 		`Clean up pods on node`,              // schedules up to max pods per node
+		`should allow starting 95 pods per node`,
 	}
 	serialTestsFilter = regexp.MustCompile(strings.Join(serialTests, `|`))
 )
