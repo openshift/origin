@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit a5adf60e12ca7ed6d97c57e8aede8d76ac5cf4da
+%global commit 10f6455dd8d6a7572ad1758099ba566e16c7a1fb
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.143.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=13f2767
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.143.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=10f6455
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.143.1%{?dist}
+Release:        0.144.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,101 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Oct 06 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.144.0
+- switch build logs to use client, not storage (deads@redhat.com)
+- ensure builder labels override with proper priority (bparees@redhat.com)
+- align jenkins ext launch with new generic pod dump on failure
+  (gmontero@redhat.com)
+- UPSTREAM: 53446: kubelet: add latency metrics to network plugin manager
+  (sjenning@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  df6fb76a860d38f73ef066c199c261a6988cc4ab (bparees@redhat.com)
+- sdn: metrics fixes for review comments (dcbw@redhat.com)
+- build-go.sh: Fix unbound variable STARTTIME (miciah.masters@gmail.com)
+- make context message less noisy (bparees@redhat.com)
+- use the upstream admission plugin construction (deads@redhat.com)
+- apps: switch back to comparing encoded template config instead of comparing
+  rc template (mfojtik@redhat.com)
+- UPSTREAM: 53442: add nested encoder and decoder to admission config
+  (deads@redhat.com)
+- only allow one admission chain for the apiserveR (deads@redhat.com)
+- apps: update generations in extended test (mfojtik@redhat.com)
+- apps: remove deployment trigger controller (mfojtik@redhat.com)
+- add retry to openshift build prometheus ext test initial service access
+  (gmontero@redhat.com)
+- UPSTREAM: kubernetes-incubator/cluster-capacity: <drop>: update OWNERS
+  (skuznets@redhat.com)
+- wait for builder service account on necessary templateinstance/tsb tests
+  (jminter@redhat.com)
+- Generated updates (maszulik@redhat.com)
+- UPSTREAM: <drop>: generated updates (maszulik@redhat.com)
+- OpenShift changes after the rebase to 1.7.6 (maszulik@redhat.com)
+- UPSTREAM: <carry>: openapi generation for
+  createNamespacedDeploymentConfigRollback duplication problem
+  (maszulik@redhat.com)
+- UPSTREAM: docker/distribution: <carry>: Azure dependencies
+  (maszulik@redhat.com)
+- UPSTREAM: <drop>: Adapt etcd testing util to v3.2.1 (jliggitt@redhat.com)
+- UPSTREAM: <drop>: aggregate openapi through servers. 1.8 should fix tthis for
+  CRD (maszulik@redhat.com)
+- UPSTREAM: <carry>: update namespace lifecycle to allow review APIs
+  (deads@redhat.com)
+- UPSTREAM: 53318: create separate transports for liveness and readiness probes
+  (sjenning@redhat.com)
+- UPSTREAM: 52864: dockershim: fine-tune network-ready handling on sandbox
+  teardown and removal (dcbw@redhat.com)
+- UPSTREAM: 47806: kubelet: fix inconsistent display of terminated pod IPs by
+  using events instead (dcbw@redhat.com)
+- UPSTREAM: 53069: Align imagefs eviction defaults with image gc defaults
+  (sjenning@redhat.com)
+- UPSTREAM: 51035: Show events when describing service accounts
+  (mrogers@redhat.com)
+- UPSTREAM: 51972: ProducesObject should only update the returned API object
+  resource documentation (jminter@redhat.com)
+- UPSTREAM: 52112: Allow watch cache disablement per type (ccoleman@redhat.com)
+- UPSTREAM: 51796: Fix pod and node names switched around in error message.
+  (jminter@redhat.com)
+- UPSTREAM: 52691: FC plugin: Return target wwn + lun at GetVolumeName()
+  (hchen@redhat.com)
+- UPSTREAM: 52687: Refactoring and improvements for iSCSI and FC storage
+  plugins (hchen@redhat.com)
+- UPSTREAM: 52675: Fix FC WaitForAttach not mounting a volume
+  (hchen@redhat.com)
+- UPSTREAM: 50036: Bring volume operation metrics (hekumar@redhat.com)
+- bump(k8s.io/kubernetes): a08f5eeb6246134f4ae5443c0593d72fd057ea7c
+  (maszulik@redhat.com)
+- bump(github.com/emicklei/go-restful-swagger12):
+  885875a92c2ab7d6222e257e41f6ca2c1f010b4e (maszulik@redhat.com)
+- bump(github.com/google/cadvisor): c683567ed073eb6bcab81cccee79cd64a0e33811
+  (maszulik@redhat.com)
+- bump(github.com/docker/distribution):
+  1e2bbed6e09c6c8047f52af965a6e301f346d04e (maszulik@redhat.com)
+- bump(github.com/containers/image): dbd0a4cee2480da39048095a326506ae114d635a
+  (maszulik@redhat.com)
+- bump(github.com/fatih/structs): 7e5a8eef611ee84dd359503f3969f80df4c50723
+  (maszulik@redhat.com)
+- Update hack/godep-restore.sh to match fork names (maszulik@redhat.com)
+- Made the router skip health checks when there is one endpoint
+  (bbennett@redhat.com)
+- have tsb provision tests timeout after 20 minutes (jminter@redhat.com)
+- image-pruning: Improve help and error reporting (miminar@redhat.com)
+- apps: add unit test for deployment config metrics (mfojtik@redhat.com)
+- Run more e2e tests than we were before by simplifying our filters
+  (ccoleman@redhat.com)
+- UPSTREAM: <drop>: Fix gc test until 1.8 (ccoleman@redhat.com)
+- use PodSecurityPolicySubjectReview in build controller to avoid actually
+  submitting a pod (jminter@redhat.com)
+- filter out 'turn this on' config structs (deads@redhat.com)
+- UPSTREAM: <carry>: allow a filter function on admission registration
+  (deads@redhat.com)
+- oc process: show multiple parameter errors where present (jminter@redhat.com)
+- Sleep at the end of every `hack/env` invocation for logs
+  (skuznets@redhat.com)
+- add tests (jvallejo@redhat.com)
+- Use `os::cmd` in verification scripts (skuznets@redhat.com)
+- update completions (jvallejo@redhat.com)
+- add --sub-path opt to set-volume cmd (jvallejo@redhat.com)
+
 * Wed Oct 04 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.143.1
 - bump(github.com/openshift/origin-web-console):
   19ffee3e26eec1a757e1c2dc3e0df8e471b68293 (eparis+openshiftbot@redhat.com)
