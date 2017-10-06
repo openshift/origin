@@ -148,6 +148,8 @@ func setup(t *testing.T, stop chan struct{}) (*httptest.Server, framework.CloseF
 	config.ContentConfig.NegotiatedSerializer = nil
 	clientPool := dynamic.NewClientPool(config, api.Registry.RESTMapper(), dynamic.LegacyAPIPathResolverFunc)
 	sharedInformers := informers.NewSharedInformerFactory(clientSet, 0)
+	alwaysStarted := make(chan struct{})
+	close(alwaysStarted)
 	gc, err := garbagecollector.NewGarbageCollector(
 		metaOnlyClientPool,
 		clientPool,
@@ -155,6 +157,7 @@ func setup(t *testing.T, stop chan struct{}) (*httptest.Server, framework.CloseF
 		deletableGroupVersionResources,
 		garbagecollector.DefaultIgnoredResources(),
 		sharedInformers,
+		alwaysStarted,
 	)
 	if err != nil {
 		t.Fatalf("Failed to create garbage collector")
