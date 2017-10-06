@@ -215,6 +215,7 @@ var _ = framework.ServiceCatalogDescribe("walkthrough", func() {
 			},
 			Spec: v1alpha1.ServiceInstanceSpec{
 				ExternalServiceClassName: serviceclassName,
+                                ExternalServicePlanName:  "default",
 			},
 		}
 		instance, err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceInstances(testnamespace.Name).Create(instanceDef)
