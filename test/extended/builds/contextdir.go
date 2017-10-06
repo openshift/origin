@@ -29,7 +29,7 @@ var _ = g.Describe("[Feature:Builds][Slow] builds with a context directory", fun
 		dockerBuildName       = "dockercontext-1"
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {

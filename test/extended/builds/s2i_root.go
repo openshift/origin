@@ -18,7 +18,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a root user ima
 		oc           = exutil.NewCLI("s2i-build-root", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
 			err := exutil.WaitForBuilderAccount(oc.AdminKubeClient().Core().ServiceAccounts(oc.Namespace()))

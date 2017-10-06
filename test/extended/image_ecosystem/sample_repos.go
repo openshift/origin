@@ -35,7 +35,7 @@ func NewSampleRepoTest(c SampleRepoConfig) func() {
 		defer g.GinkgoRecover()
 		var oc = exutil.NewCLI(c.repoName+"-repo-test", exutil.KubeConfigPath())
 
-		g.Context("test context", func() {
+		g.Context("", func() {
 			g.JustBeforeEach(func() {
 				g.By("Waiting for builder service account")
 				err := exutil.WaitForBuilderAccount(oc.KubeClient().CoreV1().ServiceAccounts(oc.Namespace()))

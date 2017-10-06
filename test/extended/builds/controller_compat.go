@@ -15,7 +15,7 @@ var _ = g.Describe("[bldcompat][Slow][Compatibility] build controller", func() {
 		oc = exutil.NewCLI("compat-build-controllers", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			os.Setenv("OS_TEST_NAMESPACE", oc.Namespace())

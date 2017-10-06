@@ -21,7 +21,7 @@ var _ = g.Describe("[Feature:Builds][pullsecret][Conformance] docker build using
 		oc           = exutil.NewCLI("docker-build-pullsecret", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")

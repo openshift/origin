@@ -29,7 +29,7 @@ var _ = g.Describe("[image_ecosystem][perl][Slow] hot deploy for openshift perl 
 		dcLabelTwo     = exutil.ParseLabelsOrDie(fmt.Sprintf("deployment=%s", rcNameTwo))
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 		g.AfterEach(func() {
 			if g.CurrentGinkgoTestDescription().Failed {
 				exutil.DumpPodStates(oc)

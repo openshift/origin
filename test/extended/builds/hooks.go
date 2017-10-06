@@ -14,7 +14,7 @@ var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", f
 		oc           = exutil.NewCLI("cli-test-hooks", exutil.KubeConfigPath())
 	)
 
-	g.Context("test context", func() {
+	g.Context("", func() {
 
 		g.JustBeforeEach(func() {
 			g.By("waiting for builder service account")
