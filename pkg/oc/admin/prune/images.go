@@ -382,25 +382,32 @@ func (p *describingImageStreamDeleter) GetImageStream(stream *imageapi.ImageStre
 	return stream, nil
 }
 
-func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
-	if !p.headerPrinted {
-		p.headerPrinted = true
-		fmt.Fprintln(p.w, "Deleting references from image streams to images ...")
-		fmt.Fprintln(p.w, "STREAM\tIMAGE\tTAGS")
-	}
-
-	fmt.Fprintf(p.w, "%s/%s\t%s\t%s\n", stream.Namespace, stream.Name, image.Name, strings.Join(updatedTags, ", "))
-
+func (p *describingImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	if p.delegate == nil {
 		return stream, nil
 	}
 
-	updatedStream, err := p.delegate.UpdateImageStream(stream, image, updatedTags)
+	updatedStream, err := p.delegate.UpdateImageStream(stream)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error updating image stream %s/%s to remove references to image %s: %v\n", stream.Namespace, stream.Name, image.Name, err)
+		fmt.Fprintf(os.Stderr, "error updating image stream %s/%s to remove image references: %v\n", stream.Namespace, stream.Name, err)
 	}
 
 	return updatedStream, err
+}
+
+func (p *describingImageStreamDeleter) NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string) {
+	if !p.headerPrinted {
+		p.headerPrinted = true
+		fmt.Fprintln(p.w, "Deleting references from image streams to images ...")
+		fmt.Fprintln(p.w, "STREAM\tACTION\tTAGS")
+	}
+
+	if len(updatedTags) > 0 {
+		fmt.Fprintf(p.w, "%s/%s\tUpdated\t%s\n", stream.Namespace, stream.Name, strings.Join(updatedTags, ", "))
+	}
+	if len(deletedTags) > 0 {
+		fmt.Fprintf(p.w, "%s/%s\tDeleted\t%s\n", stream.Namespace, stream.Name, strings.Join(deletedTags, ", "))
+	}
 }
 
 // describingImageDeleter prints information about each image being deleted.
