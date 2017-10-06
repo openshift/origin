@@ -35,7 +35,7 @@ const (
 	// NOTE: The value for this label may not contain the entire Build name because it will be
 	// truncated to maximum label length.
 	BuildLabel = "openshift.io/build.name"
-	// BuildRunPolicyLabel represents the start policy used to to start the build.
+	// BuildRunPolicyLabel represents the start policy used to start the build.
 	BuildRunPolicyLabel = "openshift.io/build.start-policy"
 	// DefaultDockerLabelNamespace is the key of a Build label, whose values are build metadata.
 	DefaultDockerLabelNamespace = "io.openshift."
