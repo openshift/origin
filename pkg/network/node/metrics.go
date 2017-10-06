@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/openshift/origin/pkg/util/ovs"
@@ -121,7 +120,7 @@ func RegisterMetrics() {
 
 // Gets the time since the specified start in microseconds.
 func sinceInMicroseconds(start time.Time) float64 {
-	return float64(time.Since(start).Nanoseconds() / time.Microsecond.Nanoseconds())
+	return float64(time.Since(start) / time.Microsecond)
 }
 
 func gatherPeriodicMetrics(ovs ovs.Interface) {
@@ -153,7 +152,7 @@ func updateARPMetrics() {
 	// gc_thresh2 isn't the absolute max, but it's the level at which
 	// garbage collection (and thus problems) could start.
 	data, err = ioutil.ReadFile("/proc/sys/net/ipv4/neigh/default/gc_thresh2")
-	if pathErr, ok := err.(*os.PathError); ok && pathErr.Err == syscall.ENOENT {
+	if err != nil && os.IsNotExist(err) {
 		// gc_thresh* may not exist in some cases; don't log an error
 		return
 	} else if err != nil {
@@ -161,7 +160,7 @@ func updateARPMetrics() {
 		return
 	}
 
-	max, err := strconv.Atoi(string(data))
+	max, err := strconv.Atoi(strings.TrimSpace(string(data)))
 	if err == nil {
 		available := max - used
 		if available < 0 {
@@ -176,7 +175,7 @@ func updateARPMetrics() {
 func updatePodIPMetrics() {
 	numAddrs := 0
 	items, err := ioutil.ReadDir("/var/lib/cni/networks/openshift-sdn/")
-	if pathErr, ok := err.(*os.PathError); ok && pathErr.Err == syscall.ENOENT {
+	if err != nil && os.IsNotExist(err) {
 		// Don't log an error if the directory doesn't exist (eg, no pods started yet)
 		return
 	} else if err != nil {
@@ -188,5 +187,5 @@ func updatePodIPMetrics() {
 			numAddrs++
 		}
 	}
-	OVSFlows.Set(float64(numAddrs))
+	PodIPs.Set(float64(numAddrs))
 }
