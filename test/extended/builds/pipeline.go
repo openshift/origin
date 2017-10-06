@@ -37,7 +37,7 @@ func debugAnyJenkinsFailure(br *exutil.BuildResult, name string, oc *exutil.CLI,
 		br.LogDumper = jenkins.DumpLogs
 		fmt.Fprintf(g.GinkgoWriter, "\n\n START debugAnyJenkinsFailure\n\n")
 		j := jenkins.NewRef(oc)
-		jobLog, err := j.GetLastJobConsoleLogs(name)
+		jobLog, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "")
 		if err == nil {
 			fmt.Fprintf(g.GinkgoWriter, "\n %s job log:\n%s", name, jobLog)
 		} else {
@@ -229,11 +229,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
 
-			g.By("getting job log")
-			out, err := j.GetLastJobConsoleLogs(oc.Namespace() + "-openshift-jee-sample")
+			g.By("getting job log, make sure has success message")
+			out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("making sure job log has success message")
-			o.Expect(out).To(o.ContainSubstring("Finished: SUCCESS"))
 			g.By("making sure job log ran with our config map slave pod template")
 			o.Expect(out).To(o.ContainSubstring("Running on jenkins-slave"))
 		})
@@ -281,11 +279,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
 
-			g.By("getting job log")
-			out, err := j.GetLastJobConsoleLogs(oc.Namespace() + "-openshift-jee-sample")
+			g.By("getting job log, making sure job log has success message")
+			out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("making sure job log has success message")
-			o.Expect(out).To(o.ContainSubstring("Finished: SUCCESS"))
 			g.By("making sure job log ran with our config map slave pod template")
 			o.Expect(out).To(o.ContainSubstring("Running on jenkins-slave"))
 		})
@@ -333,11 +329,9 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			debugAnyJenkinsFailure(br, oc.Namespace()+"-openshift-jee-sample", oc, true)
 			br.AssertSuccess()
 
-			g.By("getting job log")
-			out, err := j.GetLastJobConsoleLogs(oc.Namespace() + "-openshift-jee-sample")
+			g.By("getting job log, making sure job log has success message")
+			out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			o.Expect(err).NotTo(o.HaveOccurred())
-			g.By("making sure job log has success message")
-			o.Expect(out).To(o.ContainSubstring("Finished: SUCCESS"))
 			g.By("making sure job log ran with our config map slave pod template")
 			o.Expect(out).To(o.ContainSubstring("Running on slave-jenkins"))
 		})
@@ -385,7 +379,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			br.AssertSuccess()
 
 			g.By("get build console logs and see if succeeded")
-			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-openshift-client-plugin/lastBuild/consoleText", oc.Namespace())
+			_, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			o.Expect(err).NotTo(o.HaveOccurred())
 		})
 	})
@@ -434,7 +428,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			o.Expect(err).NotTo(o.HaveOccurred())
 
 			g.By("get build console logs and see if succeeded")
-			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			out, err := j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
@@ -442,14 +436,13 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("get build console logs and see if env is set")
-			_, err = j.WaitForContent("FOO2 is BAR2", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
-			if err != nil {
+			g.By("and see if env is set")
+			if !strings.Contains(out, "FOO2 is BAR2") {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
+				o.Expect(out).To(o.ContainSubstring("FOO2 is BAR2"))
 			}
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 			// start the nextbuild
 			g.By("starting the pipeline build and waiting for it to complete")
@@ -463,7 +456,7 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			br.AssertSuccess()
 
 			g.By("get build console logs and see if succeeded")
-			_, err = j.WaitForContent("Finished: SUCCESS", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
+			out, err = j.GetJobConsoleLogsAndMatchViaBuildResult(br, "Finished: SUCCESS")
 			if err != nil {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
@@ -471,23 +464,21 @@ var _ = g.Describe("[Feature:Builds][Slow] openshift pipeline build", func() {
 			}
 			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("get build console logs and see if env is set")
-			_, err = j.WaitForContent("FOO1 is BAR1", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
-			if err != nil {
+			g.By("and see if env FOO1 is set")
+			if !strings.Contains(out, "FOO1 is BAR1") {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
+				o.Expect(out).To(o.ContainSubstring("FOO1 is BAR1"))
 			}
-			o.Expect(err).NotTo(o.HaveOccurred())
 
-			g.By("get build console logs and see if env is still not set")
-			_, err = j.WaitForContent("FOO2 is null", 200, 10*time.Minute, "job/%s-sample-pipeline-withenvs/lastBuild/consoleText", oc.Namespace())
-			if err != nil {
+			g.By("and see if env FOO2 is still not set")
+			if !strings.Contains(out, "FOO2 is null") {
 				exutil.DumpApplicationPodLogs("jenkins", oc)
 				exutil.ExaminePodDiskUsage(oc)
 				exutil.ExamineDiskUsage()
+				o.Expect(out).To(o.ContainSubstring("FOO2 is null"))
 			}
-			o.Expect(err).NotTo(o.HaveOccurred())
 
 		})
 	})
