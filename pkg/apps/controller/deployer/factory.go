@@ -48,7 +48,8 @@ func NewDeployerController(
 		rn: kubeClientset.Core(),
 		pn: kubeClientset.Core(),
 
-		queue: workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		queue:        workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+		expectations: kcontroller.NewControllerExpectations(),
 
 		rcLister:        rcInformer.Lister(),
 		rcListerSynced:  rcInformer.Informer().HasSynced,
@@ -68,6 +69,7 @@ func NewDeployerController(
 	})
 
 	podInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.addPod,
 		UpdateFunc: c.updatePod,
 		DeleteFunc: c.deletePod,
 	})
@@ -124,6 +126,15 @@ func (c *DeploymentController) updateReplicationController(old, cur interface{})
 	c.enqueueReplicationController(curRC)
 }
 
+func (c *DeploymentController) addPod(obj interface{}) {
+	pod := obj.(*v1.Pod)
+
+	rc, err := c.rcForDeployerPod(pod)
+	if err == nil && rc != nil {
+		c.enqueueReplicationController(rc)
+	}
+}
+
 func (c *DeploymentController) updatePod(old, cur interface{}) {
 	// A periodic relist will send update events for all known pods.
 	curPod := cur.(*v1.Pod)
@@ -157,10 +168,18 @@ func (c *DeploymentController) deletePod(obj interface{}) {
 	}
 }
 
-func (c *DeploymentController) enqueueReplicationController(rc *v1.ReplicationController) {
+func getKeyForReplicationController(rc *v1.ReplicationController) (string, error) {
 	key, err := kcontroller.KeyFunc(rc)
 	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", rc, err))
+		return key, fmt.Errorf("Couldn't get key for object %#v: %v", rc, err)
+	}
+	return key, nil
+}
+
+func (c *DeploymentController) enqueueReplicationController(rc *v1.ReplicationController) {
+	key, err := getKeyForReplicationController(rc)
+	if err != nil {
+		utilruntime.HandleError(err)
 		return
 	}
 	c.queue.Add(key)
