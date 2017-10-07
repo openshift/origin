@@ -228,6 +228,13 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 	latest, ok, err := registry.WaitForRunningBuild(h.r.BuildClient, build, remaining)
 
 	switch {
+	// err checks, no ok check, needs to occur before ref to latest
+	case err == registry.ErrBuildDeleted:
+		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, buildutil.NoBuildLogsMessage))
+	case err != nil:
+		return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
+	case !ok:
+		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
 	case latest.Status.Phase == buildapi.BuildPhaseError:
 		// don't cancel the build if it reached a terminal state on its own
 		cancel = false
@@ -242,12 +249,6 @@ func (h *binaryInstantiateHandler) handle(r io.Reader) (runtime.Object, error) {
 		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was cancelled: %s", build.Name, buildutil.NoBuildLogsMessage))
 	case latest.Status.Phase != buildapi.BuildPhaseRunning:
 		return nil, errors.NewBadRequest(fmt.Sprintf("cannot upload file to build %s with status %s", build.Name, latest.Status.Phase))
-	case err == registry.ErrBuildDeleted:
-		return nil, errors.NewBadRequest(fmt.Sprintf("build %s was deleted before it started: %s", build.Name, buildutil.NoBuildLogsMessage))
-	case err != nil:
-		return nil, errors.NewBadRequest(fmt.Sprintf("unable to wait for build %s to run: %v", build.Name, err))
-	case !ok:
-		return nil, errors.NewTimeoutError(fmt.Sprintf("timed out waiting for build %s to start after %s", build.Name, h.r.Timeout), 0)
 	}
 
 	buildPodName := buildapi.GetBuildPodName(build)
