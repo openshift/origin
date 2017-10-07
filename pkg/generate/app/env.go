@@ -104,6 +104,46 @@ func (e Environment) List() []kapi.EnvVar {
 	return env
 }
 
+type EnvVars map[string]kapi.EnvVar
+
+// Add - adds an environment variable to the current environment
+// name - is the environment variable name.
+// value - is the value (string) assigned to the environment variable.
+func (e EnvVars) Add(name, value string) {
+	e[name] = kapi.EnvVar{Name: name, Value: value}
+}
+
+// AddSecret - adds an environment variable that references a secret
+// to the current environment.
+// The secret is created elsewhere. This just sets up the environment
+// variable to reference a specified key in the named secret.
+// name - is the environment variable name.
+// secret - is the name of the previously created secret.
+// key - is the key within the secret.
+func (e EnvVars) AddSecret(name, secret, key string) {
+	e[name] = kapi.EnvVar{Name: name,
+		ValueFrom: &kapi.EnvVarSource{
+			SecretKeyRef: &kapi.SecretKeySelector{
+				LocalObjectReference: kapi.LocalObjectReference{
+					Name: secret,
+				},
+				Key: key,
+			},
+		},
+	}
+}
+
+// Create a sorted list of all environment variables
+func (e EnvVars) List() []kapi.EnvVar {
+	env := []kapi.EnvVar{}
+	for _, v := range e {
+		env = append(env, v)
+	}
+	sort.Sort(sortedEnvVar(env))
+
+	return env
+}
+
 type sortedEnvVar []kapi.EnvVar
 
 func (m sortedEnvVar) Len() int           { return len(m) }
