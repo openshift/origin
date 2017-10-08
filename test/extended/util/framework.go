@@ -341,7 +341,7 @@ type LogDumperFunc func(oc *CLI, br *BuildResult) (string, error)
 
 func NewBuildResult(oc *CLI, build *buildapi.Build) *BuildResult {
 	return &BuildResult{
-		oc:        oc,
+		Oc:        oc,
 		BuildName: build.Name,
 		BuildPath: "builds/" + build.Name,
 	}
@@ -376,7 +376,7 @@ type BuildResult struct {
 	// Alternate log dumper function. If set, this is called instead of 'oc logs'
 	LogDumper LogDumperFunc
 	// The openshift client which created this build.
-	oc *CLI
+	Oc *CLI
 }
 
 // DumpLogs sends logs associated with this BuildResult to the GinkgoWriter.
@@ -389,7 +389,7 @@ func (t *BuildResult) DumpLogs() {
 		return
 	}
 
-	desc, err := t.oc.Run("describe").Args(t.BuildPath).Output()
+	desc, err := t.Oc.Run("describe").Args(t.BuildPath).Output()
 
 	e2e.Logf("\n** Build Description:\n")
 	if err != nil {
@@ -422,7 +422,7 @@ func (t *BuildResult) DumpLogs() {
 
 func (t *BuildResult) dumpRegistryLogs() {
 	var buildStarted *time.Time
-	oc := t.oc
+	oc := t.Oc
 	e2e.Logf("\n** Registry Logs:\n")
 
 	if t.Build != nil && !t.Build.CreationTimestamp.IsZero() {
@@ -446,15 +446,15 @@ func (t *BuildResult) dumpRegistryLogs() {
 	// Changing the namespace on the derived client still changes it on the original client
 	// because the kubeFramework field is only copied by reference. Saving the original namespace
 	// here so we can restore it when done with registry logs
-	savedNamespace := t.oc.Namespace()
-	oadm := t.oc.AsAdmin().SetNamespace("default")
+	savedNamespace := t.Oc.Namespace()
+	oadm := t.Oc.AsAdmin().SetNamespace("default")
 	out, err := oadm.Run("logs").Args("dc/docker-registry", "--since="+since.String()).Output()
 	if err != nil {
 		e2e.Logf("Error during log retrieval: %+v\n", err)
 	} else {
 		e2e.Logf("%s\n", out)
 	}
-	t.oc.SetNamespace(savedNamespace)
+	t.Oc.SetNamespace(savedNamespace)
 
 	e2e.Logf("\n\n")
 }
@@ -466,10 +466,10 @@ func (t *BuildResult) Logs() (string, error) {
 	}
 
 	if t.LogDumper != nil {
-		return t.LogDumper(t.oc, t)
+		return t.LogDumper(t.Oc, t)
 	}
 
-	buildOuput, err := t.oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()
+	buildOuput, err := t.Oc.Run("logs").Args("-f", t.BuildPath, "--timestamps").Output()
 	if err != nil {
 		return "", fmt.Errorf("Error retrieving logs for %#v: %v", *t, err)
 	}
@@ -515,7 +515,7 @@ func StartBuildResult(oc *CLI, args ...string) (result *BuildResult, err error) 
 		BuildFailure:     false,
 		BuildCancelled:   false,
 		BuildTimeout:     false,
-		oc:               oc,
+		Oc:               oc,
 	}
 
 	// An error here does not necessarily mean we could not run start-build. For example
