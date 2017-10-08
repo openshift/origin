@@ -16,6 +16,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/vishvananda/netlink"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -297,7 +298,11 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 }
 
 func (node *OsdnNode) Start() error {
-	log.V(2).Infof("Starting openshift-sdn network plugin")
+	glog.V(2).Infof("Starting openshift-sdn network plugin")
+
+	if err := validateNetworkPluginName(node.networkClient, node.policy.Name()); err != nil {
+		return fmt.Errorf("failed to validate network configuration: %v", err)
+	}
 
 	var err error
 	node.networkInfo, err = common.GetNetworkInfo(node.networkClient)
@@ -502,4 +507,19 @@ func (node *OsdnNode) handleDeleteService(obj interface{}) {
 	serv := obj.(*kapi.Service)
 	glog.V(5).Infof("Watch %s event for Service %q", watch.Deleted, serv.Name)
 	node.DeleteServiceRules(serv)
+}
+
+func validateNetworkPluginName(networkClient networkclient.Interface, pluginName string) error {
+	// Detect any plugin mismatches between node and master
+	clusterNetwork, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
+	switch {
+	case errors.IsNotFound(err):
+		return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
+	case err != nil:
+		return fmt.Errorf("cannot fetch %q cluster network: %v", networkapi.ClusterNetworkDefault, err)
+	}
+	if clusterNetwork.PluginName != strings.ToLower(pluginName) {
+		return fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
+	}
+	return nil
 }

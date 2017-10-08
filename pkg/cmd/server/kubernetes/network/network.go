@@ -35,8 +35,9 @@ func (c *NetworkConfig) RunSDN() {
 	if c.SDNNode == nil {
 		return
 	}
+
 	if err := c.SDNNode.Start(); err != nil {
-		glog.Fatalf("error: SDN node startup failed: %v", err)
+		glog.Fatalf("SDN node startup failed: %v", err)
 	}
 }
 
