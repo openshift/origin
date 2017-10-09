@@ -380,11 +380,23 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 	}
 
-	g.It("should pass an end-to-end test", func() {
-		catalog()
-		provision()
-		bind()
-		unbind()
-		deprovision()
+	g.Context("", func() {
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(tsbOC)
+				exutil.DumpPodLogsStartingWith("", tsbOC)
+
+				exutil.DumpPodStates(cli)
+				exutil.DumpPodLogsStartingWith("", cli)
+			}
+		})
+
+		g.It("should pass an end-to-end test", func() {
+			catalog()
+			provision()
+			bind()
+			unbind()
+			deprovision()
+		})
 	})
 })
