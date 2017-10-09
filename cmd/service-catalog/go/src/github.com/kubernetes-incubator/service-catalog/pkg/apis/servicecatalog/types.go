@@ -57,6 +57,7 @@ type ServiceBrokerSpec struct {
 	// This is strongly discouraged.  You should use the CABundle instead.
 	// +optional
 	InsecureSkipTLSVerify bool
+
 	// CABundle is a PEM encoded CA bundle which will be used to validate a Broker's serving certificate.
 	// +optional
 	CABundle []byte
@@ -217,11 +218,25 @@ type ServiceClass struct {
 	metav1.TypeMeta
 	metav1.ObjectMeta
 
+	Spec ServiceClassSpec
+}
+
+// ServiceClassSpec represents details about a ServicePlan
+type ServiceClassSpec struct {
 	// ServiceBrokerName is the reference to the Broker that provides this
 	// ServiceClass.
 	//
 	// Immutable.
 	ServiceBrokerName string
+
+	// ExternalName is the name of this object that the Service Broker
+	// exposed this Service Class as. Mutable.
+	ExternalName string
+
+	// ExternalID is the identity of this object for use with the OSB API.
+	//
+	// Immutable.
+	ExternalID string
 
 	// Description is a short description of this ServiceClass.
 	Description string
@@ -231,18 +246,9 @@ type ServiceClass struct {
 	// Bindable which overrides the value of this field.
 	Bindable bool
 
-	// Plans is the list of ServicePlans for this ServiceClass.  All
-	// ServiceClasses have at least one ServicePlan.
-	Plans []ServicePlan
-
 	// PlanUpdatable indicates whether instances provisioned from this
 	// ServiceClass may change ServicePlans after being provisioned.
 	PlanUpdatable bool
-
-	// ExternalID is the identity of this object for use with the OSB API.
-	//
-	// Immutable.
-	ExternalID string
 
 	// ExternalMetadata is a blob of information about the ServiceClass, meant
 	// to be user-facing content and display instructions.  This field may
@@ -268,10 +274,34 @@ type ServiceClass struct {
 	Requires []string
 }
 
+// ServicePlanList is a list of ServicePlans.
+type ServicePlanList struct {
+	metav1.TypeMeta
+	metav1.ListMeta
+
+	Items []ServicePlan
+}
+
+// +genclient=true
+// +nonNamespaced=true
+
 // ServicePlan represents a tier of a ServiceClass.
 type ServicePlan struct {
-	// Name is the CLI-friendly name of this ServicePlan.
-	Name string
+	metav1.TypeMeta
+	metav1.ObjectMeta
+
+	Spec ServicePlanSpec
+}
+
+// ServicePlanSpec represents details about the ServicePlan
+type ServicePlanSpec struct {
+	// ServiceBrokerName is the name of the ServiceBroker that offers this
+	// ServicePlan.
+	ServiceBrokerName string
+
+	// ExternalName is the name of this object that the Service Broker
+	// exposed this Service Plan as. Mutable.
+	ExternalName string
 
 	// ExternalID is the identity of this object for use with the OSB API.
 	//
@@ -315,6 +345,10 @@ type ServicePlan struct {
 	// ServiceInstanceCredentialCreateParameterSchema is the schema for the parameters that
 	// may be supplied binding to an ServiceInstance on this plan.
 	ServiceInstanceCredentialCreateParameterSchema *runtime.RawExtension
+
+	// ServiceClassRef is a reference to the service class that
+	// owns this plan.
+	ServiceClassRef v1.LocalObjectReference
 }
 
 // ServiceInstanceList is a list of instances.
@@ -356,23 +390,42 @@ type ServiceInstance struct {
 
 // ServiceInstanceSpec represents the desired state of an Instance.
 type ServiceInstanceSpec struct {
-	// ServiceClassName is the name of the ServiceClass this ServiceInstance
-	// should be provisioned from.
+	// ExternalServiceClassName is the human-readable name of the service
+	// as reported by the broker. Note that if the broker changes
+	// the name of the ServiceClass, it will not be reflected here,
+	// and to see the current name of the ServiceClass, you should
+	// follow the ServiceClassRef below.
 	//
 	// Immutable.
-	ServiceClassName string
+	ExternalServiceClassName string
 
-	// PlanName is the name of the ServicePlan this ServiceInstance should be
-	// provisioned from.
-	PlanName string
+	// ExternalServicePlanName is the human-readable name of the plan
+	// as reported by the broker. Note that if the broker changes
+	// the name of the ServicePlan, it will not be reflected here,
+	// and to see the current name of the ServicePlan, you should
+	// follow the ServicePlanRef below.
+	ExternalServicePlanName string
 
-	// Parameters is a set of the parameters to be
-	// passed to the underlying broker.
-	// The inline YAML/JSON payload to be translated into equivalent
-	// JSON object.
-	// If a top-level parameter name exists in multiples sources among
-	// `Parameters` and `ParametersFrom` fields, it is
-	// considered to be a user error in the specification
+	// ServiceClassRef is a reference to the ServiceClass
+	// that the user selected.
+	// This is set by the controller based on ExternalServiceClassName
+	ServiceClassRef *v1.ObjectReference
+	// ServicePlanRef is a reference to the ServicePlan
+	// that the user selected.
+	// This is set by the controller based on ExternalServicePlanName
+	ServicePlanRef *v1.ObjectReference
+
+	// Parameters is a set of the parameters to be passed to the underlying
+	// broker. The inline YAML/JSON payload to be translated into equivalent
+	// JSON object. If a top-level parameter name exists in multiples sources
+	// among `Parameters` and `ParametersFrom` fields, it is considered to be
+	// a user error in the specification
+	//
+	// The Parameters field is NOT secret or secured in any way and should
+	// NEVER be used to hold sensitive information. To set parameters that
+	// contain secret information, you should ALWAYS store that information
+	// in a Secret and use the ParametersFrom field.
+	//
 	// +optional
 	Parameters *runtime.RawExtension
 
@@ -408,6 +461,10 @@ type ServiceInstanceStatus struct {
 	// against this ServiceInstance in progress.
 	AsyncOpInProgress bool
 
+	// OrphanMitigationInProgress is set to true if there is an ongoing orphan
+	// mitigation operation against this ServiceInstance in progress.
+	OrphanMitigationInProgress bool
+
 	// LastOperation is the string that the broker may have returned when
 	// an async operation started, it should be sent back to the broker
 	// on poll requests as a query param.
@@ -417,6 +474,10 @@ type ServiceInstanceStatus struct {
 	// the service instance.
 	DashboardURL *string
 
+	// CurrentOperation is the operation the Controller is currently performing
+	// on the ServiceInstance.
+	CurrentOperation ServiceInstanceOperation
+
 	// ReconciledGeneration is the 'Generation' of the serviceInstanceSpec that
 	// was last processed by the controller. The reconciled generation is updated
 	// even if the controller failed to process the spec.
@@ -424,6 +485,15 @@ type ServiceInstanceStatus struct {
 
 	// OperationStartTime is the time at which the current operation began.
 	OperationStartTime *metav1.Time
+
+	// InProgressProperties is the properties state of the ServiceInstance when
+	// a Provision or Update is in progress. If the current operation is a
+	// Deprovision, this will be nil.
+	InProgressProperties *ServiceInstancePropertiesState
+
+	// ExternalProperties is the properties state of the ServiceInstance which the
+	// broker knows about.
+	ExternalProperties *ServiceInstancePropertiesState
 }
 
 // ServiceInstanceCondition contains condition information about an Instance.
@@ -460,6 +530,42 @@ const (
 	ServiceInstanceConditionFailed ServiceInstanceConditionType = "Failed"
 )
 
+// ServiceInstanceOperation represents a type of operation the controller can
+// be performing for a service instance in the OSB API.
+type ServiceInstanceOperation string
+
+const (
+	// ServiceInstanceOperationProvision indicates that the ServiceInstance is
+	// being Provisioned.
+	ServiceInstanceOperationProvision ServiceInstanceOperation = "Provision"
+	// ServiceInstanceOperationUpdate indicates that the ServiceInstance is
+	// being Updated.
+	ServiceInstanceOperationUpdate ServiceInstanceOperation = "Update"
+	// ServiceInstanceOperationDeprovision indicates that the ServiceInstance is
+	// being Deprovisioned.
+	ServiceInstanceOperationDeprovision ServiceInstanceOperation = "Deprovision"
+)
+
+// ServiceInstancePropertiesState is the state of a ServiceInstance that
+// the ServiceBroker knows about.
+type ServiceInstancePropertiesState struct {
+	// ExternalServicePlanName is the name of the plan that the broker knows this
+	// ServiceInstance to be on. This is the human readable plan name from the
+	// OSB API.
+	ExternalServicePlanName string
+
+	// Parameters is a blob of the parameters and their values that the broker
+	// knows about for this ServiceInstance.  If a parameter was sourced from
+	// a secret, its value will be "<redacted>" in this blob.
+	Parameters *runtime.RawExtension
+
+	// ParametersChecksum is the checksum of the parameters that were sent.
+	ParametersChecksum string
+
+	// UserInfo is information about the user that made the request.
+	UserInfo *UserInfo
+}
+
 // ServiceInstanceCredentialList is a list of ServiceInstanceCredentials.
 type ServiceInstanceCredentialList struct {
 	metav1.TypeMeta
@@ -491,13 +597,17 @@ type ServiceInstanceCredentialSpec struct {
 	// Immutable.
 	ServiceInstanceRef v1.LocalObjectReference
 
-	// Parameters is a set of the parameters to be
-	// passed to the underlying broker.
-	// The inline YAML/JSON payload to be translated into equivalent
-	// JSON object.
-	// If a top-level parameter name exists in multiples sources among
-	// `Parameters` and `ParametersFrom` fields, it is
-	// considered to be a user error in the specification
+	// Parameters is a set of the parameters to be passed to the underlying
+	// broker. The inline YAML/JSON payload to be translated into equivalent
+	// JSON object. If a top-level parameter name exists in multiples sources
+	// among `Parameters` and `ParametersFrom` fields, it is considered to be
+	// a user error in the specification.
+	//
+	// The Parameters field is NOT secret or secured in any way and should
+	// NEVER be used to hold sensitive information. To set parameters that
+	// contain secret information, you should ALWAYS store that information
+	// in a Secret and use the ParametersFrom field.
+	//
 	// +optional
 	Parameters *runtime.RawExtension
 
@@ -531,6 +641,10 @@ type ServiceInstanceCredentialSpec struct {
 type ServiceInstanceCredentialStatus struct {
 	Conditions []ServiceInstanceCredentialCondition
 
+	// CurrentOperation is the operation the Controller is currently performing
+	// on the ServiceInstanceCredential.
+	CurrentOperation ServiceInstanceCredentialOperation
+
 	// ReconciledGeneration is the 'Generation' of the
 	// serviceInstanceCredentialSpec that was last processed by the controller.
 	// The reconciled generation is updated even if the controller failed to
@@ -539,6 +653,15 @@ type ServiceInstanceCredentialStatus struct {
 
 	// OperationStartTime is the time at which the current operation began.
 	OperationStartTime *metav1.Time
+
+	// InProgressProperties is the properties state of the
+	// ServiceInstanceCredential when a Bind is in progress. If the current
+	// operation is an Unbind, this will be nil.
+	InProgressProperties *ServiceInstanceCredentialPropertiesState
+
+	// ExternalProperties is the properties state of the
+	// ServiceInstanceCredential which the broker knows about.
+	ExternalProperties *ServiceInstanceCredentialPropertiesState
 }
 
 // ServiceInstanceCredentialCondition condition information for a ServiceInstanceCredential.
@@ -574,10 +697,38 @@ const (
 	ServiceInstanceCredentialConditionFailed ServiceInstanceCredentialConditionType = "Failed"
 )
 
+// ServiceInstanceCredentialOperation represents a type of operation
+// the controller can be performing for a binding in the OSB API.
+type ServiceInstanceCredentialOperation string
+
+const (
+	// ServiceInstanceCredentialOperationBind indicates that the
+	// ServiceInstanceCredential is being bound.
+	ServiceInstanceCredentialOperationBind ServiceInstanceCredentialOperation = "Bind"
+	// ServiceInstanceCredentialOperationUnbind indicates that the
+	// ServiceInstanceCredential is being unbound.
+	ServiceInstanceCredentialOperationUnbind ServiceInstanceCredentialOperation = "Unbind"
+)
+
 // These are internal finalizer values to service catalog, must be qualified name.
 const (
 	FinalizerServiceCatalog string = "kubernetes-incubator/service-catalog"
 )
+
+// ServiceInstanceCredentialPropertiesState is the state of a
+// ServiceInstanceCredential that the ServiceBroker knows about.
+type ServiceInstanceCredentialPropertiesState struct {
+	// Parameters is a blob of the parameters and their values that the broker
+	// knows about for this ServiceInstanceCredential.  If a parameter was
+	// sourced from a secret, its value will be "<redacted>" in this blob.
+	Parameters *runtime.RawExtension
+
+	// ParametersChecksum is the checksum of the parameters that were sent.
+	ParametersChecksum string
+
+	// UserInfo is information about the user that made the request.
+	UserInfo *UserInfo
+}
 
 // ParametersFromSource represents the source of a set of Parameters
 type ParametersFromSource struct {

@@ -45,8 +45,6 @@ type ServiceCatalogServerOptions struct {
 	AuditOptions *genericserveroptions.AuditOptions
 	// EtcdOptions are options for serving with etcd as the backing store
 	EtcdOptions *EtcdOptions
-	// TPROptions are options for serving with TPR as the backing store
-	TPROptions *TPROptions
 	// DisableAuth disables delegating authentication and authorization for testing scenarios
 	DisableAuth bool
 	StopCh      <-chan struct{}
@@ -65,7 +63,6 @@ func NewServiceCatalogServerOptions() *ServiceCatalogServerOptions {
 		AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
 		AuditOptions:            genericserveroptions.NewAuditOptions(),
 		EtcdOptions:             NewEtcdOptions(),
-		TPROptions:              NewTPROptions(),
 	}
 }
 
@@ -90,7 +87,6 @@ func (s *ServiceCatalogServerOptions) addFlags(flags *pflag.FlagSet) {
 	s.AuthenticationOptions.AddFlags(flags)
 	s.AuthorizationOptions.AddFlags(flags)
 	s.EtcdOptions.addFlags(flags)
-	s.TPROptions.addFlags(flags)
 	s.AuditOptions.AddFlags(flags)
 }
 
@@ -119,7 +115,7 @@ func (s *ServiceCatalogServerOptions) Validate() error {
 		errors = append(errors, etcdErrs...)
 	}
 	// TODO add alternative storage validation
-	// errors = append(errors, s.TPROptions.Validate()...)
+	// errors = append(errors, s.CRDOptions.Validate()...)
 	// TODO uncomment after 1.8 rebase expecting
 	// https://github.com/kubernetes/kubernetes/pull/47043
 	// errors = append(errors, s.AuditOptions.Validate()...)

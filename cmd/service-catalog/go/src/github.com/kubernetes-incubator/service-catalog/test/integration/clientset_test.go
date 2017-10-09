@@ -74,7 +74,6 @@ const (
 
 var storageTypes = []server.StorageType{
 	server.StorageTypeEtcd,
-	server.StorageTypeTPR,
 }
 
 // Used for testing binding parameters
@@ -98,7 +97,7 @@ func TestGroupVersion(t *testing.T) {
 	}
 	for _, sType := range storageTypes {
 		if !t.Run(sType.String(), rootTestFunc(sType)) {
-			t.Errorf("%s test failed", sType)
+			t.Errorf("%q test failed", sType)
 		}
 	}
 }
@@ -113,8 +112,12 @@ func TestEtcdHealthCheckerSuccess(t *testing.T) {
 	}
 	c := &http.Client{Transport: tr}
 	resp, err := c.Get(clientconfig.Host + "/healthz")
-	if nil != err || http.StatusOK != resp.StatusCode {
-		t.Fatal("health check endpoint should not have failed")
+	if nil != err {
+		t.Fatal("health check endpoint should not have failed", err)
+	}
+
+	if http.StatusOK != resp.StatusCode {
+		t.Fatal("health check endpoint should have had a 200 status code", resp)
 	}
 
 	defer resp.Body.Close()
@@ -181,7 +184,7 @@ func TestNoName(t *testing.T) {
 
 	for _, sType := range storageTypes {
 		if !t.Run(sType.String(), rootTestFunc(sType)) {
-			t.Errorf("%s test failed", sType)
+			t.Errorf("%q test failed", sType)
 		}
 	}
 }
@@ -196,6 +199,9 @@ func testNoName(client servicecatalogclient.Interface) error {
 	}
 	if sc, e := scClient.ServiceClasses().Create(&v1alpha1.ServiceClass{}); nil == e {
 		return fmt.Errorf("needs a name (%s)", sc.Name)
+	}
+	if sp, e := scClient.ServicePlans().Create(&v1alpha1.ServicePlan{}); nil == e {
+		return fmt.Errorf("needs a name (%s)", sp.Name)
 	}
 	if i, e := scClient.ServiceInstances(ns).Create(&v1alpha1.ServiceInstance{}); nil == e {
 		return fmt.Errorf("needs a name (%s)", i.Name)
@@ -222,7 +228,7 @@ func TestBrokerClient(t *testing.T) {
 	}
 	for _, sType := range storageTypes {
 		if !t.Run(sType.String(), rootTestFunc(sType)) {
-			t.Errorf("%s test failed", sType)
+			t.Errorf("%q test failed", sType)
 		}
 	}
 }
@@ -385,10 +391,21 @@ func TestServiceClassClient(t *testing.T) {
 			}
 		}
 	}
-	for _, sType := range storageTypes {
-		if !t.Run(sType.String(), rootTestFunc(sType)) {
-			t.Errorf("%s test failed", sType)
-		}
+	// TODO: Fix this for CRD.
+	// https://github.com/kubernetes-incubator/service-catalog/issues/1256
+	//	for _, sType := range storageTypes {
+	//		if !t.Run(sType.String(), rootTestFunc(sType)) {
+	//			t.Errorf("%q test failed", sType)
+	//		}
+	//	}
+	//	for _, sType := range storageTypes {
+	//		if !t.Run(sType.String(), rootTestFunc(sType)) {
+	//			t.Errorf("%q test failed", sType)
+	//		}
+	//	}
+	sType := server.StorageTypeEtcd
+	if !t.Run(sType.String(), rootTestFunc(sType)) {
+		t.Errorf("%q test failed", sType)
 	}
 }
 
@@ -396,17 +413,13 @@ func testServiceClassClient(sType server.StorageType, client servicecatalogclien
 	serviceClassClient := client.Servicecatalog().ServiceClasses()
 
 	serviceClass := &v1alpha1.ServiceClass{
-		ObjectMeta:        metav1.ObjectMeta{Name: name},
-		ServiceBrokerName: "test-broker",
-		Bindable:          true,
-		ExternalID:        "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
-		Description:       "test description",
-		Plans: []v1alpha1.ServicePlan{
-			{
-				Name:        "test-service-plan",
-				ExternalID:  "test-service-plan-external-id",
-				Description: "test-description",
-			},
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: v1alpha1.ServiceClassSpec{
+			ServiceBrokerName: "test-broker",
+			Bindable:          true,
+			ExternalName:      name,
+			ExternalID:        "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
+			Description:       "test description",
 		},
 	}
 
@@ -467,7 +480,7 @@ func testServiceClassClient(sType server.StorageType, client servicecatalogclien
 		)
 	}
 
-	serviceClassAtServer.Bindable = false
+	serviceClassAtServer.Spec.Bindable = false
 	_, err = serviceClassClient.Update(serviceClassAtServer)
 	if err != nil {
 		return fmt.Errorf("Error updating serviceClass: %v", err)
@@ -476,8 +489,66 @@ func testServiceClassClient(sType server.StorageType, client servicecatalogclien
 	if err != nil {
 		return fmt.Errorf("Error getting serviceClass: %v", err)
 	}
-	if updated.Bindable {
+	if updated.Spec.Bindable {
 		return errors.New("Failed to update service class")
+	}
+
+	// Ok, let's verify the field selectors
+	sc2Name := name + "2"
+	sc2ID := "someotheridhere"
+	serviceClass2 := &v1alpha1.ServiceClass{
+		ObjectMeta: metav1.ObjectMeta{Name: sc2Name},
+		Spec: v1alpha1.ServiceClassSpec{
+			ServiceBrokerName: "test-broker",
+			Bindable:          true,
+			ExternalName:      sc2Name,
+			ExternalID:        sc2ID,
+			Description:       "test description 2",
+		},
+	}
+	_, err = serviceClassClient.Create(serviceClass2)
+	if nil != err {
+		return fmt.Errorf("error creating the ServiceClass (%v) : %s", serviceClass2, err)
+	}
+
+	serviceClasses, err = serviceClassClient.List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing service classes (%s)", err)
+	}
+	if 2 != len(serviceClasses.Items) {
+		return fmt.Errorf("should have two ServiceClasses, had %v ServiceClasses", len(serviceClasses.Items))
+	}
+
+	serviceClasses, err = serviceClassClient.List(metav1.ListOptions{FieldSelector: "spec.externalName==" + sc2Name})
+	if err != nil {
+		return fmt.Errorf("error listing service classes (%s)", err)
+	}
+	if 1 != len(serviceClasses.Items) {
+		return fmt.Errorf("*should have one ServiceClass, had %v ServiceClassess : %+v", len(serviceClasses.Items), serviceClasses.Items)
+	}
+
+	if serviceClasses.Items[0].Spec.ExternalID != sc2ID {
+		return fmt.Errorf("should have same externalID: %q, got %q", sc2ID, serviceClasses.Items[0].Spec.ExternalID)
+	}
+
+	serviceClasses, err = serviceClassClient.List(metav1.ListOptions{FieldSelector: "spec.externalID==" + "b8269ab4-7d2d-456d-8c8b-5aab63b321d1"})
+	if err != nil {
+		return fmt.Errorf("error listing service classes (%s)", err)
+	}
+	if 1 != len(serviceClasses.Items) {
+		return fmt.Errorf("**should have one ServiceClass, had %v ServiceClasses : %+v", len(serviceClasses.Items), serviceClasses.Items)
+	}
+
+	if serviceClasses.Items[0].Spec.ExternalName != name {
+		return fmt.Errorf("should have same externalName: %q, got %q", name, serviceClasses.Items[0].Spec.ExternalName)
+	}
+
+	serviceClasses, err = serviceClassClient.List(metav1.ListOptions{FieldSelector: "spec.externalName==" + "crap"})
+	if err != nil {
+		return fmt.Errorf("error listing service classes (%s)", err)
+	}
+	if 0 != len(serviceClasses.Items) {
+		return fmt.Errorf("should have zero ServiceClasses, had %v ServiceClasses : %+v", len(serviceClasses.Items), serviceClasses.Items)
 	}
 
 	err = serviceClassClient.Delete(name, &metav1.DeleteOptions{})
@@ -488,6 +559,214 @@ func testServiceClassClient(sType server.StorageType, client servicecatalogclien
 	serviceClassDeleted, err := serviceClassClient.Get(name, metav1.GetOptions{})
 	if nil == err {
 		return fmt.Errorf("serviceclass should be deleted (%v)", serviceClassDeleted)
+	}
+
+	err = serviceClassClient.Delete(sc2Name, &metav1.DeleteOptions{})
+	if nil != err {
+		return fmt.Errorf("serviceclass should be deleted (%s)", err)
+	}
+	return nil
+}
+
+// TestServicePlanClient exercises the ServicePlan client.
+func TestServicePlanClient(t *testing.T) {
+	rootTestFunc := func(sType server.StorageType) func(t *testing.T) {
+		return func(t *testing.T) {
+			const name = "test-serviceplan"
+			client, _, shutdownServer := getFreshApiserverAndClient(t, sType.String(), func() runtime.Object {
+				return &servicecatalog.ServicePlan{}
+			})
+			defer shutdownServer()
+
+			if err := testServicePlanClient(sType, client, name); err != nil {
+				t.Fatal(err)
+			}
+		}
+	}
+	// TODO: Fix this for CRD.
+	// https://github.com/kubernetes-incubator/service-catalog/issues/1256
+	//	for _, sType := range storageTypes {
+	//		if !t.Run(sType.String(), rootTestFunc(sType)) {
+	//			t.Errorf("%q test failed", sType)
+	//		}
+	//	}
+	sType := server.StorageTypeEtcd
+	if !t.Run(sType.String(), rootTestFunc(sType)) {
+		t.Errorf("%q test failed", sType)
+	}
+}
+
+func testServicePlanClient(sType server.StorageType, client servicecatalogclient.Interface, name string) error {
+	servicePlanClient := client.Servicecatalog().ServicePlans()
+
+	bindable := true
+	servicePlan := &v1alpha1.ServicePlan{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: v1alpha1.ServicePlanSpec{
+			ServiceBrokerName: "test-broker",
+			Bindable:          &bindable,
+			ExternalName:      name,
+			ExternalID:        "b8269ab4-7d2d-456d-8c8b-5aab63b321d1",
+			Description:       "test description",
+			ServiceClassRef: v1.LocalObjectReference{
+				Name: "test-serviceclass",
+			},
+		},
+	}
+
+	// start from scratch
+	servicePlans, err := servicePlanClient.List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if servicePlans.Items == nil {
+		return fmt.Errorf("Items field should not be set to nil")
+	}
+	if len(servicePlans.Items) > 0 {
+		return fmt.Errorf(
+			"servicePlans should not exist on start, had %v servicePlans",
+			len(servicePlans.Items),
+		)
+	}
+
+	servicePlanAtServer, err := servicePlanClient.Create(servicePlan)
+	if nil != err {
+		return fmt.Errorf("error creating the Serviceplan (%v)", servicePlan)
+	}
+	if name != servicePlanAtServer.Name {
+		return fmt.Errorf(
+			"didn't get the same ServicePlan back from the server \n%+v\n%+v",
+			servicePlan,
+			servicePlanAtServer,
+		)
+	}
+
+	servicePlans, err = servicePlanClient.List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if 1 != len(servicePlans.Items) {
+		return fmt.Errorf("should have exactly one ServicePlan, had %v ServicePlans", len(servicePlans.Items))
+	}
+
+	servicePlanAtServer, err = servicePlanClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if servicePlanAtServer.Name != name &&
+		servicePlan.ResourceVersion == servicePlanAtServer.ResourceVersion {
+		return fmt.Errorf(
+			"didn't get the same ServicePlan back from the server \n%+v\n%+v",
+			servicePlan,
+			servicePlanAtServer,
+		)
+	}
+
+	// check that the plan is the same from get and list
+	servicePlanListed := &servicePlans.Items[0]
+	if !reflect.DeepEqual(servicePlanAtServer, servicePlanListed) {
+		return fmt.Errorf(
+			"Didn't get the same instance from list and get: diff: %v",
+			diff.ObjectReflectDiff(servicePlanAtServer, servicePlanListed),
+		)
+	}
+
+	bindable = false
+	servicePlanAtServer.Spec.Bindable = &bindable
+	_, err = servicePlanClient.Update(servicePlanAtServer)
+	if err != nil {
+		return fmt.Errorf("Error updating servicePlan: %v", err)
+	}
+	updated, err := servicePlanClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("Error getting servicePlan: %v", err)
+	}
+	if *updated.Spec.Bindable {
+		return errors.New("Failed to update service class")
+	}
+
+	// Verify that field selectors work by listing.
+	sp2Name := name + "2"
+	sp2ID := "anotheridhere"
+	servicePlan2 := &v1alpha1.ServicePlan{
+		ObjectMeta: metav1.ObjectMeta{Name: sp2Name},
+		Spec: v1alpha1.ServicePlanSpec{
+			ServiceBrokerName: "test-broker",
+			Bindable:          &bindable,
+			ExternalName:      sp2Name,
+			ExternalID:        sp2ID,
+			Description:       "test description 2",
+			ServiceClassRef: v1.LocalObjectReference{
+				Name: "test-serviceclass",
+			},
+		},
+	}
+	_, err = servicePlanClient.Create(servicePlan2)
+	if nil != err {
+		return fmt.Errorf("error creating the second Serviceplan (%v)", servicePlan2)
+	}
+
+	servicePlans, err = servicePlanClient.List(metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if 2 != len(servicePlans.Items) {
+		return fmt.Errorf("should have two ServicePlans, had %v ServicePlans", len(servicePlans.Items))
+	}
+
+	servicePlans, err = servicePlanClient.List(metav1.ListOptions{FieldSelector: "spec.externalName==" + sp2Name})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if 1 != len(servicePlans.Items) {
+		return fmt.Errorf("should have one ServicePlan, had %v ServicePlans : %+v", len(servicePlans.Items), servicePlans.Items)
+	}
+
+	if servicePlans.Items[0].Spec.ExternalID != sp2ID {
+		return fmt.Errorf("should have same externalID: %q, got %q", sp2ID, servicePlans.Items[0].Spec.ExternalID)
+	}
+
+	servicePlans, err = servicePlanClient.List(metav1.ListOptions{FieldSelector: "spec.externalID==" + "b8269ab4-7d2d-456d-8c8b-5aab63b321d1"})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if 1 != len(servicePlans.Items) {
+		return fmt.Errorf("should have one ServicePlan, had %v ServicePlans : %+v", len(servicePlans.Items), servicePlans.Items)
+	}
+
+	if servicePlans.Items[0].Spec.ExternalName != name {
+		return fmt.Errorf("should have same externalName: %q, got %q", name, servicePlans.Items[0].Spec.ExternalName)
+	}
+
+	servicePlans, err = servicePlanClient.List(metav1.ListOptions{FieldSelector: "spec.externalName==" + "crap"})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if 0 != len(servicePlans.Items) {
+		return fmt.Errorf("should have zero ServicePlans, had %v ServicePlans : %+v", len(servicePlans.Items), servicePlans.Items)
+	}
+
+	servicePlans, err = servicePlanClient.List(metav1.ListOptions{FieldSelector: "spec.serviceBrokerName=" + "test-broker"})
+	if err != nil {
+		return fmt.Errorf("error listing service plans (%s)", err)
+	}
+	if 2 != len(servicePlans.Items) {
+		return fmt.Errorf("should have zero ServicePlans, had %v ServicePlans : %+v", len(servicePlans.Items), servicePlans.Items)
+	}
+
+	err = servicePlanClient.Delete(name, &metav1.DeleteOptions{})
+	if nil != err {
+		return fmt.Errorf("serviceplan should be deleted (%s)", err)
+	}
+
+	servicePlanDeleted, err := servicePlanClient.Get(name, metav1.GetOptions{})
+	if nil == err {
+		return fmt.Errorf("serviceplan should be deleted (%v)", servicePlanDeleted)
+	}
+
+	err = servicePlanClient.Delete(sp2Name, &metav1.DeleteOptions{})
+	if nil != err {
+		return fmt.Errorf("serviceplan should be deleted (%s)", err)
 	}
 
 	return nil
@@ -509,7 +788,7 @@ func TestInstanceClient(t *testing.T) {
 	}
 	for _, sType := range storageTypes {
 		if !t.Run(sType.String(), rootTestFunc(sType)) {
-			t.Errorf("%s test failed", sType)
+			t.Errorf("%q test failed", sType)
 		}
 	}
 }
@@ -524,10 +803,10 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 	instance := &v1alpha1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			ServiceClassName: "service-class-name",
-			PlanName:         "plan-name",
-			Parameters:       &runtime.RawExtension{Raw: []byte(instanceParameter)},
-			ExternalID:       osbGUID,
+			ExternalServiceClassName: "service-class-name",
+			ExternalServicePlanName:  "plan-name",
+			Parameters:               &runtime.RawExtension{Raw: []byte(instanceParameter)},
+			ExternalID:               osbGUID,
 		},
 	}
 
@@ -628,6 +907,97 @@ func testInstanceClient(sType server.StorageType, client servicecatalogclient.In
 		return fmt.Errorf("Didn't get matching ready conditions:\nexpected: %v\n\ngot: %v", e, a)
 	}
 
+	// Update the ServiceClassRef
+	classRef := &v1.ObjectReference{Name: "service-class-ref"}
+	instanceServer.Spec.ServiceClassRef = classRef
+	returnedInstance, err := instanceClient.UpdateReferences(instanceServer)
+	if err != nil {
+		return fmt.Errorf("Error updating instance references: %v", err)
+	}
+	oldGeneration := instanceServer.Generation
+	// check the returned object we got back from the reference subresource
+	if returnedInstance.Spec.ServiceClassRef == nil {
+		return fmt.Errorf("ServiceClassRef was not updated, instance: %+v", returnedInstance)
+	}
+	if returnedInstance.Spec.ServicePlanRef != nil {
+		return fmt.Errorf("ServicePlanRef was unexpectedly updated, instance: %+v", returnedInstance)
+	}
+	if e, a := classRef, returnedInstance.Spec.ServiceClassRef; !reflect.DeepEqual(e, a) {
+		return fmt.Errorf("ServiceClassRef was not set correctly, expected: %v got: %v", e, a)
+	}
+	if oldGeneration != returnedInstance.Generation {
+		return fmt.Errorf("Generation was changed, expected: %q got: %q", oldGeneration, returnedInstance.Generation)
+	}
+
+	// re-fetch the instance by name and check its conditions
+	instanceServer, err = instanceClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting instance (%s)", err)
+	}
+	if instanceServer.Spec.ServiceClassRef == nil {
+		return fmt.Errorf("ServiceClassRef was not updated, instance: %+v", instanceServer)
+	}
+	if instanceServer.Spec.ServicePlanRef != nil {
+		return fmt.Errorf("ServicePlanRef was unexpectedly updated, instance: %+v", instanceServer)
+	}
+	if e, a := classRef, instanceServer.Spec.ServiceClassRef; !reflect.DeepEqual(e, a) {
+		return fmt.Errorf("ServiceClassRef was not set correctly, expected: %v got: %v", e, a)
+	}
+	if oldGeneration != instanceServer.Generation {
+		return fmt.Errorf("Generation was changed, expected: %q got: %q", oldGeneration, instanceServer.Generation)
+	}
+
+	// Update the ServicePlanRef
+	planRef := &v1.ObjectReference{Name: "service-plan-ref"}
+	instanceServer.Spec.ServicePlanRef = planRef
+	returnedInstance, err = instanceClient.UpdateReferences(instanceServer)
+	if err != nil {
+		return fmt.Errorf("Error updating instance references: %v", err)
+	}
+	oldGeneration = instanceServer.Generation
+
+	// check the object returned from the reference endpoint
+	if returnedInstance.Spec.ServicePlanRef == nil {
+		return fmt.Errorf("ServicePlanRef was not updated, instance: %+v", returnedInstance)
+	}
+	if e, a := planRef, returnedInstance.Spec.ServicePlanRef; !reflect.DeepEqual(e, a) {
+		return fmt.Errorf("ServicePlanRef was not set correctly, expected: %v got: %v", e, a)
+	}
+	// Make sure ServiceClassRef was not changed
+	if returnedInstance.Spec.ServiceClassRef == nil {
+		return fmt.Errorf("ServiceClassRef was cleared, instance: %+v", returnedInstance)
+	}
+	if e, a := classRef, returnedInstance.Spec.ServiceClassRef; !reflect.DeepEqual(e, a) {
+		return fmt.Errorf("ServiceClassRef was modified unexpectedly, expected: %v got: %v", e, a)
+	}
+
+	if oldGeneration != returnedInstance.Generation {
+		return fmt.Errorf("Generation was changed, expected: %q got: %q", oldGeneration, returnedInstance.Generation)
+	}
+
+	// re-fetch the instance by name and check its conditions
+	instanceServer, err = instanceClient.Get(name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("error getting instance (%s)", err)
+	}
+	if instanceServer.Spec.ServicePlanRef == nil {
+		return fmt.Errorf("ServicePlanRef was not updated, instance: %+v", instanceServer)
+	}
+	if e, a := planRef, instanceServer.Spec.ServicePlanRef; !reflect.DeepEqual(e, a) {
+		return fmt.Errorf("ServicePlanRef was not set correctly, expected: %v got: %v", e, a)
+	}
+	// Make sure ServiceClassRef was not changed
+	if instanceServer.Spec.ServiceClassRef == nil {
+		return fmt.Errorf("ServiceClassRef was cleared, instance: %+v", instanceServer)
+	}
+	if e, a := classRef, instanceServer.Spec.ServiceClassRef; !reflect.DeepEqual(e, a) {
+		return fmt.Errorf("ServiceClassRef was modified unexpectedly, expected: %v got: %v", e, a)
+	}
+
+	if oldGeneration != instanceServer.Generation {
+		return fmt.Errorf("Generation was changed, expected: %q got: %q", oldGeneration, instanceServer.Generation)
+	}
+
 	// delete the instance, set its finalizers to nil, update it, then ensure it is actually
 	// deleted
 	if err := instanceClient.Delete(name, &metav1.DeleteOptions{}); err != nil {
@@ -669,7 +1039,7 @@ func TestBindingClient(t *testing.T) {
 	}
 	for _, sType := range storageTypes {
 		if !t.Run(sType.String(), rootTestFunc(sType)) {
-			t.Errorf("%s test failed", sType)
+			t.Errorf("%q test failed", sType)
 		}
 
 	}

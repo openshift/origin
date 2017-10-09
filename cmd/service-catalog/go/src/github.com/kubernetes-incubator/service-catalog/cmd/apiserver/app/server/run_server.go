@@ -20,16 +20,14 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	genericapiserverstorage "k8s.io/apiserver/pkg/server/storage"
-	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api"
 	"k8s.io/kubernetes/cmd/kube-apiserver/app/preflight"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver/options"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
-	"github.com/kubernetes-incubator/service-catalog/pkg/storage/tpr"
 )
 
 // RunServer runs an API server with configuration according to opts
@@ -49,55 +47,11 @@ func RunServer(opts *ServiceCatalogServerOptions) error {
 		return err
 	}
 
-	if storageType == server.StorageTypeTPR {
-		return runTPRServer(opts)
+	if storageType == server.StorageTypeEtcd {
+		return runEtcdServer(opts)
 	}
-	return runEtcdServer(opts)
-}
-
-func installTPRsToCore(cl clientset.Interface) func() error {
-	return func() error {
-		if err := tpr.InstallTypes(cl.Extensions().ThirdPartyResources()); err != nil {
-			glog.Errorf("Failed to install TPR types (%s)", err)
-			return err
-		}
-		return nil
-	}
-}
-
-func runTPRServer(opts *ServiceCatalogServerOptions) error {
-	tprOpts := opts.TPROptions
-	glog.Infoln("Installing TPR types to the cluster")
-	if err := tprOpts.InstallTPRsFunc(); err != nil {
-		glog.V(4).Infof("Installing TPR types failed, continuing anyway (%s)", err)
-		return err
-	}
-
-	glog.V(4).Infoln("Preparing to run API server")
-	genericConfig, scConfig, err := buildGenericConfig(opts)
-	if err != nil {
-		return err
-	}
-
-	config := apiserver.NewTPRConfig(
-		tprOpts.RESTClient,
-		genericConfig,
-		tprOpts.GlobalNamespace,
-		tprOpts.storageFactory(),
-	)
-	completed := config.Complete()
-	// make the server
-	glog.V(4).Infoln("Completing API server configuration")
-	server, err := completed.NewServer()
-	if err != nil {
-		return fmt.Errorf("error completing API server configuration: %v", err)
-	}
-	addPostStartHooks(server.GenericAPIServer, scConfig, opts.StopCh)
-
-	glog.Infoln("Running the API server")
-	server.GenericAPIServer.PrepareRun().Run(opts.StopCh)
-
-	return nil
+	// This should never happen, catch for potential bugs
+	panic("Unexpected storage type: " + storageType)
 }
 
 func runEtcdServer(opts *ServiceCatalogServerOptions) error {

@@ -4,5 +4,5 @@ metadata:
   name: test-instance
   namespace: test-ns
 spec:
-  serviceClassName: test-serviceclass
-  planName: example-plan-1
+  externalServiceClassName: test-serviceclass
+  externalServicePlanName: example-plan-1

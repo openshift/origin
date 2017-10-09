@@ -4,9 +4,9 @@ metadata:
   name: ups-instance
   namespace: test-ns
 spec:
-  serviceClassName: user-provided-service
-  planName: default
+  externalServiceClassName: user-provided-service
+  externalServicePlanName: default
   parameters:
     credentials:
-      name: root
-      password: letmein
+      param-1: value-1
+      param-2: value-2

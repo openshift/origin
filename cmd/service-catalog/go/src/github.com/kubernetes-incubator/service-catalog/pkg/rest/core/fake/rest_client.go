@@ -35,9 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/client-go/pkg/api"
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 	fakerestclient "k8s.io/client-go/rest/fake"
-	"k8s.io/kubernetes/pkg/api/v1"
 )
 
 var (
@@ -118,9 +117,9 @@ func NewRESTClient(newEmptyObj func() runtime.Object) *RESTClient {
 			return rw.getResponse(), nil
 		}),
 		NegotiatedSerializer: serializer.DirectCodecFactory{
-			CodecFactory: api.Codecs,
+			CodecFactory: Codecs,
 		},
-		APIRegistry: api.Registry,
+		APIRegistry: Registry,
 	}
 	return &RESTClient{
 		Storage:    storage,
@@ -525,9 +524,9 @@ func deleteItem(storage NamespacedStorage) func(http.ResponseWriter, *http.Reque
 
 func listNamespaces(storage NamespacedStorage) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		nsList := v1.NamespaceList{}
+		nsList := apiv1.NamespaceList{}
 		for ns := range storage {
-			nsList.Items = append(nsList.Items, v1.Namespace{
+			nsList.Items = append(nsList.Items, apiv1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: ns},
 			})
 		}

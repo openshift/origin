@@ -13724,6 +13724,7 @@ objects:
     - serviceinstances/status
     - serviceinstancecredentials/status
     - serviceinstancecredentials/finalizers
+    - serviceinstances/reference
     verbs:
     - update
   - apiGroups:
@@ -13747,6 +13748,7 @@ objects:
     - servicecatalog.k8s.io
     resources:
     - serviceclasses
+    - serviceplans
     verbs:
     - create
     - delete

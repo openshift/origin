@@ -69,16 +69,18 @@ func newServiceInstance(namespace string, serviceClassName string, planName stri
 	instance := servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
 	}
-	instance.Spec.ServiceClassName = serviceClassName
-	instance.Spec.PlanName = planName
+	instance.Spec.ExternalServiceClassName = serviceClassName
+	instance.Spec.ExternalServicePlanName = planName
 	return instance
 }
 
 // newServiceClass returns a new instance with the specified plan and
 // UpdateablePlan attribute
 func newServiceClass(name string, plan string, updateablePlan bool) *servicecatalog.ServiceClass {
-	sc := &servicecatalog.ServiceClass{ObjectMeta: metav1.ObjectMeta{Name: name}, PlanUpdatable: updateablePlan}
-	sc.Plans = append(sc.Plans, servicecatalog.ServicePlan{Name: plan})
+	sc := &servicecatalog.ServiceClass{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec:       servicecatalog.ServiceClassSpec{PlanUpdatable: updateablePlan},
+	}
 	return sc
 }
 

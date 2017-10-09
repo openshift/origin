@@ -51,6 +51,7 @@ func Register(plugins *admission.Plugins) {
 type denyPlanChangeIfNotUpdatable struct {
 	*admission.Handler
 	scLister       internalversion.ServiceClassLister
+	spLister       internalversion.ServicePlanLister
 	instanceLister internalversion.ServiceInstanceLister
 }
 
@@ -71,29 +72,29 @@ func (d *denyPlanChangeIfNotUpdatable) Admit(a admission.Attributes) error {
 		return apierrors.NewBadRequest("Resource was marked with kind Instance but was unable to be converted")
 	}
 
-	sc, err := d.scLister.Get(instance.Spec.ServiceClassName)
+	sc, err := d.scLister.Get(instance.Spec.ExternalServiceClassName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			glog.V(5).Infof("Could not locate service class %v, can not determine if UpdateablePlan.", instance.Spec.ServiceClassName)
-			return nil
+			glog.V(5).Infof("Could not locate service class %v, can not determine if UpdateablePlan.", instance.Spec.ExternalServiceClassName)
+			return nil // should this be `return err`? why would we allow the instance in if we cannot determine it is updatable?
 		}
 		glog.Error(err)
 		return admission.NewForbidden(a, err)
 	}
 
-	if sc.PlanUpdatable {
+	if sc.Spec.PlanUpdatable {
 		return nil
 	}
 
-	if instance.Spec.PlanName != "" {
+	if instance.Spec.ExternalServicePlanName != "" {
 		lister := d.instanceLister.ServiceInstances(instance.Namespace)
 		origInstance, err := lister.Get(instance.Name)
 		if err != nil {
 			glog.Errorf("Error locating instance %v/%v", instance.Namespace, instance.Name)
 			return err
 		}
-		if instance.Spec.PlanName != origInstance.Spec.PlanName {
-			glog.V(4).Infof("update Service Instance %v/%v request specified Plan Name %v while original instance had %v", instance.Namespace, instance.Name, instance.Spec.PlanName, origInstance.Spec.PlanName)
+		if instance.Spec.ExternalServicePlanName != origInstance.Spec.ExternalServicePlanName {
+			glog.V(4).Infof("update Service Instance %v/%v request specified Plan Name %v while original instance had %v", instance.Namespace, instance.Name, instance.Spec.ExternalServicePlanName, origInstance.Spec.ExternalServicePlanName)
 			msg := fmt.Sprintf("The Service Class %v does not allow plan changes.", sc.Name)
 			glog.Error(msg)
 			return admission.NewForbidden(a, errors.New(msg))
@@ -118,12 +119,22 @@ func (d *denyPlanChangeIfNotUpdatable) SetInternalServiceCatalogInformerFactory(
 	instanceInformer := f.Servicecatalog().InternalVersion().ServiceInstances()
 	d.instanceLister = instanceInformer.Lister()
 	d.scLister = scInformer.Lister()
-	d.SetReadyFunc(scInformer.Informer().HasSynced)
+	spInformer := f.Servicecatalog().InternalVersion().ServicePlans()
+	d.spLister = spInformer.Lister()
+
+	readyFunc := func() bool {
+		return scInformer.Informer().HasSynced() && instanceInformer.Informer().HasSynced() && spInformer.Informer().HasSynced()
+	}
+
+	d.SetReadyFunc(readyFunc)
 }
 
 func (d *denyPlanChangeIfNotUpdatable) Validate() error {
 	if d.scLister == nil {
 		return errors.New("missing service class lister")
+	}
+	if d.spLister == nil {
+		return errors.New("missing service plan lister")
 	}
 	if d.instanceLister == nil {
 		return errors.New("missing instance lister")

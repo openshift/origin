@@ -33,8 +33,9 @@ import (
 
 	"strings"
 
-	"k8s.io/client-go/pkg/api"
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"k8s.io/client-go/pkg/api/v1"
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 	clientgotesting "k8s.io/client-go/testing"
 )
 
@@ -188,11 +189,13 @@ func TestShouldReconcileServiceBroker(t *testing.T) {
 	}
 }
 
-// TestReconcileServiceBrokerExistingServiceClass verifies a simple, successful run
-// of reconcileServiceBroker().  This test will cause reconcileBroker() to fetch the
-// catalog from the ServiceBroker, create a Service Class for the single service that
-// it lists and reconcile the service class ensuring the name and id of the
-// relisted service matches the existing entry and updates the service catalog.
+// TestReconcileServiceBrokerExistingServiceClass verifies a simple, successful
+// run of reconcileServiceBroker().  This test will cause reconcileBroker() to
+// fetch the catalog from the ServiceBroker, create a Service Class for the
+// single service that it lists and reconcile the service class ensuring the
+// name and id of the relisted service matches the existing entry and updates
+// the service catalog. There will be two additional reconciles of plans before
+// the final broker update
 func TestReconcileServiceBrokerExistingServiceClass(t *testing.T) {
 	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
@@ -208,55 +211,26 @@ func TestReconcileServiceBrokerExistingServiceClass(t *testing.T) {
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 2)
+	assertNumberOfActions(t, actions, 4)
 
-	// first action should be an update action for a service class
-	assertUpdate(t, actions[0], testServiceClass)
+	tp := getTestServicePlan()
+	// 1 create for the plan on the class
+	assertCreate(t, actions[0], tp)
 
-	// second action should be an update action for broker status subresource
-	updatedServiceBroker := assertUpdateStatus(t, actions[1], getTestServiceBroker())
+	nbtp := getTestServicePlanNonbindable()
+	// 2 create for the plan on the class
+	assertCreate(t, actions[1], nbtp)
+
+	// 3 update action for existing service class
+	assertUpdate(t, actions[2], testServiceClass)
+
+	// 4 update action for broker status subresource
+	updatedServiceBroker := assertUpdateStatus(t, actions[3], getTestServiceBroker())
 	assertServiceBrokerReadyTrue(t, updatedServiceBroker)
 
 	// verify no kube resources created
 	kubeActions := fakeKubeClient.Actions()
 	assertNumberOfActions(t, kubeActions, 0)
-}
-
-// TestReconcileServiceBrokerExistingServiceClassDifferentExternalID simulates catalog
-// refresh where broker lists an existing service but there is a mismatch on the
-// service class ID which should result in an error
-func TestReconcileServiceBrokerExistingServiceClassDifferentExternalID(t *testing.T) {
-	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
-
-	testServiceClass := getTestServiceClass()
-	testServiceClass.ExternalID = "notTheSame"
-	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
-
-	if err := testController.reconcileServiceBroker(getTestServiceBroker()); err == nil {
-		t.Fatal("The same service class should not be allowed with a different ID")
-	}
-
-	brokerActions := fakeServiceBrokerClient.Actions()
-	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
-	assertGetCatalog(t, brokerActions[0])
-
-	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
-
-	updatedServiceBroker := assertUpdateStatus(t, actions[0], getTestServiceBroker())
-	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
-
-	// verify no kube resources created
-	kubeActions := fakeKubeClient.Actions()
-	assertNumberOfActions(t, kubeActions, 0)
-
-	events := getRecordedEvents(testController)
-	assertNumEvents(t, events, 1)
-
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" already exists with OSB guid "notTheSame", received different guid "SCGUID"`
-	if e, a := expectedEvent, events[0]; e != a {
-		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
-	}
 }
 
 // TestReconcileServiceBrokerExistingServiceClassDifferentBroker simulates catalog
@@ -266,8 +240,10 @@ func TestReconcileServiceBrokerExistingServiceClassDifferentBroker(t *testing.T)
 	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
 
 	testServiceClass := getTestServiceClass()
-	testServiceClass.ServiceBrokerName = "notTheSame"
+	testServiceClass.Spec.ServiceBrokerName = "notTheSame"
 	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
+	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServicePlan())
+	sharedInformers.ServiceClasses().Informer().GetStore().Add(getTestServicePlanNonbindable())
 
 	if err := testController.reconcileServiceBroker(getTestServiceBroker()); err == nil {
 		t.Fatal("The same service class should not belong to two different brokers.")
@@ -278,9 +254,17 @@ func TestReconcileServiceBrokerExistingServiceClassDifferentBroker(t *testing.T)
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 1)
+	assertNumberOfActions(t, actions, 3)
 
-	updatedServiceBroker := assertUpdateStatus(t, actions[0], getTestServiceBroker())
+	tp := getTestServicePlan()
+	// 1 create for the plan on the class
+	assertCreate(t, actions[0], tp)
+
+	nbtp := getTestServicePlanNonbindable()
+	// 2 create for the plan on the class
+	assertCreate(t, actions[1], nbtp)
+
+	updatedServiceBroker := assertUpdateStatus(t, actions[2], getTestServiceBroker())
 	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	// verify no kube resources created
@@ -290,7 +274,7 @@ func TestReconcileServiceBrokerExistingServiceClassDifferentBroker(t *testing.T)
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" for ServiceBroker "test-broker" already exists for Broker "notTheSame"`
+	expectedEvent := apiv1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): ServiceClass "test-serviceclass" for ServiceBroker "test-broker" already exists for Broker "notTheSame"`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event; expected\n%v, got\n%v", e, a)
 	}
@@ -344,7 +328,7 @@ func TestReconcileServiceBrokerDelete(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeNormal + " " + successServiceBrokerDeletedReason + " " + "The broker test-broker was deleted successfully."
+	expectedEvent := apiv1.EventTypeNormal + " " + successServiceBrokerDeletedReason + " " + "The broker test-broker was deleted successfully."
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -384,7 +368,7 @@ func TestReconcileServiceBrokerErrorFetchingCatalog(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeWarning + " " + errorFetchingCatalogReason + " " + "Error getting broker catalog for broker \"test-broker\": ooops"
+	expectedEvent := apiv1.EventTypeWarning + " " + errorFetchingCatalogReason + " " + "Error getting broker catalog for broker \"test-broker\": ooops"
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -421,7 +405,7 @@ func TestReconcileServiceBrokerZeroServices(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error getting catalog payload for broker "test-broker"; received zero services; at least one service is required`
+	expectedEvent := apiv1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error getting catalog payload for broker "test-broker"; received zero services; at least one service is required`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event; \nexpected: %v\ngot:     %v", e, a)
 	}
@@ -529,7 +513,7 @@ func testReconcileServiceBrokerWithAuth(t *testing.T, authInfo *v1alpha1.Service
 		Response: &osb.CatalogResponse{
 			Services: []osb.Service{
 				{
-					ID:   testServiceClass.ExternalID,
+					ID:   testServiceClass.Spec.ExternalID,
 					Name: testServiceClass.Name,
 				},
 			},
@@ -579,9 +563,9 @@ func testReconcileServiceBrokerWithAuth(t *testing.T, authInfo *v1alpha1.Service
 
 	var expectedEvent string
 	if shouldSucceed {
-		expectedEvent = api.EventTypeNormal + " " + successFetchedCatalogReason + " " + successFetchedCatalogMessage
+		expectedEvent = apiv1.EventTypeNormal + " " + successFetchedCatalogReason + " " + successFetchedCatalogMessage
 	} else {
-		expectedEvent = api.EventTypeWarning + " " + errorAuthCredentialsReason + " " + "Error getting broker auth credentials for broker \"test-broker\""
+		expectedEvent = apiv1.EventTypeWarning + " " + errorAuthCredentialsReason + " " + "Error getting broker auth credentials for broker \"test-broker\""
 	}
 	if e, a := expectedEvent, events[0]; !strings.HasPrefix(a, e) {
 		t.Fatalf("Received unexpected event: %v", a)
@@ -609,9 +593,11 @@ func TestReconcileServiceBrokerWithReconcileError(t *testing.T) {
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 2)
+	assertNumberOfActions(t, actions, 4)
 
-	createSCAction := actions[0].(clientgotesting.CreateAction)
+	// the two plans in the catalog as two separate actions
+
+	createSCAction := actions[2].(clientgotesting.CreateAction)
 	createdSC, ok := createSCAction.GetObject().(*v1alpha1.ServiceClass)
 	if !ok {
 		t.Fatalf("couldn't convert to a ServiceClass: %+v", createSCAction.GetObject())
@@ -619,7 +605,7 @@ func TestReconcileServiceBrokerWithReconcileError(t *testing.T) {
 	if e, a := getTestServiceClass(), createdSC; !reflect.DeepEqual(e, a) {
 		t.Fatalf("unexpected diff for created ServiceClass: %v,\n\nEXPECTED: %+v\n\nACTUAL:  %+v", diff.ObjectReflectDiff(e, a), e, a)
 	}
-	updatedServiceBroker := assertUpdateStatus(t, actions[1], broker)
+	updatedServiceBroker := assertUpdateStatus(t, actions[3], broker)
 	assertServiceBrokerReadyFalse(t, updatedServiceBroker)
 
 	kubeActions := fakeKubeClient.Actions()
@@ -628,7 +614,7 @@ func TestReconcileServiceBrokerWithReconcileError(t *testing.T) {
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, 1)
 
-	expectedEvent := api.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): error creating serviceclass`
+	expectedEvent := apiv1.EventTypeWarning + " " + errorSyncingCatalogReason + ` Error reconciling serviceClass "test-serviceclass" (broker "test-broker"): error creating serviceclass`
 	if e, a := expectedEvent, events[0]; e != a {
 		t.Fatalf("Received unexpected event: %v", a)
 	}
@@ -641,8 +627,10 @@ func TestReconcileServiceBrokerSuccessOnFinalRetry(t *testing.T) {
 
 	testServiceClass := getTestServiceClass()
 	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
+	sharedInformers.ServicePlans().Informer().GetStore().Add(getTestServicePlan())
 
 	broker := getTestServiceBroker()
+	// seven days ago, before the last refresh period
 	startTime := metav1.NewTime(time.Now().Add(-7 * 24 * time.Hour))
 	broker.Status.OperationStartTime = &startTime
 
@@ -655,17 +643,17 @@ func TestReconcileServiceBrokerSuccessOnFinalRetry(t *testing.T) {
 	assertGetCatalog(t, brokerActions[0])
 
 	actions := fakeCatalogClient.Actions()
-	assertNumberOfActions(t, actions, 3)
+	assertNumberOfActions(t, actions, 5)
 
 	// first action should be an update action to clear OperationStartTime
 	updatedServiceBroker := assertUpdateStatus(t, actions[0], getTestServiceBroker())
 	assertServiceBrokerOperationStartTimeSet(t, updatedServiceBroker, false)
 
 	// first action should be an update action for a service class
-	assertUpdate(t, actions[1], testServiceClass)
+	assertUpdate(t, actions[3], testServiceClass)
 
 	// second action should be an update action for broker status subresource
-	updatedServiceBroker = assertUpdateStatus(t, actions[2], getTestServiceBroker())
+	updatedServiceBroker = assertUpdateStatus(t, actions[4], getTestServiceBroker())
 	assertServiceBrokerReadyTrue(t, updatedServiceBroker)
 
 	// verify no kube resources created
@@ -707,8 +695,8 @@ func TestReconcileServiceBrokerFailureOnFinalRetry(t *testing.T) {
 	assertNumberOfActions(t, fakeKubeClient.Actions(), 0)
 
 	expectedEventPrefixes := []string{
-		api.EventTypeWarning + " " + errorFetchingCatalogReason,
-		api.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
+		apiv1.EventTypeWarning + " " + errorFetchingCatalogReason,
+		apiv1.EventTypeWarning + " " + errorReconciliationRetryTimeoutReason,
 	}
 	events := getRecordedEvents(testController)
 	assertNumEvents(t, events, len(expectedEventPrefixes))
@@ -719,6 +707,57 @@ func TestReconcileServiceBrokerFailureOnFinalRetry(t *testing.T) {
 			t.Fatalf("Received unexpected event:\n  expected prefix: %v\n  got: %v", e, a)
 		}
 	}
+}
+
+// TestReconcileServiceBrokerWithStatusUpdateError verifies that the reconciler
+// returns an error when there is a conflict updating the status of the resource.
+// This is an otherwise successful scenario where the update to set the
+// ready condition fails.
+func TestReconcileServiceBrokerWithStatusUpdateError(t *testing.T) {
+	fakeKubeClient, fakeCatalogClient, fakeServiceBrokerClient, testController, sharedInformers := newTestController(t, getTestCatalogConfig())
+
+	testServiceClass := getTestServiceClass()
+	sharedInformers.ServiceClasses().Informer().GetStore().Add(testServiceClass)
+
+	broker := getTestServiceBroker()
+
+	fakeCatalogClient.AddReactor("update", "servicebrokers", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("update error")
+	})
+
+	err := testController.reconcileServiceBroker(broker)
+	if err == nil {
+		t.Fatalf("expected error from but got none")
+	}
+	if e, a := "update error", err.Error(); e != a {
+		t.Fatalf("unexpected error returned: expected %q, got %q", e, a)
+	}
+
+	brokerActions := fakeServiceBrokerClient.Actions()
+	assertNumberOfServiceBrokerActions(t, brokerActions, 1)
+	assertGetCatalog(t, brokerActions[0])
+
+	actions := fakeCatalogClient.Actions()
+	assertNumberOfActions(t, actions, 4)
+
+	tp := getTestServicePlan()
+	// 1 create for the plan on the class
+	assertCreate(t, actions[0], tp)
+
+	nbtp := getTestServicePlanNonbindable()
+	// 2 create for the plan on the class
+	assertCreate(t, actions[1], nbtp)
+
+	// 3 update action for existing service class
+	assertUpdate(t, actions[2], testServiceClass)
+
+	// 4 update action for broker status subresource
+	updatedServiceBroker := assertUpdateStatus(t, actions[3], getTestServiceBroker())
+	assertServiceBrokerReadyTrue(t, updatedServiceBroker)
+
+	// verify no kube resources created
+	kubeActions := fakeKubeClient.Actions()
+	assertNumberOfActions(t, kubeActions, 0)
 }
 
 // TestUpdateServiceBrokerCondition ensures that with specific conditions

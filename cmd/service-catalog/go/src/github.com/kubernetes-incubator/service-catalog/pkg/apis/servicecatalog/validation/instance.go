@@ -17,6 +17,7 @@ limitations under the License.
 package validation
 
 import (
+	"github.com/ghodss/yaml"
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -26,6 +27,23 @@ import (
 
 // validateServiceInstanceName is the validation function for Instance names.
 var validateServiceInstanceName = apivalidation.NameIsDNSSubdomain
+
+var validServiceInstanceOperations = map[sc.ServiceInstanceOperation]bool{
+	sc.ServiceInstanceOperation(""):        true,
+	sc.ServiceInstanceOperationProvision:   true,
+	sc.ServiceInstanceOperationUpdate:      true,
+	sc.ServiceInstanceOperationDeprovision: true,
+}
+
+var validServiceInstanceOperationValues = func() []string {
+	validValues := make([]string, len(validServiceInstanceOperations))
+	i := 0
+	for operation := range validServiceInstanceOperations {
+		validValues[i] = string(operation)
+		i++
+	}
+	return validValues
+}()
 
 // ValidateServiceInstance validates an Instance and returns a list of errors.
 func ValidateServiceInstance(instance *sc.ServiceInstance) field.ErrorList {
@@ -37,28 +55,33 @@ func internalValidateServiceInstance(instance *sc.ServiceInstance, create bool) 
 	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&instance.ObjectMeta, true, /*namespace*/
 		validateServiceInstanceName,
 		field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateServiceInstanceSpec(&instance.Spec, field.NewPath("Spec"), create)...)
-	allErrs = append(allErrs, validateServiceInstanceStatus(&instance.Status, field.NewPath("Status"), create)...)
+	allErrs = append(allErrs, validateServiceInstanceSpec(&instance.Spec, field.NewPath("spec"), create)...)
+	allErrs = append(allErrs, validateServiceInstanceStatus(&instance.Status, field.NewPath("status"), create)...)
+	if create {
+		allErrs = append(allErrs, validateServiceInstanceCreate(instance)...)
+	} else {
+		allErrs = append(allErrs, validateServiceInstanceUpdate(instance)...)
+	}
 	return allErrs
 }
 
 func validateServiceInstanceSpec(spec *sc.ServiceInstanceSpec, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if "" == spec.ServiceClassName {
-		allErrs = append(allErrs, field.Required(fldPath.Child("serviceClassName"), "serviceClassName is required"))
+	if "" == spec.ExternalServiceClassName {
+		allErrs = append(allErrs, field.Required(fldPath.Child("externalServiceClassName"), "externalServiceClassName is required"))
 	}
 
-	for _, msg := range validateServiceClassName(spec.ServiceClassName, false /* prefix */) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("serviceClassName"), spec.ServiceClassName, msg))
+	for _, msg := range validateServiceClassName(spec.ExternalServiceClassName, false /* prefix */) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalServiceClassName"), spec.ExternalServiceClassName, msg))
 	}
 
-	if "" == spec.PlanName {
-		allErrs = append(allErrs, field.Required(fldPath.Child("planName"), "planName is required"))
+	if "" == spec.ExternalServicePlanName {
+		allErrs = append(allErrs, field.Required(fldPath.Child("externalServicePlanName"), "externalServicePlanName is required"))
 	}
 
-	for _, msg := range validateServicePlanName(spec.PlanName) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("planName"), spec.PlanName, msg))
+	for _, msg := range validateServicePlanName(spec.ExternalServicePlanName, false /* prefix */) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalServicePlanName"), spec.ExternalServicePlanName, msg))
 	}
 
 	if spec.ParametersFrom != nil {
@@ -87,30 +110,123 @@ func validateServiceInstanceSpec(spec *sc.ServiceInstanceSpec, fldPath *field.Pa
 	return allErrs
 }
 
-func validateServiceInstanceStatus(spec *sc.ServiceInstanceStatus, fldPath *field.Path, create bool) field.ErrorList {
-	errors := field.ErrorList{}
-	// TODO(vaikas): Implement more comprehensive status validation.
-	// https://github.com/kubernetes-incubator/service-catalog/issues/882
+func validateServiceInstanceStatus(status *sc.ServiceInstanceStatus, fldPath *field.Path, create bool) field.ErrorList {
+	allErrs := field.ErrorList{}
 
-	// Do not allow the instance to be ready if an async operation is ongoing
-	// ongoing
-	if spec.AsyncOpInProgress {
-		for _, c := range spec.Conditions {
+	if create {
+		if status.CurrentOperation != "" {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("currentOperation"), status.CurrentOperation, "currentOperation must be empty on create"))
+		}
+	} else {
+		if !validServiceInstanceOperations[status.CurrentOperation] {
+			allErrs = append(allErrs, field.NotSupported(fldPath.Child("currentOperation"), status.CurrentOperation, validServiceInstanceOperationValues))
+		}
+	}
+
+	if status.CurrentOperation == "" {
+		if status.OperationStartTime != nil {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("operationStartTime"), "operationStartTime must not be present when currentOperation is not present"))
+		}
+		if status.AsyncOpInProgress {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("asyncOpInProgress"), "asyncOpInProgress cannot be true when there is no currentOperation"))
+		}
+		if status.LastOperation != nil {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("lastOperation"), "lastOperation cannot be true when currentOperation is not present"))
+		}
+	} else {
+		if status.OperationStartTime == nil {
+			allErrs = append(allErrs, field.Required(fldPath.Child("operationStartTime"), "operationStartTime is required when currentOperation is present"))
+		}
+		// Do not allow the instance to be ready if there is an on-going operation
+		for i, c := range status.Conditions {
 			if c.Type == sc.ServiceInstanceConditionReady && c.Status == sc.ConditionTrue {
-				errors = append(errors, field.Forbidden(fldPath.Child("Conditions"), "Can not set ServiceInstanceConditionReady to true when an async operation is in progress"))
+				allErrs = append(allErrs, field.Forbidden(fldPath.Child("conditions").Index(i), "Can not set ServiceInstanceConditionReady to true when there is an operation in progress"))
 			}
 		}
 	}
 
-	return errors
+	switch status.CurrentOperation {
+	case sc.ServiceInstanceOperationProvision, sc.ServiceInstanceOperationUpdate:
+		if status.InProgressProperties == nil {
+			allErrs = append(allErrs, field.Required(fldPath.Child("inProgressProperties"), `inProgressProperties is required when currentOperation is "Provision" or "Update"`))
+		}
+	default:
+		if status.InProgressProperties != nil {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("inProgressProperties"), `inProgressProperties must not be present when currentOperation is neither "Provision" nor "Update"`))
+		}
+	}
+
+	if status.InProgressProperties != nil {
+		allErrs = append(allErrs, validateServiceInstancePropertiesState(status.InProgressProperties, fldPath.Child("inProgressProperties"), create)...)
+	}
+
+	if status.ExternalProperties != nil {
+		allErrs = append(allErrs, validateServiceInstancePropertiesState(status.ExternalProperties, fldPath.Child("externalProperties"), create)...)
+	}
+
+	return allErrs
 }
 
-// internalValidateServiceInstanceUpdateAllowed ensures there is not an asynchronous
-// operation ongoing with the instance before allowing an update to go through.
+func validateServiceInstancePropertiesState(propertiesState *sc.ServiceInstancePropertiesState, fldPath *field.Path, create bool) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if propertiesState.Parameters == nil {
+		if propertiesState.ParametersChecksum != "" {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("parametersChecksum"), "parametersChecksum must be empty when there are no parameters"))
+		}
+	} else {
+		if len(propertiesState.Parameters.Raw) == 0 {
+			allErrs = append(allErrs, field.Required(fldPath.Child("parameters").Child("raw"), "raw must not be empty"))
+		} else {
+			unmarshalled := make(map[string]interface{})
+			if err := yaml.Unmarshal(propertiesState.Parameters.Raw, &unmarshalled); err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("parameters").Child("raw"), propertiesState.Parameters.Raw, "raw must be valid yaml"))
+			}
+		}
+		if propertiesState.ParametersChecksum == "" {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("parametersChecksum"), "parametersChecksum must not be empty when there are parameters"))
+		}
+	}
+
+	if propertiesState.ParametersChecksum != "" {
+		if len(propertiesState.ParametersChecksum) != 64 {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("parametersChecksum"), propertiesState.ParametersChecksum, "parametersChecksum must be exactly 64 digits"))
+		}
+		if !stringIsHexadecimal(propertiesState.ParametersChecksum) {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("parametersChecksum"), propertiesState.ParametersChecksum, "parametersChecksum must be a hexadecimal number"))
+		}
+	}
+
+	return allErrs
+}
+
+func validateServiceInstanceCreate(instance *sc.ServiceInstance) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if instance.Status.ReconciledGeneration >= instance.Generation {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("status").Child("reconciledGeneration"), instance.Status.ReconciledGeneration, "reconciledGeneration must be less than generation on create"))
+	}
+	return allErrs
+}
+
+func validateServiceInstanceUpdate(instance *sc.ServiceInstance) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if instance.Status.ReconciledGeneration == instance.Generation {
+		if instance.Status.CurrentOperation != "" {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("status").Child("currentOperation"), "currentOperation must not be present when reconciledGeneration and generation are equal"))
+		}
+	} else if instance.Status.ReconciledGeneration > instance.Generation {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("status").Child("reconciledGeneration"), instance.Status.ReconciledGeneration, "reconciledGeneration must not be greater than generation"))
+	}
+	return allErrs
+}
+
+// internalValidateServiceInstanceUpdateAllowed ensures there is not a
+// pending update on-going with the spec of the instance before allowing an update
+// to the spec to go through.
 func internalValidateServiceInstanceUpdateAllowed(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	errors := field.ErrorList{}
-	if old.Status.AsyncOpInProgress {
-		errors = append(errors, field.Forbidden(field.NewPath("Spec"), "Another operation for this service instance is in progress"))
+	if old.Generation != new.Generation && old.Status.ReconciledGeneration != old.Generation {
+		errors = append(errors, field.Forbidden(field.NewPath("spec"), "Another update for this service instance is in progress"))
 	}
 	return errors
 }
@@ -130,11 +246,26 @@ func internalValidateServiceInstanceStatusUpdateAllowed(new *sc.ServiceInstance,
 	return errors
 }
 
+func internalValidateServiceInstanceReferencesUpdateAllowed(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
+	errors := field.ErrorList{}
+	// TODO what would be errors?
+	return errors
+}
+
 // ValidateServiceInstanceStatusUpdate checks that when changing from an older
 // instance to a newer instance is okay. This only checks the instance.Status field.
 func ValidateServiceInstanceStatusUpdate(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, internalValidateServiceInstanceStatusUpdateAllowed(new, old)...)
+	allErrs = append(allErrs, internalValidateServiceInstance(new, false)...)
+	return allErrs
+}
+
+// ValidateServiceInstanceReferencesUpdate checks that when changing from an older
+// instance to a newer instance is okay.
+func ValidateServiceInstanceReferencesUpdate(new *sc.ServiceInstance, old *sc.ServiceInstance) field.ErrorList {
+	allErrs := field.ErrorList{}
+	allErrs = append(allErrs, internalValidateServiceInstanceReferencesUpdateAllowed(new, old)...)
 	allErrs = append(allErrs, internalValidateServiceInstance(new, false)...)
 	return allErrs
 }

@@ -22,15 +22,16 @@ import (
 
 	"github.com/golang/glog"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
+	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/api/v1"
+	apiv1 "k8s.io/client-go/pkg/api/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -137,6 +138,7 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			binding.Spec.ServiceInstanceRef.Name,
 			err,
 		)
+		c.recorder.Event(binding, apiv1.EventTypeWarning, errorNonexistentServiceInstanceReason, s)
 		c.setServiceInstanceCredentialCondition(
 			toUpdate,
 			v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -144,8 +146,9 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			errorNonexistentServiceInstanceReason,
 			"The binding references an ServiceInstance that does not exist. "+s,
 		)
-		c.updateServiceInstanceCredentialStatus(toUpdate)
-		c.recorder.Event(binding, api.EventTypeWarning, errorNonexistentServiceInstanceReason, s)
+		if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+			return err
+		}
 		return err
 	}
 
@@ -158,6 +161,7 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			binding.Spec.ServiceInstanceRef.Name,
 		)
 		glog.Info(s)
+		c.recorder.Event(binding, apiv1.EventTypeWarning, errorWithOngoingAsyncOperation, s)
 		c.setServiceInstanceCredentialCondition(
 			toUpdate,
 			v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -165,14 +169,20 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			errorWithOngoingAsyncOperation,
 			errorWithOngoingAsyncOperationMessage,
 		)
-		c.updateServiceInstanceCredentialStatus(toUpdate)
-		c.recorder.Event(binding, api.EventTypeWarning, errorWithOngoingAsyncOperation, s)
+		if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+			return err
+		}
 		return fmt.Errorf("Ongoing Asynchronous operation")
+	}
+
+	if instance.Spec.ServiceClassRef == nil || instance.Spec.ServicePlanRef == nil {
+		// retry later
+		return fmt.Errorf("ServiceClass or ServicePlan references for Instance have not been resolved yet")
 	}
 
 	serviceClass, servicePlan, brokerName, brokerClient, err := c.getServiceClassPlanAndServiceBrokerForServiceInstanceCredential(instance, binding)
 	if err != nil {
-		return err
+		return err // retry later
 	}
 
 	if !isPlanBindable(serviceClass, servicePlan) {
@@ -180,10 +190,11 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			"ServiceInstanceCredential \"%s/%s\" references a non-bindable ServiceClass (%q) and Plan (%q) combination",
 			binding.Namespace,
 			binding.Name,
-			instance.Spec.ServiceClassName,
-			instance.Spec.PlanName,
+			instance.Spec.ExternalServiceClassName,
+			instance.Spec.ExternalServicePlanName,
 		)
 		glog.Warning(s)
+		c.recorder.Event(binding, apiv1.EventTypeWarning, errorNonbindableServiceClassReason, s)
 		c.setServiceInstanceCredentialCondition(
 			toUpdate,
 			v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -191,37 +202,20 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			errorNonbindableServiceClassReason,
 			s,
 		)
-		c.updateServiceInstanceCredentialStatus(toUpdate)
-		c.recorder.Event(binding, api.EventTypeWarning, errorNonbindableServiceClassReason, s)
+		if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+			return err
+		}
 		return nil
 	}
 
 	if binding.DeletionTimestamp == nil { // Add or update
 		glog.V(4).Infof("Adding/Updating ServiceInstanceCredential %v/%v", binding.Namespace, binding.Name)
 
-		var parameters map[string]interface{}
-		if binding.Spec.Parameters != nil || binding.Spec.ParametersFrom != nil {
-			parameters, err = buildParameters(c.kubeClient, binding.Namespace, binding.Spec.ParametersFrom, binding.Spec.Parameters)
-			if err != nil {
-				s := fmt.Sprintf("Failed to prepare ServiceInstanceCredential parameters\n%s\n %s", binding.Spec.Parameters, err)
-				glog.Warning(s)
-				c.setServiceInstanceCredentialCondition(
-					toUpdate,
-					v1alpha1.ServiceInstanceCredentialConditionReady,
-					v1alpha1.ConditionFalse,
-					errorWithParameters,
-					s,
-				)
-				c.updateServiceInstanceCredentialStatus(toUpdate)
-				c.recorder.Event(binding, api.EventTypeWarning, errorWithParameters, s)
-				return err
-			}
-		}
-
 		ns, err := c.kubeClient.Core().Namespaces().Get(instance.Namespace, metav1.GetOptions{})
 		if err != nil {
 			s := fmt.Sprintf("Failed to get namespace %q during binding: %s", instance.Namespace, err)
 			glog.Info(s)
+			c.recorder.Eventf(binding, apiv1.EventTypeWarning, errorFindingNamespaceServiceInstanceReason, s)
 			c.setServiceInstanceCredentialCondition(
 				toUpdate,
 				v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -229,14 +223,16 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 				errorFindingNamespaceServiceInstanceReason,
 				"Error finding namespace for instance. "+s,
 			)
-			c.updateServiceInstanceCredentialStatus(toUpdate)
-			c.recorder.Eventf(binding, api.EventTypeWarning, errorFindingNamespaceServiceInstanceReason, s)
+			if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+				return err
+			}
 			return err
 		}
 
 		if !isServiceInstanceReady(instance) {
 			s := fmt.Sprintf(`ServiceInstanceCredential cannot begin because referenced instance "%v/%v" is not ready`, instance.Namespace, instance.Name)
 			glog.Info(s)
+			c.recorder.Eventf(binding, apiv1.EventTypeWarning, errorServiceInstanceNotReadyReason, s)
 			c.setServiceInstanceCredentialCondition(
 				toUpdate,
 				v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -244,17 +240,88 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 				errorServiceInstanceNotReadyReason,
 				s,
 			)
-			c.updateServiceInstanceCredentialStatus(toUpdate)
-			c.recorder.Eventf(binding, api.EventTypeWarning, errorServiceInstanceNotReadyReason, s)
+			if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+				return err
+			}
 			return nil
+		}
+
+		var (
+			parameters                 map[string]interface{}
+			parametersChecksum         string
+			rawParametersWithRedaction *runtime.RawExtension
+		)
+		if binding.Spec.Parameters != nil || binding.Spec.ParametersFrom != nil {
+			var parametersWithSecretsRedacted map[string]interface{}
+			parameters, parametersWithSecretsRedacted, err = buildParameters(c.kubeClient, binding.Namespace, binding.Spec.ParametersFrom, binding.Spec.Parameters)
+			if err != nil {
+				s := fmt.Sprintf("Failed to prepare ServiceInstanceCredential parameters\n%s\n %s", binding.Spec.Parameters, err)
+				glog.Warning(s)
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorWithParameters, s)
+				c.setServiceInstanceCredentialCondition(
+					toUpdate,
+					v1alpha1.ServiceInstanceCredentialConditionReady,
+					v1alpha1.ConditionFalse,
+					errorWithParameters,
+					s,
+				)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
+				return err
+			}
+
+			parametersChecksum, err = generateChecksumOfParameters(parameters)
+			if err != nil {
+				s := fmt.Sprintf(`Failed to generate the parameters checksum to store in the Status of ServiceInstanceCredential "%s/%s": %s`, binding.Namespace, binding.Name, err)
+				glog.Info(s)
+				c.recorder.Eventf(binding, apiv1.EventTypeWarning, errorWithParameters, s)
+				c.setServiceInstanceCredentialCondition(
+					toUpdate,
+					v1alpha1.ServiceInstanceCredentialConditionReady,
+					v1alpha1.ConditionFalse,
+					errorWithParameters,
+					s)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
+				return err
+			}
+
+			marshalledParametersWithRedaction, err := MarshalRawParameters(parametersWithSecretsRedacted)
+			if err != nil {
+				s := fmt.Sprintf(`Failed to marshal the parameters to store in the Status of ServiceInstanceCredential "%s/%s": %s`, binding.Namespace, binding.Name, err)
+				glog.Info(s)
+				c.recorder.Eventf(binding, apiv1.EventTypeWarning, errorWithParameters, s)
+				c.setServiceInstanceCredentialCondition(
+					toUpdate,
+					v1alpha1.ServiceInstanceCredentialConditionReady,
+					v1alpha1.ConditionFalse,
+					errorWithParameters,
+					s)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
+				return err
+			}
+
+			rawParametersWithRedaction = &runtime.RawExtension{
+				Raw: marshalledParametersWithRedaction,
+			}
+		}
+
+		toUpdate.Status.InProgressProperties = &v1alpha1.ServiceInstanceCredentialPropertiesState{
+			Parameters:         rawParametersWithRedaction,
+			ParametersChecksum: parametersChecksum,
+			UserInfo:           toUpdate.Spec.UserInfo,
 		}
 
 		appGUID := string(ns.UID)
 		request := &osb.BindRequest{
 			BindingID:    binding.Spec.ExternalID,
 			InstanceID:   instance.Spec.ExternalID,
-			ServiceID:    serviceClass.ExternalID,
-			PlanID:       servicePlan.ExternalID,
+			ServiceID:    serviceClass.Spec.ExternalID,
+			PlanID:       servicePlan.Spec.ExternalID,
 			AppGUID:      &appGUID,
 			Parameters:   parameters,
 			BindResource: &osb.BindResource{AppGUID: &appGUID},
@@ -265,35 +332,45 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			if err != nil {
 				s := fmt.Sprintf(`Error building originating identity headers for binding ServiceInstanceCredential "%v/%v": %v`, binding.Namespace, binding.Name, err)
 				glog.Warning(s)
-				c.updateServiceInstanceCredentialCondition(
-					binding,
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorWithOriginatingIdentity, s)
+				c.setServiceInstanceCredentialCondition(
+					toUpdate,
 					v1alpha1.ServiceInstanceCredentialConditionReady,
 					v1alpha1.ConditionFalse,
 					errorWithOriginatingIdentity,
 					s,
 				)
-				c.recorder.Event(binding, api.EventTypeWarning, errorWithOriginatingIdentity, s)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 				return err
 			}
 			request.OriginatingIdentity = originatingIdentity
 		}
 
-		now := metav1.Now()
+		if toUpdate.Status.CurrentOperation == "" {
+			toUpdate, err = c.recordStartOfServiceInstanceCredentialOperation(toUpdate, v1alpha1.ServiceInstanceCredentialOperationBind)
+			if err != nil {
+				// There has been an update to the binding. Start reconciliation
+				// over with a fresh view of the binding.
+				return err
+			}
+		}
 
 		response, err := brokerClient.Bind(request)
 		if err != nil {
-			httpErr, isError := osb.IsHTTPError(err)
-			if isError {
+			if httpErr, ok := osb.IsHTTPError(err); ok {
 				s := fmt.Sprintf("Error creating ServiceInstanceCredential \"%s/%s\" for ServiceInstance \"%s/%s\" of ServiceClass %q at ServiceBroker %q, %v",
 					binding.Name,
 					binding.Namespace,
 					instance.Namespace,
 					instance.Name,
-					serviceClass.Name,
+					serviceClass.Spec.ExternalName,
 					brokerName,
 					httpErr.Error(),
 				)
 				glog.Warning(s)
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorBindCallReason, s)
 
 				c.setServiceInstanceCredentialCondition(
 					toUpdate,
@@ -308,48 +385,59 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 					v1alpha1.ConditionFalse,
 					errorBindCallReason,
 					"Bind call failed. "+s)
-				toUpdate.Status.OperationStartTime = nil
-				toUpdate.Status.ReconciledGeneration = toUpdate.Generation
-				c.updateServiceInstanceCredentialStatus(toUpdate)
-				c.recorder.Event(binding, api.EventTypeWarning, errorBindCallReason, s)
+				c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 				return nil
 			}
 
-			s := fmt.Sprintf("Error creating ServiceInstanceCredential \"%s/%s\" for ServiceInstance \"%s/%s\" of ServiceClass %q at ServiceBroker %q: %s", binding.Name, binding.Namespace, instance.Namespace, instance.Name, serviceClass.Name, brokerName, err)
+			s := fmt.Sprintf("Error creating ServiceInstanceCredential \"%s/%s\" for ServiceInstance \"%s/%s\" of ServiceClass %q at ServiceBroker %q: %s", binding.Name, binding.Namespace, instance.Namespace, instance.Name, serviceClass.Spec.ExternalName, brokerName, err)
 			glog.Warning(s)
+			c.recorder.Event(binding, apiv1.EventTypeWarning, errorBindCallReason, s)
 			c.setServiceInstanceCredentialCondition(
 				toUpdate,
 				v1alpha1.ServiceInstanceCredentialConditionReady,
 				v1alpha1.ConditionFalse,
 				errorBindCallReason,
 				"Bind call failed. "+s)
-			c.recorder.Event(binding, api.EventTypeWarning, errorBindCallReason, s)
 
-			if binding.Status.OperationStartTime == nil {
-				toUpdate.Status.OperationStartTime = &now
-			} else if !time.Now().Before(binding.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
+			if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
 				s := fmt.Sprintf(`Stopping reconciliation retries on ServiceInstanceCredential "%v/%v" because too much time has elapsed`, binding.Namespace, binding.Name)
 				glog.Info(s)
-				c.recorder.Event(binding, api.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 				c.setServiceInstanceCredentialCondition(toUpdate,
 					v1alpha1.ServiceInstanceCredentialConditionFailed,
 					v1alpha1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
 					s)
-				toUpdate.Status.OperationStartTime = nil
-				toUpdate.Status.ReconciledGeneration = toUpdate.Generation
-				c.updateServiceInstanceCredentialStatus(toUpdate)
+				c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 				return nil
 			}
 
-			c.updateServiceInstanceCredentialStatus(toUpdate)
+			if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+				return err
+			}
 			return err
 		}
+
+		// The Bind request has returned successfully from the Broker. Continue
+		// with the sucess case of creating the ServiceInstanceCredential.
+
+		// Save off the external properties here even if the subsequent
+		// credentials injection fails. The Broker has already processed the
+		// request, so this is what the Broker knows about the state of the
+		// binding.
+		toUpdate.Status.ExternalProperties = toUpdate.Status.InProgressProperties
 
 		err = c.injectServiceInstanceCredential(binding, response.Credentials)
 		if err != nil {
 			s := fmt.Sprintf("Error injecting binding results for ServiceInstanceCredential \"%s/%s\": %s", binding.Namespace, binding.Name, err)
 			glog.Warning(s)
+			c.recorder.Event(binding, apiv1.EventTypeWarning, errorInjectingBindResultReason, s)
 			c.setServiceInstanceCredentialCondition(
 				toUpdate,
 				v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -357,27 +445,20 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 				errorInjectingBindResultReason,
 				"Error injecting bind result "+s,
 			)
-			c.recorder.Event(binding, api.EventTypeWarning, errorInjectingBindResultReason, s)
 
-			if binding.Status.OperationStartTime == nil {
-				toUpdate.Status.OperationStartTime = &now
-			} else if !time.Now().Before(binding.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
+			if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
 				s := fmt.Sprintf(`Stopping reconciliation retries on ServiceInstanceCredential "%v/%v" because too much time has elapsed`, binding.Namespace, binding.Name)
 				glog.Info(s)
-				c.recorder.Event(binding, api.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
-				c.setServiceInstanceCredentialCondition(toUpdate,
-					v1alpha1.ServiceInstanceCredentialConditionReady,
-					v1alpha1.ConditionFalse,
-					errorReconciliationRetryTimeoutReason,
-					s)
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 				c.setServiceInstanceCredentialCondition(toUpdate,
 					v1alpha1.ServiceInstanceCredentialConditionFailed,
 					v1alpha1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
 					s)
-				toUpdate.Status.OperationStartTime = nil
-				toUpdate.Status.ReconciledGeneration = toUpdate.Generation
-				c.updateServiceInstanceCredentialStatus(toUpdate)
+				c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 
 				// TODO: We need to delete the ServiceInstanceCredential from the
 				// Broker since the Bind request was successful. This needs to be
@@ -386,15 +467,13 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 				return nil
 			}
 
-			c.updateServiceInstanceCredentialStatus(toUpdate)
+			if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+				return err
+			}
 			return err
 		}
 
-		toUpdate.Status.OperationStartTime = nil
-
-		// The bind operation completed successfully, so set
-		// Status.ReconciledGeneration to the Generation used.
-		toUpdate.Status.ReconciledGeneration = toUpdate.Generation
+		c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
 
 		c.setServiceInstanceCredentialCondition(
 			toUpdate,
@@ -403,9 +482,12 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			successInjectedBindResultReason,
 			successInjectedBindResultMessage,
 		)
-		c.updateServiceInstanceCredentialStatus(toUpdate)
-		c.recorder.Event(binding, api.EventTypeNormal, successInjectedBindResultReason, successInjectedBindResultMessage)
 
+		if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+			return err
+		}
+
+		c.recorder.Event(binding, apiv1.EventTypeNormal, successInjectedBindResultReason, successInjectedBindResultMessage)
 		glog.V(5).Infof("Successfully bound to ServiceInstance %v/%v of ServiceClass %v at ServiceBroker %v", instance.Namespace, instance.Name, serviceClass.Name, brokerName)
 
 		return nil
@@ -420,6 +502,7 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 		if err != nil {
 			s := fmt.Sprintf("Error deleting secret: %s", err)
 			glog.Warning(s)
+			c.recorder.Eventf(binding, apiv1.EventTypeWarning, errorEjectingBindReason, "%v %v", errorEjectingBindMessage, s)
 			c.setServiceInstanceCredentialCondition(
 				toUpdate,
 				v1alpha1.ServiceInstanceCredentialConditionReady,
@@ -427,16 +510,17 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 				errorEjectingBindReason,
 				errorEjectingBindMessage+s,
 			)
-			c.updateServiceInstanceCredentialStatus(toUpdate)
-			c.recorder.Eventf(binding, api.EventTypeWarning, errorEjectingBindReason, "%v %v", errorEjectingBindMessage, s)
+			if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+				return err
+			}
 			return err
 		}
 
 		unbindRequest := &osb.UnbindRequest{
 			BindingID:  binding.Spec.ExternalID,
 			InstanceID: instance.Spec.ExternalID,
-			ServiceID:  serviceClass.ExternalID,
-			PlanID:     servicePlan.ExternalID,
+			ServiceID:  serviceClass.Spec.ExternalID,
+			PlanID:     servicePlan.Spec.ExternalID,
 		}
 
 		if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
@@ -444,39 +528,49 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			if err != nil {
 				s := fmt.Sprintf(`Error building originating identity headers for unbinding ServiceInstanceCredential "%v/%v": %v`, binding.Namespace, binding.Name, err)
 				glog.Warning(s)
-				c.updateServiceInstanceCredentialCondition(
-					binding,
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorWithOriginatingIdentity, s)
+				c.setServiceInstanceCredentialCondition(
+					toUpdate,
 					v1alpha1.ServiceInstanceCredentialConditionReady,
 					v1alpha1.ConditionFalse,
 					errorWithOriginatingIdentity,
 					s,
 				)
-				c.recorder.Event(binding, api.EventTypeWarning, errorWithOriginatingIdentity, s)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 				return err
 			}
 			unbindRequest.OriginatingIdentity = originatingIdentity
 		}
 
-		now := metav1.Now()
+		if toUpdate.Status.CurrentOperation == "" {
+			toUpdate, err = c.recordStartOfServiceInstanceCredentialOperation(toUpdate, v1alpha1.ServiceInstanceCredentialOperationUnbind)
+			if err != nil {
+				// There has been an update to the binding. Start reconciliation
+				// over with a fresh view of the binding.
+				return err
+			}
+		}
 
 		_, err = brokerClient.Unbind(unbindRequest)
 		if err != nil {
-			httpErr, isError := osb.IsHTTPError(err)
-			if isError {
+			if httpErr, ok := osb.IsHTTPError(err); ok {
 				s := fmt.Sprintf("Error unbinding ServiceInstanceCredential \"%s/%s\" for ServiceInstance \"%s/%s\" of ServiceClass %q at ServiceBroker %q: %s",
 					binding.Name,
 					binding.Namespace,
 					instance.Namespace,
 					instance.Name,
-					serviceClass.Name,
+					serviceClass.Spec.ExternalName,
 					brokerName,
 					httpErr.Error(),
 				)
 				glog.Warning(s)
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorUnbindCallReason, s)
 				c.setServiceInstanceCredentialCondition(
 					toUpdate,
 					v1alpha1.ServiceInstanceCredentialConditionReady,
-					v1alpha1.ConditionFalse,
+					v1alpha1.ConditionUnknown,
 					errorUnbindCallReason,
 					"Unbind call failed. "+s)
 				c.setServiceInstanceCredentialCondition(
@@ -485,9 +579,10 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 					v1alpha1.ConditionTrue,
 					errorUnbindCallReason,
 					"Unbind call failed. "+s)
-				toUpdate.Status.OperationStartTime = nil
-				c.updateServiceInstanceCredentialStatus(toUpdate)
-				c.recorder.Event(binding, api.EventTypeWarning, errorUnbindCallReason, s)
+				c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 				return nil
 			}
 			s := fmt.Sprintf(
@@ -496,36 +591,38 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 				binding.Namespace,
 				instance.Namespace,
 				instance.Name,
-				serviceClass.Name,
+				serviceClass.Spec.ExternalName,
 				brokerName,
 				err,
 			)
 			glog.Warning(s)
+			c.recorder.Event(binding, apiv1.EventTypeWarning, errorUnbindCallReason, s)
 			c.setServiceInstanceCredentialCondition(
 				toUpdate,
 				v1alpha1.ServiceInstanceCredentialConditionReady,
-				v1alpha1.ConditionFalse,
+				v1alpha1.ConditionUnknown,
 				errorUnbindCallReason,
 				"Unbind call failed. "+s)
-			c.recorder.Event(binding, api.EventTypeWarning, errorUnbindCallReason, s)
 
-			if binding.Status.OperationStartTime == nil {
-				toUpdate.Status.OperationStartTime = &now
-			} else if !time.Now().Before(binding.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
+			if !time.Now().Before(toUpdate.Status.OperationStartTime.Time.Add(c.reconciliationRetryDuration)) {
 				s := fmt.Sprintf(`Stopping reconciliation retries on ServiceInstanceCredential "%v/%v" because too much time has elapsed`, binding.Namespace, binding.Name)
 				glog.Info(s)
-				c.recorder.Event(binding, api.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
+				c.recorder.Event(binding, apiv1.EventTypeWarning, errorReconciliationRetryTimeoutReason, s)
 				c.setServiceInstanceCredentialCondition(toUpdate,
 					v1alpha1.ServiceInstanceCredentialConditionFailed,
 					v1alpha1.ConditionTrue,
 					errorReconciliationRetryTimeoutReason,
 					s)
-				toUpdate.Status.OperationStartTime = nil
-				c.updateServiceInstanceCredentialStatus(toUpdate)
+				c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
+				if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+					return err
+				}
 				return nil
 			}
 
-			c.updateServiceInstanceCredentialStatus(toUpdate)
+			if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
+				return err
+			}
 			return err
 		}
 
@@ -536,15 +633,18 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 			successUnboundReason,
 			"The binding was deleted successfully",
 		)
-		toUpdate.Status.OperationStartTime = nil
-		c.updateServiceInstanceCredentialStatus(toUpdate)
+		c.clearServiceInstanceCredentialCurrentOperation(toUpdate)
+
+		toUpdate.Status.ExternalProperties = nil
+
 		// Clear the finalizer
 		finalizers.Delete(v1alpha1.FinalizerServiceCatalog)
-		if err = c.updateServiceInstanceCredentialFinalizers(binding, finalizers.List()); err != nil {
+		toUpdate.Finalizers = finalizers.List()
+		if _, err := c.updateServiceInstanceCredentialStatus(toUpdate); err != nil {
 			return err
 		}
-		c.recorder.Event(binding, api.EventTypeNormal, successUnboundReason, "This binding was deleted successfully")
 
+		c.recorder.Event(binding, apiv1.EventTypeNormal, successUnboundReason, "This binding was deleted successfully")
 		glog.V(5).Infof("Successfully deleted ServiceInstanceCredential %v/%v of ServiceInstance %v/%v of ServiceClass %v at ServiceBroker %v", binding.Namespace, binding.Name, instance.Namespace, instance.Name, serviceClass.Name, brokerName)
 	}
 
@@ -559,11 +659,11 @@ func (c *controller) reconcileServiceInstanceCredential(binding *v1alpha1.Servic
 // Note: enforcing that the plan belongs to the given service class is the
 // responsibility of the caller.
 func isPlanBindable(serviceClass *v1alpha1.ServiceClass, plan *v1alpha1.ServicePlan) bool {
-	if plan.Bindable != nil {
-		return *plan.Bindable
+	if plan.Spec.Bindable != nil {
+		return *plan.Spec.Bindable
 	}
 
-	return serviceClass.Bindable
+	return serviceClass.Spec.Bindable
 }
 
 func (c *controller) injectServiceInstanceCredential(binding *v1alpha1.ServiceInstanceCredential, credentials map[string]interface{}) error {
@@ -612,7 +712,7 @@ func (c *controller) injectServiceInstanceCredential(binding *v1alpha1.ServiceIn
 		err = nil
 
 		// Create new secret
-		secret := &v1.Secret{
+		secret := &apiv1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      binding.Spec.SecretName,
 				Namespace: binding.Namespace,
@@ -713,13 +813,13 @@ func setServiceInstanceCredentialConditionInternal(toUpdate *v1alpha1.ServiceIns
 	toUpdate.Status.Conditions = append(toUpdate.Status.Conditions, newCondition)
 }
 
-func (c *controller) updateServiceInstanceCredentialStatus(toUpdate *v1alpha1.ServiceInstanceCredential) error {
+func (c *controller) updateServiceInstanceCredentialStatus(toUpdate *v1alpha1.ServiceInstanceCredential) (*v1alpha1.ServiceInstanceCredential, error) {
 	glog.V(4).Infof("Updating status for ServiceInstanceCredential %v/%v", toUpdate.Namespace, toUpdate.Name)
-	_, err := c.serviceCatalogClient.ServiceInstanceCredentials(toUpdate.Namespace).UpdateStatus(toUpdate)
+	updatedBinding, err := c.serviceCatalogClient.ServiceInstanceCredentials(toUpdate.Namespace).UpdateStatus(toUpdate)
 	if err != nil {
 		glog.Errorf("Error updating status for ServiceInstanceCredential %v/%v", toUpdate.Namespace, toUpdate.Name)
 	}
-	return err
+	return updatedBinding, err
 }
 
 // updateServiceInstanceCredentialCondition updates the given condition for the given ServiceInstanceCredential
@@ -746,38 +846,6 @@ func (c *controller) updateServiceInstanceCredentialCondition(
 	return err
 }
 
-// updateServiceInstanceCredentialFinalizers updates the given finalizers for the given ServiceInstanceCredential.
-func (c *controller) updateServiceInstanceCredentialFinalizers(
-	binding *v1alpha1.ServiceInstanceCredential,
-	finalizers []string) error {
-
-	// Get the latest version of the binding so that we can avoid conflicts
-	// (since we have probably just updated the status of the binding and are
-	// now removing the last finalizer).
-	binding, err := c.serviceCatalogClient.ServiceInstanceCredentials(binding.Namespace).Get(binding.Name, metav1.GetOptions{})
-	if err != nil {
-		glog.Errorf("Error getting ServiceInstanceCredential %v/%v to finalize: %v", binding.Namespace, binding.Name, err)
-	}
-
-	clone, err := api.Scheme.DeepCopy(binding)
-	if err != nil {
-		return err
-	}
-	toUpdate := clone.(*v1alpha1.ServiceInstanceCredential)
-
-	toUpdate.Finalizers = finalizers
-
-	logContext := fmt.Sprintf("finalizers for ServiceInstanceCredential %v/%v to %v",
-		binding.Namespace, binding.Name, finalizers)
-
-	glog.V(4).Infof("Updating %v", logContext)
-	_, err = c.serviceCatalogClient.ServiceInstanceCredentials(binding.Namespace).UpdateStatus(toUpdate)
-	if err != nil {
-		glog.Errorf("Error updating %v: %v", logContext, err)
-	}
-	return err
-}
-
 func (c *controller) bindingDelete(obj interface{}) {
 	binding, ok := obj.(*v1alpha1.ServiceInstanceCredential)
 	if binding == nil || !ok {
@@ -785,4 +853,47 @@ func (c *controller) bindingDelete(obj interface{}) {
 	}
 
 	glog.V(4).Infof("Received delete event for ServiceInstanceCredential %v/%v; no further processing will occur", binding.Namespace, binding.Name)
+}
+
+// recordStartOfServiceInstanceCredentialOperation updates the binding to indicate
+// that there is a current operation being performed. The Status of the binding
+// is recorded in the registry.
+// params:
+// toUpdate - a modifiable copy of the binding in the registry to update
+// operation - operation that is being performed on the binding
+// returns:
+// 1 - a modifiable copy of toUpdate; or toUpdate if there was an error
+// 2 - any error that occurred
+func (c *controller) recordStartOfServiceInstanceCredentialOperation(toUpdate *v1alpha1.ServiceInstanceCredential, operation v1alpha1.ServiceInstanceCredentialOperation) (*v1alpha1.ServiceInstanceCredential, error) {
+	toUpdate.Status.CurrentOperation = operation
+	now := metav1.Now()
+	toUpdate.Status.OperationStartTime = &now
+	reason := ""
+	message := ""
+	switch operation {
+	case v1alpha1.ServiceInstanceCredentialOperationBind:
+		reason = bindingInFlightReason
+		message = bindingInFlightMessage
+	case v1alpha1.ServiceInstanceCredentialOperationUnbind:
+		reason = unbindingInFlightReason
+		message = unbindingInFlightMessage
+	}
+	c.setServiceInstanceCredentialCondition(
+		toUpdate,
+		v1alpha1.ServiceInstanceCredentialConditionReady,
+		v1alpha1.ConditionFalse,
+		reason,
+		message,
+	)
+	return c.updateServiceInstanceCredentialStatus(toUpdate)
+}
+
+// clearServiceInstanceCredentialCurrentOperation sets the fields of the binding's
+// Status to indicate that there is no current operation being performed. The
+// Status is *not* recorded in the registry.
+func (c *controller) clearServiceInstanceCredentialCurrentOperation(toUpdate *v1alpha1.ServiceInstanceCredential) {
+	toUpdate.Status.CurrentOperation = ""
+	toUpdate.Status.OperationStartTime = nil
+	toUpdate.Status.ReconciledGeneration = toUpdate.Generation
+	toUpdate.Status.InProgressProperties = nil
 }
