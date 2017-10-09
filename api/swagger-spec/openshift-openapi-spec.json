@@ -89272,7 +89272,7 @@
       "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.DockerBuildStrategy"
      },
      "jenkinsPipelineStrategy": {
-      "description": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is in tech preview.",
+      "description": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.",
       "$ref": "#/definitions/com.github.openshift.origin.pkg.build.apis.build.v1.JenkinsPipelineBuildStrategy"
      },
      "sourceStrategy": {
@@ -89619,7 +89619,7 @@
     }
    },
    "com.github.openshift.origin.pkg.build.apis.build.v1.JenkinsPipelineBuildStrategy": {
-    "description": "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is in tech preview.",
+    "description": "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
     "properties": {
      "env": {
       "description": "env contains additional environment variables you want to pass into a build pipeline.",

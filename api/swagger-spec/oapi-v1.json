@@ -21847,7 +21847,7 @@
      },
      "jenkinsPipelineStrategy": {
       "$ref": "v1.JenkinsPipelineBuildStrategy",
-      "description": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is in tech preview."
+      "description": "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy."
      }
     }
    },
@@ -22132,7 +22132,7 @@
    },
    "v1.JenkinsPipelineBuildStrategy": {
     "id": "v1.JenkinsPipelineBuildStrategy",
-    "description": "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is in tech preview.",
+    "description": "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
     "properties": {
      "jenkinsfilePath": {
       "type": "string",
