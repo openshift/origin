@@ -26,7 +26,6 @@ import (
 	"github.com/openshift/origin/pkg/build/webhook/bitbucket"
 	"github.com/openshift/origin/pkg/build/webhook/github"
 	"github.com/openshift/origin/pkg/build/webhook/gitlab"
-	"github.com/openshift/origin/pkg/util/rest"
 )
 
 type buildConfigInstantiator struct {
@@ -61,7 +60,7 @@ func (p *plugin) Extract(buildCfg *buildapi.BuildConfig, secret, path string, re
 	return nil, p.Env, p.DockerStrategyOptions, p.Proceed, p.Err
 }
 
-func newStorage() (*rest.WebHook, *buildConfigInstantiator, *fakebuildclient.Clientset) {
+func newStorage() (*WebHook, *buildConfigInstantiator, *fakebuildclient.Clientset) {
 	fakeBuildClient := fakebuildclient.NewSimpleClientset()
 	bci := &buildConfigInstantiator{}
 	plugins := map[string]webhook.Plugin{
