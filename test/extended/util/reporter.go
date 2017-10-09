@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters/stenographer"
 	"github.com/onsi/ginkgo/types"
@@ -24,6 +25,8 @@ func NewSimpleReporter() *SimpleReporter {
 		stenographer: stenographer.New(!config.DefaultReporterConfig.NoColor, false),
 	}
 }
+
+var _ ginkgo.Reporter = &SimpleReporter{}
 
 func (r *SimpleReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
 	fmt.Fprintf(r.Output, "=== SUITE %s (%d total specs, %d will run):\n", summary.SuiteDescription, summary.NumberOfTotalSpecs, summary.NumberOfSpecsThatWillBeRun)
@@ -123,4 +126,48 @@ func stateToString(s types.SpecState) string {
 func trimLocation(l types.CodeLocation) string {
 	delimiter := "/openshift/origin/"
 	return fmt.Sprintf("%q", l.FileName[strings.LastIndex(l.FileName, delimiter)+len(delimiter):])
+}
+
+// TestNamesReporter prints completed (not skipped) test names to the given file. Each test name on single
+// line.
+type TestNamesReporter struct {
+	prefix          string
+	out             io.WriteCloser
+	closeOnSuiteEnd bool
+}
+
+var _ ginkgo.Reporter = &TestNamesReporter{}
+
+// NewTestNamesReporterForFile creates a new TestNamesReporter for the given file path.
+func NewTestNamesReporterForFile(filePath string) (*TestNamesReporter, error) {
+	out, err := os.Create(filePath)
+	if err != nil {
+		return nil, err
+	}
+	return &TestNamesReporter{
+		out:             out,
+		closeOnSuiteEnd: true,
+	}, nil
+}
+
+func (r *TestNamesReporter) SpecSuiteWillBegin(config config.GinkgoConfigType, summary *types.SuiteSummary) {
+	r.prefix = summary.SuiteDescription
+}
+
+func (r *TestNamesReporter) SpecWillRun(specSummary *types.SpecSummary) {}
+
+func (r *TestNamesReporter) BeforeSuiteDidRun(setupSummary *types.SetupSummary) {}
+
+func (r *TestNamesReporter) AfterSuiteDidRun(setupSummary *types.SetupSummary) {}
+
+func (r *TestNamesReporter) SpecDidComplete(specSummary *types.SpecSummary) {
+	if specSummary.State != types.SpecStateSkipped {
+		r.out.Write([]byte(strings.Join(specSummary.ComponentTexts, " ") + "\n"))
+	}
+}
+
+func (r *TestNamesReporter) SpecSuiteDidEnd(summary *types.SuiteSummary) {
+	if r.closeOnSuiteEnd {
+		r.out.Close()
+	}
 }

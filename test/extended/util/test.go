@@ -1,8 +1,10 @@
 package util
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -35,10 +37,12 @@ import (
 )
 
 var (
-	reportDir      string
-	reportFileName string
-	syntheticSuite string
-	quiet          bool
+	reportDir        string
+	reportFileName   string
+	syntheticSuite   string
+	excludesFile     string
+	quiet            bool
+	printTestNamesTo string
 )
 
 var TestContext *e2e.TestContextType = &e2e.TestContext
@@ -55,6 +59,8 @@ func InitTest() {
 	e2e.RegisterCommonFlags()
 	e2e.RegisterClusterFlags()
 	flag.StringVar(&syntheticSuite, "suite", "", "DEPRECATED: Optional suite selector to filter which tests are run. Use focus.")
+	flag.StringVar(&excludesFile, "excludes-from-file", "", "Path to file containing full test names to exclude. Each line may contain exactly one test name.")
+	flag.StringVar(&printTestNamesTo, "print-test-names-to", "", "Path to a file that will be filled with the names of tests that will have been run. The output can be used as the input for excludes-from-file.")
 
 	extendedOutputDir := filepath.Join(os.TempDir(), "openshift-extended-tests")
 	os.MkdirAll(extendedOutputDir, 0777)
@@ -95,37 +101,63 @@ func InitTest() {
 }
 
 func ExecuteTest(t *testing.T, suite string) {
-	var r []ginkgo.Reporter
-
-	if reportDir != "" {
+	if len(reportDir) > 0 {
 		if err := os.MkdirAll(reportDir, 0755); err != nil {
 			glog.Errorf("Failed creating report directory: %v", err)
 		}
 		defer e2e.CoreDump(reportDir)
 	}
 
-	switch syntheticSuite {
-	case "parallel.conformance.openshift.io":
-		if len(config.GinkgoConfig.FocusString) > 0 {
-			config.GinkgoConfig.FocusString += "|"
+	if len(config.GinkgoConfig.FocusString) == 0 {
+		switch syntheticSuite {
+		case "parallel.conformance.openshift.io":
+			config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/parallel\\]"
+		case "serial.conformance.openshift.io":
+			config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/serial\\]"
 		}
-		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/parallel\\]"
-	case "serial.conformance.openshift.io":
-		if len(config.GinkgoConfig.FocusString) > 0 {
-			config.GinkgoConfig.FocusString += "|"
-		}
-		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/serial\\]"
 	}
 	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
 		config.GinkgoConfig.SkipString = "Skipped"
 	}
 
+	annotateTests()
+
+	if len(excludesFile) > 0 {
+		reExcludes, err := loadExcludesFromFile(excludesFile)
+		if err != nil {
+			FatalErr(err.Error())
+		}
+		// This must be run after the test annotating  because the created focus string matches the test names
+		// exactly.
+		focusNotExcludedTests(suite, reExcludes)
+	}
+
 	gomega.RegisterFailHandler(ginkgo.Fail)
 
-	if reportDir != "" {
+	var r []ginkgo.Reporter
+
+	if len(reportDir) > 0 {
 		r = append(r, reporters.NewJUnitReporter(path.Join(reportDir, fmt.Sprintf("%s_%02d.xml", reportFileName, config.GinkgoConfig.ParallelNode))))
 	}
 
+	if len(printTestNamesTo) > 0 {
+		reporter, err := NewTestNamesReporterForFile(printTestNamesTo)
+		if err != nil {
+			FatalErr(err.Error())
+		}
+		r = append(r, reporter)
+	}
+
+	if quiet {
+		r = append(r, NewSimpleReporter())
+		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
+	} else {
+		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+	}
+}
+
+// annotateTests suffixes each test name with a proper annotation (e.g. [Serial] or [Suite:...]).
+func annotateTests() {
 	ginkgo.WalkTests(func(name string, node types.TestNode) {
 		isSerial := serialTestsFilter.MatchString(name)
 		if isSerial {
@@ -152,13 +184,44 @@ func ExecuteTest(t *testing.T, suite string) {
 			node.SetText(node.Text() + " [Suite:k8s]")
 		}
 	})
+}
 
-	if quiet {
-		r = append(r, NewSimpleReporter())
-		ginkgo.RunSpecsWithCustomReporters(t, suite, r)
-	} else {
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, suite, r)
+// focusNotExcludedTests builds and sets a new focus string containing names of all the tests that should be
+// run. The tests must be matched neither by reExcludes nor by the current GinkgoConfig.SkipString.
+func focusNotExcludedTests(suite string, reExcludes *regexp.Regexp) {
+	var (
+		reFocus, reSkip *regexp.Regexp
+		err             error
+	)
+
+	if reExcludes == nil {
+		return
 	}
+
+	if len(config.GinkgoConfig.SkipString) > 0 {
+		reSkip, err = regexp.Compile(config.GinkgoConfig.SkipString)
+		if err != nil {
+			FatalErr(fmt.Sprintf("failed to compile skip string %q: %v", config.GinkgoConfig.SkipString, err))
+		}
+	}
+	if len(config.GinkgoConfig.FocusString) > 0 {
+		reFocus, err = regexp.Compile(config.GinkgoConfig.FocusString)
+		if err != nil {
+			FatalErr(fmt.Sprintf("failed to compile focus string %q: %v", config.GinkgoConfig.FocusString, err))
+		}
+	}
+
+	focusNames := []string{}
+	ginkgo.WalkTests(func(name string, node types.TestNode) {
+		if reExcludes.MatchString(name) || (reSkip != nil && reSkip.MatchString(name)) {
+			return
+		}
+		if reFocus != nil && reFocus.MatchString(name) {
+			focusNames = append(focusNames, regexp.QuoteMeta(fmt.Sprintf("%s %s", suite, name)))
+		}
+	})
+
+	config.GinkgoConfig.FocusString = fmt.Sprintf(`^(?:%s)$`, strings.Join(focusNames, "|"))
 }
 
 // TODO: Use either explicit tags (k8s.io) or https://github.com/onsi/ginkgo/pull/228 to implement this.
@@ -491,4 +554,41 @@ func addRoleToE2EServiceAccounts(c authorizationclient.Interface, namespaces []k
 	if err != nil {
 		FatalErr(err)
 	}
+}
+
+func loadExcludesFromFile(filePath string) (*regexp.Regexp, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var (
+		testNames []string
+		line      string
+		readerErr error
+	)
+
+	reader := bufio.NewReader(file)
+	for readerErr == nil {
+		line, readerErr = reader.ReadString('\n')
+
+		if readerErr != nil && readerErr != io.EOF {
+			return nil, readerErr
+		}
+
+		line = strings.TrimSuffix(line, "\n")
+
+		if len(line) == 0 {
+			continue
+		}
+
+		testNames = append(testNames, regexp.QuoteMeta(line))
+	}
+
+	if len(testNames) == 0 {
+		return nil, nil
+	}
+
+	return regexp.Compile(fmt.Sprintf("^(?:%s)$", strings.Join(testNames, "|")))
 }
