@@ -2,6 +2,7 @@ package templates
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -125,6 +126,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 		g.By("waiting for build and dc to settle")
 		err = wait.Poll(time.Second, 20*time.Minute, waitSettle)
+		if err != nil {
+			err := dumpObjectReadiness(cli, templateinstance)
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v", err)
+			}
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the templateinstance to indicate ready")
@@ -141,6 +148,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 			return templateinstance.HasCondition(templateapi.TemplateInstanceReady, kapi.ConditionTrue), nil
 		})
+		if err != nil {
+			err := dumpObjectReadiness(cli, templateinstance)
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v", err)
+			}
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 
@@ -175,6 +188,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 		g.By("waiting for build and dc to settle")
 		err = wait.Poll(time.Second, 20*time.Minute, waitSettle)
+		if err != nil {
+			err := dumpObjectReadiness(cli, templateinstance)
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v", err)
+			}
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		g.By("waiting for the templateinstance to indicate failed")
@@ -191,6 +210,12 @@ var _ = g.Describe("[Conformance][templates] templateinstance readiness test", f
 
 			return templateinstance.HasCondition(templateapi.TemplateInstanceInstantiateFailure, kapi.ConditionTrue), nil
 		})
+		if err != nil {
+			err := dumpObjectReadiness(cli, templateinstance)
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v", err)
+			}
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 	})
 })

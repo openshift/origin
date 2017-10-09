@@ -14,16 +14,23 @@ import (
 	g "github.com/onsi/ginkgo"
 	o "github.com/onsi/gomega"
 
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/wait"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapiv1 "k8s.io/kubernetes/pkg/api/v1"
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
+	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	"github.com/openshift/origin/pkg/template/controller"
 	osbclient "github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
 	userapi "github.com/openshift/origin/pkg/user/apis/user"
+	restutil "github.com/openshift/origin/pkg/util/rest"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -210,4 +217,60 @@ func EnsureTSB(tsbOC *exutil.CLI) (osbclient.Client, func() error) {
 	return tsbclient, func() error {
 		return portForwardCmd.Process.Kill()
 	}
+}
+
+func dumpObjectReadiness(oc *exutil.CLI, templateInstance *templateapi.TemplateInstance) error {
+	restmapper := restutil.DefaultMultiRESTMapper()
+	_, config, err := configapi.GetInternalKubeClient(exutil.KubeConfigPath(), nil)
+	if err != nil {
+		return err
+	}
+
+	fmt.Fprintf(g.GinkgoWriter, "dumping object readiness for %s/%s\n", templateInstance.Namespace, templateInstance.Name)
+
+	for _, object := range templateInstance.Status.Objects {
+		if !controller.CanCheckReadiness(object.Ref) {
+			continue
+		}
+
+		mapping, err := restmapper.RESTMapping(object.Ref.GroupVersionKind().GroupKind())
+		if err != nil {
+			return err
+		}
+
+		cli, err := cmd.ClientMapperFromConfig(config).ClientForMapping(mapping)
+		if err != nil {
+			return err
+		}
+
+		obj, err := cli.Get().Resource(mapping.Resource).NamespaceIfScoped(object.Ref.Namespace, mapping.Scope.Name() == meta.RESTScopeNameNamespace).Name(object.Ref.Name).Do().Get()
+		if err != nil {
+			return err
+		}
+
+		meta, err := meta.Accessor(obj)
+		if err != nil {
+			return err
+		}
+
+		if meta.GetUID() != object.Ref.UID {
+			return kerrors.NewNotFound(schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}, object.Ref.Name)
+		}
+
+		if strings.ToLower(meta.GetAnnotations()[templateapi.WaitForReadyAnnotation]) != "true" {
+			continue
+		}
+
+		ready, failed, err := controller.CheckReadiness(oc.BuildClient(), object.Ref, obj)
+		if err != nil {
+			return err
+		}
+
+		fmt.Fprintf(g.GinkgoWriter, "%s %s/%s: ready %v, failed %v\n", object.Ref.Kind, object.Ref.Namespace, object.Ref.Name, ready, failed)
+		if !ready || failed {
+			fmt.Fprintf(g.GinkgoWriter, "object: %#v\n", obj)
+		}
+	}
+
+	return nil
 }

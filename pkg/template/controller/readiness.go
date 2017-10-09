@@ -158,8 +158,8 @@ var readinessCheckers = map[schema.GroupKind]func(runtime.Object) (bool, bool, e
 	routeapi.LegacyKind("Route"):             checkRouteReadiness,
 }
 
-// canCheckReadiness indicates whether a readiness check exists for a GK.
-func canCheckReadiness(ref kapi.ObjectReference) bool {
+// CanCheckReadiness indicates whether a readiness check exists for a GK.
+func CanCheckReadiness(ref kapi.ObjectReference) bool {
 	if ref.GroupVersionKind().GroupKind() == buildapi.LegacyKind("BuildConfig") ||
 		ref.GroupVersionKind().GroupKind() == buildapi.Kind("BuildConfig") {
 		return true
@@ -168,10 +168,10 @@ func canCheckReadiness(ref kapi.ObjectReference) bool {
 	return found
 }
 
-// checkReadiness runs the readiness check on a given object.  TODO: remove
+// CheckReadiness runs the readiness check on a given object.  TODO: remove
 // "oc client.Interface" and error once BuildConfigs can report on the status of
 // their latest build.
-func checkReadiness(oc buildclient.Interface, ref kapi.ObjectReference, obj runtime.Object) (bool, bool, error) {
+func CheckReadiness(oc buildclient.Interface, ref kapi.ObjectReference, obj runtime.Object) (bool, bool, error) {
 	if ref.GroupVersionKind().GroupKind() == buildapi.LegacyKind("BuildConfig") ||
 		ref.GroupVersionKind().GroupKind() == buildapi.Kind("BuildConfig") {
 		return checkBuildConfigReadiness(oc, obj)
