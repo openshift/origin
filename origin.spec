@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 554f91ad1fb5eced93e1bed82764a85a06b8082a
+%global commit 56f7d1e7f4f17f26dff8c477d565503b8ac2a197
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.144.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=554f91a
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.144.2 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=56f7d1e
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.144.2%{?dist}
+Release:        0.145.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -640,6 +640,31 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Oct 09 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.145.0
+- bump(github.com/openshift/origin-web-console):
+  ea7477e5ebc06d3c2b6b5c7df28ca9c806aa276c (eparis+openshiftbot@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  2e0fbe8ed749c8ee0b4d36a88af53a58ac0d2012 (eparis+openshiftbot@redhat.com)
+- fix select error handling after WaitForRunningBuild (gmontero@redhat.com)
+- Add pmorie to OWNERS in required packages for service-catalog updates
+  (pmorie@redhat.com)
+- rework jenkins ext test job retrieval around annotation (gmontero@redhat.com)
+- clean up buildconfig webhook handlers (bparees@redhat.com)
+- UPSTREAM: 52168: Fix incorrect status msg in podautoscaler
+  (mattjmcnaughton@gmail.com)
+- <carry>: Set external plan name for service-catalog walkthrough
+  (jaboyd@redhat.com)
+- Base random controller leader ID on machine info (mkhan@redhat.com)
+- remove tons of dead code and small code nit fixes (mfojtik@redhat.com)
+- image: fix infinite recursive call (mfojtik@redhat.com)
+- Router stats-port=0 error (pcameron@redhat.com)
+- catalog: add RBAC for serviceplans and serviceinstances/reference
+  (jaboyd@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from 06b897d198..7011d9e816 (jaboyd@redhat.com)
+- apps: tweak some deployment extended test for speed (mfojtik@redhat.com)
+- Register APIService for apiregistration.k8s.io/v1beta1 (obulatov@redhat.com)
+
 * Fri Oct 06 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.144.2
 - UPSTREAM: 53135: Fixed counting of unbound PVCs towards limit of attached
   volumes. (jsafrane@redhat.com)
