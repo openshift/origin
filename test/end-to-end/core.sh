@@ -426,6 +426,24 @@ os::cmd::expect_success "oc patch dc/failing-dc-mid -p '{\"status\":{\"latestVer
 os::cmd::expect_success_and_text 'oc logs --version=1 dc/failing-dc-mid' 'test mid hook executed'
 os::cmd::expect_success_and_text 'oc logs --previous dc/failing-dc-mid'  'test mid hook executed'
 
+os::log::info "Rollout latest"
+os::cmd::expect_success_and_text "oc tag --source docker centos:6 centos:latest" "centos:latest set to centos:6"
+os::cmd::try_until_text "oc get istag/centos:latest -o jsonpath --template={.image.dockerImageReference}" "centos@sha256:"
+INITIAL_CENTOS_SHA=$(oc get istag/centos:latest -o jsonpath --template={.image.dockerImageReference})
+os::cmd::expect_success_and_text "oc set image-lookup centos" 'imagestream "centos" updated'
+os::cmd::expect_success "oc run test --image=centos:latest --generator=deployment/apps.v1beta1 --command -- /bin/sleep infinity"
+os::cmd::expect_success_and_text "oc set triggers deploy/test --from-image=centos:latest -c test --manual" 'deployment "test" updated'
+os::cmd::expect_failure_and_text "oc rollout latest deployment/test" "already runs the latest images"
+os::cmd::expect_success_and_text "oc get deploy/test -o jsonpath --template={.metadata.annotations}" "revision:1"
+os::cmd::expect_success_and_text "oc tag --source docker centos:7 centos:latest" "centos:latest set to centos:7"
+# Wait for the centos:latest to pickup the updated tag
+os::cmd::try_until_success "oc get istag/centos:latest -o jsonpath --template={.image.dockerImageReference} | grep -v $INITIAL_CENTOS_SHA"
+# Annotation trigger should not cause the rollout
+os::cmd::expect_success_and_text "oc get deploy/test -o jsonpath --template={.metadata.annotations}" "revision:1"
+# Manually trigger image update for this deployment
+os::cmd::expect_success_and_text "oc rollout latest deployment/test" 'deployment "test" rolled out'
+os::cmd::expect_success_and_text "oc get deploy/test -o jsonpath --template={.metadata.annotations}" "revision:2"
+
 os::log::info "Run pod diagnostics"
 # Requires a node to run the origin-deployer pod; expects registry deployed, deployer image pulled
 # TODO: Find out why this would flake expecting PodCheckDns to run
