@@ -17,7 +17,7 @@ limitations under the License.
 package controller
 
 import (
-	"github.com/kubernetes-incubator/service-catalog/pkg/brokerapi"
+	"github.com/kubernetes-incubator/service-catalog/contrib/pkg/brokerapi"
 )
 
 // Controller defines the APIs that all controllers are expected to support. Implementations

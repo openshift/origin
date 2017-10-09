@@ -1,61 +1,17 @@
 package origin
 
 import (
-	"encoding/json"
 	"net/http"
 	"regexp"
-	"sort"
 
-	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	serverhandlers "github.com/openshift/origin/pkg/cmd/server/handlers"
 )
-
-// TODO We would like to use the IndexHandler from k8s but we do not yet have a
-// MuxHelper to track all registered paths
-func indexAPIPaths(osAPIVersions, kubeAPIVersions []string, handler http.Handler) http.Handler {
-	// TODO once we have a MuxHelper we will not need to hardcode this list of paths
-	rootPaths := []string{"/api",
-		"/apis",
-		"/controllers",
-		"/healthz",
-		"/healthz/ping",
-		"/healthz/ready",
-		"/metrics",
-		"/oapi",
-		"/swaggerapi/"}
-
-	// This is for legacy clients
-	// Discovery of new API groups is done with a request to /apis
-	for _, path := range kubeAPIVersions {
-		rootPaths = append(rootPaths, "/api/"+path)
-	}
-	for _, path := range osAPIVersions {
-		rootPaths = append(rootPaths, "/oapi/"+path)
-	}
-	sort.Strings(rootPaths)
-
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		if req.URL.Path == "/" {
-			output, err := json.MarshalIndent(metav1.RootPaths{Paths: rootPaths}, "", "  ")
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", restful.MIME_JSON)
-			w.WriteHeader(http.StatusOK)
-			w.Write(output)
-		} else {
-			handler.ServeHTTP(w, req)
-		}
-	})
-}
 
 // cacheControlFilter sets the Cache-Control header to the specified value.
 func cacheControlFilter(handler http.Handler, value string) http.Handler {

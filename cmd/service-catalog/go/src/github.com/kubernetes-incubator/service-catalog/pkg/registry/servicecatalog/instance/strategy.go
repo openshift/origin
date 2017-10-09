@@ -19,6 +19,7 @@ package instance
 // this was copied from where else and edited to fit our objects
 
 import (
+	api "github.com/kubernetes-incubator/service-catalog/pkg/api"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,7 +28,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	api "k8s.io/client-go/pkg/api"
 
 	"github.com/golang/glog"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
@@ -54,6 +54,13 @@ type instanceStatusRESTStrategy struct {
 	instanceRESTStrategy
 }
 
+// implements interface RESTUpdateStrategy. This implementation validates updates to
+// instance.Spec.ServicePlanRef and instance.Spec.ServiceClassRef only and disallows
+// any modifications to the remaining instance.Spec or Status fields.
+type instanceReferenceRESTStrategy struct {
+	instanceRESTStrategy
+}
+
 var (
 	instanceRESTStrategies = instanceRESTStrategy{
 		// embeds to pull in existing code behavior from upstream
@@ -72,6 +79,11 @@ var (
 		instanceRESTStrategies,
 	}
 	_ rest.RESTUpdateStrategy = instanceStatusUpdateStrategy
+
+	instanceReferenceUpdateStrategy = instanceReferenceRESTStrategy{
+		instanceRESTStrategies,
+	}
+	_ rest.RESTUpdateStrategy = instanceReferenceUpdateStrategy
 )
 
 // Canonicalize does not transform a instance.
@@ -88,7 +100,7 @@ func (instanceRESTStrategy) NamespaceScoped() bool {
 }
 
 // PrepareForCreate receives a the incoming ServiceInstance and clears it's
-// Status. Status is not a user settable field.
+// Status and Service[Class|Plan]Ref fields. These are not user settable fields.
 func (instanceRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.Object) {
 	instance, ok := obj.(*sc.ServiceInstance)
 	if !ok {
@@ -103,6 +115,9 @@ func (instanceRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj 
 	// status. We can't fail here if they passed a status in, so
 	// we just wipe it clean.
 	instance.Status = sc.ServiceInstanceStatus{}
+
+	instance.Spec.ServiceClassRef = nil
+	instance.Spec.ServicePlanRef = nil
 	// Fill in the first entry set to "creating"?
 	instance.Status.Conditions = []sc.ServiceInstanceCondition{}
 	instance.Finalizers = []string{sc.FinalizerServiceCatalog}
@@ -133,6 +148,10 @@ func (instanceRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new,
 
 	// Do not allow any updates to the Status field while updating the Spec
 	newServiceInstance.Status = oldServiceInstance.Status
+
+	// Do not allow updates to Service[Class|Plan]Ref fields
+	newServiceInstance.Spec.ServiceClassRef = oldServiceInstance.Spec.ServiceClassRef
+	newServiceInstance.Spec.ServicePlanRef = oldServiceInstance.Spec.ServicePlanRef
 
 	// TODO: We currently don't handle any changes to the spec in the
 	// reconciler. Once we do that, this check needs to be removed and
@@ -208,6 +227,39 @@ func (instanceStatusRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, 
 	}
 
 	return scv.ValidateServiceInstanceStatusUpdate(newServiceInstance, oldServiceInstance)
+}
+
+func (instanceReferenceRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
+	newServiceInstance, ok := new.(*sc.ServiceInstance)
+	if !ok {
+		glog.Fatal("received a non-instance object to update to")
+	}
+	oldServiceInstance, ok := old.(*sc.ServiceInstance)
+	if !ok {
+		glog.Fatal("received a non-instance object to update from")
+	}
+	// Reference changes are not allowed to update spec, so stash the new
+	// ones away and overwrite with all the old ones and then update them
+	// again.
+	newServiceClassRef := newServiceInstance.Spec.ServiceClassRef
+	newServicePlanRef := newServiceInstance.Spec.ServicePlanRef
+	newServiceInstance.Spec = oldServiceInstance.Spec
+	newServiceInstance.Spec.ServiceClassRef = newServiceClassRef
+	newServiceInstance.Spec.ServicePlanRef = newServicePlanRef
+	newServiceInstance.Status = oldServiceInstance.Status
+}
+
+func (instanceReferenceRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
+	newServiceInstance, ok := new.(*sc.ServiceInstance)
+	if !ok {
+		glog.Fatal("received a non-instance object to validate to")
+	}
+	oldServiceInstance, ok := old.(*sc.ServiceInstance)
+	if !ok {
+		glog.Fatal("received a non-instance object to validate from")
+	}
+
+	return scv.ValidateServiceInstanceReferencesUpdate(newServiceInstance, oldServiceInstance)
 }
 
 // setServiceInstanceUserInfo injects user.Info from the request context

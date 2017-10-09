@@ -569,7 +569,7 @@ func printSuccessForCommand(role string, didAdd bool, targetName string, targets
 		clusterScope = ""
 	}
 	if len(targets) > 1 {
-		targetName = fmt.Sprintf("%ss", targetName)
+		targetName = targetName + "s"
 	} else if len(targets) == 1 {
 		allTargets = fmt.Sprintf("%q", targets[0])
 	}

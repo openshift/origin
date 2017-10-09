@@ -33,9 +33,6 @@ const (
 
 	defaultApiRetryPeriod  = 1 * time.Second
 	defaultApiRetryTimeout = 10 * time.Second
-	// acceptorInterval is how often the UpdateAcceptor should check for
-	// readiness.
-	acceptorInterval = 1 * time.Second
 )
 
 // RollingDeploymentStrategy is a Strategy which implements rolling

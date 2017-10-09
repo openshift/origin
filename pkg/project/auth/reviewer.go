@@ -3,7 +3,6 @@ package auth
 import (
 	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 
-	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/authorization/authorizer"
 )
 
@@ -31,24 +30,6 @@ func (r *defaultReview) Groups() []string {
 
 func (r *defaultReview) EvaluationError() string {
 	return r.evaluationError
-}
-
-type review struct {
-	response *authorizationapi.ResourceAccessReviewResponse
-}
-
-// Users returns the users that can access a resource
-func (r *review) Users() []string {
-	return r.response.Users.List()
-}
-
-// Groups returns the groups that can access a resource
-func (r *review) Groups() []string {
-	return r.response.Groups.List()
-}
-
-func (r *review) EvaluationError() string {
-	return r.response.EvaluationError
 }
 
 // Reviewer performs access reviews for a project by name

@@ -65,9 +65,8 @@ type ServiceServingCertController struct {
 	secretLister    listers.SecretLister
 	secretHasSynced cache.InformerSynced
 
-	ca         *crypto.CA
-	publicCert string
-	dnsSuffix  string
+	ca        *crypto.CA
+	dnsSuffix string
 
 	// syncHandler does the work. It's factored out for unit testing
 	syncHandler func(serviceKey string) error

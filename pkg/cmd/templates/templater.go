@@ -162,15 +162,6 @@ func (t *templater) isRootCmd(c *cobra.Command) bool {
 	return t.rootCmd(c) == c
 }
 
-func (t *templater) parents(c *cobra.Command) []*cobra.Command {
-	parents := []*cobra.Command{c}
-	for current := c; !t.isRootCmd(current) && current.HasParent(); {
-		current = current.Parent()
-		parents = append(parents, current)
-	}
-	return parents
-}
-
 func (t *templater) rootCmd(c *cobra.Command) *cobra.Command {
 	if c != nil && !c.HasParent() {
 		return c
@@ -243,15 +234,6 @@ func flagsUsages(f *flag.FlagSet) string {
 func rpad(s string, padding int) string {
 	template := fmt.Sprintf("%%-%ds", padding)
 	return fmt.Sprintf(template, s)
-}
-
-func indentLines(s string, indentation int) string {
-	r := []string{}
-	for _, line := range strings.Split(s, "\n") {
-		indented := strings.Repeat(" ", indentation) + line
-		r = append(r, indented)
-	}
-	return strings.Join(r, "\n")
 }
 
 func appendIfNotPresent(s, stringToAppend string) string {

@@ -96,12 +96,8 @@ wide variety of customizations which are detailed in that directory's
 
 We'll be interacting with a variety of resources in the following steps. The
 service catalog API server needs to store all of these resources in a data
-store. The data store implementation in the API server is pluggable, and we
-currently support the following implementations:
-
-1. Etcd 3
-2. Third Party Resources (also, known as TPRs) - this is an _alpha_ feature 
-right now. It has known issues and may be removed at any time.
+store. The data store implementation in the API server is pluggable, but we
+currently support only Etcd 3.
 
 The first implementation requires that the API server has access to an Etcd 3 cluster, and the
 second only requires access to the Kubernetes API to store TPRs.
@@ -115,12 +111,6 @@ To install the service catalog system with Etcd 3 as the backing data store:
 
 ```console
 helm install charts/catalog --name catalog --namespace catalog
-```
-
-To install the service catalog system with TPRs as the backing data store:
-
-```console
-helm install charts/catalog --name catalog --namespace catalog --set apiserver.storage.type=tpr,apiserver.storage.tpr.globalNamespace=catalog
 ```
 
 Regardless of which data store implementation you choose, the remainder of the steps in this

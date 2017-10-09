@@ -107,11 +107,3 @@ func setEnvVar(c *v1.Container, name, value string) {
 
 	c.Env = append(c.Env, v1.EnvVar{Name: name, Value: value})
 }
-
-func hasBuildAnnotation(pod *v1.Pod) bool {
-	if pod.Annotations == nil {
-		return false
-	}
-	_, hasAnnotation := pod.Annotations[buildapi.BuildAnnotation]
-	return hasAnnotation
-}

@@ -32,6 +32,8 @@ type Interface interface {
 	ServiceInstances() ServiceInstanceInformer
 	// ServiceInstanceCredentials returns a ServiceInstanceCredentialInformer.
 	ServiceInstanceCredentials() ServiceInstanceCredentialInformer
+	// ServicePlans returns a ServicePlanInformer.
+	ServicePlans() ServicePlanInformer
 }
 
 type version struct {
@@ -61,4 +63,9 @@ func (v *version) ServiceInstances() ServiceInstanceInformer {
 // ServiceInstanceCredentials returns a ServiceInstanceCredentialInformer.
 func (v *version) ServiceInstanceCredentials() ServiceInstanceCredentialInformer {
 	return &serviceInstanceCredentialInformer{factory: v.SharedInformerFactory}
+}
+
+// ServicePlans returns a ServicePlanInformer.
+func (v *version) ServicePlans() ServicePlanInformer {
+	return &servicePlanInformer{factory: v.SharedInformerFactory}
 }

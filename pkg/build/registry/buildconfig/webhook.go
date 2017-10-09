@@ -11,30 +11,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/registry/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/build/client"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset/typed/build/internalversion"
 	"github.com/openshift/origin/pkg/build/webhook"
-	"github.com/openshift/origin/pkg/util/rest"
 )
-
-// NewWebHookREST returns the webhook handler wrapped in a rest.WebHook object.
-func NewWebHookREST(buildConfigClient buildclient.BuildInterface, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
-	return newWebHookREST(buildConfigClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
-}
-
-// this supports simple unit testing
-func newWebHookREST(buildConfigClient buildclient.BuildInterface, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *rest.WebHook {
-	hook := &WebHook{
-		groupVersion:      groupVersion,
-		buildConfigClient: buildConfigClient,
-		instantiator:      instantiator,
-		plugins:           plugins,
-	}
-	return rest.NewWebHook(hook, false)
-}
 
 type WebHook struct {
 	groupVersion      schema.GroupVersion
@@ -43,8 +27,73 @@ type WebHook struct {
 	plugins           map[string]webhook.Plugin
 }
 
-// ServeHTTP implements rest.HookHandler
-func (w *WebHook) ServeHTTP(writer http.ResponseWriter, req *http.Request, ctx apirequest.Context, name, subpath string) error {
+// NewWebHookREST returns the webhook handler
+func NewWebHookREST(buildConfigClient buildclient.BuildInterface, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+	return newWebHookREST(buildConfigClient, client.BuildConfigInstantiatorClient{Client: buildConfigClient}, groupVersion, plugins)
+}
+
+// this supports simple unit testing
+func newWebHookREST(buildConfigClient buildclient.BuildInterface, instantiator client.BuildConfigInstantiator, groupVersion schema.GroupVersion, plugins map[string]webhook.Plugin) *WebHook {
+	return &WebHook{
+		groupVersion:      groupVersion,
+		buildConfigClient: buildConfigClient,
+		instantiator:      instantiator,
+		plugins:           plugins,
+	}
+}
+
+// New() responds with the status object.
+func (h *WebHook) New() runtime.Object {
+	return &buildapi.Build{}
+}
+
+// Connect responds to connections with a ConnectHandler
+func (h *WebHook) Connect(ctx apirequest.Context, name string, options runtime.Object, responder rest.Responder) (http.Handler, error) {
+	return &WebHookHandler{
+		ctx:               ctx,
+		name:              name,
+		options:           options.(*kapi.PodProxyOptions),
+		responder:         responder,
+		groupVersion:      h.groupVersion,
+		plugins:           h.plugins,
+		buildConfigClient: h.buildConfigClient,
+		instantiator:      h.instantiator,
+	}, nil
+}
+
+// NewConnectionOptions identifies the options that should be passed to this hook
+func (h *WebHook) NewConnectOptions() (runtime.Object, bool, string) {
+	return &kapi.PodProxyOptions{}, true, "path"
+}
+
+// ConnectMethods returns the supported web hook types.
+func (h *WebHook) ConnectMethods() []string {
+	return []string{"POST"}
+}
+
+// WebHookHandler responds to web hook requests from the master.
+type WebHookHandler struct {
+	ctx               apirequest.Context
+	name              string
+	options           *kapi.PodProxyOptions
+	responder         rest.Responder
+	groupVersion      schema.GroupVersion
+	plugins           map[string]webhook.Plugin
+	buildConfigClient buildclient.BuildInterface
+	instantiator      client.BuildConfigInstantiator
+}
+
+// ServeHTTP implements the standard http.Handler
+func (h *WebHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := h.ProcessWebHook(w, r, h.ctx, h.name, h.options.Path); err != nil {
+		h.responder.Error(err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// ProcessWebHook does the actual work of processing the webhook request
+func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Request, ctx apirequest.Context, name, subpath string) error {
 	parts := strings.Split(subpath, "/")
 	if len(parts) != 2 {
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))

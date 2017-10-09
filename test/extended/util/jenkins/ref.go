@@ -327,6 +327,35 @@ func (j *JenkinsRef) GetJobConsoleLogs(jobName, buildNumber string) (string, err
 	return j.WaitForContent("", 200, 10*time.Minute, "job/%s/%s/consoleText", jobName, buildNumber)
 }
 
+// GetJobConsoleLogsAndMatchViaBuildResult leverages various information in the BuildResult and
+// returns the corresponding console logs, as well as look for matching string
+func (j *JenkinsRef) GetJobConsoleLogsAndMatchViaBuildResult(br *exutil.BuildResult, match string) (string, error) {
+	if br == nil {
+		return "", fmt.Errorf("passed in nil BuildResult")
+	}
+	if br.Build == nil {
+		if br.Oc == nil {
+			return "", fmt.Errorf("BuildResult oc should have been set up during BuildResult construction")
+		}
+		var err error // interestingly, removing this line and using := on the next got a compile error
+		br.Build, err = br.Oc.BuildClient().Build().Builds(br.Oc.Namespace()).Get(br.BuildName, metav1.GetOptions{})
+		if err != nil {
+			return "", err
+		}
+	}
+	bldURI := br.Build.Annotations[buildapi.BuildJenkinsLogURLAnnotation]
+	if len(bldURI) > 0 {
+		// need to strip the route host...WaitForContent will prepend the svc ip:port we need to use in ext tests
+		url, err := url.Parse(bldURI)
+		if err != nil {
+			return "", err
+		}
+		bldURI = strings.Trim(url.Path, "/")
+		return j.WaitForContent(match, 200, 10*time.Minute, bldURI)
+	}
+	return "", fmt.Errorf("build %#v is missing the build uri annontation", br.Build)
+}
+
 // GetLastJobConsoleLogs returns the last build associated with a Jenkins job.
 func (j *JenkinsRef) GetLastJobConsoleLogs(jobName string) (string, error) {
 	return j.GetJobConsoleLogs(jobName, "lastBuild")

@@ -37,7 +37,6 @@ func (a bypassAuthorizer) Authorize(attributes kauthorizer.Attributes) (allowed 
 
 // Forbidden renders a simple forbidden error to the response
 func Forbidden(reason string, attributes kauthorizer.Attributes, w http.ResponseWriter, req *http.Request) {
-	kind := ""
 	resource := ""
 	group := ""
 	name := ""
@@ -48,10 +47,6 @@ func Forbidden(reason string, attributes kauthorizer.Attributes, w http.Response
 	if attributes != nil {
 		group = attributes.GetAPIGroup()
 		resource = attributes.GetResource()
-		kind = attributes.GetResource()
-		if len(attributes.GetAPIGroup()) > 0 {
-			kind = attributes.GetAPIGroup() + "." + kind
-		}
 		name = attributes.GetName()
 	}
 

@@ -104,7 +104,6 @@ func (d Digest) Validate() error {
 		if algorithm.Size()*2 != len(s[i+1:]) {
 			return ErrDigestInvalidLength
 		}
-		break
 	default:
 		return ErrDigestUnsupported
 	}

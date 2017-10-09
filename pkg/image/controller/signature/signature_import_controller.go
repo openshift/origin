@@ -184,9 +184,6 @@ func (s *SignatureImportController) syncImageSignatures(key string) error {
 	}
 	glog.V(4).Infof("Image %s now has %d signatures", newImage.Name, len(newImage.Signatures))
 
-	if _, err := s.imageClient.Image().Images().Update(newImage); err != nil {
-		return err
-	}
-
-	return nil
+	_, err = s.imageClient.Image().Images().Update(newImage)
+	return err
 }

@@ -140,7 +140,7 @@ func NewImagePipelineFromImageTagLocation(g osgraph.Graph, node graph.Node, imag
 		covered.Insert(input.ID())
 		build := input.(*buildgraph.BuildConfigNode)
 		if flow.Build != nil {
-			// report this as an error (unexpected duplicate input build)
+			// FIXME: report this as an error (unexpected duplicate input build)
 		}
 		if build.BuildConfig == nil {
 			// report this as as a missing build / broken link

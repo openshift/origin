@@ -31,11 +31,11 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 	restclient "k8s.io/client-go/rest"
 
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	scadmission "github.com/kubernetes-incubator/service-catalog/pkg/apiserver/admission"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver/authenticator"
 	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/internalclientset"
 	informers "github.com/kubernetes-incubator/service-catalog/pkg/client/informers_generated/internalversion"
-	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/pkg/version"
 )
 
@@ -62,7 +62,7 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 	if err := s.SecureServingOptions.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), nil /*alternateDNS*/, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
 		return nil, nil, err
 	}
-	genericConfig := genericapiserver.NewConfig(server.Codecs)
+	genericConfig := genericapiserver.NewConfig(api.Codecs)
 	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
 		return nil, nil, err
 	}

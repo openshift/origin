@@ -95,22 +95,26 @@ provides. We can view the `ServiceClass` resources available in the cluster by
 executing:
 
 ```console
-kubectl get serviceclasses
+$ kubectl get serviceclasses -o=custom-columns=NAME:.metadata.name,EXTERNAL\ NAME:.spec.externalName
 ```
 
 We should see something like:
 
 ```console
-NAME                    KIND
-user-provided-service   ServiceClass.v1alpha1.servicecatalog.k8s.io
+NAME                                   EXTERNAL NAME
+4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468   user-provided-service
 ```
 
-As we can see, the UPS broker provides a type of service called
+**NOTE:** The above command uses a custom set of columns.  The `NAME` field is
+the Kubernetes name of the ServiceClass and the `EXTERNAL NAME` field is the
+human-readable name for the service that the broker returns.
+
+The UPS broker provides a service with the external name
 `user-provided-service`. Run the following command to see the details of this
 offering:
 
 ```console
-kubectl get serviceclasses user-provided-service -o yaml
+kubectl get serviceclasses 4f6e6cf6-ffdd-425f-a2c7-3c9258ad2468 -o yaml
 ```
 
 We should see something like:
@@ -174,29 +178,41 @@ We should see something like:
 apiVersion: servicecatalog.k8s.io/v1alpha1
 kind: ServiceInstance
 metadata:
-  creationTimestamp: 2017-03-03T04:26:08Z
+  creationTimestamp: 2017-10-02T14:50:28Z
   finalizers:
   - kubernetes-incubator/service-catalog
+  generation: 1
   name: ups-instance
   namespace: test-ns
-  resourceVersion: "9"
+  resourceVersion: "12"
   selfLink: /apis/servicecatalog.k8s.io/v1alpha1/namespaces/test-ns/serviceinstances/ups-instance
-  uid: 8654e626-ffc9-11e6-b111-0242ac110005
+  uid: 07ecf19d-a781-11e7-8b18-0242ac110005
 spec:
-  externalID: 34c984e1-4626-4574-8a95-9e500d0d48d3
+  externalID: 7f2c176a-ae67-4b5e-a826-58591d85a1d7
+  externalServiceClassName: user-provided-service
+  externalServicePlanName: default
   parameters:
     credentials:
-      name: root
-      password: letmein
-  planName: default
-  serviceClassName: user-provided-service
+      param-1: value-1
+      param-2: value-2
 status:
+  asyncOpInProgress: false
   conditions:
-  - lastTransitionTime: 2017-03-03T04:26:09Z
+  - lastTransitionTime: 2017-10-02T14:50:28Z
     message: The instance was provisioned successfully
     reason: ProvisionedSuccessfully
     status: "True"
     type: Ready
+  externalProperties:
+    externalServicePlanName: default
+    parameterChecksum: e65c764db8429f9afef45f1e8f71bcbf9fdbe9a13306b86fd5dcc3c5d11e5dd3
+    parameters:
+      credentials:
+        param-1: value-1
+        param-2: value-2
+  orphanMitigationInProgress: false
+  reconciledGeneration: 1
+
 ```
 
 # Step 5 - Requesting a `ServiceInstanceCredential` to use the `ServiceInstance`

@@ -133,7 +133,7 @@ func (c *ImageStreamController) processNextWorkItem() bool {
 func (c *ImageStreamController) syncImageStream(key string) error {
 	startTime := time.Now()
 	defer func() {
-		glog.V(4).Infof("Finished syncing image stream %q (%v)", key, time.Now().Sub(startTime))
+		glog.V(4).Infof("Finished syncing image stream %q (%v)", key, time.Since(startTime))
 	}()
 
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)

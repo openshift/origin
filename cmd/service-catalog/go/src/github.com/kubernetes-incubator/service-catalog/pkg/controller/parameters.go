@@ -17,6 +17,7 @@ limitations under the License.
 package controller
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 
@@ -28,36 +29,44 @@ import (
 )
 
 // buildParameters generates the parameters JSON structure to be passed
-// to the broker
-func buildParameters(kubeClient kubernetes.Interface, namespace string, parametersFrom []v1alpha1.ParametersFromSource, parameters *runtime.RawExtension) (map[string]interface{}, error) {
+// to the broker.
+// The first return value is a map of parameters to send to the Broker, including
+// secret values.
+// The second return value is a map of parameters with secret values redacted,
+// replaced with "<redacted>".
+// The third return value is any error that caused the function to fail.
+func buildParameters(kubeClient kubernetes.Interface, namespace string, parametersFrom []v1alpha1.ParametersFromSource, parameters *runtime.RawExtension) (map[string]interface{}, map[string]interface{}, error) {
 	params := make(map[string]interface{})
+	paramsWithSecretsRedacted := make(map[string]interface{})
 	if parametersFrom != nil {
 		for _, p := range parametersFrom {
 			fps, err := fetchParametersFromSource(kubeClient, namespace, &p)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			for k, v := range fps {
 				if _, ok := params[k]; ok {
-					return nil, fmt.Errorf("conflict: duplicate entry for parameter %q", k)
+					return nil, nil, fmt.Errorf("conflict: duplicate entry for parameter %q", k)
 				}
 				params[k] = v
+				paramsWithSecretsRedacted[k] = "<redacted>"
 			}
 		}
 	}
 	if parameters != nil {
 		pp, err := UnmarshalRawParameters(parameters.Raw)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		for k, v := range pp {
 			if _, ok := params[k]; ok {
-				return nil, fmt.Errorf("conflict: duplicate entry for parameter %q", k)
+				return nil, nil, fmt.Errorf("conflict: duplicate entry for parameter %q", k)
 			}
 			params[k] = v
+			paramsWithSecretsRedacted[k] = v
 		}
 	}
-	return params, nil
+	return params, paramsWithSecretsRedacted, nil
 }
 
 // fetchParametersFromSource fetches data from a specified external source and
@@ -90,6 +99,11 @@ func UnmarshalRawParameters(in []byte) (map[string]interface{}, error) {
 	return parameters, nil
 }
 
+// MarshalRawParameters marshals the specified map of parameters into JSON
+func MarshalRawParameters(in map[string]interface{}) ([]byte, error) {
+	return json.Marshal(in)
+}
+
 // unmarshalJSON produces a map structure from a given raw JSON input
 func unmarshalJSON(in []byte) (map[string]interface{}, error) {
 	parameters := make(map[string]interface{})
@@ -106,4 +120,15 @@ func fetchSecretKeyValue(kubeClient kubernetes.Interface, namespace string, secr
 		return nil, err
 	}
 	return secret.Data[secretKeyRef.Key], nil
+}
+
+// generateChecksumOfParameters generates a checksum for the map of parameters.
+// This checksum is used to determine if parameters have changed.
+func generateChecksumOfParameters(params map[string]interface{}) (string, error) {
+	paramsAsJSON, err := json.Marshal(params)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(paramsAsJSON)
+	return fmt.Sprintf("%x", hash), nil
 }

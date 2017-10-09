@@ -26,13 +26,6 @@ import (
 	metrics "github.com/openshift/origin/pkg/apps/metrics/prometheus"
 )
 
-const (
-	// We must avoid creating new replication controllers until the deployment config and replication
-	// controller stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
-	// between checks.
-	storeSyncedPollPeriod = 100 * time.Millisecond
-)
-
 // NewDeploymentConfigController creates a new DeploymentConfigController.
 func NewDeploymentConfigController(
 	dcInformer appsinformer.DeploymentConfigInformer,

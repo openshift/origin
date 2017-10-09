@@ -150,7 +150,7 @@ func Convert_build_BuildStrategy_To_v1_BuildStrategy(in *newer.BuildStrategy, ou
 }
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
-	if err := scheme.AddConversionFuncs(
+	return scheme.AddConversionFuncs(
 		Convert_v1_BuildConfig_To_build_BuildConfig,
 		Convert_build_BuildConfig_To_v1_BuildConfig,
 		Convert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy,
@@ -169,11 +169,7 @@ func addConversionFuncs(scheme *runtime.Scheme) error {
 		Convert_build_BuildSource_To_v1_BuildSource,
 		Convert_v1_BuildStrategy_To_build_BuildStrategy,
 		Convert_build_BuildStrategy_To_v1_BuildStrategy,
-	); err != nil {
-		return err
-	}
-
-	return nil
+	)
 }
 
 func addLegacyFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
@@ -187,10 +183,7 @@ func addLegacyFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
 }
 
 func addFieldSelectorKeyConversions(scheme *runtime.Scheme) error {
-	if err := scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Build", buildFieldSelectorKeyConversionFunc); err != nil {
-		return err
-	}
-	return nil
+	return scheme.AddFieldLabelConversionFunc(SchemeGroupVersion.String(), "Build", buildFieldSelectorKeyConversionFunc)
 }
 
 // because field selectors can vary in support by version they are exposed under, we have one function for each

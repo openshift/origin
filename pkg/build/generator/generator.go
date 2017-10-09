@@ -121,11 +121,6 @@ func (c Client) GetImageStreamTag(ctx apirequest.Context, name string, options *
 	return c.ImageStreamTags.ImageStreamTags(apirequest.NamespaceValue(ctx)).Get(name, *options)
 }
 
-type streamRef struct {
-	ref *kapi.ObjectReference
-	tag string
-}
-
 // FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
 // images from private Docker registries.
 func (g *BuildGenerator) FetchServiceAccountSecrets(namespace, serviceAccount string) ([]kapi.Secret, error) {

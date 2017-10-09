@@ -803,7 +803,7 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 	}
 
 	defer watcher.Stop()
-	if _, err := watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
+	_, err = watch.Until(timeout, watcher, func(e watch.Event) (bool, error) {
 		if e.Type == watch.Error {
 			return false, fmt.Errorf("encountered error while watching for pod: %v", e.Object)
 		}
@@ -812,10 +812,8 @@ func WaitForRunningDeployerPod(podClient kcoreclient.PodsGetter, rc *api.Replica
 			return false, errors.New("received unknown object while watching for pods")
 		}
 		return canGetLogs(obj), nil
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
+	return err
 }
 
 // ByLatestVersionAsc sorts deployments by LatestVersion ascending.

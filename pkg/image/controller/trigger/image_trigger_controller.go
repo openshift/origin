@@ -248,16 +248,6 @@ func (c *TriggerController) enqueueImageStream(is *imageapi.ImageStream) {
 	c.queue.Add(key)
 }
 
-// enqueueAfter will enqueue an image stream after the provided amount of time.
-func (c *TriggerController) enqueueAfter(is *imageapi.ImageStream, after time.Duration) {
-	key, err := controller.KeyFunc(is)
-	if err != nil {
-		utilruntime.HandleError(fmt.Errorf("Couldn't get key for object %#v: %v", is, err))
-		return
-	}
-	c.queue.AddAfter(key, after)
-}
-
 // imageStreamWorker runs a worker thread that just dequeues items, processes them, and marks them done.
 // It enforces that the syncHandler is never invoked concurrently with the same key.
 func (c *TriggerController) imageStreamWorker() {
@@ -341,7 +331,7 @@ func (c *TriggerController) syncImageStream(key string) error {
 		startTime := time.Now()
 		glog.Infof("Started syncing image stream %q", key)
 		defer func() {
-			glog.Infof("Finished syncing image stream %q (%v)", key, time.Now().Sub(startTime))
+			glog.Infof("Finished syncing image stream %q (%v)", key, time.Since(startTime))
 		}()
 	}
 
@@ -369,7 +359,7 @@ func (c *TriggerController) syncResource(key string) error {
 		startTime := time.Now()
 		glog.Infof("Started syncing resource %q", key)
 		defer func() {
-			glog.Infof("Finished syncing resource %q (%v)", key, time.Now().Sub(startTime))
+			glog.Infof("Finished syncing resource %q (%v)", key, time.Since(startTime))
 		}()
 	}
 

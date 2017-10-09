@@ -89,10 +89,13 @@ items:
     resources: ["serviceclasses"]
     verbs:     ["get","list","watch","create","patch","update","delete"]
   - apiGroups: ["servicecatalog.k8s.io"]
+    resources: ["serviceplans"]
+    verbs:     ["get","list","watch","create","patch","update","delete"]
+  - apiGroups: ["servicecatalog.k8s.io"]
     resources: ["servicebrokers","serviceinstances","serviceinstancecredentials"]
     verbs:     ["get","list","watch"]
   - apiGroups: ["servicecatalog.k8s.io"]
-    resources: ["servicebrokers/status","serviceinstances/status","serviceinstancecredentials/status"]
+    resources: ["servicebrokers/status","serviceinstances/status","serviceinstances/reference","serviceinstancecredentials/status"]
     verbs:     ["update"]
 # give the controller-manager service account access to whats defined in its role.
 - apiVersion: rbac.authorization.k8s.io/v1beta1

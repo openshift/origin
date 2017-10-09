@@ -54,7 +54,7 @@ func NewUPSBrokerService(name string) *v1.Service {
 	return &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
-			Labels: map[string]string {
+			Labels: map[string]string{
 				"app": name,
 			},
 		},
@@ -64,8 +64,8 @@ func NewUPSBrokerService(name string) *v1.Service {
 			},
 			Ports: []v1.ServicePort{
 				{
-					Protocol: v1.ProtocolTCP,
-					Port: 80,
+					Protocol:   v1.ProtocolTCP,
+					Port:       80,
 					TargetPort: intstr.FromInt(8080),
 				},
 			},

@@ -7,7 +7,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/emicklei/go-restful-swagger12"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -402,18 +401,4 @@ func (f *ring1Factory) OriginSwaggerSchema(client restclient.Interface, version 
 		return nil, fmt.Errorf("got '%s': %v", string(body), err)
 	}
 	return &schema, nil
-}
-
-// useDiscoveryRESTMapper checks the server version to see if its recent enough to have
-// enough discovery information avaiable to reliably build a RESTMapper.  If not, use the
-// hardcoded mapper in this client (legacy behavior)
-func useDiscoveryRESTMapper(serverVersion string) bool {
-	serverSemVer, err := semver.Parse(serverVersion[1:])
-	if err != nil {
-		return false
-	}
-	if serverSemVer.LT(semver.MustParse("1.3.0")) {
-		return false
-	}
-	return true
 }

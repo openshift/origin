@@ -27,16 +27,6 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 )
 
-// hasCSRCondition returns the first matching condition with the given type or nil.
-func hasCSRCondition(conditions []certificates.CertificateSigningRequestCondition, t certificates.RequestConditionType) *certificates.CertificateSigningRequestCondition {
-	for i := range conditions {
-		if conditions[i].Type == t {
-			return &conditions[i]
-		}
-	}
-	return nil
-}
-
 // readOrCreatePrivateKey attempts to read an rsa private key from the provided path,
 // or if that fails, to generate a new private key.
 func readOrCreatePrivateKey(path string) (*rsa.PrivateKey, error) {

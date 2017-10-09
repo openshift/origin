@@ -29,7 +29,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	fake "github.com/kubernetes-incubator/service-catalog/pkg/rest/core/fake"
 	restclient "k8s.io/client-go/rest"
 
 	genericserveroptions "k8s.io/apiserver/pkg/server/options"
@@ -41,10 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	_ "k8s.io/client-go/pkg/api/install"
 	_ "k8s.io/client-go/pkg/apis/extensions/install"
-)
-
-const (
-	globalTPRNamespace = "globalTPRNamespace"
 )
 
 func init() {
@@ -85,18 +80,10 @@ func withConfigGetFreshApiserverAndClient(
 	secureServingOptions := genericserveroptions.NewSecureServingOptions()
 	// start the server in the background
 	go func() {
-		var tprOptions *server.TPROptions
 		var etcdOptions *server.EtcdOptions
 		if serverstorage.StorageTypeEtcd == serverConfig.storageType {
 			etcdOptions = server.NewEtcdOptions()
 			etcdOptions.StorageConfig.ServerList = serverConfig.etcdServerList
-		} else if serverstorage.StorageTypeTPR == serverConfig.storageType {
-			tprOptions = server.NewTPROptions()
-			tprOptions.RESTClient = fake.NewRESTClient(serverConfig.emptyObjFunc)
-			tprOptions.InstallTPRsFunc = func() error {
-				return nil
-			}
-			tprOptions.GlobalNamespace = globalTPRNamespace
 		} else {
 			t.Fatal("no storage type specified")
 		}
@@ -107,7 +94,6 @@ func withConfigGetFreshApiserverAndClient(
 			AdmissionOptions:        genericserveroptions.NewAdmissionOptions(),
 			SecureServingOptions:    secureServingOptions,
 			EtcdOptions:             etcdOptions,
-			TPROptions:              tprOptions,
 			AuthenticationOptions:   genericserveroptions.NewDelegatingAuthenticationOptions(),
 			AuthorizationOptions:    genericserveroptions.NewDelegatingAuthorizationOptions(),
 			AuditOptions:            genericserveroptions.NewAuditOptions(),

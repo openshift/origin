@@ -50,12 +50,6 @@ func NewRegistryMatcher(names []string) RegistryMatcher {
 
 type resourceSet map[schema.GroupResource]struct{}
 
-func (s resourceSet) addAll(other resourceSet) {
-	for k := range other {
-		s[k] = struct{}{}
-	}
-}
-
 func imageConditionInfo(rule *api.ImageCondition) (covers resourceSet, selectors []labels.Selector, err error) {
 	covers = make(resourceSet)
 	for _, gr := range rule.OnResources {

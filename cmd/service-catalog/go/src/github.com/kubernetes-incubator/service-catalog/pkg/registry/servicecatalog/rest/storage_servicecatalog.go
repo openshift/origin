@@ -17,6 +17,7 @@ limitations under the License.
 package rest
 
 import (
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	servicecatalogv1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/binding"
@@ -24,14 +25,13 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/instance"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/serviceclass"
+	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/serviceplan"
 	"github.com/kubernetes-incubator/service-catalog/pkg/storage/etcd"
-	"github.com/kubernetes-incubator/service-catalog/pkg/storage/tpr"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage"
-	"k8s.io/client-go/pkg/api"
 	restclient "k8s.io/client-go/rest"
 )
 
@@ -55,7 +55,7 @@ func (p StorageProvider) NewRESTStorage(
 		return nil, err
 	}
 
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(servicecatalog.GroupName, api.Registry, server.Scheme, server.ParameterCodec, server.Codecs)
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(servicecatalog.GroupName, api.Registry, api.Scheme, api.ParameterCodec, api.Codecs)
 	apiGroupInfo.GroupMeta.GroupVersion = servicecatalogv1alpha1.SchemeGroupVersion
 
 	apiGroupInfo.VersionedResourcesStorageMap = map[string]map[string]rest.Storage{
@@ -83,23 +83,6 @@ func (p StorageProvider) v1alpha1Storage(
 			GetAttrsFunc:  broker.GetAttrs,
 			Trigger:       storage.NoTriggerPublisher,
 		},
-		tpr.Options{
-			HasNamespace:     false,
-			RESTOptions:      brokerRESTOptions,
-			DefaultNamespace: p.DefaultNamespace,
-			RESTClient:       p.RESTClient,
-			SingularKind:     tpr.ServiceBrokerKind,
-			NewSingularFunc:  broker.NewSingular,
-			ListKind:         tpr.ServiceBrokerListKind,
-			NewListFunc:      broker.NewList,
-			CheckObjectFunc:  broker.CheckObject,
-			DestroyFunc:      func() {},
-			Keyer: tpr.Keyer{
-				DefaultNamespace: p.DefaultNamespace,
-				ResourceName:     tpr.ServiceBrokerKind.String(),
-				Separator:        "/",
-			},
-		},
 		p.StorageType,
 	)
 
@@ -117,23 +100,22 @@ func (p StorageProvider) v1alpha1Storage(
 			GetAttrsFunc:  serviceclass.GetAttrs,
 			Trigger:       storage.NoTriggerPublisher,
 		},
-		tpr.Options{
-			HasNamespace:     false,
-			RESTOptions:      serviceClassRESTOptions,
-			DefaultNamespace: p.DefaultNamespace,
-			RESTClient:       p.RESTClient,
-			SingularKind:     tpr.ServiceClassKind,
-			NewSingularFunc:  serviceclass.NewSingular,
-			ListKind:         tpr.ServiceClassListKind,
-			NewListFunc:      serviceclass.NewList,
-			CheckObjectFunc:  serviceclass.CheckObject,
-			DestroyFunc:      func() {},
-			Keyer: tpr.Keyer{
-				DefaultNamespace: p.DefaultNamespace,
-				ResourceName:     tpr.ServiceClassKind.String(),
-				Separator:        "/",
-			},
-			HardDelete: true,
+		p.StorageType,
+	)
+
+	servicePlanRESTOptions, err := restOptionsGetter.GetRESTOptions(servicecatalog.Resource("serviceplans"))
+	if err != nil {
+		return nil, err
+	}
+	servicePlanOpts := server.NewOptions(
+		etcd.Options{
+			RESTOptions:   servicePlanRESTOptions,
+			Capacity:      1000,
+			ObjectType:    serviceplan.EmptyObject(),
+			ScopeStrategy: serviceplan.NewScopeStrategy(),
+			NewListFunc:   serviceplan.NewList,
+			GetAttrsFunc:  serviceplan.GetAttrs,
+			Trigger:       storage.NoTriggerPublisher,
 		},
 		p.StorageType,
 	)
@@ -152,23 +134,6 @@ func (p StorageProvider) v1alpha1Storage(
 			GetAttrsFunc:  instance.GetAttrs,
 			Trigger:       storage.NoTriggerPublisher,
 		},
-		tpr.Options{
-			HasNamespace:     true,
-			RESTOptions:      instanceClassRESTOptions,
-			DefaultNamespace: p.DefaultNamespace,
-			RESTClient:       p.RESTClient,
-			SingularKind:     tpr.ServiceInstanceKind,
-			NewSingularFunc:  instance.NewSingular,
-			ListKind:         tpr.ServiceInstanceListKind,
-			NewListFunc:      instance.NewList,
-			CheckObjectFunc:  instance.CheckObject,
-			DestroyFunc:      func() {},
-			Keyer: tpr.Keyer{
-				DefaultNamespace: p.DefaultNamespace,
-				ResourceName:     tpr.ServiceInstanceKind.String(),
-				Separator:        "/",
-			},
-		},
 		p.StorageType,
 	)
 
@@ -186,29 +151,13 @@ func (p StorageProvider) v1alpha1Storage(
 			GetAttrsFunc:  binding.GetAttrs,
 			Trigger:       storage.NoTriggerPublisher,
 		},
-		tpr.Options{
-			HasNamespace:     true,
-			RESTOptions:      bindingClassRESTOptions,
-			DefaultNamespace: p.DefaultNamespace,
-			RESTClient:       p.RESTClient,
-			SingularKind:     tpr.ServiceInstanceCredentialKind,
-			NewSingularFunc:  binding.NewSingular,
-			ListKind:         tpr.ServiceInstanceCredentialListKind,
-			NewListFunc:      binding.NewList,
-			CheckObjectFunc:  binding.CheckObject,
-			DestroyFunc:      func() {},
-			Keyer: tpr.Keyer{
-				DefaultNamespace: p.DefaultNamespace,
-				ResourceName:     tpr.ServiceInstanceCredentialKind.String(),
-				Separator:        "/",
-			},
-		},
 		p.StorageType,
 	)
 
 	brokerStorage, brokerStatusStorage := broker.NewStorage(*brokerOpts)
 	serviceClassStorage := serviceclass.NewStorage(*serviceClassOpts)
-	instanceStorage, instanceStatusStorage := instance.NewStorage(*instanceOpts)
+	servicePlanStorage := serviceplan.NewStorage(*servicePlanOpts)
+	instanceStorage, instanceStatusStorage, instanceReferencesStorage := instance.NewStorage(*instanceOpts)
 	bindingStorage, bindingStatusStorage, err := binding.NewStorage(*bindingsOpts)
 	if err != nil {
 		return nil, err
@@ -217,8 +166,10 @@ func (p StorageProvider) v1alpha1Storage(
 		"servicebrokers":                    brokerStorage,
 		"servicebrokers/status":             brokerStatusStorage,
 		"serviceclasses":                    serviceClassStorage,
+		"serviceplans":                      servicePlanStorage,
 		"serviceinstances":                  instanceStorage,
 		"serviceinstances/status":           instanceStatusStorage,
+		"serviceinstances/reference":        instanceReferencesStorage,
 		"serviceinstancecredentials":        bindingStorage,
 		"serviceinstancecredentials/status": bindingStatusStorage,
 	}, nil

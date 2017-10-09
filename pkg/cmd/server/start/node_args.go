@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/url"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -308,14 +307,4 @@ func defaultHostname() (string, error) {
 		return "", fmt.Errorf("Couldn't determine hostname: %v", err)
 	}
 	return strings.ToLower(strings.TrimSpace(string(fqdn))), nil
-}
-
-var invalidNameCharactersRegexp = regexp.MustCompile("[^-a-z0-9]")
-
-func safeSecretName(s string) string {
-	// Remove everything except [-0-9a-z]
-	s = invalidNameCharactersRegexp.ReplaceAllString(strings.ToLower(s), "-")
-	// Remove leading and trailing hyphen(s) that may be introduced by the previous step
-	s = strings.Trim(s, "-")
-	return s
 }

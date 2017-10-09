@@ -1,9 +1,7 @@
 package buildconfigs
 
 import (
-	"fmt"
 	"reflect"
-	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -197,16 +195,4 @@ func (r *BuildConfigReactor) ImageChanged(obj interface{}, tagRetriever trigger.
 	glog.V(4).Infof("Requesting build for BuildConfig based on image triggers %s/%s: %#v", bc.Namespace, bc.Name, request)
 	_, err := r.Instantiator.Instantiate(bc.Namespace, request)
 	return err
-}
-
-func printTriggers(triggers []buildapi.BuildTriggerPolicy) string {
-	var values []string
-	for _, t := range triggers {
-		if t.ImageChange.From != nil {
-			values = append(values, fmt.Sprintf("[from=%s last=%s]", t.ImageChange.From.Name, t.ImageChange.LastTriggeredImageID))
-		} else {
-			values = append(values, fmt.Sprintf("[from=* last=%s]", t.ImageChange.LastTriggeredImageID))
-		}
-	}
-	return strings.Join(values, ", ")
 }

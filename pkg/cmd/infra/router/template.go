@@ -247,7 +247,7 @@ func (o *TemplateRouterOptions) Run() error {
 
 	statsPort := o.StatsPort
 	switch {
-	case o.MetricsType == "haproxy":
+	case o.MetricsType == "haproxy" && statsPort != 0:
 		if len(o.StatsUsername) == 0 || len(o.StatsPassword) == 0 {
 			glog.Warningf("Metrics were requested but no username or password has been provided - the metrics endpoint will not be accessible to prevent accidental security breaches")
 		}

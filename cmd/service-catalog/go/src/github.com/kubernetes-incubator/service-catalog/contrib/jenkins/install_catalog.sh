@@ -24,7 +24,6 @@ while [[ $# -gt 0 ]]; do
   case "${1}" in
     --registry) REGISTRY="${2:-}"; shift ;;
     --version)  VERSION="${2:-}"; shift ;;
-    --with-tpr) WITH_TPR=true ;;
     --fix-auth) FIX_CONFIGMAP=true ;;
     *) error_exit "Unrecognized command line parameter: $1" ;;
   esac
@@ -33,7 +32,6 @@ done
 
 REGISTRY="${REGISTRY:-}"
 VERSION="${VERSION:-"canary"}"
-WITH_TPR="${WITH_TPR:-false}"
 FIX_CONFIGMAP="${FIX_CONFIGMAP:-false}"
 
 CONTROLLER_MANAGER_IMAGE="${REGISTRY}controller-manager:${VERSION}"
@@ -66,10 +64,6 @@ VALUES+="controllerManager.image=${CONTROLLER_MANAGER_IMAGE}"
 VALUES+=",apiserver.image=${APISERVER_IMAGE}"
 VALUES+=",apiserver.service.type=NodePort"
 VALUES+=",apiserver.service.nodePort.securePort=30443"
-if [[ "${WITH_TPR}" == true ]]; then
-  VALUES+=',apiserver.storage.type=tpr'
-  VALUES+=',apiserver.storage.tpr.globalNamespace=test-ns'
-fi
 
 retry \
     helm install "${ROOT}/charts/catalog" \

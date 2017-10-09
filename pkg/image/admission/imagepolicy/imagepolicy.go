@@ -60,8 +60,6 @@ type imagePolicyPlugin struct {
 
 	integratedRegistryMatcher integratedRegistryMatcher
 
-	resolveGroupResources []schema.GroupResource
-
 	projectCache *cache.ProjectCache
 	resolver     imageResolver
 }

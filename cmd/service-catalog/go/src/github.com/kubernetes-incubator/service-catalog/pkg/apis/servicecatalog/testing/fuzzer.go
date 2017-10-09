@@ -31,8 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/pkg/api"
-	"k8s.io/client-go/pkg/apis/extensions"
+	coreapi "k8s.io/client-go/pkg/api"
 )
 
 type serviceMetadata struct {
@@ -121,7 +120,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			j.APIVersion = ""
 			j.Kind = ""
 		},
-		func(j *api.ObjectMeta, c fuzz.Continue) {
+		func(j *metav1.ObjectMeta, c fuzz.Continue) {
 			j.Name = c.RandString()
 			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
 			j.SelfLink = c.RandString()
@@ -133,7 +132,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			c.Fuzz(&nsec)
 			j.CreationTimestamp = metav1.Unix(sec, nsec).Rfc3339Copy()
 		},
-		func(j *api.ObjectReference, c fuzz.Continue) {
+		func(j *coreapi.ObjectReference, c fuzz.Continue) {
 			// We have to customize the randomization of TypeMetas because their
 			// APIVersion and Kind must remain blank in memory.
 			j.APIVersion = c.RandString()
@@ -156,7 +155,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 					ContentType: runtime.ContentTypeJSON,
 				}
 			} else {
-				types := []runtime.Object{&api.Pod{}, &api.ReplicationController{}}
+				types := []runtime.Object{&coreapi.Pod{}, &coreapi.ReplicationController{}}
 				t := types[c.Rand.Intn(len(types))]
 				c.Fuzz(t)
 				*j = t
@@ -164,24 +163,13 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 		},
 		func(r *runtime.RawExtension, c fuzz.Continue) {
 			// Pick an arbitrary type and fuzz it
-			types := []runtime.Object{&api.Pod{}, &extensions.Deployment{}, &api.Service{}}
+			types := []runtime.Object{&servicecatalog.ServiceBroker{}}
 			obj := types[c.Rand.Intn(len(types))]
 			c.Fuzz(obj)
 
 			// Find a codec for converting the object to raw bytes.  This is necessary for the
 			// api version and kind to be correctly set by serialization.
-			var codec runtime.Codec
-			switch obj.(type) {
-			case *api.Pod:
-				codec = testapi.Default.Codec()
-			case *extensions.Deployment:
-				codec = testapi.Extensions.Codec()
-			case *api.Service:
-				codec = testapi.Default.Codec()
-			default:
-				t.Errorf("Failed to find codec for object type: %T", obj)
-				return
-			}
+			var codec = testapi.ServiceCatalog.Codec()
 
 			// Convert the object to raw bytes
 			bytes, err := runtime.Encode(codec, obj)
@@ -225,6 +213,24 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			}
 			bs.Parameters = parameters
 		},
+		func(bs *servicecatalog.ServiceInstancePropertiesState, c fuzz.Continue) {
+			c.FuzzNoCustom(bs)
+			parameters, err := createParameter(c)
+			if err != nil {
+				t.Errorf("Failed to create parameter object: %v", err)
+				return
+			}
+			bs.Parameters = parameters
+		},
+		func(bs *servicecatalog.ServiceInstanceCredentialPropertiesState, c fuzz.Continue) {
+			c.FuzzNoCustom(bs)
+			parameters, err := createParameter(c)
+			if err != nil {
+				t.Errorf("Failed to create parameter object: %v", err)
+				return
+			}
+			bs.Parameters = parameters
+		},
 		func(sc *servicecatalog.ServiceClass, c fuzz.Continue) {
 			c.FuzzNoCustom(sc)
 			metadata, err := createServiceMetadata(c)
@@ -232,7 +238,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 				t.Errorf("Failed to create metadata object: %v", err)
 				return
 			}
-			sc.ExternalMetadata = metadata
+			sc.Spec.ExternalMetadata = metadata
 		},
 		func(sp *servicecatalog.ServicePlan, c fuzz.Continue) {
 			c.FuzzNoCustom(sp)
@@ -241,10 +247,10 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 				t.Errorf("Failed to create metadata object: %v", err)
 				return
 			}
-			sp.ExternalMetadata = metadata
-			sp.ServiceInstanceCredentialCreateParameterSchema = metadata
-			sp.ServiceInstanceCreateParameterSchema = metadata
-			sp.ServiceInstanceUpdateParameterSchema = metadata
+			sp.Spec.ExternalMetadata = metadata
+			sp.Spec.ServiceInstanceCredentialCreateParameterSchema = metadata
+			sp.Spec.ServiceInstanceCreateParameterSchema = metadata
+			sp.Spec.ServiceInstanceUpdateParameterSchema = metadata
 		},
 	)
 	return f

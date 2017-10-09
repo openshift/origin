@@ -470,15 +470,15 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 			g.By("verifying that status.replicas is set")
 			replicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.replicas}\"").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(replicas).To(o.ContainSubstring("2"))
+			o.Expect(replicas).To(o.ContainSubstring("1"))
 			g.By("verifying that status.updatedReplicas is set")
 			updatedReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.updatedReplicas}\"").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(updatedReplicas).To(o.ContainSubstring("2"))
+			o.Expect(updatedReplicas).To(o.ContainSubstring("1"))
 			g.By("verifying that status.availableReplicas is set")
 			availableReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.availableReplicas}\"").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
-			o.Expect(availableReplicas).To(o.ContainSubstring("2"))
+			o.Expect(availableReplicas).To(o.ContainSubstring("1"))
 			g.By("verifying that status.unavailableReplicas is set")
 			unavailableReplicas, err := oc.Run("get").Args(resource, "--output=jsonpath=\"{.status.unavailableReplicas}\"").Output()
 			o.Expect(err).NotTo(o.HaveOccurred())
@@ -778,7 +778,7 @@ var _ = g.Describe("[Feature:DeploymentConfig] deploymentconfigs", func() {
 		})
 	})
 
-	g.Describe("reaper [Conformance]", func() {
+	g.Describe("reaper [Conformance][Slow]", func() {
 		g.AfterEach(func() {
 			failureTrap(oc, "brokendeployment", g.CurrentGinkgoTestDescription().Failed)
 		})

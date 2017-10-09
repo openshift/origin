@@ -41,8 +41,8 @@ func newTestInstance(name, serviceClassName, planName string) *v1alpha1.ServiceI
 			Name: name,
 		},
 		Spec: v1alpha1.ServiceInstanceSpec{
-			PlanName:         planName,
-			ServiceClassName: serviceClassName,
+			ExternalServicePlanName:  planName,
+			ExternalServiceClassName: serviceClassName,
 		},
 	}
 }

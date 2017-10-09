@@ -1922,7 +1922,7 @@ spec:
         name: history-limit
     spec:
       containers:
-      - image: "docker.io/alpine:3.6"
+      - image: "docker.io/centos:centos7"
         imagePullPolicy: IfNotPresent
         name: myapp
         command:
@@ -2114,7 +2114,7 @@ kind: DeploymentConfig
 metadata:
   name: deployment-simple
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     name: deployment-simple
   strategy:

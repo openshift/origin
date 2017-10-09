@@ -12,12 +12,9 @@ type Stop interface {
 	Stop()
 }
 
-type stopper struct {
-	profile bool
-}
+type stopper struct{}
 
-func (stopper) Stop() {
-}
+func (stopper) Stop() {}
 
 func Profile(mode string) Stop {
 	var stop Stop

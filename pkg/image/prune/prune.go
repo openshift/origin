@@ -563,17 +563,6 @@ func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
 	return ret
 }
 
-// getImageStreamNodes returns only nodes of type ImageStreamNode.
-func getImageStreamNodes(nodes []gonum.Node) []*imagegraph.ImageStreamNode {
-	ret := []*imagegraph.ImageStreamNode{}
-	for i := range nodes {
-		if node, ok := nodes[i].(*imagegraph.ImageStreamNode); ok {
-			ret = append(ret, node)
-		}
-	}
-	return ret
-}
-
 // edgeKind returns true if the edge from "from" to "to" is of the desired kind.
 func edgeKind(g graph.Graph, from, to gonum.Node, desiredKind string) bool {
 	edge := g.Edge(from, to)

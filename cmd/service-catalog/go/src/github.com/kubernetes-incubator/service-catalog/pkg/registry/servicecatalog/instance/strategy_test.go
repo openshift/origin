@@ -35,8 +35,8 @@ func getTestInstance() *servicecatalog.ServiceInstance {
 			Generation: 1,
 		},
 		Spec: servicecatalog.ServiceInstanceSpec{
-			ServiceClassName: "test-serviceclass",
-			PlanName:         "test-plan",
+			ExternalServiceClassName: "test-serviceclass",
+			ExternalServicePlanName:  "test-plan",
 			UserInfo: &servicecatalog.UserInfo{
 				Username: "some-user",
 			},

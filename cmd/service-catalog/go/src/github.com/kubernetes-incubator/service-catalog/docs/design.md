@@ -83,17 +83,17 @@ resource model.
 
 The storage component behind the Service Catalog's API Server can either be
 [etcd](https://github.com/coreos/etcd) or
-[Third Party Resources](https://kubernetes.io/docs/user-guide/thirdpartyresources/) (TPRs).
+[Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) (CRDs).
 The `rest.storage` interface abstracts the specific persistent storage
 facility being used.
 When etcd is used, the instance(s) of etcd will be distinct from the etcd
 instances of the Kubernetes core - meaning, the Service Catalog will have its
 own persistent storage that is separate from the Kubernetes core.
-When TPRs are used, those resources will be stored in the Kubernetes core
+When CRDs are used, those resources will be stored in the Kubernetes core
 and therefore a separate persistent storage (from Kubernetes) is not needed.
 
 **[DIFF]** *As of now the API Server can only use etcd as its persistent
-storage. The plan is to add support for TPRs to the `rest.storage` interface
+storage. The plan is to add support for CRDs to the `rest.storage` interface
 of the API Server in the near future.*
 
 The Service Catalog resource model is defined within a file called
@@ -328,8 +328,3 @@ Below are the key aspects of the code that differ from the design above:
   actually used as part of the running system yet. Any resources created 
   by talking to the API Server will be stored but nothing beyond storing
   them will happen.
-- Creating Third Party Resource versions of the Service Catalog resources
-  in the Kubernetes core API Server is the current way the system works.
-  The Controller will then talk to the Kubernetes core API Server
-  and monitor the TPR version of the Service Catalog resources and take
-  all appropriate actions.
