@@ -23,13 +23,6 @@ import (
 	deployutil "github.com/openshift/origin/pkg/apps/util"
 )
 
-const (
-	// We must avoid creating processing deployment configs until the deployment config and image
-	// stream stores have synced. If it hasn't synced, to avoid a hot loop, we'll wait this long
-	// between checks.
-	storeSyncedPollPeriod = 100 * time.Millisecond
-)
-
 // NewDeployerController creates a new DeploymentController.
 func NewDeployerController(
 	rcInformer kcoreinformers.ReplicationControllerInformer,

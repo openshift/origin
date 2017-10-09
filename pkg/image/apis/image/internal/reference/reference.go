@@ -328,7 +328,7 @@ func (r repository) Name() string {
 type digestReference digest.Digest
 
 func (d digestReference) String() string {
-	return d.String()
+	return string(d)
 }
 
 func (d digestReference) Digest() digest.Digest {

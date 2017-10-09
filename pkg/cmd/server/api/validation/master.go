@@ -155,9 +155,7 @@ func ValidateMasterConfig(config *api.MasterConfig, fldPath *field.Path) Validat
 	}
 	if len(config.NetworkConfig.ExternalIPNetworkCIDRs) > 0 {
 		for i, s := range config.NetworkConfig.ExternalIPNetworkCIDRs {
-			if strings.HasPrefix(s, "!") {
-				s = s[1:]
-			}
+			s = strings.TrimPrefix(s, "!")
 			if _, _, err := net.ParseCIDR(s); err != nil {
 				validationResults.AddErrors(field.Invalid(fldPath.Child("networkConfig", "externalIPNetworkCIDRs").Index(i), config.NetworkConfig.ExternalIPNetworkCIDRs[i], "must be a valid CIDR notation IP range (e.g. 172.30.0.0/16) with an optional leading !"))
 			}

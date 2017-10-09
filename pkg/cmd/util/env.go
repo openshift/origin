@@ -39,8 +39,8 @@ func GetEnv(key string) (string, bool) {
 	return val, true
 }
 
-var argumentEnvironment = regexp.MustCompile("(?ms)^(.+)\\=(.*)$")
-var validArgumentEnvironment = regexp.MustCompile("(?ms)^(\\w+)\\=(.*)$")
+var argumentEnvironment = regexp.MustCompile(`(?ms)^(.+)\=(.*)$`)
+var validArgumentEnvironment = regexp.MustCompile(`(?ms)^(\w+)\=(.*)$`)
 
 func IsEnvironmentArgument(s string) bool {
 	return argumentEnvironment.MatchString(s)
@@ -89,7 +89,7 @@ func parseIntoEnvVar(spec []string, defaultReader io.Reader, envVarType string) 
 				return nil, nil, err
 			}
 			env = append(env, fileEnv...)
-		case strings.Index(envSpec, "=") != -1:
+		case strings.Contains(envSpec, "="):
 			parts := strings.SplitN(envSpec, "=", 2)
 			if len(parts) != 2 {
 				return nil, nil, fmt.Errorf("invalid %s: %v", envVarType, envSpec)
@@ -139,7 +139,7 @@ func readEnv(r io.Reader, envVarType string) ([]kapi.EnvVar, error) {
 		if pos := strings.Index(envSpec, "#"); pos != -1 {
 			envSpec = envSpec[:pos]
 		}
-		if strings.Index(envSpec, "=") != -1 {
+		if strings.Contains(envSpec, "=") {
 			parts := strings.SplitN(envSpec, "=", 2)
 			if len(parts) != 2 {
 				return nil, fmt.Errorf("invalid %s: %v", envVarType, envSpec)

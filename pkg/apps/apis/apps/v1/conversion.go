@@ -107,16 +107,11 @@ func Convert_apps_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrateg
 }
 
 func addConversionFuncs(scheme *runtime.Scheme) error {
-	err := scheme.AddConversionFuncs(
+	return scheme.AddConversionFuncs(
 		Convert_v1_DeploymentTriggerImageChangeParams_To_apps_DeploymentTriggerImageChangeParams,
 		Convert_apps_DeploymentTriggerImageChangeParams_To_v1_DeploymentTriggerImageChangeParams,
 
 		Convert_v1_RollingDeploymentStrategyParams_To_apps_RollingDeploymentStrategyParams,
 		Convert_apps_RollingDeploymentStrategyParams_To_v1_RollingDeploymentStrategyParams,
 	)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

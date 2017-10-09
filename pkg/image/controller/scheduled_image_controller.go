@@ -99,7 +99,12 @@ func (s *ScheduledImageStreamController) deleteImageStream(obj interface{}) {
 		if !objIsTombstone {
 			return
 		}
-		stream, isStream = tombstone.Obj.(*imageapi.ImageStream)
+		var isImageStream bool
+		stream, isImageStream = tombstone.Obj.(*imageapi.ImageStream)
+		if !isImageStream {
+			glog.V(2).Infof("tombstone contained unexpected object %#v", tombstone)
+			return
+		}
 	}
 	key, err := cache.MetaNamespaceKeyFunc(stream)
 	if err != nil {

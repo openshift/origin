@@ -360,10 +360,10 @@ func getDockerfilePath(dir string, build *buildapi.Build) string {
 }
 func parseDockerfile(dockerfilePath string) (*parser.Node, error) {
 	f, err := os.Open(dockerfilePath)
-	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	// Parse the Dockerfile.
 	node, err := dockerfile.Parse(f)

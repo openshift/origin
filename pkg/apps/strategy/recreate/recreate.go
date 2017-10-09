@@ -50,8 +50,6 @@ type RecreateDeploymentStrategy struct {
 	getUpdateAcceptor func(time.Duration, int32) strat.UpdateAcceptor
 	// scaler is used to scale replication controllers.
 	scaler kubectl.Scaler
-	// tagClient is used to tag images
-	tagClient imageclient.ImageStreamTagsGetter
 	// codec is used to decode DeploymentConfigs contained in deployments.
 	decoder runtime.Decoder
 	// hookExecutor can execute a lifecycle hook.
@@ -62,15 +60,7 @@ type RecreateDeploymentStrategy struct {
 	retryParams *kubectl.RetryParams
 	// events records the events
 	events record.EventSink
-	// now returns the current time
-	now func() time.Time
 }
-
-const (
-	// acceptorInterval is how often the UpdateAcceptor should check for
-	// readiness.
-	acceptorInterval = 1 * time.Second
-)
 
 // NewRecreateDeploymentStrategy makes a RecreateDeploymentStrategy backed by
 // a real HookExecutor and client.
@@ -297,5 +287,4 @@ func (s *RecreateDeploymentStrategy) waitForTerminatedPods(from *kapi.Replicatio
 	if _, err = watch.Until(timeout, w, condition); err != nil && err != wait.ErrWaitTimeout {
 		fmt.Fprintf(s.out, "--> Watch failed: %v\nNew pods may be scaled up before old pods terminate\n", err)
 	}
-	return
 }

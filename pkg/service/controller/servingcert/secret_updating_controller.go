@@ -38,9 +38,8 @@ type ServiceServingCertUpdateController struct {
 	secretLister    listers.SecretLister
 	secretHasSynced cache.InformerSynced
 
-	ca         *crypto.CA
-	publicCert string
-	dnsSuffix  string
+	ca        *crypto.CA
+	dnsSuffix string
 	// minTimeLeftForCert is how much time is remaining for the serving cert before regenerating it.
 	minTimeLeftForCert time.Duration
 
@@ -165,6 +164,9 @@ func (sc *ServiceServingCertUpdateController) processNextWorkItem() bool {
 // This function is not meant to be invoked concurrently with the same key.
 func (sc *ServiceServingCertUpdateController) syncSecret(key string) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	if err != nil {
+		return err
+	}
 	sharedSecret, err := sc.secretLister.Secrets(namespace).Get(name)
 	if kapierrors.IsNotFound(err) {
 		return nil

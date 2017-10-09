@@ -142,11 +142,5 @@ func GetRequiresNamespace(obj runtime.Object) (bool, error) {
 
 func HasObjectMeta(obj runtime.Object) bool {
 	objValue := reflect.ValueOf(obj).Elem()
-	field := objValue.FieldByName("ObjectMeta")
-
-	if !field.IsValid() {
-		return false
-	}
-
-	return true
+	return objValue.FieldByName("ObjectMeta").IsValid()
 }

@@ -266,17 +266,6 @@ func setupAdditionalSecrets(pod *v1.Pod, container *v1.Container, secrets []buil
 	}
 }
 
-// getContainerVerbosity returns the defined BUILD_LOGLEVEL value
-func getContainerVerbosity(containerEnv []v1.EnvVar) (verbosity string) {
-	for _, env := range containerEnv {
-		if env.Name == "BUILD_LOGLEVEL" {
-			verbosity = env.Value
-			break
-		}
-	}
-	return
-}
-
 // getPodLabels creates labels for the Build Pod
 func getPodLabels(build *buildapi.Build) map[string]string {
 	return map[string]string{buildapi.BuildLabel: buildapi.LabelValue(build.Name)}

@@ -437,5 +437,5 @@ func copyToVolumeList(artifactsMapping []buildapi.ImageSourcePath) (volumeList s
 }
 
 func convertS2IFailureType(reason s2iapi.StepFailureReason, message s2iapi.StepFailureMessage) (buildapi.StatusReason, string) {
-	return buildapi.StatusReason(reason), fmt.Sprintf("%s", message)
+	return buildapi.StatusReason(reason), string(message)
 }
