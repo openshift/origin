@@ -235,6 +235,57 @@ func (f *Framework) BeforeEach() {
 	}
 }
 
+const parallelNamespaceDeletions = 20
+
+var namespaces = &namespaceManager{
+	running:  make(chan struct{}, parallelNamespaceDeletions),
+	failures: make(chan error, parallelNamespaceDeletions),
+}
+
+func init() {
+	AddCleanupAction(namespaces.Cleanup)
+}
+
+type namespaceManager struct {
+	running  chan struct{}
+	failures chan error
+}
+
+func (m *namespaceManager) eachFailure(fn func(format string, args ...interface{})) {
+	for {
+		select {
+		case err, ok := <-m.failures:
+			if !ok {
+				return
+			}
+			if err != nil {
+				fn("Namespace deletion failed: %v", err)
+			}
+		default:
+			return
+		}
+	}
+}
+
+func (m *namespaceManager) Delete(fn func() error) {
+	m.eachFailure(Failf)
+	m.running <- struct{}{}
+	go func() {
+		defer func() { <-m.running }()
+		m.failures <- fn()
+	}()
+}
+
+func (m *namespaceManager) Cleanup() {
+	Logf("Waiting for running namespaces to complete")
+	for len(m.running) > 0 {
+		m.eachFailure(Logf)
+		time.Sleep(time.Second)
+	}
+	close(m.failures)
+	m.eachFailure(Logf)
+}
+
 // AfterEach deletes the namespace, after reading its events.
 func (f *Framework) AfterEach() {
 	RemoveCleanupAction(f.cleanupHandle)
@@ -242,18 +293,44 @@ func (f *Framework) AfterEach() {
 	// DeleteNamespace at the very end in defer, to avoid any
 	// expectation failures preventing deleting the namespace.
 	defer func() {
-		nsDeletionErrors := map[string]error{}
-		// Whether to delete namespace is determined by 3 factors: delete-namespace flag, delete-namespace-on-failure flag and the test result
-		// if delete-namespace set to false, namespace will always be preserved.
-		// if delete-namespace is true and delete-namespace-on-failure is false, namespace will be preserved if test failed.
-		if TestContext.DeleteNamespace && (TestContext.DeleteNamespaceOnFailure || !CurrentGinkgoTestDescription().Failed) {
-			for _, ns := range f.namespacesToDelete {
-				By(fmt.Sprintf("Destroying namespace %q for this suite.", ns.Name))
+		testFailed := CurrentGinkgoTestDescription().Failed
+		namespacesToDelete := f.namespacesToDelete
+		clientPool := f.ClientPool
+		clientSet := f.ClientSet
+		namespaceDeletionTimeout := f.NamespaceDeletionTimeout
+
+		// Paranoia-- prevent reuse!
+		f.Namespace = nil
+		f.ClientPool = nil
+		f.ClientSet = nil
+		f.namespacesToDelete = nil
+
+		if !TestContext.DeleteNamespace || (!TestContext.DeleteNamespaceOnFailure && testFailed) {
+			if !TestContext.DeleteNamespace {
+				Logf("Found DeleteNamespace=false, skipping namespace deletion!")
+			} else {
+				Logf("Found DeleteNamespaceOnFailure=false and current test failed, skipping namespace deletion!")
+			}
+			return
+		}
+
+		// dispatch initial deletes, then queue follow up
+		startTime := time.Now()
+		for _, ns := range namespacesToDelete {
+			By(fmt.Sprintf("Destroying namespace %q for this suite.", ns.Name))
+			clientSet.Core().Namespaces().Delete(ns.Name, nil)
+		}
+		namespaces.Delete(func() error {
+			nsDeletionErrors := map[string]error{}
+			// Whether to delete namespace is determined by 3 factors: delete-namespace flag, delete-namespace-on-failure flag and the test result
+			// if delete-namespace set to false, namespace will always be preserved.
+			// if delete-namespace is true and delete-namespace-on-failure is false, namespace will be preserved if test failed.
+			for _, ns := range namespacesToDelete {
 				timeout := DefaultNamespaceDeletionTimeout
-				if f.NamespaceDeletionTimeout != 0 {
-					timeout = f.NamespaceDeletionTimeout
+				if namespaceDeletionTimeout != 0 {
+					timeout = namespaceDeletionTimeout
 				}
-				if err := deleteNS(f.ClientSet, f.ClientPool, ns.Name, timeout); err != nil {
+				if err := deleteNS(clientSet, clientPool, ns.Name, timeout, startTime); err != nil {
 					if !apierrors.IsNotFound(err) {
 						nsDeletionErrors[ns.Name] = err
 					} else {
@@ -261,27 +338,16 @@ func (f *Framework) AfterEach() {
 					}
 				}
 			}
-		} else {
-			if !TestContext.DeleteNamespace {
-				Logf("Found DeleteNamespace=false, skipping namespace deletion!")
-			} else {
-				Logf("Found DeleteNamespaceOnFailure=false and current test failed, skipping namespace deletion!")
+			// if we had errors deleting, report them now.
+			if len(nsDeletionErrors) != 0 {
+				messages := []string{}
+				for namespaceKey, namespaceErr := range nsDeletionErrors {
+					messages = append(messages, fmt.Sprintf("Couldn't delete ns: %q: %s (%#v)", namespaceKey, namespaceErr, namespaceErr))
+				}
+				return fmt.Errorf(strings.Join(messages, ","))
 			}
-		}
-
-		// Paranoia-- prevent reuse!
-		f.Namespace = nil
-		f.ClientSet = nil
-		f.namespacesToDelete = nil
-
-		// if we had errors deleting, report them now.
-		if len(nsDeletionErrors) != 0 {
-			messages := []string{}
-			for namespaceKey, namespaceErr := range nsDeletionErrors {
-				messages = append(messages, fmt.Sprintf("Couldn't delete ns: %q: %s (%#v)", namespaceKey, namespaceErr, namespaceErr))
-			}
-			Failf(strings.Join(messages, ","))
-		}
+			return nil
+		})
 	}()
 
 	// Print events if the test failed.
