@@ -147,10 +147,11 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		clusterNetworkCIDRs = append(clusterNetworkCIDRs, cn.ClusterCIDR.String())
 	}
 
-	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
-
 	localSubnetCIDR := plugin.localSubnetCIDR
 	_, ipnet, err := net.ParseCIDR(localSubnetCIDR)
+	if err != nil {
+		return false, fmt.Errorf("invalid local subnet CIDR: %v", err)
+	}
 	localSubnetMaskLength, _ := ipnet.Mask.Size()
 	localSubnetGateway := netutils.GenerateDefaultGateway(ipnet).String()
 
@@ -167,15 +168,35 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	}
 
 	gwCIDR := fmt.Sprintf("%s/%d", localSubnetGateway, localSubnetMaskLength)
+
+	if err := waitForOVS(ovsDialDefaultNetwork, ovsDialDefaultAddress); err != nil {
+		return false, err
+	}
+
+	var changed bool
 	if plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) {
 		glog.V(5).Infof("[SDN setup] no SDN setup required")
-		return false, nil
+	} else {
+		glog.Infof("[SDN setup] full SDN setup required")
+		if err := plugin.setup(clusterNetworkCIDRs, localSubnetCIDR, localSubnetGateway, gwCIDR); err != nil {
+			return false, err
+		}
+		changed = true
 	}
-	glog.V(5).Infof("[SDN setup] full SDN setup required")
 
-	err = plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway)
-	if err != nil {
-		return false, err
+	// TODO: make it possible to safely reestablish node configuration after restart
+	// If OVS goes down and fails the health check, restart the entire process
+	healthFn := func() bool { return plugin.alreadySetUp(gwCIDR, clusterNetworkCIDRs) }
+	runOVSHealthCheck(ovsDialDefaultNetwork, ovsDialDefaultAddress, healthFn)
+
+	return changed, nil
+}
+
+func (plugin *OsdnNode) setup(clusterNetworkCIDRs []string, localSubnetCIDR, localSubnetGateway, gwCIDR string) error {
+	serviceNetworkCIDR := plugin.networkInfo.ServiceNetwork.String()
+
+	if err := plugin.oc.SetupOVS(clusterNetworkCIDRs, serviceNetworkCIDR, localSubnetCIDR, localSubnetGateway); err != nil {
+		return err
 	}
 
 	l, err := netlink.LinkByName(Tun0)
@@ -200,7 +221,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 				Dst:       clusterNetwork.ClusterCIDR,
 			}
 			if err = netlink.RouteAdd(route); err != nil {
-				return false, err
+				return err
 			}
 		}
 	}
@@ -212,7 +233,7 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 		err = netlink.RouteAdd(route)
 	}
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	sysctl := sysctl.New()
@@ -220,13 +241,13 @@ func (plugin *OsdnNode) SetupSDN() (bool, error) {
 	// Make sure IPv4 forwarding state is 1
 	val, err := sysctl.GetSysctl("net/ipv4/ip_forward")
 	if err != nil {
-		return false, fmt.Errorf("could not get IPv4 forwarding state: %s", err)
+		return fmt.Errorf("could not get IPv4 forwarding state: %s", err)
 	}
 	if val != 1 {
-		return false, fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
+		return fmt.Errorf("net/ipv4/ip_forward=0, it must be set to 1")
 	}
 
-	return true, nil
+	return nil
 }
 
 func (plugin *OsdnNode) updateEgressNetworkPolicyRules(vnid uint32) {
