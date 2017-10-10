@@ -123,14 +123,14 @@ func (c Client) GetImageStreamTag(ctx apirequest.Context, name string, options *
 
 // FetchServiceAccountSecrets retrieves the Secrets used for pushing and pulling
 // images from private Docker registries.
-func (g *BuildGenerator) FetchServiceAccountSecrets(namespace, serviceAccount string) ([]kapi.Secret, error) {
+func FetchServiceAccountSecrets(secrets kcoreclient.SecretsGetter, serviceAccounts kcoreclient.ServiceAccountsGetter, namespace, serviceAccount string) ([]kapi.Secret, error) {
 	var result []kapi.Secret
-	sa, err := g.ServiceAccounts.ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
+	sa, err := serviceAccounts.ServiceAccounts(namespace).Get(serviceAccount, metav1.GetOptions{})
 	if err != nil {
 		return result, fmt.Errorf("Error getting push/pull secrets for service account %s/%s: %v", namespace, serviceAccount, err)
 	}
 	for _, ref := range sa.Secrets {
-		secret, err := g.Secrets.Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
+		secret, err := secrets.Secrets(namespace).Get(ref.Name, metav1.GetOptions{})
 		if err != nil {
 			continue
 		}
@@ -503,7 +503,7 @@ func (g *BuildGenerator) generateBuildFromConfig(ctx apirequest.Context, bc *bui
 
 	var builderSecrets []kapi.Secret
 	var err error
-	if builderSecrets, err = g.FetchServiceAccountSecrets(bcCopy.Namespace, serviceAccount); err != nil {
+	if builderSecrets, err = FetchServiceAccountSecrets(g.Secrets, g.ServiceAccounts, bcCopy.Namespace, serviceAccount); err != nil {
 		return nil, err
 	}
 
@@ -633,7 +633,7 @@ func (g *BuildGenerator) setBaseImageAndPullSecretForBuildStrategy(ctx apireques
 		if strategy.CustomStrategy.PullSecret == nil {
 			strategy.CustomStrategy.PullSecret = g.resolveImageSecret(ctx, builderSecrets, &strategy.CustomStrategy.From, bcCopy.Namespace)
 		}
-		updateCustomImageEnv(strategy.CustomStrategy, image)
+		UpdateCustomImageEnv(strategy.CustomStrategy, image)
 	}
 	return nil
 }
@@ -785,9 +785,9 @@ func getNextBuildName(buildConfig *buildapi.BuildConfig) string {
 	return apihelpers.GetName(buildConfig.Name, strconv.FormatInt(buildConfig.Status.LastVersion, 10), kvalidation.DNS1123SubdomainMaxLength)
 }
 
-//updateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
+// UpdateCustomImageEnv updates base image env variable reference with the new image for a custom build strategy.
 // If no env variable reference exists, create a new env variable.
-func updateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage string) {
+func UpdateCustomImageEnv(strategy *buildapi.CustomBuildStrategy, newImage string) {
 	if strategy.Env == nil {
 		strategy.Env = make([]kapi.EnvVar, 1)
 		strategy.Env[0] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: newImage}

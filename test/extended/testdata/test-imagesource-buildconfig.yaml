@@ -26,7 +26,7 @@ items:
   metadata:
     labels:
       build: imagesourcebuild
-    name: imagesourcebuild
+    name: imagesourcebuildconfig
   spec:
     output:
       to:
@@ -54,7 +54,7 @@ items:
   metadata:
     labels:
       build: imagedockerbuild
-    name: imagedockerbuild
+    name: imagedockerbuildconfig
   spec:
     output:
       to:

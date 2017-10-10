@@ -1391,7 +1391,7 @@ func TestSubstituteImageCustomAllMatch(t *testing.T) {
 	build.Spec.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
 	build.Spec.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
 	build.Spec.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: originalImage}
-	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
 	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Spec.Strategy.CustomStrategy.Env[0].Name)
 	}
@@ -1422,7 +1422,7 @@ func TestSubstituteImageCustomAllMismatch(t *testing.T) {
 
 	// Full custom build with base image that is not matched
 	// Base image name should be unchanged
-	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, "dummy")
+	UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, "dummy")
 	if build.Spec.Strategy.CustomStrategy.From.Name != originalImage {
 		t.Errorf("Base image name was improperly substituted in custom strategy %s %s", build.Spec.Strategy.CustomStrategy.From.Name, originalImage)
 	}
@@ -1444,7 +1444,7 @@ func TestSubstituteImageCustomBaseMatchEnvMismatch(t *testing.T) {
 	build.Spec.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 2)
 	build.Spec.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someEnvVar", Value: originalImage}
 	build.Spec.Strategy.CustomStrategy.Env[1] = kapi.EnvVar{Name: buildapi.CustomBuildStrategyBaseImageKey, Value: "dummy"}
-	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
 	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable %s was improperly substituted in custom strategy", build.Spec.Strategy.CustomStrategy.Env[0].Name)
 	}
@@ -1472,7 +1472,7 @@ func TestSubstituteImageCustomBaseMatchEnvMissing(t *testing.T) {
 	// existing environment variable should be untouched
 	build.Spec.Strategy.CustomStrategy.Env = make([]kapi.EnvVar, 1)
 	build.Spec.Strategy.CustomStrategy.Env[0] = kapi.EnvVar{Name: "someImage", Value: originalImage}
-	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
 	if build.Spec.Strategy.CustomStrategy.Env[0].Value != originalImage {
 		t.Errorf("Random env variable was improperly substituted in custom strategy")
 	}
@@ -1497,7 +1497,7 @@ func TestSubstituteImageCustomBaseMatchEnvNil(t *testing.T) {
 
 	// Custom build with a base Image but no environment variables
 	// base image should be replaced, new image environment variable should be added
-	updateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
+	UpdateCustomImageEnv(build.Spec.Strategy.CustomStrategy, newImage)
 	if build.Spec.Strategy.CustomStrategy.Env[0].Name != buildapi.CustomBuildStrategyBaseImageKey || build.Spec.Strategy.CustomStrategy.Env[0].Value != newImage {
 		t.Errorf("New image name variable was not added to environment list in custom strategy")
 	}
