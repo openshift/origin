@@ -566,11 +566,13 @@ func (o *ImportImageOptions) newImageStreamImportAll(stream *imageapi.ImageStrea
 }
 
 func (o *ImportImageOptions) newImageStreamImportTags(stream *imageapi.ImageStream, tags map[string]string) *imageapi.ImageStreamImport {
-	isi, insecure := o.newImageStreamImport(stream)
+	isi, streamInsecure := o.newImageStreamImport(stream)
 	for tag, from := range tags {
+		insecure := streamInsecure
 		scheduled := o.Scheduled
 		oldTag, ok := stream.Spec.Tags[tag]
 		if ok {
+			insecure = insecure || oldTag.ImportPolicy.Insecure
 			scheduled = scheduled || oldTag.ImportPolicy.Scheduled
 		}
 		isi.Spec.Images = append(isi.Spec.Images, imageapi.ImageImportSpec{
