@@ -13617,6 +13617,7 @@ objects:
     - servicecatalog.k8s.io
     resources:
     - serviceclasses
+    - serviceplans
     verbs:
     - list
     - watch
