@@ -10,6 +10,9 @@ import (
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest/schema2"
+
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
+	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
 
 var (
@@ -61,8 +64,16 @@ func (h *manifestSchema2Handler) Digest() (digest.Digest, error) {
 	return digest.FromBytes(p), nil
 }
 
+func (h *manifestSchema2Handler) Layers(ctx context.Context) ([]imageapiv1.ImageLayer, error) {
+	return nil, ErrNotImplemented
+}
+
 func (h *manifestSchema2Handler) Manifest() distribution.Manifest {
 	return h.manifest
+}
+
+func (h *manifestSchema2Handler) Metadata(ctx context.Context) (*imageapi.DockerImage, error) {
+	return nil, ErrNotImplemented
 }
 
 func (h *manifestSchema2Handler) Payload() (mediaType string, payload []byte, canonical []byte, err error) {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/docker/distribution"
@@ -9,8 +10,12 @@ import (
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 
+	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
 )
+
+// ErrNotImplemented is returned by an interface instance that does not implement the method in question.
+var ErrNotImplemented = errors.New("not implemented")
 
 // A ManifestHandler defines a common set of operations on all versions of manifest schema.
 type ManifestHandler interface {
@@ -20,6 +25,12 @@ type ManifestHandler interface {
 
 	// Digest returns manifest's digest.
 	Digest() (manifestDigest digest.Digest, err error)
+
+	// Layers returns a list of image layers.
+	Layers(ctx context.Context) ([]imageapiv1.ImageLayer, error)
+
+	// Metadata returns image configuration in internal representation.
+	Metadata(ctx context.Context) (*imageapi.DockerImage, error)
 
 	// Manifest returns a deserialized manifest object.
 	Manifest() distribution.Manifest
@@ -52,7 +63,7 @@ func NewManifestHandlerFromImage(repo *repository, image *imageapiv1.Image) (Man
 	)
 
 	switch image.DockerImageManifestMediaType {
-	case "", schema1.MediaTypeManifest:
+	case "", schema1.MediaTypeManifest, schema1.MediaTypeSignedManifest:
 		manifest, err = unmarshalManifestSchema1([]byte(image.DockerImageManifest), image.DockerImageSignatures)
 	case schema2.MediaTypeManifest:
 		manifest, err = unmarshalManifestSchema2([]byte(image.DockerImageManifest))

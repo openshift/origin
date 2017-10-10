@@ -9,12 +9,16 @@ import (
 	"github.com/docker/distribution"
 	"github.com/docker/distribution/context"
 	"github.com/docker/distribution/digest"
+	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
 	"github.com/docker/distribution/registry/api/errcode"
 	regapi "github.com/docker/distribution/registry/api/v2"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
@@ -144,15 +148,22 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 			ObjectMeta: metav1.ObjectMeta{
 				Name: dgst.String(),
 				Annotations: map[string]string{
-					imageapi.ManagedByOpenShiftAnnotation:      "true",
+					imageapi.ManagedByOpenShiftAnnotation: "true",
+					// indicate to the master that the manifest and config objects can be safely unset
 					imageapi.ImageManifestBlobStoredAnnotation: "true",
 				},
 			},
 			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", m.repo.config.registryAddr, m.repo.namespace, m.repo.name, dgst.String()),
-			DockerImageManifest:          string(payload),
 			DockerImageManifestMediaType: mediaType,
-			DockerImageConfig:            string(config),
+			// the following attributes will be unset by the master once it fills the metadata
+			DockerImageManifest: string(payload),
+			DockerImageConfig:   string(config),
 		},
+	}
+
+	err = m.fillImageMetadata(ctx, mh, &ism.Image)
+	if err != nil {
+		return "", err
 	}
 
 	for _, option := range options {
@@ -218,6 +229,56 @@ var manifestInflight = make(map[digest.Digest]struct{})
 
 // manifestInflightSync protects manifestInflight
 var manifestInflightSync sync.Mutex
+
+// fillImageMetadata fills metadata for image if needed. The metadata is filled by the master API if not
+// already filled and if the maniest and config blobs are sent together with the image. The registry needs to
+// fill the metadata only for schema 1 manifests that don't contain image sizes. Ideally, the master API
+// should parse the manifest and fill the metadata for any manifest schema. In case of schema 1, it would have
+// to stat the manifest blobs or they would have to be provided extra.
+func (m *manifestService) fillImageMetadata(ctx context.Context, mh ManifestHandler, image *imageapiv1.Image) error {
+	if image.DockerImageManifestMediaType != schema1.MediaTypeManifest && image.DockerImageManifestMediaType != schema1.MediaTypeSignedManifest {
+		return nil
+	}
+
+	layers, err := mh.Layers(ctx)
+	if err != nil {
+		return err
+	}
+	image.DockerImageLayers = layers
+	metadata, err := mh.Metadata(ctx)
+	if err != nil {
+		return err
+	}
+	image.DockerImageMetadata.Object = metadata
+
+	gvString := image.DockerImageMetadataVersion
+	if len(gvString) == 0 {
+		gvString = "1.0"
+	}
+	if !strings.Contains(gvString, "/") {
+		gvString = "/" + gvString
+	}
+
+	version, err := schema.ParseGroupVersion(gvString)
+	if err != nil {
+		return err
+	}
+	data, err := runtime.Encode(kapi.Codecs.LegacyCodec(version), metadata)
+	if err != nil {
+		return err
+	}
+	image.DockerImageMetadata.Raw = data
+	image.DockerImageMetadataVersion = version.Version
+
+	if image.Annotations == nil {
+		image.Annotations = make(map[string]string)
+	}
+	// In earlier releases, the layers had a reversed order. This annotation indicates that the image has
+	// expected order of layers.
+	image.Annotations[imageapi.DockerImageLayersOrderAnnotation] = imageapi.DockerImageLayersOrderAscending
+
+	return nil
+}
 
 func (m *manifestService) migrateManifest(ctx context.Context, image *imageapiv1.Image, dgst digest.Digest, manifest distribution.Manifest, isLocalStored bool) {
 	// Everything in its place and nothing to do.

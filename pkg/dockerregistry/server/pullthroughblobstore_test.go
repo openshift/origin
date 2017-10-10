@@ -751,17 +751,17 @@ func (t *testBlobStore) Open(ctx context.Context, dgst digest.Digest) (distribut
 
 func (t *testBlobStore) Put(ctx context.Context, mediaType string, p []byte) (distribution.Descriptor, error) {
 	t.calls["Put"]++
-	return distribution.Descriptor{}, fmt.Errorf("method not implemented")
+	return distribution.Descriptor{}, ErrNotImplemented
 }
 
 func (t *testBlobStore) Create(ctx context.Context, options ...distribution.BlobCreateOption) (distribution.BlobWriter, error) {
 	t.calls["Create"]++
-	return nil, fmt.Errorf("method not implemented")
+	return nil, ErrNotImplemented
 }
 
 func (t *testBlobStore) Resume(ctx context.Context, id string) (distribution.BlobWriter, error) {
 	t.calls["Resume"]++
-	return nil, fmt.Errorf("method not implemented")
+	return nil, ErrNotImplemented
 }
 
 func (t *testBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, req *http.Request, dgst digest.Digest) error {
@@ -783,7 +783,7 @@ func (t *testBlobStore) ServeBlob(ctx context.Context, w http.ResponseWriter, re
 
 func (t *testBlobStore) Delete(ctx context.Context, dgst digest.Digest) error {
 	t.calls["Delete"]++
-	return fmt.Errorf("method not implemented")
+	return ErrNotImplemented
 }
 
 type testBlobFileReader struct {

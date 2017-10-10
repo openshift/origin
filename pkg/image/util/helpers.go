@@ -167,7 +167,7 @@ func ReorderImageLayers(image *imageapi.Image) {
 	layersOrder, ok := image.Annotations[imageapi.DockerImageLayersOrderAnnotation]
 	if !ok {
 		switch image.DockerImageManifestMediaType {
-		case schema1.MediaTypeManifest:
+		case schema1.MediaTypeManifest, schema1.MediaTypeSignedManifest:
 			layersOrder = imageapi.DockerImageLayersOrderAscending
 		case schema2.MediaTypeManifest:
 			layersOrder = imageapi.DockerImageLayersOrderDescending
@@ -212,7 +212,7 @@ func ManifestMatchesImage(image *imageapi.Image, newManifest []byte) (bool, erro
 		if err != nil {
 			return false, err
 		}
-	case schema1.MediaTypeManifest, "":
+	case schema1.MediaTypeManifest, schema1.MediaTypeSignedManifest, "":
 		var m schema1.SignedManifest
 		if err := json.Unmarshal(newManifest, &m); err != nil {
 			return false, err
