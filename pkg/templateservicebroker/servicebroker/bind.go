@@ -272,7 +272,7 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 		}
 
 		brokerTemplateInstance.Spec.BindingIDs = append(brokerTemplateInstance.Spec.BindingIDs, bindingID)
-		brokerTemplateInstance, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
+		_, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
 		if err != nil {
 			return api.InternalServerError(err)
 		}

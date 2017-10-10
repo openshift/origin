@@ -362,7 +362,6 @@ func (o *NewAppOptions) RunNewApp() error {
 				switch trigger.Type {
 				case buildapi.ImageChangeBuildTriggerType, buildapi.ConfigChangeBuildTriggerType:
 					triggered = true
-					break
 				}
 			}
 			if triggered {

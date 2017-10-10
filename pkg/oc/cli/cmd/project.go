@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -351,18 +350,6 @@ func getProjects(projectClient projectclient.ProjectInterface, kClient kclientse
 	}
 	projects = projectutil.ConvertNamespaceList(namespaces)
 	return projects.Items, nil
-}
-
-func clusterAndAuthEquality(clientCfg *restclient.Config, cluster clientcmdapi.Cluster, authInfo clientcmdapi.AuthInfo) bool {
-	return cluster.Server == clientCfg.Host &&
-		cluster.InsecureSkipTLSVerify == clientCfg.Insecure &&
-		cluster.CertificateAuthority == clientCfg.CAFile &&
-		bytes.Equal(cluster.CertificateAuthorityData, clientCfg.CAData) &&
-		authInfo.Token == clientCfg.BearerToken &&
-		authInfo.ClientCertificate == clientCfg.TLSClientConfig.CertFile &&
-		bytes.Equal(authInfo.ClientCertificateData, clientCfg.TLSClientConfig.CertData) &&
-		authInfo.ClientKey == clientCfg.TLSClientConfig.KeyFile &&
-		bytes.Equal(authInfo.ClientKeyData, clientCfg.TLSClientConfig.KeyData)
 }
 
 // TODO these kind of funcs could be moved to some kind of clientcmd util

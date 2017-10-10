@@ -386,11 +386,7 @@ func (c *client) Unbind(ctx context.Context, u user.Info, instanceID, bindingID 
 	d := json.NewDecoder(resp.Body)
 	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusGone {
 		var r *api.UnbindResponse
-		err = d.Decode(&r)
-		if err != nil {
-			return err
-		}
-		return nil
+		return d.Decode(&r)
 	}
 
 	var r *api.ErrorResponse

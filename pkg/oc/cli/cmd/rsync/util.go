@@ -33,10 +33,7 @@ func isWindows() bool {
 // hasLocalRsync returns true if rsync is in current exec path
 func hasLocalRsync() bool {
 	_, err := exec.LookPath("rsync")
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func isExitError(err error) bool {

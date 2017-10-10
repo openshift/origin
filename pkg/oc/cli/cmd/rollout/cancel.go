@@ -160,7 +160,7 @@ func (o CancelOptions) Run() error {
 			if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
 				maybeCancelling = " (cancelling)"
 			}
-			timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
+			timeAt := strings.ToLower(units.HumanDuration(time.Since(latest.CreationTimestamp.Time)))
 			fmt.Fprintf(o.Out, "No rollout is in progress (latest rollout #%d %s%s %s ago)\n",
 				deployutil.DeploymentVersionFor(latest),
 				strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),

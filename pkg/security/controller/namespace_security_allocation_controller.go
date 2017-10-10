@@ -192,19 +192,6 @@ func (c *NamespaceSecurityDefaultsController) allocate(ns *v1.Namespace) error {
 	return err
 }
 
-func changedAndSetAnnotations(old, ns *v1.Namespace) bool {
-	if value, ok := ns.Annotations[security.UIDRangeAnnotation]; ok && value != old.Annotations[security.UIDRangeAnnotation] {
-		return true
-	}
-	if value, ok := ns.Annotations[security.MCSAnnotation]; ok && value != old.Annotations[security.MCSAnnotation] {
-		return true
-	}
-	if value, ok := ns.Annotations[security.SupplementalGroupsAnnotation]; ok && value != old.Annotations[security.SupplementalGroupsAnnotation] {
-		return true
-	}
-	return false
-}
-
 type tx struct {
 	rollback []func() error
 }

@@ -47,7 +47,7 @@ func NewCommandAdmin(name, fullName string, in io.Reader, out io.Writer, errout 
 	cmds := &cobra.Command{
 		Use:   name,
 		Short: "Tools for managing a cluster",
-		Long:  fmt.Sprintf(adminLong),
+		Long:  adminLong,
 		Run:   kcmdutil.DefaultSubCommandRun(out),
 	}
 

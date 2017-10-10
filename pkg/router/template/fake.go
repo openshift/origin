@@ -18,10 +18,7 @@ func NewFakeTemplateRouter() *templateRouter {
 func (r *templateRouter) FakeReloadHandler() {
 	r.lock.Lock()
 	defer r.lock.Unlock()
-
 	r.stateChanged = false
-
-	return
 }
 
 // fakeCertWriter is a certificate writer that records actions but is a no-op

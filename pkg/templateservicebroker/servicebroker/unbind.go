@@ -65,7 +65,7 @@ func (b *Broker) Unbind(u user.Info, instanceID, bindingID string) *api.Response
 			return api.Forbidden(err)
 		}
 
-		brokerTemplateInstance, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
+		_, err = b.templateclient.BrokerTemplateInstances().Update(brokerTemplateInstance)
 		if err != nil {
 			return api.InternalServerError(err)
 		}

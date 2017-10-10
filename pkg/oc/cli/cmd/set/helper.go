@@ -82,9 +82,11 @@ func selectString(s, spec string) bool {
 		// last part does not exactly match remaining part of string
 		case i == (len(parts)-1) && len(s) != (len(part)+next):
 			match = false
-			break
 		default:
 			pos = next
+		}
+		if !match {
+			break
 		}
 	}
 	return match

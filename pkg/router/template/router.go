@@ -121,7 +121,6 @@ type templateRouterCfg struct {
 	statsPort                int
 	allowWildcardRoutes      bool
 	peerEndpointsKey         string
-	includeUDP               bool
 	bindPortsAfterSync       bool
 }
 
@@ -349,7 +348,7 @@ func (r *templateRouter) commitAndReload() error {
 		glog.V(4).Infof("Writing the router config")
 		reloadStart := time.Now()
 		err := r.writeConfig()
-		r.metricWriteConfig.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
+		r.metricWriteConfig.Observe(float64(time.Since(reloadStart)) / float64(time.Second))
 		return err
 	}(); err != nil {
 		return err
@@ -363,7 +362,7 @@ func (r *templateRouter) commitAndReload() error {
 	glog.V(4).Infof("Reloading the router")
 	reloadStart := time.Now()
 	err := r.reloadRouter()
-	r.metricReload.Observe(float64(time.Now().Sub(reloadStart)) / float64(time.Second))
+	r.metricReload.Observe(float64(time.Since(reloadStart)) / float64(time.Second))
 	if err != nil {
 		return err
 	}
@@ -758,25 +757,6 @@ func (r *templateRouter) cleanUpServiceAliasConfig(cfg *ServiceAliasConfig) {
 	if err != nil {
 		glog.Errorf("Error deleting certificates for route %s, the route will still be deleted but files may remain in the container: %v", cfg.Host, err)
 	}
-}
-
-func cmpStrSlices(first []string, second []string) bool {
-	if len(first) != len(second) {
-		return false
-	}
-	for _, fi := range first {
-		found := false
-		for _, si := range second {
-			if fi == si {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
-	}
-	return true
 }
 
 // shouldWriteCerts determines if the router should ask the cert manager to write out certificates

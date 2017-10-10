@@ -568,9 +568,7 @@ func printSuccessForCommand(role string, didAdd bool, targetName string, targets
 	if isNamespaced {
 		clusterScope = ""
 	}
-	if len(targets) > 1 {
-		targetName = targetName + "s"
-	} else if len(targets) == 1 {
+	if len(targets) == 1 {
 		allTargets = fmt.Sprintf("%q", targets[0])
 	}
 	if didAdd {
