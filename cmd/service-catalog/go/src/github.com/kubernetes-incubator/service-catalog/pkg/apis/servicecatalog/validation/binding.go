@@ -24,46 +24,46 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-// validateServiceInstanceCredentialName is the validation function for ServiceInstanceCredential names.
-var validateServiceInstanceCredentialName = apivalidation.NameIsDNSSubdomain
+// validateServiceBindingName is the validation function for ServiceBinding names.
+var validateServiceBindingName = apivalidation.NameIsDNSSubdomain
 
-var validServiceInstanceCredentialOperations = map[sc.ServiceInstanceCredentialOperation]bool{
-	sc.ServiceInstanceCredentialOperation(""):   true,
-	sc.ServiceInstanceCredentialOperationBind:   true,
-	sc.ServiceInstanceCredentialOperationUnbind: true,
+var validServiceBindingOperations = map[sc.ServiceBindingOperation]bool{
+	sc.ServiceBindingOperation(""):   true,
+	sc.ServiceBindingOperationBind:   true,
+	sc.ServiceBindingOperationUnbind: true,
 }
 
-var validServiceInstanceCredentialOperationValues = func() []string {
-	validValues := make([]string, len(validServiceInstanceCredentialOperations))
+var validServiceBindingOperationValues = func() []string {
+	validValues := make([]string, len(validServiceBindingOperations))
 	i := 0
-	for operation := range validServiceInstanceCredentialOperations {
+	for operation := range validServiceBindingOperations {
 		validValues[i] = string(operation)
 		i++
 	}
 	return validValues
 }()
 
-// ValidateServiceInstanceCredential validates a ServiceInstanceCredential and returns a list of errors.
-func ValidateServiceInstanceCredential(binding *sc.ServiceInstanceCredential) field.ErrorList {
-	return internalValidateServiceInstanceCredential(binding, true)
+// ValidateServiceBinding validates a ServiceBinding and returns a list of errors.
+func ValidateServiceBinding(binding *sc.ServiceBinding) field.ErrorList {
+	return internalValidateServiceBinding(binding, true)
 }
 
-func internalValidateServiceInstanceCredential(binding *sc.ServiceInstanceCredential, create bool) field.ErrorList {
+func internalValidateServiceBinding(binding *sc.ServiceBinding, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 	allErrs = append(allErrs, apivalidation.ValidateObjectMeta(&binding.ObjectMeta, true, /*namespace*/
-		validateServiceInstanceCredentialName,
+		validateServiceBindingName,
 		field.NewPath("metadata"))...)
-	allErrs = append(allErrs, validateServiceInstanceCredentialSpec(&binding.Spec, field.NewPath("spec"), create)...)
-	allErrs = append(allErrs, validateServiceInstanceCredentialStatus(&binding.Status, field.NewPath("status"), create)...)
+	allErrs = append(allErrs, validateServiceBindingSpec(&binding.Spec, field.NewPath("spec"), create)...)
+	allErrs = append(allErrs, validateServiceBindingStatus(&binding.Status, field.NewPath("status"), create)...)
 	if create {
-		allErrs = append(allErrs, validateServiceInstanceCredentialCreate(binding)...)
+		allErrs = append(allErrs, validateServiceBindingCreate(binding)...)
 	} else {
-		allErrs = append(allErrs, validateServiceInstanceCredentialUpdate(binding)...)
+		allErrs = append(allErrs, validateServiceBindingUpdate(binding)...)
 	}
 	return allErrs
 }
 
-func validateServiceInstanceCredentialSpec(spec *sc.ServiceInstanceCredentialSpec, fldPath *field.Path, create bool) field.ErrorList {
+func validateServiceBindingSpec(spec *sc.ServiceBindingSpec, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	for _, msg := range validateServiceInstanceName(spec.ServiceInstanceRef.Name, false /* prefix */) {
@@ -77,7 +77,7 @@ func validateServiceInstanceCredentialSpec(spec *sc.ServiceInstanceCredentialSpe
 	return allErrs
 }
 
-func validateServiceInstanceCredentialStatus(status *sc.ServiceInstanceCredentialStatus, fldPath *field.Path, create bool) field.ErrorList {
+func validateServiceBindingStatus(status *sc.ServiceBindingStatus, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if create {
@@ -85,8 +85,8 @@ func validateServiceInstanceCredentialStatus(status *sc.ServiceInstanceCredentia
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("currentOperation"), status.CurrentOperation, "currentOperation must be empty on create"))
 		}
 	} else {
-		if !validServiceInstanceCredentialOperations[status.CurrentOperation] {
-			allErrs = append(allErrs, field.NotSupported(fldPath.Child("currentOperation"), status.CurrentOperation, validServiceInstanceCredentialOperationValues))
+		if !validServiceBindingOperations[status.CurrentOperation] {
+			allErrs = append(allErrs, field.NotSupported(fldPath.Child("currentOperation"), status.CurrentOperation, validServiceBindingOperationValues))
 		}
 	}
 
@@ -100,13 +100,13 @@ func validateServiceInstanceCredentialStatus(status *sc.ServiceInstanceCredentia
 		}
 		// Do not allow the binding to be ready if there is an on-going operation
 		for i, c := range status.Conditions {
-			if c.Type == sc.ServiceInstanceCredentialConditionReady && c.Status == sc.ConditionTrue {
-				allErrs = append(allErrs, field.Forbidden(fldPath.Child("conditions").Index(i), "Can not set ServiceInstanceCredentialConditionReady to true when there is an operation in progress"))
+			if c.Type == sc.ServiceBindingConditionReady && c.Status == sc.ConditionTrue {
+				allErrs = append(allErrs, field.Forbidden(fldPath.Child("conditions").Index(i), "Can not set ServiceBindingConditionReady to true when there is an operation in progress"))
 			}
 		}
 	}
 
-	if status.CurrentOperation == sc.ServiceInstanceCredentialOperationBind {
+	if status.CurrentOperation == sc.ServiceBindingOperationBind {
 		if status.InProgressProperties == nil {
 			allErrs = append(allErrs, field.Required(fldPath.Child("inProgressProperties"), `inProgressProperties is required when currentOperation is "Bind"`))
 		}
@@ -117,17 +117,17 @@ func validateServiceInstanceCredentialStatus(status *sc.ServiceInstanceCredentia
 	}
 
 	if status.InProgressProperties != nil {
-		allErrs = append(allErrs, validateServiceInstanceCredentialPropertiesState(status.InProgressProperties, fldPath.Child("inProgressProperties"), create)...)
+		allErrs = append(allErrs, validateServiceBindingPropertiesState(status.InProgressProperties, fldPath.Child("inProgressProperties"), create)...)
 	}
 
 	if status.ExternalProperties != nil {
-		allErrs = append(allErrs, validateServiceInstanceCredentialPropertiesState(status.ExternalProperties, fldPath.Child("externalProperties"), create)...)
+		allErrs = append(allErrs, validateServiceBindingPropertiesState(status.ExternalProperties, fldPath.Child("externalProperties"), create)...)
 	}
 
 	return allErrs
 }
 
-func validateServiceInstanceCredentialPropertiesState(propertiesState *sc.ServiceInstanceCredentialPropertiesState, fldPath *field.Path, create bool) field.ErrorList {
+func validateServiceBindingPropertiesState(propertiesState *sc.ServiceBindingPropertiesState, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if propertiesState.Parameters == nil {
@@ -160,7 +160,7 @@ func validateServiceInstanceCredentialPropertiesState(propertiesState *sc.Servic
 	return allErrs
 }
 
-func validateServiceInstanceCredentialCreate(binding *sc.ServiceInstanceCredential) field.ErrorList {
+func validateServiceBindingCreate(binding *sc.ServiceBinding) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if binding.Status.ReconciledGeneration >= binding.Generation {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("status").Child("reconciledGeneration"), binding.Status.ReconciledGeneration, "reconciledGeneration must be less than generation on create"))
@@ -168,7 +168,7 @@ func validateServiceInstanceCredentialCreate(binding *sc.ServiceInstanceCredenti
 	return allErrs
 }
 
-func validateServiceInstanceCredentialUpdate(binding *sc.ServiceInstanceCredential) field.ErrorList {
+func validateServiceBindingUpdate(binding *sc.ServiceBinding) field.ErrorList {
 	allErrs := field.ErrorList{}
 	if binding.Status.ReconciledGeneration == binding.Generation {
 		if binding.Status.CurrentOperation != "" {
@@ -180,10 +180,10 @@ func validateServiceInstanceCredentialUpdate(binding *sc.ServiceInstanceCredenti
 	return allErrs
 }
 
-// internalValidateServiceInstanceCredentialUpdateAllowed ensures there is not a
+// internalValidateServiceBindingUpdateAllowed ensures there is not a
 // pending update on-going with the spec of the binding before allowing an update
 // to the spec to go through.
-func internalValidateServiceInstanceCredentialUpdateAllowed(new *sc.ServiceInstanceCredential, old *sc.ServiceInstanceCredential) field.ErrorList {
+func internalValidateServiceBindingUpdateAllowed(new *sc.ServiceBinding, old *sc.ServiceBinding) field.ErrorList {
 	errors := field.ErrorList{}
 	if old.Generation != new.Generation && old.Status.ReconciledGeneration != old.Generation {
 		errors = append(errors, field.Forbidden(field.NewPath("spec"), "another change to the spec is in progress"))
@@ -191,17 +191,17 @@ func internalValidateServiceInstanceCredentialUpdateAllowed(new *sc.ServiceInsta
 	return errors
 }
 
-// ValidateServiceInstanceCredentialUpdate checks that when changing from an older binding to a newer binding is okay.
-func ValidateServiceInstanceCredentialUpdate(new *sc.ServiceInstanceCredential, old *sc.ServiceInstanceCredential) field.ErrorList {
+// ValidateServiceBindingUpdate checks that when changing from an older binding to a newer binding is okay.
+func ValidateServiceBindingUpdate(new *sc.ServiceBinding, old *sc.ServiceBinding) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateServiceInstanceCredentialUpdateAllowed(new, old)...)
-	allErrs = append(allErrs, internalValidateServiceInstanceCredential(new, false)...)
+	allErrs = append(allErrs, internalValidateServiceBindingUpdateAllowed(new, old)...)
+	allErrs = append(allErrs, internalValidateServiceBinding(new, false)...)
 	return allErrs
 }
 
-// ValidateServiceInstanceCredentialStatusUpdate checks that when changing from an older binding to a newer binding is okay.
-func ValidateServiceInstanceCredentialStatusUpdate(new *sc.ServiceInstanceCredential, old *sc.ServiceInstanceCredential) field.ErrorList {
+// ValidateServiceBindingStatusUpdate checks that when changing from an older binding to a newer binding is okay.
+func ValidateServiceBindingStatusUpdate(new *sc.ServiceBinding, old *sc.ServiceBinding) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateServiceInstanceCredential(new, false)...)
+	allErrs = append(allErrs, internalValidateServiceBinding(new, false)...)
 	return allErrs
 }

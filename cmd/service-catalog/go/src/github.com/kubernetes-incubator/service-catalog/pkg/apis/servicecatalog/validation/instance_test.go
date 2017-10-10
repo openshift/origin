@@ -20,23 +20,37 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-func validServiceInstance() *servicecatalog.ServiceInstance {
+const externalClusterServiceClassName = "test-serviceclass"
+const externalClusterServicePlanName = "test-plan"
+
+func validServiceInstanceForCreate() *servicecatalog.ServiceInstance {
 	return &servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-instance",
-			Namespace: "test-ns",
+			Name:       "test-instance",
+			Namespace:  "test-ns",
+			Generation: 1,
 		},
 		Spec: servicecatalog.ServiceInstanceSpec{
-			ExternalServiceClassName: "test-serviceclass",
-			ExternalServicePlanName:  "test-plan",
+			PlanReference: servicecatalog.PlanReference{
+				ExternalClusterServiceClassName: externalClusterServiceClassName,
+				ExternalClusterServicePlanName:  externalClusterServicePlanName,
+			},
 		},
 	}
+}
+
+func validServiceInstance() *servicecatalog.ServiceInstance {
+	instance := validServiceInstanceForCreate()
+	instance.Spec.ClusterServiceClassRef = &corev1.ObjectReference{}
+	instance.Spec.ClusterServicePlanRef = &corev1.ObjectReference{}
+	return instance
 }
 
 func validServiceInstanceWithInProgressProvision() *servicecatalog.ServiceInstance {
@@ -82,7 +96,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			name: "missing serviceClassName",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
-				i.Spec.ExternalServiceClassName = ""
+				i.Spec.ExternalClusterServiceClassName = ""
 				return i
 			}(),
 			valid: false,
@@ -91,7 +105,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			name: "invalid serviceClassName",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
-				i.Spec.ExternalServiceClassName = "oing20&)*^&"
+				i.Spec.ExternalClusterServiceClassName = "oing20&)*^&"
 				return i
 			}(),
 			valid: false,
@@ -100,7 +114,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			name: "missing planName",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
-				i.Spec.ExternalServicePlanName = ""
+				i.Spec.ExternalClusterServicePlanName = ""
 				return i
 			}(),
 			valid: false,
@@ -109,7 +123,7 @@ func TestValidateServiceInstance(t *testing.T) {
 			name: "invalid planName",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
-				i.Spec.ExternalServicePlanName = "9651.JVHbebe"
+				i.Spec.ExternalClusterServicePlanName = "9651.JVHbebe"
 				return i
 			}(),
 			valid: false,
@@ -385,22 +399,15 @@ func TestValidateServiceInstance(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "valid create",
-			instance: func() *servicecatalog.ServiceInstance {
-				i := validServiceInstance()
-				i.Generation = 1
-				i.Status.ReconciledGeneration = 0
-				return i
-			}(),
-			create: true,
-			valid:  true,
+			name:     "valid create",
+			instance: validServiceInstanceForCreate(),
+			create:   true,
+			valid:    true,
 		},
 		{
 			name: "create with operation in-progress",
 			instance: func() *servicecatalog.ServiceInstance {
-				i := validServiceInstance()
-				i.Generation = 1
-				i.Status.ReconciledGeneration = 0
+				i := validServiceInstanceForCreate()
 				i.Status.CurrentOperation = servicecatalog.ServiceInstanceOperationProvision
 				return i
 			}(),
@@ -410,8 +417,7 @@ func TestValidateServiceInstance(t *testing.T) {
 		{
 			name: "create with invalid reconciled generation",
 			instance: func() *servicecatalog.ServiceInstance {
-				i := validServiceInstance()
-				i.Generation = 1
+				i := validServiceInstanceForCreate()
 				i.Status.ReconciledGeneration = 1
 				return i
 			}(),
@@ -422,8 +428,27 @@ func TestValidateServiceInstance(t *testing.T) {
 			name: "update with invalid reconciled generation",
 			instance: func() *servicecatalog.ServiceInstance {
 				i := validServiceInstance()
-				i.Generation = 1
 				i.Status.ReconciledGeneration = 2
+				return i
+			}(),
+			create: false,
+			valid:  false,
+		},
+		{
+			name: "in-progress operation with missing service class ref",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressProvision()
+				i.Spec.ClusterServiceClassRef = nil
+				return i
+			}(),
+			create: false,
+			valid:  false,
+		},
+		{
+			name: "in-progress operation with missing service plan ref",
+			instance: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstanceWithInProgressProvision()
+				i.Spec.ClusterServicePlanRef = nil
 				return i
 			}(),
 			create: false,
@@ -482,8 +507,10 @@ func TestInternalValidateServiceInstanceUpdateAllowed(t *testing.T) {
 				Namespace: "test-ns",
 			},
 			Spec: servicecatalog.ServiceInstanceSpec{
-				ExternalServiceClassName: "test-serviceclass",
-				ExternalServicePlanName:  "test-plan",
+				PlanReference: servicecatalog.PlanReference{
+					ExternalClusterServiceClassName: externalClusterServiceClassName,
+					ExternalClusterServicePlanName:  externalClusterServicePlanName,
+				},
 			},
 		}
 		if tc.onGoingSpecChange {
@@ -499,8 +526,10 @@ func TestInternalValidateServiceInstanceUpdateAllowed(t *testing.T) {
 				Namespace: "test-ns",
 			},
 			Spec: servicecatalog.ServiceInstanceSpec{
-				ExternalServiceClassName: "test-serviceclass",
-				ExternalServicePlanName:  "test-plan",
+				PlanReference: servicecatalog.PlanReference{
+					ExternalClusterServiceClassName: "test-serviceclass",
+					ExternalClusterServicePlanName:  "test-plan",
+				},
 			},
 		}
 		if tc.newSpecChange {
@@ -509,6 +538,78 @@ func TestInternalValidateServiceInstanceUpdateAllowed(t *testing.T) {
 			newInstance.Generation = oldInstance.Generation
 		}
 		newInstance.Status.ReconciledGeneration = 1
+
+		errs := internalValidateServiceInstanceUpdateAllowed(newInstance, oldInstance)
+		if len(errs) != 0 && tc.valid {
+			t.Errorf("%v: unexpected error: %v", tc.name, errs)
+			continue
+		} else if len(errs) == 0 && !tc.valid {
+			t.Errorf("%v: unexpected success", tc.name)
+		}
+	}
+}
+
+func TestInternalValidateServiceInstanceUpdateAllowedForPlanChange(t *testing.T) {
+	cases := []struct {
+		name       string
+		oldPlan    string
+		newPlan    string
+		newPlanRef *corev1.ObjectReference
+		valid      bool
+	}{
+		{
+			name:       "valid plan change",
+			oldPlan:    "old-plan",
+			newPlan:    "new-plan",
+			newPlanRef: nil,
+			valid:      true,
+		},
+		{
+			name:       "plan ref not cleared",
+			oldPlan:    "old-plan",
+			newPlan:    "new-plan",
+			newPlanRef: &corev1.ObjectReference{},
+			valid:      false,
+		},
+		{
+			name:       "no plan change",
+			oldPlan:    "plan-name",
+			newPlan:    "plan-name",
+			newPlanRef: &corev1.ObjectReference{},
+			valid:      true,
+		},
+	}
+
+	for _, tc := range cases {
+		oldInstance := &servicecatalog.ServiceInstance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-instance",
+				Namespace: "test-ns",
+			},
+			Spec: servicecatalog.ServiceInstanceSpec{
+				PlanReference: servicecatalog.PlanReference{
+					ExternalClusterServiceClassName: "test-serviceclass",
+					ExternalClusterServicePlanName:  tc.oldPlan,
+				},
+				ClusterServiceClassRef: &corev1.ObjectReference{},
+				ClusterServicePlanRef:  &corev1.ObjectReference{},
+			},
+		}
+
+		newInstance := &servicecatalog.ServiceInstance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-instance",
+				Namespace: "test-ns",
+			},
+			Spec: servicecatalog.ServiceInstanceSpec{
+				PlanReference: servicecatalog.PlanReference{
+					ExternalClusterServiceClassName: externalClusterServiceClassName,
+					ExternalClusterServicePlanName:  tc.newPlan,
+				},
+				ClusterServiceClassRef: &corev1.ObjectReference{},
+				ClusterServicePlanRef:  tc.newPlanRef,
+			},
+		}
 
 		errs := internalValidateServiceInstanceUpdateAllowed(newInstance, oldInstance)
 		if len(errs) != 0 && tc.valid {
@@ -654,8 +755,12 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 				Generation: 2,
 			},
 			Spec: servicecatalog.ServiceInstanceSpec{
-				ExternalServiceClassName: "test-serviceclass",
-				ExternalServicePlanName:  "test-plan",
+				PlanReference: servicecatalog.PlanReference{
+					ExternalClusterServiceClassName: externalClusterServiceClassName,
+					ExternalClusterServicePlanName:  externalClusterServicePlanName,
+				},
+				ClusterServiceClassRef: &corev1.ObjectReference{},
+				ClusterServicePlanRef:  &corev1.ObjectReference{},
 			},
 			Status: *tc.old,
 		}
@@ -667,8 +772,12 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 				Generation: 2,
 			},
 			Spec: servicecatalog.ServiceInstanceSpec{
-				ExternalServiceClassName: "test-serviceclass",
-				ExternalServicePlanName:  "test-plan",
+				PlanReference: servicecatalog.PlanReference{
+					ExternalClusterServiceClassName: externalClusterServiceClassName,
+					ExternalClusterServicePlanName:  externalClusterServicePlanName,
+				},
+				ClusterServiceClassRef: &corev1.ObjectReference{},
+				ClusterServicePlanRef:  &corev1.ObjectReference{},
 			},
 			Status: *tc.new,
 		}
@@ -687,6 +796,83 @@ func TestValidateServiceInstanceStatusUpdate(t *testing.T) {
 					t.Errorf("%v: Error %q did not contain expected message %q", tc.name, err.Detail, tc.err)
 				}
 			}
+		}
+	}
+}
+
+func TestValidateServiceInstanceReferencesUpdate(t *testing.T) {
+	cases := []struct {
+		name  string
+		old   *servicecatalog.ServiceInstance
+		new   *servicecatalog.ServiceInstance
+		valid bool
+	}{
+		{
+			name: "valid class and plan update",
+			old: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ClusterServiceClassRef = nil
+				i.Spec.ClusterServicePlanRef = nil
+				return i
+			}(),
+			new:   validServiceInstance(),
+			valid: true,
+		},
+		{
+			name: "invalid class update",
+			old:  validServiceInstance(),
+			new: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ClusterServiceClassRef = &corev1.ObjectReference{
+					Name: "new-class-name",
+				}
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "direct update to plan ref",
+			old:  validServiceInstance(),
+			new: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ClusterServicePlanRef = &corev1.ObjectReference{
+					Name: "new-plan-name",
+				}
+				return i
+			}(),
+			valid: false,
+		},
+		{
+			name: "valid plan update from name change",
+			old: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ClusterServicePlanRef = nil
+				return i
+			}(),
+			new: func() *servicecatalog.ServiceInstance {
+				i := validServiceInstance()
+				i.Spec.ClusterServicePlanRef = &corev1.ObjectReference{
+					Name: "new-plan-name",
+				}
+				return i
+			}(),
+			valid: true,
+		},
+		{
+			name:  "in-progress operation",
+			old:   validServiceInstanceWithInProgressProvision(),
+			new:   validServiceInstanceWithInProgressProvision(),
+			valid: false,
+		},
+	}
+
+	for _, tc := range cases {
+		errs := ValidateServiceInstanceReferencesUpdate(tc.new, tc.old)
+		if len(errs) != 0 && tc.valid {
+			t.Errorf("%v: unexpected error: %v", tc.name, errs)
+			continue
+		} else if len(errs) == 0 && !tc.valid {
+			t.Errorf("%v: unexpected success", tc.name)
 		}
 	}
 }

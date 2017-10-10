@@ -65,6 +65,7 @@ def test_account = params.TEST_ACCOUNT
 def test_zone    = params.TEST_ZONE ?: 'us-west1-b'
 def namespace    = 'catalog'
 def root_path    = 'src/github.com/kubernetes-incubator/service-catalog'
+def timeoutMin   = 30
 
 node {
   echo "Service Catalog end-to-end test"
@@ -90,45 +91,47 @@ node {
     def version = sh([returnStdout: true, script: 'git describe --always --abbrev=7 --dirty']).trim()
 
     try {
-      // These are done in parallel since creating the cluster takes a while,
-      // and the build doesn't depend on it.
-      parallel(
-        'Cluster': {
-          withCredentials([file(credentialsId: "${test_account}", variable: 'TEST_SERVICE_ACCOUNT')]) {
-            sh """${env.ROOT}/contrib/jenkins/init_cluster.sh ${clustername} \
+      timeout(timeoutMin) {
+        // These are done in parallel since creating the cluster takes a while,
+        // and the build doesn't depend on it.
+        parallel(
+          'Cluster': {
+            withCredentials([file(credentialsId: "${test_account}", variable: 'TEST_SERVICE_ACCOUNT')]) {
+              sh """${env.ROOT}/contrib/jenkins/init_cluster.sh ${clustername} \
+                    --project ${test_project} \
+                    --zone ${test_zone} \
+                    --credentials ${env.TEST_SERVICE_ACCOUNT}"""
+            }
+          },
+          'Build & Unit/Integration Tests': {
+            sh """${env.ROOT}/contrib/jenkins/build.sh \
                   --project ${test_project} \
-                  --zone ${test_zone} \
-                  --credentials ${env.TEST_SERVICE_ACCOUNT}"""
+                  --version ${version}"""
           }
-        },
-        'Build & Unit/Integration Tests': {
-          sh """${env.ROOT}/contrib/jenkins/build.sh \
-                --project ${test_project} \
-                --version ${version}"""
-        }
-      )
+        )
 
-      // Run through the walkthrough on the cluster, once with an etcd-backed API server and once
-      // with a TPR-backed one.
-      sh """${env.ROOT}/contrib/jenkins/test_walkthrough.sh \
-            --registry gcr.io/${test_project}/catalog/ \
-            --version ${version} \
-            --cleanup \
-            --fix-auth \
-            --create-artifacts
-      """
-
-      ansiColor('xterm-darker-gray') {
-        // Run the e2e test framework
-        sh """${env.ROOT}/contrib/jenkins/run_e2e.sh \
+        // Run through the walkthrough on the cluster, once with an etcd-backed API server and once
+        // with a TPR-backed one.
+        sh """${env.ROOT}/contrib/jenkins/test_walkthrough.sh \
               --registry gcr.io/${test_project}/catalog/ \
               --version ${version} \
               --cleanup \
+              --fix-auth \
               --create-artifacts
         """
-      }
 
-      echo 'Run succeeded.'
+        ansiColor('xterm-darker-gray') {
+          // Run the e2e test framework
+          sh """${env.ROOT}/contrib/jenkins/run_e2e.sh \
+                --registry gcr.io/${test_project}/catalog/ \
+                --version ${version} \
+                --cleanup \
+                --create-artifacts
+          """
+        }
+
+        echo 'Run succeeded.'
+      }
     } catch (Exception e) {
       echo 'Run failed.'
       currentBuild.result = 'FAILURE'

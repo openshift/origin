@@ -20,11 +20,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/pkg/api/v1"
 )
 
 func TestBuildParameters(t *testing.T) {
@@ -37,7 +37,7 @@ func TestBuildParameters(t *testing.T) {
 
 	cases := []struct {
 		name                                  string
-		parametersFrom                        []v1alpha1.ParametersFromSource
+		parametersFrom                        []v1beta1.ParametersFromSource
 		parameters                            *runtime.RawExtension
 		secret                                *v1.Secret
 		expectedParameters                    map[string]interface{}
@@ -68,9 +68,9 @@ func TestBuildParameters(t *testing.T) {
 		},
 		{
 			name: "parametersFrom: secretKey with blob",
-			parametersFrom: []v1alpha1.ParametersFromSource{
+			parametersFrom: []v1beta1.ParametersFromSource{
 				{
-					SecretKeyRef: &v1alpha1.SecretKeyReference{
+					SecretKeyRef: &v1beta1.SecretKeyReference{
 						Name: "secret",
 						Key:  "json-key",
 					},
@@ -87,9 +87,9 @@ func TestBuildParameters(t *testing.T) {
 		},
 		{
 			name: "parametersFrom: secretKey with invalid blob",
-			parametersFrom: []v1alpha1.ParametersFromSource{
+			parametersFrom: []v1beta1.ParametersFromSource{
 				{
-					SecretKeyRef: &v1alpha1.SecretKeyReference{
+					SecretKeyRef: &v1beta1.SecretKeyReference{
 						Name: "secret",
 						Key:  "string-key",
 					},
@@ -100,9 +100,9 @@ func TestBuildParameters(t *testing.T) {
 		},
 		{
 			name: "parametersFrom + parameters: normal",
-			parametersFrom: []v1alpha1.ParametersFromSource{
+			parametersFrom: []v1beta1.ParametersFromSource{
 				{
-					SecretKeyRef: &v1alpha1.SecretKeyReference{
+					SecretKeyRef: &v1beta1.SecretKeyReference{
 						Name: "secret",
 						Key:  "json-key",
 					},
@@ -124,9 +124,9 @@ func TestBuildParameters(t *testing.T) {
 		},
 		{
 			name: "parametersFrom + parameters: conflict",
-			parametersFrom: []v1alpha1.ParametersFromSource{
+			parametersFrom: []v1beta1.ParametersFromSource{
 				{
-					SecretKeyRef: &v1alpha1.SecretKeyReference{
+					SecretKeyRef: &v1beta1.SecretKeyReference{
 						Name: "secret",
 						Key:  "json-key",
 					},
@@ -147,7 +147,7 @@ func TestBuildParameters(t *testing.T) {
 	}
 }
 
-func testBuildParameters(t *testing.T, parametersFrom []v1alpha1.ParametersFromSource, parameters *runtime.RawExtension, secret *v1.Secret, expected map[string]interface{}, expectedWithSecretsRdacted map[string]interface{}, shouldSucceed bool) {
+func testBuildParameters(t *testing.T, parametersFrom []v1beta1.ParametersFromSource, parameters *runtime.RawExtension, secret *v1.Secret, expected map[string]interface{}, expectedWithSecretsRdacted map[string]interface{}, shouldSucceed bool) {
 	// create a fake kube client
 	fakeKubeClient := &clientgofake.Clientset{}
 	if secret != nil {

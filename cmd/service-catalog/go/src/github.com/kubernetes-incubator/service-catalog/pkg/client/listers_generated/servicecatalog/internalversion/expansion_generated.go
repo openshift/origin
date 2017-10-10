@@ -18,13 +18,25 @@ limitations under the License.
 
 package internalversion
 
-// ServiceBrokerListerExpansion allows custom methods to be added to
-// ServiceBrokerLister.
-type ServiceBrokerListerExpansion interface{}
+// ClusterServiceBrokerListerExpansion allows custom methods to be added to
+// ClusterServiceBrokerLister.
+type ClusterServiceBrokerListerExpansion interface{}
 
-// ServiceClassListerExpansion allows custom methods to be added to
-// ServiceClassLister.
-type ServiceClassListerExpansion interface{}
+// ClusterServiceClassListerExpansion allows custom methods to be added to
+// ClusterServiceClassLister.
+type ClusterServiceClassListerExpansion interface{}
+
+// ClusterServicePlanListerExpansion allows custom methods to be added to
+// ClusterServicePlanLister.
+type ClusterServicePlanListerExpansion interface{}
+
+// ServiceBindingListerExpansion allows custom methods to be added to
+// ServiceBindingLister.
+type ServiceBindingListerExpansion interface{}
+
+// ServiceBindingNamespaceListerExpansion allows custom methods to be added to
+// ServiceBindingNamespaceLister.
+type ServiceBindingNamespaceListerExpansion interface{}
 
 // ServiceInstanceListerExpansion allows custom methods to be added to
 // ServiceInstanceLister.
@@ -33,15 +45,3 @@ type ServiceInstanceListerExpansion interface{}
 // ServiceInstanceNamespaceListerExpansion allows custom methods to be added to
 // ServiceInstanceNamespaceLister.
 type ServiceInstanceNamespaceListerExpansion interface{}
-
-// ServiceInstanceCredentialListerExpansion allows custom methods to be added to
-// ServiceInstanceCredentialLister.
-type ServiceInstanceCredentialListerExpansion interface{}
-
-// ServiceInstanceCredentialNamespaceListerExpansion allows custom methods to be added to
-// ServiceInstanceCredentialNamespaceLister.
-type ServiceInstanceCredentialNamespaceListerExpansion interface{}
-
-// ServicePlanListerExpansion allows custom methods to be added to
-// ServicePlanLister.
-type ServicePlanListerExpansion interface{}

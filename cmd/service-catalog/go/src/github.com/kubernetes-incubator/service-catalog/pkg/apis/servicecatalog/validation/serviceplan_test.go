@@ -19,44 +19,44 @@ package validation
 import (
 	"testing"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-func validServicePlan() *servicecatalog.ServicePlan {
-	return &servicecatalog.ServicePlan{
+func validClusterServicePlan() *servicecatalog.ClusterServicePlan {
+	return &servicecatalog.ClusterServicePlan{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-plan",
 		},
-		Spec: servicecatalog.ServicePlanSpec{
-			ServiceBrokerName: "test-broker",
-			ExternalName:      "test-plan",
-			ExternalID:        "40d-0983-1b89",
-			Description:       "plan description",
-			ServiceClassRef: v1.LocalObjectReference{
+		Spec: servicecatalog.ClusterServicePlanSpec{
+			ClusterServiceBrokerName: "test-broker",
+			ExternalName:             "test-plan",
+			ExternalID:               "40d-0983-1b89",
+			Description:              "plan description",
+			ClusterServiceClassRef: v1.LocalObjectReference{
 				Name: "test-service-class",
 			},
 		},
 	}
 }
 
-func TestValidateServicePlan(t *testing.T) {
+func TestValidateClusterServicePlan(t *testing.T) {
 	testCases := []struct {
 		name        string
-		servicePlan *servicecatalog.ServicePlan
+		servicePlan *servicecatalog.ClusterServicePlan
 		valid       bool
 	}{
 		{
 			name:        "valid servicePlan",
-			servicePlan: validServicePlan(),
+			servicePlan: validClusterServicePlan(),
 			valid:       true,
 		},
 		{
 			name: "missing name",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Name = ""
 				return s
 			}(),
@@ -64,8 +64,8 @@ func TestValidateServicePlan(t *testing.T) {
 		},
 		{
 			name: "bad name",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Name = "X"
 				return s
 			}(),
@@ -73,26 +73,26 @@ func TestValidateServicePlan(t *testing.T) {
 		},
 		{
 			name: "bad externalName",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.ExternalName = "X"
 				return s
 			}(),
 			valid: false,
 		},
 		{
-			name: "missing serviceBrokerName",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
-				s.Spec.ServiceBrokerName = ""
+			name: "missing clusterServiceBrokerName",
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
+				s.Spec.ClusterServiceBrokerName = ""
 				return s
 			}(),
 			valid: false,
 		},
 		{
 			name: "missing externalName",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.ExternalName = ""
 				return s
 			}(),
@@ -100,8 +100,8 @@ func TestValidateServicePlan(t *testing.T) {
 		},
 		{
 			name: "missing external id",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.ExternalID = ""
 				return s
 			}(),
@@ -109,8 +109,8 @@ func TestValidateServicePlan(t *testing.T) {
 		},
 		{
 			name: "external id too long",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.ExternalID = "1234567890123456789012345678901234567890123456789012345678901234"
 				return s
 			}(),
@@ -118,8 +118,8 @@ func TestValidateServicePlan(t *testing.T) {
 		},
 		{
 			name: "missing description",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.Description = ""
 				return s
 			}(),
@@ -127,18 +127,18 @@ func TestValidateServicePlan(t *testing.T) {
 		},
 		{
 			name: "missing serviceclass reference",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
-				s.Spec.ServiceClassRef.Name = ""
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
+				s.Spec.ClusterServiceClassRef.Name = ""
 				return s
 			}(),
 			valid: false,
 		},
 		{
 			name: "bad serviceclass reference name",
-			servicePlan: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
-				s.Spec.ServiceClassRef.Name = "%"
+			servicePlan: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
+				s.Spec.ClusterServiceClassRef.Name = "%"
 				return s
 			}(),
 			valid: false,
@@ -148,7 +148,7 @@ func TestValidateServicePlan(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			errs := ValidateServicePlan(tc.servicePlan)
+			errs := ValidateClusterServicePlan(tc.servicePlan)
 			t.Log(errs)
 			if len(errs) != 0 && tc.valid {
 				t.Errorf("%v: unexpected error: %v", tc.name, errs)
@@ -159,24 +159,24 @@ func TestValidateServicePlan(t *testing.T) {
 	}
 }
 
-func TestValidateServicePlanUpdate(t *testing.T) {
+func TestValidateClusterServicePlanUpdate(t *testing.T) {
 	testCases := []struct {
 		name  string
-		old   *servicecatalog.ServicePlan
-		new   *servicecatalog.ServicePlan
+		old   *servicecatalog.ClusterServicePlan
+		new   *servicecatalog.ClusterServicePlan
 		valid bool
 	}{
 		{
 			name:  "valid servicePlan update same content",
-			old:   validServicePlan(),
-			new:   validServicePlan(),
+			old:   validClusterServicePlan(),
+			new:   validClusterServicePlan(),
 			valid: true,
 		},
 		{
 			name: "valid servicePlan update different content",
-			old:  validServicePlan(),
-			new: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			old:  validClusterServicePlan(),
+			new: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.Description = "a new description cause it changed"
 				return s
 			}(),
@@ -184,9 +184,9 @@ func TestValidateServicePlanUpdate(t *testing.T) {
 		},
 		{
 			name: "servicePlan changing external ID",
-			old:  validServicePlan(),
-			new: func() *servicecatalog.ServicePlan {
-				s := validServicePlan()
+			old:  validClusterServicePlan(),
+			new: func() *servicecatalog.ClusterServicePlan {
+				s := validClusterServicePlan()
 				s.Spec.ExternalID = "something-else"
 				return s
 			}(),
@@ -197,7 +197,7 @@ func TestValidateServicePlanUpdate(t *testing.T) {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			errs := ValidateServicePlanUpdate(tc.new, tc.old)
+			errs := ValidateClusterServicePlanUpdate(tc.new, tc.old)
 			t.Log(errs)
 			if len(errs) != 0 && tc.valid {
 				t.Errorf("%v: unexpected error: %v", tc.name, errs)

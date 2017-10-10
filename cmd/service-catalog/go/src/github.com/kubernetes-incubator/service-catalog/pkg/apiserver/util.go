@@ -43,24 +43,20 @@ func restStorageProviders(
 	}
 }
 
-func completeGenericConfig(cfg *genericapiserver.Config) {
+func completeGenericConfig(cfg *genericapiserver.RecommendedConfig) genericapiserver.CompletedConfig {
 	cfg.Serializer = api.Codecs
-	cfg.Complete()
+	completedCfg := cfg.Complete()
 
 	version := version.Get()
 	// Setting this var enables the version resource. We should populate the
 	// fields of the object from above if we wish to have our own output. Or
 	// establish our own version object somewhere else.
 	cfg.Version = &version
+	return completedCfg
 }
 
-func createSkeletonServer(genericCfg *genericapiserver.Config) (*ServiceCatalogAPIServer, error) {
-	// we need to call new on a "completed" config, which we
-	// should already have, as this is a 'CompletedConfig' and the
-	// only way to get here from there is by Complete()'ing. Thus
-	// we skip the complete on the underlying config and go
-	// straight to running it's New() method.
-	genericServer, err := genericCfg.SkipComplete().New(apiServerName, genericapiserver.EmptyDelegate)
+func createSkeletonServer(genericCfg genericapiserver.CompletedConfig) (*ServiceCatalogAPIServer, error) {
+	genericServer, err := genericCfg.New(apiServerName, genericapiserver.EmptyDelegate)
 	if err != nil {
 		return nil, err
 	}

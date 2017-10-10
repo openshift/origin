@@ -13,7 +13,7 @@ import:
   # introduces bug documented in issue 1187
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - package: github.com/davecgh/go-spew
-  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
 - package: github.com/PuerkitoBio/urlesc
@@ -31,7 +31,7 @@ import:
   subpackages:
   - jlexer
 - package: golang.org/x/text
-  version: 2910a502d2bf9e43193af9d68ca516529614eed3
+  version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
   - secure/precis
 - package: github.com/gogo/protobuf
@@ -39,7 +39,7 @@ import:
   subpackages:
   - proto
 - package: golang.org/x/net
-  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  version: 1c05540f6879653db88113bc4a2b70aec4bd491f
   subpackages:
   - http2
 - package: github.com/golang/protobuf
@@ -54,10 +54,8 @@ import:
   version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
 - package: github.com/ghodss/yaml
   version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
-- package: github.com/gorilla/handlers
-  version: a4d79d4487c2430a17d9dc8a1f74d1a6ed6908ca
 - package: github.com/gorilla/mux
-  version: ac112f7d75a0714af1bd86ab17749b31f7809640
+  version: 8096f47503459bcc74d1f4c487b7e6e42e5746b5
 - package: github.com/satori/go.uuid
   version: 5bf94b69c6b68ee1b541973bb8e1144db23a194b
 - package: github.com/jteeuwen/go-bindata
@@ -65,23 +63,25 @@ import:
 - package: github.com/spf13/cobra
   version: f62e98d28ab7ad31d707ba837a966378465c7b57
 - package: k8s.io/gengo
-  version: c79c13d131b0a8f42d05faa6491c12e94ccc6f30 # see https://github.com/kubernetes/kubernetes/blob/release-1.7/Godeps/Godeps.json
+  version: 9e661e9308f078838e266cca1c673922088c0ea4 # see https://github.com/kubernetes/code-generator/blob/release-1.8/Godeps/Godeps.json
   subpackages:
   - args
 - package: github.com/kubernetes/repo-infra
-  version: 4c4ae2e2e6994e887da16f3c31f495e10062b810
+  version: e26fc85d14a1d3dc25569831acc06919673c545a # latest (Oct 4, 2017)
 - package: k8s.io/kubernetes
-  version: ebb8d6e0fadfc95f3d64ccecc36c8ed2ac9224ef # client-go origin version
+  version: 0b9efaeb34a2fc51ff8e4d34ad9bc6375459c4a4 # kubernetes 1.8.0
 - package: k8s.io/client-go
-  version: e356aa2e77ab4a5914c216c12ba14cce25a25ab0 # in sync with kubernetes 1.7.0
+  version: afb4606c45bae77c4dc2c15291d4d7d6d792196c # release-5.0, latest (Oct 4, 2017)
 - package: k8s.io/apimachinery
-  version: abe34e4f5b4413c282a83011892cbeea5b32223b # wanted by client-go; release-1.7 branch
+  version: 9d38e20d609d27e00d4ec18f7b9db67105a2bde0 # release-1.8, latest (Oct 4, 2017)
+- package: k8s.io/kube-openapi
+  version: 868f2f29720b192240e18284659231b440f9cda5 # k8s.io 1.8 (Oct 4, 2017)
+- package: k8s.io/api
+  version: fe29995db37613b9c5b2a647544cf627bfa8d299 # release-1.8, latest (Oct 4, 2017)
 - package: k8s.io/apiserver
-  version: ab57ed5a72c3b67058f665d660e23bae18339fc2 # June 23, similar to client-go. No 1.7 branch yet BUT this version is perfectly compatible it seems
-- package: github.com/ugorji/go
-  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
-  subpackages:
-  - codec/codecgen
+  version: f9b476d61dbdf6474e3d42cc5e854d0d8b7f759e # release-1.8, latest (Oct 4, 2017)
+- package: k8s.io/code-generator
+  version: 42f0582fc47a42652cfb1d4ea5d5306f765507e5 # release-1.8, latest (Oct 4, 2017)
 - package: github.com/onsi/gomega
   version: d59fa0ac68bb5dd932ee8d24eed631cdd519efc3 # wanted by k8s.io/kubernetes
 - package: github.com/onsi/ginkgo

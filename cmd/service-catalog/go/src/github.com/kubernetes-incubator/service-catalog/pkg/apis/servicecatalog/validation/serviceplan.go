@@ -44,12 +44,12 @@ func validateServicePlanName(value string, prefix bool) []string {
 	return errs
 }
 
-// ValidateServicePlan validates a ServicePlan and returns a list of errors.
-func ValidateServicePlan(serviceplan *sc.ServicePlan) field.ErrorList {
-	return internalValidateServicePlan(serviceplan)
+// ValidateClusterServicePlan validates a ClusterServicePlan and returns a list of errors.
+func ValidateClusterServicePlan(serviceplan *sc.ClusterServicePlan) field.ErrorList {
+	return internalValidateClusterServicePlan(serviceplan)
 }
 
-func internalValidateServicePlan(serviceplan *sc.ServicePlan) field.ErrorList {
+func internalValidateClusterServicePlan(serviceplan *sc.ClusterServicePlan) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs,
@@ -59,15 +59,15 @@ func internalValidateServicePlan(serviceplan *sc.ServicePlan) field.ErrorList {
 			validateServicePlanName,
 			field.NewPath("metadata"))...)
 
-	allErrs = append(allErrs, validateServicePlanSpec(&serviceplan.Spec, field.NewPath("spec"))...)
+	allErrs = append(allErrs, validateClusterServicePlanSpec(&serviceplan.Spec, field.NewPath("spec"))...)
 	return allErrs
 }
 
-func validateServicePlanSpec(spec *sc.ServicePlanSpec, fldPath *field.Path) field.ErrorList {
+func validateClusterServicePlanSpec(spec *sc.ClusterServicePlanSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if "" == spec.ServiceBrokerName {
-		allErrs = append(allErrs, field.Required(fldPath.Child("serviceBrokerName"), "serviceBrokerName is required"))
+	if "" == spec.ClusterServiceBrokerName {
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServiceBrokerName"), "clusterServiceBrokerName is required"))
 	}
 
 	if "" == spec.ExternalID {
@@ -78,8 +78,8 @@ func validateServicePlanSpec(spec *sc.ServicePlanSpec, fldPath *field.Path) fiel
 		allErrs = append(allErrs, field.Required(fldPath.Child("description"), "description is required"))
 	}
 
-	if "" == spec.ServiceClassRef.Name {
-		allErrs = append(allErrs, field.Required(fldPath.Child("serviceClassRef"), "an owning serviceclass is required"))
+	if "" == spec.ClusterServiceClassRef.Name {
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServiceClassRef"), "an owning serviceclass is required"))
 	}
 
 	for _, msg := range validateServicePlanName(spec.ExternalName, false /* prefix */) {
@@ -90,20 +90,20 @@ func validateServicePlanSpec(spec *sc.ServicePlanSpec, fldPath *field.Path) fiel
 		allErrs = append(allErrs, field.Invalid(fldPath.Child("externalID"), spec.ExternalID, msg))
 	}
 
-	for _, msg := range validateServiceClassName(spec.ServiceClassRef.Name, false /* prefix */) {
-		allErrs = append(allErrs, field.Invalid(fldPath.Child("serviceClassRef", "name"), spec.ServiceClassRef.Name, msg))
+	for _, msg := range validateServiceClassName(spec.ClusterServiceClassRef.Name, false /* prefix */) {
+		allErrs = append(allErrs, field.Invalid(fldPath.Child("clusterServiceClassRef", "name"), spec.ClusterServiceClassRef.Name, msg))
 	}
 
 	return allErrs
 }
 
-// ValidateServicePlanUpdate checks that when changing from an older
-// ServicePlan to a newer ServicePlan is okay.
-func ValidateServicePlanUpdate(new *sc.ServicePlan, old *sc.ServicePlan) field.ErrorList {
+// ValidateClusterServicePlanUpdate checks that when changing from an older
+// ClusterServicePlan to a newer ClusterServicePlan is okay.
+func ValidateClusterServicePlanUpdate(new *sc.ClusterServicePlan, old *sc.ClusterServicePlan) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateServicePlan(new)...)
+	allErrs = append(allErrs, internalValidateClusterServicePlan(new)...)
 	if new.Spec.ExternalID != old.Spec.ExternalID {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("externalID"), new.Spec.ExternalID, "externalID cannot change when updating a ServicePlan"))
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec").Child("externalID"), new.Spec.ExternalID, "externalID cannot change when updating a ClusterServicePlan"))
 	}
 	return allErrs
 }

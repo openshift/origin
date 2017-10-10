@@ -217,7 +217,7 @@ helm install charts/catalog \
         --set apiserver.tls.key=$(base64 ${SC_SERVING_KEY})
 ```
 
-`servicecatalog.k8s.io/v1alpha1` should show up under `kubectl
+`servicecatalog.k8s.io/v1beta1` should show up under `kubectl
 api-versions` almost immediately, but kubectl will be slow to respond
 to other commands until the apiserver is fully running.
 

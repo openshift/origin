@@ -8,7 +8,7 @@
 // A main func is synthesized if one does not exist.
 //
 // A sample Dockerfile to be used with this bundler could look like this:
-//     FROM gcr.io/google_appengine/go-compat
+//     FROM gcr.io/google-appengine/go-compat
 //     ADD . /app
 //     RUN GOPATH=/app/_gopath go build -tags appenginevm -o /app/_ah/exe
 package main
@@ -31,7 +31,7 @@ import (
 var (
 	output  = flag.String("o", "", "name of output tar file or '-' for stdout")
 	rootDir = flag.String("root", ".", "directory name of application root")
-	vm      = flag.Bool("vm", true, "bundle a Managed VM app")
+	vm      = flag.Bool("vm", true, `bundle an app for App Engine "flexible environment"`)
 
 	skipFiles = map[string]bool{
 		".git":        true,

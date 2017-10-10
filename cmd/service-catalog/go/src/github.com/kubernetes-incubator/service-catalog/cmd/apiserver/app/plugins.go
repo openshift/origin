@@ -23,7 +23,7 @@ import (
 	// Admission controllers
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/broker/authsarcheck"
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/namespace/lifecycle"
-	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceinstancecredentials/lifecycle"
+	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/servicebindings/lifecycle"
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/changevalidator"
 	_ "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/defaultserviceplan"
 )

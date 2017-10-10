@@ -19,7 +19,7 @@ package controller
 import (
 	"encoding/json"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
 )
 
@@ -30,7 +30,7 @@ const (
 	originatingIdentityGroups   = "groups"
 )
 
-func buildOriginatingIdentity(userInfo *v1alpha1.UserInfo) (*osb.AlphaOriginatingIdentity, error) {
+func buildOriginatingIdentity(userInfo *v1beta1.UserInfo) (*osb.AlphaOriginatingIdentity, error) {
 	if userInfo == nil {
 		return nil, nil
 	}

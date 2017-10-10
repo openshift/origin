@@ -40,23 +40,24 @@ func Resource(resource string) schema.GroupResource {
 var (
 	// SchemeBuilder needs to be exported as `SchemeBuilder` so
 	// the code-generation can find it.
-	SchemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	SchemeBuilder      = runtime.NewSchemeBuilder(addKnownTypes)
+	localSchemeBuilder = &SchemeBuilder
 	// AddToScheme is exposed for API installation
 	AddToScheme = SchemeBuilder.AddToScheme
 )
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&ServiceBroker{},
-		&ServiceBrokerList{},
-		&ServiceClass{},
-		&ServiceClassList{},
-		&ServicePlan{},
-		&ServicePlanList{},
+		&ClusterServiceBroker{},
+		&ClusterServiceBrokerList{},
+		&ClusterServiceClass{},
+		&ClusterServiceClassList{},
+		&ClusterServicePlan{},
+		&ClusterServicePlanList{},
 		&ServiceInstance{},
 		&ServiceInstanceList{},
-		&ServiceInstanceCredential{},
-		&ServiceInstanceCredentialList{},
+		&ServiceBinding{},
+		&ServiceBindingList{},
 	)
 	return nil
 }

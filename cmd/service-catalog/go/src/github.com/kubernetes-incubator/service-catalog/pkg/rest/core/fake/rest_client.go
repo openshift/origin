@@ -30,12 +30,12 @@ import (
 	scmeta "github.com/kubernetes-incubator/service-catalog/pkg/api/meta"
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
-	apiv1 "k8s.io/client-go/pkg/api/v1"
 	fakerestclient "k8s.io/client-go/rest/fake"
 )
 
@@ -178,31 +178,31 @@ func getRouter(
 	r := mux.NewRouter()
 	r.StrictSlash(true)
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/namespaces/{namespace}/{type}",
+		"/apis/servicecatalog.k8s.io/v1beta1/namespaces/{namespace}/{type}",
 		getItems(storage),
 	).Methods("GET")
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/namespaces/{namespace}/{type}",
+		"/apis/servicecatalog.k8s.io/v1beta1/namespaces/{namespace}/{type}",
 		createItem(storage, newEmptyObj),
 	).Methods("POST")
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/namespaces/{namespace}/{type}/{name}",
+		"/apis/servicecatalog.k8s.io/v1beta1/namespaces/{namespace}/{type}/{name}",
 		getItem(storage),
 	).Methods("GET")
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/namespaces/{namespace}/{type}/{name}",
+		"/apis/servicecatalog.k8s.io/v1beta1/namespaces/{namespace}/{type}/{name}",
 		updateItem(storage, newEmptyObj),
 	).Methods("PUT")
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/namespaces/{namespace}/{type}/{name}",
+		"/apis/servicecatalog.k8s.io/v1beta1/namespaces/{namespace}/{type}/{name}",
 		deleteItem(storage),
 	).Methods("DELETE")
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/watch/namespaces/{namespace}/{type}/{name}",
+		"/apis/servicecatalog.k8s.io/v1beta1/watch/namespaces/{namespace}/{type}/{name}",
 		watchItem(watcher),
 	).Methods("GET")
 	r.HandleFunc(
-		"/apis/servicecatalog.k8s.io/v1alpha1/watch/namespaces/{namespace}/{type}",
+		"/apis/servicecatalog.k8s.io/v1beta1/watch/namespaces/{namespace}/{type}",
 		watchList(watcher),
 	).Methods("GET")
 	r.HandleFunc(
@@ -255,22 +255,22 @@ func getItems(storage NamespacedStorage) func(http.ResponseWriter, *http.Request
 		var codec runtime.Codec
 		var err error
 		switch tipe {
-		case "servicebrokers":
-			list = &sc.ServiceBrokerList{TypeMeta: newTypeMeta("broker-list")}
+		case "clusterservicebrokers":
+			list = &sc.ClusterServiceBrokerList{TypeMeta: newTypeMeta("cluster-broker-list")}
 			if err := meta.SetList(list, items); err != nil {
 				errStr := fmt.Sprintf("Error setting list items (%s)", err)
 				http.Error(rw, errStr, http.StatusInternalServerError)
 				return
 			}
-			codec, err = testapi.GetCodecForObject(&sc.ServiceBrokerList{})
-		case "serviceclasses":
-			list = &sc.ServiceClassList{TypeMeta: newTypeMeta("service-class-list")}
+			codec, err = testapi.GetCodecForObject(&sc.ClusterServiceBrokerList{})
+		case "clusterserviceclasses":
+			list = &sc.ClusterServiceClassList{TypeMeta: newTypeMeta("service-class-list")}
 			if err := meta.SetList(list, items); err != nil {
 				errStr := fmt.Sprintf("Error setting list items (%s)", err)
 				http.Error(rw, errStr, http.StatusInternalServerError)
 				return
 			}
-			codec, err = testapi.GetCodecForObject(&sc.ServiceClassList{})
+			codec, err = testapi.GetCodecForObject(&sc.ClusterServiceClassList{})
 		case "serviceinstances":
 			list = &sc.ServiceInstanceList{TypeMeta: newTypeMeta("instance-list")}
 			if err := meta.SetList(list, items); err != nil {
@@ -279,14 +279,14 @@ func getItems(storage NamespacedStorage) func(http.ResponseWriter, *http.Request
 				return
 			}
 			codec, err = testapi.GetCodecForObject(&sc.ServiceInstanceList{})
-		case "serviceinstancecredentials":
-			list = &sc.ServiceInstanceCredentialList{TypeMeta: newTypeMeta("binding-list")}
+		case "servicebindings":
+			list = &sc.ServiceBindingList{TypeMeta: newTypeMeta("binding-list")}
 			if err := meta.SetList(list, items); err != nil {
 				errStr := fmt.Sprintf("Error setting list items (%s)", err)
 				http.Error(rw, errStr, http.StatusInternalServerError)
 				return
 			}
-			codec, err = testapi.GetCodecForObject(&sc.ServiceInstanceCredentialList{})
+			codec, err = testapi.GetCodecForObject(&sc.ServiceBindingList{})
 		default:
 			errStr := fmt.Sprintf("unrecognized resource type: %s", tipe)
 			http.Error(rw, errStr, http.StatusInternalServerError)
@@ -524,9 +524,9 @@ func deleteItem(storage NamespacedStorage) func(http.ResponseWriter, *http.Reque
 
 func listNamespaces(storage NamespacedStorage) func(http.ResponseWriter, *http.Request) {
 	return func(rw http.ResponseWriter, r *http.Request) {
-		nsList := apiv1.NamespaceList{}
+		nsList := corev1.NamespaceList{}
 		for ns := range storage {
-			nsList.Items = append(nsList.Items, apiv1.Namespace{
+			nsList.Items = append(nsList.Items, corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{Name: ns},
 			})
 		}
@@ -543,5 +543,5 @@ func notFoundHandler(rw http.ResponseWriter, r *http.Request) {
 }
 
 func newTypeMeta(kind string) metav1.TypeMeta {
-	return metav1.TypeMeta{Kind: kind, APIVersion: sc.GroupName + "/v1alpha1'"}
+	return metav1.TypeMeta{Kind: kind, APIVersion: sc.GroupName + "/v1beta1'"}
 }

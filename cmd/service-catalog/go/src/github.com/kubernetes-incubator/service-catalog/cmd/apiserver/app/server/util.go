@@ -51,8 +51,8 @@ type serviceCatalogConfig struct {
 	kubeClient kubeclientset.Interface
 }
 
-// buildGenericConfig takes the server options and produces the genericapiserver.Config associated with it
-func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Config, *serviceCatalogConfig, error) {
+// buildGenericConfig takes the server options and produces the genericapiserver.RecommendedConfig associated with it
+func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.RecommendedConfig, *serviceCatalogConfig, error) {
 	// check if we are running in standalone mode (for test scenarios)
 	inCluster := !s.StandaloneMode
 	if !inCluster {
@@ -62,18 +62,18 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 	if err := s.SecureServingOptions.MaybeDefaultWithSelfSignedCerts(s.GenericServerRunOptions.AdvertiseAddress.String(), nil /*alternateDNS*/, []net.IP{net.ParseIP("127.0.0.1")}); err != nil {
 		return nil, nil, err
 	}
-	genericConfig := genericapiserver.NewConfig(api.Codecs)
-	if err := s.GenericServerRunOptions.ApplyTo(genericConfig); err != nil {
+	genericConfig := genericapiserver.NewRecommendedConfig(api.Codecs)
+	if err := s.GenericServerRunOptions.ApplyTo(&genericConfig.Config); err != nil {
 		return nil, nil, err
 	}
-	if err := s.SecureServingOptions.ApplyTo(genericConfig); err != nil {
+	if err := s.SecureServingOptions.ApplyTo(&genericConfig.Config); err != nil {
 		return nil, nil, err
 	}
 	if !s.DisableAuth && inCluster {
-		if err := s.AuthenticationOptions.ApplyTo(genericConfig); err != nil {
+		if err := s.AuthenticationOptions.ApplyTo(&genericConfig.Config); err != nil {
 			return nil, nil, err
 		}
-		if err := s.AuthorizationOptions.ApplyTo(genericConfig); err != nil {
+		if err := s.AuthorizationOptions.ApplyTo(&genericConfig.Config); err != nil {
 			return nil, nil, err
 		}
 	} else {
@@ -83,7 +83,7 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 		genericConfig.Authorizer = authorizerfactory.NewAlwaysAllowAuthorizer()
 	}
 
-	if err := s.AuditOptions.ApplyTo(genericConfig); err != nil {
+	if err := s.AuditOptions.ApplyTo(&genericConfig.Config); err != nil {
 		return nil, nil, err
 	}
 
@@ -125,6 +125,7 @@ func buildGenericConfig(s *ServiceCatalogServerOptions) (*genericapiserver.Confi
 		}
 
 		kubeSharedInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+		genericConfig.SharedInformerFactory = kubeSharedInformers
 
 		// TODO: we need upstream to package AlwaysAdmit, or stop defaulting to it!
 		// NOTE: right now, we only run admission controllers when on kube cluster.
