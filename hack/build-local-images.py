@@ -68,6 +68,13 @@ image_config = {
         },
         "files": {}
     },
+    "template-service-broker": {
+        "directory": "template-service-broker",
+        "binaries": {
+            "openshift": "/usr/bin/openshift"
+        },
+        "files": {}
+    },
     "recycler": {
         "directory": "recycler",
         "binaries": {
