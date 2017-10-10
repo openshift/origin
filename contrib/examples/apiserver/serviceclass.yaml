@@ -1,9 +1,9 @@
-apiVersion: servicecatalog.k8s.io/v1alpha1
-kind: ServiceClass
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ClusterServiceClass
 metadata:
   name: d35b55b2-b1fd-4123-8045-5b9c619cb629
 spec:
-  brokerName: test-broker
+  clusterServiceBrokerName: test-broker
   description: "service description"
   bindable: true
   externalName: test-serviceclass

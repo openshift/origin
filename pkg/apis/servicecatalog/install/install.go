@@ -24,7 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 )
 
 // Install registers the API group and adds types to a scheme
@@ -32,13 +32,12 @@ func Install(groupFactoryRegistry announced.APIGroupFactoryRegistry, registry *r
 	if err := announced.NewGroupMetaFactory(
 		&announced.GroupMetaFactoryArgs{
 			GroupName:                  servicecatalog.GroupName,
-			VersionPreferenceOrder:     []string{v1alpha1.SchemeGroupVersion.Version},
-			ImportPrefix:               "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog",
-			RootScopedKinds:            sets.NewString("ServiceBroker", "ServiceClass", "ServicePlan"),
+			VersionPreferenceOrder:     []string{v1beta1.SchemeGroupVersion.Version},
+			RootScopedKinds:            sets.NewString("ClusterServiceBroker", "ClusterServiceClass", "ClusterServicePlan"),
 			AddInternalObjectsToScheme: servicecatalog.AddToScheme,
 		},
 		announced.VersionToSchemeFunc{
-			v1alpha1.SchemeGroupVersion.Version: v1alpha1.AddToScheme,
+			v1beta1.SchemeGroupVersion.Version: v1beta1.AddToScheme,
 		},
 	).Announce(groupFactoryRegistry).RegisterAndEnable(registry, scheme); err != nil {
 		panic(err)

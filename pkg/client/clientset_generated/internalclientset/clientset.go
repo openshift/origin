@@ -33,15 +33,12 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*servicecataloginternalversion.ServicecatalogClient
+	servicecatalog *servicecataloginternalversion.ServicecatalogClient
 }
 
 // Servicecatalog retrieves the ServicecatalogClient
 func (c *Clientset) Servicecatalog() servicecataloginternalversion.ServicecatalogInterface {
-	if c == nil {
-		return nil
-	}
-	return c.ServicecatalogClient
+	return c.servicecatalog
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -60,7 +57,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.ServicecatalogClient, err = servicecataloginternalversion.NewForConfig(&configShallowCopy)
+	cs.servicecatalog, err = servicecataloginternalversion.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +74,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.ServicecatalogClient = servicecataloginternalversion.NewForConfigOrDie(c)
+	cs.servicecatalog = servicecataloginternalversion.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -86,7 +83,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.ServicecatalogClient = servicecataloginternalversion.New(c)
+	cs.servicecatalog = servicecataloginternalversion.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

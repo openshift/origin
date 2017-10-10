@@ -6,7 +6,7 @@
 Package runtime exposes information about the resource usage of the application.
 It also provides a way to run code in a new background context of a module.
 
-This package does not work on Managed VMs.
+This package does not work on App Engine "flexible environment".
 */
 package runtime // import "google.golang.org/appengine/runtime"
 
@@ -132,7 +132,7 @@ func handleBackground(w http.ResponseWriter, req *http.Request) {
 
 // RunInBackground runs f in a background goroutine in this process.
 // f is provided a context that may outlast the context provided to RunInBackground.
-// This is only valid to invoke from a manually scaled module.
+// This is only valid to invoke from a service set to basic or manual scaling.
 func RunInBackground(c context.Context, f func(c context.Context)) error {
 	req := &pb.StartBackgroundRequestRequest{}
 	res := &pb.StartBackgroundRequestResponse{}

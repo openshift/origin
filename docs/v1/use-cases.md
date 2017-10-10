@@ -144,15 +144,15 @@ TODO: How to deal with name conflicts for {broker, service}.
 * As an Application Operator, who has requested a Service Instance, know that a request for a
   service instance has been fulfilled?
 * As an Application Operator, I should be able to pass parameters to be used by the Service
-  ServiceInstance or ServiceInstanceCredential when causing a new Service Instance to be created, so that
-  I may change the attributes of the Service Instance or ServiceInstanceCredential.
+  ServiceInstance or ServiceBinding when causing a new Service Instance to be created, so that
+  I may change the attributes of the Service Instance or ServiceBinding.
 
 ## Provisioning a Service Instance
 
 * As a ServiceBroker operator, I want to control the number of instances of my Service,
   so that I can control the resource footprint of my Service.
 
-## ServiceInstanceCredential to a Service Instance
+## ServiceBinding to a Service Instance
 
 * As a ServiceBroker operator, I want to control the number of bindings to a Service
   ServiceInstance so that I may provide limits for services (e.g. free plan with 3
@@ -180,7 +180,7 @@ As an Application Operator, I should be able to accomplish the following sets of
 ## Using/Consuming a Service Instance
 
 * As an Application Operator consuming a Service Instance, I need to be able to understand the structure
-  of the Kubernetes resources that are created when a new ServiceInstanceCredential to a Service
+  of the Kubernetes resources that are created when a new ServiceBinding to a Service
   ServiceInstance is created, so that I can configure my application appropriately.
 * As an Application Operator, I want to be able to understand the relationship between a Secret
   and Service Instance, so that I can properly configure my application (e.g.

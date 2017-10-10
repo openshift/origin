@@ -29,7 +29,7 @@ import (
 
 func serviceCatalogAPIGroup() testapi.TestGroup {
 	// OOPS: didn't register the right group version
-	groupVersion := schema.GroupVersion{Group: servicecatalog.GroupName, Version: "v1alpha1"}
+	groupVersion := schema.GroupVersion{Group: servicecatalog.GroupName, Version: "v1beta1"}
 
 	externalGroupVersion := schema.GroupVersion{
 		Group:   servicecatalog.GroupName,

@@ -20,27 +20,27 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/pkg/api/v1"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-func TestValidateServiceBroker(t *testing.T) {
+func TestValidateClusterServiceBroker(t *testing.T) {
 	cases := []struct {
 		name   string
-		broker *servicecatalog.ServiceBroker
+		broker *servicecatalog.ClusterServiceBroker
 		valid  bool
 	}{
 		{
 			// covers the case where there is no AuthInfo field specified. the validator should
 			// ignore the field and still succeed the validation
 			name: "valid broker - no auth secret",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
 					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
@@ -50,11 +50,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - basic auth - secret",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
@@ -72,11 +72,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - bearer auth - secret",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
@@ -94,12 +94,12 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - broker with namespace",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-broker",
 					Namespace: "oops",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
 					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
@@ -109,11 +109,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - basic auth - secret missing namespace",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
@@ -130,11 +130,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - basic auth - secret missing name",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Basic: &servicecatalog.BasicAuthConfig{
@@ -151,11 +151,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - bearer auth - secret missing namespace",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
@@ -172,11 +172,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - bearer auth - secret missing name",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					AuthInfo: &servicecatalog.ServiceBrokerAuthInfo{
 						Bearer: &servicecatalog.BearerTokenAuthConfig{
@@ -193,11 +193,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - CABundle present with InsecureSkipTLSVerify",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					InsecureSkipTLSVerify: true,
 					CABundle:              []byte("fake CABundle"),
@@ -209,11 +209,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - InsecureSkipTLSVerify without CABundle",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL: "http://example.com",
 					InsecureSkipTLSVerify: true,
 					RelistBehavior:        servicecatalog.ServiceBrokerRelistBehaviorDuration,
@@ -224,11 +224,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - CABundle without InsecureSkipTLSVerify",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					CABundle:       []byte("fake CABundle"),
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
@@ -239,11 +239,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - manual behavior with RelistDuration",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorManual,
 					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
@@ -253,11 +253,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "valid broker - manual behavior without RelistDuration",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorManual,
 					RelistDuration: nil,
@@ -267,11 +267,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - duration behavior without duration",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
 					RelistDuration: nil,
@@ -281,11 +281,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - relistBehavior is invalid",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: "Junk",
 				},
@@ -294,11 +294,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - relistBehavior is empty",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: "",
 				},
@@ -307,11 +307,11 @@ func TestValidateServiceBroker(t *testing.T) {
 		},
 		{
 			name: "invalid broker - negative relistRequests value",
-			broker: &servicecatalog.ServiceBroker{
+			broker: &servicecatalog.ClusterServiceBroker{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test-broker",
 				},
-				Spec: servicecatalog.ServiceBrokerSpec{
+				Spec: servicecatalog.ClusterServiceBrokerSpec{
 					URL:            "http://example.com",
 					RelistBehavior: servicecatalog.ServiceBrokerRelistBehaviorDuration,
 					RelistDuration: &metav1.Duration{Duration: 15 * time.Minute},
@@ -323,7 +323,7 @@ func TestValidateServiceBroker(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		errs := ValidateServiceBroker(tc.broker)
+		errs := ValidateClusterServiceBroker(tc.broker)
 		if len(errs) != 0 && tc.valid {
 			t.Errorf("%v: unexpected error: %v", tc.name, errs)
 			continue

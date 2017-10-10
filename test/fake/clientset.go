@@ -21,11 +21,11 @@ import (
 
 	clientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	servicecatalogclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/fake"
-	servicecatalogv1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1alpha1"
+	servicecatalogv1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1"
 )
 
 // Clientset is a wrapper around the generated fake clientset that clones the
-// ServiceInstance and ServiceInstanceCredential objects being passed to
+// ServiceInstance and ServiceBinding objects being passed to
 // UpdateStatus. This is a workaround until the generated fake clientset does its
 // own copying.
 type Clientset struct {
@@ -38,10 +38,10 @@ func (c *Clientset) Discovery() discovery.DiscoveryInterface {
 
 var _ clientset.Interface = &Clientset{}
 
-func (c *Clientset) ServicecatalogV1alpha1() servicecatalogv1alpha1.ServicecatalogV1alpha1Interface {
-	return &ServicecatalogV1alpha1{c.Clientset.ServicecatalogV1alpha1()}
+func (c *Clientset) ServicecatalogV1beta1() servicecatalogv1beta1.ServicecatalogV1beta1Interface {
+	return &ServicecatalogV1beta1{c.Clientset.ServicecatalogV1beta1()}
 }
 
-func (c *Clientset) Servicecatalog() servicecatalogv1alpha1.ServicecatalogV1alpha1Interface {
-	return &ServicecatalogV1alpha1{c.Clientset.ServicecatalogV1alpha1()}
+func (c *Clientset) Servicecatalog() servicecatalogv1beta1.ServicecatalogV1beta1Interface {
+	return &ServicecatalogV1beta1{c.Clientset.ServicecatalogV1beta1()}
 }

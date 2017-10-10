@@ -1,10 +1,10 @@
-apiVersion: servicecatalog.k8s.io/v1alpha1
+apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
   name: ups-instance-default
   namespace: test-ns
 spec:
-  externalServiceClassName: user-provided-service
+  externalClusterServiceClassName: user-provided-service
   parameters:
     credentials:
       name: root

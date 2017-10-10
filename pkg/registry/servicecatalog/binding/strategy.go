@@ -74,7 +74,7 @@ var (
 
 // Canonicalize does not transform a binding.
 func (bindingRESTStrategy) Canonicalize(obj runtime.Object) {
-	_, ok := obj.(*sc.ServiceInstanceCredential)
+	_, ok := obj.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to create")
 	}
@@ -85,30 +85,30 @@ func (bindingRESTStrategy) NamespaceScoped() bool {
 	return true
 }
 
-// PrepareForCreate receives a the incoming ServiceInstanceCredential and clears it's
+// PrepareForCreate receives a the incoming ServiceBinding and clears it's
 // Status. Status is not a user settable field.
 func (bindingRESTStrategy) PrepareForCreate(ctx genericapirequest.Context, obj runtime.Object) {
-	binding, ok := obj.(*sc.ServiceInstanceCredential)
+	binding, ok := obj.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to create")
 	}
 
 	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
-		setServiceInstanceCredentialUserInfo(binding, ctx)
+		setServiceBindingUserInfo(binding, ctx)
 	}
 
 	// Creating a brand new object, thus it must have no
 	// status. We can't fail here if they passed a status in, so
 	// we just wipe it clean.
-	binding.Status = sc.ServiceInstanceCredentialStatus{}
+	binding.Status = sc.ServiceBindingStatus{}
 	// Fill in the first entry set to "creating"?
-	binding.Status.Conditions = []sc.ServiceInstanceCredentialCondition{}
+	binding.Status.Conditions = []sc.ServiceBindingCondition{}
 	binding.Finalizers = []string{sc.FinalizerServiceCatalog}
 	binding.Generation = 1
 }
 
 func (bindingRESTStrategy) Validate(ctx genericapirequest.Context, obj runtime.Object) field.ErrorList {
-	return scv.ValidateServiceInstanceCredential(obj.(*sc.ServiceInstanceCredential))
+	return scv.ValidateServiceBinding(obj.(*sc.ServiceBinding))
 }
 
 func (bindingRESTStrategy) AllowCreateOnUpdate() bool {
@@ -120,47 +120,47 @@ func (bindingRESTStrategy) AllowUnconditionalUpdate() bool {
 }
 
 func (bindingRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
-	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
+	newServiceBinding, ok := new.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to update to")
 	}
-	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
+	oldServiceBinding, ok := old.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to update from")
 	}
-	newServiceInstanceCredential.Status = oldServiceInstanceCredential.Status
+	newServiceBinding.Status = oldServiceBinding.Status
 
 	// TODO: We currently don't handle any changes to the spec in the
 	// reconciler. Once we do that, this check needs to be removed and
 	// proper validation of allowed changes needs to be implemented in
 	// ValidateUpdate. Also, the check for whether the generation needs
 	// to be updated needs to be un-commented.
-	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
+	newServiceBinding.Spec = oldServiceBinding.Spec
 
 	// Spec updates bump the generation so that we can distinguish between
 	// spec changes and other changes to the object.
 	//
 	// Note that since we do not currently handle any changes to the spec,
 	// the generation will never be incremented
-	if !apiequality.Semantic.DeepEqual(oldServiceInstanceCredential.Spec, newServiceInstanceCredential.Spec) {
+	if !apiequality.Semantic.DeepEqual(oldServiceBinding.Spec, newServiceBinding.Spec) {
 		if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
-			setServiceInstanceCredentialUserInfo(newServiceInstanceCredential, ctx)
+			setServiceBindingUserInfo(newServiceBinding, ctx)
 		}
-		newServiceInstanceCredential.Generation = oldServiceInstanceCredential.Generation + 1
+		newServiceBinding.Generation = oldServiceBinding.Generation + 1
 	}
 }
 
 func (bindingRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
-	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
+	newServiceBinding, ok := new.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate to")
 	}
-	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
+	oldServiceBinding, ok := old.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate from")
 	}
 
-	return scv.ValidateServiceInstanceCredentialUpdate(newServiceInstanceCredential, oldServiceInstanceCredential)
+	return scv.ValidateServiceBindingUpdate(newServiceBinding, oldServiceBinding)
 }
 
 // CheckGracefulDelete sets the UserInfo on the resource to that of the user that
@@ -170,44 +170,44 @@ func (bindingRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, ol
 // the resource being deleted and the context.
 func (bindingRESTStrategy) CheckGracefulDelete(ctx genericapirequest.Context, obj runtime.Object, options *metav1.DeleteOptions) bool {
 	if utilfeature.DefaultFeatureGate.Enabled(scfeatures.OriginatingIdentity) {
-		serviceInstanceCredential, ok := obj.(*sc.ServiceInstanceCredential)
+		serviceInstanceCredential, ok := obj.(*sc.ServiceBinding)
 		if !ok {
-			glog.Fatal("received a non-ServiceInstanceCredential object to delete")
+			glog.Fatal("received a non-ServiceBinding object to delete")
 		}
-		setServiceInstanceCredentialUserInfo(serviceInstanceCredential, ctx)
+		setServiceBindingUserInfo(serviceInstanceCredential, ctx)
 	}
 	// Don't actually do graceful deletion. We are just using this strategy to set the user info prior to reconciling the delete.
 	return false
 }
 
 func (bindingStatusRESTStrategy) PrepareForUpdate(ctx genericapirequest.Context, new, old runtime.Object) {
-	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
+	newServiceBinding, ok := new.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to update to")
 	}
-	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
+	oldServiceBinding, ok := old.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to update from")
 	}
 	// status changes are not allowed to update spec
-	newServiceInstanceCredential.Spec = oldServiceInstanceCredential.Spec
+	newServiceBinding.Spec = oldServiceBinding.Spec
 }
 
 func (bindingStatusRESTStrategy) ValidateUpdate(ctx genericapirequest.Context, new, old runtime.Object) field.ErrorList {
-	newServiceInstanceCredential, ok := new.(*sc.ServiceInstanceCredential)
+	newServiceBinding, ok := new.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate to")
 	}
-	oldServiceInstanceCredential, ok := old.(*sc.ServiceInstanceCredential)
+	oldServiceBinding, ok := old.(*sc.ServiceBinding)
 	if !ok {
 		glog.Fatal("received a non-binding object to validate from")
 	}
 
-	return scv.ValidateServiceInstanceCredentialStatusUpdate(newServiceInstanceCredential, oldServiceInstanceCredential)
+	return scv.ValidateServiceBindingStatusUpdate(newServiceBinding, oldServiceBinding)
 }
 
-// setServiceInstanceCredentialUserInfo injects user.Info from the request context
-func setServiceInstanceCredentialUserInfo(instanceCredential *sc.ServiceInstanceCredential, ctx genericapirequest.Context) {
+// setServiceBindingUserInfo injects user.Info from the request context
+func setServiceBindingUserInfo(instanceCredential *sc.ServiceBinding, ctx genericapirequest.Context) {
 	instanceCredential.Spec.UserInfo = nil
 	if user, ok := genericapirequest.UserFrom(ctx); ok {
 		instanceCredential.Spec.UserInfo = &sc.UserInfo{

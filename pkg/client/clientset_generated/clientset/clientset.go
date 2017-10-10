@@ -18,7 +18,7 @@ package clientset
 
 import (
 	glog "github.com/golang/glog"
-	servicecatalogv1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1alpha1"
+	servicecatalogv1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -26,33 +26,27 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	ServicecatalogV1alpha1() servicecatalogv1alpha1.ServicecatalogV1alpha1Interface
+	ServicecatalogV1beta1() servicecatalogv1beta1.ServicecatalogV1beta1Interface
 	// Deprecated: please explicitly pick a version if possible.
-	Servicecatalog() servicecatalogv1alpha1.ServicecatalogV1alpha1Interface
+	Servicecatalog() servicecatalogv1beta1.ServicecatalogV1beta1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	*servicecatalogv1alpha1.ServicecatalogV1alpha1Client
+	servicecatalogV1beta1 *servicecatalogv1beta1.ServicecatalogV1beta1Client
 }
 
-// ServicecatalogV1alpha1 retrieves the ServicecatalogV1alpha1Client
-func (c *Clientset) ServicecatalogV1alpha1() servicecatalogv1alpha1.ServicecatalogV1alpha1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.ServicecatalogV1alpha1Client
+// ServicecatalogV1beta1 retrieves the ServicecatalogV1beta1Client
+func (c *Clientset) ServicecatalogV1beta1() servicecatalogv1beta1.ServicecatalogV1beta1Interface {
+	return c.servicecatalogV1beta1
 }
 
 // Deprecated: Servicecatalog retrieves the default version of ServicecatalogClient.
 // Please explicitly pick a version.
-func (c *Clientset) Servicecatalog() servicecatalogv1alpha1.ServicecatalogV1alpha1Interface {
-	if c == nil {
-		return nil
-	}
-	return c.ServicecatalogV1alpha1Client
+func (c *Clientset) Servicecatalog() servicecatalogv1beta1.ServicecatalogV1beta1Interface {
+	return c.servicecatalogV1beta1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -71,7 +65,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.ServicecatalogV1alpha1Client, err = servicecatalogv1alpha1.NewForConfig(&configShallowCopy)
+	cs.servicecatalogV1beta1, err = servicecatalogv1beta1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +82,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.ServicecatalogV1alpha1Client = servicecatalogv1alpha1.NewForConfigOrDie(c)
+	cs.servicecatalogV1beta1 = servicecatalogv1beta1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -97,7 +91,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.ServicecatalogV1alpha1Client = servicecatalogv1alpha1.New(c)
+	cs.servicecatalogV1beta1 = servicecatalogv1beta1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

@@ -5,6 +5,6 @@
 // Package socket provides outbound network sockets.
 //
 // This package is only required in the classic App Engine environment.
-// Applications running only in the Managed VM hosting environment should
+// Applications running only in App Engine "flexible environment" should
 // use the standard library's net package.
 package socket

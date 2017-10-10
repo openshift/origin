@@ -1,8 +1,8 @@
-apiVersion: servicecatalog.k8s.io/v1alpha1
+apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
   name: test-instance
   namespace: test-ns
 spec:
-  externalServiceClassName: test-serviceclass
-  externalServicePlanName: example-plan-1
+  externalClusterServiceClassName: test-serviceclass
+  externalClusterServicePlanName: example-plan-1

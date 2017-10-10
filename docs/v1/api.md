@@ -65,15 +65,15 @@ instance of the service via the corresponding service broker:
 
 *TODO: codify how asynchronous responses are handled in the controller*
 
-## `ServiceInstanceCredential` Resource
+## `ServiceBinding` Resource
 
-A `ServiceInstanceCredential` represents a "used by" relationship between an application and an
+A `ServiceBinding` represents a "used by" relationship between an application and an
 `ServiceInstance` of a `ServiceClass`.
 
 *TODO: clarify exactly what constitutes an application.*
 
-Service consumers create `ServiceInstanceCredential` resources to indicate that an application
-should be bound to an `ServiceInstance`.  The `ServiceInstanceCredential` contains information about how
+Service consumers create `ServiceBinding` resources to indicate that an application
+should be bound to an `ServiceInstance`.  The `ServiceBinding` contains information about how
 the application wants to use the binding information such as:
 
 1.  The name of a Kubernetes core `Service` resource to provide a stable
@@ -84,8 +84,8 @@ the application wants to use the binding information such as:
 If these values are not provided then the name of the `ServiceInstance` will be
 used by default.
 
-The service catalog controller has a watch on the `ServiceInstanceCredential` resource.  When the
-controller receives an `ADD` event for a new ServiceInstanceCredential, it attempts to bind
+The service catalog controller has a watch on the `ServiceBinding` resource.  When the
+controller receives an `ADD` event for a new ServiceBinding, it attempts to bind
 against the service instance:
 
 1.  The controller calls the binding endpoint on the broker
@@ -95,5 +95,5 @@ against the service instance:
     endpoint that fronts the `ServiceInstance`
 4.  The controller creates a `Secret` with the given name containing the
     information in the `credentials` section of the broker response
-5.  The controller updates the `ServiceInstanceCredential` status to reflect that the binding is
+5.  The controller updates the `ServiceBinding` status to reflect that the binding is
     in a bound condition

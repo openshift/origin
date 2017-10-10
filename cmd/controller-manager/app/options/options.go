@@ -29,7 +29,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/componentconfig"
 	osb "github.com/pmorie/go-open-service-broker-client/v2"
 	k8scomponentconfig "k8s.io/kubernetes/pkg/apis/componentconfig"
-	"k8s.io/kubernetes/pkg/client/leaderelection"
+	"k8s.io/kubernetes/pkg/client/leaderelectionconfig"
 )
 
 // ControllerManagerServer is the main context object for the controller
@@ -69,7 +69,7 @@ func NewControllerManagerServer() *ControllerManagerServer {
 			OSBAPIContextProfile:         defaultOSBAPIContextProfile,
 			OSBAPIPreferredVersion:       defaultOSBAPIPreferredVersion,
 			ConcurrentSyncs:              defaultConcurrentSyncs,
-			LeaderElection:               leaderelection.DefaultLeaderElectionConfiguration(),
+			LeaderElection:               leaderelectionconfig.DefaultLeaderElectionConfiguration(),
 			LeaderElectionNamespace:      defaultLeaderElectionNamespace,
 			EnableProfiling:              true,
 			EnableContentionProfiling:    false,
@@ -97,7 +97,7 @@ func (s *ControllerManagerServer) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.OSBAPIPreferredVersion, "osb-api-preferred-version", s.OSBAPIPreferredVersion, "The string to send as the version header.")
 	fs.BoolVar(&s.EnableProfiling, "profiling", s.EnableProfiling, "Enable profiling via web interface host:port/debug/pprof/")
 	fs.BoolVar(&s.EnableContentionProfiling, "contention-profiling", s.EnableContentionProfiling, "Enable lock contention profiling, if profiling is enabled")
-	leaderelection.BindFlags(&s.LeaderElection, fs)
+	leaderelectionconfig.BindFlags(&s.LeaderElection, fs)
 	fs.StringVar(&s.LeaderElectionNamespace, "leader-election-namespace", s.LeaderElectionNamespace, "Namespace to use for leader election lock")
 	fs.DurationVar(&s.ReconciliationRetryDuration, "reconciliation-retry-duration", s.ReconciliationRetryDuration, "The maximum amount of time to retry reconciliations on a resource before failing")
 

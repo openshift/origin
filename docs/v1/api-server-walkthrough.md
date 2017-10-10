@@ -49,7 +49,7 @@ $ curl --cacert /var/run/kubernetes-service-catalog/apiserver.crt https://localh
   "paths": [
     "/apis",
     "/apis/servicecatalog.k8s.io",
-    "/apis/servicecatalog.k8s.io/v1alpha1",
+    "/apis/servicecatalog.k8s.io/v1beta1",
     "/healthz",
     "/healthz/ping",
     "/swaggerapi/",
@@ -70,8 +70,8 @@ Let's take a look at apis
       "name": "servicecatalog.k8s.io",
       "versions": [],
       "preferredVersion": {
-        "groupVersion": "servicecatalog.k8s.io/v1alpha1",
-        "version": "v1alpha1"
+        "groupVersion": "servicecatalog.k8s.io/v1beta1",
+        "version": "v1beta1"
       },
       "serverAddressByClientCIDRs": [
         {
@@ -93,19 +93,19 @@ And some of ours:
   "name": "servicecatalog.k8s.io",
   "versions": [],
   "preferredVersion": {
-    "groupVersion": "servicecatalog.k8s.io/v1alpha1",
-    "version": "v1alpha1"
+    "groupVersion": "servicecatalog.k8s.io/v1beta1",
+    "version": "v1beta1"
   },
   "serverAddressByClientCIDRs": null
 }
 ```
 
 ```
-# curl --cacert /var/run/kubernetes-service-catalog/apiserver.crt https://localhost:6443/apis/servicecatalog.k8s.io/v1alpha1
+# curl --cacert /var/run/kubernetes-service-catalog/apiserver.crt https://localhost:6443/apis/servicecatalog.k8s.io/v1beta1
 {
   "kind": "APIResourceList",
   "apiVersion": "v1",
-  "groupVersion": "servicecatalog.k8s.io/v1alpha1",
+  "groupVersion": "servicecatalog.k8s.io/v1beta1",
   "resources": null
 }
 ```
@@ -125,7 +125,7 @@ indicate that our apigroup is installed correctly.
 ```
 $ kubectl --certificate-authority=/var/run/kubernetes-service-catalog/apiserver.crt --server=https://localhost:6443 version
 Client Version: version.Info{Major:"1", Minor:"4", GitVersion:"v1.4.6+e569a27", GitCommit:"e569a27d02001e343cb68086bc06d47804f62af6", GitTreeState:"not a git tree", BuildDate:"2016-11-12T09:26:56Z", GoVersion:"go1.7.3", Compiler:"gc", Platform:"darwin/amd64"}
-error: failed to negotiate an api version; server supports: map[servicecatalog.k8s.io/v1alpha1:{}], client supports: map[componentconfig/v1alpha1:{} batch/v1:{} batch/v2alpha1:{} apps/v1beta1:{} autoscaling/v1:{} rbac.authorization.k8s.io/v1alpha1:{} policy/v1beta1:{} extensions/v1beta1:{} rbac.authorization.k8s.io/v1beta1:{} storage.k8s.io/v1beta1:{} certificates.k8s.io/v1beta1:{} v1:{} authorization.k8s.io/v1beta1:{} federation/v1beta1:{} authentication.k8s.io/v1beta1:{}]
+error: failed to negotiate an api version; server supports: map[servicecatalog.k8s.io/v1beta1:{}], client supports: map[componentconfig/v1beta1:{} batch/v1:{} batch/v2alpha1:{} apps/v1beta1:{} autoscaling/v1:{} rbac.authorization.k8s.io/v1beta1:{} policy/v1beta1:{} extensions/v1beta1:{} rbac.authorization.k8s.io/v1beta1:{} storage.k8s.io/v1beta1:{} certificates.k8s.io/v1beta1:{} v1:{} authorization.k8s.io/v1beta1:{} federation/v1beta1:{} authentication.k8s.io/v1beta1:{}]
 ```
 no version resource exists so this is to be expected.
 
@@ -149,13 +149,13 @@ instance "test-instance" created
 query
 ```
 kubectl --certificate-authority=/var/run/kubernetes-service-catalog/apiserver.crt --server=https://localhost:6443 get instance test-instance -o yaml
-apiVersion: servicecatalog.k8s.io/v1alpha1
+apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
   creationTimestamp: 2017-01-25T21:57:48Z
   name: test-instance
   resourceVersion: "9"
-  selfLink: /apis/servicecatalog.k8s.io/v1alpha1/namespaces//instances/test-instance
+  selfLink: /apis/servicecatalog.k8s.io/v1beta1/namespaces//instances/test-instance
   uid: 4f88bd75-e349-11e6-8096-fa163e9a471d
 spec:
   osbCredentials: ""

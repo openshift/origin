@@ -18,7 +18,7 @@ package framework
 
 import (
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/pkg/api/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -35,7 +35,7 @@ type Framework struct {
 	ServiceCatalogClientSet clientset.Interface
 
 	// Namespace in which all test resources should reside
-	Namespace *v1.Namespace
+	Namespace *corev1.Namespace
 
 	// To make sure that this framework cleans up after itself, no matter what,
 	// we install a Cleanup action before each test and clear it after.  If we

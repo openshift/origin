@@ -48,17 +48,17 @@ func newHandlerForTest(internalClient internalclientset.Interface) (admission.In
 }
 
 // newFakeServiceCatalogClientForTest creates a fake clientset that returns a
-// ServiceClassList with the given ServiceClass as the single list item.
-func newFakeServiceCatalogClientForTest(sc *servicecatalog.ServiceClass) *fake.Clientset {
+// ClusterServiceClassList with the given ClusterServiceClass as the single list item.
+func newFakeServiceCatalogClientForTest(sc *servicecatalog.ClusterServiceClass) *fake.Clientset {
 	fakeClient := &fake.Clientset{}
 
-	scList := &servicecatalog.ServiceClassList{
+	scList := &servicecatalog.ClusterServiceClassList{
 		ListMeta: metav1.ListMeta{
 			ResourceVersion: "1",
 		}}
 	scList.Items = append(scList.Items, *sc)
 
-	fakeClient.AddReactor("list", "serviceclasses", func(action core.Action) (bool, runtime.Object, error) {
+	fakeClient.AddReactor("list", "clusterserviceclasses", func(action core.Action) (bool, runtime.Object, error) {
 		return true, scList, nil
 	})
 	return fakeClient
@@ -69,17 +69,17 @@ func newServiceInstance(namespace string, serviceClassName string, planName stri
 	instance := servicecatalog.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
 	}
-	instance.Spec.ExternalServiceClassName = serviceClassName
-	instance.Spec.ExternalServicePlanName = planName
+	instance.Spec.ExternalClusterServiceClassName = serviceClassName
+	instance.Spec.ExternalClusterServicePlanName = planName
 	return instance
 }
 
-// newServiceClass returns a new instance with the specified plan and
+// newClusterServiceClass returns a new instance with the specified plan and
 // UpdateablePlan attribute
-func newServiceClass(name string, plan string, updateablePlan bool) *servicecatalog.ServiceClass {
-	sc := &servicecatalog.ServiceClass{
+func newClusterServiceClass(name string, plan string, updateablePlan bool) *servicecatalog.ClusterServiceClass {
+	sc := &servicecatalog.ClusterServiceClass{
 		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec:       servicecatalog.ServiceClassSpec{PlanUpdatable: updateablePlan},
+		Spec:       servicecatalog.ClusterServiceClassSpec{PlanUpdatable: updateablePlan},
 	}
 	return sc
 }
@@ -99,11 +99,11 @@ func setupInstanceLister(fakeClient *fake.Clientset) {
 	})
 }
 
-// TestServicePlanChangeBlockedByUpdateablePlanSetting tests that the
+// TestClusterServicePlanChangeBlockedByUpdateablePlanSetting tests that the
 // Admission Controller will block a request to update an Instance's
 // Service Plan
-func TestServicePlanChangeBlockedByUpdateablePlanSetting(t *testing.T) {
-	sc := newServiceClass("foo", "bar", false)
+func TestClusterServicePlanChangeBlockedByUpdateablePlanSetting(t *testing.T) {
+	sc := newClusterServiceClass("foo", "bar", false)
 	fakeClient := newFakeServiceCatalogClientForTest(sc)
 	handler, informerFactory, err := newHandlerForTest(fakeClient)
 	if err != nil {
@@ -122,11 +122,11 @@ func TestServicePlanChangeBlockedByUpdateablePlanSetting(t *testing.T) {
 	}
 }
 
-// TestServicePlanChangePermittedByUpdateablePlanSetting tests the
+// TestClusterServicePlanChangePermittedByUpdateablePlanSetting tests the
 // Admission Controller verifying it allows an instance change to the
 // plan name if the service class has specified PlanUpdatable=true
-func TestServicePlanChangePermittedByUpdateablePlanSetting(t *testing.T) {
-	sc := newServiceClass("foo", "bar", true)
+func TestClusterServicePlanChangePermittedByUpdateablePlanSetting(t *testing.T) {
+	sc := newClusterServiceClass("foo", "bar", true)
 	fakeClient := newFakeServiceCatalogClientForTest(sc)
 	handler, informerFactory, err := newHandlerForTest(fakeClient)
 	if err != nil {

@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	fakeosb "github.com/pmorie/go-open-service-broker-client/v2/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/testing"
@@ -74,7 +74,7 @@ func getRuntimeObjectFromUpdateAction(t testing.Action) (runtime.Object, error) 
 // - the conditions
 func checkServiceInstance(descr instanceDescription) func(runtime.Object) error {
 	return func(obj runtime.Object) error {
-		inst, ok := obj.(*v1alpha1.ServiceInstance)
+		inst, ok := obj.(*v1beta1.ServiceInstance)
 		if !ok {
 			return fmt.Errorf("expected an instance, got a %s", reflect.TypeOf(obj))
 		}

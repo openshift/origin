@@ -32,19 +32,18 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	coreapi "k8s.io/client-go/pkg/api"
 )
 
 var (
-	errNotAServiceInstanceCredential = errors.New("not a binding")
+	errNotAServiceBinding = errors.New("not a binding")
 )
 
 // NewSingular returns a new shell of a service binding, according to the given namespace and
 // name
 func NewSingular(ns, name string) runtime.Object {
-	return &servicecatalog.ServiceInstanceCredential{
+	return &servicecatalog.ServiceBinding{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ServiceInstanceCredential",
+			Kind: "ServiceBinding",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -55,24 +54,24 @@ func NewSingular(ns, name string) runtime.Object {
 
 // EmptyObject returns an empty binding
 func EmptyObject() runtime.Object {
-	return &servicecatalog.ServiceInstanceCredential{}
+	return &servicecatalog.ServiceBinding{}
 }
 
 // NewList returns a new shell of a binding list
 func NewList() runtime.Object {
-	return &servicecatalog.ServiceInstanceCredentialList{
+	return &servicecatalog.ServiceBindingList{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ServiceInstanceCredentialList",
+			Kind: "ServiceBindingList",
 		},
-		Items: []servicecatalog.ServiceInstanceCredential{},
+		Items: []servicecatalog.ServiceBinding{},
 	}
 }
 
 // CheckObject returns a non-nil error if obj is not a binding object
 func CheckObject(obj runtime.Object) error {
-	_, ok := obj.(*servicecatalog.ServiceInstanceCredential)
+	_, ok := obj.(*servicecatalog.ServiceBinding)
 	if !ok {
-		return errNotAServiceInstanceCredential
+		return errNotAServiceBinding
 	}
 	return nil
 }
@@ -88,28 +87,27 @@ func Match(label labels.Selector, field fields.Selector) storage.SelectionPredic
 }
 
 // toSelectableFields returns a field set that represents the object for matching purposes.
-func toSelectableFields(binding *servicecatalog.ServiceInstanceCredential) fields.Set {
+func toSelectableFields(binding *servicecatalog.ServiceBinding) fields.Set {
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&binding.ObjectMeta, true)
 	return generic.MergeFieldsSets(objectMetaFieldsSet, nil)
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	binding, ok := obj.(*servicecatalog.ServiceInstanceCredential)
+	binding, ok := obj.(*servicecatalog.ServiceBinding)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a ServiceInstanceCredential")
+		return nil, nil, false, fmt.Errorf("given object is not a ServiceBinding")
 	}
 	return labels.Set(binding.ObjectMeta.Labels), toSelectableFields(binding), binding.Initializers != nil, nil
 }
 
-// NewStorage creates a new rest.Storage responsible for accessing ServiceInstanceCredential
+// NewStorage creates a new rest.Storage responsible for accessing ServiceBinding
 // resources
 func NewStorage(opts server.Options) (rest.Storage, rest.Storage, error) {
 	prefix := "/" + opts.ResourcePrefix()
 
 	storageInterface, dFunc := opts.GetStorage(
-		1000,
-		&servicecatalog.ServiceInstanceCredential{},
+		&servicecatalog.ServiceBinding{},
 		prefix,
 		bindingRESTStrategies,
 		NewList,
@@ -129,8 +127,8 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage, error) {
 		},
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,
-		// QualifiedResource should always be plural
-		QualifiedResource: coreapi.Resource("serviceinstancecredentials"),
+		// DefaultQualifiedResource should always be plural
+		DefaultQualifiedResource: servicecatalog.Resource("servicebindings"),
 
 		CreateStrategy:          bindingRESTStrategies,
 		UpdateStrategy:          bindingRESTStrategies,

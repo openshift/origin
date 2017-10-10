@@ -20,33 +20,33 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/pkg/api"
+	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 
-	v1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
-	v1alpha1typed "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1alpha1"
+	v1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
+	v1beta1typed "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/typed/servicecatalog/v1beta1"
 )
 
 // ServiceInstances is a wrapper around the generated fake ServiceInstances
 // that clones the ServiceInstance objects being passed to UpdateStatus. This is a
 // workaround until the generated fake clientset does its own copying.
 type ServiceInstances struct {
-	v1alpha1typed.ServiceInstanceInterface
+	v1beta1typed.ServiceInstanceInterface
 }
 
-func (c *ServiceInstances) Create(serviceInstance *v1alpha1.ServiceInstance) (result *v1alpha1.ServiceInstance, err error) {
+func (c *ServiceInstances) Create(serviceInstance *v1beta1.ServiceInstance) (result *v1beta1.ServiceInstance, err error) {
 	return c.ServiceInstanceInterface.Create(serviceInstance)
 }
 
-func (c *ServiceInstances) Update(serviceInstance *v1alpha1.ServiceInstance) (result *v1alpha1.ServiceInstance, err error) {
+func (c *ServiceInstances) Update(serviceInstance *v1beta1.ServiceInstance) (result *v1beta1.ServiceInstance, err error) {
 	return c.ServiceInstanceInterface.Update(serviceInstance)
 }
 
-func (c *ServiceInstances) UpdateStatus(serviceInstance *v1alpha1.ServiceInstance) (*v1alpha1.ServiceInstance, error) {
+func (c *ServiceInstances) UpdateStatus(serviceInstance *v1beta1.ServiceInstance) (*v1beta1.ServiceInstance, error) {
 	clone, err := api.Scheme.DeepCopy(serviceInstance)
 	if err != nil {
 		return nil, err
 	}
-	instanceCopy := clone.(*v1alpha1.ServiceInstance)
+	instanceCopy := clone.(*v1beta1.ServiceInstance)
 	_, err = c.ServiceInstanceInterface.UpdateStatus(instanceCopy)
 	return serviceInstance, err
 }
@@ -59,11 +59,11 @@ func (c *ServiceInstances) DeleteCollection(options *v1.DeleteOptions, listOptio
 	return c.ServiceInstanceInterface.DeleteCollection(options, listOptions)
 }
 
-func (c *ServiceInstances) Get(name string, options v1.GetOptions) (result *v1alpha1.ServiceInstance, err error) {
+func (c *ServiceInstances) Get(name string, options v1.GetOptions) (result *v1beta1.ServiceInstance, err error) {
 	return c.ServiceInstanceInterface.Get(name, options)
 }
 
-func (c *ServiceInstances) List(opts v1.ListOptions) (result *v1alpha1.ServiceInstanceList, err error) {
+func (c *ServiceInstances) List(opts v1.ListOptions) (result *v1beta1.ServiceInstanceList, err error) {
 	return c.ServiceInstanceInterface.List(opts)
 }
 
@@ -73,6 +73,6 @@ func (c *ServiceInstances) Watch(opts v1.ListOptions) (watch.Interface, error) {
 }
 
 // Patch applies the patch and returns the patched serviceInstance.
-func (c *ServiceInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.ServiceInstance, err error) {
+func (c *ServiceInstances) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.ServiceInstance, err error) {
 	return c.ServiceInstanceInterface.Patch(name, pt, data, subresources...)
 }

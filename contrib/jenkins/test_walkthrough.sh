@@ -132,19 +132,19 @@ kubectl --context=service-catalog create -f "${ROOT}/contrib/examples/walkthroug
   || error_exit 'Error when creating ups-broker.'
 
 wait_for_expected_output -e 'FetchedCatalog' \
-    kubectl --context=service-catalog get servicebrokers ups-broker -o yaml \
+    kubectl --context=service-catalog get clusterservicebrokers ups-broker -o yaml \
   || {
-    kubectl --context=service-catalog get servicebrokers ups-broker -o yaml
+    kubectl --context=service-catalog get clusterservicebrokers ups-broker -o yaml
     error_exit 'Did not receive expected condition when creating ups-broker.'
   }
 
-[[ "$(kubectl --context=service-catalog get servicebrokers ups-broker -o yaml)" == *"status: \"True\""* ]] \
+[[ "$(kubectl --context=service-catalog get clusterservicebrokers ups-broker -o yaml)" == *"status: \"True\""* ]] \
   || {
-    kubectl --context=service-catalog get servicebrokers ups-broker -o yaml
+    kubectl --context=service-catalog get clusterservicebrokers ups-broker -o yaml
     error_exit 'Failure status reported when attempting to fetch catalog from ups-broker.'
   }
 
-[[ "$(kubectl --context=service-catalog get serviceclasses)" == *${USER_PROVIDED_SERVICE_ID}* ]] \
+[[ "$(kubectl --context=service-catalog get clusterserviceclasses)" == *${USER_PROVIDED_SERVICE_ID}* ]] \
   || error_exit 'user-provided-service ID not listed when fetching service classes.'
 
 # Provision an instance
@@ -171,35 +171,35 @@ wait_for_expected_output -e 'ProvisionedSuccessfully' \
 
 echo 'Binding to instance...'
 
-kubectl --context=service-catalog create -f "${ROOT}/contrib/examples/walkthrough/ups-instance-credential.yaml" \
-  || error_exit 'Error when creating ups-instance-credential.'
+kubectl --context=service-catalog create -f "${ROOT}/contrib/examples/walkthrough/ups-binding.yaml" \
+  || error_exit 'Error when creating ups-binding.'
 
 wait_for_expected_output -e 'InjectedBindResult' \
-  kubectl --context=service-catalog get serviceinstancecredentials -n test-ns ups-instance-credential -o yaml \
+  kubectl --context=service-catalog get servicebindings -n test-ns ups-binding -o yaml \
   || {
-    kubectl --context=service-catalog get serviceinstancecredentials -n test-ns ups-instance-credential -o yaml
-    error_exit 'Did not receive expected condition when injecting ups-instance-credential.'
+    kubectl --context=service-catalog get servicebindings -n test-ns ups-binding -o yaml
+    error_exit 'Did not receive expected condition when injecting ups-binding.'
   }
 
-[[ "$(kubectl --context=service-catalog get serviceinstancecredentials -n test-ns ups-instance-credential -o yaml)" == *"status: \"True\""* ]] \
+[[ "$(kubectl --context=service-catalog get servicebindings -n test-ns ups-binding -o yaml)" == *"status: \"True\""* ]] \
   || {
-    kubectl --context=service-catalog get serviceinstancecredentials -n test-ns ups-instance-credential -o yaml
-    error_exit 'Failure status reported when attempting to inject ups-instance-credential.'
+    kubectl --context=service-catalog get servicebindings -n test-ns ups-binding -o yaml
+    error_exit 'Failure status reported when attempting to inject ups-binding.'
   }
 
-[[ "$(kubectl get secrets -n test-ns)" == *ups-instance-credential* ]] \
-  || error_exit '"ups-instance-credential" not present when listing secrets.'
+[[ "$(kubectl get secrets -n test-ns)" == *ups-binding* ]] \
+  || error_exit '"ups-binding" not present when listing secrets.'
 
 #Unbind from the instance
 
 echo 'Unbinding from instance...'
 
-kubectl --context=service-catalog delete -n test-ns serviceinstancecredentials ups-instance-credential \
-  || error_exit 'Error when deleting ups-instance-credential.'
+kubectl --context=service-catalog delete -n test-ns servicebindings ups-binding \
+  || error_exit 'Error when deleting ups-binding.'
 
-wait_for_expected_output -x -e "ups-instance-credential" \
+wait_for_expected_output -x -e "ups-binding" \
     kubectl get secrets -n test-ns \
-  || error_exit '"ups-instance-credential" secret not removed upon deleting ups-instance-credential.'
+  || error_exit '"ups-binding" secret not removed upon deleting ups-binding.'
 
 # Deprovision the instance
 
@@ -212,13 +212,13 @@ kubectl --context=service-catalog delete -n test-ns serviceinstances ups-instanc
 
 echo 'Deleting broker...'
 
-kubectl --context=service-catalog delete servicebrokers ups-broker \
+kubectl --context=service-catalog delete clusterservicebrokers ups-broker \
   || error_exit 'Error when deleting ups-broker.'
 
 wait_for_expected_output -x -e ${USER_PROVIDED_SERVICE_ID} \
-    kubectl --context=service-catalog get serviceclasses \
+    kubectl --context=service-catalog get clusterserviceclasses \
   || {
-    kubectl --context=service-catalog get serviceclasses
+    kubectl --context=service-catalog get clusterserviceclasses
     error_exit 'Service classes not successfully removed upon deleting ups-broker.'
   }
 
