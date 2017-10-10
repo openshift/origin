@@ -81,6 +81,12 @@ type TemplateRouter struct {
 	MetricsType              string
 }
 
+// isTrue here has the same logic as the function within package pkg/router/template
+func isTrue(s string) bool {
+	v, _ := strconv.ParseBool(s)
+	return v
+}
+
 // reloadInterval returns how often to run the router reloads. The interval
 // value is based on an environment variable or the default.
 func reloadInterval() time.Duration {
@@ -104,11 +110,11 @@ func (o *TemplateRouter) Bind(flag *pflag.FlagSet) {
 	flag.StringVar(&o.TemplateFile, "template", util.Env("TEMPLATE_FILE", ""), "The path to the template file to use")
 	flag.StringVar(&o.ReloadScript, "reload", util.Env("RELOAD_SCRIPT", ""), "The path to the reload script to use")
 	flag.DurationVar(&o.ReloadInterval, "interval", reloadInterval(), "Controls how often router reloads are invoked. Mutiple router reload requests are coalesced for the duration of this interval since the last reload time.")
-	flag.BoolVar(&o.ExtendedValidation, "extended-validation", util.Env("EXTENDED_VALIDATION", "true") == "true", "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
-	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "") == "true", "Bind ports only after route state has been synchronized")
+	flag.BoolVar(&o.ExtendedValidation, "extended-validation", isTrue(util.Env("EXTENDED_VALIDATION", "true")), "If set, then an additional extended validation step is performed on all routes admitted in by this router. Defaults to true and enables the extended validation checks.")
+	flag.BoolVar(&o.BindPortsAfterSync, "bind-ports-after-sync", isTrue(util.Env("ROUTER_BIND_PORTS_AFTER_SYNC", "")), "Bind ports only after route state has been synchronized")
 	flag.StringVar(&o.MaxConnections, "max-connections", util.Env("ROUTER_MAX_CONNECTIONS", ""), "Specifies the maximum number of concurrent connections.")
 	flag.StringVar(&o.Ciphers, "ciphers", util.Env("ROUTER_CIPHERS", ""), "Specifies the cipher suites to use. You can choose a predefined cipher set ('modern', 'intermediate', or 'old') or specify exact cipher suites by passing a : separated list.")
-	flag.BoolVar(&o.StrictSNI, "strict-sni", util.Env("ROUTER_STRICT_SNI", "") == "true", "Use strict-sni bind processing (do not use default cert).")
+	flag.BoolVar(&o.StrictSNI, "strict-sni", isTrue(util.Env("ROUTER_STRICT_SNI", "")), "Use strict-sni bind processing (do not use default cert).")
 	flag.StringVar(&o.MetricsType, "metrics-type", util.Env("ROUTER_METRICS_TYPE", ""), "Specifies the type of metrics to gather. Supports 'haproxy'.")
 }
 
@@ -313,7 +319,7 @@ func (o *TemplateRouterOptions) Run() error {
 			return fmt.Errorf("ROUTER_METRICS_READY_HTTP_URL must be a valid URL or empty: %v", err)
 		}
 		check := metrics.HTTPBackendAvailable(u)
-		if useProxy := util.Env("ROUTER_USE_PROXY_PROTOCOL", ""); useProxy == "true" || useProxy == "TRUE" {
+		if isTrue(util.Env("ROUTER_USE_PROXY_PROTOCOL", "")) {
 			check = metrics.ProxyProtocolHTTPBackendAvailable(u)
 		}
 		metrics.Listen(o.ListenAddr, o.StatsUsername, o.StatsPassword, check)
