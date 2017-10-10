@@ -21,6 +21,7 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/master/ports"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -116,6 +117,7 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 
 	options.NodeArgs = NewDefaultNodeArgs()
+	options.NodeArgs.ListenArg.ListenAddr.DefaultPort = ports.ProxyHealthzPort
 	options.NodeArgs.Components = NewNetworkComponentFlag()
 	BindNodeNetworkArgs(options.NodeArgs, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
