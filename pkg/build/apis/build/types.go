@@ -538,6 +538,7 @@ const (
 	StatusMessageBuildPodExists                  = "The pod for this build already exists and is older than the build."
 	StatusMessageNoBuildContainerStatus          = "The pod for this build has no container statuses indicating success or failure."
 	StatusMessageFailedContainer                 = "The pod for this build has at least one container with a non-zero exit status."
+	StatusMessageFailedContainerWithReason = "The pod for this build has at least one container with a non-zero exit status and the following reported reason: "
 	StatusMessageGenericBuildFailed              = "Generic Build failure - check logs for details."
 	StatusMessageUnresolvableEnvironmentVariable = "Unable to resolve build environment variable reference."
 	StatusMessageCannotRetrieveServiceAccount    = "Unable to look up the service account associated with this build."

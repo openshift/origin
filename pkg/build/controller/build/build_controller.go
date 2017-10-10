@@ -901,9 +901,24 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 			glog.V(2).Infof("Setting build %s to error state because its pod has no containers", buildDesc(build))
 			update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonNoBuildContainerStatus, buildapi.StatusMessageNoBuildContainerStatus)
 		} else {
+			for _, info := range pod.Status.InitContainerStatuses {
+				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
+					glog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
+					if len(info.State.Terminated.Reason) > 0 {
+						update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainerWithReason+info.State.Terminated.Reason)
+						break
+					}
+					update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainer)
+					break
+				}
+			}
 			for _, info := range pod.Status.ContainerStatuses {
 				if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
 					glog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
+					if len(info.State.Terminated.Reason) > 0 {
+						update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainerWithReason+info.State.Terminated.Reason)
+						break
+					}
 					update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainer)
 					break
 				}
@@ -916,7 +931,30 @@ func (bc *BuildController) handleActiveBuild(build *buildapi.Build, pod *v1.Pod)
 			if pod.DeletionTimestamp != nil {
 				update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonBuildPodDeleted, buildapi.StatusMessageBuildPodDeleted)
 			} else {
-				update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonGenericBuildFailed, buildapi.StatusMessageGenericBuildFailed)
+				failedContainerWithReason := false
+				for _, info := range pod.Status.InitContainerStatuses {
+					if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
+						glog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
+						if len(info.State.Terminated.Reason) > 0 {
+							update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainerWithReason+info.State.Terminated.Reason)
+							failedContainerWithReason = true
+							break
+						}
+					}
+				}
+				for _, info := range pod.Status.ContainerStatuses {
+					if info.State.Terminated != nil && info.State.Terminated.ExitCode != 0 {
+						glog.V(2).Infof("Setting build %s to error state because a container in its pod has non-zero exit code", buildDesc(build))
+						if len(info.State.Terminated.Reason) > 0 {
+							update = transitionToPhase(buildapi.BuildPhaseError, buildapi.StatusReasonFailedContainer, buildapi.StatusMessageFailedContainerWithReason+info.State.Terminated.Reason)
+							failedContainerWithReason = true
+							break
+						}
+					}
+				}
+				if !failedContainerWithReason {
+					update = transitionToPhase(buildapi.BuildPhaseFailed, buildapi.StatusReasonGenericBuildFailed, buildapi.StatusMessageGenericBuildFailed)
+				}
 			}
 		}
 	}
