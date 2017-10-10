@@ -16,44 +16,50 @@ import (
 )
 
 func TestManifestServiceExists(t *testing.T) {
+	ctx := context.Background()
+	ctx = testutil.WithTestLogger(ctx, t)
+
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
 
-	fos, imageClient := testutil.NewFakeOpenShiftWithClient()
+	fos, imageClient := testutil.NewFakeOpenShiftWithClient(ctx)
 	testImage := testutil.AddRandomImage(t, fos, namespace, repo, tag)
 
-	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+	r := newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 	})
 
 	ms := &manifestService{
-		ctx:           context.Background(),
+		ctx:           ctx,
 		repo:          r,
 		manifests:     nil,
 		acceptschema2: r.config.acceptSchema2,
 	}
 
-	ok, err := ms.Exists(context.Background(), digest.Digest(testImage.Name))
+	ok, err := ms.Exists(ctx, digest.Digest(testImage.Name))
 	if err != nil {
 		t.Errorf("ms.Exists(ctx, %q): %s", testImage.Name, err)
 	} else if !ok {
 		t.Errorf("ms.Exists(ctx, %q): got false, want true", testImage.Name)
 	}
 
-	ok, err = ms.Exists(context.Background(), unknownBlobDigest)
+	ok, err = ms.Exists(ctx, unknownBlobDigest)
 	if err == nil {
 		t.Errorf("ms.Exists(ctx, %q): got success, want error", unknownBlobDigest)
 	}
 }
 
 func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
+	ctx := context.Background()
+	ctx = testutil.WithTestLogger(ctx, t)
+
 	namespace := "user"
 	repo := "app"
 	tag := "latest"
 	const img1Manifest = `{"_":"some json to start migration"}`
 
-	fos, imageClient := testutil.NewFakeOpenShiftWithClient()
+	fos, imageClient := testutil.NewFakeOpenShiftWithClient(ctx)
 
 	testImage, err := testutil.CreateRandomImage(namespace, repo)
 	if err != nil {
@@ -78,12 +84,12 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 		t.Fatalf("img.DockerImageReference: want %q, got %q", "1", img.DockerImageReference)
 	}
 
-	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+	r := newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 	})
 
 	ms := &manifestService{
-		ctx:  context.Background(),
+		ctx:  ctx,
 		repo: r,
 		manifests: newTestManifestService(repo, map[digest.Digest]distribution.Manifest{
 			digest.Digest(testImage.Name): &schema2.DeserializedManifest{},
@@ -91,7 +97,7 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 		acceptschema2: r.config.acceptSchema2,
 	}
 
-	_, err = ms.Get(context.Background(), digest.Digest(testImage.Name))
+	_, err = ms.Get(ctx, digest.Digest(testImage.Name))
 	if err != nil {
 		t.Fatalf("ms.Get(ctx, %q): %s", testImage.Name, err)
 	}
@@ -114,11 +120,14 @@ func TestManifestServiceGetDoesntChangeDockerImageReference(t *testing.T) {
 }
 
 func TestManifestServicePut(t *testing.T) {
+	ctx := context.Background()
+	ctx = testutil.WithTestLogger(ctx, t)
+
 	namespace := "user"
 	repo := "app"
 	repoName := fmt.Sprintf("%s/%s", namespace, repo)
 
-	_, imageClient := testutil.NewFakeOpenShiftWithClient()
+	_, imageClient := testutil.NewFakeOpenShiftWithClient(ctx)
 
 	bs := newTestBlobStore(nil, blobContents{
 		"test:1": []byte("{}"),
@@ -126,13 +135,13 @@ func TestManifestServicePut(t *testing.T) {
 
 	tms := newTestManifestService(repoName, nil)
 
-	r := newTestRepository(t, namespace, repo, testRepositoryOptions{
+	r := newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 		blobs:  bs,
 	})
 
 	ms := &manifestService{
-		ctx:           context.Background(),
+		ctx:           ctx,
 		repo:          r,
 		manifests:     tms,
 		acceptschema2: r.config.acceptSchema2,
@@ -151,28 +160,26 @@ func TestManifestServicePut(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
-	ctx = withAuthPerformed(ctx)
-	ctx = withUserClient(ctx, osclient)
-	dgst, err := ms.Put(ctx, manifest)
+	putCtx := withAuthPerformed(ctx)
+	putCtx = withUserClient(putCtx, osclient)
+	dgst, err := ms.Put(putCtx, manifest)
 	if err != nil {
 		t.Fatalf("ms.Put(ctx, manifest): %s", err)
 	}
 
 	// recreate repository to reset cached image stream
-	r = newTestRepository(t, namespace, repo, testRepositoryOptions{
+	r = newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
 		client: registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 		blobs:  bs,
 	})
 
 	ms = &manifestService{
-		ctx:           context.Background(),
+		ctx:           ctx,
 		repo:          r,
 		manifests:     tms,
 		acceptschema2: r.config.acceptSchema2,
 	}
 
-	ctx = context.Background()
 	_, err = ms.Get(ctx, dgst)
 	if err != nil {
 		t.Errorf("ms.Get(ctx, %q): %s", dgst, err)
