@@ -359,19 +359,48 @@ func (p *fakeImageDeleter) DeleteImage(image *imageapi.Image) error {
 }
 
 type fakeImageStreamDeleter struct {
-	invocations sets.String
-	err         error
+	invocations  sets.String
+	err          error
+	streamImages map[string][]string
 }
 
 var _ ImageStreamDeleter = &fakeImageStreamDeleter{}
 
 func (p *fakeImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	if p.streamImages == nil {
+		p.streamImages = make(map[string][]string)
+	}
+	for _, history := range stream.Status.Tags {
+		for _, tagEvent := range history.Items {
+			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+			p.streamImages[streamName] = append(p.streamImages[streamName], tagEvent.Image)
+		}
+	}
 	return stream, p.err
 }
 
-func (p *fakeImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
-	p.invocations.Insert(fmt.Sprintf("%s/%s|%s", stream.Namespace, stream.Name, image.Name))
+func (p *fakeImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	streamImages := make(map[string]struct{})
+
+	for _, history := range stream.Status.Tags {
+		for _, tagEvent := range history.Items {
+			streamImages[tagEvent.Image] = struct{}{}
+		}
+	}
+
+	streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+
+	for _, imageName := range p.streamImages[streamName] {
+		if _, ok := streamImages[imageName]; !ok {
+			p.invocations.Insert(fmt.Sprintf("%s|%s", streamName, imageName))
+		}
+	}
+
 	return stream, p.err
+}
+
+func (p *fakeImageStreamDeleter) NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string) {
+	return
 }
 
 type fakeBlobDeleter struct {
@@ -1049,7 +1078,10 @@ func TestImagePruning(t *testing.T) {
 			options.KeepYoungerThan = &keepYoungerThan
 			options.KeepTagRevisions = &keepTagRevisions
 		}
-		p := NewPruner(options)
+		p, err := NewPruner(options)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
 		streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
@@ -1283,7 +1315,10 @@ func TestRegistryPruning(t *testing.T) {
 			DCs:              &deployapi.DeploymentConfigList{},
 			RegistryURL:      &url.URL{Scheme: "https", Host: "registry1.io"},
 		}
-		p := NewPruner(options)
+		p, err := NewPruner(options)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 
 		imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
 		streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
@@ -1350,7 +1385,10 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 	keepTagRevisions := 2
 	options.KeepYoungerThan = &keepYoungerThan
 	options.KeepTagRevisions = &keepTagRevisions
-	p := NewPruner(options)
+	p, err := NewPruner(options)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	imageDeleter := &fakeImageDeleter{invocations: sets.NewString()}
 	streamDeleter := &fakeImageStreamDeleter{invocations: sets.NewString()}
