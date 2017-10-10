@@ -276,6 +276,7 @@ func (c *MasterConfig) buildHandlerChain(genericConfig *apiserver.Config) (func(
 			handler := c.versionSkewFilter(apiHandler, genericConfig.RequestContextMapper)
 			handler = namespacingFilter(handler, genericConfig.RequestContextMapper)
 
+			// this is the normal kube handler chain
 			handler = apiserver.DefaultBuildHandlerChain(handler, genericConfig)
 
 			// these handlers are all before the normal kube chain

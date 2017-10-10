@@ -1550,8 +1550,7 @@ func TestOldLocalResourceAccessReviewEndpoint(t *testing.T) {
 	}
 }
 
-// TestClusterPolicyCache confirms that the creation of cluster role bindings fallback to live lookups when the referenced cluster role is not cached
-func TestClusterPolicyCache(t *testing.T) {
+func TestBrowserSafeAuthorizer(t *testing.T) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMasterAPI()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -1562,23 +1561,73 @@ func TestClusterPolicyCache(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// turn off rate limiting so cache misses are more likely
-	clusterAdminClientConfig.Burst = 9999999
-	clusterAdminClientConfig.QPS = 9999999
-	clusterAdminAuthorizationClient := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig)
 
-	for i := 0; i < 100; i++ { // usually takes less than 60 attempts for this to cache miss
-		clusterRole := &authorizationapi.ClusterRole{ObjectMeta: metav1.ObjectMeta{GenerateName: time.Now().String()}}
-		clusterRole, err = clusterAdminAuthorizationClient.ClusterRoles().Create(clusterRole)
-		if err != nil {
-			t.Fatalf("unexpected error creating cluster role %q: %v", clusterRole.Name, err)
+	// this client has an API token so it is safe
+	userClient, _, err := testutil.GetClientForUser(clusterAdminClientConfig, "user")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// this client has no API token so it is unsafe (like a browser)
+	anonymousConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
+	anonymousConfig.ContentConfig.GroupVersion = &schema.GroupVersion{}
+	anonymousConfig.ContentConfig.NegotiatedSerializer = kapi.Codecs
+	anonymousClient, err := rest.RESTClientFor(anonymousConfig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	proxyVerb := []string{"api", "v1", "proxy", "namespaces", "ns", "pods", "podX1:8080"}
+	proxySubresource := []string{"api", "v1", "namespaces", "ns", "pods", "podX1:8080", "proxy", "appEndPoint"}
+
+	isUnsafeErr := func(errProxy error) (matches bool) {
+		if errProxy == nil {
+			return false
 		}
-		clusterRoleBinding := &authorizationapi.ClusterRoleBinding{
-			ObjectMeta: metav1.ObjectMeta{Name: clusterRole.Name},
-			Subjects:   []kapi.ObjectReference{{Name: "user", Kind: authorizationapi.UserKind}},
-			RoleRef:    kapi.ObjectReference{Name: clusterRole.Name}}
-		if _, err := clusterAdminAuthorizationClient.ClusterRoleBindings().Create(clusterRoleBinding); err != nil {
-			t.Fatalf("cache error creating cluster role binding %d %q: %v", i, clusterRoleBinding.Name, err)
+		return strings.Contains(errProxy.Error(), `cannot "unsafeproxy" "pods" with name "podX1:8080" in project "ns"`) ||
+			strings.Contains(errProxy.Error(), `cannot get pods/unsafeproxy in project "ns"`)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		client rest.Interface
+		path   []string
+
+		expectUnsafe bool
+	}{
+		{
+			name:   "safe to proxy verb",
+			client: userClient.Core().RESTClient(),
+			path:   proxyVerb,
+
+			expectUnsafe: false,
+		},
+		{
+			name:   "safe to proxy subresource",
+			client: userClient.Core().RESTClient(),
+			path:   proxySubresource,
+
+			expectUnsafe: false,
+		},
+		{
+			name:   "unsafe to proxy verb",
+			client: anonymousClient,
+			path:   proxyVerb,
+
+			expectUnsafe: true,
+		},
+		{
+			name:   "unsafe to proxy subresource",
+			client: anonymousClient,
+			path:   proxySubresource,
+
+			expectUnsafe: true,
+		},
+	} {
+		errProxy := tc.client.Get().AbsPath(tc.path...).Do().Error()
+		if errProxy == nil || !kapierror.IsForbidden(errProxy) || tc.expectUnsafe != isUnsafeErr(errProxy) {
+			t.Errorf("%s: expected forbidden error on GET %s, got %#v (isForbidden=%v, expectUnsafe=%v, actualUnsafe=%v)",
+				tc.name, tc.path, errProxy, kapierror.IsForbidden(errProxy), tc.expectUnsafe, isUnsafeErr(errProxy))
 		}
 	}
 }
