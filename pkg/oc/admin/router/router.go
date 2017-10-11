@@ -412,7 +412,7 @@ func generateSecretsConfig(cfg *RouterConfig, namespace string, defaultCert []by
 	return secrets, volumes, mounts, nil
 }
 
-func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
+func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort, probeName string) *kapi.Probe {
 	var probe *kapi.Probe
 
 	if cfg.Type == "haproxy-router" {
@@ -423,7 +423,7 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 		}
 
 		probe.Handler.HTTPGet = &kapi.HTTPGetAction{
-			Path: "/healthz",
+			Path: "/healthz/" + probeName,
 			Port: intstr.IntOrString{
 				Type:   intstr.Int,
 				IntVal: int32(healthzPort),
@@ -442,7 +442,7 @@ func generateProbeConfigForRouter(cfg *RouterConfig, ports []kapi.ContainerPort)
 }
 
 func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
+	probe := generateProbeConfigForRouter(cfg, ports, "backend-tcp")
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
 	}
@@ -450,7 +450,7 @@ func generateLivenessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) 
 }
 
 func generateReadinessProbeConfig(cfg *RouterConfig, ports []kapi.ContainerPort) *kapi.Probe {
-	probe := generateProbeConfigForRouter(cfg, ports)
+	probe := generateProbeConfigForRouter(cfg, ports, "backend-http")
 	if probe != nil {
 		probe.InitialDelaySeconds = 10
 	}
