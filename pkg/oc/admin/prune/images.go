@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	knet "k8s.io/apimachinery/pkg/util/net"
 	restclient "k8s.io/client-go/rest"
@@ -261,6 +262,14 @@ func (o PruneImagesOptions) Run() error {
 		return err
 	}
 
+	allDSs, err := o.KubeClient.Extensions().DaemonSets(o.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		if !kerrors.IsForbidden(err) {
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "Failed to list daemonsets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
+	}
+
 	allDCs, err := o.AppsClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -332,6 +341,7 @@ func (o PruneImagesOptions) Run() error {
 		RCs:                allRCs,
 		BCs:                allBCs,
 		Builds:             allBuilds,
+		DSs:                allDSs,
 		DCs:                allDCs,
 		LimitRanges:        limitRangesMap,
 		DryRun:             o.Confirm == false,

@@ -21,6 +21,7 @@ import (
 	"k8s.io/client-go/rest/fake"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/staging/src/k8s.io/apimachinery/pkg/util/diff"
 
 	"github.com/openshift/origin/pkg/api/graph"
@@ -238,6 +239,26 @@ func rc(namespace, name string, containerImages ...string) kapi.ReplicationContr
 		},
 		Spec: kapi.ReplicationControllerSpec{
 			Template: &kapi.PodTemplateSpec{
+				Spec: podSpec(containerImages...),
+			},
+		},
+	}
+}
+
+func dsList(dss ...kapisext.DaemonSet) kapisext.DaemonSetList {
+	return kapisext.DaemonSetList{
+		Items: dss,
+	}
+}
+
+func ds(namespace, name string, containerImages ...string) kapisext.DaemonSet {
+	return kapisext.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Spec: kapisext.DaemonSetSpec{
+			Template: kapi.PodTemplateSpec{
 				Spec: podSpec(containerImages...),
 			},
 		},
@@ -479,6 +500,7 @@ func TestImagePruning(t *testing.T) {
 		rcs                        kapi.ReplicationControllerList
 		bcs                        buildapi.BuildConfigList
 		builds                     buildapi.BuildList
+		dss                        kapisext.DaemonSetList
 		dcs                        deployapi.DeploymentConfigList
 		limits                     map[string][]*kapi.LimitRange
 		expectedImageDeletions     []string
@@ -632,6 +654,15 @@ func TestImagePruning(t *testing.T) {
 			images: imageList(image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			dcs:    dcList(dc("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{},
+		},
+
+		"referenced by daemonset - don't prune": {
+			images: imageList(
+				image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			),
+			dss: dsList(ds("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
 		"referenced by bc - sti - ImageStreamImage - don't prune": {
@@ -1143,6 +1174,7 @@ func TestImagePruning(t *testing.T) {
 			RCs:         &test.rcs,
 			BCs:         &test.bcs,
 			Builds:      &test.builds,
+			DSs:         &test.dss,
 			DCs:         &test.dcs,
 			LimitRanges: test.limits,
 			RegistryURL: &url.URL{Scheme: "https", Host: registryHost},
@@ -1389,6 +1421,7 @@ func TestRegistryPruning(t *testing.T) {
 			RCs:              &kapi.ReplicationControllerList{},
 			BCs:              &buildapi.BuildConfigList{},
 			Builds:           &buildapi.BuildList{},
+			DSs:              &kapisext.DaemonSetList{},
 			DCs:              &deployapi.DeploymentConfigList{},
 			RegistryURL:      &url.URL{Scheme: "https", Host: "registry1.io"},
 		}
@@ -1447,6 +1480,7 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 	rcs := rcList()
 	bcs := bcList()
 	builds := buildList()
+	dss := dsList()
 	dcs := dcList()
 
 	options := PrunerOptions{
@@ -1456,6 +1490,7 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 		RCs:     &rcs,
 		BCs:     &bcs,
 		Builds:  &builds,
+		DSs:     &dss,
 		DCs:     &dcs,
 	}
 	keepYoungerThan := 24 * time.Hour

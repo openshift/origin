@@ -21,6 +21,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kapi "k8s.io/kubernetes/pkg/api"
+	kapisext "k8s.io/kubernetes/pkg/apis/extensions"
 	"k8s.io/kubernetes/pkg/client/retry"
 
 	"github.com/openshift/origin/pkg/api/graph"
@@ -134,8 +135,9 @@ type PrunerOptions struct {
 	BCs *buildapi.BuildConfigList
 	// Builds is the entire list of builds across all namespaces in the cluster.
 	Builds *buildapi.BuildList
-	// DCs is the entire list of deployment configs across all namespaces in the
-	// cluster.
+	// DSs is the entire list of daemon sets across all namespaces in the cluster.
+	DSs *kapisext.DaemonSetList
+	// DCs is the entire list of deployment configs across all namespaces in the cluster.
 	DCs *deployapi.DeploymentConfigList
 	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
 	LimitRanges map[string][]*kapi.LimitRange
@@ -183,7 +185,7 @@ var _ Pruner = &pruner{}
 // defined in their namespace will be considered for pruning. Important to note is
 // the fact that this flag does not work in any combination with the keep* flags.
 //
-// images, streams, pods, rcs, bcs, builds, and dcs are the resources used to run
+// images, streams, pods, rcs, bcs, builds, daemonsets and dcs are the resources used to run
 // the pruning algorithm. These should be the full list for each type from the
 // cluster; otherwise, the pruning algorithm might result in incorrect
 // calculations and premature pruning.
@@ -198,6 +200,7 @@ var _ Pruner = &pruner{}
 // - any running pods
 // - any pending pods
 // - any replication controllers
+// - any daemonsets
 // - any deployment configs
 // - any build configs
 // - any builds
@@ -242,6 +245,7 @@ func NewPruner(options PrunerOptions) (Pruner, error) {
 	if err := addBuildsToGraph(g, options.Builds); err != nil {
 		return nil, err
 	}
+	addDaemonSetsToGraph(g, options.DSs)
 	addDeploymentConfigsToGraph(g, options.DCs)
 
 	return &pruner{
@@ -469,6 +473,19 @@ func addReplicationControllersToGraph(g graph.Graph, rcs *kapi.ReplicationContro
 		glog.V(4).Infof("Examining replication controller %s", getName(rc))
 		rcNode := kubegraph.EnsureReplicationControllerNode(g, rc)
 		addPodSpecToGraph(g, &rc.Spec.Template.Spec, rcNode)
+	}
+}
+
+// addDaemonSetsToGraph adds daemon set to the graph.
+//
+// Edges are added to the graph from each daemon set to the images specified by its pod spec's list of
+// containers, as long as the image is managed by OpenShift.
+func addDaemonSetsToGraph(g graph.Graph, dss *kapisext.DaemonSetList) {
+	for i := range dss.Items {
+		ds := &dss.Items[i]
+		glog.V(4).Infof("Examining DaemonSet %s", getName(ds))
+		dsNode := deploygraph.EnsureDaemonSetNode(g, ds)
+		addPodSpecToGraph(g, &ds.Spec.Template.Spec, dsNode)
 	}
 }
 
