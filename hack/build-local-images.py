@@ -147,6 +147,13 @@ image_config = {
         "files": {},
         "enable_default": False,
     },
+    "template-service-broker": {
+        "directory": "template-service-broker",
+        "binaries": {
+            "openshift": "/usr/bin/template-service-broker"
+        },
+        "files": {}
+    },
 }
 
 

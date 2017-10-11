@@ -53,7 +53,7 @@ func (h *Helper) InstallTemplateServiceBroker(f *clientcmd.Factory, imageFormat 
 	imageTemplate.Latest = false
 
 	params := map[string]string{
-		"IMAGE":     imageTemplate.ExpandOrDie(""),
+		"IMAGE":     imageTemplate.ExpandOrDie("template-service-broker"),
 		"LOGLEVEL":  fmt.Sprint(serverLogLevel),
 		"NAMESPACE": tsbNamespace,
 	}

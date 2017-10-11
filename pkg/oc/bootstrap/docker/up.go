@@ -1097,7 +1097,7 @@ func (c *ClientStartConfig) InstallTemplateServiceBroker(out io.Writer) error {
 	}
 	// TODO we want to use this eventually, but until we have our own image for TSB, we have to hardcode this origin
 	//return c.OpenShiftHelper().InstallTemplateServiceBroker(f, c.imageFormat())
-	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, fmt.Sprintf("%s:%s", c.Image, c.ImageVersion), c.ServerLogLevel)
+	return c.OpenShiftHelper().InstallTemplateServiceBroker(f, fmt.Sprintf("%s-${component}:%s", c.Image, c.ImageVersion), c.ServerLogLevel)
 }
 
 // RegisterTemplateServiceBroker will register the tsb with the service catalog
