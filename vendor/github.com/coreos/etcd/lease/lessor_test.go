@@ -57,11 +57,12 @@ func TestLessorGrant(t *testing.T) {
 		t.Errorf("term = %v, want at least %v", l.Remaining(), minLeaseTTLDuration-time.Second)
 	}
 
-	nl, err := le.Grant(1, 1)
+	_, err = le.Grant(1, 1)
 	if err == nil {
 		t.Errorf("allocated the same lease")
 	}
 
+	var nl *Lease
 	nl, err = le.Grant(2, 1)
 	if err != nil {
 		t.Errorf("could not grant lease 2 (%v)", err)
@@ -85,10 +86,8 @@ func TestLeaseConcurrentKeys(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	fd := &fakeDeleter{}
-
 	le := newLessor(be, minLeaseTTL)
-	le.SetRangeDeleter(fd)
+	le.SetRangeDeleter(func() TxnDelete { return newFakeDeleter(be) })
 
 	// grant a lease with long term (100 seconds) to
 	// avoid early termination during the test.
@@ -134,10 +133,12 @@ func TestLessorRevoke(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	fd := &fakeDeleter{}
-
 	le := newLessor(be, minLeaseTTL)
-	le.SetRangeDeleter(fd)
+	var fd *fakeDeleter
+	le.SetRangeDeleter(func() TxnDelete {
+		fd = newFakeDeleter(be)
+		return fd
+	})
 
 	// grant a lease with long term (100 seconds) to
 	// avoid early termination during the test.
@@ -214,10 +215,8 @@ func TestLessorDetach(t *testing.T) {
 	defer os.RemoveAll(dir)
 	defer be.Close()
 
-	fd := &fakeDeleter{}
-
 	le := newLessor(be, minLeaseTTL)
-	le.SetRangeDeleter(fd)
+	le.SetRangeDeleter(func() TxnDelete { return newFakeDeleter(be) })
 
 	// grant a lease with long term (100 seconds) to
 	// avoid early termination during the test.
@@ -379,19 +378,20 @@ func TestLessorExpireAndDemote(t *testing.T) {
 
 type fakeDeleter struct {
 	deleted []string
+	tx      backend.BatchTx
 }
 
-func (fd *fakeDeleter) TxnBegin() int64 {
-	return 0
+func newFakeDeleter(be backend.Backend) *fakeDeleter {
+	fd := &fakeDeleter{nil, be.BatchTx()}
+	fd.tx.Lock()
+	return fd
 }
 
-func (fd *fakeDeleter) TxnEnd(txnID int64) error {
-	return nil
-}
+func (fd *fakeDeleter) End() { fd.tx.Unlock() }
 
-func (fd *fakeDeleter) TxnDeleteRange(tid int64, key, end []byte) (int64, int64, error) {
+func (fd *fakeDeleter) DeleteRange(key, end []byte) (int64, int64) {
 	fd.deleted = append(fd.deleted, string(key)+"_"+string(end))
-	return 0, 0, nil
+	return 0, 0
 }
 
 func NewTestBackend(t *testing.T) (string, backend.Backend) {
@@ -399,6 +399,7 @@ func NewTestBackend(t *testing.T) (string, backend.Backend) {
 	if err != nil {
 		t.Fatalf("failed to create tmpdir (%v)", err)
 	}
-
-	return tmpPath, backend.New(filepath.Join(tmpPath, "be"), time.Second, 10000)
+	bcfg := backend.DefaultBackendConfig()
+	bcfg.Path = filepath.Join(tmpPath, "be")
+	return tmpPath, backend.New(bcfg)
 }
