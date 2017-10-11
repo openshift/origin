@@ -121,7 +121,8 @@ items:
     kind: Role
     name: shared-resource-viewer
   subjects:
-  - kind: Group
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
     name: system:authenticated
 kind: List
 metadata: {}

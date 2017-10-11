@@ -228,6 +228,7 @@ go_test(
         "//vendor/k8s.io/apimachinery/pkg/util/uuid:go_default_library",
         "//vendor/k8s.io/apimachinery/pkg/util/wait:go_default_library",
         "//vendor/k8s.io/client-go/pkg/api/v1:go_default_library",
+        "//vendor/k8s.io/client-go/rest:go_default_library",
         "//vendor/k8s.io/client-go/testing:go_default_library",
         "//vendor/k8s.io/client-go/tools/record:go_default_library",
         "//vendor/k8s.io/client-go/util/flowcontrol:go_default_library",
