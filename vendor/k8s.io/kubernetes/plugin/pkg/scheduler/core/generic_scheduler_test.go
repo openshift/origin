@@ -405,7 +405,7 @@ func makeNode(node string, milliCPU, memory int64) *v1.Node {
 }
 
 func TestHumanReadableFitError(t *testing.T) {
-	error := &FitError{
+	err := &FitError{
 		Pod:         &v1.Pod{ObjectMeta: metav1.ObjectMeta{Name: "2"}},
 		NumAllNodes: 3,
 		FailedPredicates: FailedPredicateMap{
@@ -420,7 +420,7 @@ func TestHumanReadableFitError(t *testing.T) {
 			return
 		}
 	}
-	t.Errorf("Error message doesn't have all the information content: [" + error.Error() + "]")
+	t.Errorf("Error message doesn't have all the information content: [" + err.Error() + "]")
 }
 
 // The point of this test is to show that you:
