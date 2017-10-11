@@ -95,6 +95,7 @@ oc-adm-top-pod.1
 oc-adm-top.1
 oc-adm-uncordon.1
 oc-adm-verify-image-signature.1
+oc-adm-version.1
 oc-adm.1
 oc-annotate.1
 oc-apply-edit-last-applied.1
