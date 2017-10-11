@@ -337,9 +337,10 @@ func init() {
 			rbac.NewRule("get", "create", "update", "delete").Groups(templateGroup).Resources("brokertemplateinstances").RuleOrDie(),
 			rbac.NewRule("get", "create", "delete", "assign").Groups(templateGroup).Resources("templateinstances").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(templateGroup).Resources("templates").RuleOrDie(),
-			rbac.NewRule("get", "list", "create", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
-			rbac.NewRule("list").Groups(kapiGroup).Resources("services", "configmaps").RuleOrDie(),
-			rbac.NewRule("list").Groups(routeGroup).Resources("routes").RuleOrDie(),
+			rbac.NewRule("get", "create", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
+			rbac.NewRule("get").Groups(kapiGroup).Resources("services", "configmaps").RuleOrDie(),
+			rbac.NewRule("get").Groups(legacyRouteGroup).Resources("routes").RuleOrDie(),
+			rbac.NewRule("get").Groups(routeGroup).Resources("routes").RuleOrDie(),
 			eventsRule(),
 		},
 	})

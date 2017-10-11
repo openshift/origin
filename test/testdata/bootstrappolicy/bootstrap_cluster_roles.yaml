@@ -3769,20 +3769,25 @@ items:
     - create
     - delete
     - get
-    - list
   - apiGroups:
     - ""
     resources:
     - configmaps
     - services
     verbs:
-    - list
+    - get
+  - apiGroups:
+    - ""
+    resources:
+    - routes
+    verbs:
+    - get
   - apiGroups:
     - route.openshift.io
     resources:
     - routes
     verbs:
-    - list
+    - get
   - apiGroups:
     - ""
     resources:

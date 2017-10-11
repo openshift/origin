@@ -19,10 +19,6 @@ const (
 	// SupportURLAnnotation is the url where support for a template can be found
 	SupportURLAnnotation = "template.openshift.io/support-url"
 
-	// TemplateInstanceLabel is used to label every object created by the
-	// TemplateInstance API.
-	TemplateInstanceLabel = "template.openshift.io/template-instance"
-
 	// ServiceBrokerRoot is the API root of the template service broker.
 	ServiceBrokerRoot = "/brokers/template.openshift.io"
 

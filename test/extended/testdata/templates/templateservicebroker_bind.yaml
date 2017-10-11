@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+    namespace: ${NAMESPACE}
+
+- apiVersion: template.openshift.io/v1
+  kind: TemplateInstance
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+    namespace: ${NAMESPACE}
+  spec:
+    template:
+      apiVersion: v1
+      kind: Template
+      metadata:
+        uid: d261a5c9-db37-40b5-ac0f-5709e0e3aac4
+      objects:
+      - apiVersion: v1
+        data:
+          username: configmap-username
+        kind: ConfigMap
+        metadata:
+          annotations:
+            template.openshift.io/expose-configmap-username: "{.data['username']}"
+          name: configmap
+      - apiVersion: v1
+        kind: Secret
+        metadata:
+          annotations:
+            template.openshift.io/base64-expose-secret-password: "{.data['password']}"
+            template.openshift.io/expose-secret-username: "{.data['username']}"
+          name: secret
+        stringData:
+          password: secret-password
+          username: secret-username
+      - apiVersion: v1
+        kind: Service
+        metadata:
+          annotations:
+            template.openshift.io/expose-service-uri: http://{.spec.clusterIP}:{.spec.ports[?(.name=="port")].port}
+          name: service
+        spec:
+          ports:
+          - name: port
+            port: 1234
+      - apiVersion: v1
+        kind: Route
+        metadata:
+          annotations:
+            template.openshift.io/expose-route-uri: http://{.spec.host}{.spec.path}
+          name: route
+        spec:
+          host: host
+          path: /path
+          to:
+            kind: Service
+            name: service
+
+- apiVersion: template.openshift.io/v1
+  kind: BrokerTemplateInstance
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+  spec:
+    templateInstance:
+      apiVersion: template.openshift.io/v1
+      kind: TemplateInstance
+      name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+      namespace: ${NAMESPACE}
+
+    secret:
+      apiVersion: v1
+      kind: Secret
+      name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+      namespace: ${NAMESPACE}
+
+parameters:
+- name: NAMESPACE
+  required: true
