@@ -74,6 +74,7 @@ func TestAdmitCaps(t *testing.T) {
 		pod                  *kapi.Pod
 		sccs                 []*securityapi.SecurityContextConstraints
 		shouldPass           bool
+		expectedSCC          string
 		expectedCapabilities *kapi.Capabilities
 	}{
 		// UC 1: if an SCC does not define allowed or required caps then a pod requesting a cap
@@ -86,16 +87,18 @@ func TestAdmitCaps(t *testing.T) {
 		// UC 2: if an SCC allows a cap in the allowed field it should accept the pod request
 		// to add the cap.
 		"should accept cap add when in allowed": {
-			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, allowsFooInAllowed},
-			shouldPass: true,
+			pod:         createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:        []*securityapi.SecurityContextConstraints{restricted, allowsFooInAllowed},
+			shouldPass:  true,
+			expectedSCC: allowsFooInAllowed.Name,
 		},
 		// UC 3: if an SCC requires a cap then it should accept the pod request
 		// to add the cap.
 		"should accept cap add when in required": {
-			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, allowsFooInRequired},
-			shouldPass: true,
+			pod:         createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:        []*securityapi.SecurityContextConstraints{restricted, allowsFooInRequired},
+			shouldPass:  true,
+			expectedSCC: allowsFooInRequired.Name,
 		},
 		// UC 4: if an SCC requires a cap to be dropped then it should fail both
 		// in the verification of adds and verification of drops
@@ -107,33 +110,37 @@ func TestAdmitCaps(t *testing.T) {
 		// UC 5: if an SCC requires a cap to be dropped it should accept
 		// a manual request to drop the cap.
 		"should accept cap drop when cap is required to be dropped": {
-			pod:        createPodWithCaps(&kapi.Capabilities{Drop: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, requiresFooToBeDropped},
-			shouldPass: true,
+			pod:         createPodWithCaps(&kapi.Capabilities{Drop: []kapi.Capability{"foo"}}),
+			sccs:        []*securityapi.SecurityContextConstraints{restricted, requiresFooToBeDropped},
+			shouldPass:  true,
+			expectedSCC: requiresFooToBeDropped.Name,
 		},
 		// UC 6: required add is defaulted
 		"required add is defaulted": {
-			pod:        goodPod(),
-			sccs:       []*securityapi.SecurityContextConstraints{allowsFooInRequired},
-			shouldPass: true,
+			pod:         goodPod(),
+			sccs:        []*securityapi.SecurityContextConstraints{allowsFooInRequired},
+			shouldPass:  true,
+			expectedSCC: allowsFooInRequired.Name,
 			expectedCapabilities: &kapi.Capabilities{
 				Add: []kapi.Capability{"foo"},
 			},
 		},
 		// UC 7: required drop is defaulted
 		"required drop is defaulted": {
-			pod:        goodPod(),
-			sccs:       []*securityapi.SecurityContextConstraints{requiresFooToBeDropped},
-			shouldPass: true,
+			pod:         goodPod(),
+			sccs:        []*securityapi.SecurityContextConstraints{requiresFooToBeDropped},
+			shouldPass:  true,
+			expectedSCC: requiresFooToBeDropped.Name,
 			expectedCapabilities: &kapi.Capabilities{
 				Drop: []kapi.Capability{"foo"},
 			},
 		},
 		// UC 8: using '*' in allowed caps
 		"should accept cap add when all caps are allowed": {
-			pod:        createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
-			sccs:       []*securityapi.SecurityContextConstraints{restricted, allowAllInAllowed},
-			shouldPass: true,
+			pod:         createPodWithCaps(&kapi.Capabilities{Add: []kapi.Capability{"foo"}}),
+			sccs:        []*securityapi.SecurityContextConstraints{restricted, allowAllInAllowed},
+			expectedSCC: allowAllInAllowed.Name,
+			shouldPass:  true,
 		},
 	}
 
@@ -145,7 +152,7 @@ func TestAdmitCaps(t *testing.T) {
 				containers = v.pod.Spec.InitContainers
 			}
 
-			testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+			testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, v.expectedSCC, t)
 
 			if v.expectedCapabilities != nil {
 				if !reflect.DeepEqual(v.expectedCapabilities, containers[0].SecurityContext.Capabilities) {
@@ -156,7 +163,7 @@ func TestAdmitCaps(t *testing.T) {
 	}
 }
 
-func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, t *testing.T) {
+func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstraints, pod *kapi.Pod, shouldPass bool, expectedSCC string, t *testing.T) {
 	namespace := admissiontesting.CreateNamespaceForTest()
 	serviceAccount := admissiontesting.CreateSAForTest()
 	tc := clientsetfake.NewSimpleClientset(namespace, serviceAccount)
@@ -174,6 +181,13 @@ func testSCCAdmit(testCaseName string, sccs []*securityapi.SecurityContextConstr
 	if shouldPass && err != nil {
 		t.Errorf("%s expected no errors but received %v", testCaseName, err)
 	}
+
+	if shouldPass && err == nil {
+		if pod.Annotations[allocator.ValidatedSCCAnnotation] != expectedSCC {
+			t.Errorf("%s: expected to validate under %q SCC but found %q", testCaseName, expectedSCC, pod.Annotations[allocator.ValidatedSCCAnnotation])
+		}
+	}
+
 	if !shouldPass && err == nil {
 		t.Errorf("%s expected errors but received none", testCaseName)
 	}
@@ -1036,18 +1050,9 @@ func TestAdmitSeccomp(t *testing.T) {
 	}
 
 	for k, v := range tests {
-		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, t)
+		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, v.expectedSCC, t)
 
 		if v.shouldPass {
-			validatedSCC, ok := v.pod.Annotations[allocator.ValidatedSCCAnnotation]
-			if !ok {
-				t.Errorf("expected to find the validated annotation on the pod for the scc but found none")
-				return
-			}
-			if validatedSCC != v.expectedSCC {
-				t.Errorf("should have validated against %s but found %s", v.expectedSCC, validatedSCC)
-			}
-
 			if len(v.expectedPodAnnotation) > 0 {
 				annotation, found := v.pod.Annotations[kapi.SeccompPodAnnotationKey]
 				if !found {
@@ -1060,6 +1065,68 @@ func TestAdmitSeccomp(t *testing.T) {
 		}
 	}
 
+}
+
+func TestAdmitPrivileged(t *testing.T) {
+	createPodWithPriv := func(priv bool) *kapi.Pod {
+		pod := goodPod()
+		pod.Spec.Containers[0].SecurityContext.Privileged = &priv
+		return pod
+	}
+
+	nonPrivilegedSCC := restrictiveSCC()
+	nonPrivilegedSCC.Name = "non-priv"
+	nonPrivilegedSCC.AllowPrivilegedContainer = false
+
+	privilegedSCC := restrictiveSCC()
+	privilegedSCC.Name = "priv"
+	privilegedSCC.AllowPrivilegedContainer = true
+
+	tests := map[string]struct {
+		pod          *kapi.Pod
+		sccs         []*securityapi.SecurityContextConstraints
+		shouldPass   bool
+		expectedPriv bool
+		expectedSCC  string
+	}{
+		"pod without priv request allowed under non priv SCC": {
+			pod:          goodPod(),
+			sccs:         []*securityapi.SecurityContextConstraints{nonPrivilegedSCC},
+			shouldPass:   true,
+			expectedPriv: false,
+			expectedSCC:  nonPrivilegedSCC.Name,
+		},
+		"pod without priv request allowed under priv SCC": {
+			pod:          goodPod(),
+			sccs:         []*securityapi.SecurityContextConstraints{privilegedSCC},
+			shouldPass:   true,
+			expectedPriv: false,
+			expectedSCC:  privilegedSCC.Name,
+		},
+		"pod with priv request denied by non priv SCC": {
+			pod:        createPodWithPriv(true),
+			sccs:       []*securityapi.SecurityContextConstraints{nonPrivilegedSCC},
+			shouldPass: false,
+		},
+		"pod with priv request allowed by priv SCC": {
+			pod:          createPodWithPriv(true),
+			sccs:         []*securityapi.SecurityContextConstraints{nonPrivilegedSCC, privilegedSCC},
+			shouldPass:   true,
+			expectedPriv: true,
+			expectedSCC:  privilegedSCC.Name,
+		},
+	}
+
+	for k, v := range tests {
+		testSCCAdmit(k, v.sccs, v.pod, v.shouldPass, v.expectedSCC, t)
+
+		if v.shouldPass {
+			if v.pod.Spec.Containers[0].SecurityContext.Privileged == nil ||
+				*v.pod.Spec.Containers[0].SecurityContext.Privileged != v.expectedPriv {
+				t.Errorf("%s expected privileged to be %t", k, v.expectedPriv)
+			}
+		}
+	}
 }
 
 // testSCCAdmission is a helper to admit the pod and ensure it was validated against the expected
