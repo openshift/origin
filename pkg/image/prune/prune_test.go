@@ -216,6 +216,14 @@ func tagEvent(id, ref string) imageapi.TagEvent {
 	}
 }
 
+func youngTagEvent(id, ref string, created metav1.Time) imageapi.TagEvent {
+	return imageapi.TagEvent{
+		Image:                id,
+		Created:              created,
+		DockerImageReference: ref,
+	}
+}
+
 func rcList(rcs ...kapi.ReplicationController) kapi.ReplicationControllerList {
 	return kapi.ReplicationControllerList{
 		Items: rcs,
@@ -362,6 +370,7 @@ type fakeImageStreamDeleter struct {
 	invocations  sets.String
 	err          error
 	streamImages map[string][]string
+	streamTags   map[string][]string
 }
 
 var _ ImageStreamDeleter = &fakeImageStreamDeleter{}
@@ -370,9 +379,14 @@ func (p *fakeImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*
 	if p.streamImages == nil {
 		p.streamImages = make(map[string][]string)
 	}
-	for _, history := range stream.Status.Tags {
+	if p.streamTags == nil {
+		p.streamTags = make(map[string][]string)
+	}
+	for tag, history := range stream.Status.Tags {
+		streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+		p.streamTags[streamName] = append(p.streamTags[streamName], tag)
+
 		for _, tagEvent := range history.Items {
-			streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
 			p.streamImages[streamName] = append(p.streamImages[streamName], tagEvent.Image)
 		}
 	}
@@ -381,14 +395,22 @@ func (p *fakeImageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*
 
 func (p *fakeImageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	streamImages := make(map[string]struct{})
+	streamTags := make(map[string]struct{})
 
-	for _, history := range stream.Status.Tags {
+	for tag, history := range stream.Status.Tags {
+		streamTags[tag] = struct{}{}
 		for _, tagEvent := range history.Items {
 			streamImages[tagEvent.Image] = struct{}{}
 		}
 	}
 
 	streamName := fmt.Sprintf("%s/%s", stream.Namespace, stream.Name)
+
+	for _, tag := range p.streamTags[streamName] {
+		if _, ok := streamTags[tag]; !ok {
+			p.invocations.Insert(fmt.Sprintf("%s:%s", streamName, tag))
+		}
+	}
 
 	for _, imageName := range p.streamImages[streamName] {
 		if _, ok := streamImages[imageName]; !ok {
@@ -741,6 +763,61 @@ func TestImagePruning(t *testing.T) {
 			),
 			expectedImageDeletions: []string{},
 			expectedStreamUpdates:  []string{},
+		},
+
+		"image stream - unreference absent image": {
+			images: imageList(
+				image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			),
+			streams: streamList(
+				stream(registryHost, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+						tagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+					),
+				)),
+			),
+			expectedStreamUpdates: []string{"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000000"},
+		},
+
+		"image stream with dangling references - delete tags": {
+			images: imageList(
+				imageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001", nil, "layer1"),
+			),
+			streams: streamList(
+				stream(registryHost, "foo", "bar", tags(
+					tag("latest",
+						tagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+					),
+					tag("tag",
+						tagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002"),
+					),
+				)),
+			),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+			expectedStreamUpdates: []string{
+				"foo/bar:latest",
+				"foo/bar:tag",
+				"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000000",
+				"foo/bar|sha256:0000000000000000000000000000000000000000000000000000000000000002",
+			},
+			expectedBlobDeletions: []string{registryURL + "|layer1"},
+		},
+
+		"image stream - keep reference to a young absent image": {
+			images: imageList(
+				image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+				imageWithLayers("sha256:0000000000000000000000000000000000000000000000000000000000000002", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000002", nil),
+			),
+			streams: streamList(
+				stream(registryHost, "foo", "bar", tags(
+					tag("latest",
+						youngTagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000", metav1.Now()),
+						tagEvent("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+					),
+				)),
+			),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000002"},
 		},
 
 		"multiple resources pointing to image - don't prune": {

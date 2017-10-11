@@ -57,7 +57,7 @@ const (
 // pruneAlgorithm contains the various settings to use when evaluating images
 // and layers for pruning.
 type pruneAlgorithm struct {
-	keepYoungerThan    time.Duration
+	keepYoungerThan    time.Time
 	keepTagRevisions   int
 	pruneOverSizeLimit bool
 	namespace          string
@@ -217,7 +217,7 @@ func NewPruner(options PrunerOptions) (Pruner, error) {
 
 	algorithm := pruneAlgorithm{}
 	if options.KeepYoungerThan != nil {
-		algorithm.keepYoungerThan = *options.KeepYoungerThan
+		algorithm.keepYoungerThan = metav1.Now().Add(-*options.KeepYoungerThan)
 	}
 	if options.KeepTagRevisions != nil {
 		algorithm.keepTagRevisions = *options.KeepTagRevisions
@@ -307,8 +307,7 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList, li
 		// use a weak reference for old image revisions by default
 		oldImageRevisionReferenceKind := WeakReferencedImageEdgeKind
 
-		age := metav1.Now().Sub(stream.CreationTimestamp.Time)
-		if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
+		if !algorithm.pruneOverSizeLimit && stream.CreationTimestamp.Time.After(algorithm.keepYoungerThan) {
 			// stream's age is below threshold - use a strong reference for old image revisions instead
 			oldImageRevisionReferenceKind = ReferencedImageEdgeKind
 		}
@@ -415,9 +414,8 @@ func addPodsToGraph(g graph.Graph, pods *kapi.PodList, algorithm pruneAlgorithm)
 		// pending or running. Additionally, it has to be at least as old as the minimum
 		// age threshold defined by the algorithm.
 		if pod.Status.Phase != kapi.PodRunning && pod.Status.Phase != kapi.PodPending {
-			age := metav1.Now().Sub(pod.CreationTimestamp.Time)
-			if age >= algorithm.keepYoungerThan {
-				glog.V(4).Infof("Pod %s is not running nor pending and age exceeds keepYoungerThan (%v) - skipping", getName(pod), age)
+			if !pod.CreationTimestamp.Time.After(algorithm.keepYoungerThan) {
+				glog.V(4).Infof("Ignoring pod %s for image reference counting because it's not running/pending and is too old", getName(pod))
 				continue
 			}
 		}
@@ -598,9 +596,8 @@ func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode, algorithm p
 		}
 	}
 
-	age := metav1.Now().Sub(imageNode.Image.CreationTimestamp.Time)
-	if !algorithm.pruneOverSizeLimit && age < algorithm.keepYoungerThan {
-		glog.V(4).Infof("Image %q is younger than minimum pruning age, skipping (age=%v)", imageNode.Image.Name, age)
+	if !algorithm.pruneOverSizeLimit && imageNode.Image.CreationTimestamp.Time.After(algorithm.keepYoungerThan) {
+		glog.V(4).Infof("Image %q is younger than minimum pruning age", imageNode.Image.Name)
 		return false
 	}
 
@@ -690,23 +687,15 @@ func pruneStreams(
 	g graph.Graph,
 	prunableImageNodes map[string]*imagegraph.ImageNode,
 	streamPruner ImageStreamDeleter,
+	keepYoungerThan time.Time,
 ) error {
-	prunableStreams := make(map[string]*imagegraph.ImageStreamNode)
-
 	glog.V(4).Infof("Removing pruned image references from streams")
-	for _, imageNode := range prunableImageNodes {
-		for _, n := range g.To(imageNode) {
-			streamNode, ok := n.(*imagegraph.ImageStreamNode)
-			if !ok {
-				continue
-			}
-
-			streamName := getName(streamNode.ImageStream)
-			prunableStreams[streamName] = streamNode
+	for _, node := range g.Nodes() {
+		streamNode, ok := node.(*imagegraph.ImageStreamNode)
+		if !ok {
+			continue
 		}
-	}
-
-	for streamName, streamNode := range prunableStreams {
+		streamName := getName(streamNode.ImageStream)
 		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
 			stream, err := streamPruner.GetImageStream(streamNode.ImageStream)
 			if err != nil {
@@ -720,26 +709,11 @@ func pruneStreams(
 			updatedTags := sets.NewString()
 			deletedTags := sets.NewString()
 
-			for tag, history := range stream.Status.Tags {
-				newHistory := imageapi.TagEventList{}
-				for i, tagEvent := range history.Items {
-					glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
-
-					if _, ok := prunableImageNodes[tagEvent.Image]; ok {
-						glog.V(4).Infof("Image stream tag %s:%s revision %d - removing because image %q matches deleted image", streamName, tag, i, tagEvent.Image)
-						updatedTags.Insert(tag)
-					} else {
-						glog.V(4).Infof("Image stream tag %s:%s revision %d - keeping because image %q is not deleted", streamName, tag, i, tagEvent.Image)
-						newHistory.Items = append(newHistory.Items, tagEvent)
-					}
-				}
-
-				if len(newHistory.Items) == 0 {
-					glog.V(4).Infof("Image stream tag %s:%s - removing empty tag", streamName, tag)
-					delete(stream.Status.Tags, tag)
+			for tag := range stream.Status.Tags {
+				if updated, deleted := pruneISTagHistory(g, prunableImageNodes, keepYoungerThan, streamName, stream, tag); deleted {
 					deletedTags.Insert(tag)
-				} else {
-					stream.Status.Tags[tag] = newHistory
+				} else if updated {
+					updatedTags.Insert(tag)
 				}
 			}
 
@@ -768,6 +742,65 @@ func pruneStreams(
 
 	glog.V(4).Infof("Done removing pruned image references from streams")
 	return nil
+}
+
+// pruneISTagHistory processes tag event list of the given image stream tag. It removes references to images
+// that are going to be removed or are missing in the graph.
+func pruneISTagHistory(
+	g graph.Graph,
+	prunableImageNodes map[string]*imagegraph.ImageNode,
+	keepYoungerThan time.Time,
+	streamName string,
+	imageStream *imageapi.ImageStream,
+	tag string,
+) (tagUpdated, tagDeleted bool) {
+	history := imageStream.Status.Tags[tag]
+	newHistory := imageapi.TagEventList{}
+
+	for i, tagEvent := range history.Items {
+		glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
+
+		if ok, reason := tagEventIsPrunable(tagEvent, g, prunableImageNodes, keepYoungerThan); ok {
+			glog.V(4).Infof("Image stream tag %s:%s revision %d - removing because %s", streamName, tag, i, reason)
+			tagUpdated = true
+		} else {
+			glog.V(4).Infof("Image stream tag %s:%s revision %d - keeping because %s", streamName, tag, i, reason)
+			newHistory.Items = append(newHistory.Items, tagEvent)
+		}
+	}
+
+	if len(newHistory.Items) == 0 {
+		glog.V(4).Infof("Image stream tag %s:%s - removing empty tag", streamName, tag)
+		delete(imageStream.Status.Tags, tag)
+		tagDeleted = true
+		tagUpdated = false
+	} else if tagUpdated {
+		imageStream.Status.Tags[tag] = newHistory
+	}
+
+	return
+}
+
+func tagEventIsPrunable(
+	tagEvent imageapi.TagEvent,
+	g graph.Graph,
+	prunableImageNodes map[string]*imagegraph.ImageNode,
+	keepYoungerThan time.Time,
+) (ok bool, reason string) {
+	if _, ok := prunableImageNodes[tagEvent.Image]; ok {
+		return true, fmt.Sprintf("image %q matches deleted image", tagEvent.Image)
+	}
+
+	n := imagegraph.FindImage(g, tagEvent.Image)
+	if n != nil {
+		return false, fmt.Sprintf("image %q is not deleted", tagEvent.Image)
+	}
+
+	if n == nil && !tagEvent.Created.After(keepYoungerThan) {
+		return true, fmt.Sprintf("image %q is absent", tagEvent.Image)
+	}
+
+	return false, "the tag event is younger than threshold"
 }
 
 // pruneImages invokes imagePruner.DeleteImage with each image that is prunable.
@@ -802,7 +835,7 @@ func (p *pruner) Prune(
 
 	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes, p.algorithm)
 
-	err := pruneStreams(p.g, prunableImageNodes, streamPruner)
+	err := pruneStreams(p.g, prunableImageNodes, streamPruner, p.algorithm.keepYoungerThan)
 	// if namespace is specified prune only ImageStreams and nothing more
 	// if we have any errors after ImageStreams pruning this may mean that
 	// we still have references to images.
