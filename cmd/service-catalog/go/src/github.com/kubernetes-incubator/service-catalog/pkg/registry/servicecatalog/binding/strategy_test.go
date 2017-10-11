@@ -20,30 +20,30 @@ import (
 	"fmt"
 	"testing"
 
+	"k8s.io/api/core/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
-	"k8s.io/client-go/pkg/api/v1"
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 	scfeatures "github.com/kubernetes-incubator/service-catalog/pkg/features"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func getTestInstanceCredential() *servicecatalog.ServiceInstanceCredential {
-	return &servicecatalog.ServiceInstanceCredential{
+func getTestInstanceCredential() *servicecatalog.ServiceBinding {
+	return &servicecatalog.ServiceBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Generation: 1,
 		},
-		Spec: servicecatalog.ServiceInstanceCredentialSpec{
+		Spec: servicecatalog.ServiceBindingSpec{
 			ServiceInstanceRef: v1.LocalObjectReference{
 				Name: "some-string",
 			},
 		},
-		Status: servicecatalog.ServiceInstanceCredentialStatus{
-			Conditions: []servicecatalog.ServiceInstanceCredentialCondition{
+		Status: servicecatalog.ServiceBindingStatus{
+			Conditions: []servicecatalog.ServiceBindingCondition{
 				{
-					Type:   servicecatalog.ServiceInstanceCredentialConditionReady,
+					Type:   servicecatalog.ServiceBindingConditionReady,
 					Status: servicecatalog.ConditionTrue,
 				},
 			},
@@ -63,12 +63,12 @@ func contextWithUserName(userName string) genericapirequest.Context {
 // in the spec to which the reconciler allows a change.
 
 // TestInstanceCredentialUpdate tests that generation is incremented correctly when the
-// spec of a ServiceInstanceCredential is updated.
+// spec of a ServiceBinding is updated.
 func TestInstanceCredentialUpdate(t *testing.T) {
 	cases := []struct {
 		name                      string
-		older                     *servicecatalog.ServiceInstanceCredential
-		newer                     *servicecatalog.ServiceInstanceCredential
+		older                     *servicecatalog.ServiceBinding
+		newer                     *servicecatalog.ServiceBinding
 		shouldGenerationIncrement bool
 	}{
 		{
@@ -79,7 +79,7 @@ func TestInstanceCredentialUpdate(t *testing.T) {
 		//		{
 		//			name:  "spec change",
 		//			older: getTestInstanceCredential(),
-		//			newer: func() *v1alpha1.ServiceInstanceCredential {
+		//			newer: func() *v1beta1.ServiceBinding {
 		//				ic := getTestInstanceCredential()
 		//				ic.Spec.ServiceInstanceRef = v1.LocalObjectReference{
 		//					Name: "new-string",

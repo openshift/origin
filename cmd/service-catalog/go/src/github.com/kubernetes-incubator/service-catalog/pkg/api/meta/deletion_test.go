@@ -58,7 +58,7 @@ func TestRoundTripDeletionTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting 1st deletion timestamp (%s)", err)
 	}
-	if !t1.Equal(*t1Ret) {
+	if !t1.Equal(t1Ret) {
 		t.Fatalf("expected deletion timestamp %s, got %s", t1, *t1Ret)
 	}
 	if err := SetDeletionTimestamp(obj, t2.Time); err != nil {
@@ -68,7 +68,7 @@ func TestRoundTripDeletionTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error getting 2nd deletion timestamp (%s)", err)
 	}
-	if !t2.Equal(*t2Ret) {
+	if !t2.Equal(t2Ret) {
 		t.Fatalf("expected deletion timestamp %s, got %s", t2, *t2Ret)
 	}
 }

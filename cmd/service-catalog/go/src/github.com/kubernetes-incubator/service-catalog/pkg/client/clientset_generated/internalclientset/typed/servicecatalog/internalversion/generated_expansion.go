@@ -16,12 +16,12 @@ limitations under the License.
 
 package internalversion
 
-type ServiceBrokerExpansion interface{}
+type ClusterServiceBrokerExpansion interface{}
 
-type ServiceClassExpansion interface{}
+type ClusterServiceClassExpansion interface{}
+
+type ClusterServicePlanExpansion interface{}
+
+type ServiceBindingExpansion interface{}
 
 type ServiceInstanceExpansion interface{}
-
-type ServiceInstanceCredentialExpansion interface{}
-
-type ServicePlanExpansion interface{}

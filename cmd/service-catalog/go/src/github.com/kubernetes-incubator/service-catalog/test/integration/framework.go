@@ -38,8 +38,6 @@ import (
 	servicecatalogclient "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	serverstorage "github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"k8s.io/apimachinery/pkg/runtime"
-	_ "k8s.io/client-go/pkg/api/install"
-	_ "k8s.io/client-go/pkg/apis/extensions/install"
 )
 
 func init() {

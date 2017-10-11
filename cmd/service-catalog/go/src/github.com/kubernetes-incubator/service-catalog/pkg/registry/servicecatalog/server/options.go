@@ -134,7 +134,6 @@ func (o Options) KeyFunc(namespaced bool) func(genericapirequest.Context, string
 
 // GetStorage returns the storage from the given parameters
 func (o Options) GetStorage(
-	capacity int,
 	objectType runtime.Object,
 	resourcePrefix string,
 	scopeStrategy rest.NamespaceScopedStrategy,
@@ -147,7 +146,6 @@ func (o Options) GetStorage(
 		return etcdRESTOpts.Decorator(
 			api.Scheme,
 			etcdRESTOpts.StorageConfig,
-			&capacity,
 			objectType,
 			resourcePrefix,
 			nil, /* keyFunc for decorator -- looks to be unused everywhere */

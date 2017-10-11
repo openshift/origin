@@ -80,58 +80,36 @@ func TestStructCodec(t *testing.T) {
 		V string `datastore:",noindex"`
 	}
 	oStructCodec := &structCodec{
-		byIndex: []structTag{
-			{name: "O"},
-		},
-		byName: map[string]fieldCodec{
-			"O": {index: 0},
+		fields: map[string]fieldCodec{
+			"O": {path: []int{0}},
 		},
 		complete: true,
 	}
 	pStructCodec := &structCodec{
-		byIndex: []structTag{
-			{name: "P"},
-			{name: "Q"},
-		},
-		byName: map[string]fieldCodec{
-			"P": {index: 0},
-			"Q": {index: 1},
+		fields: map[string]fieldCodec{
+			"P": {path: []int{0}},
+			"Q": {path: []int{1}},
 		},
 		complete: true,
 	}
 	rStructCodec := &structCodec{
-		byIndex: []structTag{
-			{name: "R"},
-			{name: "S."},
-			{name: "T."},
-			{name: ""},
-		},
-		byName: map[string]fieldCodec{
-			"R":   {index: 0},
-			"S.P": {index: 1, substructCodec: pStructCodec},
-			"S.Q": {index: 1, substructCodec: pStructCodec},
-			"T.O": {index: 2, substructCodec: oStructCodec},
-			"O":   {index: 3, substructCodec: oStructCodec},
+		fields: map[string]fieldCodec{
+			"R": {path: []int{0}},
+			"S": {path: []int{1}, structCodec: pStructCodec},
+			"T": {path: []int{2}, structCodec: oStructCodec},
+			"O": {path: []int{3, 0}},
 		},
 		complete: true,
 	}
 	uStructCodec := &structCodec{
-		byIndex: []structTag{
-			{name: "U"},
-			{name: "v"},
-		},
-		byName: map[string]fieldCodec{
-			"U": {index: 0},
-			"v": {index: 1},
+		fields: map[string]fieldCodec{
+			"U": {path: []int{0}},
 		},
 		complete: true,
 	}
 	vStructCodec := &structCodec{
-		byIndex: []structTag{
-			{name: "V", noIndex: true},
-		},
-		byName: map[string]fieldCodec{
-			"V": {index: 0},
+		fields: map[string]fieldCodec{
+			"V": {path: []int{0}, noIndex: true},
 		},
 		complete: true,
 	}
@@ -169,15 +147,10 @@ func TestStructCodec(t *testing.T) {
 				T time.Time
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "B"},
-					{name: "K"},
-					{name: "T"},
-				},
-				byName: map[string]fieldCodec{
-					"B": {index: 0},
-					"K": {index: 1},
-					"T": {index: 2},
+				fields: map[string]fieldCodec{
+					"B": {path: []int{0}},
+					"K": {path: []int{1}},
+					"T": {path: []int{2}},
 				},
 				complete: true,
 			},
@@ -195,23 +168,13 @@ func TestStructCodec(t *testing.T) {
 				oStruct `datastore:"-"`
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "a", noIndex: true},
-					{name: "b", noIndex: false},
-					{name: "C", noIndex: true},
-					{name: "D", noIndex: false},
-					{name: "E", noIndex: false},
-					{name: "-", noIndex: false},
-					{name: "J", noIndex: true},
-					{name: "-", noIndex: false},
-				},
-				byName: map[string]fieldCodec{
-					"a": {index: 0},
-					"b": {index: 1},
-					"C": {index: 2},
-					"D": {index: 3},
-					"E": {index: 4},
-					"J": {index: 6},
+				fields: map[string]fieldCodec{
+					"a": {path: []int{0}, noIndex: true},
+					"b": {path: []int{1}},
+					"C": {path: []int{2}, noIndex: true},
+					"D": {path: []int{3}},
+					"E": {path: []int{4}},
+					"J": {path: []int{6}, noIndex: true},
 				},
 				complete: true,
 			},
@@ -225,17 +188,9 @@ func TestStructCodec(t *testing.T) {
 				d int `datastore:"Y"`
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "A"},
-					{name: "b"},
-					{name: "x"},
-					{name: "Y"},
-				},
-				byName: map[string]fieldCodec{
-					"A": {index: 0},
-					"b": {index: 1},
-					"x": {index: 2},
-					"Y": {index: 3},
+				fields: map[string]fieldCodec{
+					"A": {path: []int{0}},
+					"x": {path: []int{2}},
 				},
 				complete: true,
 			},
@@ -250,23 +205,12 @@ func TestStructCodec(t *testing.T) {
 				oStruct
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "A"},
-					{name: "B"},
-					{name: "CC."},
-					{name: "DDD."},
-					{name: ""},
-				},
-				byName: map[string]fieldCodec{
-					"A":       {index: 0},
-					"B":       {index: 1},
-					"CC.O":    {index: 2, substructCodec: oStructCodec},
-					"DDD.R":   {index: 3, substructCodec: rStructCodec},
-					"DDD.S.P": {index: 3, substructCodec: rStructCodec},
-					"DDD.S.Q": {index: 3, substructCodec: rStructCodec},
-					"DDD.T.O": {index: 3, substructCodec: rStructCodec},
-					"DDD.O":   {index: 3, substructCodec: rStructCodec},
-					"O":       {index: 4, substructCodec: oStructCodec},
+				fields: map[string]fieldCodec{
+					"A":   {path: []int{0}},
+					"B":   {path: []int{1}},
+					"CC":  {path: []int{2}, structCodec: oStructCodec},
+					"DDD": {path: []int{3}, structCodec: rStructCodec},
+					"O":   {path: []int{4, 0}},
 				},
 				complete: true,
 			},
@@ -281,22 +225,11 @@ func TestStructCodec(t *testing.T) {
 				oStruct `datastore:"z"`
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "-"},
-					{name: "w"},
-					{name: "xx."},
-					{name: "y."},
-					{name: "z."},
-				},
-				byName: map[string]fieldCodec{
-					"w":     {index: 1},
-					"xx.O":  {index: 2, substructCodec: oStructCodec},
-					"y.R":   {index: 3, substructCodec: rStructCodec},
-					"y.S.P": {index: 3, substructCodec: rStructCodec},
-					"y.S.Q": {index: 3, substructCodec: rStructCodec},
-					"y.T.O": {index: 3, substructCodec: rStructCodec},
-					"y.O":   {index: 3, substructCodec: rStructCodec},
-					"z.O":   {index: 4, substructCodec: oStructCodec},
+				fields: map[string]fieldCodec{
+					"w":   {path: []int{1}},
+					"xx":  {path: []int{2}, structCodec: oStructCodec},
+					"y":   {path: []int{3}, structCodec: rStructCodec},
+					"z.O": {path: []int{4, 0}},
 				},
 				complete: true,
 			},
@@ -311,22 +244,10 @@ func TestStructCodec(t *testing.T) {
 				uStruct
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "a"},
-					{name: "B"},
-					{name: "c."},
-					{name: "D."},
-					{name: ""},
-				},
-				byName: map[string]fieldCodec{
-					"a":   {index: 0},
-					"B":   {index: 1},
-					"c.U": {index: 2, substructCodec: uStructCodec},
-					"c.v": {index: 2, substructCodec: uStructCodec},
-					"D.U": {index: 3, substructCodec: uStructCodec},
-					"D.v": {index: 3, substructCodec: uStructCodec},
-					"U":   {index: 4, substructCodec: uStructCodec},
-					"v":   {index: 4, substructCodec: uStructCodec},
+				fields: map[string]fieldCodec{
+					"B": {path: []int{1}},
+					"D": {path: []int{3}, structCodec: uStructCodec},
+					"U": {path: []int{4, 0}},
 				},
 				complete: true,
 			},
@@ -337,11 +258,8 @@ func TestStructCodec(t *testing.T) {
 				A oStruct `datastore:",noindex"`
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "A.", noIndex: true},
-				},
-				byName: map[string]fieldCodec{
-					"A.O": {index: 0, substructCodec: oStructCodec},
+				fields: map[string]fieldCodec{
+					"A": {path: []int{0}, structCodec: oStructCodec, noIndex: true},
 				},
 				complete: true,
 			},
@@ -352,11 +270,8 @@ func TestStructCodec(t *testing.T) {
 				A []string `datastore:",noindex"`
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "A", noIndex: true},
-				},
-				byName: map[string]fieldCodec{
-					"A": {index: 0},
+				fields: map[string]fieldCodec{
+					"A": {path: []int{0}, noIndex: true},
 				},
 				hasSlice: true,
 				complete: true,
@@ -369,11 +284,8 @@ func TestStructCodec(t *testing.T) {
 				A []vStruct `datastore:",noindex"`
 			}{},
 			&structCodec{
-				byIndex: []structTag{
-					{name: "A.", noIndex: true},
-				},
-				byName: map[string]fieldCodec{
-					"A.V": {index: 0, substructCodec: vStructCodec},
+				fields: map[string]fieldCodec{
+					"A": {path: []int{0}, structCodec: vStructCodec, noIndex: true},
 				},
 				hasSlice: true,
 				complete: true,
@@ -387,11 +299,42 @@ func TestStructCodec(t *testing.T) {
 			t.Errorf("%s: getStructCodec: %v", tc.desc, err)
 			continue
 		}
-		if !reflect.DeepEqual(got, tc.want) {
+		// can't reflect.DeepEqual b/c element order in fields map may differ
+		if !isEqualStructCodec(got, tc.want) {
 			t.Errorf("%s\ngot  %+v\nwant %+v\n", tc.desc, got, tc.want)
-			continue
 		}
 	}
+}
+
+func isEqualStructCodec(got, want *structCodec) bool {
+	if got.complete != want.complete {
+		return false
+	}
+	if got.hasSlice != want.hasSlice {
+		return false
+	}
+	if len(got.fields) != len(want.fields) {
+		return false
+	}
+	for name, wantF := range want.fields {
+		gotF := got.fields[name]
+		if !reflect.DeepEqual(wantF.path, gotF.path) {
+			return false
+		}
+		if wantF.noIndex != gotF.noIndex {
+			return false
+		}
+		if wantF.structCodec != nil {
+			if gotF.structCodec == nil {
+				return false
+			}
+			if !isEqualStructCodec(gotF.structCodec, wantF.structCodec) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func TestRepeatedPropertyName(t *testing.T) {
@@ -453,7 +396,7 @@ func TestRepeatedPropertyName(t *testing.T) {
 }
 
 func TestFlatteningNestedStructs(t *testing.T) {
-	type deepGood struct {
+	type DeepGood struct {
 		A struct {
 			B []struct {
 				C struct {
@@ -462,7 +405,7 @@ func TestFlatteningNestedStructs(t *testing.T) {
 			}
 		}
 	}
-	type deepBad struct {
+	type DeepBad struct {
 		A struct {
 			B []struct {
 				C struct {
@@ -471,16 +414,16 @@ func TestFlatteningNestedStructs(t *testing.T) {
 			}
 		}
 	}
-	type iSay struct {
+	type ISay struct {
 		Tomato int
 	}
-	type youSay struct {
+	type YouSay struct {
 		Tomato int
 	}
-	type tweedledee struct {
+	type Tweedledee struct {
 		Dee int `datastore:"D"`
 	}
-	type tweedledum struct {
+	type Tweedledum struct {
 		Dum int `datastore:"D"`
 	}
 
@@ -515,18 +458,18 @@ func TestFlatteningNestedStructs(t *testing.T) {
 			Q []int
 		}{},
 		struct {
-			deepGood
+			DeepGood
 		}{},
 		struct {
-			DG deepGood
+			DG DeepGood
 		}{},
 		struct {
 			Foo struct {
-				Z int `datastore:"X"`
+				Z int
 			} `datastore:"A"`
 			Bar struct {
-				Z int `datastore:"Y"`
-			} `datastore:"A"`
+				Z int
+			} `datastore:"B"`
 		}{},
 	}
 	bad := []interface{}{
@@ -541,18 +484,18 @@ func TestFlatteningNestedStructs(t *testing.T) {
 			}
 		}{},
 		struct {
-			deepBad
+			DeepBad
 		}{},
 		struct {
-			DB deepBad
+			DB DeepBad
 		}{},
 		struct {
-			iSay
-			youSay
+			ISay
+			YouSay
 		}{},
 		struct {
-			tweedledee
-			tweedledum
+			Tweedledee
+			Tweedledum
 		}{},
 		struct {
 			Foo struct {

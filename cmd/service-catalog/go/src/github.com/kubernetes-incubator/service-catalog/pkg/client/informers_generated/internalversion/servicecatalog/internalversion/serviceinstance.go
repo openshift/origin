@@ -41,26 +41,31 @@ type serviceInstanceInformer struct {
 	factory internalinterfaces.SharedInformerFactory
 }
 
-func newServiceInstanceInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	sharedIndexInformer := cache.NewSharedIndexInformer(
+// NewServiceInstanceInformer constructs a new informer for ServiceInstance type.
+// Always prefer using an informer factory to get a shared informer instead of getting an independent
+// one. This reduces memory footprint and number of connections to the server.
+func NewServiceInstanceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				return client.Servicecatalog().ServiceInstances(v1.NamespaceAll).List(options)
+				return client.Servicecatalog().ServiceInstances(namespace).List(options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				return client.Servicecatalog().ServiceInstances(v1.NamespaceAll).Watch(options)
+				return client.Servicecatalog().ServiceInstances(namespace).Watch(options)
 			},
 		},
 		&servicecatalog.ServiceInstance{},
 		resyncPeriod,
-		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		indexers,
 	)
+}
 
-	return sharedIndexInformer
+func defaultServiceInstanceInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewServiceInstanceInformer(client, v1.NamespaceAll, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 }
 
 func (f *serviceInstanceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&servicecatalog.ServiceInstance{}, newServiceInstanceInformer)
+	return f.factory.InformerFor(&servicecatalog.ServiceInstance{}, defaultServiceInstanceInformer)
 }
 
 func (f *serviceInstanceInformer) Lister() internalversion.ServiceInstanceLister {

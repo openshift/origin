@@ -27,11 +27,17 @@ import (
 // If opts is nil the default values are used.
 func NewInstance(opts *Options) (Instance, error) {
 	i := &instance{
-		opts:  opts,
-		appID: "testapp",
+		opts:           opts,
+		appID:          "testapp",
+		startupTimeout: 15 * time.Second,
 	}
-	if opts != nil && opts.AppID != "" {
-		i.appID = opts.AppID
+	if opts != nil {
+		if opts.AppID != "" {
+			i.appID = opts.AppID
+		}
+		if opts.StartupTimeout > 0 {
+			i.startupTimeout = opts.StartupTimeout
+		}
 	}
 	if err := i.startChild(); err != nil {
 		return nil, err
@@ -47,13 +53,14 @@ func newSessionID() string {
 
 // instance implements the Instance interface.
 type instance struct {
-	opts     *Options
-	child    *exec.Cmd
-	apiURL   *url.URL // base URL of API HTTP server
-	adminURL string   // base URL of admin HTTP server
-	appDir   string
-	appID    string
-	relFuncs []func() // funcs to release any associated contexts
+	opts           *Options
+	child          *exec.Cmd
+	apiURL         *url.URL // base URL of API HTTP server
+	adminURL       string   // base URL of admin HTTP server
+	appDir         string
+	appID          string
+	startupTimeout time.Duration
+	relFuncs       []func() // funcs to release any associated contexts
 }
 
 // NewRequest returns an *http.Request associated with this instance.
@@ -79,7 +86,8 @@ func (i *instance) Close() (err error) {
 		rel()
 	}
 	i.relFuncs = nil
-	if i.child == nil {
+	child := i.child
+	if child == nil {
 		return nil
 	}
 	defer func() {
@@ -90,10 +98,10 @@ func (i *instance) Close() (err error) {
 		}
 	}()
 
-	if p := i.child.Process; p != nil {
+	if p := child.Process; p != nil {
 		errc := make(chan error, 1)
 		go func() {
-			errc <- i.child.Wait()
+			errc <- child.Wait()
 		}()
 
 		// Call the quit handler on the admin server.
@@ -103,7 +111,6 @@ func (i *instance) Close() (err error) {
 			return fmt.Errorf("unable to call /quit handler: %v", err)
 		}
 		res.Body.Close()
-
 		select {
 		case <-time.After(15 * time.Second):
 			p.Kill()
@@ -234,7 +241,7 @@ func (i *instance) startChild() (err error) {
 	}()
 
 	select {
-	case <-time.After(15 * time.Second):
+	case <-time.After(i.startupTimeout):
 		if p := i.child.Process; p != nil {
 			p.Kill()
 		}
@@ -262,7 +269,6 @@ application: %s
 version: 1
 runtime: go
 api_version: go1
-vm: true
 
 handlers:
 - url: /.*

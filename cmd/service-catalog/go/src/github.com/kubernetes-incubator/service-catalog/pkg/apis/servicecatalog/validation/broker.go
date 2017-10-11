@@ -23,24 +23,24 @@ import (
 	sc "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
 )
 
-// ValidateServiceBrokerName is the validation function for Broker names.
-var ValidateServiceBrokerName = apivalidation.NameIsDNSSubdomain
+// ValidateClusterServiceBrokerName is the validation function for Broker names.
+var ValidateClusterServiceBrokerName = apivalidation.NameIsDNSSubdomain
 
-// ValidateServiceBroker implements the validation rules for a BrokerResource.
-func ValidateServiceBroker(broker *sc.ServiceBroker) field.ErrorList {
+// ValidateClusterServiceBroker implements the validation rules for a BrokerResource.
+func ValidateClusterServiceBroker(broker *sc.ClusterServiceBroker) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs,
 		apivalidation.ValidateObjectMeta(&broker.ObjectMeta,
 			false, /* namespace required */
-			ValidateServiceBrokerName,
+			ValidateClusterServiceBrokerName,
 			field.NewPath("metadata"))...)
 
-	allErrs = append(allErrs, validateServiceBrokerSpec(&broker.Spec, field.NewPath("spec"))...)
+	allErrs = append(allErrs, validateClusterServiceBrokerSpec(&broker.Spec, field.NewPath("spec"))...)
 	return allErrs
 }
 
-func validateServiceBrokerSpec(spec *sc.ServiceBrokerSpec, fldPath *field.Path) field.ErrorList {
+func validateClusterServiceBrokerSpec(spec *sc.ClusterServiceBrokerSpec, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if "" == spec.URL {
@@ -144,16 +144,16 @@ func validateServiceBrokerSpec(spec *sc.ServiceBrokerSpec, fldPath *field.Path) 
 	return allErrs
 }
 
-// ValidateServiceBrokerUpdate checks that when changing from an older broker to a newer broker is okay ?
-func ValidateServiceBrokerUpdate(new *sc.ServiceBroker, old *sc.ServiceBroker) field.ErrorList {
+// ValidateClusterServiceBrokerUpdate checks that when changing from an older broker to a newer broker is okay ?
+func ValidateClusterServiceBrokerUpdate(new *sc.ClusterServiceBroker, old *sc.ClusterServiceBroker) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, ValidateServiceBroker(new)...)
+	allErrs = append(allErrs, ValidateClusterServiceBroker(new)...)
 	return allErrs
 }
 
-// ValidateServiceBrokerStatusUpdate checks that when changing from an older broker to a newer broker is okay.
-func ValidateServiceBrokerStatusUpdate(new *sc.ServiceBroker, old *sc.ServiceBroker) field.ErrorList {
+// ValidateClusterServiceBrokerStatusUpdate checks that when changing from an older broker to a newer broker is okay.
+func ValidateClusterServiceBrokerStatusUpdate(new *sc.ClusterServiceBroker, old *sc.ClusterServiceBroker) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, ValidateServiceBrokerUpdate(new, old)...)
+	allErrs = append(allErrs, ValidateClusterServiceBrokerUpdate(new, old)...)
 	return allErrs
 }

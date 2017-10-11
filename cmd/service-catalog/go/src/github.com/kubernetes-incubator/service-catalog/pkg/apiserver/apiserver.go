@@ -17,7 +17,7 @@ limitations under the License.
 package apiserver
 
 import (
-	servicecatalogv1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	servicecatalogv1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 )
@@ -37,7 +37,7 @@ func (s ServiceCatalogAPIServer) PrepareRun() RunnableServer {
 func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret := serverstorage.NewResourceConfig()
 	ret.EnableVersions(
-		servicecatalogv1alpha1.SchemeGroupVersion,
+		servicecatalogv1beta1.SchemeGroupVersion,
 	)
 
 	return ret

@@ -29,25 +29,25 @@ import (
 )
 
 const (
-	testServiceBrokerName     = "test-broker"
-	bindingSuffixFormatString = "/v2/service_instances/%s/service_bindings/%s"
-	testServiceInstanceID     = "1"
-	testServiceBindingID      = "2"
-	testServiceID             = "3"
-	testPlanID                = "4"
-	testOperation             = "testoperation"
+	testClusterServiceBrokerName = "test-broker"
+	bindingSuffixFormatString    = "/v2/service_instances/%s/service_bindings/%s"
+	testServiceInstanceID        = "1"
+	testServiceBindingID         = "2"
+	testServiceID                = "3"
+	testPlanID                   = "4"
+	testOperation                = "testoperation"
 )
 
-func setup() (*util.FakeServiceBrokerServer, *servicecatalog.ServiceBroker) {
+func setup() (*util.FakeServiceBrokerServer, *servicecatalog.ClusterServiceBroker) {
 	fbs := &util.FakeServiceBrokerServer{}
 	url := fbs.Start()
-	fakeServiceBroker := &servicecatalog.ServiceBroker{
-		Spec: servicecatalog.ServiceBrokerSpec{
+	fakeClusterServiceBroker := &servicecatalog.ClusterServiceBroker{
+		Spec: servicecatalog.ClusterServiceBrokerSpec{
 			URL: url,
 		},
 	}
 
-	return fbs, fakeServiceBroker
+	return fbs, fakeClusterServiceBroker
 }
 
 func TestTrailingSlash(t *testing.T) {
@@ -55,7 +55,7 @@ func TestTrailingSlash(t *testing.T) {
 		input    = "http://a/b/c/"
 		expected = "http://a/b/c"
 	)
-	cl := NewClient("testServiceBroker", input, "test-user", "test-pass")
+	cl := NewClient("testClusterServiceBroker", input, "test-user", "test-pass")
 	osbCl, ok := cl.(*openServiceBrokerClient)
 	if !ok {
 		t.Fatalf("NewClient didn't return an openServiceBrokerClient")
@@ -68,10 +68,10 @@ func TestTrailingSlash(t *testing.T) {
 // Provision
 
 func TestProvisionServiceInstanceCreated(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusCreated)
 	_, rc, err := c.CreateServiceInstance(testServiceInstanceID, &brokerapi.CreateServiceInstanceRequest{})
@@ -87,10 +87,10 @@ func TestProvisionServiceInstanceCreated(t *testing.T) {
 }
 
 func TestProvisionServiceInstanceOK(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusOK)
 	_, rc, err := c.CreateServiceInstance(testServiceInstanceID, &brokerapi.CreateServiceInstanceRequest{})
@@ -103,10 +103,10 @@ func TestProvisionServiceInstanceOK(t *testing.T) {
 }
 
 func TestProvisionServiceInstanceConflict(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusConflict)
 	_, rc, err := c.CreateServiceInstance(testServiceInstanceID, &brokerapi.CreateServiceInstanceRequest{})
@@ -122,10 +122,10 @@ func TestProvisionServiceInstanceConflict(t *testing.T) {
 }
 
 func TestProvisionServiceInstanceUnprocessableEntity(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusUnprocessableEntity)
 	_, rc, err := c.CreateServiceInstance(testServiceInstanceID, &brokerapi.CreateServiceInstanceRequest{})
@@ -141,10 +141,10 @@ func TestProvisionServiceInstanceUnprocessableEntity(t *testing.T) {
 }
 
 func TestProvisionServiceInstanceAcceptedSuccessAsynchronous(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusAccepted)
 	fbs.SetOperation(testOperation)
@@ -168,10 +168,10 @@ func TestProvisionServiceInstanceAcceptedSuccessAsynchronous(t *testing.T) {
 // Deprovision
 
 func TestDeprovisionServiceInstanceOK(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusOK)
 
@@ -197,10 +197,10 @@ func TestDeprovisionServiceInstanceOK(t *testing.T) {
 }
 
 func TestDeprovisionServiceInstanceGone(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusGone)
 	resp, rc, err := c.DeleteServiceInstance(testServiceInstanceID, &brokerapi.DeleteServiceInstanceRequest{})
@@ -216,10 +216,10 @@ func TestDeprovisionServiceInstanceGone(t *testing.T) {
 }
 
 func TestDeprovisionServiceInstanceUnprocessableEntity(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusUnprocessableEntity)
 	resp, rc, err := c.DeleteServiceInstance(testServiceInstanceID, &brokerapi.DeleteServiceInstanceRequest{})
@@ -238,10 +238,10 @@ func TestDeprovisionServiceInstanceUnprocessableEntity(t *testing.T) {
 }
 
 func TestDeprovisionServiceInstanceAcceptedSuccessAsynchronous(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusAccepted)
 	fbs.SetOperation(testOperation)
@@ -263,10 +263,10 @@ func TestDeprovisionServiceInstanceAcceptedSuccessAsynchronous(t *testing.T) {
 }
 
 func TestBindOk(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusOK)
 	sent := &brokerapi.BindingRequest{}
@@ -274,10 +274,10 @@ func TestBindOk(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	verifyServiceInstanceCredentialMethodAndPath(http.MethodPut, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
+	verifyServiceBindingMethodAndPath(http.MethodPut, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
 
 	if fbs.RequestObject == nil {
-		t.Fatalf("ServiceInstanceCredentialRequest was not received correctly")
+		t.Fatalf("ServiceBindingRequest was not received correctly")
 	}
 	verifyRequestContentType(fbs.Request, t)
 
@@ -293,10 +293,10 @@ func TestBindOk(t *testing.T) {
 }
 
 func TestBindConflict(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusConflict)
 	sent := &brokerapi.BindingRequest{}
@@ -304,10 +304,10 @@ func TestBindConflict(t *testing.T) {
 		t.Fatal("Expected create service binding to fail with conflict, but didn't")
 	}
 
-	verifyServiceInstanceCredentialMethodAndPath(http.MethodPut, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
+	verifyServiceBindingMethodAndPath(http.MethodPut, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
 
 	if fbs.RequestObject == nil {
-		t.Fatalf("ServiceInstanceCredentialRequest was not received correctly")
+		t.Fatalf("ServiceBindingRequest was not received correctly")
 	}
 	actual := reflect.TypeOf(fbs.RequestObject)
 	expected := reflect.TypeOf(&brokerapi.BindingRequest{})
@@ -321,17 +321,17 @@ func TestBindConflict(t *testing.T) {
 }
 
 func TestUnbindOk(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusOK)
 	if err := c.DeleteServiceBinding(testServiceInstanceID, testServiceBindingID, testServiceID, testPlanID); err != nil {
 		t.Fatal(err.Error())
 	}
 
-	verifyServiceInstanceCredentialMethodAndPath(http.MethodDelete, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
+	verifyServiceBindingMethodAndPath(http.MethodDelete, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
 	verifyRequestParameter("service_id", testServiceID, fbs.Request, t)
 	verifyRequestParameter("plan_id", testPlanID, fbs.Request, t)
 
@@ -341,10 +341,10 @@ func TestUnbindOk(t *testing.T) {
 }
 
 func TestUnbindGone(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 
 	fbs.SetResponseStatus(http.StatusGone)
 	err := c.DeleteServiceBinding(testServiceInstanceID, testServiceBindingID, testServiceID, testPlanID)
@@ -355,14 +355,14 @@ func TestUnbindGone(t *testing.T) {
 		t.Fatalf("Did not find the expected error message 'There is no binding' in error: %s", err)
 	}
 
-	verifyServiceInstanceCredentialMethodAndPath(http.MethodDelete, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
+	verifyServiceBindingMethodAndPath(http.MethodDelete, testServiceInstanceID, testServiceBindingID, fbs.Request, t)
 }
 
 func TestPollServiceInstanceWithMissingServiceID(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 	r := &brokerapi.LastOperationRequest{PlanID: testPlanID}
 	_, _, err := c.PollServiceInstance(testServiceInstanceID, r)
 	if err == nil {
@@ -374,10 +374,10 @@ func TestPollServiceInstanceWithMissingServiceID(t *testing.T) {
 }
 
 func TestPollServiceInstanceWithMissingPlanID(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID}
 	_, _, err := c.PollServiceInstance(testServiceInstanceID, r)
 	if err == nil {
@@ -389,10 +389,10 @@ func TestPollServiceInstanceWithMissingPlanID(t *testing.T) {
 }
 
 func TestPollServiceInstanceWithFailure(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 	fbs.SetResponseStatus(http.StatusBadRequest)
 	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID, PlanID: testPlanID, Operation: testOperation}
 	_, rc, err := c.PollServiceInstance(testServiceInstanceID, r)
@@ -408,10 +408,10 @@ func TestPollServiceInstanceWithFailure(t *testing.T) {
 }
 
 func TestPollServiceInstanceWithGone(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 	fbs.SetResponseStatus(http.StatusGone)
 	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID, PlanID: testPlanID, Operation: testOperation}
 	_, rc, err := c.PollServiceInstance(testServiceInstanceID, r)
@@ -424,10 +424,10 @@ func TestPollServiceInstanceWithGone(t *testing.T) {
 }
 
 func TestPollServiceInstanceWithSuccess(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 	fbs.SetResponseStatus(http.StatusOK)
 	fbs.SetLastOperationState("success")
 	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID, PlanID: testPlanID, Operation: testOperation}
@@ -453,10 +453,10 @@ func TestPollServiceInstanceWithSuccess(t *testing.T) {
 }
 
 func TestPollServiceInstanceWithNoOperation(t *testing.T) {
-	fbs, fakeServiceBroker := setup()
+	fbs, fakeClusterServiceBroker := setup()
 	defer fbs.Stop()
 
-	c := NewClient(testServiceBrokerName, fakeServiceBroker.Spec.URL, "", "")
+	c := NewClient(testClusterServiceBrokerName, fakeClusterServiceBroker.Spec.URL, "", "")
 	fbs.SetResponseStatus(http.StatusOK)
 	fbs.SetLastOperationState("failed")
 	r := &brokerapi.LastOperationRequest{ServiceID: testServiceID, PlanID: testPlanID}
@@ -482,9 +482,9 @@ func TestPollServiceInstanceWithNoOperation(t *testing.T) {
 	}
 }
 
-// verifyServiceInstanceCredentialMethodAndPath is a helper method that verifies that the request
+// verifyServiceBindingMethodAndPath is a helper method that verifies that the request
 // has the right method and the suffix URL for a binding request.
-func verifyServiceInstanceCredentialMethodAndPath(method, serviceID, bindingID string, req *http.Request, t *testing.T) {
+func verifyServiceBindingMethodAndPath(method, serviceID, bindingID string, req *http.Request, t *testing.T) {
 	expectedPath := fmt.Sprintf(bindingSuffixFormatString, serviceID, bindingID)
 	verifyRequestMethodAndPath(method, expectedPath, req, t)
 }

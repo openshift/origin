@@ -31,7 +31,7 @@ managed service to make that available for use by one or more in-cluster
 applications. When a new `ServiceInstance` resource is created, the service catalog
 controller will connect to the appropriate broker server and instruct it to
 provision the service instance.
-- `ServiceInstanceCredential`: Access credential to a `ServiceInstance`. These
+- `ServiceBinding`: Access credential to a `ServiceInstance`. These
 are created by cluster users who wish for their applications to make use of a
 service `ServiceInstance`. Upon creation, the service catalog controller will
 create a Kubernetes `Secret` containing connection details and credentials for

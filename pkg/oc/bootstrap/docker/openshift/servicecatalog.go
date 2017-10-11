@@ -43,7 +43,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 		return err
 	}
 
-	scRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "serviceinstancecredentials").Rule()
+	scRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "servicebindings").Rule()
 	podpresetRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").Rule()
 	if err != nil {
 		return errors.NewError("could not create service catalog resource rule").WithCause(err)
@@ -132,7 +132,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	sc := &aggregatorapi.APIService{
 		Spec: aggregatorapi.APIServiceSpec{
 			CABundle:             serviceCA,
-			Version:              "v1alpha1",
+			Version:              "v1beta1",
 			Group:                "servicecatalog.k8s.io",
 			GroupPriorityMinimum: 200,
 			VersionPriority:      20,
@@ -142,7 +142,7 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 			},
 		},
 	}
-	sc.Name = "v1alpha1.servicecatalog.k8s.io"
+	sc.Name = "v1beta1.servicecatalog.k8s.io"
 
 	_, err = aggregatorclient.APIServices().Create(sc)
 	if err != nil {

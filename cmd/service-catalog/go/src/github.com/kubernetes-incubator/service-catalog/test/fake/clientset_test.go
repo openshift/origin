@@ -21,15 +21,15 @@ import (
 
 	clientgotesting "k8s.io/client-go/testing"
 
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	servicecatalogclientset "github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset/fake"
 )
 
 func TestClientsetStoresServiceInstanceClone(t *testing.T) {
 	clientset := Clientset{&servicecatalogclientset.Clientset{}}
-	instance := &v1alpha1.ServiceInstance{}
+	instance := &v1beta1.ServiceInstance{}
 	instance.Name = "test-instance"
-	returnedInstance, err := clientset.ServicecatalogV1alpha1().ServiceInstances("test-namespace").UpdateStatus(instance)
+	returnedInstance, err := clientset.ServicecatalogV1beta1().ServiceInstances("test-namespace").UpdateStatus(instance)
 	if err != nil {
 		t.Fatalf("unexpected error from UpdateStatus: %v", err)
 	}
@@ -46,7 +46,7 @@ func TestClientsetStoresServiceInstanceClone(t *testing.T) {
 	}
 
 	storedObject := updateAction.GetObject()
-	storedInstance, ok := storedObject.(*v1alpha1.ServiceInstance)
+	storedInstance, ok := storedObject.(*v1beta1.ServiceInstance)
 	if !ok {
 		t.Fatalf("unexpected object in action; failed to convert action object %+v to ServiceInstance", storedObject)
 	}
@@ -62,11 +62,11 @@ func TestClientsetStoresServiceInstanceClone(t *testing.T) {
 	}
 }
 
-func TestClientsetStoresServiceInstanceCredentialClone(t *testing.T) {
+func TestClientsetStoresServiceBindingClone(t *testing.T) {
 	clientset := Clientset{&servicecatalogclientset.Clientset{}}
-	binding := &v1alpha1.ServiceInstanceCredential{}
+	binding := &v1beta1.ServiceBinding{}
 	binding.Name = "test-instance"
-	returnedBinding, err := clientset.ServicecatalogV1alpha1().ServiceInstanceCredentials("test-namespace").UpdateStatus(binding)
+	returnedBinding, err := clientset.ServicecatalogV1beta1().ServiceBindings("test-namespace").UpdateStatus(binding)
 	if err != nil {
 		t.Fatalf("unexpected error from UpdateStatus: %v", err)
 	}
@@ -83,9 +83,9 @@ func TestClientsetStoresServiceInstanceCredentialClone(t *testing.T) {
 	}
 
 	storedObject := updateAction.GetObject()
-	storedBinding, ok := storedObject.(*v1alpha1.ServiceInstanceCredential)
+	storedBinding, ok := storedObject.(*v1beta1.ServiceBinding)
 	if !ok {
-		t.Fatalf("unexpected object in action; failed to convert action object %+v to ServiceInstanceCredential", storedObject)
+		t.Fatalf("unexpected object in action; failed to convert action object %+v to ServiceBinding", storedObject)
 	}
 
 	if e, a := binding, storedBinding; e == a {

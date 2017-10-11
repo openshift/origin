@@ -45,7 +45,7 @@ const (
 // Register registers a plugin
 func Register(plugins *admission.Plugins) {
 	plugins.Register(PluginName, func(io.Reader) (admission.Interface, error) {
-		return NewDefaultServicePlan()
+		return NewDefaultClusterServicePlan()
 	})
 }
 
@@ -56,8 +56,8 @@ func Register(plugins *admission.Plugins) {
 // that the cluster actually has support for it.
 type defaultServicePlan struct {
 	*admission.Handler
-	scClient servicecataloginternalversion.ServiceClassInterface
-	spLister internalversion.ServicePlanLister
+	scClient servicecataloginternalversion.ClusterServiceClassInterface
+	spLister internalversion.ClusterServicePlanLister
 }
 
 var _ = scadmission.WantsInternalServiceCatalogInformerFactory(&defaultServicePlan{})
@@ -77,27 +77,28 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 	if !ok {
 		return apierrors.NewBadRequest("Resource was marked with kind Instance but was unable to be converted")
 	}
+
 	// If the plan is specified, let it through and have the controller
 	// deal with finding the right plan, etc.
-	if len(instance.Spec.ExternalServicePlanName) > 0 {
+	if instance.Spec.ExternalClusterServicePlanName != "" {
 		return nil
 	}
 
 	// cannot find what we're trying to create an instance of
-	sc, err := d.getServiceClassByExternalName(a, instance.Spec.ExternalServiceClassName)
+	sc, err := d.getServiceClassByExternalName(a, instance.Spec.ExternalClusterServiceClassName)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return admission.NewForbidden(a, err)
 		}
-		msg := fmt.Sprintf("ServiceClass %q does not exist, can not figure out the default Service Plan.", instance.Spec.ExternalServiceClassName)
+		msg := fmt.Sprintf("ServiceClass %q does not exist, can not figure out the default Service Plan.", instance.Spec.ExternalClusterServiceClassName)
 		glog.V(4).Info(msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
 	// find all the service plans that belong to the service class
 
 	// Need to be careful here. Is it possible to have only one
-	// serviceplan available while others are still in progress?
-	// Not currently. Creation of all ServicePlans before creating
+	// Clusterserviceplan available while others are still in progress?
+	// Not currently. Creation of all ClusterServicePlans before creating
 	// the ServiceClass ensures that this will work correctly. If
 	// the order changes, we will need to rethink the
 	// implementation of this controller.
@@ -111,14 +112,14 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 	// check if there were any service plans
 	// TODO: in combination with not allowing classes with no plans, this should be impossible
 	if len(plans) <= 0 {
-		msg := fmt.Sprintf("no plans found at all for service class %q", instance.Spec.ExternalServiceClassName)
+		msg := fmt.Sprintf("no plans found at all for service class %q", instance.Spec.ExternalClusterServiceClassName)
 		glog.V(4).Info(msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
 
 	// check if more than one service plan was specified and error
 	if len(plans) > 1 {
-		msg := fmt.Sprintf("ServiceClass %q has more than one plan, PlanName must be specified", instance.Spec.ExternalServiceClassName)
+		msg := fmt.Sprintf("ServiceClass %q has more than one plan, PlanName must be specified", instance.Spec.ExternalClusterServiceClassName)
 		glog.V(4).Info(msg)
 		return admission.NewForbidden(a, errors.New(msg))
 	}
@@ -127,26 +128,26 @@ func (d *defaultServicePlan) Admit(a admission.Attributes) error {
 	p := plans[0]
 	glog.V(4).Infof("Using default plan %q for Service Class %q for instance %s",
 		p.Spec.ExternalName, sc.Spec.ExternalName, instance.Name)
-	instance.Spec.ExternalServicePlanName = p.Spec.ExternalName
+	instance.Spec.ExternalClusterServicePlanName = p.Spec.ExternalName
 	return nil
 }
 
-// NewDefaultServicePlan creates a new admission control handler that
+// NewDefaultClusterServicePlan creates a new admission control handler that
 // fills in a default Service Plan if omitted from Service Instance
 // creation request and if there exists only one plan in the
 // specified Service Class
-func NewDefaultServicePlan() (admission.Interface, error) {
+func NewDefaultClusterServicePlan() (admission.Interface, error) {
 	return &defaultServicePlan{
 		Handler: admission.NewHandler(admission.Create, admission.Update),
 	}, nil
 }
 
 func (d *defaultServicePlan) SetInternalServiceCatalogClientSet(f internalclientset.Interface) {
-	d.scClient = f.Servicecatalog().ServiceClasses()
+	d.scClient = f.Servicecatalog().ClusterServiceClasses()
 }
 
 func (d *defaultServicePlan) SetInternalServiceCatalogInformerFactory(f informers.SharedInformerFactory) {
-	spInformer := f.Servicecatalog().InternalVersion().ServicePlans()
+	spInformer := f.Servicecatalog().InternalVersion().ClusterServicePlans()
 	d.spLister = spInformer.Lister()
 
 	readyFunc := func() bool {
@@ -166,7 +167,7 @@ func (d *defaultServicePlan) Validate() error {
 	return nil
 }
 
-func (d *defaultServicePlan) getServiceClassByExternalName(a admission.Attributes, scName string) (*servicecatalog.ServiceClass, error) {
+func (d *defaultServicePlan) getServiceClassByExternalName(a admission.Attributes, scName string) (*servicecatalog.ClusterServiceClass, error) {
 	glog.V(4).Infof("Fetching serviceclass as %q", scName)
 	listOpts := apimachineryv1.ListOptions{FieldSelector: "spec.externalName==" + scName}
 	servicePlans, err := d.scClient.List(listOpts)

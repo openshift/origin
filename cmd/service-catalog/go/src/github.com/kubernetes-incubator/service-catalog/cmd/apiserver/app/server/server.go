@@ -26,7 +26,7 @@ import (
 	"github.com/kubernetes-incubator/service-catalog/pkg/registry/servicecatalog/server"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/broker/authsarcheck"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/namespace/lifecycle"
-	siclifecycle "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceinstancecredentials/lifecycle"
+	siclifecycle "github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/servicebindings/lifecycle"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/changevalidator"
 	"github.com/kubernetes-incubator/service-catalog/plugin/pkg/admission/serviceplan/defaultserviceplan"
 	"github.com/spf13/cobra"

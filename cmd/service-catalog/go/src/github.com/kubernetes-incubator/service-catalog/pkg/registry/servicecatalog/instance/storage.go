@@ -32,7 +32,6 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	coreapi "k8s.io/client-go/pkg/api"
 )
 
 var (
@@ -108,7 +107,6 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage, rest.Storage) 
 	prefix := "/" + opts.ResourcePrefix()
 
 	storageInterface, dFunc := opts.GetStorage(
-		1000,
 		&servicecatalog.ServiceInstance{},
 		prefix,
 		instanceRESTStrategies,
@@ -128,8 +126,8 @@ func NewStorage(opts server.Options) (rest.Storage, rest.Storage, rest.Storage) 
 		},
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,
-		// QualifiedResource should always be plural
-		QualifiedResource: coreapi.Resource("serviceinstances"),
+		// DefaultQualifiedResource should always be plural
+		DefaultQualifiedResource: servicecatalog.Resource("serviceinstances"),
 
 		CreateStrategy:          instanceRESTStrategies,
 		UpdateStrategy:          instanceRESTStrategies,

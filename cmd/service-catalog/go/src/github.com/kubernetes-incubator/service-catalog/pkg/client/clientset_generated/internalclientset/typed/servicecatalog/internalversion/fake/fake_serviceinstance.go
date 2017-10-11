@@ -36,50 +36,7 @@ var serviceinstancesResource = schema.GroupVersionResource{Group: "servicecatalo
 
 var serviceinstancesKind = schema.GroupVersionKind{Group: "servicecatalog.k8s.io", Version: "", Kind: "ServiceInstance"}
 
-func (c *FakeServiceInstances) Create(serviceInstance *servicecatalog.ServiceInstance) (result *servicecatalog.ServiceInstance, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(serviceinstancesResource, c.ns, serviceInstance), &servicecatalog.ServiceInstance{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*servicecatalog.ServiceInstance), err
-}
-
-func (c *FakeServiceInstances) Update(serviceInstance *servicecatalog.ServiceInstance) (result *servicecatalog.ServiceInstance, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(serviceinstancesResource, c.ns, serviceInstance), &servicecatalog.ServiceInstance{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*servicecatalog.ServiceInstance), err
-}
-
-func (c *FakeServiceInstances) UpdateStatus(serviceInstance *servicecatalog.ServiceInstance) (*servicecatalog.ServiceInstance, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewUpdateSubresourceAction(serviceinstancesResource, "status", c.ns, serviceInstance), &servicecatalog.ServiceInstance{})
-
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*servicecatalog.ServiceInstance), err
-}
-
-func (c *FakeServiceInstances) Delete(name string, options *v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(serviceinstancesResource, c.ns, name), &servicecatalog.ServiceInstance{})
-
-	return err
-}
-
-func (c *FakeServiceInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(serviceinstancesResource, c.ns, listOptions)
-
-	_, err := c.Fake.Invokes(action, &servicecatalog.ServiceInstanceList{})
-	return err
-}
-
+// Get takes name of the serviceInstance, and returns the corresponding serviceInstance object, and an error if there is any.
 func (c *FakeServiceInstances) Get(name string, options v1.GetOptions) (result *servicecatalog.ServiceInstance, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(serviceinstancesResource, c.ns, name), &servicecatalog.ServiceInstance{})
@@ -90,6 +47,7 @@ func (c *FakeServiceInstances) Get(name string, options v1.GetOptions) (result *
 	return obj.(*servicecatalog.ServiceInstance), err
 }
 
+// List takes label and field selectors, and returns the list of ServiceInstances that match those selectors.
 func (c *FakeServiceInstances) List(opts v1.ListOptions) (result *servicecatalog.ServiceInstanceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(serviceinstancesResource, serviceinstancesKind, c.ns, opts), &servicecatalog.ServiceInstanceList{})
@@ -116,6 +74,56 @@ func (c *FakeServiceInstances) Watch(opts v1.ListOptions) (watch.Interface, erro
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(serviceinstancesResource, c.ns, opts))
 
+}
+
+// Create takes the representation of a serviceInstance and creates it.  Returns the server's representation of the serviceInstance, and an error, if there is any.
+func (c *FakeServiceInstances) Create(serviceInstance *servicecatalog.ServiceInstance) (result *servicecatalog.ServiceInstance, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewCreateAction(serviceinstancesResource, c.ns, serviceInstance), &servicecatalog.ServiceInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*servicecatalog.ServiceInstance), err
+}
+
+// Update takes the representation of a serviceInstance and updates it. Returns the server's representation of the serviceInstance, and an error, if there is any.
+func (c *FakeServiceInstances) Update(serviceInstance *servicecatalog.ServiceInstance) (result *servicecatalog.ServiceInstance, err error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateAction(serviceinstancesResource, c.ns, serviceInstance), &servicecatalog.ServiceInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*servicecatalog.ServiceInstance), err
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeServiceInstances) UpdateStatus(serviceInstance *servicecatalog.ServiceInstance) (*servicecatalog.ServiceInstance, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewUpdateSubresourceAction(serviceinstancesResource, "status", c.ns, serviceInstance), &servicecatalog.ServiceInstance{})
+
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*servicecatalog.ServiceInstance), err
+}
+
+// Delete takes name of the serviceInstance and deletes it. Returns an error if one occurs.
+func (c *FakeServiceInstances) Delete(name string, options *v1.DeleteOptions) error {
+	_, err := c.Fake.
+		Invokes(testing.NewDeleteAction(serviceinstancesResource, c.ns, name), &servicecatalog.ServiceInstance{})
+
+	return err
+}
+
+// DeleteCollection deletes a collection of objects.
+func (c *FakeServiceInstances) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(serviceinstancesResource, c.ns, listOptions)
+
+	_, err := c.Fake.Invokes(action, &servicecatalog.ServiceInstanceList{})
+	return err
 }
 
 // Patch applies the patch and returns the patched serviceInstance.

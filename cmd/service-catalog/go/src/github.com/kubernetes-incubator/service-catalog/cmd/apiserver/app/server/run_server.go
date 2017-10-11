@@ -22,7 +22,7 @@ import (
 
 	"github.com/kubernetes-incubator/service-catalog/pkg/api"
 	genericapiserverstorage "k8s.io/apiserver/pkg/server/storage"
-	"k8s.io/kubernetes/cmd/kube-apiserver/app/preflight"
+	"k8s.io/apiserver/pkg/storage/etcd3/preflight"
 
 	"github.com/golang/glog"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apiserver"

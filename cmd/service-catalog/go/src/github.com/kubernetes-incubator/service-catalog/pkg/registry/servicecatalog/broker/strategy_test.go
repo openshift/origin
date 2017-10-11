@@ -23,15 +23,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func brokerWithOldSpec() *sc.ServiceBroker {
-	return &sc.ServiceBroker{
+func brokerWithOldSpec() *sc.ClusterServiceBroker {
+	return &sc.ClusterServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{
 			Generation: 1,
 		},
-		Spec: sc.ServiceBrokerSpec{
+		Spec: sc.ClusterServiceBrokerSpec{
 			URL: "https://kubernetes.default.svc:443/brokers/template.k8s.io",
 		},
-		Status: sc.ServiceBrokerStatus{
+		Status: sc.ClusterServiceBrokerStatus{
 			Conditions: []sc.ServiceBrokerCondition{
 				{
 					Type:   sc.ServiceBrokerConditionReady,
@@ -42,15 +42,15 @@ func brokerWithOldSpec() *sc.ServiceBroker {
 	}
 }
 
-func brokerWithNewSpec() *sc.ServiceBroker {
+func brokerWithNewSpec() *sc.ClusterServiceBroker {
 	b := brokerWithOldSpec()
 	b.Spec.URL = "new"
 	return b
 }
 
-// TestServiceBrokerStrategyTrivial is the testing of the trivial hardcoded
+// TestClusterServiceBrokerStrategyTrivial is the testing of the trivial hardcoded
 // boolean flags.
-func TestServiceBrokerStrategyTrivial(t *testing.T) {
+func TestClusterServiceBrokerStrategyTrivial(t *testing.T) {
 	if brokerRESTStrategies.NamespaceScoped() {
 		t.Errorf("broker create must not be namespace scoped")
 	}
@@ -68,11 +68,11 @@ func TestServiceBrokerStrategyTrivial(t *testing.T) {
 // TestBrokerCreate
 func TestBroker(t *testing.T) {
 	// Create a broker or brokers
-	broker := &sc.ServiceBroker{
-		Spec: sc.ServiceBrokerSpec{
+	broker := &sc.ClusterServiceBroker{
+		Spec: sc.ClusterServiceBrokerSpec{
 			URL: "abcd",
 		},
-		Status: sc.ServiceBrokerStatus{
+		Status: sc.ClusterServiceBrokerStatus{
 			Conditions: nil,
 		},
 	}
@@ -93,8 +93,8 @@ func TestBroker(t *testing.T) {
 func TestBrokerUpdate(t *testing.T) {
 	cases := []struct {
 		name                      string
-		older                     *sc.ServiceBroker
-		newer                     *sc.ServiceBroker
+		older                     *sc.ClusterServiceBroker
+		newer                     *sc.ClusterServiceBroker
 		shouldGenerationIncrement bool
 	}{
 		{
