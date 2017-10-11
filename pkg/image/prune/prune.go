@@ -141,6 +141,8 @@ type PrunerOptions struct {
 	Deployments *kapisext.DeploymentList
 	// DCs is the entire list of deployment configs across all namespaces in the cluster.
 	DCs *deployapi.DeploymentConfigList
+	// RSs is the entire list of replica sets across all namespaces in the cluster.
+	RSs *kapisext.ReplicaSetList
 	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
 	LimitRanges map[string][]*kapi.LimitRange
 	// DryRun indicates that no changes will be made to the cluster and nothing
@@ -205,6 +207,7 @@ var _ Pruner = &pruner{}
 // - any daemonsets
 // - any kube deployments
 // - any deployment configs
+// - any replica sets
 // - any build configs
 // - any builds
 // - the n most recent tag revisions in an image stream's status.tags
@@ -251,6 +254,7 @@ func NewPruner(options PrunerOptions) (Pruner, error) {
 	addDaemonSetsToGraph(g, options.DSs)
 	addDeploymentsToGraph(g, options.Deployments)
 	addDeploymentConfigsToGraph(g, options.DCs)
+	addReplicaSetsToGraph(g, options.RSs)
 
 	return &pruner{
 		g:              g,
@@ -517,6 +521,19 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 		glog.V(4).Infof("Examining DeploymentConfig %s", getName(dc))
 		dcNode := deploygraph.EnsureDeploymentConfigNode(g, dc)
 		addPodSpecToGraph(g, &dc.Spec.Template.Spec, dcNode)
+	}
+}
+
+// addReplicaSetsToGraph adds replica set to the graph.
+//
+// Edges are added to the graph from each replica set to the images specified by its pod spec's list of
+// containers, as long as the image is managed by OpenShift.
+func addReplicaSetsToGraph(g graph.Graph, rss *kapisext.ReplicaSetList) {
+	for i := range rss.Items {
+		rs := &rss.Items[i]
+		glog.V(4).Infof("Examining ReplicaSet %s", getName(rs))
+		rsNode := deploygraph.EnsureReplicaSetNode(g, rs)
+		addPodSpecToGraph(g, &rs.Spec.Template.Spec, rsNode)
 	}
 }
 

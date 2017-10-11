@@ -92,3 +92,30 @@ func FindOrCreateSyntheticDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc 
 		},
 	).(*DeploymentConfigNode)
 }
+
+// EnsureReplicaSetNode adds the provided replica set to the graph if it does not exist
+func EnsureReplicaSetNode(g osgraph.MutableUniqueGraph, rs *kapisext.ReplicaSet) *ReplicaSetNode {
+	rsName := ReplicaSetNodeName(rs)
+	rsNode := osgraph.EnsureUnique(
+		g,
+		rsName,
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetNode{Node: node, ReplicaSet: rs, IsFound: true}
+		},
+	).(*ReplicaSetNode)
+
+	podTemplateSpecNode := kubegraph.EnsurePodTemplateSpecNode(g, &rs.Spec.Template, rs.Namespace, rsName)
+	g.AddEdge(rsNode, podTemplateSpecNode, osgraph.ContainsEdgeKind)
+
+	return rsNode
+}
+
+func FindOrCreateSyntheticReplicaSetNode(g osgraph.MutableUniqueGraph, rs *kapisext.ReplicaSet) *ReplicaSetNode {
+	return osgraph.EnsureUnique(
+		g,
+		ReplicaSetNodeName(rs),
+		func(node osgraph.Node) graph.Node {
+			return &ReplicaSetNode{Node: node, ReplicaSet: rs, IsFound: false}
+		},
+	).(*ReplicaSetNode)
+}

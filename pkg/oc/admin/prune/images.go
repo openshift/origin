@@ -264,6 +264,7 @@ func (o PruneImagesOptions) Run() error {
 
 	allDSs, err := o.KubeClient.Extensions().DaemonSets(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
+		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
 			return err
 		}
@@ -272,6 +273,7 @@ func (o PruneImagesOptions) Run() error {
 
 	allDeployments, err := o.KubeClient.Extensions().Deployments(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
+		// TODO: remove in future (3.9) release
 		if !kerrors.IsForbidden(err) {
 			return err
 		}
@@ -281,6 +283,15 @@ func (o PruneImagesOptions) Run() error {
 	allDCs, err := o.AppsClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
+	}
+
+	allRSs, err := o.KubeClient.Extensions().ReplicaSets(o.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		// TODO: remove in future (3.9) release
+		if !kerrors.IsForbidden(err) {
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "Failed to list replicasets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
 	}
 
 	limitRangesList, err := o.KubeClient.Core().LimitRanges(o.Namespace).List(metav1.ListOptions{})
@@ -352,6 +363,7 @@ func (o PruneImagesOptions) Run() error {
 		DSs:                allDSs,
 		Deployments:        allDeployments,
 		DCs:                allDCs,
+		RSs:                allRSs,
 		LimitRanges:        limitRangesMap,
 		DryRun:             o.Confirm == false,
 		RegistryClient:     registryClient,
