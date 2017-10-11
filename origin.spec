@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit f5af3750bc0d2277b444d802cb2564f5ebb306a4
+%global commit bfa466e2e72a7447dcd216523cecf15c79c4485f
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.147.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=c9adfdc
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.147.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=bfa466e
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.147.1%{?dist}
+Release:        0.148.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,25 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Wed Oct 11 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.148.0
+- Move browser safe proxy logic into an authorizer (mkhan@redhat.com)
+- Add a healthcheck to detect when OVS is restarted (ccoleman@redhat.com)
+- report pod state on template test failure (jminter@redhat.com)
+- resolve image secrets in the buildcontroller (bparees@redhat.com)
+- Move network type check to inside the network code (ccoleman@redhat.com)
+- Use glog local name instead of log (ccoleman@redhat.com)
+- report on object readiness in blocking template tests (jminter@redhat.com)
+- Fix old replicas count in scaled RC event message (miciah.masters@gmail.com)
+- Fix flake in the extended tests (agladkov@redhat.com)
+- Update imagestream only once per prune process (agladkov@redhat.com)
+- Fix reimporting from insecure registries (obulatov@redhat.com)
+- Let servicecatalog-serviceclass-viewer also view plans (spadgett@redhat.com)
+- Update/fix HPA controller policy (sross@redhat.com)
+- Take into account errors (agladkov@redhat.com)
+- sdn: only sync HostPorts when we need to (dcbw@redhat.com)
+- Add template-service-broker image (sdodson@redhat.com)
+- Create template-service-broker subpackage (sdodson@redhat.com)
+
 * Tue Oct 10 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.147.1
 - bump(github.com/openshift/origin-web-console):
   bb25fca825823d626e23ea2e22e78806f2f50065 (eparis+openshiftbot@redhat.com)
