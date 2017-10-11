@@ -88,7 +88,7 @@ func NewCommandStartMasterControllers(name, basename string, out, errout io.Writ
 				LockName:      lockServiceName,
 				LockNamespace: "kube-system",
 				LockResource: configapi.GroupResource{
-					Resource: "endpoints",
+					Resource: "configmaps",
 				},
 			}
 		}
