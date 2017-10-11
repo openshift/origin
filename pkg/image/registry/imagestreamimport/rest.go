@@ -485,7 +485,7 @@ func (r *REST) importSuccessful(
 	switch {
 	case kapierrors.IsAlreadyExists(err):
 		if err := util.ImageWithMetadata(image); err != nil {
-			glog.V(4).Infof("Unable to update image metadata during image import when image already exists %q: err", image.Name, err)
+			glog.V(4).Infof("Unable to update image metadata during image import when image already exists %q: %v", image.Name, err)
 		}
 		updated = image
 		fallthrough

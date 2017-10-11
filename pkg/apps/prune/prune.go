@@ -116,11 +116,11 @@ func (p *deploymentDeleter) DeleteDeployment(deployment *kapi.ReplicationControl
 		dpSelector := deployutil.DeployerPodSelector(deployment.Name)
 		deployers, err := p.pods.Pods(deployment.Namespace).List(metav1.ListOptions{LabelSelector: dpSelector.String()})
 		if err != nil {
-			glog.Warning("Cannot list deployer pods for %q: %v\n", deployment.Name, err)
+			glog.Warningf("Cannot list deployer pods for %q: %v\n", deployment.Name, err)
 		} else {
 			for _, pod := range deployers.Items {
 				if err := p.pods.Pods(pod.Namespace).Delete(pod.Name, nil); err != nil {
-					glog.Warning("Cannot remove deployer pod %q: %v\n", pod.Name, err)
+					glog.Warningf("Cannot remove deployer pod %q: %v\n", pod.Name, err)
 				}
 			}
 		}

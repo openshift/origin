@@ -171,7 +171,7 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	resp, err := pingClient.Do(req)
 	if err != nil {
 		if insecure && registry.Scheme == "https" {
-			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry, err)
+			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry.String(), err)
 			registry.Scheme = "http"
 			_, nErr := r.ping(registry, true, transport)
 			if nErr != nil {
