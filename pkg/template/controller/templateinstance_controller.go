@@ -224,7 +224,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 	u := &user.DefaultInfo{Name: templateInstance.Spec.Requester.Username}
 
 	for _, object := range templateInstance.Status.Objects {
-		if !canCheckReadiness(object.Ref) {
+		if !CanCheckReadiness(object.Ref) {
 			continue
 		}
 
@@ -266,7 +266,7 @@ func (c *TemplateInstanceController) checkReadiness(templateInstance *templateap
 			continue
 		}
 
-		ready, failed, err := checkReadiness(c.buildClient, object.Ref, obj)
+		ready, failed, err := CheckReadiness(c.buildClient, object.Ref, obj)
 		if err != nil {
 			return false, err
 		}

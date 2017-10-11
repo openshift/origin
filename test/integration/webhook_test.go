@@ -317,26 +317,30 @@ func TestWebhookGitHubPushWithImageStream(t *testing.T) {
 	}
 	defer watch.Stop()
 
-	for _, s := range []string{
-		"/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github",
-	} {
+	s := "/oapi/v1/namespaces/" + testutil.Namespace() + "/buildconfigs/pushbuild/webhooks/secret101/github"
 
-		// trigger build event sending push notification
-		postFile(clusterAdminBuildClient.Build().RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
+	// trigger build event sending push notification
+	postFile(clusterAdminBuildClient.Build().RESTClient(), githubHeaderFunc, "github/testdata/pushevent.json", clusterAdminClientConfig.Host+s, http.StatusOK, t)
 
-		event := <-watch.ResultChan()
-		actual := event.Object.(*buildapi.Build)
+	var build *buildapi.Build
 
-		// FIXME: I think the build creation is fast and in some situlation we miss
-		// the BuildPhaseNew here. Note that this is not a bug, in future we should
-		// move this to use go routine to capture all events.
-		if actual.Status.Phase != buildapi.BuildPhaseNew && actual.Status.Phase != buildapi.BuildPhasePending {
-			t.Errorf("Expected %s or %s, got %s", buildapi.BuildPhaseNew, buildapi.BuildPhasePending, actual.Status.Phase)
+Loop:
+	for {
+		select {
+		case <-time.After(10 * time.Second):
+			t.Fatalf("timed out waiting for build event")
+		case event := <-watch.ResultChan():
+			actual := event.Object.(*buildapi.Build)
+			t.Logf("Saw build object %#v", actual)
+			if actual.Status.Phase != buildapi.BuildPhasePending {
+				continue
+			}
+			build = actual
+			break Loop
 		}
-
-		if actual.Spec.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imagestream:success" {
-			t.Errorf("Expected %s, got %s", "registry:3000/integration/imagestream:success", actual.Spec.Strategy.SourceStrategy.From.Name)
-		}
+	}
+	if build.Spec.Strategy.SourceStrategy.From.Name != "registry:3000/integration/imagestream:success" {
+		t.Errorf("Expected %s, got %s", "registry:3000/integration/imagestream:success", build.Spec.Strategy.SourceStrategy.From.Name)
 	}
 }
 

@@ -6,13 +6,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/serviceaccount"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/kubernetes/pkg/apis/rbac"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 )
 
 type openshiftAuthorizer struct {
-	delegate              kauthorizer.Authorizer
+	delegate              authorizer.Authorizer
 	forbiddenMessageMaker ForbiddenMessageMaker
 }
 
@@ -20,7 +19,7 @@ type openshiftSubjectLocator struct {
 	delegate authorizerrbac.SubjectLocator
 }
 
-func NewAuthorizer(delegate kauthorizer.Authorizer, forbiddenMessageMaker ForbiddenMessageMaker) authorizer.Authorizer {
+func NewAuthorizer(delegate authorizer.Authorizer, forbiddenMessageMaker ForbiddenMessageMaker) authorizer.Authorizer {
 	return &openshiftAuthorizer{delegate: delegate, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 

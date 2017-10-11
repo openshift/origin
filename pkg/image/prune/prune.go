@@ -13,6 +13,7 @@ import (
 	"github.com/golang/glog"
 	gonum "github.com/gonum/graph"
 
+	kerrapi "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,7 +76,9 @@ type ImageStreamDeleter interface {
 	GetImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
 	// UpdateImageStream removes all references to the image from the image
 	// stream's status.tags. The updated image stream is returned.
-	UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error)
+	UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error)
+	// NotifyImageStreamPrune shows notification about updated image stream.
+	NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string)
 }
 
 // BlobDeleter knows how to delete a blob from the Docker registry.
@@ -208,7 +211,7 @@ var _ Pruner = &pruner{}
 //
 // Also automatically remove any image layer that is no longer referenced by any
 // images.
-func NewPruner(options PrunerOptions) Pruner {
+func NewPruner(options PrunerOptions) (Pruner, error) {
 	glog.V(1).Infof("Creating image pruner with keepYoungerThan=%v, keepTagRevisions=%s, pruneOverSizeLimit=%s, allImages=%s",
 		options.KeepYoungerThan, getValue(options.KeepTagRevisions), getValue(options.PruneOverSizeLimit), getValue(options.AllImages))
 
@@ -233,8 +236,12 @@ func NewPruner(options PrunerOptions) Pruner {
 	addImageStreamsToGraph(g, options.Streams, options.LimitRanges, algorithm)
 	addPodsToGraph(g, options.Pods, algorithm)
 	addReplicationControllersToGraph(g, options.RCs)
-	addBuildConfigsToGraph(g, options.BCs)
-	addBuildsToGraph(g, options.Builds)
+	if err := addBuildConfigsToGraph(g, options.BCs); err != nil {
+		return nil, err
+	}
+	if err := addBuildsToGraph(g, options.Builds); err != nil {
+		return nil, err
+	}
 	addDeploymentConfigsToGraph(g, options.DCs)
 
 	return &pruner{
@@ -242,7 +249,7 @@ func NewPruner(options PrunerOptions) Pruner {
 		algorithm:      algorithm,
 		registryClient: options.RegistryClient,
 		registryURL:    options.RegistryURL,
-	}
+	}, nil
 }
 
 func getValue(option interface{}) string {
@@ -484,25 +491,31 @@ func addDeploymentConfigsToGraph(g graph.Graph, dcs *deployapi.DeploymentConfigL
 // addBuildConfigsToGraph adds build configs to the graph.
 //
 // Edges are added to the graph from each build config to the image specified by its strategy.from.
-func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) {
+func addBuildConfigsToGraph(g graph.Graph, bcs *buildapi.BuildConfigList) error {
 	for i := range bcs.Items {
 		bc := &bcs.Items[i]
 		glog.V(4).Infof("Examining BuildConfig %s", getName(bc))
 		bcNode := buildgraph.EnsureBuildConfigNode(g, bc)
-		addBuildStrategyImageReferencesToGraph(g, bc.Spec.Strategy, bcNode)
+		if err := addBuildStrategyImageReferencesToGraph(g, bc.Spec.Strategy, bcNode); err != nil {
+			return fmt.Errorf("unable to add BuildConfig %s to graph: %v", getName(bc), err)
+		}
 	}
+	return nil
 }
 
 // addBuildsToGraph adds builds to the graph.
 //
 // Edges are added to the graph from each build to the image specified by its strategy.from.
-func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
+func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) error {
 	for i := range builds.Items {
 		build := &builds.Items[i]
 		glog.V(4).Infof("Examining build %s", getName(build))
 		buildNode := buildgraph.EnsureBuildNode(g, build)
-		addBuildStrategyImageReferencesToGraph(g, build.Spec.Strategy, buildNode)
+		if err := addBuildStrategyImageReferencesToGraph(g, build.Spec.Strategy, buildNode); err != nil {
+			return fmt.Errorf("unable to add Build %s to graph: %v", getName(build), err)
+		}
 	}
+	return nil
 }
 
 // addBuildStrategyImageReferencesToGraph ads references from the build strategy's parent node to the image
@@ -511,11 +524,11 @@ func addBuildsToGraph(g graph.Graph, builds *buildapi.BuildList) {
 // Edges are added to the graph from each predecessor (build or build config)
 // to the image specified by strategy.from, as long as the image is managed by
 // OpenShift.
-func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) {
+func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.BuildStrategy, predecessor gonum.Node) error {
 	from := buildapi.GetInputReference(strategy)
 	if from == nil {
 		glog.V(4).Infof("Unable to determine 'from' reference - skipping")
-		return
+		return nil
 	}
 
 	glog.V(4).Infof("Examining build strategy with from: %#v", from)
@@ -526,38 +539,39 @@ func addBuildStrategyImageReferencesToGraph(g graph.Graph, strategy buildapi.Bui
 	case "ImageStreamImage":
 		_, id, err := imageapi.ParseImageStreamImageName(from.Name)
 		if err != nil {
-			glog.V(2).Infof("Error parsing ImageStreamImage name %q: %v - skipping", from.Name, err)
-			return
+			return fmt.Errorf("error parsing ImageStreamImage name %q: %v", from.Name, err)
 		}
 		imageID = id
 	case "DockerImage":
 		ref, err := imageapi.ParseDockerImageReference(from.Name)
 		if err != nil {
-			glog.V(2).Infof("Error parsing DockerImage name %q: %v - skipping", from.Name, err)
-			return
+			return fmt.Errorf("error parsing DockerImage name %q: %v", from.Name, err)
 		}
 		imageID = ref.ID
 	default:
-		return
+		glog.V(4).Infof("Unknown kind for name %q: %v", from.Name, from.Kind)
+		return nil
 	}
 
 	glog.V(4).Infof("Looking for image %q in graph", imageID)
 	imageNode := imagegraph.FindImage(g, imageID)
 	if imageNode == nil {
 		glog.V(4).Infof("Unable to find image %q in graph - skipping", imageID)
-		return
+		return nil
 	}
 
 	glog.V(4).Infof("Adding edge from %v to %v", predecessor, imageNode)
 	g.AddEdge(predecessor, imageNode, ReferencedImageEdgeKind)
+
+	return nil
 }
 
 // getImageNodes returns only nodes of type ImageNode.
-func getImageNodes(nodes []gonum.Node) []*imagegraph.ImageNode {
-	ret := []*imagegraph.ImageNode{}
+func getImageNodes(nodes []gonum.Node) map[string]*imagegraph.ImageNode {
+	ret := make(map[string]*imagegraph.ImageNode)
 	for i := range nodes {
 		if node, ok := nodes[i].(*imagegraph.ImageNode); ok {
-			ret = append(ret, node)
+			ret[node.Image.Name] = node
 		}
 	}
 	return ret
@@ -603,8 +617,12 @@ func imageIsPrunable(g graph.Graph, imageNode *imagegraph.ImageNode, algorithm p
 
 // calculatePrunableImages returns the list of prunable images and a
 // graph.NodeSet containing the image node IDs.
-func calculatePrunableImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, algorithm pruneAlgorithm) ([]*imagegraph.ImageNode, graph.NodeSet) {
-	prunable := []*imagegraph.ImageNode{}
+func calculatePrunableImages(
+	g graph.Graph,
+	imageNodes map[string]*imagegraph.ImageNode,
+	algorithm pruneAlgorithm,
+) (map[string]*imagegraph.ImageNode, graph.NodeSet) {
+	prunable := make(map[string]*imagegraph.ImageNode)
 	ids := make(graph.NodeSet)
 
 	for _, imageNode := range imageNodes {
@@ -612,7 +630,7 @@ func calculatePrunableImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, 
 
 		if imageIsPrunable(g, imageNode, algorithm) {
 			glog.V(4).Infof("Image %q is prunable", imageNode.Image.Name)
-			prunable = append(prunable, imageNode)
+			prunable[imageNode.Image.Name] = imageNode
 			ids.Add(imageNode.ID())
 		}
 	}
@@ -660,71 +678,100 @@ func calculatePrunableImageComponents(g graph.Graph) []*imagegraph.ImageComponen
 	return components
 }
 
+func getPrunableComponents(g graph.Graph, prunableImageIDs graph.NodeSet) []*imagegraph.ImageComponentNode {
+	graphWithoutPrunableImages := subgraphWithoutPrunableImages(g, prunableImageIDs)
+	return calculatePrunableImageComponents(graphWithoutPrunableImages)
+}
+
 // pruneStreams removes references from all image streams' status.tags entries
 // to prunable images, invoking streamPruner.UpdateImageStream for each updated
 // stream.
-func pruneStreams(g graph.Graph, imageNodes []*imagegraph.ImageNode, streamPruner ImageStreamDeleter) []error {
-	errs := []error{}
+func pruneStreams(
+	g graph.Graph,
+	prunableImageNodes map[string]*imagegraph.ImageNode,
+	streamPruner ImageStreamDeleter,
+) error {
+	prunableStreams := make(map[string]*imagegraph.ImageStreamNode)
 
 	glog.V(4).Infof("Removing pruned image references from streams")
-	for _, imageNode := range imageNodes {
+	for _, imageNode := range prunableImageNodes {
 		for _, n := range g.To(imageNode) {
 			streamNode, ok := n.(*imagegraph.ImageStreamNode)
 			if !ok {
 				continue
 			}
 
-			if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-				stream, err := streamPruner.GetImageStream(streamNode.ImageStream)
-				if err != nil {
-					return err
-				}
-				updatedTags := sets.NewString()
-
-				glog.V(4).Infof("Checking if ImageStream %s has references to image %s in status.tags", getName(stream), imageNode.Image.Name)
-
-				for tag, history := range stream.Status.Tags {
-					glog.V(4).Infof("Checking tag %q", tag)
-
-					newHistory := imageapi.TagEventList{}
-
-					for i, tagEvent := range history.Items {
-						glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
-
-						if tagEvent.Image != imageNode.Image.Name {
-							glog.V(4).Infof("Tag event doesn't match deleted image - keeping")
-							newHistory.Items = append(newHistory.Items, tagEvent)
-						} else {
-							glog.V(4).Infof("Tag event matches deleted image - removing reference")
-							updatedTags.Insert(tag)
-						}
-					}
-					if len(newHistory.Items) == 0 {
-						glog.V(4).Infof("Removing tag %q from status.tags of ImageStream %s", tag, getName(stream))
-						delete(stream.Status.Tags, tag)
-					} else {
-						stream.Status.Tags[tag] = newHistory
-					}
-				}
-
-				updatedStream, err := streamPruner.UpdateImageStream(stream, imageNode.Image, updatedTags.List())
-				if err == nil {
-					streamNode.ImageStream = updatedStream
-				}
-				return err
-			}); err != nil {
-				errs = append(errs, fmt.Errorf("error removing image %s from stream %s: %v",
-					imageNode.Image.Name, getName(streamNode.ImageStream), err))
-				continue
-			}
+			streamName := getName(streamNode.ImageStream)
+			prunableStreams[streamName] = streamNode
 		}
 	}
+
+	for streamName, streamNode := range prunableStreams {
+		err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			stream, err := streamPruner.GetImageStream(streamNode.ImageStream)
+			if err != nil {
+				if kerrapi.IsNotFound(err) {
+					glog.V(4).Infof("Unable to get image stream %s: removed during prune", streamName)
+					return nil
+				}
+				return err
+			}
+
+			updatedTags := sets.NewString()
+			deletedTags := sets.NewString()
+
+			for tag, history := range stream.Status.Tags {
+				newHistory := imageapi.TagEventList{}
+				for i, tagEvent := range history.Items {
+					glog.V(4).Infof("Checking tag event %d with image %q", i, tagEvent.Image)
+
+					if _, ok := prunableImageNodes[tagEvent.Image]; ok {
+						glog.V(4).Infof("Image stream tag %s:%s revision %d - removing because image %q matches deleted image", streamName, tag, i, tagEvent.Image)
+						updatedTags.Insert(tag)
+					} else {
+						glog.V(4).Infof("Image stream tag %s:%s revision %d - keeping because image %q is not deleted", streamName, tag, i, tagEvent.Image)
+						newHistory.Items = append(newHistory.Items, tagEvent)
+					}
+				}
+
+				if len(newHistory.Items) == 0 {
+					glog.V(4).Infof("Image stream tag %s:%s - removing empty tag", streamName, tag)
+					delete(stream.Status.Tags, tag)
+					deletedTags.Insert(tag)
+				} else {
+					stream.Status.Tags[tag] = newHistory
+				}
+			}
+
+			if updatedTags.Len() == 0 && deletedTags.Len() == 0 {
+				return nil
+			}
+
+			updatedStream, err := streamPruner.UpdateImageStream(stream)
+			if err == nil {
+				streamPruner.NotifyImageStreamPrune(stream, updatedTags.List(), deletedTags.List())
+				streamNode.ImageStream = updatedStream
+			}
+
+			if kerrapi.IsNotFound(err) {
+				glog.V(4).Infof("Unable to update image stream %s: removed during prune", streamName)
+				return nil
+			}
+
+			return err
+		})
+
+		if err != nil {
+			return fmt.Errorf("unable to prune stream %s: %v", streamName, err)
+		}
+	}
+
 	glog.V(4).Infof("Done removing pruned image references from streams")
-	return errs
+	return nil
 }
 
 // pruneImages invokes imagePruner.DeleteImage with each image that is prunable.
-func pruneImages(g graph.Graph, imageNodes []*imagegraph.ImageNode, imagePruner ImageDeleter) []error {
+func pruneImages(g graph.Graph, imageNodes map[string]*imagegraph.ImageNode, imagePruner ImageDeleter) []error {
 	errs := []error{}
 
 	for _, imageNode := range imageNodes {
@@ -755,27 +802,30 @@ func (p *pruner) Prune(
 
 	prunableImageNodes, prunableImageIDs := calculatePrunableImages(p.g, imageNodes, p.algorithm)
 
-	errs := []error{}
-	errs = append(errs, pruneStreams(p.g, prunableImageNodes, streamPruner)...)
+	err := pruneStreams(p.g, prunableImageNodes, streamPruner)
 	// if namespace is specified prune only ImageStreams and nothing more
-	if len(p.algorithm.namespace) > 0 {
-		return kerrors.NewAggregate(errs)
+	// if we have any errors after ImageStreams pruning this may mean that
+	// we still have references to images.
+	if len(p.algorithm.namespace) > 0 || err != nil {
+		return err
 	}
 
-	graphWithoutPrunableImages := subgraphWithoutPrunableImages(p.g, prunableImageIDs)
-	prunableComponents := calculatePrunableImageComponents(graphWithoutPrunableImages)
+	prunableComponents := getPrunableComponents(p.g, prunableImageIDs)
+
+	var errs []error
+
 	errs = append(errs, pruneImageComponents(p.g, p.registryClient, p.registryURL, prunableComponents, layerLinkPruner)...)
 	errs = append(errs, pruneBlobs(p.g, p.registryClient, p.registryURL, prunableComponents, blobPruner)...)
 	errs = append(errs, pruneManifests(p.g, p.registryClient, p.registryURL, prunableImageNodes, manifestPruner)...)
 
 	if len(errs) > 0 {
-		// If we had any errors removing image references from image streams or deleting
-		// layers, blobs, or manifest data from the registry, stop here and don't
-		// delete any images. This way, you can rerun prune and retry things that failed.
+		// If we had any errors deleting layers, blobs, or manifest data from the registry,
+		// stop here and don't delete any images. This way, you can rerun prune and retry
+		// things that failed.
 		return kerrors.NewAggregate(errs)
 	}
 
-	errs = append(errs, pruneImages(p.g, prunableImageNodes, imagePruner)...)
+	errs = pruneImages(p.g, prunableImageNodes, imagePruner)
 	return kerrors.NewAggregate(errs)
 }
 
@@ -860,7 +910,7 @@ func pruneManifests(
 	g graph.Graph,
 	registryClient *http.Client,
 	registryURL *url.URL,
-	imageNodes []*imagegraph.ImageNode,
+	imageNodes map[string]*imagegraph.ImageNode,
 	manifestPruner ManifestDeleter,
 ) []error {
 	errs := []error{}
@@ -922,13 +972,18 @@ func (p *imageStreamDeleter) GetImageStream(stream *imageapi.ImageStream) (*imag
 	return p.streams.ImageStreams(stream.Namespace).Get(stream.Name, metav1.GetOptions{})
 }
 
-func (p *imageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream, image *imageapi.Image, updatedTags []string) (*imageapi.ImageStream, error) {
+func (p *imageStreamDeleter) UpdateImageStream(stream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
 	glog.V(4).Infof("Updating ImageStream %s", getName(stream))
 	is, err := p.streams.ImageStreams(stream.Namespace).UpdateStatus(stream)
 	if err == nil {
 		glog.V(5).Infof("Updated ImageStream: %#v", is)
 	}
 	return is, err
+}
+
+// NotifyImageStreamPrune shows notification about updated image stream.
+func (p *imageStreamDeleter) NotifyImageStreamPrune(stream *imageapi.ImageStream, updatedTags []string, deletedTags []string) {
+	return
 }
 
 // deleteFromRegistry uses registryClient to send a DELETE request to the

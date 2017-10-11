@@ -195,6 +195,11 @@ Summary:        %{product_name} Service Catalog
 %description service-catalog
 %{summary}
 
+%package template-service-broker
+Summary: Template Service Broker
+%description template-service-broker
+%{summary}
+
 %package cluster-capacity
 Summary:        %{product_name} Cluster Capacity Analysis Tool
 
@@ -265,7 +270,7 @@ PLATFORM="$(go env GOHOSTOS)/$(go env GOHOSTARCH)"
 install -d %{buildroot}%{_bindir}
 
 # Install linux components
-for bin in oc openshift dockerregistry kubefed
+for bin in oc openshift dockerregistry kubefed template-service-broker
 do
   echo "+++ INSTALLING ${bin}"
   install -p -m 755 _output/local/bin/${PLATFORM}/${bin} %{buildroot}%{_bindir}/${bin}
@@ -617,6 +622,9 @@ fi
 %files cluster-capacity
 %{_bindir}/hypercc
 %{_bindir}/cluster-capacity
+
+%files template-service-broker
+%{_bindir}/template-service-broker
 
 
 %pretrans docker-excluder

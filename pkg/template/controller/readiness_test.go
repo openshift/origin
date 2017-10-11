@@ -275,11 +275,11 @@ func TestCheckReadiness(t *testing.T) {
 			Kind:       test.groupKind.Kind,
 			APIVersion: test.groupKind.WithVersion("v1").GroupVersion().String(),
 		}
-		if can := canCheckReadiness(ref); !can {
+		if can := CanCheckReadiness(ref); !can {
 			t.Errorf("%d: unexpected canCheckReadiness value %v", i, can)
 			continue
 		}
-		ready, failed, err := checkReadiness(buildClient, ref, test.object)
+		ready, failed, err := CheckReadiness(buildClient, ref, test.object)
 		if err != nil {
 			t.Errorf("%d: unexpected err value %v", i, err)
 			continue

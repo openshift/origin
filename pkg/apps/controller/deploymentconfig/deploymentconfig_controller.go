@@ -286,11 +286,11 @@ func (c *DeploymentConfigController) reconcileDeployments(existingDeployments []
 				return err
 			}); err != nil {
 				c.recorder.Eventf(config, v1.EventTypeWarning, "ReplicationControllerScaleFailed",
-					"Failed to scale replication controler %q from %d to %d: %v", deployment.Name, oldReplicaCount, newReplicaCount, err)
+					"Failed to scale replication controler %q from %d to %d: %v", deployment.Name, *oldReplicaCount, newReplicaCount, err)
 				return err
 			}
 
-			c.recorder.Eventf(config, v1.EventTypeNormal, "ReplicationControllerScaled", "Scaled replication controller %q from %d to %d", copied.Name, oldReplicaCount, newReplicaCount)
+			c.recorder.Eventf(config, v1.EventTypeNormal, "ReplicationControllerScaled", "Scaled replication controller %q from %d to %d", copied.Name, *oldReplicaCount, newReplicaCount)
 			toAppend = copied
 		}
 

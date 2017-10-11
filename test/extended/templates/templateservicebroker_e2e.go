@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"fmt"
 	"time"
 
 	g "github.com/onsi/ginkgo"
@@ -153,6 +154,17 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 				"DATABASE_USER": "test",
 			},
 		})
+		if err != nil {
+			templateInstance, err := cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
+			if err != nil {
+				fmt.Fprintf(g.GinkgoWriter, "error getting TemplateInstance after failed provision: %v", err)
+			} else {
+				err := dumpObjectReadiness(cli, templateInstance)
+				if err != nil {
+					fmt.Fprintf(g.GinkgoWriter, "error running dumpObjectReadiness: %v", err)
+				}
+			}
+		}
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		brokerTemplateInstance, err := cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
@@ -368,11 +380,23 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 	}
 
-	g.It("should pass an end-to-end test", func() {
-		catalog()
-		provision()
-		bind()
-		unbind()
-		deprovision()
+	g.Context("", func() {
+		g.AfterEach(func() {
+			if g.CurrentGinkgoTestDescription().Failed {
+				exutil.DumpPodStates(tsbOC)
+				exutil.DumpPodLogsStartingWith("", tsbOC)
+
+				exutil.DumpPodStates(cli)
+				exutil.DumpPodLogsStartingWith("", cli)
+			}
+		})
+
+		g.It("should pass an end-to-end test", func() {
+			catalog()
+			provision()
+			bind()
+			unbind()
+			deprovision()
+		})
 	})
 })

@@ -174,7 +174,10 @@
 // test/extended/testdata/test-env-pod.json
 // test/extended/testdata/test-gitserver-tokenauth.yaml
 // test/extended/testdata/test-gitserver.yaml
-// test/extended/testdata/test-imagesource-build.yaml
+// test/extended/testdata/test-imageresolution-custom-build.yaml
+// test/extended/testdata/test-imageresolution-docker-build.yaml
+// test/extended/testdata/test-imageresolution-s2i-build.yaml
+// test/extended/testdata/test-imagesource-buildconfig.yaml
 // test/extended/testdata/test-nosrc-build.json
 // test/extended/testdata/test-s2i-build-quota.json
 // test/extended/testdata/test-s2i-build.json
@@ -9917,7 +9920,148 @@ func testExtendedTestdataTestGitserverYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataTestImagesourceBuildYaml = []byte(`apiVersion: v1
+var _testExtendedTestdataTestImageresolutionCustomBuildYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagecustombuild
+    name: imagecustombuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      customStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+`)
+
+func testExtendedTestdataTestImageresolutionCustomBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestImageresolutionCustomBuildYaml, nil
+}
+
+func testExtendedTestdataTestImageresolutionCustomBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestImageresolutionCustomBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-imageresolution-custom-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTestImageresolutionDockerBuildYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagedockerbuild
+    name: imagedockerbuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagedockerapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+`)
+
+func testExtendedTestdataTestImageresolutionDockerBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestImageresolutionDockerBuildYaml, nil
+}
+
+func testExtendedTestdataTestImageresolutionDockerBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestImageresolutionDockerBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-imageresolution-docker-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTestImageresolutionS2iBuildYaml = []byte(`apiVersion: v1
+kind: List
+metadata: {}
+items:
+- apiVersion: v1
+  kind: Build
+  metadata:
+    labels:
+      build: imagesourcebuild
+    name: imagesourcebuild
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: imagesourceapp:latest
+    source:
+      git:
+        uri: https://github.com/openshift/ruby-hello-world.git
+      images:
+      - from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+        paths:
+        - destinationDir: injected/dir
+          sourcePath: /opt/rh/rh-ruby23/root/usr/bin/ruby
+    strategy:
+      sourceStrategy:
+        from:
+          kind: ImageStreamTag
+          name: inputimage:latest
+`)
+
+func testExtendedTestdataTestImageresolutionS2iBuildYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestImageresolutionS2iBuildYaml, nil
+}
+
+func testExtendedTestdataTestImageresolutionS2iBuildYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestImageresolutionS2iBuildYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/test-imageresolution-s2i-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTestImagesourceBuildconfigYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
@@ -9945,7 +10089,7 @@ items:
   metadata:
     labels:
       build: imagesourcebuild
-    name: imagesourcebuild
+    name: imagesourcebuildconfig
   spec:
     output:
       to:
@@ -9973,7 +10117,7 @@ items:
   metadata:
     labels:
       build: imagedockerbuild
-    name: imagedockerbuild
+    name: imagedockerbuildconfig
   spec:
     output:
       to:
@@ -10098,17 +10242,17 @@ items:
     - type: ConfigChange
 `)
 
-func testExtendedTestdataTestImagesourceBuildYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataTestImagesourceBuildYaml, nil
+func testExtendedTestdataTestImagesourceBuildconfigYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTestImagesourceBuildconfigYaml, nil
 }
 
-func testExtendedTestdataTestImagesourceBuildYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataTestImagesourceBuildYamlBytes()
+func testExtendedTestdataTestImagesourceBuildconfigYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTestImagesourceBuildconfigYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/test-imagesource-build.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/test-imagesource-buildconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28477,7 +28621,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/test-env-pod.json": testExtendedTestdataTestEnvPodJson,
 	"test/extended/testdata/test-gitserver-tokenauth.yaml": testExtendedTestdataTestGitserverTokenauthYaml,
 	"test/extended/testdata/test-gitserver.yaml": testExtendedTestdataTestGitserverYaml,
-	"test/extended/testdata/test-imagesource-build.yaml": testExtendedTestdataTestImagesourceBuildYaml,
+	"test/extended/testdata/test-imageresolution-custom-build.yaml": testExtendedTestdataTestImageresolutionCustomBuildYaml,
+	"test/extended/testdata/test-imageresolution-docker-build.yaml": testExtendedTestdataTestImageresolutionDockerBuildYaml,
+	"test/extended/testdata/test-imageresolution-s2i-build.yaml": testExtendedTestdataTestImageresolutionS2iBuildYaml,
+	"test/extended/testdata/test-imagesource-buildconfig.yaml": testExtendedTestdataTestImagesourceBuildconfigYaml,
 	"test/extended/testdata/test-nosrc-build.json": testExtendedTestdataTestNosrcBuildJson,
 	"test/extended/testdata/test-s2i-build-quota.json": testExtendedTestdataTestS2iBuildQuotaJson,
 	"test/extended/testdata/test-s2i-build.json": testExtendedTestdataTestS2iBuildJson,
@@ -28939,7 +29086,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"test-env-pod.json": &bintree{testExtendedTestdataTestEnvPodJson, map[string]*bintree{}},
 				"test-gitserver-tokenauth.yaml": &bintree{testExtendedTestdataTestGitserverTokenauthYaml, map[string]*bintree{}},
 				"test-gitserver.yaml": &bintree{testExtendedTestdataTestGitserverYaml, map[string]*bintree{}},
-				"test-imagesource-build.yaml": &bintree{testExtendedTestdataTestImagesourceBuildYaml, map[string]*bintree{}},
+				"test-imageresolution-custom-build.yaml": &bintree{testExtendedTestdataTestImageresolutionCustomBuildYaml, map[string]*bintree{}},
+				"test-imageresolution-docker-build.yaml": &bintree{testExtendedTestdataTestImageresolutionDockerBuildYaml, map[string]*bintree{}},
+				"test-imageresolution-s2i-build.yaml": &bintree{testExtendedTestdataTestImageresolutionS2iBuildYaml, map[string]*bintree{}},
+				"test-imagesource-buildconfig.yaml": &bintree{testExtendedTestdataTestImagesourceBuildconfigYaml, map[string]*bintree{}},
 				"test-nosrc-build.json": &bintree{testExtendedTestdataTestNosrcBuildJson, map[string]*bintree{}},
 				"test-s2i-build-quota.json": &bintree{testExtendedTestdataTestS2iBuildQuotaJson, map[string]*bintree{}},
 				"test-s2i-build.json": &bintree{testExtendedTestdataTestS2iBuildJson, map[string]*bintree{}},

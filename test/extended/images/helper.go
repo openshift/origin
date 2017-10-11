@@ -775,6 +775,15 @@ func (c *CleanUpContainer) Run() {
 		}
 	}
 
+	// Remove registry database between tests to avoid the influence of one test on another.
+	// TODO: replace this with removals of individual blobs used in the test case.
+	out, err := c.OC.SetNamespace(metav1.NamespaceDefault).AsAdmin().
+		Run("rsh").Args("dc/docker-registry", "find", "/registry", "-mindepth", "1", "-delete").Output()
+	if err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "clean up registry failed: %v\n", err)
+		fmt.Fprintf(g.GinkgoWriter, "%s\n", out)
+	}
+
 	if len(c.imageIDs) == 0 {
 		return
 	}

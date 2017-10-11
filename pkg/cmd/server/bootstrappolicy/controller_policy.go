@@ -58,6 +58,12 @@ var (
 	controllerRoleBindings = []rbac.ClusterRoleBinding{}
 )
 
+func bindControllerRole(saName string, roleName string) {
+	roleBinding := rbac.NewClusterBinding(roleName).SAs(DefaultOpenShiftInfraNamespace, saName).BindingOrDie()
+	addDefaultMetadata(&roleBinding)
+	controllerRoleBindings = append(controllerRoleBindings, roleBinding)
+}
+
 func addControllerRole(role rbac.ClusterRole) {
 	if !strings.HasPrefix(role.Name, saRolePrefix) {
 		glog.Fatalf(`role %q must start with %q`, role.Name, saRolePrefix)
@@ -314,12 +320,14 @@ func init() {
 	})
 
 	// horizontal-pod-autoscaler-controller (the OpenShift resources only)
-	addControllerRoleToSA("kube-system", InfraHorizontalPodAutoscalerControllerServiceAccountName, rbac.ClusterRole{
+	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraHorizontalPodAutoscalerControllerServiceAccountName},
 		Rules: []rbac.PolicyRule{
 			rbac.NewRule("get", "update").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs/scale").RuleOrDie(),
 		},
 	})
+
+	bindControllerRole(InfraHorizontalPodAutoscalerControllerServiceAccountName, "system:controller:horizontal-pod-autoscaler")
 
 	addControllerRole(rbac.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{Name: saRolePrefix + InfraTemplateServiceBrokerServiceAccountName},

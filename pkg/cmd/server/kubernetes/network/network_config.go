@@ -3,14 +3,11 @@ package network
 import (
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/golang/glog"
 
 	miekgdns "github.com/miekg/dns"
 
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclientset "k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
 	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
@@ -19,7 +16,6 @@ import (
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/dns"
 	"github.com/openshift/origin/pkg/network"
-	networkapi "github.com/openshift/origin/pkg/network/apis/network"
 	networkclient "github.com/openshift/origin/pkg/network/generated/internalclientset"
 )
 
@@ -63,10 +59,6 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 	}
 	networkClient, err := networkclient.NewForConfig(kubeConfig)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = validateNetworkPluginName(networkClient, options.NetworkConfig.NetworkPluginName); err != nil {
 		return nil, err
 	}
 
@@ -145,26 +137,4 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 	}
 
 	return config, nil
-}
-
-func validateNetworkPluginName(networkClient networkclient.Interface, pluginName string) error {
-	if network.IsOpenShiftNetworkPlugin(pluginName) {
-		// Detect any plugin mismatches between node and master
-		clusterNetwork, err := networkClient.Network().ClusterNetworks().Get(networkapi.ClusterNetworkDefault, metav1.GetOptions{})
-		if kerrs.IsNotFound(err) {
-			return fmt.Errorf("master has not created a default cluster network, network plugin %q can not start", pluginName)
-		} else if err != nil {
-			return fmt.Errorf("cannot fetch %q cluster network: %v", networkapi.ClusterNetworkDefault, err)
-		}
-
-		if clusterNetwork.PluginName != strings.ToLower(pluginName) {
-			if len(clusterNetwork.PluginName) != 0 {
-				return fmt.Errorf("detected network plugin mismatch between OpenShift node(%q) and master(%q)", pluginName, clusterNetwork.PluginName)
-			} else {
-				// Do not return error in this case
-				glog.Warningf(`either there is network plugin mismatch between OpenShift node(%q) and master or OpenShift master is running an older version where we did not persist plugin name`, pluginName)
-			}
-		}
-	}
-	return nil
 }

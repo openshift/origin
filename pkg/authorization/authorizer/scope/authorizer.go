@@ -5,7 +5,6 @@ import (
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
-	kauthorizer "k8s.io/apiserver/pkg/authorization/authorizer"
 	rbaclisters "k8s.io/kubernetes/pkg/client/listers/rbac/internalversion"
 	authorizerrbac "k8s.io/kubernetes/plugin/pkg/auth/authorizer/rbac"
 
@@ -14,13 +13,13 @@ import (
 )
 
 type scopeAuthorizer struct {
-	delegate          kauthorizer.Authorizer
+	delegate          authorizer.Authorizer
 	clusterRoleGetter rbaclisters.ClusterRoleLister
 
 	forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker
 }
 
-func NewAuthorizer(delegate kauthorizer.Authorizer, clusterRoleGetter rbaclisters.ClusterRoleLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
+func NewAuthorizer(delegate authorizer.Authorizer, clusterRoleGetter rbaclisters.ClusterRoleLister, forbiddenMessageMaker defaultauthorizer.ForbiddenMessageMaker) authorizer.Authorizer {
 	return &scopeAuthorizer{delegate: delegate, clusterRoleGetter: clusterRoleGetter, forbiddenMessageMaker: forbiddenMessageMaker}
 }
 
