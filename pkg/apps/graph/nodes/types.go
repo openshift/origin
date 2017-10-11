@@ -11,6 +11,7 @@ import (
 
 var (
 	DaemonSetNodeKind        = reflect.TypeOf(kapisext.DaemonSet{}).Name()
+	DeploymentNodeKind       = reflect.TypeOf(kapisext.Deployment{}).Name()
 	DeploymentConfigNodeKind = reflect.TypeOf(deployapi.DeploymentConfig{}).Name()
 )
 
@@ -39,6 +40,33 @@ func (n DaemonSetNode) String() string {
 
 func (*DaemonSetNode) Kind() string {
 	return DaemonSetNodeKind
+}
+
+func DeploymentNodeName(o *kapisext.Deployment) osgraph.UniqueName {
+	return osgraph.GetUniqueRuntimeObjectNodeName(DeploymentNodeKind, o)
+}
+
+type DeploymentNode struct {
+	osgraph.Node
+	Deployment *kapisext.Deployment
+
+	IsFound bool
+}
+
+func (n DeploymentNode) Found() bool {
+	return n.IsFound
+}
+
+func (n DeploymentNode) Object() interface{} {
+	return n.Deployment
+}
+
+func (n DeploymentNode) String() string {
+	return string(DeploymentNodeName(n.Deployment))
+}
+
+func (*DeploymentNode) Kind() string {
+	return DeploymentNodeKind
 }
 
 func DeploymentConfigNodeName(o *deployapi.DeploymentConfig) osgraph.UniqueName {

@@ -137,6 +137,8 @@ type PrunerOptions struct {
 	Builds *buildapi.BuildList
 	// DSs is the entire list of daemon sets across all namespaces in the cluster.
 	DSs *kapisext.DaemonSetList
+	// Deployments is the entire list of kube's deployments across all namespaces in the cluster.
+	Deployments *kapisext.DeploymentList
 	// DCs is the entire list of deployment configs across all namespaces in the cluster.
 	DCs *deployapi.DeploymentConfigList
 	// LimitRanges is a map of LimitRanges across namespaces, being keys in this map.
@@ -201,6 +203,7 @@ var _ Pruner = &pruner{}
 // - any pending pods
 // - any replication controllers
 // - any daemonsets
+// - any kube deployments
 // - any deployment configs
 // - any build configs
 // - any builds
@@ -246,6 +249,7 @@ func NewPruner(options PrunerOptions) (Pruner, error) {
 		return nil, err
 	}
 	addDaemonSetsToGraph(g, options.DSs)
+	addDeploymentsToGraph(g, options.Deployments)
 	addDeploymentConfigsToGraph(g, options.DCs)
 
 	return &pruner{
@@ -486,6 +490,19 @@ func addDaemonSetsToGraph(g graph.Graph, dss *kapisext.DaemonSetList) {
 		glog.V(4).Infof("Examining DaemonSet %s", getName(ds))
 		dsNode := deploygraph.EnsureDaemonSetNode(g, ds)
 		addPodSpecToGraph(g, &ds.Spec.Template.Spec, dsNode)
+	}
+}
+
+// addDeploymentsToGraph adds kube's deployments to the graph.
+//
+// Edges are added to the graph from each deployment to the images specified by its pod spec's list of
+// containers, as long as the image is managed by OpenShift.
+func addDeploymentsToGraph(g graph.Graph, dmnts *kapisext.DeploymentList) {
+	for i := range dmnts.Items {
+		d := &dmnts.Items[i]
+		glog.V(4).Infof("Examining Deployment %s", getName(d))
+		dNode := deploygraph.EnsureDeploymentNode(g, d)
+		addPodSpecToGraph(g, &d.Spec.Template.Spec, dNode)
 	}
 }
 

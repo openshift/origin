@@ -552,6 +552,7 @@ func GetOpenshiftBootstrapClusterRoles() []rbac.ClusterRole {
 				rbac.NewRule("get", "list").Groups(buildGroup, legacyBuildGroup).Resources("buildconfigs", "builds").RuleOrDie(),
 				rbac.NewRule("get", "list").Groups(deployGroup, legacyDeployGroup).Resources("deploymentconfigs").RuleOrDie(),
 				rbac.NewRule("get", "list").Groups(extensionsGroup).Resources("daemonsets").RuleOrDie(),
+				rbac.NewRule("get", "list").Groups(extensionsGroup).Resources("deployments").RuleOrDie(),
 
 				rbac.NewRule("delete").Groups(imageGroup, legacyImageGroup).Resources("images").RuleOrDie(),
 				rbac.NewRule("get", "list").Groups(imageGroup, legacyImageGroup).Resources("images", "imagestreams").RuleOrDie(),

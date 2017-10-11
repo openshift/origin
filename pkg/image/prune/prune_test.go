@@ -265,6 +265,26 @@ func ds(namespace, name string, containerImages ...string) kapisext.DaemonSet {
 	}
 }
 
+func deploymentList(deployments ...kapisext.Deployment) kapisext.DeploymentList {
+	return kapisext.DeploymentList{
+		Items: deployments,
+	}
+}
+
+func deployment(namespace, name string, containerImages ...string) kapisext.Deployment {
+	return kapisext.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+		},
+		Spec: kapisext.DeploymentSpec{
+			Template: kapi.PodTemplateSpec{
+				Spec: podSpec(containerImages...),
+			},
+		},
+	}
+}
+
 func dcList(dcs ...deployapi.DeploymentConfig) deployapi.DeploymentConfigList {
 	return deployapi.DeploymentConfigList{
 		Items: dcs,
@@ -501,6 +521,7 @@ func TestImagePruning(t *testing.T) {
 		bcs                        buildapi.BuildConfigList
 		builds                     buildapi.BuildList
 		dss                        kapisext.DaemonSetList
+		deployments                kapisext.DeploymentList
 		dcs                        deployapi.DeploymentConfigList
 		limits                     map[string][]*kapi.LimitRange
 		expectedImageDeletions     []string
@@ -662,6 +683,15 @@ func TestImagePruning(t *testing.T) {
 				image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
 			),
 			dss: dsList(ds("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
+			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+		},
+
+		"referenced by upstream deployment - don't prune": {
+			images: imageList(
+				image("sha256:0000000000000000000000000000000000000000000000000000000000000000", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000"),
+				image("sha256:0000000000000000000000000000000000000000000000000000000000000001", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000001"),
+			),
+			deployments:            deploymentList(deployment("foo", "rc1", registryHost+"/foo/bar@sha256:0000000000000000000000000000000000000000000000000000000000000000")),
 			expectedImageDeletions: []string{"sha256:0000000000000000000000000000000000000000000000000000000000000001"},
 		},
 
@@ -1175,6 +1205,7 @@ func TestImagePruning(t *testing.T) {
 			BCs:         &test.bcs,
 			Builds:      &test.builds,
 			DSs:         &test.dss,
+			Deployments: &test.deployments,
 			DCs:         &test.dcs,
 			LimitRanges: test.limits,
 			RegistryURL: &url.URL{Scheme: "https", Host: registryHost},
@@ -1422,6 +1453,7 @@ func TestRegistryPruning(t *testing.T) {
 			BCs:              &buildapi.BuildConfigList{},
 			Builds:           &buildapi.BuildList{},
 			DSs:              &kapisext.DaemonSetList{},
+			Deployments:      &kapisext.DeploymentList{},
 			DCs:              &deployapi.DeploymentConfigList{},
 			RegistryURL:      &url.URL{Scheme: "https", Host: "registry1.io"},
 		}
@@ -1481,17 +1513,19 @@ func TestImageWithStrongAndWeakRefsIsNotPruned(t *testing.T) {
 	bcs := bcList()
 	builds := buildList()
 	dss := dsList()
+	deployments := deploymentList()
 	dcs := dcList()
 
 	options := PrunerOptions{
-		Images:  &images,
-		Streams: &streams,
-		Pods:    &pods,
-		RCs:     &rcs,
-		BCs:     &bcs,
-		Builds:  &builds,
-		DSs:     &dss,
-		DCs:     &dcs,
+		Images:      &images,
+		Streams:     &streams,
+		Pods:        &pods,
+		RCs:         &rcs,
+		BCs:         &bcs,
+		Builds:      &builds,
+		DSs:         &dss,
+		Deployments: &deployments,
+		DCs:         &dcs,
 	}
 	keepYoungerThan := 24 * time.Hour
 	keepTagRevisions := 2

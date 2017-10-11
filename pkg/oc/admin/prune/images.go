@@ -270,6 +270,14 @@ func (o PruneImagesOptions) Run() error {
 		fmt.Fprintf(os.Stderr, "Failed to list daemonsets: %v\n - * Make sure to update clusterRoleBindings.\n", err)
 	}
 
+	allDeployments, err := o.KubeClient.Extensions().Deployments(o.Namespace).List(metav1.ListOptions{})
+	if err != nil {
+		if !kerrors.IsForbidden(err) {
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "Failed to list deployments: %v\n - * Make sure to update clusterRoleBindings.\n", err)
+	}
+
 	allDCs, err := o.AppsClient.DeploymentConfigs(o.Namespace).List(metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -342,6 +350,7 @@ func (o PruneImagesOptions) Run() error {
 		BCs:                allBCs,
 		Builds:             allBuilds,
 		DSs:                allDSs,
+		Deployments:        allDeployments,
 		DCs:                allDCs,
 		LimitRanges:        limitRangesMap,
 		DryRun:             o.Confirm == false,

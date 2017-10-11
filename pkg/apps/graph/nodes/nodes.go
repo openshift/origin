@@ -37,6 +37,33 @@ func FindOrCreateSyntheticDaemonSetNode(g osgraph.MutableUniqueGraph, ds *kapise
 	).(*DaemonSetNode)
 }
 
+// EnsureDeploymentNode adds the provided upstream deployment to the graph if it does not exist
+func EnsureDeploymentNode(g osgraph.MutableUniqueGraph, deployment *kapisext.Deployment) *DeploymentNode {
+	deploymentName := DeploymentNodeName(deployment)
+	deploymentNode := osgraph.EnsureUnique(
+		g,
+		deploymentName,
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentNode{Node: node, Deployment: deployment, IsFound: true}
+		},
+	).(*DeploymentNode)
+
+	podTemplateSpecNode := kubegraph.EnsurePodTemplateSpecNode(g, &deployment.Spec.Template, deployment.Namespace, deploymentName)
+	g.AddEdge(deploymentNode, podTemplateSpecNode, osgraph.ContainsEdgeKind)
+
+	return deploymentNode
+}
+
+func FindOrCreateSyntheticDeploymentNode(g osgraph.MutableUniqueGraph, deployment *kapisext.Deployment) *DeploymentNode {
+	return osgraph.EnsureUnique(
+		g,
+		DeploymentNodeName(deployment),
+		func(node osgraph.Node) graph.Node {
+			return &DeploymentNode{Node: node, Deployment: deployment, IsFound: false}
+		},
+	).(*DeploymentNode)
+}
+
 // EnsureDeploymentConfigNode adds the provided deployment config to the graph if it does not exist
 func EnsureDeploymentConfigNode(g osgraph.MutableUniqueGraph, dc *deployapi.DeploymentConfig) *DeploymentConfigNode {
 	dcName := DeploymentConfigNodeName(dc)
