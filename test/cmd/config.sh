@@ -25,13 +25,13 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
   unset KUBECONFIG
   unset KUBERNETES_MASTER
 
-  os::cmd::expect_failure_and_text 'oc get bc --user=""' 'Missing or incomplete configuration info'
-  os::cmd::expect_failure_and_text 'oc get bc --context=""' 'Missing or incomplete configuration info'
-  os::cmd::expect_failure_and_text 'oc get bc --cluster=""' 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get bc --user=""' 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get bc --context=""' 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get bc --cluster=""' 'Missing or incomplete configuration info'
 
-  os::cmd::expect_failure_and_text 'oc get bc --context="test"' 'context "test" does not exist'
-  os::cmd::expect_failure_and_text 'oc get bc --cluster="test"' 'cluster "test" does not exist'
-  os::cmd::expect_failure_and_text 'oc get bc --user="test"' 'auth info "test" does not exist'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get bc --context="test"' 'context "test" does not exist'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get bc --cluster="test"' 'cluster "test" does not exist'
+  os::cmd::expect_failure_and_text 'env -u KUBERNETES_SERVICE_HOST oc get bc --user="test"' 'auth info "test" does not exist'
 
   os::cmd::expect_failure_and_text 'oc get bc --config=missing' 'missing: no such file or directory'
 
@@ -40,8 +40,8 @@ os::cmd::expect_success_and_not_text 'oc get bc' 'does not exist'
 
   # make sure non-existing --cluster and --user can still be set
   os::cmd::expect_success_and_text "oc config set-context new-context-name --cluster=missing-cluster --user=missing-user --namespace=default --config='${NEW_CONFIG_LOC}'" 'Context "new-context-name" '
-  os::cmd::expect_failure_and_text "env -u KUBECONFIG -u KUBERNETES_MASTER oc get bc --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
-  os::cmd::expect_failure_and_text "oc get bc --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST -u KUBECONFIG -u KUBERNETES_MASTER oc get bc --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
+  os::cmd::expect_failure_and_text "env -u KUBERNETES_SERVICE_HOST oc get bc --config='${NEW_CONFIG_LOC}'" 'Missing or incomplete configuration info'
 )
 echo "config error handling: ok"
 os::test::junit::declare_suite_end
