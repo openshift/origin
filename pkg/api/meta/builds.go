@@ -94,14 +94,6 @@ func (m *buildSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			}
 		}
 	}
-	if s := m.spec.Strategy.SourceStrategy; s != nil && s.RuntimeImage != nil {
-		if m.oldSpec == nil || m.oldSpec.Strategy.SourceStrategy == nil || !hasIdenticalObjectReference(s.RuntimeImage, m.oldSpec.Strategy.SourceStrategy.RuntimeImage) {
-			if err := fn(s.RuntimeImage); err != nil {
-				errs = append(errs, fieldErrorOrInternal(err, m.path.Child("strategy", "sourceStrategy", "runtimeImage", "from", "name")))
-			}
-		}
-	}
-
 	if m.output {
 		if s := m.spec.Output.To; s != nil {
 			if m.oldSpec == nil || m.oldSpec.Output.To == nil || !hasIdenticalObjectReference(s, m.oldSpec.Output.To) {
