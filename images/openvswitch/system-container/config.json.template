@@ -231,17 +231,6 @@
             "source": "proc"
         },
         {
-            "destination": "/dev",
-            "type": "tmpfs",
-            "source": "tmpfs",
-            "options": [
-                "nosuid",
-                "strictatime",
-                "mode=755",
-                "size=65536k"
-            ]
-        },
-        {
 	    "type": "bind",
 	    "source": "/run",
 	    "destination": "/run",
@@ -305,7 +294,7 @@
 	"resources": {
 	    "devices": [
 		{
-		    "allow": false,
+		    "allow": true,
 		    "access": "rwm"
 		}
 	    ]
