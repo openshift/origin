@@ -1,6 +1,9 @@
 package dns
 
 import (
+	"net"
+	"strings"
+
 	"github.com/golang/glog"
 
 	"github.com/skynetservices/skydns/metrics"
@@ -41,6 +44,8 @@ func NewServer(config *server.Config, services ServiceAccessor, endpoints Endpoi
 // ListenAndServe starts a DNS server that exposes services and values stored in etcd (if etcdclient
 // is not nil). It will block until the server exits.
 func (s *Server) ListenAndServe() error {
+	monitorDnsmasq(s.Config, s.MetricsName)
+
 	resolver := NewServiceResolver(s.Config, s.Services, s.Endpoints, openshiftFallback)
 	resolvers := server.FirstBackend{resolver}
 	if len(s.MetricsName) > 0 {
@@ -51,6 +56,34 @@ func (s *Server) ListenAndServe() error {
 		defer close(s.Stop)
 	}
 	return dns.Run()
+}
+
+// monitorDnsmasq attempts to start the dnsmasq monitoring goroutines to keep dnsmasq
+// in sync with this server. It will take no action if the current config DnsAddr does
+// not point to port 53 (dnsmasq does not support alternate upstream ports). It will
+// convert the bind address from 0.0.0.0 to the BindNetwork appropriate listen address.
+func monitorDnsmasq(config *server.Config, metricsName string) {
+	if host, port, err := net.SplitHostPort(config.DnsAddr); err == nil && port == "53" {
+		if ip := net.ParseIP(host); ip != nil && ip.IsUnspecified() {
+			if config.BindNetwork == "ipv6" {
+				host = "::1"
+			} else {
+				host = "127.0.0.1"
+			}
+		}
+		monitor := &dnsmasqMonitor{
+			metricsName: metricsName,
+			dnsIP:       host,
+			dnsDomain:   strings.TrimSuffix(config.Domain, "."),
+		}
+		if err := monitor.Start(); err != nil {
+			glog.Warningf("Unable to start dnsmasq monitor: %v", err)
+		} else {
+			glog.V(2).Infof("Monitoring dnsmasq to point cluster queries to %s", host)
+		}
+	} else {
+		glog.Warningf("Unable to keep dnsmasq up to date, %s must point to port 53", config.DnsAddr)
+	}
 }
 
 func openshiftFallback(name string, exact bool) (string, bool) {
