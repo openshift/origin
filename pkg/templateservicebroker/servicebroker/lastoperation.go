@@ -18,16 +18,23 @@ import (
 )
 
 // LastOperation returns the status of an asynchronous operation.  Currently
-// the OSB API only supports async Provision and Deprovision; we don't currently
-// support async Deprovision as the garbage collector doesn't indicate when it's
-// done cleaning up after a given object is removed.
+// the OSB API only supports async Provision and Deprovision.
 func (b *Broker) LastOperation(u user.Info, instanceID string, operation api.Operation) *api.Response {
 	glog.V(4).Infof("Template service broker: LastOperation: instanceID %s", instanceID)
 
-	if operation != api.OperationProvisioning {
-		return api.BadRequest(errors.New("invalid operation"))
+	switch operation {
+	case api.OperationProvisioning:
+		return b.lastOperationProvisioning(u, instanceID)
+	case api.OperationDeprovisioning:
+		return b.lastOperationDeprovisioning(u, instanceID)
 	}
 
+	return api.BadRequest(errors.New("invalid operation"))
+}
+
+// lastOperationProvisioning returns the status of an asynchronous provision
+// operation.
+func (b *Broker) lastOperationProvisioning(u user.Info, instanceID string) *api.Response {
 	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -68,4 +75,30 @@ func (b *Broker) LastOperation(u user.Info, instanceID string, operation api.Ope
 	}
 
 	return api.NewResponse(http.StatusOK, &api.LastOperationResponse{State: state, Description: description}, nil)
+}
+
+// lastOperationDerovisioning returns the status of an asynchronous deprovision
+// operation.
+func (b *Broker) lastOperationDeprovisioning(u user.Info, instanceID string) *api.Response {
+	brokerTemplateInstance, err := b.templateclient.BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return api.NewResponse(http.StatusOK, &api.LastOperationResponse{State: api.LastOperationStateSucceeded}, nil)
+		}
+		return api.InternalServerError(err)
+	}
+
+	namespace := brokerTemplateInstance.Spec.TemplateInstance.Namespace
+
+	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+		Namespace: namespace,
+		Verb:      "get",
+		Group:     templateapi.GroupName,
+		Resource:  "templateinstances",
+		Name:      brokerTemplateInstance.Spec.TemplateInstance.Name,
+	}); err != nil {
+		return api.Forbidden(err)
+	}
+
+	return api.NewResponse(http.StatusOK, &api.LastOperationResponse{State: api.LastOperationStateInProgress}, nil)
 }

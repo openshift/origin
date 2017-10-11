@@ -157,6 +157,7 @@ func init() {
 			rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(templateGroup).Resources("subjectaccessreviews").RuleOrDie(),
 			rbac.NewRule("update").Groups(templateGroup).Resources("templateinstances/status").RuleOrDie(),
+			rbac.NewRule("update").Groups(templateGroup).Resources("templateinstances/finalizers").RuleOrDie(),
 		},
 	})
 
@@ -335,6 +336,7 @@ func init() {
 			rbac.NewRule("create").Groups(kAuthzGroup).Resources("subjectaccessreviews").RuleOrDie(),
 			rbac.NewRule("create").Groups(authzGroup).Resources("subjectaccessreviews").RuleOrDie(),
 			rbac.NewRule("get", "create", "update", "delete").Groups(templateGroup).Resources("brokertemplateinstances").RuleOrDie(),
+			rbac.NewRule("update").Groups(templateGroup).Resources("brokertemplateinstances/finalizers").RuleOrDie(),
 			rbac.NewRule("get", "create", "delete", "assign").Groups(templateGroup).Resources("templateinstances").RuleOrDie(),
 			rbac.NewRule("get", "list", "watch").Groups(templateGroup).Resources("templates").RuleOrDie(),
 			rbac.NewRule("get", "create", "delete").Groups(kapiGroup).Resources("secrets").RuleOrDie(),
