@@ -272,4 +272,20 @@ func TestEgressIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Unexpected flow changes: %v", err)
 	}
+	origFlows = flows
+
+	// Trying to assign node IP as egress IP should fail. (It will log an error but this test doesn't notice that.)
+	eip.updateNodeEgress("172.17.0.4", []string{"172.17.0.4", "172.17.0.102"})
+	err = assertNoNetlinkChanges(eip)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+	flows, err = ovsif.DumpFlows()
+	if err != nil {
+		t.Fatalf("Unexpected error dumping flows: %v", err)
+	}
+	err = assertFlowChanges(origFlows, flows)
+	if err != nil {
+		t.Fatalf("Unexpected flow changes: %v", err)
+	}
 }
