@@ -25,8 +25,11 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	utilerrs "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	kwatch "k8s.io/apimachinery/pkg/watch"
+	krest "k8s.io/client-go/rest"
 	clientgotesting "k8s.io/client-go/testing"
 	kapi "k8s.io/kubernetes/pkg/api"
 
@@ -42,6 +45,7 @@ import (
 	"github.com/openshift/origin/pkg/generate/source"
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
 	imagefake "github.com/openshift/origin/pkg/image/generated/internalclientset/fake"
+	imageinternalversion "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	dockerregistry "github.com/openshift/origin/pkg/image/importer/dockerv1client"
 	clicmd "github.com/openshift/origin/pkg/oc/cli/cmd"
 	routefake "github.com/openshift/origin/pkg/route/generated/internalclientset/fake"
@@ -842,6 +846,9 @@ func TestNewAppRunAll(t *testing.T) {
 	for _, test := range tests {
 		test.config.Out, test.config.ErrOut = os.Stdout, os.Stderr
 		test.config.Deploy = true
+		test.config.ImageClient = &NewAppFakeImageClient{
+			proxy: test.config.ImageClient,
+		}
 		res, err := test.config.Run()
 		if test.errFn != nil {
 			if !test.errFn(err) {
@@ -1425,6 +1432,9 @@ func TestNewAppRunBuilds(t *testing.T) {
 	}
 	for _, test := range tests {
 		stdout, stderr := PrepareAppConfig(test.config)
+		test.config.ImageClient = &NewAppFakeImageClient{
+			proxy: test.config.ImageClient,
+		}
 
 		res, err := test.config.Run()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
@@ -1656,6 +1666,9 @@ func TestNewAppBuildOutputCycleDetection(t *testing.T) {
 	}
 	for _, test := range tests {
 		stdout, stderr := PrepareAppConfig(test.config)
+		test.config.ImageClient = &NewAppFakeImageClient{
+			proxy: test.config.ImageClient,
+		}
 
 		res, err := test.config.Run()
 		if (test.expectedErr == nil && err != nil) || (test.expectedErr != nil && !test.expectedErr(err)) {
@@ -2303,4 +2316,100 @@ func PrepareAppConfig(config *cmd.AppConfig) (stdout, stderr *bytes.Buffer) {
 	}
 	config.Typer = kapi.Scheme
 	return
+}
+
+// NewAppFakeImageClient implements ImageClient interface and overrides some of
+// the default fake client behavior around default, empty imagestreams
+type NewAppFakeImageClient struct {
+	proxy imageinternalversion.ImageInterface
+}
+
+func (c *NewAppFakeImageClient) Images() imageinternalversion.ImageResourceInterface {
+	return c.proxy.Images()
+}
+
+func (c *NewAppFakeImageClient) ImageSignatures() imageinternalversion.ImageSignatureInterface {
+	return c.proxy.ImageSignatures()
+}
+
+func (c *NewAppFakeImageClient) ImageStreams(namespace string) imageinternalversion.ImageStreamInterface {
+	return &NewAppFakeImageStreams{
+		proxy: c.proxy.ImageStreams(namespace),
+	}
+}
+
+func (c *NewAppFakeImageClient) ImageStreamImages(namespace string) imageinternalversion.ImageStreamImageInterface {
+	return c.proxy.ImageStreamImages(namespace)
+}
+
+func (c *NewAppFakeImageClient) ImageStreamImports(namespace string) imageinternalversion.ImageStreamImportInterface {
+	return c.proxy.ImageStreamImports(namespace)
+}
+
+func (c *NewAppFakeImageClient) ImageStreamMappings(namespace string) imageinternalversion.ImageStreamMappingInterface {
+	return c.proxy.ImageStreamMappings(namespace)
+}
+
+func (c *NewAppFakeImageClient) ImageStreamTags(namespace string) imageinternalversion.ImageStreamTagInterface {
+	return c.proxy.ImageStreamTags(namespace)
+}
+
+func (c *NewAppFakeImageClient) RESTClient() krest.Interface {
+	return c.proxy.RESTClient()
+}
+
+// NewAppFakeImageStreams implements the ImageStreamInterface  and overrides some of the
+// default fake client behavior round default, empty imagestreams
+type NewAppFakeImageStreams struct {
+	proxy imageinternalversion.ImageStreamInterface
+}
+
+func (c *NewAppFakeImageStreams) Get(name string, options metav1.GetOptions) (result *imageapi.ImageStream, err error) {
+	result, err = c.proxy.Get(name, options)
+	if err != nil {
+		return nil, err
+	}
+	if len(result.Name) == 0 {
+		// the default faker will return an empty image stream struct if it
+		// cannot find an entry for the given name ... we want nil for our tests,
+		// just like the real client
+		return nil, nil
+	}
+	return result, nil
+}
+
+func (c *NewAppFakeImageStreams) List(opts metav1.ListOptions) (result *imageapi.ImageStreamList, err error) {
+	return c.proxy.List(opts)
+}
+
+func (c *NewAppFakeImageStreams) Watch(opts metav1.ListOptions) (kwatch.Interface, error) {
+	return c.proxy.Watch(opts)
+}
+
+func (c *NewAppFakeImageStreams) Create(imageStream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	return c.proxy.Create(imageStream)
+}
+
+func (c *NewAppFakeImageStreams) Update(imageStream *imageapi.ImageStream) (result *imageapi.ImageStream, err error) {
+	return c.proxy.Update(imageStream)
+}
+
+func (c *NewAppFakeImageStreams) UpdateStatus(imageStream *imageapi.ImageStream) (*imageapi.ImageStream, error) {
+	return c.proxy.UpdateStatus(imageStream)
+}
+
+func (c *NewAppFakeImageStreams) Delete(name string, options *metav1.DeleteOptions) error {
+	return c.proxy.Delete(name, options)
+}
+
+func (c *NewAppFakeImageStreams) DeleteCollection(options *metav1.DeleteOptions, listOptions metav1.ListOptions) error {
+	return c.proxy.DeleteCollection(options, listOptions)
+}
+
+func (c *NewAppFakeImageStreams) Patch(name string, pt ktypes.PatchType, data []byte, subresources ...string) (result *imageapi.ImageStream, err error) {
+	return c.proxy.Patch(name, pt, data, subresources...)
+}
+
+func (c *NewAppFakeImageStreams) Secrets(imageStreamName string, opts metav1.ListOptions) (result *kapi.SecretList, err error) {
+	return c.proxy.Secrets(imageStreamName, opts)
 }

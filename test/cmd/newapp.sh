@@ -376,8 +376,20 @@ os::cmd::expect_success 'oc delete imagestreamtag ruby:2.3'
 os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.com/openshift/rails-ex --dry-run' 'error: only a partial match was found for \"ruby\":'
 # when the tag is specified explicitly, the operation is successful
 os::cmd::expect_success 'oc new-app --image-stream ruby:2.4 https://github.com/openshift/rails-ex --dry-run'
-
 os::cmd::expect_success 'oc delete imagestreams --all'
+
+# newapp does not attempt to create an imagestream that already exists for a Docker image
+os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/openshift/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream "ruby" created'
+os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/openshift/ruby-ex.git --name=testapp2 --strategy=docker' '"ruby" already exists'
+os::cmd::expect_success 'oc delete all -l app=testapp2'
+os::cmd::expect_success 'oc delete all -l app=testapp1'
+os::cmd::expect_success 'oc delete all -l app=ruby --ignore-not-found'
+os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
+# newapp does not attempt to create an imagestream that already exists for a Docker image
+os::cmd::expect_success 'oc new-app docker.io/ruby:2.2'
+# the next one technically fails cause the DC is already created, but we should still see the ist created
+os::cmd::expect_failure_and_text 'oc new-app docker.io/ruby:2.4' 'imagestreamtag "ruby:2.4" created'
+os::cmd::expect_success 'oc delete imagestreams --all --ignore-not-found'
 
 # check that we can create from the template without errors
 os::cmd::expect_success_and_text 'oc new-app ruby-helloworld-sample -l app=helloworld' 'service "frontend" created'

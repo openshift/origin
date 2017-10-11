@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -19,6 +21,7 @@ import (
 	build "github.com/openshift/origin/pkg/build/apis/build"
 	"github.com/openshift/origin/pkg/generate"
 	image "github.com/openshift/origin/pkg/image/apis/image"
+	imageclient "github.com/openshift/origin/pkg/image/generated/internalclientset/typed/image/internalversion"
 	route "github.com/openshift/origin/pkg/route/apis/route"
 	"github.com/openshift/origin/pkg/util/docker/dockerfile"
 )
@@ -200,6 +203,15 @@ func (p *Pipeline) Objects(accept, objectAccept Acceptor) (Objects, error) {
 		}
 		if objectAccept.Accept(repo) {
 			objects = append(objects, repo)
+		} else {
+			// if the image stream exists, if possible create the imagestream tag referenced if that does not exist
+			tag, err := p.Image.ImageStreamTag()
+			if err != nil {
+				return nil, err
+			}
+			if objectAccept.Accept(tag) {
+				objects = append(objects, tag)
+			}
 		}
 	}
 	if p.Build != nil && accept.Accept(p.Build) {
@@ -453,6 +465,96 @@ func NewAcceptUnique(typer runtime.ObjectTyper) Acceptor {
 	return &acceptUnique{
 		typer:   typer,
 		objects: map[string]struct{}{},
+	}
+}
+
+type acceptNonExistentImageStream struct {
+	typer     runtime.ObjectTyper
+	getter    imageclient.ImageInterface
+	namespace string
+}
+
+// Accept accepts any non-ImageStream object or an ImageStream that does
+// not exist in the api server
+func (a *acceptNonExistentImageStream) Accept(from interface{}) bool {
+	obj, _, err := objectMetaData(from)
+	if err != nil {
+		return false
+	}
+	gvk, _, err := a.typer.ObjectKinds(obj)
+	if err != nil {
+		return false
+	}
+	gk := gvk[0].GroupKind()
+	if !image.IsKindOrLegacy("ImageStream", gk) {
+		return true
+	}
+	is, ok := from.(*image.ImageStream)
+	if !ok {
+		glog.V(4).Infof("type cast to image stream %#v not right for an unanticipated reason", from)
+		return true
+	}
+	imgstrm, err := a.getter.ImageStreams(a.namespace).Get(is.Name, metav1.GetOptions{})
+	if err == nil && imgstrm != nil {
+		glog.V(4).Infof("acceptor determined that imagestream %s in namespace %s exists so don't accept: %#v", is.Name, a.namespace, imgstrm)
+		return false
+	}
+	return true
+}
+
+// NewAcceptNonExistentImageStream creates an acceptor that accepts an object
+// if it is either a) not an ImageStream, or b) or an ImageStream which does not
+// yet exist in master
+func NewAcceptNonExistentImageStream(typer runtime.ObjectTyper, getter imageclient.ImageInterface, namespace string) Acceptor {
+	return &acceptNonExistentImageStream{
+		typer:     typer,
+		getter:    getter,
+		namespace: namespace,
+	}
+}
+
+type acceptNonExistentImageStreamTag struct {
+	typer     runtime.ObjectTyper
+	getter    imageclient.ImageInterface
+	namespace string
+}
+
+// Accept accepts any non-ImageStreamTag object or an ImageStreamTag that does
+// not exist in the api server
+func (a *acceptNonExistentImageStreamTag) Accept(from interface{}) bool {
+	obj, _, err := objectMetaData(from)
+	if err != nil {
+		return false
+	}
+	gvk, _, err := a.typer.ObjectKinds(obj)
+	if err != nil {
+		return false
+	}
+	gk := gvk[0].GroupKind()
+	if !image.IsKindOrLegacy("ImageStreamTag", gk) {
+		return true
+	}
+	ist, ok := from.(*image.ImageStreamTag)
+	if !ok {
+		glog.V(4).Infof("type cast to imagestreamtag %#v not right for an unanticipated reason", from)
+		return true
+	}
+	tag, err := a.getter.ImageStreamTags(a.namespace).Get(ist.Name, metav1.GetOptions{})
+	if err == nil && tag != nil {
+		glog.V(4).Infof("acceptor determined that imagestreamtag %s in namespace %s exists so don't accept", ist.Name, a.namespace)
+		return false
+	}
+	return true
+}
+
+// NewAcceptNonExistentImageStreamTag creates an acceptor that accepts an object
+// if it is either a) not an ImageStreamTag, or b) or an ImageStreamTag which does not
+// yet exist in master
+func NewAcceptNonExistentImageStreamTag(typer runtime.ObjectTyper, getter imageclient.ImageInterface, namespace string) Acceptor {
+	return &acceptNonExistentImageStreamTag{
+		typer:     typer,
+		getter:    getter,
+		namespace: namespace,
 	}
 }
 

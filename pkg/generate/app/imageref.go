@@ -325,6 +325,30 @@ func (r *ImageRef) ImageStream() (*imageapi.ImageStream, error) {
 	return stream, nil
 }
 
+// ImageStreamTag returns an ImageStreamTag from an image reference
+func (r *ImageRef) ImageStreamTag() (*imageapi.ImageStreamTag, error) {
+	name, ok := r.SuggestName()
+	if !ok {
+		return nil, fmt.Errorf("unable to suggest an ImageStream name for %q", r.Reference.String())
+	}
+	istname := imageapi.JoinImageStreamTag(name, r.Reference.Tag)
+	ist := &imageapi.ImageStreamTag{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        istname,
+			Annotations: map[string]string{"openshift.io/imported-from": r.Reference.Exact()},
+		},
+		Tag: &imageapi.TagReference{
+			Name: r.InternalTag(),
+			From: &kapi.ObjectReference{
+				Kind: "DockerImage",
+				Name: r.PullSpec(),
+			},
+			ImportPolicy: imageapi.TagImportPolicy{Insecure: r.Insecure},
+		},
+	}
+	return ist, nil
+}
+
 // DeployableContainer sets up a container for the image ready for deployment
 func (r *ImageRef) DeployableContainer() (container *kapi.Container, triggers []deployapi.DeploymentTriggerPolicy, err error) {
 	name, ok := r.SuggestName()
