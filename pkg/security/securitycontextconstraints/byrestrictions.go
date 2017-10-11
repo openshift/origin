@@ -105,8 +105,6 @@ func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 		switch v {
 		case securityapi.FSTypeHostPath, securityapi.FSTypeAll:
 			hasHostVolume = true
-			// nothing more to do, this is the max point value
-			break
 		// it is easier to specifically list the trivial volumes and allow the
 		// default case to be non-trivial so we don't have to worry about adding
 		// volumes in the future unless they're trivial.
@@ -115,6 +113,9 @@ func volumePointValue(scc *securityapi.SecurityContextConstraints) points {
 			// do nothing
 		default:
 			hasNonTrivialVolume = true
+		}
+		if hasHostVolume {
+			break
 		}
 	}
 

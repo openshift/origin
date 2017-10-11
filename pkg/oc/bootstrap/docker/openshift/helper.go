@@ -51,8 +51,6 @@ const (
 	aggregatorKeyPath           = serverConfigPath + "/master/" + aggregatorKey
 	aggregatorCertPath          = serverConfigPath + "/master/" + aggregatorCert
 	aggregatorCACertPath        = serverConfigPath + "/master/" + aggregatorCACert
-	aggregatorCAKeyPath         = serverConfigPath + "/master/" + aggregatorCAKey
-	aggregatorCASerialPath      = serverConfigPath + "/master/" + aggregatorCASerial
 	DefaultDNSPort              = 53
 	AlternateDNSPort            = 8053
 	cmdDetermineNodeHost        = "for name in %s; do ls /var/lib/origin/openshift.local.config/node-$name &> /dev/null && echo $name && break; done"
@@ -75,22 +73,9 @@ var (
 	PortsWithAlternateDNS = append(BasePorts, AlternateDNSPort)
 	AllPorts              = append(append(RouterPorts, DefaultPorts...), AlternateDNSPort)
 	SocatPidFile          = filepath.Join(homedir.HomeDir(), cliconfig.OpenShiftConfigHomeDir, "socat-8443.pid")
-	defaultCertHosts      = []string{
-		"127.0.0.1",
-		"172.30.0.1",
-		"localhost",
-		"kubernetes",
-		"kubernetes.default",
-		"kubernetes.default.svc",
-		"kubernetes.default.svc.cluster.local",
-		"openshift",
-		"openshift.default",
-		"openshift.default.svc",
-		"openshift.default.svc.cluster.local",
-	}
-	version15 = semver.MustParse("1.5.0")
-	version35 = semver.MustParse("3.5.0")
-	version37 = semver.MustParse("3.7.0")
+	version15             = semver.MustParse("1.5.0")
+	version35             = semver.MustParse("3.5.0")
+	version37             = semver.MustParse("3.7.0")
 )
 
 // Helper contains methods and utilities to help with OpenShift startup
@@ -99,7 +84,6 @@ type Helper struct {
 	dockerHelper      *dockerhelper.Helper
 	execHelper        *dockerexec.ExecHelper
 	runHelper         *run.RunHelper
-	client            dockerhelper.Interface
 	publicHost        string
 	image             string
 	containerName     string
@@ -693,10 +677,6 @@ func useDNSIP(version semver.Version) bool {
 }
 
 func useAggregator(version semver.Version) bool {
-	return version.GTE(version37)
-}
-
-func useTemplateServiceBroker(version semver.Version) bool {
 	return version.GTE(version37)
 }
 

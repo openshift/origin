@@ -32,8 +32,6 @@ type routeEvent struct {
 	route     *routeapi.Route
 }
 
-type ingressRouteMap map[string]*routeapi.Route
-
 type ingressMap map[string]*extensions.Ingress
 
 // IngressTranslator converts secret and ingress events into route events.
@@ -539,7 +537,7 @@ func generateRouteName(name, host, path string) string {
 func IsGeneratedRouteName(name string) bool {
 	// The name of a route generated from an ingress rule contains '/'
 	// to prevent name clashes with user-defined routes.  See generateRouteName
-	return strings.Index(name, "/") != -1
+	return strings.Contains(name, "/")
 }
 
 // GetNameForHost returns the name of the ingress if the route name was

@@ -709,7 +709,7 @@ func (o *ObserveOptions) dumpMetrics() {
 func measureCommandDuration(m *prometheus.SummaryVec, fn func() error, labels ...string) error {
 	n := time.Now()
 	err := fn()
-	duration := time.Now().Sub(n)
+	duration := time.Since(n)
 	statusCode, ok := exitCodeForCommandError(err)
 	if !ok {
 		statusCode = -1

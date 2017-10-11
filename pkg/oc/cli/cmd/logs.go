@@ -227,17 +227,17 @@ func (o OpenShiftLogsOptions) RunLog() error {
 		buildName := buildutil.BuildNameForConfigVersion(bc.ObjectMeta.Name, int(bc.Status.LastVersion))
 		build, _ = o.Client.Builds(o.Namespace).Get(buildName, metav1.GetOptions{})
 		if build == nil {
-			return errors.New(fmt.Sprintf("The build %s for build config %s was not found", buildName, bc.ObjectMeta.Name))
+			return fmt.Errorf("The build %s for build config %s was not found", buildName, bc.ObjectMeta.Name)
 		}
 		fallthrough
 	case isBld:
-		urlString, _ := build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]
+		urlString := build.Annotations[buildapi.BuildJenkinsBlueOceanLogURLAnnotation]
 		if len(urlString) == 0 {
-			return errors.New(fmt.Sprintf("The pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.ObjectMeta.Name))
+			return fmt.Errorf("The pipeline strategy build %s does not yet contain the log URL; wait a few moments, then try again", build.ObjectMeta.Name)
 		}
 		o.KubeLogOptions.Out.Write([]byte(fmt.Sprintf("info: Logs available at %s\n", urlString)))
 	default:
-		return errors.New(fmt.Sprintf("A pipeline strategy build log operation peformed against invalid object %#v", o.KubeLogOptions.Object))
+		return fmt.Errorf("A pipeline strategy build log operation peformed against invalid object %#v", o.KubeLogOptions.Object)
 	}
 
 	return nil

@@ -231,10 +231,8 @@ type CommonStartConfig struct {
 	originalFactory *clientcmd.Factory
 	command         *cobra.Command
 
-	usingDefaultImages         bool
-	usingDefaultOpenShiftImage bool
-	checkAlternatePorts        bool
-	isRHDocker                 bool
+	checkAlternatePorts bool
+	isRHDocker          bool
 
 	shouldInitializeData *bool
 	shouldCreateUser     *bool

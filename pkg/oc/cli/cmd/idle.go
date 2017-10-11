@@ -94,7 +94,6 @@ type IdleOptions struct {
 	all           bool
 	selector      string
 	allNamespaces bool
-	resources     string
 
 	cmdFullName string
 

@@ -259,16 +259,6 @@ func (p *UniqueHost) Commit() error {
 	return p.plugin.Commit()
 }
 
-// routeKeys returns the internal router key to use for the given Route.
-func routeKeys(route *routeapi.Route) []string {
-	keys := make([]string, 1+len(route.Spec.AlternateBackends))
-	keys[0] = fmt.Sprintf("%s/%s", route.Namespace, route.Spec.To.Name)
-	for i, svc := range route.Spec.AlternateBackends {
-		keys[i] = fmt.Sprintf("%s/%s", route.Namespace, svc.Name)
-	}
-	return keys
-}
-
 // routeNameKey returns a unique name for a given route
 func routeNameKey(route *routeapi.Route) string {
 	return fmt.Sprintf("%s/%s", route.Namespace, route.Name)

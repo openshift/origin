@@ -23,7 +23,6 @@ import (
 
 const (
 	catalogNamespace        = "kube-service-catalog"
-	catalogService          = "service-catalog"
 	catalogTemplate         = "service-catalog"
 	ServiceCatalogServiceIP = "172.30.1.2"
 )
@@ -44,6 +43,9 @@ func (h *Helper) InstallServiceCatalog(f *clientcmd.Factory, configDir, publicMa
 	}
 
 	scRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("servicecatalog.k8s.io").Resources("serviceinstances", "serviceinstancecredentials").Rule()
+	if err != nil {
+		return errors.NewError("could not create service catalog resource rule").WithCause(err)
+	}
 	podpresetRule, err := authzapi.NewRule("create", "update", "delete", "get", "list", "watch").Groups("settings.k8s.io").Resources("podpresets").Rule()
 	if err != nil {
 		return errors.NewError("could not create service catalog resource rule").WithCause(err)

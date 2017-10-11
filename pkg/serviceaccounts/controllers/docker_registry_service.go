@@ -164,8 +164,6 @@ func (e *DockerRegistryServiceController) waitForDockerURLs(ready chan<- struct{
 	e.dockercfgController.SetDockerURLs(urls...)
 	close(e.dockerURLsInitialized)
 	close(ready)
-
-	return
 }
 
 func (e *DockerRegistryServiceController) setRegistryURLs(registryURLs ...string) {

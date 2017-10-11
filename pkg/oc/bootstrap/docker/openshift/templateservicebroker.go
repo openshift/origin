@@ -94,6 +94,9 @@ func (h *Helper) RegisterTemplateServiceBroker(f *clientcmd.Factory, configDir s
 
 	// dynamic mapper is needed to support the broker resource which isn't part of the api.
 	dynamicMapper, dynamicTyper, err := f.UnstructuredObject()
+	if err != nil {
+		return err
+	}
 	dmapper := &resource.Mapper{
 		RESTMapper:   dynamicMapper,
 		ObjectTyper:  dynamicTyper,

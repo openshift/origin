@@ -307,7 +307,7 @@ func (o DiagnosticsOptions) RunDiagnostics() (bool, error, int, int) {
 		}
 
 		etcdDiags, ok, err := o.buildEtcdDiagnostics()
-		failed = failed || !ok
+		failed = failed || !ok || err != nil
 		if ok {
 			diagnostics = append(diagnostics, etcdDiags...)
 		}

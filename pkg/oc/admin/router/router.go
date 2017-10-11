@@ -79,7 +79,6 @@ var (
 	defaultCertificateDir = "/etc/pki/tls/private"
 
 	privkeySecretName = "external-host-private-key-secret"
-	privkeyVolumeName = "external-host-private-key-volume"
 	privkeyName       = "router.pem"
 	privkeyPath       = secretsPath + "/" + privkeyName
 

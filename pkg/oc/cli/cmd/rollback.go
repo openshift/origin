@@ -301,7 +301,7 @@ func (o *RollbackOptions) Run() error {
 // name is unprefixed, treat it as an rc first and a dc second.
 func (o *RollbackOptions) findResource(targetName string) (runtime.Object, error) {
 	candidates := []string{}
-	if strings.Index(targetName, "/") == -1 {
+	if !strings.Contains(targetName, "/") {
 		candidates = append(candidates, "rc/"+targetName)
 		candidates = append(candidates, "dc/"+targetName)
 	} else {

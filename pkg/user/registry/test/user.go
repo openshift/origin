@@ -57,7 +57,7 @@ func (r *UserRegistry) Create(u *userapi.User) (*userapi.User, error) {
 
 func (r *UserRegistry) Update(u *userapi.User) (*userapi.User, error) {
 	*r.Actions = append(*r.Actions, Action{"UpdateUser", u})
-	err, _ := r.UpdateErr[u.Name]
+	err := r.UpdateErr[u.Name]
 	if r.UpdateUser == nil && err == nil {
 		return u, nil
 	}

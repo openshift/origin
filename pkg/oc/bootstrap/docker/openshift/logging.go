@@ -13,7 +13,6 @@ import (
 
 const (
 	loggingNamespace               = "logging"
-	svcKibana                      = "kibana-logging"
 	loggingDeployerAccountTemplate = "logging-deployer-account-template"
 	loggingDeployerTemplate        = "logging-deployer-template"
 	loggingPlaybook                = "playbooks/byo/openshift-cluster/openshift-logging.yml"

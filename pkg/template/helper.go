@@ -2,9 +2,10 @@ package template
 
 import (
 	"fmt"
+	"strings"
+
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"k8s.io/apiserver/pkg/authentication/user"
-	"strings"
 )
 
 // TemplateReference points to a stored template
@@ -23,11 +24,9 @@ func ParseTemplateReference(s string) (TemplateReference, error) {
 		// namespace/name
 		ref.Namespace = parts[0]
 		ref.Name = parts[1]
-		break
 	case 1:
 		// name
 		ref.Name = parts[0]
-		break
 	default:
 		return ref, fmt.Errorf("the template reference must be either the template name or namespace and template name separated by slashes")
 	}

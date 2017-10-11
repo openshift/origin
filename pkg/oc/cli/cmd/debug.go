@@ -66,8 +66,6 @@ type DebugOptions struct {
 }
 
 const (
-	debugPodLabelName = "debug.openshift.io/name"
-
 	debugPodAnnotationSourceContainer = "debug.openshift.io/source-container"
 	debugPodAnnotationSourceResource  = "debug.openshift.io/source-resource"
 )

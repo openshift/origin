@@ -399,7 +399,7 @@ func (o DeployOptions) cancel(config *deployapi.DeploymentConfig) error {
 		if deployutil.IsDeploymentCancelled(latest) && !deployutil.IsTerminatedDeployment(latest) {
 			maybeCancelling = " (cancelling)"
 		}
-		timeAt := strings.ToLower(units.HumanDuration(time.Now().Sub(latest.CreationTimestamp.Time)))
+		timeAt := strings.ToLower(units.HumanDuration(time.Since(latest.CreationTimestamp.Time)))
 		fmt.Fprintf(o.out, "No deployments are in progress (latest deployment #%d %s%s %s ago)\n",
 			deployutil.DeploymentVersionFor(latest),
 			strings.ToLower(string(deployutil.DeploymentStatusFor(latest))),
