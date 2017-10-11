@@ -497,12 +497,7 @@
 	"resources": {
 	    "devices": [
 		{
-		    "allow": false,
-		    "access": "rwm"
-		},
-		{
 		    "allow": true,
-		    "type": "b",
 		    "access": "rwm"
 		}
 	    ]
