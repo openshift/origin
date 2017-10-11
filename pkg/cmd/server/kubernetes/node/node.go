@@ -28,7 +28,7 @@ import (
 	"github.com/openshift/origin/pkg/volume/emptydir"
 )
 
-const minimumDockerAPIVersionWithPullByID = "1.18"
+const minimumDockerAPIVersionWithPullByID = "1.22"
 
 // EnsureKubeletAccess performs a number of test operations that the Kubelet requires to properly function.
 // All errors here are fatal.
@@ -127,7 +127,7 @@ func (c *NodeConfig) EnsureDocker(docker *dockerutil.Helper) {
 	}
 
 	if serverVersion.LessThan(minimumPullByIDVersion) {
-		c.HandleDockerError(fmt.Sprintf("Docker 1.6 or later (server API version 1.18 or later) required."))
+		c.HandleDockerError(fmt.Sprintf("Docker 1.6 or later (server API version %s or later) required.", minimumDockerAPIVersionWithPullByID))
 		return
 	}
 
@@ -140,7 +140,15 @@ func (c *NodeConfig) HandleDockerError(message string) {
 		glog.Fatalf("error: %s", message)
 	}
 	glog.Errorf("WARNING: %s", message)
-	c.DockerClient = &dockertools.FakeDockerClient{VersionInfo: dockertypes.Version{APIVersion: "1.18"}}
+	c.DockerClient = &dockertools.FakeDockerClient{
+		VersionInfo: dockertypes.Version{
+			APIVersion: minimumDockerAPIVersionWithPullByID,
+			Version:    "1.13",
+		},
+		Information: dockertypes.Info{
+			CgroupDriver: "systemd",
+		},
+	}
 }
 
 // EnsureVolumeDir attempts to convert the provided volume directory argument to
