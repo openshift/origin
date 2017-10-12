@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
@@ -17,11 +18,21 @@ import (
 	"github.com/docker/distribution/registry/storage/driver/inmemory"
 
 	imageapiv1 "github.com/openshift/origin/pkg/image/apis/image/v1"
+	"github.com/openshift/origin/pkg/image/importer"
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	registryclient "github.com/openshift/origin/pkg/dockerregistry/server/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
 )
+
+type testTransportRetriever struct {
+}
+
+var _ importer.TransportRetriever = &testTransportRetriever{}
+
+func (tr *testTransportRetriever) TransportFor(host string, insecure bool) (http.RoundTripper, error) {
+	return http.DefaultTransport, nil
+}
 
 type testRegistry struct {
 	distribution.Namespace
@@ -117,9 +128,10 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 			blobRepositoryCacheTTL: reg.blobrepositorycachettl,
 			pullthrough:            reg.pullthrough,
 		},
-		imageStreamGetter: isGetter,
-		cachedImages:      make(map[digest.Digest]*imageapiv1.Image),
-		cachedLayers:      reg.app.cachedLayers,
+		transportRetriever: &testTransportRetriever{},
+		imageStreamGetter:  isGetter,
+		cachedImages:       make(map[digest.Digest]*imageapiv1.Image),
+		cachedLayers:       reg.app.cachedLayers,
 	}
 
 	if reg.pullthrough {
@@ -127,6 +139,7 @@ func (reg *testRegistry) Repository(ctx context.Context, ref reference.Named) (d
 			nm,
 			name,
 			defaultBlobRepositoryCacheTTL,
+			r.transportRetriever,
 			isGetter.get,
 			reg.osClient,
 			reg.app.cachedLayers)

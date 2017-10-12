@@ -2,7 +2,6 @@ package image
 
 import (
 	"context"
-	"net/http"
 	"net/url"
 
 	"github.com/docker/distribution/digest"
@@ -18,7 +17,7 @@ func getImageManifestByIDFromRegistry(registry *url.URL, repositoryName, imageID
 	credentials := importer.NewBasicCredentials()
 	credentials.Add(registry, username, password)
 
-	repo, err := importer.NewContext(http.DefaultTransport, http.DefaultTransport).
+	repo, err := importer.NewContext(importer.NewTransportRetriever()).
 		WithCredentials(credentials).
 		Repository(ctx, registry, repositoryName, insecure)
 	if err != nil {

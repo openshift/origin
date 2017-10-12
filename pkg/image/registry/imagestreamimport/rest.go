@@ -2,7 +2,6 @@ package imagestreamimport
 
 import (
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/golang/glog"
@@ -42,42 +41,36 @@ type ImporterDockerRegistryFunc func() dockerv1client.Client
 
 // REST implements the RESTStorage interface for ImageStreamImport
 type REST struct {
-	importFn          ImporterFunc
-	streams           imagestream.Registry
-	internalStreams   rest.CreaterUpdater
-	images            rest.Creater
-	isClient          imageclient.ImageStreamsGetter
-	transport         http.RoundTripper
-	insecureTransport http.RoundTripper
-	clientFn          ImporterDockerRegistryFunc
-	strategy          *strategy
-	sarClient         authorizationclient.SubjectAccessReviewInterface
+	importFn        ImporterFunc
+	streams         imagestream.Registry
+	internalStreams rest.CreaterUpdater
+	images          rest.Creater
+	isClient        imageclient.ImageStreamsGetter
+	clientFn        ImporterDockerRegistryFunc
+	strategy        *strategy
+	sarClient       authorizationclient.SubjectAccessReviewInterface
 }
 
 var _ rest.Creater = &REST{}
 
 // NewREST returns a REST storage implementation that handles importing images. The clientFn argument is optional
-// if v1 Docker Registry importing is not required. Insecure transport is optional, and both transports should not
-// include client certs unless you wish to allow the entire cluster to import using those certs.
+// if v1 Docker Registry importing is not required.
 func NewREST(importFn ImporterFunc, streams imagestream.Registry, internalStreams rest.CreaterUpdater,
 	images rest.Creater, isClient imageclient.ImageStreamsGetter,
-	transport, insecureTransport http.RoundTripper,
 	clientFn ImporterDockerRegistryFunc,
 	allowedImportRegistries *serverapi.AllowedRegistries,
 	registryFn imageapi.RegistryHostnameRetriever,
 	sarClient authorizationclient.SubjectAccessReviewInterface,
 ) *REST {
 	return &REST{
-		importFn:          importFn,
-		streams:           streams,
-		internalStreams:   internalStreams,
-		images:            images,
-		isClient:          isClient,
-		transport:         transport,
-		insecureTransport: insecureTransport,
-		clientFn:          clientFn,
-		strategy:          NewStrategy(allowedImportRegistries, registryFn),
-		sarClient:         sarClient,
+		importFn:        importFn,
+		streams:         streams,
+		internalStreams: internalStreams,
+		images:          images,
+		isClient:        isClient,
+		clientFn:        clientFn,
+		strategy:        NewStrategy(allowedImportRegistries, registryFn),
+		sarClient:       sarClient,
 	}
 }
 
@@ -196,7 +189,7 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, _ bool) (runti
 		}
 		return secretsv1, nil
 	})
-	importCtx := importer.NewContext(r.transport, r.insecureTransport).WithCredentials(credentials)
+	importCtx := importer.NewContext(importer.NewTransportRetriever()).WithCredentials(credentials)
 	imports := r.importFn(importCtx)
 	if err := imports.Import(ctx.(gocontext.Context), isi, stream); err != nil {
 		return nil, kapierrors.NewInternalError(err)

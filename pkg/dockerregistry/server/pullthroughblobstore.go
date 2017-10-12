@@ -188,6 +188,7 @@ func storeLocalInBackground(ctx context.Context, repo *repository, localBlobStor
 		repo.namespace,
 		repo.name,
 		repo.config.blobRepositoryCacheTTL,
+		repo.transportRetriever,
 		repo.imageStreamGetter.get,
 		repo.registryOSClient,
 		repo.cachedLayers)

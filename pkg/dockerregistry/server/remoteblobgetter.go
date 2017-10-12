@@ -32,6 +32,7 @@ type remoteBlobGetterService struct {
 	namespace           string
 	name                string
 	cacheTTL            time.Duration
+	transportRetriever  importer.TransportRetriever
 	getImageStream      ImageStreamGetter
 	isSecretsNamespacer client.ImageStreamSecretsNamespacer
 	cachedLayers        digestToRepositoryCache
@@ -45,6 +46,7 @@ var _ BlobGetterService = &remoteBlobGetterService{}
 func NewBlobGetterService(
 	namespace, name string,
 	cacheTTL time.Duration,
+	transportRetriever importer.TransportRetriever,
 	imageStreamGetter ImageStreamGetter,
 	isSecretsNamespacer client.ImageStreamSecretsNamespacer,
 	cachedLayers digestToRepositoryCache,
@@ -52,6 +54,7 @@ func NewBlobGetterService(
 	return &remoteBlobGetterService{
 		namespace:           namespace,
 		name:                name,
+		transportRetriever:  transportRetriever,
 		getImageStream:      imageStreamGetter,
 		isSecretsNamespacer: isSecretsNamespacer,
 		cacheTTL:            cacheTTL,
@@ -87,7 +90,7 @@ func (rbgs *remoteBlobGetterService) Stat(ctx context.Context, dgst digest.Diges
 		localRegistry = local.Registry
 	}
 
-	retriever := getImportContext(ctx, rbgs.isSecretsNamespacer, rbgs.namespace, rbgs.name)
+	retriever := getImportContext(ctx, rbgs.transportRetriever, rbgs.isSecretsNamespacer, rbgs.namespace, rbgs.name)
 	cached := rbgs.cachedLayers.RepositoriesForDigest(dgst)
 
 	// look at the first level of tagged repositories first

@@ -3,7 +3,6 @@ package importer
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"reflect"
 	"testing"
 
@@ -19,7 +18,7 @@ import (
 )
 
 func TestImportNothing(t *testing.T) {
-	ctx := NewContext(http.DefaultTransport, http.DefaultTransport).WithCredentials(NoCredentials)
+	ctx := NewContext(newTransportRetriever()).WithCredentials(NoCredentials)
 	isi := &imageapi.ImageStreamImport{}
 	i := NewImageStreamImporter(ctx, 5, nil, nil)
 	if err := i.Import(nil, isi, nil); err != nil {

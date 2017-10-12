@@ -42,21 +42,19 @@ func (e *ErrNotV2Registry) Error() string {
 }
 
 // NewContext is capable of creating RepositoryRetrievers.
-func NewContext(transport, insecureTransport http.RoundTripper) Context {
+func NewContext(tr TransportRetriever) Context {
 	return Context{
-		Transport:         transport,
-		InsecureTransport: insecureTransport,
-		Challenges:        challenge.NewSimpleManager(),
-		Actions:           []string{"pull"},
+		TransportRetriever: tr,
+		Challenges:         challenge.NewSimpleManager(),
+		Actions:            []string{"pull"},
 	}
 }
 
 type Context struct {
-	Transport         http.RoundTripper
-	InsecureTransport http.RoundTripper
-	Challenges        challenge.Manager
-	Scopes            []auth.Scope
-	Actions           []string
+	TransportRetriever TransportRetriever
+	Challenges         challenge.Manager
+	Scopes             []auth.Scope
+	Actions            []string
 }
 
 func (c Context) WithScopes(scopes ...auth.Scope) Context {
@@ -109,17 +107,20 @@ type repositoryRetriever struct {
 	redirect map[url.URL]*url.URL
 }
 
-func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
+var _ RepositoryRetriever = &repositoryRetriever{}
+
+func (r *repositoryRetriever) Repository(ctx gocontext.Context, registryURL *url.URL, repoName string, insecure bool) (distribution.Repository, error) {
 	named, err := reference.ParseNamed(repoName)
 	if err != nil {
 		return nil, err
 	}
 
-	t := r.context.Transport
-	if insecure && r.context.InsecureTransport != nil {
-		t = r.context.InsecureTransport
+	t, err := r.context.TransportRetriever.TransportFor(registryURL.Host, insecure)
+	if err != nil {
+		return nil, fmt.Errorf("unable to configure a default transport for importing: %v", err)
 	}
-	src := *registry
+
+	src := *registryURL
 	// ping the registry to get challenge headers
 	if err, ok := r.pings[src]; ok {
 		if err != nil {
@@ -146,7 +147,7 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 		// TODO: make multiple attempts if the first credential fails
 		auth.NewAuthorizer(
 			r.context.Challenges,
-			r.credentials(t, registry, repoName)...,
+			r.credentials(t, registryURL, repoName)...,
 		),
 	)
 
@@ -157,12 +158,12 @@ func (r *repositoryRetriever) Repository(ctx gocontext.Context, registry *url.UR
 	return NewRetryRepository(repo, 2, 3/2*time.Second), nil
 }
 
-func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {
+func (r *repositoryRetriever) ping(registryURL url.URL, insecure bool, transport http.RoundTripper) (*url.URL, error) {
 	pingClient := &http.Client{
 		Transport: transport,
 		Timeout:   15 * time.Second,
 	}
-	target := registry
+	target := registryURL
 	target.Path = path.Join(target.Path, "v2") + "/"
 	req, err := http.NewRequest("GET", target.String(), nil)
 	if err != nil {
@@ -170,14 +171,14 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 	}
 	resp, err := pingClient.Do(req)
 	if err != nil {
-		if insecure && registry.Scheme == "https" {
-			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registry, err)
-			registry.Scheme = "http"
-			_, nErr := r.ping(registry, true, transport)
+		if insecure && registryURL.Scheme == "https" {
+			glog.V(5).Infof("Falling back to an HTTP check for an insecure registry %s: %v", registryURL, err)
+			registryURL.Scheme = "http"
+			_, nErr := r.ping(registryURL, true, transport)
 			if nErr != nil {
 				return nil, nErr
 			}
-			return &registry, nil
+			return &registryURL, nil
 		}
 		return nil, err
 	}
@@ -192,7 +193,7 @@ func (r *repositoryRetriever) ping(registry url.URL, insecure bool, transport ht
 		case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
 			// v2
 		default:
-			return nil, &ErrNotV2Registry{Registry: registry.String()}
+			return nil, &ErrNotV2Registry{Registry: registryURL.String()}
 		}
 	}
 

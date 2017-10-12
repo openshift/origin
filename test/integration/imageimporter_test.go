@@ -18,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/watch"
-	restclient "k8s.io/client-go/rest"
 	kapi "k8s.io/kubernetes/pkg/api"
 
 	imageapi "github.com/openshift/origin/pkg/image/apis/image"
@@ -30,6 +29,15 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 )
+
+type testTransportRetriever struct {
+}
+
+var _ importer.TransportRetriever = &testTransportRetriever{}
+
+func (tr *testTransportRetriever) TransportFor(host string, insecure bool) (http.RoundTripper, error) {
+	return http.DefaultTransport, nil
+}
 
 func TestImageStreamImport(t *testing.T) {
 	masterConfig, clusterAdminKubeConfig, err := testserver.StartTestMaster()
@@ -795,8 +803,7 @@ func TestImageStreamImportScheduled(t *testing.T) {
 }
 
 func TestImageStreamImportDockerHub(t *testing.T) {
-	rt, _ := restclient.TransportFor(&restclient.Config{})
-	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx := importer.NewContext(&testTransportRetriever{}).WithCredentials(importer.NoCredentials)
 
 	imports := &imageapi.ImageStreamImport{
 		Spec: imageapi.ImageStreamImportSpec{
@@ -856,8 +863,7 @@ func TestImageStreamImportDockerHub(t *testing.T) {
 }
 
 func TestImageStreamImportQuayIO(t *testing.T) {
-	rt, _ := restclient.TransportFor(&restclient.Config{})
-	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx := importer.NewContext(&testTransportRetriever{}).WithCredentials(importer.NoCredentials)
 
 	repositoryName := quayRegistryName + "/coreos/etcd"
 	imports := &imageapi.ImageStreamImport{
@@ -909,8 +915,7 @@ func TestImageStreamImportQuayIO(t *testing.T) {
 }
 
 func TestImageStreamImportRedHatRegistry(t *testing.T) {
-	rt, _ := restclient.TransportFor(&restclient.Config{})
-	importCtx := importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx := importer.NewContext(&testTransportRetriever{}).WithCredentials(importer.NoCredentials)
 
 	repositoryName := pulpRegistryName + "/rhel7"
 	// test without the client on the context
@@ -947,7 +952,7 @@ func TestImageStreamImportRedHatRegistry(t *testing.T) {
 		},
 	}
 	context := gocontext.WithValue(gocontext.Background(), importer.ContextKeyV1RegistryClient, dockerregistry.NewClient(20*time.Second, false))
-	importCtx = importer.NewContext(rt, nil).WithCredentials(importer.NoCredentials)
+	importCtx = importer.NewContext(&testTransportRetriever{}).WithCredentials(importer.NoCredentials)
 	err := retryWhenUnreachable(t, func() error {
 		i = importer.NewImageStreamImporter(importCtx, 3, nil, nil)
 		if err := i.Import(context, imports, &imageapi.ImageStream{}); err != nil {

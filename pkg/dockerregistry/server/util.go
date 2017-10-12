@@ -164,6 +164,7 @@ func wrapKStatusErrorOnGetImage(repoName string, dgst digest.Digest, err error) 
 // to remote repositories.
 func getImportContext(
 	ctx context.Context,
+	tr importer.TransportRetriever,
 	osClient client.ImageStreamSecretsNamespacer,
 	namespace, name string,
 ) importer.RepositoryRetriever {
@@ -173,7 +174,7 @@ func getImportContext(
 		secrets = &kapiv1.SecretList{}
 	}
 	credentials := importer.NewCredentialsForSecrets(secrets.Items)
-	return importer.NewContext(secureTransport, insecureTransport).WithCredentials(credentials)
+	return importer.NewContext(tr).WithCredentials(credentials)
 }
 
 // cachedImageStreamGetter wraps a master API client for getting image streams with a cache.
