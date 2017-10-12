@@ -85,7 +85,7 @@ func (d *NetworkDiagnostic) Check() types.DiagnosticResult {
 		return d.res
 	}
 	if !ok {
-		d.res.Warn("DNet2002", nil, "Skipping network diagnostics check. Reason: Not using openshift network plugin.")
+		d.res.Info("DNet2002", "Skipping network diagnostics check. Reason: Not using openshift network plugin.")
 		return d.res
 	}
 
