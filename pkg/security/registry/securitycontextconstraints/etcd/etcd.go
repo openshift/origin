@@ -17,6 +17,12 @@ type REST struct {
 }
 
 var _ rest.StandardStorage = &REST{}
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"scc"}
+}
 
 // NewREST returns a RESTStorage object that will work against security context constraints objects.
 func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
@@ -40,9 +46,4 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		panic(err) // TODO: Propagate error up
 	}
 	return &REST{store}
-}
-
-// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
-func (r *REST) ShortNames() []string {
-	return []string{"scc"}
 }

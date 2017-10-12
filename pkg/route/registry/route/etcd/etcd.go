@@ -22,6 +22,12 @@ type REST struct {
 }
 
 var _ rest.StandardStorage = &REST{}
+var _ rest.CategoriesProvider = &REST{}
+
+// Categories implements the CategoriesProvider interface. Returns a list of categories a resource is part of.
+func (r *REST) Categories() []string {
+	return []string{"all"}
+}
 
 // NewREST returns a RESTStorage object that will work against routes.
 func NewREST(optsGetter restoptions.Getter, allocator route.RouteAllocator, sarClient routeregistry.SubjectAccessReviewInterface) (*REST, *StatusREST, error) {

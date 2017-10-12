@@ -23,6 +23,18 @@ type REST struct {
 }
 
 var _ rest.StandardStorage = &REST{}
+var _ rest.ShortNamesProvider = &REST{}
+var _ rest.CategoriesProvider = &REST{}
+
+// Categories implements the CategoriesProvider interface. Returns a list of categories a resource is part of.
+func (r *REST) Categories() []string {
+	return []string{"all"}
+}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"is"}
+}
 
 // NewREST returns a new REST.
 func NewREST(optsGetter restoptions.Getter, registryHostname imageapi.RegistryHostnameRetriever, subjectAccessReviewRegistry authorizationclient.SubjectAccessReviewInterface, limitVerifier imageadmission.LimitVerifier) (*REST, *StatusREST, *InternalREST, error) {

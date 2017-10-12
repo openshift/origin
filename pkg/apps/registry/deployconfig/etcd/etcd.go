@@ -25,6 +25,18 @@ type REST struct {
 }
 
 var _ rest.StandardStorage = &REST{}
+var _ rest.ShortNamesProvider = &REST{}
+var _ rest.CategoriesProvider = &REST{}
+
+// Categories implements the CategoriesProvider interface. Returns a list of categories a resource is part of.
+func (r *REST) Categories() []string {
+	return []string{"all"}
+}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"dc"}
+}
 
 // NewREST returns a deploymentConfigREST containing the REST storage for DeploymentConfig objects,
 // a statusREST containing the REST storage for changing the status of a DeploymentConfig,
