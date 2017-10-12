@@ -173,9 +173,12 @@ func (a *GenericAdmissionWebhook) Admit(attr admission.Attributes) error {
 	for i := range hooks {
 		go func(hook *v1alpha1.ExternalAdmissionHook) {
 			defer wg.Done()
+
+			ignoreClientCallFailures := hook.FailurePolicy == nil || *hook.FailurePolicy == v1alpha1.Ignore
+
 			if err := a.callHook(ctx, hook, attr); err == nil {
 				return
-			} else if callErr, ok := err.(*ErrCallingWebhook); ok {
+			} else if callErr, ok := err.(*ErrCallingWebhook); ignoreClientCallFailures && ok {
 				glog.Warningf("Failed calling webhook %v: %v", hook.Name, callErr)
 				utilruntime.HandleError(callErr)
 				// Since we are failing open to begin with, we do not send an error down the channel

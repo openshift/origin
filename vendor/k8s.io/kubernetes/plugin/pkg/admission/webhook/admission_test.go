@@ -143,6 +143,9 @@ func TestAdmit(t *testing.T) {
 		},
 	}}
 
+	policyFail := registrationv1alpha1.Fail
+	policyIgnore := registrationv1alpha1.Ignore
+
 	table := map[string]test{
 		"no match": {
 			hookSource: fakeHookSource{
@@ -189,6 +192,28 @@ func TestAdmit(t *testing.T) {
 		"match & fail (but allow because fail open)": {
 			hookSource: fakeHookSource{
 				hooks: []registrationv1alpha1.ExternalAdmissionHook{{
+					Name:          "internalErr A",
+					ClientConfig:  ccfg,
+					Rules:         matchEverythingRules,
+					FailurePolicy: &policyIgnore,
+				}, {
+					Name:          "internalErr B",
+					ClientConfig:  ccfg,
+					Rules:         matchEverythingRules,
+					FailurePolicy: &policyIgnore,
+				}, {
+					Name:          "internalErr C",
+					ClientConfig:  ccfg,
+					Rules:         matchEverythingRules,
+					FailurePolicy: &policyIgnore,
+				}},
+			},
+			path:        "internalErr",
+			expectAllow: true,
+		},
+		"match & fail (but allow because fail open on nil)": {
+			hookSource: fakeHookSource{
+				hooks: []registrationv1alpha1.ExternalAdmissionHook{{
 					Name:         "internalErr A",
 					ClientConfig: ccfg("internalErr"),
 					Rules:        matchEverythingRules,
@@ -203,6 +228,28 @@ func TestAdmit(t *testing.T) {
 				}},
 			},
 			expectAllow: true,
+		},
+		"match & fail (but fail because fail closed)": {
+			hookSource: fakeHookSource{
+				hooks: []registrationv1alpha1.ExternalAdmissionHook{{
+					Name:          "internalErr A",
+					ClientConfig:  ccfg,
+					Rules:         matchEverythingRules,
+					FailurePolicy: &policyFail,
+				}, {
+					Name:          "internalErr B",
+					ClientConfig:  ccfg,
+					Rules:         matchEverythingRules,
+					FailurePolicy: &policyFail,
+				}, {
+					Name:          "internalErr C",
+					ClientConfig:  ccfg,
+					Rules:         matchEverythingRules,
+					FailurePolicy: &policyFail,
+				}},
+			},
+			path:        "internalErr",
+			expectAllow: false,
 		},
 	}
 
