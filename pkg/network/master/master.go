@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	log "github.com/golang/glog"
+	"github.com/golang/glog"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -44,7 +44,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 		return nil
 	}
 
-	log.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
+	glog.Infof("Initializing SDN master of type %q", networkConfig.NetworkPluginName)
 
 	master := &OsdnMaster{
 		kClient:           kClient,
@@ -92,10 +92,10 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 			if _, err = master.networkClient.Network().ClusterNetworks().Create(configCN); err != nil {
 				return false, err
 			}
-			log.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
+			glog.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 
 			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-				log.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err)
+				glog.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err)
 			}
 		} else {
 			configChanged, err := clusterNetworkChanged(configCN, existingCN)
@@ -106,15 +106,15 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 				configCN.TypeMeta = existingCN.TypeMeta
 				configCN.ObjectMeta = existingCN.ObjectMeta
 				if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-					log.Errorf("Attempting to modify cluster to exclude existing objects: %v", err)
+					glog.Errorf("Attempting to modify cluster to exclude existing objects: %v", err)
 					return false, err
 				}
 				if _, err = master.networkClient.Network().ClusterNetworks().Update(configCN); err != nil {
 					return false, err
 				}
-				log.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
+				glog.Infof("Updated ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 			} else {
-				log.V(5).Infof("No change to ClusterNetwork %s", common.ClusterNetworkToString(configCN))
+				glog.V(5).Infof("No change to ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 			}
 		}
 
