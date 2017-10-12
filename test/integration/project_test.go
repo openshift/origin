@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin/policy"
 	projectapi "github.com/openshift/origin/pkg/project/apis/project"
 	projectclient "github.com/openshift/origin/pkg/project/generated/internalclientset"
+	projectinternalversion "github.com/openshift/origin/pkg/project/generated/internalclientset/typed/project/internalversion"
 	testutil "github.com/openshift/origin/test/util"
 	testserver "github.com/openshift/origin/test/util/server"
 )
@@ -467,25 +468,15 @@ func TestScopedProjectAccess(t *testing.T) {
 	}
 	waitForOnlyAdd("four", allWatch, t)
 
-	oneTwoProjects, err := oneTwoBobClient.Projects().List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if err := hasExactlyTheseProjects(oneTwoProjects, sets.NewString("one", "two")); err != nil {
+	if err := hasExactlyTheseProjects(oneTwoBobClient.Projects(), sets.NewString("one", "two")); err != nil {
 		t.Error(err)
 	}
-	twoThreeProjects, err := twoThreeBobClient.Projects().List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if err := hasExactlyTheseProjects(twoThreeProjects, sets.NewString("two", "three")); err != nil {
+
+	if err := hasExactlyTheseProjects(twoThreeBobClient.Projects(), sets.NewString("two", "three")); err != nil {
 		t.Error(err)
 	}
-	allProjects, err := allBobClient.Projects().List(metav1.ListOptions{})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if err := hasExactlyTheseProjects(allProjects, sets.NewString("one", "two", "three", "four")); err != nil {
+
+	if err := hasExactlyTheseProjects(allBobClient.Projects(), sets.NewString("one", "two", "three", "four")); err != nil {
 		t.Error(err)
 	}
 
@@ -589,15 +580,11 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 
 	// Make sure bob still sees his project (and only his project)
-	if projects, err := projectclient.NewForConfigOrDie(bobConfig).Projects().List(metav1.ListOptions{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	} else if hasErr := hasExactlyTheseProjects(projects, sets.NewString("foo")); hasErr != nil {
+	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(bobConfig).Projects(), sets.NewString("foo")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure alice still sees her project (and only her project)
-	if projects, err := projectclient.NewForConfigOrDie(aliceConfig).Projects().List(metav1.ListOptions{}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	} else if hasErr := hasExactlyTheseProjects(projects, sets.NewString("bar")); hasErr != nil {
+	if hasErr := hasExactlyTheseProjects(projectclient.NewForConfigOrDie(aliceConfig).Projects(), sets.NewString("bar")); hasErr != nil {
 		t.Error(hasErr)
 	}
 	// Make sure cluster admin still sees all projects
@@ -614,14 +601,26 @@ func TestInvalidRoleRefs(t *testing.T) {
 	}
 }
 
-func hasExactlyTheseProjects(list *projectapi.ProjectList, projects sets.String) error {
-	if len(list.Items) != len(projects) {
-		return fmt.Errorf("expected %v, got %v", projects, list.Items)
-	}
-	for _, project := range list.Items {
-		if !projects.Has(project.Name) {
-			return fmt.Errorf("expected %v, got %v", projects, list.Items)
+func hasExactlyTheseProjects(lister projectinternalversion.ProjectResourceInterface, projects sets.String) error {
+	var lastErr error
+	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+		list, err := lister.List(metav1.ListOptions{})
+		if err != nil {
+			return false, err
 		}
+		if len(list.Items) != len(projects) {
+			lastErr = fmt.Errorf("expected %v, got %v", projects.List(), list.Items)
+			return false, nil
+		}
+		for _, project := range list.Items {
+			if !projects.Has(project.Name) {
+				lastErr = fmt.Errorf("expected %v, got %v", projects.List(), list.Items)
+				return false, nil
+			}
+		}
+		return true, nil
+	}); err != nil {
+		return fmt.Errorf("hasExactlyTheseProjects failed with %v and %v", err, lastErr)
 	}
 	return nil
 }

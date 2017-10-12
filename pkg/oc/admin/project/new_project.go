@@ -4,16 +4,19 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/spf13/cobra"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
 	oapi "github.com/openshift/origin/pkg/api"
+	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	authorizationtypedclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset/typed/authorization/internalversion"
 	authorizationregistryutil "github.com/openshift/origin/pkg/authorization/registry/util"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -33,6 +36,7 @@ type NewProjectOptions struct {
 
 	ProjectClient     projectclient.ProjectInterface
 	RoleBindingClient authorizationtypedclient.RoleBindingsGetter
+	SARClient         authorizationtypedclient.SubjectAccessReviewInterface
 
 	AdminRole string
 	AdminUser string
@@ -93,7 +97,9 @@ func (o *NewProjectOptions) complete(f *clientcmd.Factory, args []string) error 
 	if err != nil {
 		return err
 	}
-	o.RoleBindingClient = authorizationClient.Authorization()
+	authorizationInterface := authorizationClient.Authorization()
+	o.RoleBindingClient = authorizationInterface
+	o.SARClient = authorizationInterface.SubjectAccessReviews()
 
 	return nil
 }
@@ -133,6 +139,27 @@ func (o *NewProjectOptions) Run(useNodeSelector bool) error {
 		if err := adduser.AddRole(); err != nil {
 			fmt.Printf("%v could not be added to the %v role: %v\n", o.AdminUser, o.AdminRole, err)
 			errs = append(errs, err)
+		} else {
+			if err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+				resp, err := o.SARClient.Create(&authorizationapi.SubjectAccessReview{
+					Action: authorizationapi.Action{
+						Namespace: o.ProjectName,
+						Verb:      "get",
+						Resource:  "projects",
+					},
+					User: o.AdminUser,
+				})
+				if err != nil {
+					return false, err
+				}
+				if !resp.Allowed {
+					return false, nil
+				}
+				return true, nil
+			}); err != nil {
+				fmt.Printf("%s is not able to get project %s with the %s role: %v\n", o.AdminUser, o.ProjectName, o.AdminRole, err)
+				errs = append(errs, err)
+			}
 		}
 	}
 

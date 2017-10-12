@@ -47,10 +47,12 @@ func TestLogin(t *testing.T) {
 	if loginOptions.Username != username {
 		t.Fatalf("Unexpected user after authentication: %#v", loginOptions)
 	}
+	authorizationInterface := authorizationclient.NewForConfigOrDie(clusterAdminClientConfig).Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
 		ProjectClient:     projectclient.NewForConfigOrDie(clusterAdminClientConfig).Project(),
-		RoleBindingClient: authorizationclient.NewForConfigOrDie(clusterAdminClientConfig),
+		RoleBindingClient: authorizationInterface,
+		SARClient:         authorizationInterface.SubjectAccessReviews(),
 		ProjectName:       project,
 		AdminRole:         bootstrappolicy.AdminRoleName,
 		AdminUser:         username,
