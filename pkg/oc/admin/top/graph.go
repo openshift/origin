@@ -74,13 +74,12 @@ func addImageStreamsToGraph(g graph.Graph, streams *imageapi.ImageStreamList) {
 		for tag, history := range stream.Status.Tags {
 			for i := range history.Items {
 				image := history.Items[i]
-				n := imagegraph.FindImage(g, image.Image)
-				if n == nil {
+				imageNode := imagegraph.FindImage(g, image.Image)
+				if imageNode == nil {
 					glog.V(2).Infof("Unable to find image %q in graph (from tag=%q, dockerImageReference=%s)",
 						history.Items[i].Image, tag, image.DockerImageReference)
 					continue
 				}
-				imageNode := n.(*imagegraph.ImageNode)
 				glog.V(4).Infof("Adding edge from %q to %q", imageStreamNode.UniqueName(), imageNode.UniqueName())
 				edgeKind := ImageStreamImageEdgeKind
 				if i > 1 {
