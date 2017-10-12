@@ -58,24 +58,6 @@ readonly OPENSHIFT_BINARY_SYMLINKS=(
   openshift-manage-dockerfile
   openshift-extract-image-content
   origin
-  osc
-  oadm
-  osadm
-  kubectl
-  kubernetes
-  kubelet
-  kube-proxy
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
-)
-readonly OPENSHIFT_BINARY_COPY=(
-  oadm
-  kubelet
-  kube-proxy
-  kube-apiserver
-  kube-controller-manager
-  kube-scheduler
 )
 readonly OC_BINARY_COPY=(
   kubectl

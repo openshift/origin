@@ -9,7 +9,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 
-	proxyapp "k8s.io/kubernetes/cmd/kube-proxy/app"
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
@@ -19,7 +18,6 @@ import (
 	irouter "github.com/openshift/origin/pkg/cmd/infra/router"
 	"github.com/openshift/origin/pkg/cmd/recycle"
 	"github.com/openshift/origin/pkg/cmd/server/start"
-	"github.com/openshift/origin/pkg/cmd/server/start/kubernetes"
 	"github.com/openshift/origin/pkg/cmd/templates"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
@@ -49,8 +47,6 @@ var (
 func CommandFor(basename string) *cobra.Command {
 	var cmd *cobra.Command
 
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
-
 	// Make case-insensitive and strip executable suffix if present
 	if runtime.GOOS == "windows" {
 		basename = strings.ToLower(basename)
@@ -65,7 +61,7 @@ func CommandFor(basename string) *cobra.Command {
 	case "openshift-deploy":
 		cmd = deployer.NewCommandDeployer(basename)
 	case "openshift-recycle":
-		cmd = recycle.NewCommandRecycle(basename, out)
+		cmd = recycle.NewCommandRecycle(basename, os.Stdout)
 	case "openshift-sti-build":
 		cmd = builder.NewCommandS2IBuilder(basename)
 	case "openshift-docker-build":
@@ -76,24 +72,6 @@ func CommandFor(basename string) *cobra.Command {
 		cmd = builder.NewCommandManageDockerfile(basename)
 	case "openshift-extract-image-content":
 		cmd = builder.NewCommandExtractImageContent(basename)
-	case "oc", "osc":
-		cmd = cli.NewCommandCLI(basename, basename, in, out, errout)
-	case "oadm", "osadm":
-		cmd = admin.NewCommandAdmin(basename, basename, in, out, errout)
-	case "kubectl":
-		cmd = cli.NewCmdKubectl(basename, out)
-	case "kube-apiserver":
-		cmd = kubernetes.NewAPIServerCommand(basename, basename, out)
-	case "kube-controller-manager":
-		cmd = kubernetes.NewControllersCommand(basename, basename, out)
-	case "kubelet":
-		cmd = kubernetes.NewKubeletCommand(basename, basename, out)
-	case "kube-proxy":
-		cmd = proxyapp.NewProxyCommand()
-	case "kube-scheduler":
-		cmd = kubernetes.NewSchedulerCommand(basename, basename, out)
-	case "kubernetes":
-		cmd = kubernetes.NewCommand(basename, basename, out, errout)
 	case "origin":
 		cmd = NewCommandOpenShift(basename)
 	default:
