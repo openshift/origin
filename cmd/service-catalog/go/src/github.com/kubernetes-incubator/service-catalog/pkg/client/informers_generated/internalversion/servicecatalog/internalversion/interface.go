@@ -24,16 +24,16 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// ServiceBrokers returns a ServiceBrokerInformer.
-	ServiceBrokers() ServiceBrokerInformer
-	// ServiceClasses returns a ServiceClassInformer.
-	ServiceClasses() ServiceClassInformer
+	// ClusterServiceBrokers returns a ClusterServiceBrokerInformer.
+	ClusterServiceBrokers() ClusterServiceBrokerInformer
+	// ClusterServiceClasses returns a ClusterServiceClassInformer.
+	ClusterServiceClasses() ClusterServiceClassInformer
+	// ClusterServicePlans returns a ClusterServicePlanInformer.
+	ClusterServicePlans() ClusterServicePlanInformer
+	// ServiceBindings returns a ServiceBindingInformer.
+	ServiceBindings() ServiceBindingInformer
 	// ServiceInstances returns a ServiceInstanceInformer.
 	ServiceInstances() ServiceInstanceInformer
-	// ServiceInstanceCredentials returns a ServiceInstanceCredentialInformer.
-	ServiceInstanceCredentials() ServiceInstanceCredentialInformer
-	// ServicePlans returns a ServicePlanInformer.
-	ServicePlans() ServicePlanInformer
 }
 
 type version struct {
@@ -45,27 +45,27 @@ func New(f internalinterfaces.SharedInformerFactory) Interface {
 	return &version{f}
 }
 
-// ServiceBrokers returns a ServiceBrokerInformer.
-func (v *version) ServiceBrokers() ServiceBrokerInformer {
-	return &serviceBrokerInformer{factory: v.SharedInformerFactory}
+// ClusterServiceBrokers returns a ClusterServiceBrokerInformer.
+func (v *version) ClusterServiceBrokers() ClusterServiceBrokerInformer {
+	return &clusterServiceBrokerInformer{factory: v.SharedInformerFactory}
 }
 
-// ServiceClasses returns a ServiceClassInformer.
-func (v *version) ServiceClasses() ServiceClassInformer {
-	return &serviceClassInformer{factory: v.SharedInformerFactory}
+// ClusterServiceClasses returns a ClusterServiceClassInformer.
+func (v *version) ClusterServiceClasses() ClusterServiceClassInformer {
+	return &clusterServiceClassInformer{factory: v.SharedInformerFactory}
+}
+
+// ClusterServicePlans returns a ClusterServicePlanInformer.
+func (v *version) ClusterServicePlans() ClusterServicePlanInformer {
+	return &clusterServicePlanInformer{factory: v.SharedInformerFactory}
+}
+
+// ServiceBindings returns a ServiceBindingInformer.
+func (v *version) ServiceBindings() ServiceBindingInformer {
+	return &serviceBindingInformer{factory: v.SharedInformerFactory}
 }
 
 // ServiceInstances returns a ServiceInstanceInformer.
 func (v *version) ServiceInstances() ServiceInstanceInformer {
 	return &serviceInstanceInformer{factory: v.SharedInformerFactory}
-}
-
-// ServiceInstanceCredentials returns a ServiceInstanceCredentialInformer.
-func (v *version) ServiceInstanceCredentials() ServiceInstanceCredentialInformer {
-	return &serviceInstanceCredentialInformer{factory: v.SharedInformerFactory}
-}
-
-// ServicePlans returns a ServicePlanInformer.
-func (v *version) ServicePlans() ServicePlanInformer {
-	return &servicePlanInformer{factory: v.SharedInformerFactory}
 }

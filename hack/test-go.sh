@@ -191,8 +191,8 @@ if [[ -n "${junit_report}" ]]; then
     set -o pipefail
 
     if [[ -s "${test_error_file}" ]]; then
-        os::log::warning "\`go test\` had the following output to stderr:"
-        cat "${test_error_file}"
+        os::log::warning "\`go test\` had the following output to stderr:
+$( cat "${test_error_file}") "
     fi
 
     if grep -q 'WARNING: DATA RACE' "${test_output_file}"; then

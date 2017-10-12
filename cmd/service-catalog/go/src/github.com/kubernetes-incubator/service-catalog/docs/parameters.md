@@ -8,7 +8,7 @@ Table of Contents
   - [Referencing sensitive data stored in secrets](#referencing-sensitive-data-stored-in-secret)
 
 ## Overview
-`parameters` and `parametersFrom` properties of `ServiceInstance` and `ServiceInstanceCredential` resources 
+`parameters` and `parametersFrom` properties of `ServiceInstance` and `ServiceBinding` resources 
 provide support for passing parameters to the broker relevant to the corresponding
 [provisioning](https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#provisioning) or
 [binding](https://github.com/openservicebrokerapi/servicebroker/blob/master/spec.md#binding) request. 
@@ -20,7 +20,7 @@ of this structure.
 ## Design
 
 To set input parameters, you may use the `parameters` and `parametersFrom` 
-fields in the `spec` field of the `ServiceInstance` or `ServiceInstanceCredential` resource:
+fields in the `spec` field of the `ServiceInstance` or `ServiceBinding` resource:
 - `parameters` : can be used to specify a set of properties to be sent to the 
 broker. The data specified will be passed "as-is" to the broker without any 
 modifications - aside from converting it to JSON for transmission to the broker 
@@ -37,7 +37,7 @@ You may use either, or both, of these fields as needed.
 If multiple sources in `parameters` and `parametersFrom` blocks are specified,
 the final payload is a result of merging all of them at the top level.
 If there are any duplicate properties defined at the top level, the specification
-is considered to be invalid, the further processing of the `ServiceInstance`/`ServiceInstanceCredential`
+is considered to be invalid, the further processing of the `ServiceInstance`/`ServiceBinding`
 resource stops and its `status` is marked with error condition.
 
 The format of the `spec` will be (in YAML format):
@@ -108,7 +108,7 @@ identifier).
 To configure a provisioning request in Service Catalog, we need to declare a `ServiceInstance` 
 resource with an AMI identifier declared in the `parameters` field of its spec:
 ```yaml
-apiVersion: servicecatalog.k8s.io/v1alpha1
+apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
   name: ami-instance
@@ -123,7 +123,7 @@ spec:
 ### Passing parameters as an inline JSON
 
 As shown in the example above, parameters can be specified directly in the
-`ServiceInstance`/`ServiceInstanceCredential` resource specification in the `parameters` field.
+`ServiceInstance`/`ServiceBinding` resource specification in the `parameters` field.
 The structure of parameters is not limited to just key-value pairs, arbitrary 
 YAML/JSON structure supported as an input (YAML format gets translated into 
 equivalent JSON structure to be passed to the broker).
@@ -150,7 +150,7 @@ It requires JSON configuration like this:
 The corresponding `ServiceInstance` resource with such configuration can be defined as 
 follows:
 ```yaml
-apiVersion: servicecatalog.k8s.io/v1alpha1
+apiVersion: servicecatalog.k8s.io/v1beta1
 kind: ServiceInstance
 metadata:
   name: spring-cloud-instance

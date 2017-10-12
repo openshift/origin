@@ -1,4 +1,4 @@
-# Demo application for Managed VMs.
+# Demo application for App Engine "flexible environment".
 runtime: go
 vm: true
 api_version: go1

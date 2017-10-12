@@ -51,8 +51,9 @@ type structCodec struct {
 
 // structTag holds a structured version of each struct field's parsed tag.
 type structTag struct {
-	name  string
-	facet bool
+	name   string
+	facet  bool
+	ignore bool
 }
 
 var (
@@ -85,14 +86,16 @@ func loadCodec(t reflect.Type) (*structCodec, error) {
 		if i := strings.Index(name, ","); i != -1 {
 			name, opts = name[:i], name[i+1:]
 		}
-		// TODO(davidday): Support name=="-" as per datastore.
-		if name == "" {
+		ignore := false
+		if name == "-" {
+			ignore = true
+		} else if name == "" {
 			name = f.Name
 		} else if !validFieldName(name) {
 			return nil, fmt.Errorf("search: struct tag has invalid field name: %q", name)
 		}
 		facet := opts == "facet"
-		codec.byIndex = append(codec.byIndex, structTag{name: name, facet: facet})
+		codec.byIndex = append(codec.byIndex, structTag{name: name, facet: facet, ignore: ignore})
 		if facet {
 			codec.facetByName[name] = i
 		} else {
@@ -143,7 +146,7 @@ func (s structFLS) Load(fields []Field, meta *DocumentMetadata) error {
 		f.Set(v)
 	}
 	if meta == nil {
-		return nil
+		return err
 	}
 	for _, facet := range meta.Facets {
 		i, ok := s.codec.facetByName[facet.Name]
@@ -190,6 +193,9 @@ func (s structFLS) Save() ([]Field, *DocumentMetadata, error) {
 	fields := make([]Field, 0, len(s.codec.fieldByName))
 	var facets []Facet
 	for i, tag := range s.codec.byIndex {
+		if tag.ignore {
+			continue
+		}
 		f := s.v.Field(i)
 		if !f.CanSet() {
 			continue

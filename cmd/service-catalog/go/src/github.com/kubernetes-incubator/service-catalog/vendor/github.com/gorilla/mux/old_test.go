@@ -36,6 +36,10 @@ func NewRecorder() *ResponseRecorder {
 	}
 }
 
+// DefaultRemoteAddr is the default remote address to return in RemoteAddr if
+// an explicit DefaultRemoteAddr isn't set on ResponseRecorder.
+const DefaultRemoteAddr = "1.2.3.4"
+
 // Header returns the response headers.
 func (rw *ResponseRecorder) Header() http.Header {
 	return rw.HeaderMap
@@ -541,7 +545,7 @@ func TestMatchedRouteName(t *testing.T) {
 	router := NewRouter()
 	route := router.NewRoute().Path("/products/").Name(routeName)
 
-	url := "http://www.example.com/products/"
+	url := "http://www.domain.com/products/"
 	request, _ := http.NewRequest("GET", url, nil)
 	var rv RouteMatch
 	ok := router.Match(request, &rv)
@@ -559,10 +563,10 @@ func TestMatchedRouteName(t *testing.T) {
 func TestSubRouting(t *testing.T) {
 	// Example from docs.
 	router := NewRouter()
-	subrouter := router.NewRoute().Host("www.example.com").Subrouter()
+	subrouter := router.NewRoute().Host("www.domain.com").Subrouter()
 	route := subrouter.NewRoute().Path("/products/").Name("products")
 
-	url := "http://www.example.com/products/"
+	url := "http://www.domain.com/products/"
 	request, _ := http.NewRequest("GET", url, nil)
 	var rv RouteMatch
 	ok := router.Match(request, &rv)
@@ -572,10 +576,10 @@ func TestSubRouting(t *testing.T) {
 	}
 
 	u, _ := router.Get("products").URL()
-	builtURL := u.String()
+	builtUrl := u.String()
 	// Yay, subroute aware of the domain when building!
-	if builtURL != url {
-		t.Errorf("Expected %q, got %q.", url, builtURL)
+	if builtUrl != url {
+		t.Errorf("Expected %q, got %q.", url, builtUrl)
 	}
 }
 
@@ -687,7 +691,7 @@ func TestNewRegexp(t *testing.T) {
 	}
 
 	for pattern, paths := range tests {
-		p, _ = newRouteRegexp(pattern, false, false, false, false, false)
+		p, _ = newRouteRegexp(pattern, false, false, false, false)
 		for path, result := range paths {
 			matches = p.regexp.FindStringSubmatch(path)
 			if result == nil {

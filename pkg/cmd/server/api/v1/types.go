@@ -228,9 +228,7 @@ type MasterConfig struct {
 	// ControllerConfig holds configuration values for controllers
 	ControllerConfig ControllerConfig `json:"controllerConfig"`
 
-	// DisabledFeatures is a list of features that should not be started.  We
-	// omitempty here because its very unlikely that anyone will want to
-	// manually disable features and we don't want to encourage it.
+	// DisabledFeatures is a list of features that should not be started.
 	DisabledFeatures FeatureList `json:"disabledFeatures"`
 
 	// EtcdStorageConfig contains information about how API resources are

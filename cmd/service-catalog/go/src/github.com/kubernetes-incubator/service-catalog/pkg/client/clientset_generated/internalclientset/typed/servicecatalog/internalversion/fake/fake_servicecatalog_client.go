@@ -26,24 +26,24 @@ type FakeServicecatalog struct {
 	*testing.Fake
 }
 
-func (c *FakeServicecatalog) ServiceBrokers() internalversion.ServiceBrokerInterface {
-	return &FakeServiceBrokers{c}
+func (c *FakeServicecatalog) ClusterServiceBrokers() internalversion.ClusterServiceBrokerInterface {
+	return &FakeClusterServiceBrokers{c}
 }
 
-func (c *FakeServicecatalog) ServiceClasses() internalversion.ServiceClassInterface {
-	return &FakeServiceClasses{c}
+func (c *FakeServicecatalog) ClusterServiceClasses() internalversion.ClusterServiceClassInterface {
+	return &FakeClusterServiceClasses{c}
+}
+
+func (c *FakeServicecatalog) ClusterServicePlans() internalversion.ClusterServicePlanInterface {
+	return &FakeClusterServicePlans{c}
+}
+
+func (c *FakeServicecatalog) ServiceBindings(namespace string) internalversion.ServiceBindingInterface {
+	return &FakeServiceBindings{c, namespace}
 }
 
 func (c *FakeServicecatalog) ServiceInstances(namespace string) internalversion.ServiceInstanceInterface {
 	return &FakeServiceInstances{c, namespace}
-}
-
-func (c *FakeServicecatalog) ServiceInstanceCredentials(namespace string) internalversion.ServiceInstanceCredentialInterface {
-	return &FakeServiceInstanceCredentials{c, namespace}
-}
-
-func (c *FakeServicecatalog) ServicePlans() internalversion.ServicePlanInterface {
-	return &FakeServicePlans{c}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

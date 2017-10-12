@@ -23,6 +23,8 @@ import (
 	kubeutilnet "k8s.io/apimachinery/pkg/util/net"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/client-go/tools/record"
 	kapi "k8s.io/kubernetes/pkg/api"
 	kapihelper "k8s.io/kubernetes/pkg/api/helper"
 	"k8s.io/kubernetes/pkg/apis/componentconfig"
@@ -76,6 +78,7 @@ type OsdnNodeConfig struct {
 
 	NetworkClient networkclient.Interface
 	KClient       kclientset.Interface
+	Recorder      record.EventRecorder
 
 	KubeInformers kinternalinformers.SharedInformerFactory
 
@@ -87,6 +90,7 @@ type OsdnNode struct {
 	policy             osdnPolicy
 	kClient            kclientset.Interface
 	networkClient      networkclient.Interface
+	recorder           record.EventRecorder
 	oc                 *ovsController
 	networkInfo        *common.NetworkInfo
 	podManager         *podManager
@@ -182,6 +186,7 @@ func New(c *OsdnNodeConfig) (network.NodeInterface, error) {
 		policy:             policy,
 		kClient:            c.KClient,
 		networkClient:      c.NetworkClient,
+		recorder:           c.Recorder,
 		oc:                 oc,
 		podManager:         newPodManager(c.KClient, policy, c.MTU, oc, c.EnableHostports),
 		localIP:            c.SelfIP,
@@ -288,6 +293,10 @@ func (node *OsdnNode) killUpdateFailedPods(pods []kapi.Pod) error {
 		if err != nil {
 			return err
 		}
+
+		// Make an event that the pod is going to be killed
+		podRef := &v1.ObjectReference{Kind: "Pod", Name: pod.Name, Namespace: pod.Namespace, UID: pod.UID}
+		node.recorder.Eventf(podRef, v1.EventTypeWarning, "NetworkFailed", "The pod's network interface has been lost and the pod will be stopped.")
 
 		glog.V(5).Infof("Killing pod '%s/%s' sandbox due to failed restart", pod.Namespace, pod.Name)
 		if err := node.runtimeService.StopPodSandbox(sandboxID); err != nil {
@@ -402,6 +411,9 @@ func (node *OsdnNode) Start() error {
 	}, time.Minute*2)
 
 	glog.V(2).Infof("openshift-sdn network plugin ready")
+
+	// Make an event that openshift-sdn started
+	node.recorder.Eventf(&v1.ObjectReference{Kind: "Node", Name: node.hostName}, v1.EventTypeNormal, "Starting", "Starting openshift-sdn.")
 
 	// Write our CNI config file out to disk to signal to kubelet that
 	// our network plugin is ready

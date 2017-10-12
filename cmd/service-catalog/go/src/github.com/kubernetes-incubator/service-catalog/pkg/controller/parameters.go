@@ -22,7 +22,7 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -35,7 +35,7 @@ import (
 // The second return value is a map of parameters with secret values redacted,
 // replaced with "<redacted>".
 // The third return value is any error that caused the function to fail.
-func buildParameters(kubeClient kubernetes.Interface, namespace string, parametersFrom []v1alpha1.ParametersFromSource, parameters *runtime.RawExtension) (map[string]interface{}, map[string]interface{}, error) {
+func buildParameters(kubeClient kubernetes.Interface, namespace string, parametersFrom []v1beta1.ParametersFromSource, parameters *runtime.RawExtension) (map[string]interface{}, map[string]interface{}, error) {
 	params := make(map[string]interface{})
 	paramsWithSecretsRedacted := make(map[string]interface{})
 	if parametersFrom != nil {
@@ -71,7 +71,7 @@ func buildParameters(kubeClient kubernetes.Interface, namespace string, paramete
 
 // fetchParametersFromSource fetches data from a specified external source and
 // represents it in the parameters map format
-func fetchParametersFromSource(kubeClient kubernetes.Interface, namespace string, parametersFrom *v1alpha1.ParametersFromSource) (map[string]interface{}, error) {
+func fetchParametersFromSource(kubeClient kubernetes.Interface, namespace string, parametersFrom *v1beta1.ParametersFromSource) (map[string]interface{}, error) {
 	var params map[string]interface{}
 	if parametersFrom.SecretKeyRef != nil {
 		data, err := fetchSecretKeyValue(kubeClient, namespace, parametersFrom.SecretKeyRef)
@@ -114,7 +114,7 @@ func unmarshalJSON(in []byte) (map[string]interface{}, error) {
 }
 
 // fetchSecretKeyValue requests and returns the contents of the given secret key
-func fetchSecretKeyValue(kubeClient kubernetes.Interface, namespace string, secretKeyRef *v1alpha1.SecretKeyReference) ([]byte, error) {
+func fetchSecretKeyValue(kubeClient kubernetes.Interface, namespace string, secretKeyRef *v1beta1.SecretKeyReference) ([]byte, error) {
 	secret, err := kubeClient.CoreV1().Secrets(namespace).Get(secretKeyRef.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err

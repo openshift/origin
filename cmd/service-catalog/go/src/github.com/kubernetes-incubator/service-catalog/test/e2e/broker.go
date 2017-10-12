@@ -17,7 +17,7 @@ limitations under the License.
 package e2e
 
 import (
-	v1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	v1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/kubernetes-incubator/service-catalog/test/e2e/framework"
 	"github.com/kubernetes-incubator/service-catalog/test/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,18 +26,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func newTestBroker(name, url string) *v1alpha1.ServiceBroker {
-	return &v1alpha1.ServiceBroker{
+func newTestBroker(name, url string) *v1beta1.ClusterServiceBroker {
+	return &v1beta1.ClusterServiceBroker{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: v1alpha1.ServiceBrokerSpec{
+		Spec: v1beta1.ClusterServiceBrokerSpec{
 			URL: url,
 		},
 	}
 }
 
-var _ = framework.ServiceCatalogDescribe("ServiceBroker", func() {
+var _ = framework.ServiceCatalogDescribe("ClusterServiceBroker", func() {
 	f := framework.NewDefaultFramework("create-service-broker")
 
 	brokerName := "test-broker"
@@ -70,23 +70,23 @@ var _ = framework.ServiceCatalogDescribe("ServiceBroker", func() {
 		By("Creating a Broker")
 
 		url := "http://test-broker." + f.Namespace.Name + ".svc.cluster.local"
-		broker, err := f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceBrokers().Create(newTestBroker(brokerName, url))
+		broker, err := f.ServiceCatalogClientSet.ServicecatalogV1beta1().ClusterServiceBrokers().Create(newTestBroker(brokerName, url))
 		Expect(err).NotTo(HaveOccurred())
 		By("Waiting for Broker to be ready")
-		err = util.WaitForBrokerCondition(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(),
+		err = util.WaitForBrokerCondition(f.ServiceCatalogClientSet.ServicecatalogV1beta1(),
 			broker.Name,
-			v1alpha1.ServiceBrokerCondition{
-				Type:   v1alpha1.ServiceBrokerConditionReady,
-				Status: v1alpha1.ConditionTrue,
+			v1beta1.ServiceBrokerCondition{
+				Type:   v1beta1.ServiceBrokerConditionReady,
+				Status: v1beta1.ConditionTrue,
 			})
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Deleting the Broker")
-		err = f.ServiceCatalogClientSet.ServicecatalogV1alpha1().ServiceBrokers().Delete(brokerName, nil)
+		err = f.ServiceCatalogClientSet.ServicecatalogV1beta1().ClusterServiceBrokers().Delete(brokerName, nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Waiting for Broker to not exist")
-		err = util.WaitForBrokerToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1alpha1(), brokerName)
+		err = util.WaitForBrokerToNotExist(f.ServiceCatalogClientSet.ServicecatalogV1beta1(), brokerName)
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

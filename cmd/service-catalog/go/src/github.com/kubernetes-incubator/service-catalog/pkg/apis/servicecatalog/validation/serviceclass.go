@@ -40,8 +40,8 @@ var guidRegexp = regexp.MustCompile("^" + guidFmt + "$")
 // have been passed in. External IDs used to be OpenServiceBrokerAPI
 // GUIDs, so we will retain that form until there is another provider
 // that desires a different form.  In the case of the OSBAPI we
-// generate GUIDs for ServiceInstances and ServiceInstanceCredentials, but for ServiceClass and
-// ServicePlan, they are part of the payload returned from the ServiceBroker.
+// generate GUIDs for ServiceInstances and ServiceBindings, but for ClusterServiceClass and
+// ServicePlan, they are part of the payload returned from the ClusterServiceBroker.
 func validateExternalID(value string) []string {
 	var errs []string
 	if len(value) > guidMaxLength {
@@ -53,12 +53,12 @@ func validateExternalID(value string) []string {
 	return errs
 }
 
-// ValidateServiceClass validates a ServiceClass and returns a list of errors.
-func ValidateServiceClass(serviceclass *sc.ServiceClass) field.ErrorList {
-	return internalValidateServiceClass(serviceclass)
+// ValidateClusterServiceClass validates a ClusterServiceClass and returns a list of errors.
+func ValidateClusterServiceClass(serviceclass *sc.ClusterServiceClass) field.ErrorList {
+	return internalValidateClusterServiceClass(serviceclass)
 }
 
-func internalValidateServiceClass(serviceclass *sc.ServiceClass) field.ErrorList {
+func internalValidateClusterServiceClass(serviceclass *sc.ClusterServiceClass) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	allErrs = append(allErrs,
@@ -68,15 +68,15 @@ func internalValidateServiceClass(serviceclass *sc.ServiceClass) field.ErrorList
 			validateServiceClassName,
 			field.NewPath("metadata"))...)
 
-	allErrs = append(allErrs, validateServiceClassSpec(&serviceclass.Spec, field.NewPath("spec"), true)...)
+	allErrs = append(allErrs, validateClusterServiceClassSpec(&serviceclass.Spec, field.NewPath("spec"), true)...)
 	return allErrs
 }
 
-func validateServiceClassSpec(spec *sc.ServiceClassSpec, fldPath *field.Path, create bool) field.ErrorList {
+func validateClusterServiceClassSpec(spec *sc.ClusterServiceClassSpec, fldPath *field.Path, create bool) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if "" == spec.ServiceBrokerName {
-		allErrs = append(allErrs, field.Required(fldPath.Child("brokerName"), "brokerName is required"))
+	if "" == spec.ClusterServiceBrokerName {
+		allErrs = append(allErrs, field.Required(fldPath.Child("clusterServiceBrokerName"), "clusterServiceBrokerName is required"))
 	}
 
 	if "" == spec.ExternalID {
@@ -97,11 +97,11 @@ func validateServiceClassSpec(spec *sc.ServiceClassSpec, fldPath *field.Path, cr
 	return allErrs
 }
 
-// ValidateServiceClassUpdate checks that when changing from an older
-// ServiceClass to a newer ServiceClass is okay.
-func ValidateServiceClassUpdate(new *sc.ServiceClass, old *sc.ServiceClass) field.ErrorList {
+// ValidateClusterServiceClassUpdate checks that when changing from an older
+// ClusterServiceClass to a newer ClusterServiceClass is okay.
+func ValidateClusterServiceClassUpdate(new *sc.ClusterServiceClass, old *sc.ClusterServiceClass) field.ErrorList {
 	allErrs := field.ErrorList{}
-	allErrs = append(allErrs, internalValidateServiceClass(new)...)
+	allErrs = append(allErrs, internalValidateClusterServiceClass(new)...)
 
 	return allErrs
 }

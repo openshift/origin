@@ -6,10 +6,10 @@ apiVersion: apiregistration.k8s.io/v1alpha1
 {{- end }}
 kind: APIService
 metadata:
-  name: v1alpha1.servicecatalog.k8s.io
+  name: v1beta1.servicecatalog.k8s.io
 spec:
   group: servicecatalog.k8s.io
-  version: v1alpha1
+  version: v1beta1
   service:
     namespace: {{ .Release.Namespace }}
     name: {{ template "fullname" . }}-apiserver

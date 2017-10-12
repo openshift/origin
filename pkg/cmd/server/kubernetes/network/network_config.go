@@ -67,7 +67,7 @@ func New(options configapi.NodeConfig, clusterDomain string, proxyConfig *compon
 	var sdnNode network.NodeInterface
 	var sdnProxy network.ProxyInterface
 	if network.IsOpenShiftNetworkPlugin(options.NetworkConfig.NetworkPluginName) {
-		sdnNode, sdnProxy, err = NewSDNInterfaces(options, networkClient, internalKubeClient, internalKubeInformers, proxyConfig)
+		sdnNode, sdnProxy, err = NewSDNInterfaces(options, networkClient, kubeClient, internalKubeClient, internalKubeInformers, proxyConfig)
 		if err != nil {
 			return nil, fmt.Errorf("SDN initialization failed: %v", err)
 		}

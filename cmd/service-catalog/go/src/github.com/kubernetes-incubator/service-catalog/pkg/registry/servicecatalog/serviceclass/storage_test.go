@@ -24,7 +24,7 @@ import (
 
 func TestNewList(t *testing.T) {
 	newList := NewList()
-	realObj := newList.(*servicecatalog.ServiceClassList)
+	realObj := newList.(*servicecatalog.ClusterServiceClassList)
 
 	if realObj.Items == nil {
 		t.Fatalf("nil incorrectly set on Items field")

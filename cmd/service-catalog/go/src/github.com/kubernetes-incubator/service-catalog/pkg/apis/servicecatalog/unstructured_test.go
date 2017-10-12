@@ -30,6 +30,7 @@ import (
 
 	"github.com/satori/go.uuid"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
 	"k8s.io/apimachinery/pkg/conversion/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/diff"
@@ -57,7 +58,7 @@ func doUnstructuredRoundTrip(t *testing.T, group testapi.TestGroup, kind string)
 		t.Fatalf("Couldn't create internal object %v: %v", kind, err)
 	}
 	seed := rand.Int63()
-	sctesting.FuzzerFor(t, *group.GroupVersion(), rand.NewSource(seed)).Funcs(
+	fuzzer.FuzzerFor(sctesting.FuzzerFuncs, rand.NewSource(seed), api.Codecs).Funcs(
 		// custom fuzzer funcs because RawExtension fields seem to
 		// experience some reordering during unstructured roundtripping.
 		func(is *servicecatalog.ServiceInstanceSpec, c fuzz.Continue) {
@@ -65,7 +66,7 @@ func doUnstructuredRoundTrip(t *testing.T, group testapi.TestGroup, kind string)
 			is.ExternalID = uuid.NewV4().String()
 			is.Parameters = nil
 		},
-		func(bs *servicecatalog.ServiceInstanceCredentialSpec, c fuzz.Continue) {
+		func(bs *servicecatalog.ServiceBindingSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
 			bs.ExternalID = uuid.NewV4().String()
 			// Don't allow the SecretName to be an empty string because
@@ -81,7 +82,7 @@ func doUnstructuredRoundTrip(t *testing.T, group testapi.TestGroup, kind string)
 			c.FuzzNoCustom(ps)
 			ps.Parameters = nil
 		},
-		func(ps *servicecatalog.ServiceInstanceCredentialPropertiesState, c fuzz.Continue) {
+		func(ps *servicecatalog.ServiceBindingPropertiesState, c fuzz.Continue) {
 			c.FuzzNoCustom(ps)
 			ps.Parameters = nil
 		},
@@ -123,8 +124,7 @@ func doUnstructuredRoundTrip(t *testing.T, group testapi.TestGroup, kind string)
 		return
 	}
 
-	newUnstr := map[string]interface{}{}
-	err = unstructured.DefaultConverter.ToUnstructured(item, &newUnstr)
+	newUnstr, err := unstructured.DefaultConverter.ToUnstructured(item)
 	if err != nil {
 		t.Errorf("ToUnstructured failed: %v", err)
 		return
@@ -145,9 +145,6 @@ func doUnstructuredRoundTrip(t *testing.T, group testapi.TestGroup, kind string)
 func TestRoundTripTypesToUnstructured(t *testing.T) {
 	for groupKey, group := range catalogGroups {
 		for kind := range group.InternalTypes() {
-			if nonRoundTrippableTypes.Has(kind) {
-				continue
-			}
 			t.Logf("Testing: %v in %v", kind, groupKey)
 			for i := 0; i < 50; i++ {
 				doUnstructuredRoundTrip(t, group, kind)

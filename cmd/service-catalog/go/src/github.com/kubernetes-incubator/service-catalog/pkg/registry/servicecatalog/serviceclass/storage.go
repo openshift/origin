@@ -27,23 +27,23 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/generic/registry"
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage"
-	coreapi "k8s.io/client-go/pkg/api"
 )
 
 var (
-	errNotAServiceClass = errors.New("not a service class")
+	errNotAClusterServiceClass = errors.New("not a ClusterServiceClass")
 )
 
 // NewSingular returns a new shell of a service class, according to the given namespace and
 // name
 func NewSingular(ns, name string) runtime.Object {
-	return &servicecatalog.ServiceClass{
+	return &servicecatalog.ClusterServiceClass{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ServiceClass",
+			Kind: "ClusterServiceClass",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
@@ -54,24 +54,24 @@ func NewSingular(ns, name string) runtime.Object {
 
 // EmptyObject returns an empty service class
 func EmptyObject() runtime.Object {
-	return &servicecatalog.ServiceClass{}
+	return &servicecatalog.ClusterServiceClass{}
 }
 
 // NewList returns a new shell of a service class list
 func NewList() runtime.Object {
-	return &servicecatalog.ServiceClassList{
+	return &servicecatalog.ClusterServiceClassList{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ServiceClassList",
+			Kind: "ClusterServiceClassList",
 		},
-		Items: []servicecatalog.ServiceClass{},
+		Items: []servicecatalog.ClusterServiceClass{},
 	}
 }
 
 // CheckObject returns a non-nil error if obj is not a service class object
 func CheckObject(obj runtime.Object) error {
-	_, ok := obj.(*servicecatalog.ServiceClass)
+	_, ok := obj.(*servicecatalog.ClusterServiceClass)
 	if !ok {
-		return errNotAServiceClass
+		return errNotAClusterServiceClass
 	}
 	return nil
 }
@@ -87,13 +87,13 @@ func Match(label labels.Selector, field fields.Selector) storage.SelectionPredic
 }
 
 // toSelectableFields returns a field set that represents the object for matching purposes.
-func toSelectableFields(serviceClass *servicecatalog.ServiceClass) fields.Set {
+func toSelectableFields(serviceClass *servicecatalog.ClusterServiceClass) fields.Set {
 	// The purpose of allocation with a given number of elements is to reduce
 	// amount of allocations needed to create the fields.Set. If you add any
 	// field here or the number of object-meta related fields changes, this should
 	// be adjusted.
 	scSpecificFieldsSet := make(fields.Set, 3)
-	scSpecificFieldsSet["spec.serviceBrokerName"] = serviceClass.Spec.ServiceBrokerName
+	scSpecificFieldsSet["spec.clusterServiceBrokerName"] = serviceClass.Spec.ClusterServiceBrokerName
 	scSpecificFieldsSet["spec.externalName"] = serviceClass.Spec.ExternalName
 	scSpecificFieldsSet["spec.externalID"] = serviceClass.Spec.ExternalID
 	return generic.AddObjectMetaFieldsSet(scSpecificFieldsSet, &serviceClass.ObjectMeta, true)
@@ -101,23 +101,22 @@ func toSelectableFields(serviceClass *servicecatalog.ServiceClass) fields.Set {
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
-	serviceclass, ok := obj.(*servicecatalog.ServiceClass)
+	serviceclass, ok := obj.(*servicecatalog.ClusterServiceClass)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a ServiceClass")
+		return nil, nil, false, fmt.Errorf("given object is not a ClusterServiceClass")
 	}
 	return labels.Set(serviceclass.ObjectMeta.Labels), toSelectableFields(serviceclass), serviceclass.Initializers != nil, nil
 }
 
-// NewStorage creates a new rest.Storage responsible for accessing ServiceClass
+// NewStorage creates a new rest.Storage responsible for accessing ClusterServiceClass
 // resources
-func NewStorage(opts server.Options) rest.Storage {
+func NewStorage(opts server.Options) (rest.Storage, rest.Storage) {
 	prefix := "/" + opts.ResourcePrefix()
 
 	storageInterface, dFunc := opts.GetStorage(
-		1000,
-		&servicecatalog.ServiceClass{},
+		&servicecatalog.ClusterServiceClass{},
 		prefix,
-		serviceclassRESTStrategies,
+		serviceClassRESTStrategies,
 		NewList,
 		nil,
 		storage.NoTriggerPublisher,
@@ -135,15 +134,42 @@ func NewStorage(opts server.Options) rest.Storage {
 		},
 		// Used to match objects based on labels/fields for list.
 		PredicateFunc: Match,
-		// QualifiedResource should always be plural
-		QualifiedResource: coreapi.Resource("serviceclasses"),
+		// DefaultQualifiedResource should always be plural
+		DefaultQualifiedResource: servicecatalog.Resource("clusterserviceclasses"),
 
-		CreateStrategy: serviceclassRESTStrategies,
-		UpdateStrategy: serviceclassRESTStrategies,
-		DeleteStrategy: serviceclassRESTStrategies,
+		CreateStrategy: serviceClassRESTStrategies,
+		UpdateStrategy: serviceClassRESTStrategies,
+		DeleteStrategy: serviceClassRESTStrategies,
 		Storage:        storageInterface,
 		DestroyFunc:    dFunc,
 	}
 
-	return &store
+	statusStore := store
+	statusStore.UpdateStrategy = serviceClassStatusUpdateStrategy
+
+	return &store, &StatusREST{&statusStore}
+}
+
+// StatusREST defines the REST operations for the status subresource via
+// implementation of various rest interfaces.  It supports the http verbs GET,
+// PATCH, and PUT.
+type StatusREST struct {
+	store *registry.Store
+}
+
+// New returns a new ServiceClass
+func (r *StatusREST) New() runtime.Object {
+	return &servicecatalog.ClusterServiceClass{}
+}
+
+// Get retrieves the object from the storage. It is required to support Patch
+// and to implement the rest.Getter interface.
+func (r *StatusREST) Get(ctx genericapirequest.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	return r.store.Get(ctx, name, options)
+}
+
+// Update alters the status subset of an object and it
+// implements rest.Updater interface
+func (r *StatusREST) Update(ctx genericapirequest.Context, name string, objInfo rest.UpdatedObjectInfo) (runtime.Object, bool, error) {
+	return r.store.Update(ctx, name, objInfo)
 }

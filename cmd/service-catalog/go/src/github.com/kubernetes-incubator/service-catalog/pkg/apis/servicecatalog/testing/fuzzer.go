@@ -18,20 +18,17 @@ package testing
 
 import (
 	"encoding/json"
-	"math/rand"
-	"strconv"
-	"testing"
 	"time"
 
+	"fmt"
 	"github.com/google/gofuzz"
 	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog"
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/testapi"
 	"github.com/satori/go.uuid"
+	"k8s.io/apimachinery/pkg/api/testing/fuzzer"
+	genericfuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	coreapi "k8s.io/client-go/pkg/api"
+	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
 type serviceMetadata struct {
@@ -55,7 +52,9 @@ func createParameter(c fuzz.Continue) (*runtime.RawExtension, error) {
 	p := parameter{Value: c.RandString()}
 	p.Map = make(map[string]string)
 	for i := 0; i < c.Rand.Intn(10); i++ {
-		p.Map[c.RandString()] = c.RandString()
+		// Non-random key since JSON key cannot contain special characters
+		key := fmt.Sprintf("key%d", i+1)
+		p.Map[key] = c.RandString()
 	}
 
 	b, err := json.Marshal(p)
@@ -90,98 +89,10 @@ func createPlanMetadata(c fuzz.Continue) (*runtime.RawExtension, error) {
 	return &runtime.RawExtension{Raw: b}, nil
 }
 
-// FuzzerFor can randomly populate api objects that are destined for version.
-func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz.Fuzzer {
-	f := fuzz.New().NilChance(.5).NumElements(0, 1)
-	if src != nil {
-		f.RandSource(src)
-	}
-	f.Funcs(
-		func(j *int, c fuzz.Continue) {
-			*j = int(c.Int31())
-		},
-		func(j **int, c fuzz.Continue) {
-			if c.RandBool() {
-				i := int(c.Int31())
-				*j = &i
-			} else {
-				*j = nil
-			}
-		},
-		func(j *runtime.TypeMeta, c fuzz.Continue) {
-			// We have to customize the randomization of TypeMetas because their
-			// APIVersion and Kind must remain blank in memory.
-			j.APIVersion = ""
-			j.Kind = ""
-		},
-		func(j *metav1.TypeMeta, c fuzz.Continue) {
-			// We have to customize the randomization of TypeMetas because their
-			// APIVersion and Kind must remain blank in memory.
-			j.APIVersion = ""
-			j.Kind = ""
-		},
-		func(j *metav1.ObjectMeta, c fuzz.Continue) {
-			j.Name = c.RandString()
-			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
-			j.SelfLink = c.RandString()
-			j.UID = types.UID(c.RandString())
-			j.GenerateName = c.RandString()
-
-			var sec, nsec int64
-			c.Fuzz(&sec)
-			c.Fuzz(&nsec)
-			j.CreationTimestamp = metav1.Unix(sec, nsec).Rfc3339Copy()
-		},
-		func(j *coreapi.ObjectReference, c fuzz.Continue) {
-			// We have to customize the randomization of TypeMetas because their
-			// APIVersion and Kind must remain blank in memory.
-			j.APIVersion = c.RandString()
-			j.Kind = c.RandString()
-			j.Namespace = c.RandString()
-			j.Name = c.RandString()
-			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
-			j.FieldPath = c.RandString()
-		},
-		func(j *metav1.ListMeta, c fuzz.Continue) {
-			j.ResourceVersion = strconv.FormatUint(c.RandUint64(), 10)
-			j.SelfLink = c.RandString()
-		},
-		func(j *runtime.Object, c fuzz.Continue) {
-			// TODO: uncomment when round trip starts from a versioned object
-			if true { //c.RandBool() {
-				*j = &runtime.Unknown{
-					// We do not set TypeMeta here because it is not carried through a round trip
-					Raw:         []byte(`{"apiVersion":"unknown.group/unknown","kind":"Something","someKey":"someValue"}`),
-					ContentType: runtime.ContentTypeJSON,
-				}
-			} else {
-				types := []runtime.Object{&coreapi.Pod{}, &coreapi.ReplicationController{}}
-				t := types[c.Rand.Intn(len(types))]
-				c.Fuzz(t)
-				*j = t
-			}
-		},
-		func(r *runtime.RawExtension, c fuzz.Continue) {
-			// Pick an arbitrary type and fuzz it
-			types := []runtime.Object{&servicecatalog.ServiceBroker{}}
-			obj := types[c.Rand.Intn(len(types))]
-			c.Fuzz(obj)
-
-			// Find a codec for converting the object to raw bytes.  This is necessary for the
-			// api version and kind to be correctly set by serialization.
-			var codec = testapi.ServiceCatalog.Codec()
-
-			// Convert the object to raw bytes
-			bytes, err := runtime.Encode(codec, obj)
-			if err != nil {
-				t.Errorf("Failed to encode object: %v", err)
-				return
-			}
-
-			// Set the bytes field on the RawExtension
-			r.Raw = bytes
-		},
-		func(bs *servicecatalog.ServiceBrokerSpec, c fuzz.Continue) {
+// servicecatalogFuncs defines fuzzer funcs for Service Catalog types
+func servicecatalogFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		func(bs *servicecatalog.ClusterServiceBrokerSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
 			bs.RelistBehavior = servicecatalog.ServiceBrokerRelistBehaviorDuration
 			bs.RelistDuration = &metav1.Duration{Duration: 15 * time.Minute}
@@ -191,12 +102,11 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			is.ExternalID = uuid.NewV4().String()
 			parameters, err := createParameter(c)
 			if err != nil {
-				t.Errorf("Failed to create parameter object: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to create parameter object: %v", err))
 			}
 			is.Parameters = parameters
 		},
-		func(bs *servicecatalog.ServiceInstanceCredentialSpec, c fuzz.Continue) {
+		func(bs *servicecatalog.ServiceBindingSpec, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
 			bs.ExternalID = uuid.NewV4().String()
 			// Don't allow the SecretName to be an empty string because
@@ -208,8 +118,7 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			}
 			parameters, err := createParameter(c)
 			if err != nil {
-				t.Errorf("Failed to create parameter object: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to create parameter object: %v", err))
 			}
 			bs.Parameters = parameters
 		},
@@ -217,41 +126,42 @@ func FuzzerFor(t *testing.T, version schema.GroupVersion, src rand.Source) *fuzz
 			c.FuzzNoCustom(bs)
 			parameters, err := createParameter(c)
 			if err != nil {
-				t.Errorf("Failed to create parameter object: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to create parameter object: %v", err))
 			}
 			bs.Parameters = parameters
 		},
-		func(bs *servicecatalog.ServiceInstanceCredentialPropertiesState, c fuzz.Continue) {
+		func(bs *servicecatalog.ServiceBindingPropertiesState, c fuzz.Continue) {
 			c.FuzzNoCustom(bs)
 			parameters, err := createParameter(c)
 			if err != nil {
-				t.Errorf("Failed to create parameter object: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to create parameter object: %v", err))
 			}
 			bs.Parameters = parameters
 		},
-		func(sc *servicecatalog.ServiceClass, c fuzz.Continue) {
+		func(sc *servicecatalog.ClusterServiceClass, c fuzz.Continue) {
 			c.FuzzNoCustom(sc)
 			metadata, err := createServiceMetadata(c)
 			if err != nil {
-				t.Errorf("Failed to create metadata object: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to create metadata object: %v", err))
 			}
 			sc.Spec.ExternalMetadata = metadata
 		},
-		func(sp *servicecatalog.ServicePlan, c fuzz.Continue) {
+		func(sp *servicecatalog.ClusterServicePlan, c fuzz.Continue) {
 			c.FuzzNoCustom(sp)
 			metadata, err := createPlanMetadata(c)
 			if err != nil {
-				t.Errorf("Failed to create metadata object: %v", err)
-				return
+				panic(fmt.Sprintf("Failed to create metadata object: %v", err))
 			}
 			sp.Spec.ExternalMetadata = metadata
-			sp.Spec.ServiceInstanceCredentialCreateParameterSchema = metadata
+			sp.Spec.ServiceBindingCreateParameterSchema = metadata
 			sp.Spec.ServiceInstanceCreateParameterSchema = metadata
 			sp.Spec.ServiceInstanceUpdateParameterSchema = metadata
 		},
-	)
-	return f
+	}
 }
+
+// FuzzerFuncs provides merged set of fuzzers from different sources
+var FuzzerFuncs = fuzzer.MergeFuzzerFuncs(
+	genericfuzzer.Funcs,
+	servicecatalogFuncs,
+)

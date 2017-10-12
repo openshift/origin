@@ -18,7 +18,7 @@ package controller
 
 import (
 	"github.com/golang/glog"
-	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	"github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -33,11 +33,12 @@ func (c *controller) servicePlanAdd(obj interface{}) {
 	c.servicePlanQueue.Add(key)
 }
 
-// reconcileServicePlanKey reconciles a ServicePlan due to resync or an event
-// on the ServicePlan.  Note that this is NOT the main reconciliation loop for
-// ServicePlans. ServicePlans are primarily reconciled in a separate flow when
-// a ServiceBroker is reconciled.
-func (c *controller) reconcileServicePlanKey(key string) error {
+// reconcileClusterServicePlanKey reconciles a ClusterServicePlan due to resync
+//  or an event on the ClusterServicePlan.  Note that this is NOT the main
+// reconciliation loop for ClusterServicePlans. ClusterServicePlans are
+// primarily reconciled in a separate flow when a ClusterServiceBroker is
+// reconciled.
+func (c *controller) reconcileClusterServicePlanKey(key string) error {
 	// currently, this is a no-op.  In the future, we'll maintain status
 	// information here.
 	return nil
@@ -48,7 +49,7 @@ func (c *controller) servicePlanUpdate(oldObj, newObj interface{}) {
 }
 
 func (c *controller) servicePlanDelete(obj interface{}) {
-	servicePlan, ok := obj.(*v1alpha1.ServicePlan)
+	servicePlan, ok := obj.(*v1beta1.ClusterServicePlan)
 	if servicePlan == nil || !ok {
 		return
 	}

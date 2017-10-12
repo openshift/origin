@@ -19,7 +19,7 @@ package e2e
 import (
 	"time"
 
-	v1alpha1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1alpha1"
+	v1beta1 "github.com/kubernetes-incubator/service-catalog/pkg/apis/servicecatalog/v1beta1"
 	"github.com/kubernetes-incubator/service-catalog/pkg/client/clientset_generated/clientset"
 	"github.com/kubernetes-incubator/service-catalog/test/e2e/framework"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -35,32 +35,34 @@ const (
 	instanceDeleteTimeout = 60 * time.Second
 )
 
-func newTestInstance(name, serviceClassName, planName string) *v1alpha1.ServiceInstance {
-	return &v1alpha1.ServiceInstance{
+func newTestInstance(name, serviceClassName, planName string) *v1beta1.ServiceInstance {
+	return &v1beta1.ServiceInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
-		Spec: v1alpha1.ServiceInstanceSpec{
-			ExternalServicePlanName:  planName,
-			ExternalServiceClassName: serviceClassName,
+		Spec: v1beta1.ServiceInstanceSpec{
+			PlanReference: v1beta1.PlanReference{
+				ExternalClusterServicePlanName:  planName,
+				ExternalClusterServiceClassName: serviceClassName,
+			},
 		},
 	}
 }
 
 // createInstance in the specified namespace
-func createInstance(c clientset.Interface, namespace string, instance *v1alpha1.ServiceInstance) (*v1alpha1.ServiceInstance, error) {
-	return c.ServicecatalogV1alpha1().ServiceInstances(namespace).Create(instance)
+func createInstance(c clientset.Interface, namespace string, instance *v1beta1.ServiceInstance) (*v1beta1.ServiceInstance, error) {
+	return c.ServicecatalogV1beta1().ServiceInstances(namespace).Create(instance)
 }
 
 // deleteInstance with the specified namespace and name
 func deleteInstance(c clientset.Interface, namespace, name string) error {
-	return c.ServicecatalogV1alpha1().ServiceInstances(namespace).Delete(name, nil)
+	return c.ServicecatalogV1beta1().ServiceInstances(namespace).Delete(name, nil)
 }
 
 // waitForInstanceToBeDeleted waits for the instance to be removed.
 func waitForInstanceToBeDeleted(c clientset.Interface, namespace, name string) error {
 	return wait.Poll(framework.Poll, instanceDeleteTimeout, func() (bool, error) {
-		_, err := c.ServicecatalogV1alpha1().ServiceInstances(namespace).Get(name, metav1.GetOptions{})
+		_, err := c.ServicecatalogV1beta1().ServiceInstances(namespace).Get(name, metav1.GetOptions{})
 		if err == nil {
 			framework.Logf("waiting for service instance %s to be deleted", name)
 			return false, nil

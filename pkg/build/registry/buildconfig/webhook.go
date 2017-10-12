@@ -94,7 +94,7 @@ func (h *WebHookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ProcessWebHook does the actual work of processing the webhook request
 func (w *WebHookHandler) ProcessWebHook(writer http.ResponseWriter, req *http.Request, ctx apirequest.Context, name, subpath string) error {
-	parts := strings.Split(subpath, "/")
+	parts := strings.Split(strings.TrimPrefix(subpath, "/"), "/")
 	if len(parts) != 2 {
 		return errors.NewBadRequest(fmt.Sprintf("unexpected hook subpath %s", subpath))
 	}

@@ -77,7 +77,7 @@ items:
   - apiGroups: [""]
     resources: ["events"]
     verbs:     ["create","patch","update"]
-  # TODO: do not grant global access, limit to particular secrets referenced from serviceinstancecredentials
+  # TODO: do not grant global access, limit to particular secrets referenced from servicebindings
   - apiGroups: [""]
     resources: ["secrets"]
     verbs:     ["get","create","delete"]
@@ -86,16 +86,16 @@ items:
     verbs:     ["get","list","watch"]
   # access to our service-catalog types
   - apiGroups: ["servicecatalog.k8s.io"]
-    resources: ["serviceclasses"]
+    resources: ["clusterserviceclasses"]
     verbs:     ["get","list","watch","create","patch","update","delete"]
   - apiGroups: ["servicecatalog.k8s.io"]
-    resources: ["serviceplans"]
+    resources: ["clusterserviceplans"]
     verbs:     ["get","list","watch","create","patch","update","delete"]
   - apiGroups: ["servicecatalog.k8s.io"]
-    resources: ["servicebrokers","serviceinstances","serviceinstancecredentials"]
+    resources: ["clusterservicebrokers","serviceinstances","servicebindings"]
     verbs:     ["get","list","watch"]
   - apiGroups: ["servicecatalog.k8s.io"]
-    resources: ["servicebrokers/status","serviceinstances/status","serviceinstances/reference","serviceinstancecredentials/status"]
+    resources: ["clusterservicebrokers/status","serviceinstances/status","serviceinstances/reference","servicebindings/status"]
     verbs:     ["update"]
 # give the controller-manager service account access to whats defined in its role.
 - apiVersion: rbac.authorization.k8s.io/v1beta1

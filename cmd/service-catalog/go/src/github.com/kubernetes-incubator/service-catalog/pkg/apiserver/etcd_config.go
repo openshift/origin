@@ -22,15 +22,17 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/storage"
-	clientset "k8s.io/client-go/kubernetes"
 )
 
 // EtcdConfig contains a generic API server Config along with config specific to
 // the service catalog API server.
 type etcdConfig struct {
-	cl            clientset.Interface
-	genericConfig *genericapiserver.Config
+	genericConfig *genericapiserver.RecommendedConfig
+	extraConfig   *extraConfig
+}
 
+// extraConfig contains all additional configuration parameters for etcdConfig
+type extraConfig struct {
 	// BABYNETES: cargo culted from master.go
 	deleteCollectionWorkers int
 	storageFactory          storage.StorageFactory
@@ -38,23 +40,26 @@ type etcdConfig struct {
 
 // NewEtcdConfig returns a new server config to describe an etcd-backed API server
 func NewEtcdConfig(
-	genCfg *genericapiserver.Config,
+	genCfg *genericapiserver.RecommendedConfig,
 	deleteCollWorkers int,
 	factory storage.StorageFactory,
 ) Config {
 	return &etcdConfig{
-		genericConfig:           genCfg,
-		deleteCollectionWorkers: deleteCollWorkers,
-		storageFactory:          factory,
+		genericConfig: genCfg,
+		extraConfig: &extraConfig{
+			deleteCollectionWorkers: deleteCollWorkers,
+			storageFactory:          factory,
+		},
 	}
 }
 
 // Complete fills in any fields not set that are required to have valid data
 // and can be derived from other fields.
 func (c *etcdConfig) Complete() CompletedConfig {
-	completeGenericConfig(c.genericConfig)
+	completedGenericConfig := completeGenericConfig(c.genericConfig)
 	return completedEtcdConfig{
-		etcdConfig: c,
+		genericConfig: completedGenericConfig,
+		extraConfig:   c.extraConfig,
 		// Not every API group compiled in is necessarily enabled by the operator
 		// at runtime.
 		//
@@ -67,7 +72,8 @@ func (c *etcdConfig) Complete() CompletedConfig {
 // CompletedEtcdConfig is an internal type to take advantage of typechecking in
 // the type system.
 type completedEtcdConfig struct {
-	*etcdConfig
+	genericConfig           genericapiserver.CompletedConfig
+	extraConfig             *extraConfig
 	apiResourceConfigSource storage.APIResourceConfigSource
 }
 
@@ -81,9 +87,9 @@ func (c completedEtcdConfig) NewServer() (*ServiceCatalogAPIServer, error) {
 	glog.V(4).Infoln("Created skeleton API server")
 
 	roFactory := etcdRESTOptionsFactory{
-		deleteCollectionWorkers: c.deleteCollectionWorkers,
+		deleteCollectionWorkers: c.extraConfig.deleteCollectionWorkers,
 		enableGarbageCollection: true,
-		storageFactory:          c.storageFactory,
+		storageFactory:          c.extraConfig.storageFactory,
 		storageDecorator:        generic.UndecoratedStorage,
 	}
 

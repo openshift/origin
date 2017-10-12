@@ -245,6 +245,10 @@ func (eip *egressIPWatcher) deleteNamespaceEgress(vnid uint32) {
 }
 
 func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
+	if egressIP == eip.localIP {
+		return fmt.Errorf("desired egress IP %q is the node IP", egressIP)
+	}
+
 	if eip.testModeChan != nil {
 		eip.testModeChan <- fmt.Sprintf("claim %s", egressIP)
 		return nil
@@ -295,6 +299,10 @@ func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
 }
 
 func (eip *egressIPWatcher) releaseEgressIP(egressIP, egressHex string) error {
+	if egressIP == eip.localIP {
+		return nil
+	}
+
 	if eip.testModeChan != nil {
 		eip.testModeChan <- fmt.Sprintf("release %s", egressIP)
 		return nil
