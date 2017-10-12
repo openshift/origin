@@ -79,8 +79,8 @@ func (r *REST) NewList() runtime.Object {
 var _ = rest.Creater(&REST{})
 
 var (
-	forbiddenNames    = []string{"openshift", "kubernetes", "kube"}
-	forbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
+	ForbiddenNames    = []string{"openshift", "kubernetes", "kube"}
+	ForbiddenPrefixes = []string{"openshift-", "kubernetes-", "kube-"}
 )
 
 func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUninitialized bool) (runtime.Object, error) {
@@ -90,12 +90,12 @@ func (r *REST) Create(ctx apirequest.Context, obj runtime.Object, includeUniniti
 	}
 
 	projectRequest := obj.(*projectapi.ProjectRequest)
-	for _, s := range forbiddenNames {
+	for _, s := range ForbiddenNames {
 		if projectRequest.Name == s {
 			return nil, kapierror.NewForbidden(projectapi.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project with the name %q", s))
 		}
 	}
-	for _, s := range forbiddenPrefixes {
+	for _, s := range ForbiddenPrefixes {
 		if strings.HasPrefix(projectRequest.Name, s) {
 			return nil, kapierror.NewForbidden(projectapi.Resource("project"), projectRequest.Name, fmt.Errorf("cannot request a project starting with %q", s))
 		}
