@@ -104,18 +104,6 @@ func ExecuteTest(t *testing.T, suite string) {
 		defer e2e.CoreDump(reportDir)
 	}
 
-	switch syntheticSuite {
-	case "parallel.conformance.openshift.io":
-		if len(config.GinkgoConfig.FocusString) > 0 {
-			config.GinkgoConfig.FocusString += "|"
-		}
-		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/parallel\\]"
-	case "serial.conformance.openshift.io":
-		if len(config.GinkgoConfig.FocusString) > 0 {
-			config.GinkgoConfig.FocusString += "|"
-		}
-		config.GinkgoConfig.FocusString = "\\[Suite:openshift/conformance/serial\\]"
-	}
 	if config.GinkgoConfig.FocusString == "" && config.GinkgoConfig.SkipString == "" {
 		config.GinkgoConfig.SkipString = "Skipped"
 	}
@@ -128,28 +116,39 @@ func ExecuteTest(t *testing.T, suite string) {
 
 	ginkgo.WalkTests(func(name string, node types.TestNode) {
 		isSerial := serialTestsFilter.MatchString(name)
+		isConformance := conformanceTestsFilter.MatchString(name)
+		isExcluded := excludedTestsFilter.MatchString(name)
+
 		if isSerial {
 			if !strings.Contains(name, "[Serial]") {
 				node.SetText(node.Text() + " [Serial]")
 			}
 		}
 
-		if !excludedTestsFilter.MatchString(name) {
-			include := conformanceTestsFilter.MatchString(name)
-			switch {
-			case !include:
-				// do nothing
-			case isSerial:
+		if !isExcluded && isConformance {
+			if isSerial {
 				node.SetText(node.Text() + " [Suite:openshift/conformance/serial]")
-			case include:
+			} else {
 				node.SetText(node.Text() + " [Suite:openshift/conformance/parallel]")
 			}
 		}
+
 		if strings.Contains(node.CodeLocation().FileName, "/origin/test/") && !strings.Contains(node.Text(), "[Suite:openshift") {
 			node.SetText(node.Text() + " [Suite:openshift]")
 		}
 		if strings.Contains(node.CodeLocation().FileName, "/kubernetes/test/e2e/") {
 			node.SetText(node.Text() + " [Suite:k8s]")
+		}
+
+		switch syntheticSuite {
+		case "parallel.conformance.openshift.io":
+			if isExcluded || !isConformance || isSerial {
+				node.SetFlag(types.FlagTypePending)
+			}
+		case "serial.conformance.openshift.io":
+			if isExcluded || !isConformance || !isSerial {
+				node.SetFlag(types.FlagTypePending)
+			}
 		}
 	})
 
