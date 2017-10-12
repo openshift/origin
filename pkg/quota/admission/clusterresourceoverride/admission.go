@@ -3,6 +3,7 @@ package clusterresourceoverride
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -18,6 +19,7 @@ import (
 	oadmission "github.com/openshift/origin/pkg/cmd/server/admission"
 	configlatest "github.com/openshift/origin/pkg/cmd/server/api/latest"
 	"github.com/openshift/origin/pkg/project/cache"
+	"github.com/openshift/origin/pkg/project/registry/projectrequest/delegated"
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api"
 	"github.com/openshift/origin/pkg/quota/admission/clusterresourceoverride/api/validation"
 )
@@ -145,6 +147,20 @@ func (a *clusterResourceOverridePlugin) Validate() error {
 	return v.Validate()
 }
 
+func isExemptedNamespace(name string) bool {
+	for _, s := range delegated.ForbiddenNames {
+		if name == s {
+			return true
+		}
+	}
+	for _, s := range delegated.ForbiddenPrefixes {
+		if strings.HasPrefix(name, s) {
+			return true
+		}
+	}
+	return false
+}
+
 // TODO this will need to update when we have pod requests/limits
 func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	glog.V(6).Infof("%s admission controller is invoked", api.PluginName)
@@ -158,15 +174,21 @@ func (a *clusterResourceOverridePlugin) Admit(attr admission.Attributes) error {
 	glog.V(5).Infof("%s is looking at creating pod %s in project %s", api.PluginName, pod.Name, attr.GetNamespace())
 
 	// allow annotations on project to override
-	if ns, err := a.ProjectCache.GetNamespace(attr.GetNamespace()); err != nil {
+	ns, err := a.ProjectCache.GetNamespace(attr.GetNamespace())
+	if err != nil {
 		glog.Warningf("%s got an error retrieving namespace: %v", api.PluginName, err)
 		return admission.NewForbidden(attr, err) // this should not happen though
-	} else {
-		projectEnabledPlugin, exists := ns.Annotations[clusterResourceOverrideAnnotation]
-		if exists && projectEnabledPlugin != "true" {
-			glog.V(5).Infof("%s is disabled for project %s", api.PluginName, attr.GetNamespace())
-			return nil // disabled for this project, do nothing
-		}
+	}
+
+	projectEnabledPlugin, exists := ns.Annotations[clusterResourceOverrideAnnotation]
+	if exists && projectEnabledPlugin != "true" {
+		glog.V(5).Infof("%s is disabled for project %s", api.PluginName, attr.GetNamespace())
+		return nil // disabled for this project, do nothing
+	}
+
+	if isExemptedNamespace(ns.Name) {
+		glog.V(5).Infof("%s is skipping exempted project %s", api.PluginName, attr.GetNamespace())
+		return nil // project is exempted, do nothing
 	}
 
 	// Reuse LimitRanger logic to apply limit/req defaults from the project. Ignore validation
