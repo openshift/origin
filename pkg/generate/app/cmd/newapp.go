@@ -905,6 +905,16 @@ func (c *AppConfig) Run() (*AppResult, error) {
 		}
 	}
 
+	// TODO: This could be less brute, should happen when we resolve the
+	// ComponentInput to an ImageRef.
+	for i, obj := range objects {
+		if is, ok := obj.(*imageapi.ImageStream); ok {
+			if cm, errs := c.ImageStreamSearcher.Search(true, c.OriginNamespace+"/"+is.Name); len(errs) == 0 && len(cm.Exact()) > 0 && cm[0].ImageStream != nil {
+				objects = append(objects[:i], objects[i+1:]...)
+			}
+		}
+	}
+
 	return &AppResult{
 		List:      &kapi.List{Items: objects},
 		Name:      name,

@@ -377,6 +377,11 @@ os::cmd::expect_failure_and_text 'oc new-app --image-stream ruby https://github.
 # when the tag is specified explicitly, the operation is successful
 os::cmd::expect_success 'oc new-app --image-stream ruby:2.4 https://github.com/openshift/rails-ex --dry-run'
 
+# newapp does not attempt to create an imagestream that already exists for a Docker image
+os::cmd::expect_success_and_text 'oc delete is ruby' 'imagestream "ruby" deleted'
+os::cmd::expect_success_and_text 'oc new-app docker.io/ruby:latest~https://github.com/openshift/ruby-ex.git --name=testapp1 --strategy=docker' 'imagestream "ruby" created'
+os::cmd::expect_success_and_not_text 'oc new-app docker.io/ruby:latest~https://github.com/openshift/ruby-ex.git --name=testapp2 --strategy=docker' 'imagestream "ruby" created'
+
 os::cmd::expect_success 'oc delete imagestreams --all'
 
 # check that we can create from the template without errors
