@@ -167,7 +167,6 @@ func ConvertOpenshiftAdmissionConfigToKubeAdmissionConfig(in map[string]configap
 	for _, pluginName := range sets.StringKeySet(in).List() {
 		openshiftConfig := in[pluginName]
 
-		fmt.Printf("#### adding for %T\n", openshiftConfig.Configuration)
 		kubeConfig := apiserver.AdmissionPluginConfiguration{
 			Name: pluginName,
 			Path: openshiftConfig.Location,
