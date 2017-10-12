@@ -4249,7 +4249,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"jenkinsPipelineStrategy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is in tech preview.",
+								Description: "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.",
 								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy"),
 							},
 						},
@@ -5045,7 +5045,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 		"github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is in tech preview.",
+					Description: "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
 					Properties: map[string]spec.Schema{
 						"jenkinsfilePath": {
 							SchemaProps: spec.SchemaProps{
