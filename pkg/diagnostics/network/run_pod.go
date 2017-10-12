@@ -99,22 +99,27 @@ func (d *NetworkDiagnostic) Check() types.DiagnosticResult {
 		return d.res
 	}
 
-	d.runNetworkDiagnostic()
+	// Abort and clean up if there is an interrupt/terminate signal while running network diagnostics
+	done := make(chan bool, 1)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sig
+		d.res.Warn("DNet2014", nil, "Interrupt received; aborting network diagnostic.")
+		done <- true
+	}()
+	go func() {
+		d.runNetworkDiagnostic()
+		done <- true
+	}()
+	<-done
+	signal.Stop(sig)
+	d.Cleanup()
+
 	return d.res
 }
 
 func (d *NetworkDiagnostic) runNetworkDiagnostic() {
-	// Do clean up if there is an interrupt/terminate signal while running network diagnostics
-	c := make(chan os.Signal, 2)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		<-c
-		d.Cleanup()
-	}()
-
-	defer func() {
-		d.Cleanup()
-	}()
 	// Setup test environment
 	if err := d.TestSetup(); err != nil {
 		d.res.Error("DNet2005", err, fmt.Sprintf("Setting up test environment for network diagnostics failed: %v", err))
