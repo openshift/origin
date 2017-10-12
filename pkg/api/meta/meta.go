@@ -26,22 +26,48 @@ type ImageReferenceMutator interface {
 var errNoImageMutator = fmt.Errorf("No list of images available for this object")
 
 // GetImageReferenceMutator returns a mutator for the provided object, or an error if no
-// such mutator is defined.
-func GetImageReferenceMutator(obj runtime.Object) (ImageReferenceMutator, error) {
+// such mutator is defined. Only references that are different between obj and old will
+// be returned unless old is nil.
+func GetImageReferenceMutator(obj, old runtime.Object) (ImageReferenceMutator, error) {
 	switch t := obj.(type) {
 	case *buildapi.Build:
+		if oldT, ok := old.(*buildapi.Build); ok && oldT != nil {
+			return &buildSpecMutator{spec: &t.Spec.CommonSpec, oldSpec: &oldT.Spec.CommonSpec, path: field.NewPath("spec")}, nil
+		}
 		return &buildSpecMutator{spec: &t.Spec.CommonSpec, path: field.NewPath("spec")}, nil
 	case *buildapi.BuildConfig:
+		if oldT, ok := old.(*buildapi.BuildConfig); ok && oldT != nil {
+			return &buildSpecMutator{spec: &t.Spec.CommonSpec, oldSpec: &oldT.Spec.CommonSpec, path: field.NewPath("spec")}, nil
+		}
 		return &buildSpecMutator{spec: &t.Spec.CommonSpec, path: field.NewPath("spec")}, nil
 	default:
 		if spec, path, err := GetPodSpec(obj); err == nil {
-			return &podSpecMutator{spec: spec, path: path}, nil
+			if old == nil {
+				return &podSpecMutator{spec: spec, path: path}, nil
+			}
+			oldSpec, _, err := GetPodSpec(old)
+			if err != nil {
+				return nil, fmt.Errorf("old and new pod spec objects were not of the same type %T != %T: %v", obj, old, err)
+			}
+			return &podSpecMutator{spec: spec, oldSpec: oldSpec, path: path}, nil
 		}
 		if spec, path, err := GetPodSpecV1(obj); err == nil {
-			return &podSpecV1Mutator{spec: spec, path: path}, nil
+			if old == nil {
+				return &podSpecV1Mutator{spec: spec, path: path}, nil
+			}
+			oldSpec, _, err := GetPodSpecV1(old)
+			if err != nil {
+				return nil, fmt.Errorf("old and new pod spec objects were not of the same type %T != %T: %v", obj, old, err)
+			}
+			return &podSpecV1Mutator{spec: spec, oldSpec: oldSpec, path: path}, nil
 		}
 		return nil, errNoImageMutator
 	}
+}
+
+type pairwiseMutator struct {
+	newer ImageReferenceMutator
+	older ImageReferenceMutator
 }
 
 type AnnotationAccessor interface {
