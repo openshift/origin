@@ -13,6 +13,7 @@ import (
 	ktemplates "k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
+	"github.com/openshift/origin/pkg/cmd/exec"
 	"github.com/openshift/origin/pkg/cmd/flagtypes"
 	"github.com/openshift/origin/pkg/cmd/infra/builder"
 	"github.com/openshift/origin/pkg/cmd/infra/deployer"
@@ -110,7 +111,7 @@ func CommandFor(basename string) *cobra.Command {
 
 // NewCommandOpenShift creates the standard OpenShift command
 func NewCommandOpenShift(name string) *cobra.Command {
-	in, out, errout := os.Stdin, os.Stdout, os.Stderr
+	out, errout := os.Stdout, os.Stderr
 
 	root := &cobra.Command{
 		Use:   name,
@@ -123,9 +124,10 @@ func NewCommandOpenShift(name string) *cobra.Command {
 
 	startAllInOne, _ := start.NewCommandStartAllInOne(name, out, errout)
 	root.AddCommand(startAllInOne)
-	root.AddCommand(admin.NewCommandAdmin("admin", name+" admin", in, out, errout))
-	root.AddCommand(cli.NewCommandCLI("cli", name+" cli", in, out, errout))
-	root.AddCommand(cli.NewCmdKubectl("kube", out))
+	root.AddCommand(exec.NewExecShim("admin", "oc", "adm"))
+	root.AddCommand(exec.NewExecShim("cli", "oc"))
+	root.AddCommand(exec.NewExecShim("kube", "kubectl"))
+	root.AddCommand(exec.NewExecShim("kubectl", "kubectl"))
 	root.AddCommand(newExperimentalCommand("ex", name+" ex"))
 	root.AddCommand(newCompletionCommand("completion", name+" completion"))
 	root.AddCommand(cmd.NewCmdVersion(name, f, out, cmd.VersionOptions{PrintEtcdVersion: true, IsServer: true}))
