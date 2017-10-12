@@ -64,6 +64,10 @@ var _ = g.Describe("[Feature:Builds][Slow] incremental s2i build", func() {
 				err = oc.Run("new-app").Args("-f", podAndServiceFixture, "-p", "IMAGE_NAME="+imageName).Execute()
 				o.Expect(err).NotTo(o.HaveOccurred())
 
+				g.By("waiting for the pod to be running")
+				err = e2e.WaitForPodNameRunningInNamespace(oc.KubeFramework().ClientSet, "build-test-pod", oc.Namespace())
+				o.Expect(err).NotTo(o.HaveOccurred())
+
 				g.By("waiting for the service to become available")
 				err = e2e.WaitForEndpoint(oc.KubeFramework().ClientSet, oc.Namespace(), buildTestService)
 				o.Expect(err).NotTo(o.HaveOccurred())
