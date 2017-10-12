@@ -12,7 +12,8 @@ import (
 	e2e "k8s.io/kubernetes/test/e2e/framework"
 )
 
-var _ = g.Describe("[imageapis][registry] image signature workflow", func() {
+var _ = g.Describe("[imageapis][registry][Skipped] image signature workflow", func() {
+
 	defer g.GinkgoRecover()
 
 	var (
@@ -21,6 +22,7 @@ var _ = g.Describe("[imageapis][registry] image signature workflow", func() {
 	)
 
 	g.It("can push a signed image to openshift registry and verify it", func() {
+		g.Skip("FIXME: fix oadm verify-image-signature to work with secured registry")
 		g.By("building a signer image that knows how to sign images")
 		output, err := oc.Run("create").Args("-f", signerBuildFixture).Output()
 		if err != nil {

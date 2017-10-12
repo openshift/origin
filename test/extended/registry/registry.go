@@ -25,7 +25,7 @@ const (
 	imageSize = 1024
 )
 
-var _ = g.Describe("[Conformance][registry][migration] manifest migration from etcd to registry storage", func() {
+var _ = g.Describe("[Conformance][registry][migration][Serial] manifest migration from etcd to registry storage", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("registry-migration", exutil.KubeConfigPath())
 
