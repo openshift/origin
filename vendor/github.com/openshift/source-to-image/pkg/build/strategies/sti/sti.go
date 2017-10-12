@@ -689,7 +689,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		if isMissingRequirements(errOutput) {
 			err = errMissingRequirements
 		} else if e, ok := err.(s2ierr.ContainerError); ok {
-			err = s2ierr.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput)
+			err = s2ierr.NewContainerError(config.BuilderImage, e.ErrorCode, errOutput+e.Output)
 		}
 	}
 
