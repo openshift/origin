@@ -289,6 +289,13 @@ func RunProcess(f *clientcmd.Factory, in io.Reader, out, errout io.Writer, cmd *
 				for _, cause := range err.ErrStatus.Details.Causes {
 					errstr += fmt.Sprintf("  %s\n", cause.Message)
 				}
+
+				// if no error causes found, fallback to returning original
+				// error message received from the server
+				if len(err.ErrStatus.Details.Causes) == 0 {
+					errstr += fmt.Sprintf("  %v\n", err)
+				}
+
 				return fmt.Errorf(errstr)
 			}
 
