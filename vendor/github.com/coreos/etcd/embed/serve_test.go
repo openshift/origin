@@ -1,4 +1,4 @@
-// Copyright 2015 The etcd Authors
+// Copyright 2017 The etcd Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,27 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rafthttp
+package embed
 
 import (
-	"errors"
-	"net/http"
+	"io/ioutil"
+	"os"
+	"testing"
+
+	"github.com/coreos/etcd/auth"
 )
 
-func (t *roundTripperBlocker) RoundTrip(req *http.Request) (*http.Response, error) {
-	c := make(chan struct{}, 1)
-	t.mu.Lock()
-	t.cancel[req] = c
-	t.mu.Unlock()
-	ctx := req.Context()
-	select {
-	case <-t.unblockc:
-		return &http.Response{StatusCode: http.StatusNoContent, Body: &nopReadCloser{}}, nil
-	case <-req.Cancel:
-		return nil, errors.New("request canceled")
-	case <-ctx.Done():
-		return nil, errors.New("request canceled")
-	case <-c:
-		return nil, errors.New("request canceled")
+// TestStartEtcdWrongToken ensures that StartEtcd with wrong configs returns with error.
+func TestStartEtcdWrongToken(t *testing.T) {
+	tdir, err := ioutil.TempDir(os.TempDir(), "token-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tdir)
+	cfg := NewConfig()
+	cfg.Dir = tdir
+	cfg.AuthToken = "wrong-token"
+	if _, err = StartEtcd(cfg); err != auth.ErrInvalidAuthOpts {
+		t.Fatalf("expected %v, got %v", auth.ErrInvalidAuthOpts, err)
 	}
 }
