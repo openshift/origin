@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit bfa466e2e72a7447dcd216523cecf15c79c4485f
+%global commit 113417b8e1b1712ee37cfa7a748b4675ff6f3439
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.147.1 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=bfa466e
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.148.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=113417b
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.148.0%{?dist}
+Release:        0.149.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,55 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Thu Oct 12 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.149.0
+- bump(github.com/openshift/origin-web-console):
+  ba1a82013693cce1265bd0d49d18638cd71c767d (eparis+openshiftbot@redhat.com)
+- UPSTREAM: 53731: Use locks in fake dbus (ccoleman@redhat.com)
+- The DNS subsystem should manage keeping dnsmasq in sync (ccoleman@redhat.com)
+- openvswitch, syscontainer: allow access to the devices (gscrivan@redhat.com)
+- node, syscontainer: allow access to devices (gscrivan@redhat.com)
+- origin, syscontainer: allow access to standard devices (gscrivan@redhat.com)
+- bump(github.com/openshift/origin-web-console):
+  bcb969bb2dd103823418447569ef9957860aec6b (eparis+openshiftbot@redhat.com)
+- catalog: name changes from catalog v0.1.0-rc1 sync (jaboyd@redhat.com)
+- Record events on openshift-sdn startup and pod restart (ccoleman@redhat.com)
+- UPSTREAM: 53682: Use proper locks when updating desired state
+  (hekumar@redhat.com)
+- Update minimum docker version required for the node (cewong@redhat.com)
+- Squashed 'cmd/service-catalog/go/src/github.com/kubernetes-incubator/service-
+  catalog/' changes from 7011d9e816..3aacfedec6 (jaboyd@redhat.com)
+- Use config map for election with start controllers (mkhan@redhat.com)
+- Don't allow claiming node IP as egress IP (danw@redhat.com)
+- Revert "<carry>: Set external plan name for service-catalog walkthrough"
+  (jaboyd@redhat.com)
+- Origin changes after cherry-picks (maszulik@redhat.com)
+- UPSTREAM: 53457: Ignore notFound when deleting firewall (maszulik@redhat.com)
+- UPSTREAM: 53332: Ignore pods for quota that exceed deletion grace period
+  (maszulik@redhat.com)
+- UPSTREAM: 52604: Use separate client for node status loop
+  (maszulik@redhat.com)
+- Print the entirety of Go test stderr in warning (skuznets@redhat.com)
+- UPSTREAM: 53299: Correct APIGroup for RoleBindingBuilder Subjects
+  (maszulik@redhat.com)
+- UPSTREAM: 52947: Preserve leading and trailing slashes on proxy subpaths
+  (maszulik@redhat.com)
+- UPSTREAM: 52775: Fix panic in ControllerManager when GCE external
+  loadbalancer healthcheck is nil (maszulik@redhat.com)
+- UPSTREAM: 52545: use specified discovery information if possible
+  (maszulik@redhat.com)
+- UPSTREAM: 52602: etcd3 store: retry w/live object on conflict
+  (maszulik@redhat.com)
+- UPSTREAM: 51199: Makes Hostname and Subdomain fields of v1.PodSpec settable
+  when empty and updates the StatefulSet controller to set them when empty
+  (maszulik@redhat.com)
+- UPSTREAM: 52823: Third party resources should not be part of conformance
+  (maszulik@redhat.com)
+- Change golang version from 1.8.3 to 1.8.1 in origin.spec (jhadvig@redhat.com)
+- Fix stale omitempty comment in server types (rpenta@redhat.com)
+- Remove unneeded extension-apiserver-authentication-reader from service
+  catalog example template. Upstream role was added in #16517.
+  (jminter@redhat.com)
+
 * Wed Oct 11 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.148.0
 - Move browser safe proxy logic into an authorizer (mkhan@redhat.com)
 - Add a healthcheck to detect when OVS is restarted (ccoleman@redhat.com)
