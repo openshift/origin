@@ -82,7 +82,7 @@ func (master *OsdnMaster) addNode(nodeName string, nodeIP string, hsAnnotations 
 		}
 	}
 
-	// Create new subet
+	// Create new subnet
 	for _, possibleSubnet := range master.subnetAllocatorList {
 		sn, err := possibleSubnet.GetNetwork()
 		if err == netutils.ErrSubnetAllocatorFull {
