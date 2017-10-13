@@ -1055,7 +1055,13 @@ func (d *stiDocker) RunContainer(opts RunContainerOptions) error {
 			return fmt.Errorf("waiting for container %q to stop: %v", container.ID, err)
 		}
 		if exitCode != 0 {
-			return s2ierr.NewContainerError(container.ID, exitCode, "")
+			var output string
+			json, _ := d.client.ContainerInspect(ctx, container.ID)
+			if err == nil && json.ContainerJSONBase != nil && json.ContainerJSONBase.State != nil {
+				state := json.ContainerJSONBase.State
+				output = fmt.Sprintf("Status: %s, Error: %s, OOMKilled: %v, Dead: %v", state.Status, state.Error, state.OOMKilled, state.Dead)
+			}
+			return s2ierr.NewContainerError(container.ID, exitCode, output)
 		}
 
 		// OnStart must be done before we move on.
