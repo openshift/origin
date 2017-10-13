@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/docker/distribution"
 	"github.com/docker/distribution/digest"
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/manifest/schema1"
@@ -30,7 +31,7 @@ import (
 	testserver "github.com/openshift/origin/test/util/server"
 )
 
-func signedManifest(name string, blobs []digest.Digest) ([]byte, digest.Digest, error) {
+func signedManifest(name string, blobs []distribution.Descriptor) ([]byte, digest.Digest, error) {
 	key, err := libtrust.GenerateECP256PrivateKey()
 	if err != nil {
 		return []byte{}, "", fmt.Errorf("error generating EC key: %s", err)
@@ -38,9 +39,9 @@ func signedManifest(name string, blobs []digest.Digest) ([]byte, digest.Digest, 
 
 	history := make([]schema1.History, 0, len(blobs))
 	fsLayers := make([]schema1.FSLayer, 0, len(blobs))
-	for _, b := range blobs {
-		history = append(history, schema1.History{V1Compatibility: `{"id": "foo"}`})
-		fsLayers = append(fsLayers, schema1.FSLayer{BlobSum: b})
+	for _, desc := range blobs {
+		history = append(history, schema1.History{V1Compatibility: fmt.Sprintf(`{"id": "foo", "size": %d}`, desc.Size)})
+		fsLayers = append(fsLayers, schema1.FSLayer{BlobSum: desc.Digest})
 	}
 
 	mappingManifest := schema1.Manifest{
@@ -284,11 +285,11 @@ func putManifest(name, user, token string) (digest.Digest, error) {
 	}
 
 	putUrl := fmt.Sprintf("http://127.0.0.1:5000/v2/%s/%s/manifests/%s", testutil.Namespace(), name, imageapi.DefaultImageTag)
-	signedManifest, dgst, err := signedManifest(fmt.Sprintf("%s/%s", testutil.Namespace(), name), []digest.Digest{desc.Digest})
+	manifest, dgst, err := signedManifest(fmt.Sprintf("%s/%s", testutil.Namespace(), name), []distribution.Descriptor{desc})
 	if err != nil {
 		return "", err
 	}
-	req, err := http.NewRequest("PUT", putUrl, bytes.NewReader(signedManifest))
+	req, err := http.NewRequest("PUT", putUrl, bytes.NewReader(manifest))
 	if err != nil {
 		return "", fmt.Errorf("error creating put request: %s", err)
 	}

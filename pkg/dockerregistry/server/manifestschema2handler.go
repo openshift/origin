@@ -85,7 +85,7 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 	repo := h.repo
 
 	target := h.manifest.Target()
-	_, err := repo.Blobs(ctx).Stat(ctx, target.Digest)
+	desc, err := repo.Blobs(ctx).Stat(ctx, target.Digest)
 	if err != nil {
 		if err != distribution.ErrBlobUnknown {
 			errs = append(errs, err)
@@ -93,13 +93,20 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 
 		// On error here, we always append unknown blob errors.
 		errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: target.Digest})
+	} else {
+		if target.Size != desc.Size {
+			errs = append(errs, ErrManifestBlobBadSize{
+				Digest:       target.Digest,
+				ActualSize:   desc.Size,
+				ManifestSize: target.Size,
+			})
+		}
 	}
 
 	for _, fsLayer := range h.manifest.References() {
-		var err error
 		if fsLayer.MediaType != schema2.MediaTypeForeignLayer {
 			if len(fsLayer.URLs) == 0 {
-				_, err = repo.Blobs(ctx).Stat(ctx, fsLayer.Digest)
+				desc, err = repo.Blobs(ctx).Stat(ctx, fsLayer.Digest)
 			} else {
 				err = errUnexpectedURL
 			}
@@ -118,6 +125,14 @@ func (h *manifestSchema2Handler) Verify(ctx context.Context, skipDependencyVerif
 
 			// On error here, we always append unknown blob errors.
 			errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: fsLayer.Digest})
+			continue
+		}
+		if fsLayer.Size != desc.Size {
+			errs = append(errs, ErrManifestBlobBadSize{
+				Digest:       fsLayer.Digest,
+				ActualSize:   desc.Size,
+				ManifestSize: fsLayer.Size,
+			})
 		}
 	}
 
