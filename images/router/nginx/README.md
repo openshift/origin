@@ -8,7 +8,7 @@ In nodes,build origin openshif/nginx-router image:
 ### 2. Run the nginx router
 In master, deploy and edit nginx-router so that working directory can be fixed
  - oadm policy add-scc-to-user hostnetwork -z router
- - oadm router nginx-router –images=openshift/nginx-router
+ - oadm router nginx-router --images=openshift/nginx-router
  - oc edit deploymentconfigs/nginx-router -o json
 ```
 # edit the json and insert the 'command' line next to image key. As below:
@@ -24,7 +24,7 @@ Test no security route in nginx-router
  - curl https://raw.githubusercontent.com/openshift/origin/master/examples/hello-openshift/hello-pod.json | oc create -f -
  - oc expose pod hello-openshift
  - oc expose svc hello-openshift
- - [root@qe-weliang-37master-etcd-nfs-1 ~]# oc get pod -o wide
+ - oc get pod -o wide
 ```
 NAME READY STATUS RESTARTS AGE IP NODE
 hello-openshift 1/1 Running 0 5m 172.21.0.7 host-8-241-64.host.centralci.eng.rdu2.redhat.com
