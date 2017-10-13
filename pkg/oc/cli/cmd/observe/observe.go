@@ -345,8 +345,7 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 	}
 
 	o.argumentStore = &objectArgumentsStore{}
-	switch {
-	case len(o.nameSyncCommand) > 0:
+	if len(o.nameSyncCommand) > 0 {
 		o.argumentStore.keyFn = func() ([]string, error) {
 			var out []byte
 			err := retryCommandError(o.retryExitStatus, o.retryCount, func() error {
@@ -377,10 +376,8 @@ func (o *ObserveOptions) Complete(f *clientcmd.Factory, cmd *cobra.Command, args
 			glog.V(4).Infof("Found existing keys: %v", outputNames)
 			return outputNames, nil
 		}
-		o.knownObjects = o.argumentStore
-	case len(o.deleteCommand) > 0:
-		o.knownObjects = o.argumentStore
 	}
+	o.knownObjects = o.argumentStore
 
 	return nil
 }
