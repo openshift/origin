@@ -120,13 +120,16 @@ func GetRegistryPod(podsGetter kcoreclient.PodsGetter) (*kapiv1.Pod, error) {
 	return &podList.Items[0], nil
 }
 
-// LogRegistryPod attempts to write registry log to a file to recent test's output directory.
+// LogRegistryPod attempts to write registry log to a file in artifacts directory.
 func LogRegistryPod(oc *exutil.CLI) error {
 	pod, err := GetRegistryPod(oc.KubeClient().Core())
 	if err != nil {
 		return fmt.Errorf("failed to get registry pod: %v", err)
 	}
-	path, err := oc.Run("logs").Args("dc/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
+
+	ocLocal := *oc
+	ocLocal.SetOutputDir(exutil.ArtifactDirPath())
+	path, err := ocLocal.Run("logs").Args("dc/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
 	if err == nil {
 		fmt.Fprintf(g.GinkgoWriter, "written registry pod log to %s\n", path)
 	}
