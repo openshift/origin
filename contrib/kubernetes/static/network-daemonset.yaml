@@ -1,0 +1,157 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: sdn
+  annotations:
+    kubernetes.io/description: |
+      This daemon set launches the OpenShift networking components (kube-proxy, DNS, and openshift-sdn).
+      It expects that OVS is running on the node.
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: network
+        type: infra
+        openshift.io/role: network
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      # Requires fairly broad permissions - ability to read all services and network functions as well
+      # as all pods.
+      serviceAccountName: sdn
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: network
+        image: openshift/node:v3.7.0-alpha.1
+        command: 
+        - /bin/bash
+        - -c
+        - |
+          #!/bin/sh
+          set -o errexit
+          # Take over network functions on the node
+          rm -Rf /etc/cni/net.d/*
+          rm -Rf /host/opt/cni/bin/*
+          cp -Rf /opt/cni/bin/* /host/opt/cni/bin/
+          # Use whichever node-config exists
+          cfg=/etc/openshift/node
+          if [[ ! -f "${cfg}/node-config.yaml" ]]; then
+            cfg=/etc/origin/node
+          fi
+          # Use the same config as the node, but with the service account token
+          openshift cli config "--config=${cfg}/node.kubeconfig" view --flatten > /tmp/kubeconfig
+          openshift cli config --config=/tmp/kubeconfig set-credentials sa "--token=$( cat /var/run/secrets/kubernetes.io/serviceaccount/token )"
+          openshift cli config --config=/tmp/kubeconfig set-context "$( openshift cli config current-context)" --user=sa
+          # Launch the network process
+          exec openshift start network "--config=${cfg}/node-config.yaml" --kubeconfig=/tmp/kubeconfig --loglevel=5
+
+        securityContext:
+          runAsUser: 0
+          # Permission could be reduced by selecting an appropriate SELinux policy
+          privileged: true
+        # TODO: debugging only
+        imagePullPolicy: Never
+        volumeMounts:
+        # Directory which contains the host configuration. We look at both locations
+        # to simplify setup.
+        - mountPath: /etc/origin/node/
+          name: host-config
+          readOnly: true
+        - mountPath: /etc/openshift/node/
+          name: host-config-alt
+          readOnly: true
+        # Run directories where we need to be able to access sockets
+        - mountPath: /var/run/dbus/
+          name: host-var-run-dbus
+          readOnly: true
+        - mountPath: /var/run/openvswitch/
+          name: host-var-run-ovs
+          readOnly: true
+        - mountPath: /var/run/kubernetes/
+          name: host-var-run-kubernetes
+          readOnly: true
+        # We mount our socket here
+        - mountPath: /var/run/openshift-sdn
+          name: host-var-run-openshift-sdn
+        # CNI related mounts which we take over
+        - mountPath: /host/opt/cni/bin
+          name: host-opt-cni-bin
+        - mountPath: /etc/cni/net.d
+          name: host-etc-cni-netd
+        - mountPath: /var/lib/cni/networks/openshift-sdn
+          name: host-var-lib-cni-networks-openshift-sdn
+
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        env:
+        - name: OPENSHIFT_DNS_DOMAIN
+          value: cluster.local
+        ports:
+        - name: healthz
+          containerPort: 10256
+        livenessProbe:
+          initialDelaySeconds: 10
+          httpGet:
+            path: /healthz
+            port: 10256
+            scheme: HTTP
+        lifecycle:
+          # postStart:
+          #   exec:
+          #     command:
+          #     - /usr/bin/dbus-send
+          #     - --system
+          #     - --dest=uk.org.thekelleys.dnsmasq
+          #     - /uk/org/thekelleys/dnsmasq
+          #     - uk.org.thekelleys.SetDomainServers
+          #     - array:string:/in-addr.arpa/127.0.0.1,/$(OPENSHIFT_DNS_DOMAIN)/127.0.0.1
+          # preStop:
+          #   exec:
+          #     command:
+          #     - /usr/bin/dbus-send
+          #     - --system
+          #     - --dest=uk.org.thekelleys.dnsmasq
+          #     - /uk/org/thekelleys/dnsmasq
+          #     - uk.org.thekelleys.SetDomainServers
+          #     - "array:string:"
+
+      volumes:
+      # In bootstrap mode, the host config contains information not easily available
+      # from other locations.
+      - name: host-config
+        hostPath:
+          path: /etc/origin/node
+      - name: host-config-alt
+        hostPath:
+          path: /etc/openshift/node
+      - name: host-modules
+        hostPath:
+          path: /lib/modules
+
+      - name: host-var-run-ovs
+        hostPath:
+          path: /var/run/openvswitch
+      - name: host-var-run-kubernetes
+        hostPath:
+          path: /var/run/kubernetes
+      - name: host-var-run-dbus
+        hostPath:
+          path: /var/run/dbus
+      - name: host-var-run-openshift-sdn
+        hostPath:
+          path: /var/run/openshift-sdn
+
+      - name: host-opt-cni-bin
+        hostPath:
+          path: /opt/cni/bin
+      - name: host-etc-cni-netd
+        hostPath:
+          path: /etc/cni/net.d
+      - name: host-var-lib-cni-networks-openshift-sdn
+        hostPath:
+          path: /var/lib/cni/networks/openshift-sdn

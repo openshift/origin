@@ -184,7 +184,7 @@ func loadCertKeyBlocks(pairFile string) (cert *pem.Block, key *pem.Block, err er
 	if certBlock == nil {
 		return nil, nil, fmt.Errorf("could not decode the first block from %q from expected PEM format", pairFile)
 	}
-	keyBlock, rest := pem.Decode(rest)
+	keyBlock, _ := pem.Decode(rest)
 	if keyBlock == nil {
 		return nil, nil, fmt.Errorf("could not decode the second block from %q from expected PEM format", pairFile)
 	}

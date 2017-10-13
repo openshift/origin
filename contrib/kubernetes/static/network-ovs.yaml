@@ -1,0 +1,61 @@
+kind: DaemonSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: ovs
+  annotations:
+    kubernetes.io/description: |
+      This daemon set launches the openvswitch daemon.
+spec:
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: network
+        type: infra
+        openshift.io/role: network
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ''
+    spec:
+      # Requires fairly broad permissions - ability to read all services and network functions as well
+      # as all pods.
+      serviceAccountName: sdn
+      hostNetwork: true
+      containers:
+      - name: openvswitch
+        image: openshift/openvswitch:v3.7.0-alpha.1
+        securityContext:
+          runAsUser: 0
+          privileged: true
+        volumeMounts:
+        - mountPath: /lib/modules
+          name: host-modules
+          readOnly: true
+        - mountPath: /run/openvswitch
+          name: host-run-ovs
+        - mountPath: /sys
+          name: host-sys
+          readOnly: true
+        - mountPath: /etc/openvswitch
+          name: host-config-openvswitch
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 200m
+            memory: 300Mi
+
+      volumes:
+      - name: host-modules
+        hostPath:
+          path: /lib/modules
+      - name: host-run-ovs
+        hostPath:
+          path: /run/openvswitch
+      - name: host-sys
+        hostPath:
+          path: /sys
+      - name: host-config-openvswitch
+        hostPath:
+          path: /etc/origin/openvswitch

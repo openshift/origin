@@ -1,0 +1,51 @@
+allowDisabledDocker: false
+apiVersion: v1
+authConfig:
+  authenticationCacheSize: 1000
+  authenticationCacheTTL: 5m
+  authorizationCacheSize: 1000
+  authorizationCacheTTL: 5m
+dnsDomain: cluster.local
+dnsIP: 0.0.0.0
+dnsBindAddress: 0.0.0.0:53
+dnsRecursiveResolvConf: ""
+dockerConfig:
+  dockerShimRootDirectory: /var/lib/dockershim
+  dockerShimSocket: /var/run/kubernetes/dockershim.sock
+  execHandlerName: native
+enableUnidling: true
+imageConfig:
+  format: openshift/origin-${component}:${version}
+  latest: false
+iptablesSyncPeriod: 30s
+kind: NodeConfig
+kubeletArguments:
+  cert-dir:
+  - ./certificates
+  feature-gates:
+  - RotateKubeletClientCertificate=true,RotateKubeletServerCertificate=true
+masterClientConnectionOverrides:
+  acceptContentTypes: application/vnd.kubernetes.protobuf,application/json
+  burst: 40
+  contentType: application/vnd.kubernetes.protobuf
+  qps: 20
+masterKubeConfig: node.kubeconfig
+networkConfig:
+  mtu: 1450
+  networkPluginName: redhat/openshift-ovs-multitenant
+nodeIP: ""
+proxyArguments:
+  healthz-bind-address: 
+  - 0.0.0.0
+  healthz-port:
+  - "10256"
+  metrics-bind-address:
+  - 0.0.0.0:10257
+servingInfo:
+  bindAddress: 0.0.0.0:10250
+  bindNetwork: tcp4
+  namedCertificates: null
+volumeConfig:
+  localQuota:
+    perFSGroup: null
+volumeDirectory: /var/lib/origin/volumes

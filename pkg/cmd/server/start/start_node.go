@@ -21,6 +21,7 @@ import (
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
+	"k8s.io/kubernetes/pkg/master/ports"
 
 	"github.com/openshift/origin/pkg/cmd/server/admin"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
@@ -28,6 +29,7 @@ import (
 	"github.com/openshift/origin/pkg/cmd/server/api/validation"
 	"github.com/openshift/origin/pkg/cmd/server/crypto"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/network"
+	networkoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/network/options"
 	"github.com/openshift/origin/pkg/cmd/server/kubernetes/node"
 	nodeoptions "github.com/openshift/origin/pkg/cmd/server/kubernetes/node/options"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
@@ -52,7 +54,16 @@ var nodeLong = templates.LongDesc(`
 	    %[1]s start node --config=<node-config>
 
 	will start a node with given configuration file. The node will run in the
-	foreground until you terminate the process.`)
+	foreground until you terminate the process.
+	
+	The --bootstrap-config-name flag instructs the node to use the provided 
+	kubeconfig file to contact the master and request a client cert (its identity) and
+	a serving cert, and then downloads node-config.yaml from the named config map. 
+	If no config map exists in the openshift-node namespace the node will exit with
+	an error. In this mode --config will be location of the downloaded config. 
+	Turning	on bootstrapping will always use certificate rotation by default at the
+	master's preferred rotation interval.
+	`)
 
 // NewCommandStartNode provides a CLI handler for 'start node' command
 func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command, *NodeOptions) {
@@ -81,7 +92,7 @@ func NewCommandStartNode(basename string, out, errout io.Writer) (*cobra.Command
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 
-	flags.BoolVar(&options.NodeArgs.Bootstrap, "bootstrap", false, "Use the provided .kubeconfig file to perform initial node setup (experimental).")
+	flags.StringVar(&options.NodeArgs.BootstrapConfigName, "bootstrap-config-name", options.NodeArgs.BootstrapConfigName, "On startup, the node will request a client cert from the master and get its config from this config map in the openshift-node namespace (experimental).")
 
 	// autocompletion hints
 	cmd.MarkFlagFilename("config", "yaml", "yml")
@@ -116,8 +127,10 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 	flags.StringVar(&options.ConfigFile, "config", "", "Location of the node configuration file to run from. When running from a configuration file, all other command-line arguments are ignored.")
 
 	options.NodeArgs = NewDefaultNodeArgs()
+	options.NodeArgs.ListenArg.ListenAddr.DefaultPort = ports.ProxyHealthzPort
 	options.NodeArgs.Components = NewNetworkComponentFlag()
 	BindNodeNetworkArgs(options.NodeArgs, flags, "")
+	BindListenArg(options.NodeArgs.ListenArg, flags, "")
 	BindImageFormatArgs(options.NodeArgs.ImageFormatArgs, flags, "")
 	BindKubeConnectionArgs(options.NodeArgs.KubeConnectionArgs, flags, "")
 
@@ -128,7 +141,7 @@ func NewCommandStartNetwork(basename string, out, errout io.Writer) (*cobra.Comm
 }
 
 func (options *NodeOptions) Run(c *cobra.Command, errout io.Writer, args []string) {
-	kcmdutil.CheckErr(options.Complete())
+	kcmdutil.CheckErr(options.Complete(c))
 	kcmdutil.CheckErr(options.Validate(args))
 
 	startProfiler()
@@ -163,7 +176,7 @@ func (o NodeOptions) Validate(args []string) error {
 	}
 
 	// if we are starting up using a config file, run no validations here
-	if o.NodeArgs.Bootstrap && !o.IsRunFromConfig() {
+	if len(o.NodeArgs.BootstrapConfigName) > 0 && !o.IsRunFromConfig() {
 		if err := o.NodeArgs.Validate(); err != nil {
 			return err
 		}
@@ -172,9 +185,14 @@ func (o NodeOptions) Validate(args []string) error {
 	return nil
 }
 
-func (o NodeOptions) Complete() error {
+func (o NodeOptions) Complete(cmd *cobra.Command) error {
 	o.NodeArgs.NodeName = strings.ToLower(o.NodeArgs.NodeName)
-
+	if len(o.ConfigFile) > 0 {
+		o.NodeArgs.ConfigDir.Default(filepath.Dir(o.ConfigFile))
+	}
+	if flag := cmd.Flags().Lookup("volume-dir"); flag != nil {
+		o.NodeArgs.VolumeDirProvided = flag.Changed
+	}
 	return nil
 }
 
@@ -203,7 +221,23 @@ func (o NodeOptions) RunNode() error {
 		return err
 	}
 
-	validationResults := validation.ValidateNodeConfig(nodeConfig, nil)
+	// allow listen address to be overriden
+	if addr := o.NodeArgs.ListenArg.ListenAddr; addr.Provided {
+		nodeConfig.ServingInfo.BindAddress = addr.HostPort(o.NodeArgs.ListenArg.ListenAddr.DefaultPort)
+	}
+
+	var validationResults validation.ValidationResults
+	switch {
+	case o.NodeArgs.Components.Calculated().Equal(NewNetworkComponentFlag().Calculated()):
+		if len(nodeConfig.NodeName) == 0 {
+			nodeConfig.NodeName = o.NodeArgs.NodeName
+		}
+		nodeConfig.MasterKubeConfig = o.NodeArgs.KubeConnectionArgs.ClientConfigLoadingRules.ExplicitPath
+		validationResults = validation.ValidateInClusterNodeConfig(nodeConfig, nil)
+	default:
+		validationResults = validation.ValidateNodeConfig(nodeConfig, nil)
+	}
+
 	if len(validationResults.Warnings) != 0 {
 		for _, warning := range validationResults.Warnings {
 			glog.Warningf("Warning: %v, node start will continue.", warning)
@@ -215,6 +249,7 @@ func (o NodeOptions) RunNode() error {
 	}
 
 	if err := ValidateRuntime(nodeConfig, o.NodeArgs.Components); err != nil {
+		glog.V(4).Infof("Unable to validate runtime configuration: %v", err)
 		return err
 	}
 
@@ -235,15 +270,11 @@ func (o NodeOptions) RunNode() error {
 // a string for messages indicating which config file contains the config.
 func (o NodeOptions) resolveNodeConfig() (*configapi.NodeConfig, string, error) {
 	switch {
-	case o.NodeArgs.Bootstrap:
+	case len(o.NodeArgs.BootstrapConfigName) > 0:
 		glog.V(2).Infof("Bootstrapping from master configuration")
 
-		hostnames, err := o.NodeArgs.GetServerCertHostnames()
-		if err != nil {
-			return nil, "", err
-		}
 		nodeConfigDir := o.NodeArgs.ConfigDir.Value()
-		if err := o.loadBootstrap(hostnames.List(), nodeConfigDir); err != nil {
+		if err := o.loadBootstrap(nodeConfigDir); err != nil {
 			return nil, "", err
 		}
 		configFile := o.ConfigFile
@@ -369,6 +400,11 @@ func execKubelet(server *kubeletoptions.KubeletServer) (bool, error) {
 		glog.Warningf("UNSUPPORTED: Executing a different Kubelet than the current binary is not supported: %s", kubeletPath)
 	}
 
+	server.RootDirectory, err = filepath.Abs(server.RootDirectory)
+	if err != nil {
+		return false, fmt.Errorf("unable to set absolute path for Kubelet root directory: %v", err)
+	}
+
 	// convert current settings to flags
 	args := nodeoptions.ToFlags(server)
 	args = append([]string{kubeletPath}, args...)
@@ -395,8 +431,9 @@ func execKubelet(server *kubeletoptions.KubeletServer) (bool, error) {
 }
 
 func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentFlag) error {
-	server, proxyConfig, err := nodeoptions.Build(nodeConfig)
+	server, err := nodeoptions.Build(nodeConfig)
 	if err != nil {
+		glog.V(4).Infof("Unable to build node options: %v", err)
 		return err
 	}
 
@@ -412,33 +449,34 @@ func StartNode(nodeConfig configapi.NodeConfig, components *utilflags.ComponentF
 		}
 	}
 
+	proxyConfig, err := networkoptions.Build(nodeConfig)
+	if err != nil {
+		glog.V(4).Infof("Unable to build network options: %v", err)
+		return err
+	}
 	networkConfig, err := network.New(nodeConfig, server.ClusterDomain, proxyConfig, components.Enabled(ComponentProxy), components.Enabled(ComponentDNS) && len(nodeConfig.DNSBindAddress) > 0)
 	if err != nil {
-		return err
-	}
-
-	config, err := node.New(nodeConfig, server)
-	if err != nil {
+		glog.V(4).Infof("Unable to initialize network configuration: %v", err)
 		return err
 	}
 
 	if components.Enabled(ComponentKubelet) {
+		config, err := node.New(nodeConfig, server)
+		if err != nil {
+			glog.V(4).Infof("Unable to create node configuration: %v", err)
+			return err
+		}
 		glog.Infof("Starting node %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
-	} else {
-		glog.Infof("Starting node networking %s (%s)", config.KubeletServer.HostnameOverride, version.Get().String())
-	}
 
-	// preconditions
-	if components.Enabled(ComponentKubelet) {
 		config.EnsureKubeletAccess()
 		config.EnsureVolumeDir()
 		config.EnsureDocker(docker.NewHelper())
 		config.EnsureLocalQuota(nodeConfig) // must be performed after EnsureVolumeDir
+		config.RunKubelet()
+	} else {
+		glog.Infof("Starting node networking %s (%s)", nodeConfig.NodeName, version.Get().String())
 	}
 
-	if components.Enabled(ComponentKubelet) {
-		config.RunKubelet()
-	}
 	if components.Enabled(ComponentPlugins) {
 		networkConfig.RunSDN()
 	}

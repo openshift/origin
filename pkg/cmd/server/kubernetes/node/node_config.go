@@ -12,6 +12,7 @@ import (
 	kubeletapp "k8s.io/kubernetes/cmd/kubelet/app"
 	kubeletoptions "k8s.io/kubernetes/cmd/kubelet/app/options"
 	"k8s.io/kubernetes/pkg/apis/componentconfig/v1alpha1"
+	kclientsetexternal "k8s.io/kubernetes/pkg/client/clientset_generated/clientset"
 	"k8s.io/kubernetes/pkg/cloudprovider"
 	"k8s.io/kubernetes/pkg/kubelet"
 	dockertools "k8s.io/kubernetes/pkg/kubelet/dockershim/libdocker"
@@ -57,7 +58,7 @@ func New(options configapi.NodeConfig, server *kubeletoptions.KubeletServer) (*N
 		return nil, err
 	}
 	// Make a separate client for event reporting, to avoid event QPS blocking node calls
-	eventClient, _, err := configapi.GetExternalKubeClient(options.MasterKubeConfig, options.MasterClientConnectionOverrides)
+	eventClient, err := kclientsetexternal.NewForConfig(kubeConfig)
 	if err != nil {
 		return nil, err
 	}

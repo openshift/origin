@@ -57,6 +57,10 @@ type NodeArgs struct {
 
 	// Bootstrap is true if the node should rely on the server to set initial configuration.
 	Bootstrap bool
+	// BootstrapConfigName is the name of a config map to read node-config.yaml from.
+	BootstrapConfigName string
+	// BootstrapConfigNamespace is the namespace the config map for bootstrap config is expected to load from.
+	BootstrapConfigNamespace string
 
 	MasterCertDir string
 	ConfigDir     flag.StringFlag
@@ -64,6 +68,8 @@ type NodeArgs struct {
 	AllowDisabledDocker bool
 	// VolumeDir is the volume storage directory.
 	VolumeDir string
+	// VolumeDirProvided is set to true if the user has specified this flag.
+	VolumeDirProvided bool
 
 	DefaultKubernetesURL *url.URL
 	ClusterDomain        string
@@ -128,6 +134,9 @@ func NewDefaultNodeArgs() *NodeArgs {
 
 		NodeName: hostname,
 
+		BootstrapConfigName:      "",
+		BootstrapConfigNamespace: "openshift-node",
+
 		MasterCertDir: "openshift.local.config/master",
 
 		ClusterDomain: cmdutil.Env("OPENSHIFT_DNS_DOMAIN", "cluster.local"),
@@ -150,6 +159,11 @@ func (args NodeArgs) Validate() error {
 	}
 	if addr, _ := args.KubeConnectionArgs.GetKubernetesAddress(args.DefaultKubernetesURL); addr == nil {
 		return errors.New("--kubeconfig must be set to provide API server connection information")
+	}
+	if len(args.BootstrapConfigName) > 0 {
+		if len(args.BootstrapConfigNamespace) == 0 {
+			return errors.New("--bootstrap-config-namespace must be specified")
+		}
 	}
 	return nil
 }
@@ -233,10 +247,12 @@ func (args NodeArgs) MergeSerializeableNodeConfig(config *configapi.NodeConfig) 
 	if len(args.NodeName) > 0 {
 		config.NodeName = args.NodeName
 	}
-
-	config.ServingInfo.BindAddress = net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort))
-
-	config.VolumeDirectory = args.VolumeDir
+	if args.ListenArg.ListenAddr.Provided {
+		config.ServingInfo.BindAddress = net.JoinHostPort(args.ListenArg.ListenAddr.Host, strconv.Itoa(ports.KubeletPort))
+	}
+	if args.VolumeDirProvided {
+		config.VolumeDirectory = args.VolumeDir
+	}
 	config.AllowDisabledDocker = args.AllowDisabledDocker
 	return nil
 }

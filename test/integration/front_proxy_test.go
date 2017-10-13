@@ -157,6 +157,7 @@ func TestFrontProxy(t *testing.T) {
 				"kube-system",
 				"openshift",
 				"openshift-infra",
+				"openshift-node",
 			),
 		},
 	} {

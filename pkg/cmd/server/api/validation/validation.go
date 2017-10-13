@@ -105,11 +105,11 @@ func ValidateCertInfo(certInfo api.CertInfo, required bool, fldPath *field.Path)
 	return allErrs
 }
 
-func ValidateServingInfo(info api.ServingInfo, fldPath *field.Path) ValidationResults {
+func ValidateServingInfo(info api.ServingInfo, certificatesRequired bool, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	validationResults.AddErrors(ValidateHostPort(info.BindAddress, fldPath.Child("bindAddress"))...)
-	validationResults.AddErrors(ValidateCertInfo(info.ServerCert, true, fldPath)...)
+	validationResults.AddErrors(ValidateCertInfo(info.ServerCert, certificatesRequired, fldPath)...)
 
 	if len(info.NamedCertificates) > 0 && len(info.ServerCert.CertFile) == 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("namedCertificates"), "", "a default certificate and key is required in certFile/keyFile in order to use namedCertificates"))
@@ -128,7 +128,7 @@ func ValidateServingInfo(info api.ServingInfo, fldPath *field.Path) ValidationRe
 			validationResults.AddErrors(ValidateFile(info.ClientCA, fldPath.Child("clientCA"))...)
 		}
 	} else {
-		if len(info.ClientCA) > 0 {
+		if certificatesRequired && len(info.ClientCA) > 0 {
 			validationResults.AddErrors(field.Invalid(fldPath.Child("clientCA"), info.ClientCA, "cannot specify a clientCA without a certFile"))
 		}
 	}
@@ -221,7 +221,7 @@ func ValidateNamedCertificates(fldPath *field.Path, namedCertificates []api.Name
 func ValidateHTTPServingInfo(info api.HTTPServingInfo, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
-	validationResults.Append(ValidateServingInfo(info.ServingInfo, fldPath))
+	validationResults.Append(ValidateServingInfo(info.ServingInfo, true, fldPath))
 
 	if info.MaxRequestsInFlight < 0 {
 		validationResults.AddErrors(field.Invalid(fldPath.Child("maxRequestsInFlight"), info.MaxRequestsInFlight, "must be zero (no limit) or greater"))
