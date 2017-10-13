@@ -93,29 +93,6 @@ func Test_buildSpecMutator_Mutate(t *testing.T) {
 			},
 		},
 		{
-			name: "mutates source runtimeImage reference",
-			fields: fields{spec: &buildapi.CommonSpec{
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						RuntimeImage: imageRef("test"),
-					},
-				},
-			}},
-			args: args{fn: func(ref *kapi.ObjectReference) error {
-				if ref.Name == "test" {
-					ref.Name = "test-2"
-				}
-				return nil
-			}},
-			wantSpec: &buildapi.CommonSpec{
-				Strategy: buildapi.BuildStrategy{
-					SourceStrategy: &buildapi.SourceBuildStrategy{
-						RuntimeImage: imageRef("test-2"),
-					},
-				},
-			},
-		},
-		{
 			name: "mutates custom reference",
 			fields: fields{spec: &buildapi.CommonSpec{
 				Strategy: buildapi.BuildStrategy{
@@ -265,16 +242,14 @@ func Test_buildSpecMutator_Mutate(t *testing.T) {
 				spec: &buildapi.CommonSpec{
 					Strategy: buildapi.BuildStrategy{
 						SourceStrategy: &buildapi.SourceBuildStrategy{
-							From:         imageRefValue("test"),
-							RuntimeImage: imageRef("test-2"),
+							From: imageRefValue("test"),
 						},
 					},
 				},
 				oldSpec: &buildapi.CommonSpec{
 					Strategy: buildapi.BuildStrategy{
 						SourceStrategy: &buildapi.SourceBuildStrategy{
-							From:         imageRefValue("test"),
-							RuntimeImage: imageRef("test-2"),
+							From: imageRefValue("test"),
 						},
 					},
 				},
@@ -286,8 +261,7 @@ func Test_buildSpecMutator_Mutate(t *testing.T) {
 			wantSpec: &buildapi.CommonSpec{
 				Strategy: buildapi.BuildStrategy{
 					SourceStrategy: &buildapi.SourceBuildStrategy{
-						From:         imageRefValue("test"),
-						RuntimeImage: imageRef("test-2"),
+						From: imageRefValue("test"),
 					},
 				},
 			},

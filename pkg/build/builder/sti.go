@@ -209,11 +209,9 @@ func (s *S2IBuilder) Build() error {
 	if s.build.Spec.Strategy.SourceStrategy.ForcePull {
 		glog.V(4).Infof("With force pull true, setting policies to %s", s2iapi.PullAlways)
 		config.BuilderPullPolicy = s2iapi.PullAlways
-		config.RuntimeImagePullPolicy = s2iapi.PullAlways
 	} else {
 		glog.V(4).Infof("With force pull false, setting policies to %s", s2iapi.PullIfNotPresent)
 		config.BuilderPullPolicy = s2iapi.PullIfNotPresent
-		config.RuntimeImagePullPolicy = s2iapi.PullIfNotPresent
 	}
 	config.PreviousImagePullPolicy = s2iapi.PullAlways
 
@@ -231,13 +229,6 @@ func (s *S2IBuilder) Build() error {
 		config.DropCapabilities = strings.Split(dropCaps, ",")
 	}
 
-	if s.build.Spec.Strategy.SourceStrategy.RuntimeImage != nil {
-		runtimeImageName := s.build.Spec.Strategy.SourceStrategy.RuntimeImage.Name
-		config.RuntimeImage = runtimeImageName
-		t, _ := dockercfg.NewHelper().GetDockerAuth(runtimeImageName, dockercfg.PullAuthType)
-		config.RuntimeAuthentication = s2iapi.AuthConfig{Username: t.Username, Password: t.Password, Email: t.Email, ServerAddress: t.ServerAddress}
-		config.RuntimeArtifacts = copyToVolumeList(s.build.Spec.Strategy.SourceStrategy.RuntimeArtifacts)
-	}
 	// If DockerCfgPath is provided in buildapi.Config, then attempt to read the
 	// dockercfg file and get the authentication for pulling the builder image.
 	t, _ := dockercfg.NewHelper().GetDockerAuth(config.BuilderImage, dockercfg.PullAuthType)

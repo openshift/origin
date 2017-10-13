@@ -2891,32 +2891,6 @@ func TestValidateBuildImageRefs(t *testing.T) {
 			expectedError: "not a valid Docker pull specification: invalid reference format",
 		},
 		{
-			name: "valid s2i build w/ runtimeImage",
-			build: buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
-				Spec: buildapi.BuildSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Source: buildapi.BuildSource{
-							Binary: &buildapi.BinaryBuildSource{},
-						},
-						Strategy: buildapi.BuildStrategy{
-							SourceStrategy: &buildapi.SourceBuildStrategy{
-								From: kapi.ObjectReference{
-									Kind: "DockerImage",
-									Name: "myimage:tag",
-								},
-								RuntimeImage: &kapi.ObjectReference{
-									Kind: "DockerImage",
-									Name: "runtimestream:tag",
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedError: "",
-		},
-		{
 			name: "docker build with ImageStreamTag in from",
 			build: buildapi.Build{
 				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
@@ -3014,32 +2988,6 @@ func TestValidateBuildImageRefs(t *testing.T) {
 								From: kapi.ObjectReference{
 									Kind: "DockerImage",
 									Name: "myimagestream:tag",
-								},
-							},
-						},
-					},
-				},
-			},
-			expectedError: "Required value",
-		},
-		{
-			name: "s2i build with ImageStreamTag runtimeImage",
-			build: buildapi.Build{
-				ObjectMeta: metav1.ObjectMeta{Name: "build", Namespace: "default"},
-				Spec: buildapi.BuildSpec{
-					CommonSpec: buildapi.CommonSpec{
-						Source: buildapi.BuildSource{
-							Binary: &buildapi.BinaryBuildSource{},
-						},
-						Strategy: buildapi.BuildStrategy{
-							SourceStrategy: &buildapi.SourceBuildStrategy{
-								From: kapi.ObjectReference{
-									Kind: "DockerImage",
-									Name: "myimage:tag",
-								},
-								RuntimeImage: &kapi.ObjectReference{
-									Kind: "ImageStreamTag",
-									Name: "",
 								},
 							},
 						},
