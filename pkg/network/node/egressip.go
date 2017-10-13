@@ -71,12 +71,40 @@ func newEgressIPWatcher(localIP string, oc *ovsController) *egressIPWatcher {
 }
 
 func (eip *egressIPWatcher) Start(networkClient networkclient.Interface, iptables *NodeIPTables) error {
+	if err := eip.findEgressLink(); err != nil {
+		return fmt.Errorf("could not find egress network interface: %v", err)
+	}
+
 	eip.iptables = iptables
 	eip.networkClient = networkClient
 
 	go utilwait.Forever(eip.watchHostSubnets, 0)
 	go utilwait.Forever(eip.watchNetNamespaces, 0)
 	return nil
+}
+
+func (eip *egressIPWatcher) findEgressLink() error {
+	links, err := netlink.LinkList()
+	if err != nil {
+		return err
+	}
+	for _, link := range links {
+		addrs, err := netlink.AddrList(link, syscall.AF_INET)
+		if err != nil {
+			glog.Warningf("Could not get addresses of interface %q while trying to find egress interface: %v", link.Attrs().Name, err)
+			continue
+		}
+
+		for _, addr := range addrs {
+			if addr.IP.String() == eip.localIP {
+				eip.localEgressLink = link
+				eip.localEgressIPMaskLen, _ = addr.Mask.Size()
+				return nil
+			}
+		}
+	}
+
+	return fmt.Errorf("could not find network interface with the address %q", eip.localIP)
 }
 
 func ipToHex(ip string) string {
@@ -254,33 +282,6 @@ func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
 		return nil
 	}
 
-	if eip.localEgressLink == nil {
-		links, err := netlink.LinkList()
-		if err != nil {
-			return fmt.Errorf("could not get list of network interfaces while adding egress IP: %v", err)
-		}
-	linkLoop:
-		for _, link := range links {
-			addrs, err := netlink.AddrList(link, syscall.AF_INET)
-			if err != nil {
-				glog.Warningf("Could not get addresses of interface %q while trying to find egress interface: %v", link.Attrs().Name, err)
-				continue
-			}
-
-			for _, addr := range addrs {
-				if addr.IP.String() == eip.localIP {
-					eip.localEgressLink = link
-					eip.localEgressIPMaskLen, _ = addr.Mask.Size()
-					break linkLoop
-				}
-			}
-		}
-
-		if eip.localEgressLink == nil {
-			return fmt.Errorf("could not find network interface with the address %q while adding egress IP", eip.localIP)
-		}
-	}
-
 	egressIPNet := fmt.Sprintf("%s/%d", egressIP, eip.localEgressIPMaskLen)
 	addr, err := netlink.ParseAddr(egressIPNet)
 	if err != nil {
@@ -305,10 +306,6 @@ func (eip *egressIPWatcher) releaseEgressIP(egressIP, egressHex string) error {
 
 	if eip.testModeChan != nil {
 		eip.testModeChan <- fmt.Sprintf("release %s", egressIP)
-		return nil
-	}
-
-	if eip.localEgressLink == nil {
 		return nil
 	}
 
