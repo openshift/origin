@@ -23,6 +23,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -233,8 +234,14 @@ func (a *GenericAdmissionWebhook) callHook(ctx context.Context, h *v1alpha1.Exte
 	if err != nil {
 		return &ErrCallingWebhook{WebhookName: h.Name, Reason: err}
 	}
+
+	tokens := strings.SplitN(h.Name, "/", 2)
+	urlPath := ""
+	if len(tokens) == 2 {
+		urlPath = tokens[1]
+	}
 	response := &admissionv1alpha1.AdmissionReview{}
-	if err := client.Post().Context(ctx).Body(&request).Do().Into(response); err != nil {
+	if err := client.Post().Context(ctx).AbsPath(urlPath).Body(&request).Do().Into(response); err != nil {
 		return &ErrCallingWebhook{WebhookName: h.Name, Reason: err}
 	}
 

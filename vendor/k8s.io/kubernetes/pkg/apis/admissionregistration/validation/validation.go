@@ -189,9 +189,6 @@ func validateExternalAdmissionHook(hook *admissionregistration.ExternalAdmission
 	if len(hook.Name) == 0 {
 		allErrors = append(allErrors, field.Required(fldPath.Child("name"), ""))
 	}
-	if errs := validationutil.IsDNS1123Subdomain(hook.Name); len(errs) > 0 {
-		allErrors = append(allErrors, field.Invalid(fldPath.Child("name"), hook.Name, strings.Join(errs, ",")))
-	}
 	if len(strings.Split(hook.Name, ".")) < 3 {
 		allErrors = append(allErrors, field.Invalid(fldPath.Child("name"), hook.Name, "should be a domain with at least two dots"))
 	}

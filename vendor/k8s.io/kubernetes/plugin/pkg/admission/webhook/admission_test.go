@@ -174,7 +174,7 @@ func TestAdmit(t *testing.T) {
 		"match & disallow": {
 			hookSource: fakeHookSource{
 				hooks: []registrationv1alpha1.ExternalAdmissionHook{{
-					Name:         "disallow",
+					Name:         "disallow/disallow",
 					ClientConfig: ccfg,
 					Rules:        matchEverythingRules,
 				}},
@@ -185,7 +185,7 @@ func TestAdmit(t *testing.T) {
 		"match & disallow ii": {
 			hookSource: fakeHookSource{
 				hooks: []registrationv1alpha1.ExternalAdmissionHook{{
-					Name:         "disallowReason",
+					Name:         "disallowReason/disallowReason",
 					ClientConfig: ccfg,
 					Rules:        matchEverythingRules,
 				}},
