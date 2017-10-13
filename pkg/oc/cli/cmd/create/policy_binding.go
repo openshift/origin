@@ -54,6 +54,7 @@ func NewCmdCreatePolicyBinding(name, fullName string, f *clientcmd.Factory, out 
 			cmdutil.CheckErr(o.Validate())
 			cmdutil.CheckErr(o.Run())
 		},
+		Deprecated: fmt.Sprintf("will not work against 3.7 servers. Use (Cluster)RoleBindings instead."),
 	}
 	cmdutil.AddOutputFlagsForMutation(cmd)
 	return cmd
