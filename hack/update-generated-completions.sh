@@ -16,7 +16,6 @@ function os::build::gen-completions() {
   # generate the new files
   ${OS_OUTPUT_BINPATH}/${platform}/oc completion ${shell} > $tmpdir/oc
   ${OS_OUTPUT_BINPATH}/${platform}/openshift completion ${shell} > $tmpdir/openshift
-  ${OS_OUTPUT_BINPATH}/${platform}/oadm completion ${shell} > $tmpdir/oadm
   # create the list of generated files
   ls "${tmpdir}" | LC_ALL=C sort > "${tmpdir}/.files_generated"
 

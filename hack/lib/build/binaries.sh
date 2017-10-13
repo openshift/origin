@@ -396,12 +396,6 @@ function os::build::place_bins() {
       if [[ $platform == "windows/amd64" ]]; then
         suffix=".exe"
       fi
-      for linkname in "${OPENSHIFT_BINARY_COPY[@]}"; do
-        local src="${release_binpath}/openshift${suffix}"
-        if [[ -f "${src}" ]]; then
-          ln "${release_binpath}/openshift${suffix}" "${release_binpath}/${linkname}${suffix}"
-        fi
-      done
       for linkname in "${OC_BINARY_COPY[@]}"; do
         local src="${release_binpath}/oc${suffix}"
         if [[ -f "${src}" ]]; then

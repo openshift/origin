@@ -36,9 +36,9 @@ function ovn-kubernetes-master-setup() {
   # Create the service account for OVN stuff
   if ! /usr/local/bin/oc --config="${kube_config}" get serviceaccount ovn >/dev/null 2>&1; then
     /usr/local/bin/oc --config="${kube_config}" create serviceaccount ovn
-    /usr/local/bin/oadm --config="${kube_config}" policy add-cluster-role-to-user cluster-admin -z ovn
+    /usr/local/bin/oc adm --config="${kube_config}" policy add-cluster-role-to-user cluster-admin -z ovn
     # rhbz#1383707: need to add ovn SA to anyuid SCC to allow pod annotation updates
-    /usr/local/bin/oadm --config="${kube_config}" policy add-scc-to-user anyuid -z ovn
+    /usr/local/bin/oc adm --config="${kube_config}" policy add-scc-to-user anyuid -z ovn
   fi
 
   /usr/local/bin/oc --config="${kube_config}" sa get-token ovn > ${config_dir}/ovn.token
