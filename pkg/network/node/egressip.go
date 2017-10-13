@@ -52,6 +52,7 @@ type egressIPWatcher struct {
 	namespacesByEgressIP map[string]*namespaceEgress
 
 	localEgressLink      netlink.Link
+	localEgressNet       *net.IPNet
 	localEgressIPMaskLen int
 
 	testModeChan chan string
@@ -97,6 +98,10 @@ func (eip *egressIPWatcher) findEgressLink() error {
 
 		for _, addr := range addrs {
 			if addr.IP.String() == eip.localIP {
+				_, eip.localEgressNet, err = net.ParseCIDR(addr.IPNet.String())
+				if err != nil {
+					return fmt.Errorf("could not parse CIDR network from address %q: %v", addr.IP.String(), err)
+				}
 				eip.localEgressLink = link
 				eip.localEgressIPMaskLen, _ = addr.Mask.Size()
 				return nil
@@ -286,6 +291,9 @@ func (eip *egressIPWatcher) claimEgressIP(egressIP, egressHex string) error {
 	addr, err := netlink.ParseAddr(egressIPNet)
 	if err != nil {
 		return fmt.Errorf("could not parse egress IP %q: %v", egressIPNet, err)
+	}
+	if !eip.localEgressNet.Contains(addr.IP) {
+		return fmt.Errorf("egress IP %q is not in local network %s of interface %s", egressIP, eip.localEgressNet.String(), eip.localEgressLink.Attrs().Name)
 	}
 	err = netlink.AddrAdd(eip.localEgressLink, addr)
 	if err != nil {
