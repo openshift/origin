@@ -7,11 +7,6 @@
 // test/extended/testdata/aggregator/sample-apiserver-rc.yaml
 // test/extended/testdata/aggregator/sample-apiserver-sa.yaml
 // test/extended/testdata/aggregator/sample-apiserver-service.yaml
-// test/extended/testdata/build-extended/bc-scripts-by-url.yaml
-// test/extended/testdata/build-extended/bc-scripts-in-repo.yaml
-// test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml
-// test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml
-// test/extended/testdata/build-extended/jvm-runner.yaml
 // test/extended/testdata/build-pruning/default-group-build-config.yaml
 // test/extended/testdata/build-pruning/default-legacy-build-config.yaml
 // test/extended/testdata/build-pruning/errored-build-config.yaml
@@ -145,11 +140,11 @@
 // test/extended/testdata/statusfail-genericreason.yaml
 // test/extended/testdata/statusfail-postcommithook.yaml
 // test/extended/testdata/statusfail-pushtoregistry.yaml
-// test/extended/testdata/statusfail-runtimeartifacts.yaml
 // test/extended/testdata/sti-environment-build-app/.sti/environment
 // test/extended/testdata/sti-environment-build-app/Gemfile
 // test/extended/testdata/sti-environment-build-app/config.ru
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
+// test/extended/testdata/templates/templateservicebroker_bind.yaml
 // test/extended/testdata/test-auth-build.yaml
 // test/extended/testdata/test-bc-with-pr-ref.yaml
 // test/extended/testdata/test-build-app/Dockerfile
@@ -503,214 +498,6 @@ func testExtendedTestdataAggregatorSampleApiserverServiceYaml() (*asset, error) 
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/aggregator/sample-apiserver-service.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildExtendedBcScriptsByUrlYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: java-extended-build-from-url
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/test-maven-app.git"
-  strategy:
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        name: "wildfly:10.0"
-        namespace: openshift
-      runtimeImage:
-        kind: ImageStreamTag
-        name: "jvm-runner:0.1"
-      runtimeArtifacts:
-        - sourcePath: /opt/s2i/destination/src/target/hello.jar
-      env:
-        - name: USING_ENV_FROM_BUILD_CONFIG
-          value: "yes"
-      scripts: "https://raw.githubusercontent.com/openshift/test-maven-app/s2i-assemble-and-assemble-runtime/.s2i/bin"
-`)
-
-func testExtendedTestdataBuildExtendedBcScriptsByUrlYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildExtendedBcScriptsByUrlYaml, nil
-}
-
-func testExtendedTestdataBuildExtendedBcScriptsByUrlYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildExtendedBcScriptsByUrlYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/build-extended/bc-scripts-by-url.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildExtendedBcScriptsInRepoYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: java-extended-build-from-repo
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/test-maven-app.git"
-      ref: s2i-assemble-and-assemble-runtime
-  strategy:
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        name: "wildfly:10.0"
-        namespace: openshift
-      runtimeImage:
-        kind: ImageStreamTag
-        name: "jvm-runner:0.1"
-      runtimeArtifacts:
-        - sourcePath: /opt/s2i/destination/src/target/hello.jar
-      env:
-        - name: USING_ENV_FROM_BUILD_CONFIG
-          value: "yes"
-`)
-
-func testExtendedTestdataBuildExtendedBcScriptsInRepoYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildExtendedBcScriptsInRepoYaml, nil
-}
-
-func testExtendedTestdataBuildExtendedBcScriptsInRepoYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildExtendedBcScriptsInRepoYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/build-extended/bc-scripts-in-repo.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: java-extended-build-from-image
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/test-maven-app.git"
-      ref: s2i-assemble-only
-  strategy:
-    sourceStrategy:
-      from:
-        kind: ImageStreamTag
-        name: "wildfly:10.0"
-        namespace: openshift
-      runtimeImage:
-        kind: ImageStreamTag
-        name: "jvm-runner-with-scripts:0.1"
-      env:
-        - name: USING_ENV_FROM_BUILD_CONFIG
-          value: "yes"
-`)
-
-func testExtendedTestdataBuildExtendedBcScriptsInTheImageYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml, nil
-}
-
-func testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildExtendedBcScriptsInTheImageYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml = []byte(`kind: List
-apiVersion: v1
-items:
-
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    name: jvm-runner-with-scripts
-
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: jvm-runner-with-scripts
-  spec:
-    source:
-      dockerfile: |
-        FROM jboss/base-jdk:8
-        LABEL io.openshift.s2i.scripts-url "image:///usr/libexec/s2i"
-        LABEL io.openshift.s2i.assemble-input-files "/opt/s2i/destination/src/target/hello.jar"
-        USER root
-        RUN mkdir -p /usr/libexec/s2i && \
-            curl -s https://raw.githubusercontent.com/openshift/test-maven-app/s2i-assemble-and-assemble-runtime/.s2i/bin/assemble-runtime | tee /usr/libexec/s2i/assemble-runtime && \
-            chmod +x /usr/libexec/s2i/assemble-runtime && \
-            curl -s https://raw.githubusercontent.com/openshift/test-maven-app/s2i-assemble-and-assemble-runtime/.s2i/bin/run | tee /usr/libexec/s2i/run && \
-            chmod +x /usr/libexec/s2i/run
-        USER 1000
-    strategy:
-      type: Docker
-    output:
-      to:
-        kind: ImageStreamTag
-        name: jvm-runner-with-scripts:0.1
-`)
-
-func testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml, nil
-}
-
-func testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
-var _testExtendedTestdataBuildExtendedJvmRunnerYaml = []byte(`kind: List
-apiVersion: v1
-items:
-
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    name: jvm-runner
-
-- kind: BuildConfig
-  apiVersion: v1
-  metadata:
-    name: jvm-runner
-  spec:
-    source:
-      dockerfile: |
-        FROM jboss/base-jdk:8
-        USER 1000
-    strategy:
-      type: Docker
-    output:
-      to:
-        kind: ImageStreamTag
-        name: jvm-runner:0.1
-`)
-
-func testExtendedTestdataBuildExtendedJvmRunnerYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildExtendedJvmRunnerYaml, nil
-}
-
-func testExtendedTestdataBuildExtendedJvmRunnerYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildExtendedJvmRunnerYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/build-extended/jvm-runner.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -7638,43 +7425,6 @@ func testExtendedTestdataStatusfailPushtoregistryYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataStatusfailRuntimeartifactsYaml = []byte(`kind: BuildConfig
-apiVersion: v1
-metadata:
-  name: statusfail-runtimeartifacts
-spec:
-  source:
-    git:
-      uri: "https://github.com/openshift/ruby-hello-world"
-  strategy:
-    sourceStrategy:
-      from:
-        kind: DockerImage
-        name: centos/ruby-23-centos7
-      runtimeArtifacts:
-      - destinationDir: app
-        sourcePath: /tmp/failure
-      runtimeImage:
-        kind: DockerImage
-        name: centos/ruby-23-centos7
-    type: Source
-`)
-
-func testExtendedTestdataStatusfailRuntimeartifactsYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataStatusfailRuntimeartifactsYaml, nil
-}
-
-func testExtendedTestdataStatusfailRuntimeartifactsYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataStatusfailRuntimeartifactsYamlBytes()
-	if err != nil {
-		return nil, err
-	}
-
-	info := bindataFileInfo{name: "test/extended/testdata/statusfail-runtimeartifacts.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
-	a := &asset{bytes: bytes, info: info}
-	return a, nil
-}
-
 var _testExtendedTestdataStiEnvironmentBuildAppStiEnvironment = []byte(`TEST_ENV=success
 `)
 
@@ -7802,6 +7552,105 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+    namespace: ${NAMESPACE}
+
+- apiVersion: template.openshift.io/v1
+  kind: TemplateInstance
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+    namespace: ${NAMESPACE}
+  spec:
+    template:
+      apiVersion: v1
+      kind: Template
+      metadata:
+        uid: d261a5c9-db37-40b5-ac0f-5709e0e3aac4
+      objects:
+      - apiVersion: v1
+        data:
+          username: configmap-username
+        kind: ConfigMap
+        metadata:
+          annotations:
+            template.openshift.io/expose-configmap-username: "{.data['username']}"
+          name: configmap
+      - apiVersion: v1
+        kind: Secret
+        metadata:
+          annotations:
+            template.openshift.io/base64-expose-secret-password: "{.data['password']}"
+            template.openshift.io/expose-secret-username: "{.data['username']}"
+          name: secret
+        stringData:
+          password: secret-password
+          username: secret-username
+      - apiVersion: v1
+        kind: Service
+        metadata:
+          annotations:
+            template.openshift.io/expose-service-uri: http://{.spec.clusterIP}:{.spec.ports[?(.name=="port")].port}
+          name: service
+        spec:
+          ports:
+          - name: port
+            port: 1234
+      - apiVersion: v1
+        kind: Route
+        metadata:
+          annotations:
+            template.openshift.io/expose-route-uri: http://{.spec.host}{.spec.path}
+          name: route
+        spec:
+          host: host
+          path: /path
+          to:
+            kind: Service
+            name: service
+
+- apiVersion: template.openshift.io/v1
+  kind: BrokerTemplateInstance
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+  spec:
+    templateInstance:
+      apiVersion: template.openshift.io/v1
+      kind: TemplateInstance
+      name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+      namespace: ${NAMESPACE}
+
+    secret:
+      apiVersion: v1
+      kind: Secret
+      name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+      namespace: ${NAMESPACE}
+
+parameters:
+- name: NAMESPACE
+  required: true
+`)
+
+func testExtendedTestdataTemplatesTemplateservicebroker_bindYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, nil
+}
+
+func testExtendedTestdataTemplatesTemplateservicebroker_bindYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesTemplateservicebroker_bindYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/templateservicebroker_bind.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28454,11 +28303,6 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/aggregator/sample-apiserver-rc.yaml": testExtendedTestdataAggregatorSampleApiserverRcYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-sa.yaml": testExtendedTestdataAggregatorSampleApiserverSaYaml,
 	"test/extended/testdata/aggregator/sample-apiserver-service.yaml": testExtendedTestdataAggregatorSampleApiserverServiceYaml,
-	"test/extended/testdata/build-extended/bc-scripts-by-url.yaml": testExtendedTestdataBuildExtendedBcScriptsByUrlYaml,
-	"test/extended/testdata/build-extended/bc-scripts-in-repo.yaml": testExtendedTestdataBuildExtendedBcScriptsInRepoYaml,
-	"test/extended/testdata/build-extended/bc-scripts-in-the-image.yaml": testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml,
-	"test/extended/testdata/build-extended/jvm-runner-with-scripts.yaml": testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml,
-	"test/extended/testdata/build-extended/jvm-runner.yaml": testExtendedTestdataBuildExtendedJvmRunnerYaml,
 	"test/extended/testdata/build-pruning/default-group-build-config.yaml": testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml,
 	"test/extended/testdata/build-pruning/default-legacy-build-config.yaml": testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml,
 	"test/extended/testdata/build-pruning/errored-build-config.yaml": testExtendedTestdataBuildPruningErroredBuildConfigYaml,
@@ -28592,11 +28436,11 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/statusfail-genericreason.yaml": testExtendedTestdataStatusfailGenericreasonYaml,
 	"test/extended/testdata/statusfail-postcommithook.yaml": testExtendedTestdataStatusfailPostcommithookYaml,
 	"test/extended/testdata/statusfail-pushtoregistry.yaml": testExtendedTestdataStatusfailPushtoregistryYaml,
-	"test/extended/testdata/statusfail-runtimeartifacts.yaml": testExtendedTestdataStatusfailRuntimeartifactsYaml,
 	"test/extended/testdata/sti-environment-build-app/.sti/environment": testExtendedTestdataStiEnvironmentBuildAppStiEnvironment,
 	"test/extended/testdata/sti-environment-build-app/Gemfile": testExtendedTestdataStiEnvironmentBuildAppGemfile,
 	"test/extended/testdata/sti-environment-build-app/config.ru": testExtendedTestdataStiEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
 	"test/extended/testdata/test-auth-build.yaml": testExtendedTestdataTestAuthBuildYaml,
 	"test/extended/testdata/test-bc-with-pr-ref.yaml": testExtendedTestdataTestBcWithPrRefYaml,
 	"test/extended/testdata/test-build-app/Dockerfile": testExtendedTestdataTestBuildAppDockerfile,
@@ -28825,13 +28669,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 					"sample-apiserver-sa.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverSaYaml, map[string]*bintree{}},
 					"sample-apiserver-service.yaml": &bintree{testExtendedTestdataAggregatorSampleApiserverServiceYaml, map[string]*bintree{}},
 				}},
-				"build-extended": &bintree{nil, map[string]*bintree{
-					"bc-scripts-by-url.yaml": &bintree{testExtendedTestdataBuildExtendedBcScriptsByUrlYaml, map[string]*bintree{}},
-					"bc-scripts-in-repo.yaml": &bintree{testExtendedTestdataBuildExtendedBcScriptsInRepoYaml, map[string]*bintree{}},
-					"bc-scripts-in-the-image.yaml": &bintree{testExtendedTestdataBuildExtendedBcScriptsInTheImageYaml, map[string]*bintree{}},
-					"jvm-runner-with-scripts.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerWithScriptsYaml, map[string]*bintree{}},
-					"jvm-runner.yaml": &bintree{testExtendedTestdataBuildExtendedJvmRunnerYaml, map[string]*bintree{}},
-				}},
 				"build-pruning": &bintree{nil, map[string]*bintree{
 					"default-group-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultGroupBuildConfigYaml, map[string]*bintree{}},
 					"default-legacy-build-config.yaml": &bintree{testExtendedTestdataBuildPruningDefaultLegacyBuildConfigYaml, map[string]*bintree{}},
@@ -29049,7 +28886,6 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				"statusfail-genericreason.yaml": &bintree{testExtendedTestdataStatusfailGenericreasonYaml, map[string]*bintree{}},
 				"statusfail-postcommithook.yaml": &bintree{testExtendedTestdataStatusfailPostcommithookYaml, map[string]*bintree{}},
 				"statusfail-pushtoregistry.yaml": &bintree{testExtendedTestdataStatusfailPushtoregistryYaml, map[string]*bintree{}},
-				"statusfail-runtimeartifacts.yaml": &bintree{testExtendedTestdataStatusfailRuntimeartifactsYaml, map[string]*bintree{}},
 				"sti-environment-build-app": &bintree{nil, map[string]*bintree{
 					".sti": &bintree{nil, map[string]*bintree{
 						"environment": &bintree{testExtendedTestdataStiEnvironmentBuildAppStiEnvironment, map[string]*bintree{}},
@@ -29059,6 +28895,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"templates": &bintree{nil, map[string]*bintree{
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
+					"templateservicebroker_bind.yaml": &bintree{testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
 				"test-auth-build.yaml": &bintree{testExtendedTestdataTestAuthBuildYaml, map[string]*bintree{}},
 				"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataTestBcWithPrRefYaml, map[string]*bintree{}},

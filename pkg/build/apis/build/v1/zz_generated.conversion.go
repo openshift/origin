@@ -2086,16 +2086,6 @@ func autoConvert_v1_SourceBuildStrategy_To_build_SourceBuildStrategy(in *SourceB
 	out.Scripts = in.Scripts
 	out.Incremental = (*bool)(unsafe.Pointer(in.Incremental))
 	out.ForcePull = in.ForcePull
-	if in.RuntimeImage != nil {
-		in, out := &in.RuntimeImage, &out.RuntimeImage
-		*out = new(api.ObjectReference)
-		if err := api_v1.Convert_v1_ObjectReference_To_api_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RuntimeImage = nil
-	}
-	out.RuntimeArtifacts = *(*[]build.ImageSourcePath)(unsafe.Pointer(&in.RuntimeArtifacts))
 	return nil
 }
 
@@ -2126,16 +2116,6 @@ func autoConvert_build_SourceBuildStrategy_To_v1_SourceBuildStrategy(in *build.S
 	out.Scripts = in.Scripts
 	out.Incremental = (*bool)(unsafe.Pointer(in.Incremental))
 	out.ForcePull = in.ForcePull
-	if in.RuntimeImage != nil {
-		in, out := &in.RuntimeImage, &out.RuntimeImage
-		*out = new(api_v1.ObjectReference)
-		if err := api_v1.Convert_api_ObjectReference_To_v1_ObjectReference(*in, *out, s); err != nil {
-			return err
-		}
-	} else {
-		out.RuntimeImage = nil
-	}
-	out.RuntimeArtifacts = *(*[]ImageSourcePath)(unsafe.Pointer(&in.RuntimeArtifacts))
 	return nil
 }
 

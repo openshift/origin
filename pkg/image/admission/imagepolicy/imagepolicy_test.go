@@ -444,6 +444,7 @@ func TestAdmissionResolveImages(t *testing.T) {
 	defaultPolicyConfig := obj.(*api.ImagePolicyConfig)
 
 	testCases := []struct {
+		name   string
 		client *imageclient.Clientset
 		policy api.ImageResolutionType
 		config *api.ImagePolicyConfig
@@ -451,8 +452,9 @@ func TestAdmissionResolveImages(t *testing.T) {
 		admit  bool
 		expect runtime.Object
 	}{
-		// fails resolution
+
 		{
+			name:   "fails resolution",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(),
 			attrs: admission.NewAttributesRecord(
@@ -470,8 +472,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				"", admission.Create, nil,
 			),
 		},
-		// resolves images in the integrated registry without altering their ref (avoids looking up the tag)
 		{
+			name:   "resolves images in the integrated registry without altering their ref (avoids looking up the tag)",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
@@ -496,8 +498,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves images in the integrated registry without altering their ref (avoids looking up the tag)
 		{
+			name:   "resolves images in the integrated registry without altering their ref (avoids looking up the tag)",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
@@ -522,8 +524,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)
 		{
+			name:   "resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
@@ -556,8 +558,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves builds with image stream tags, uses the image DockerImageReference with SHA set.
 		{
+			name:   "resolves builds with image stream tags, uses the image DockerImageReference with SHA set",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
@@ -593,9 +595,57 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-
-		// resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)
 		{
+			name:   "does not resolve a build update because the reference didn't change",
+			policy: api.RequiredRewrite,
+			client: imageclient.NewSimpleClientset(
+				&imageapi.ImageStreamTag{
+					ObjectMeta: metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					Image:      *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+								},
+							},
+						},
+					},
+				},
+				&buildapi.Build{
+					Spec: buildapi.BuildSpec{
+						CommonSpec: buildapi.CommonSpec{
+							Strategy: buildapi.BuildStrategy{
+								CustomStrategy: &buildapi.CustomBuildStrategy{
+									From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+								},
+							},
+						},
+					},
+				},
+				schema.GroupVersionKind{Version: "v1", Kind: "Build"},
+				"default", "build1", schema.GroupVersionResource{Version: "v1", Resource: "builds"},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &buildapi.Build{
+				Spec: buildapi.BuildSpec{
+					CommonSpec: buildapi.CommonSpec{
+						Strategy: buildapi.BuildStrategy{
+							CustomStrategy: &buildapi.CustomBuildStrategy{
+								From: kapi.ObjectReference{Kind: "ImageStreamTag", Name: "test:other"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:   "resolves images in the integrated registry on builds without altering their ref (avoids looking up the tag)",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				image1,
@@ -628,8 +678,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// does not rewrite the config because build has DoNotAttempt by default, which overrides global policy
 		{
+			name: "does not rewrite the config because build has DoNotAttempt by default, which overrides global policy",
 			config: &api.ImagePolicyConfig{
 				ResolveImages: api.RequiredRewrite,
 				ResolutionRules: []api.ImageResolutionPolicyRule{
@@ -670,8 +720,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// does not rewrite the config because the default policy uses attempt by default
 		{
+			name: "does not rewrite the config because the default policy uses attempt by default",
 			config: &api.ImagePolicyConfig{
 				ResolveImages: api.RequiredRewrite,
 				ResolutionRules: []api.ImageResolutionPolicyRule{
@@ -712,8 +762,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// rewrites the config because build has AttemptRewrite which overrides the global policy
 		{
+			name: "rewrites the config because build has AttemptRewrite which overrides the global policy",
 			config: &api.ImagePolicyConfig{
 				ResolveImages: api.DoNotAttempt,
 				ResolutionRules: []api.ImageResolutionPolicyRule{
@@ -754,9 +804,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-
-		// resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set.
 		{
+			name:   "resolves builds.build.openshift.io with image stream tags, uses the image DockerImageReference with SHA set",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
@@ -792,8 +841,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves builds with image stream images
 		{
+			name:   "resolves builds with image stream images",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamImage{
@@ -829,8 +878,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves builds that have a local name to their image stream tags, uses the image DockerImageReference with SHA set.
 		{
+			name:   "resolves builds that have a local name to their image stream tags, uses the image DockerImageReference with SHA set",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
@@ -867,8 +916,38 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves replica sets that have a local name to their image stream tags, uses the image DockerImageReference with SHA set.
 		{
+			name:   "resolves pods",
+			policy: api.RequiredRewrite,
+			client: imageclient.NewSimpleClientset(
+				&imageapi.ImageStreamTag{
+					ObjectMeta:   metav1.ObjectMeta{Name: "test:other", Namespace: "default"},
+					LookupPolicy: imageapi.ImageLookupPolicy{Local: true},
+					Image:        *image1,
+				},
+			),
+			attrs: admission.NewAttributesRecord(
+				&kapi.Pod{
+					Spec: kapi.PodSpec{
+						Containers: []kapi.Container{
+							{Image: "test:other"},
+						},
+					},
+				}, nil, schema.GroupVersionKind{Version: "v1", Kind: "Pod", Group: ""},
+				"default", "pod1", schema.GroupVersionResource{Version: "v1", Resource: "pods", Group: ""},
+				"", admission.Create, nil,
+			),
+			admit: true,
+			expect: &kapi.Pod{
+				Spec: kapi.PodSpec{
+					Containers: []kapi.Container{
+						{Image: "integrated.registry/image1/image1@sha256:0000000000000000000000000000000000000000000000000000000000000001"},
+					},
+				},
+			},
+		},
+		{
+			name:   "resolves replica sets that have a local name to their image stream tags, uses the image DockerImageReference with SHA set",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
@@ -905,8 +984,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// does not resolve replica sets by default
 		{
+			name:   "does not resolve replica sets by default",
 			config: defaultPolicyConfig,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
@@ -942,8 +1021,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// resolves replica sets that specifically request lookup
 		{
+			name:   "resolves replica sets that specifically request lookup",
 			policy: api.RequiredRewrite,
 			client: imageclient.NewSimpleClientset(
 				&imageapi.ImageStreamTag{
@@ -982,8 +1061,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// if the tag is not found, but the stream is and resolves, resolve to the tag
 		{
+			name:   "if the tag is not found, but the stream is and resolves, resolve to the tag",
 			policy: api.AttemptRewrite,
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
@@ -1031,8 +1110,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// if the tag is not found, but the stream is and doesn't resolve, use the original value
 		{
+			name:   "if the tag is not found, but the stream is and doesn't resolve, use the original value",
 			policy: api.AttemptRewrite,
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
@@ -1080,8 +1159,8 @@ func TestAdmissionResolveImages(t *testing.T) {
 				},
 			},
 		},
-		// if the tag is not found, the stream resolves, but the registry is not installed, don't match
 		{
+			name:   "if the tag is not found, the stream resolves, but the registry is not installed, don't match",
 			policy: api.AttemptRewrite,
 			client: (func() *imageclient.Clientset {
 				fake := &imageclient.Clientset{}
@@ -1131,49 +1210,51 @@ func TestAdmissionResolveImages(t *testing.T) {
 		},
 	}
 	for i, test := range testCases {
-		onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
-		config := test.config
-		if config == nil {
-			// old style config
-			config = &api.ImagePolicyConfig{
-				ResolveImages: test.policy,
-				ResolutionRules: []api.ImageResolutionPolicyRule{
-					{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}, Policy: test.policy},
-					{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}, Policy: test.policy},
-				},
-				ExecutionRules: []api.ImageExecutionPolicyRule{
-					{ImageCondition: api.ImageCondition{OnResources: onResources}},
-				},
+		t.Run(test.name, func(t *testing.T) {
+			onResources := []schema.GroupResource{{Resource: "builds"}, {Resource: "pods"}}
+			config := test.config
+			if config == nil {
+				// old style config
+				config = &api.ImagePolicyConfig{
+					ResolveImages: test.policy,
+					ResolutionRules: []api.ImageResolutionPolicyRule{
+						{LocalNames: true, TargetResource: metav1.GroupResource{Resource: "*"}, Policy: test.policy},
+						{LocalNames: true, TargetResource: metav1.GroupResource{Group: "extensions", Resource: "*"}, Policy: test.policy},
+					},
+					ExecutionRules: []api.ImageExecutionPolicyRule{
+						{ImageCondition: api.ImageCondition{OnResources: onResources}},
+					},
+				}
 			}
-		}
-		p, err := newImagePolicyPlugin(config)
-		if err != nil {
-			t.Fatal(err)
-		}
+			p, err := newImagePolicyPlugin(config)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-		setDefaultCache(p)
-		p.SetOpenshiftInternalImageClient(test.client)
-		p.SetDefaultRegistryFunc(func() (string, bool) {
-			return "integrated.registry", true
+			setDefaultCache(p)
+			p.SetOpenshiftInternalImageClient(test.client)
+			p.SetDefaultRegistryFunc(func() (string, bool) {
+				return "integrated.registry", true
+			})
+			if err := p.Validate(); err != nil {
+				t.Fatal(err)
+			}
+
+			if err := p.Admit(test.attrs); err != nil {
+				if test.admit {
+					t.Errorf("%d: should admit: %v", i, err)
+				}
+				return
+			}
+			if !test.admit {
+				t.Errorf("%d: should not admit", i)
+				return
+			}
+
+			if !reflect.DeepEqual(test.expect, test.attrs.GetObject()) {
+				t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
+			}
 		})
-		if err := p.Validate(); err != nil {
-			t.Fatal(err)
-		}
-
-		if err := p.Admit(test.attrs); err != nil {
-			if test.admit {
-				t.Errorf("%d: should admit: %v", i, err)
-			}
-			continue
-		}
-		if !test.admit {
-			t.Errorf("%d: should not admit", i)
-			continue
-		}
-
-		if !reflect.DeepEqual(test.expect, test.attrs.GetObject()) {
-			t.Errorf("%d: unequal: %s", i, diff.ObjectReflectDiff(test.expect, test.attrs.GetObject()))
-		}
 	}
 }
 

@@ -4249,7 +4249,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 						},
 						"jenkinsPipelineStrategy": {
 							SchemaProps: spec.SchemaProps{
-								Description: "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy. This strategy is in tech preview.",
+								Description: "JenkinsPipelineStrategy holds the parameters to the Jenkins Pipeline build strategy.",
 								Ref:         ref("github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy"),
 							},
 						},
@@ -5045,7 +5045,7 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 		"github.com/openshift/origin/pkg/build/apis/build/v1.JenkinsPipelineBuildStrategy": {
 			Schema: spec.Schema{
 				SchemaProps: spec.SchemaProps{
-					Description: "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build. This strategy is in tech preview.",
+					Description: "JenkinsPipelineBuildStrategy holds parameters specific to a Jenkins Pipeline build.",
 					Properties: map[string]spec.Schema{
 						"jenkinsfilePath": {
 							SchemaProps: spec.SchemaProps{
@@ -5212,31 +5212,12 @@ func GetOpenAPIDefinitions(ref openapi.ReferenceCallback) map[string]openapi.Ope
 								Format:      "",
 							},
 						},
-						"runtimeImage": {
-							SchemaProps: spec.SchemaProps{
-								Description: "runtimeImage is an optional image that is used to run an application without unneeded dependencies installed. The building of the application is still done in the builder image but, post build, you can copy the needed artifacts in the runtime image for use. Deprecated: This feature will be removed in a future release. Use ImageSource to copy binary artifacts created from one build into a separate runtime image.",
-								Ref:         ref("k8s.io/kubernetes/pkg/api/v1.ObjectReference"),
-							},
-						},
-						"runtimeArtifacts": {
-							SchemaProps: spec.SchemaProps{
-								Description: "runtimeArtifacts specifies a list of source/destination pairs that will be copied from the builder to the runtime image. sourcePath can be a file or directory. destinationDir must be a directory. destinationDir can also be empty or equal to \".\", in this case it just refers to the root of WORKDIR. Deprecated: This feature will be removed in a future release. Use ImageSource to copy binary artifacts created from one build into a separate runtime image.",
-								Type:        []string{"array"},
-								Items: &spec.SchemaOrArray{
-									Schema: &spec.Schema{
-										SchemaProps: spec.SchemaProps{
-											Ref: ref("github.com/openshift/origin/pkg/build/apis/build/v1.ImageSourcePath"),
-										},
-									},
-								},
-							},
-						},
 					},
 					Required: []string{"from"},
 				},
 			},
 			Dependencies: []string{
-				"github.com/openshift/origin/pkg/build/apis/build/v1.ImageSourcePath", "k8s.io/kubernetes/pkg/api/v1.EnvVar", "k8s.io/kubernetes/pkg/api/v1.LocalObjectReference", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
+				"k8s.io/kubernetes/pkg/api/v1.EnvVar", "k8s.io/kubernetes/pkg/api/v1.LocalObjectReference", "k8s.io/kubernetes/pkg/api/v1.ObjectReference"},
 		},
 		"github.com/openshift/origin/pkg/build/apis/build/v1.SourceControlUser": {
 			Schema: spec.Schema{

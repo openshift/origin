@@ -25,6 +25,7 @@ import (
 
 	"github.com/openshift/origin/pkg/dockerregistry/server/client"
 	"github.com/openshift/origin/pkg/dockerregistry/server/configuration"
+	"github.com/openshift/origin/pkg/dockerregistry/testutil"
 )
 
 var scheme = runtime.NewScheme()
@@ -74,6 +75,7 @@ func TestVerifyImageStreamAccess(t *testing.T) {
 	}
 	for _, test := range tests {
 		ctx := context.Background()
+		ctx = testutil.WithTestLogger(ctx, t)
 		server, _ := simulateOpenShiftMaster([]response{test.openshiftResponse})
 
 		cfg := clientcmd.NewConfig()
@@ -409,6 +411,9 @@ func TestAccessController(t *testing.T) {
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", test.bearerToken))
 		}
 
+		ctx := context.Background()
+		ctx = testutil.WithTestLogger(ctx, t)
+
 		server, actions := simulateOpenShiftMaster(test.openshiftResponses)
 		cfg := clientcmd.NewConfig()
 		cfg.SkipEnv = true
@@ -418,7 +423,7 @@ func TestAccessController(t *testing.T) {
 			TLSClientConfig: restclient.TLSClientConfig{Insecure: true},
 		}
 		app := &App{
-			ctx:            context.Background(),
+			ctx:            ctx,
 			registryClient: client.NewRegistryClient(cfg),
 			extraConfig:    &configuration.Configuration{},
 		}
@@ -426,7 +431,6 @@ func TestAccessController(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		ctx := context.Background()
 		ctx = context.WithRequest(ctx, req)
 		authCtx, err := accessController.Authorized(ctx, test.access...)
 		server.Close()

@@ -503,7 +503,6 @@ func validateSourceStrategy(strategy *buildapi.SourceBuildStrategy, fldPath *fie
 	allErrs = append(allErrs, validateImageReference(&strategy.From, fldPath.Child("from"))...)
 	allErrs = append(allErrs, validateSecretRef(strategy.PullSecret, fldPath.Child("pullSecret"))...)
 	allErrs = append(allErrs, ValidateStrategyEnv(strategy.Env, fldPath.Child("env"))...)
-	allErrs = append(allErrs, validateRuntimeImage(strategy, fldPath.Child("runtimeImage"))...)
 	return allErrs
 }
 
@@ -660,24 +659,6 @@ func validatePostCommit(spec buildapi.BuildPostCommitSpec, fldPath *field.Path) 
 		allErrs = append(allErrs, field.Invalid(fldPath, spec, "cannot use command and script together"))
 	}
 	return allErrs
-}
-
-// validateRuntimeImage verifies that the runtimeImage field in
-// SourceBuildStrategy is not empty if it was specified and also checks to see
-// if the incremental build flag was specified, which is incompatible since we
-// can't have extended incremental builds.
-func validateRuntimeImage(sourceStrategy *buildapi.SourceBuildStrategy, fldPath *field.Path) (allErrs field.ErrorList) {
-	if sourceStrategy.RuntimeImage == nil {
-		return
-	}
-	if sourceStrategy.RuntimeImage.Name == "" {
-		return append(allErrs, field.Required(fldPath, "name"))
-	}
-
-	if sourceStrategy.Incremental != nil && *sourceStrategy.Incremental {
-		return append(allErrs, field.Invalid(fldPath, sourceStrategy.Incremental, "incremental cannot be set to true with extended builds"))
-	}
-	return
 }
 
 func ValidateImageLabels(labels []buildapi.ImageLabel, fldPath *field.Path) (allErrs field.ErrorList) {

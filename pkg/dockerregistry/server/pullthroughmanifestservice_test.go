@@ -67,7 +67,10 @@ func TestPullthroughManifests(t *testing.T) {
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
-	remoteRegistryServer := createTestRegistryServer(t, context.Background())
+	backgroundCtx := context.Background()
+	backgroundCtx = registrytest.WithTestLogger(backgroundCtx, t)
+
+	remoteRegistryServer := createTestRegistryServer(t, backgroundCtx)
 	defer remoteRegistryServer.Close()
 
 	serverURL, err := url.Parse(remoteRegistryServer.URL)
@@ -93,7 +96,7 @@ func TestPullthroughManifests(t *testing.T) {
 	image.DockerImageReference = fmt.Sprintf("%s/%s/%s@%s", serverURL.Host, namespace, repo, image.Name)
 	image.DockerImageManifest = ""
 
-	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient(backgroundCtx)
 	registrytest.AddImageStream(t, fos, namespace, repo, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -135,7 +138,7 @@ func TestPullthroughManifests(t *testing.T) {
 	} {
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
-		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		repo := newTestRepository(backgroundCtx, t, namespace, repo, testRepositoryOptions{
 			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
@@ -145,7 +148,7 @@ func TestPullthroughManifests(t *testing.T) {
 			repo:            repo,
 		}
 
-		ctx := WithTestPassthroughToUpstream(context.Background(), false)
+		ctx := WithTestPassthroughToUpstream(backgroundCtx, false)
 		manifestResult, err := ptms.Get(ctx, tc.manifestDigest)
 		switch err.(type) {
 		case distribution.ErrManifestUnknownRevision:
@@ -189,7 +192,10 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 	installFakeAccessController(t)
 	setPassthroughBlobDescriptorServiceFactory()
 
-	remoteRegistryServer := createTestRegistryServer(t, context.Background())
+	backgroundCtx := context.Background()
+	backgroundCtx = registrytest.WithTestLogger(backgroundCtx, t)
+
+	remoteRegistryServer := createTestRegistryServer(t, backgroundCtx)
 	defer remoteRegistryServer.Close()
 
 	serverURL, err := url.Parse(remoteRegistryServer.URL)
@@ -351,14 +357,14 @@ func TestPullthroughManifestInsecure(t *testing.T) {
 			},
 		},
 	} {
-		fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
+		fos, imageClient := registrytest.NewFakeOpenShiftWithClient(backgroundCtx)
 
 		tc.fakeOpenShiftInit(fos)
 
 		localManifestService := newTestManifestService(repoName, tc.localData)
 
-		ctx := WithTestPassthroughToUpstream(context.Background(), false)
-		repo := newTestRepository(t, namespace, repo, testRepositoryOptions{
+		ctx := WithTestPassthroughToUpstream(backgroundCtx, false)
+		repo := newTestRepository(ctx, t, namespace, repo, testRepositoryOptions{
 			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
@@ -459,7 +465,10 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 	image2 := *img
 	image2.DockerImageReference = dockerImageReference(server2, "foo/bar")
 
-	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	backgroundCtx := context.Background()
+	backgroundCtx = registrytest.WithTestLogger(backgroundCtx, t)
+
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient(backgroundCtx)
 	registrytest.AddImageStream(t, fos, namespace, repo1, map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -492,7 +501,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 			s.touched = false
 		}
 
-		r := newTestRepository(t, namespace, tc.repoName, testRepositoryOptions{
+		r := newTestRepository(backgroundCtx, t, namespace, tc.repoName, testRepositoryOptions{
 			client:            registryclient.NewFakeRegistryAPIClient(nil, imageClient),
 			enablePullThrough: true,
 		})
@@ -502,8 +511,7 @@ func TestPullthroughManifestDockerReference(t *testing.T) {
 			repo:            r,
 		}
 
-		ctx := context.Background()
-		ctx = withRepository(ctx, r)
+		ctx := withRepository(backgroundCtx, r)
 		ptms.Get(ctx, digest.Digest(img.Name))
 
 		for _, s := range tc.touchedServers {

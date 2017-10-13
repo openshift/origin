@@ -189,7 +189,7 @@ func (a *imagePolicyPlugin) Admit(attr admission.Attributes) error {
 		return nil
 	}
 
-	m, err := meta.GetImageReferenceMutator(attr.GetObject())
+	m, err := meta.GetImageReferenceMutator(attr.GetObject(), attr.GetOldObject())
 	if err != nil {
 		return apierrs.NewForbidden(gr, attr.GetName(), fmt.Errorf("unable to apply image policy against objects of type %T: %v", attr.GetObject(), err))
 	}

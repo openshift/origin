@@ -20,7 +20,7 @@ func (node *OsdnNode) SubnetStartNode() error {
 type hostSubnetMap map[string]*networkapi.HostSubnet
 
 func (plugin *OsdnNode) updateVXLANMulticastRules(subnets hostSubnetMap) {
-	remoteIPs := make([]string, 0, len(subnets)-1)
+	remoteIPs := make([]string, 0, len(subnets))
 	for _, subnet := range subnets {
 		if subnet.HostIP != plugin.localIP {
 			remoteIPs = append(remoteIPs, subnet.HostIP)

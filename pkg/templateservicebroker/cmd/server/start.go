@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net"
 
 	"github.com/spf13/cobra"
@@ -17,8 +18,6 @@ import (
 	authenticationclient "k8s.io/client-go/kubernetes/typed/authentication/v1beta1"
 	"k8s.io/client-go/rest"
 	"k8s.io/kubernetes/pkg/kubectl/cmd/util"
-
-	"io/ioutil"
 
 	"github.com/openshift/origin/pkg/template/servicebroker/apis/config"
 	configinstall "github.com/openshift/origin/pkg/template/servicebroker/apis/config/install"

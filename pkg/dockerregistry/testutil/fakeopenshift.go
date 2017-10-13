@@ -26,9 +26,9 @@ type FakeOpenShift struct {
 }
 
 // NewFakeOpenShift constructs the fake OpenShift reactors.
-func NewFakeOpenShift() *FakeOpenShift {
+func NewFakeOpenShift(ctx context.Context) *FakeOpenShift {
 	return &FakeOpenShift{
-		logger: context.GetLogger(context.Background()),
+		logger: context.GetLogger(ctx),
 
 		images:       make(map[string]imageapiv1.Image),
 		imageStreams: make(map[string]imageapiv1.ImageStream),
@@ -38,9 +38,8 @@ func NewFakeOpenShift() *FakeOpenShift {
 // NewFakeOpenShiftWithClient constructs a fake client associated with
 // the stateful fake in-memory OpenShift reactors. The fake OpenShift is
 // available for direct interaction, so you can make buggy states.
-// TODO: remove the FakeOpenshift as the legacy client is not needed anymore
-func NewFakeOpenShiftWithClient() (*FakeOpenShift, *imagefakeclient.FakeImageV1) {
-	fos := NewFakeOpenShift()
+func NewFakeOpenShiftWithClient(ctx context.Context) (*FakeOpenShift, *imagefakeclient.FakeImageV1) {
+	fos := NewFakeOpenShift(ctx)
 
 	imageClient := &imagefakeclient.FakeImageV1{Fake: &clientgotesting.Fake{}}
 	fos.AddReactorsTo(imageClient)

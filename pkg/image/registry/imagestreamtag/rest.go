@@ -33,6 +33,12 @@ var _ rest.Getter = &REST{}
 var _ rest.Lister = &REST{}
 var _ rest.CreaterUpdater = &REST{}
 var _ rest.Deleter = &REST{}
+var _ rest.ShortNamesProvider = &REST{}
+
+// ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
+func (r *REST) ShortNames() []string {
+	return []string{"istag"}
+}
 
 // New is only implemented to make REST implement RESTStorage
 func (r *REST) New() runtime.Object {

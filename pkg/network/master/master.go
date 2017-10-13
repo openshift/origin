@@ -94,7 +94,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 			log.Infof("Created ClusterNetwork %s", common.ClusterNetworkToString(configCN))
 
 			if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-				log.Errorf("WARNING: cluster contains objects incompatible with new ClusterNetwork: %v", err)
+				log.Errorf("Cluster contains objects incompatible with new ClusterNetwork: %v", err)
 			}
 		} else {
 			configChanged, err := clusterNetworkChanged(configCN, existingCN)
@@ -105,7 +105,7 @@ func Start(networkConfig osconfigapi.MasterNetworkConfig, networkClient networkc
 				configCN.TypeMeta = existingCN.TypeMeta
 				configCN.ObjectMeta = existingCN.ObjectMeta
 				if err = master.checkClusterNetworkAgainstClusterObjects(); err != nil {
-					log.Errorf("ERROR: Attempting to modify cluster to excludes existing objects: %v", err)
+					log.Errorf("Attempting to modify cluster to exclude existing objects: %v", err)
 					return false, err
 				}
 				if _, err = master.networkClient.Network().ClusterNetworks().Update(configCN); err != nil {

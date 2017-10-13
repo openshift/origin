@@ -120,6 +120,19 @@ func GetRegistryPod(podsGetter kcoreclient.PodsGetter) (*kapiv1.Pod, error) {
 	return &podList.Items[0], nil
 }
 
+// LogRegistryPod attempts to write registry log to a file to recent test's output directory.
+func LogRegistryPod(oc *exutil.CLI) error {
+	pod, err := GetRegistryPod(oc.KubeClient().Core())
+	if err != nil {
+		return fmt.Errorf("failed to get registry pod: %v", err)
+	}
+	path, err := oc.Run("logs").Args("dc/docker-registry").OutputToFile("pod-" + pod.Name + ".log")
+	if err == nil {
+		fmt.Fprintf(g.GinkgoWriter, "written registry pod log to %s\n", path)
+	}
+	return err
+}
+
 // ConfigureRegistry re-deploys the registry pod if its configuration doesn't match the desiredState. The
 // function blocks until the registry is ready.
 func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error {
@@ -154,7 +167,12 @@ func ConfigureRegistry(oc *exutil.CLI, desiredState RegistryConfiguration) error
 	if err != nil {
 		return err
 	}
+
+	// log docker-registry pod output before re-deploying
 	waitForVersion := dc.Status.LatestVersion + 1
+	if err = LogRegistryPod(oc); err != nil {
+		fmt.Fprintf(g.GinkgoWriter, "failed to log registry pod: %v\n", err)
+	}
 
 	err = oc.Run("env").Args(append([]string{"dc/docker-registry"}, envOverrides...)...).Execute()
 	if err != nil {

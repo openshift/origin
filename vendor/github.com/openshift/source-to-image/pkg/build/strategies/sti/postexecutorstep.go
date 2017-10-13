@@ -361,7 +361,7 @@ func (step *startRuntimeImageAndUploadFilesStep) execute(ctx *postExecutorStepCo
 	if e, ok := err.(s2ierr.ContainerError); ok {
 		// Must wait for StreamContainerIO goroutine above to exit before reading errOutput.
 		<-c
-		err = s2ierr.NewContainerError(image, e.ErrorCode, errOutput)
+		err = s2ierr.NewContainerError(image, e.ErrorCode, errOutput+e.Output)
 	}
 
 	return err

@@ -148,7 +148,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
 	defer np.lock.Unlock()
 
 	if _, exists := np.namespaces[netns.NetID]; exists {
-		glog.Warning("Got AddNetNamespace for already-existing namespace %s (%d)", netns.NetName, netns.NetID)
+		glog.Warningf("Got AddNetNamespace for already-existing namespace %s (%d)", netns.NetName, netns.NetID)
 		return
 	}
 
@@ -162,7 +162,7 @@ func (np *networkPolicyPlugin) AddNetNamespace(netns *networkapi.NetNamespace) {
 
 func (np *networkPolicyPlugin) UpdateNetNamespace(netns *networkapi.NetNamespace, oldNetID uint32) {
 	if netns.NetID != oldNetID {
-		glog.Warning("Got VNID change for namespace %s while using %s plugin", netns.NetName, network.NetworkPolicyPluginName)
+		glog.Warningf("Got VNID change for namespace %s while using %s plugin", netns.NetName, network.NetworkPolicyPluginName)
 	}
 
 	np.node.podManager.UpdateLocalMulticastRules(netns.NetID)

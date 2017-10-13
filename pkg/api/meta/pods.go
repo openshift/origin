@@ -253,12 +253,30 @@ func (m containerV1Mutator) SetImage(image string) { m.Image = image }
 
 // podSpecMutator implements the mutation interface over objects with a pod spec.
 type podSpecMutator struct {
-	spec *kapi.PodSpec
-	path *field.Path
+	spec    *kapi.PodSpec
+	oldSpec *kapi.PodSpec
+	path    *field.Path
 }
 
 func (m *podSpecMutator) Path() *field.Path {
 	return m.path
+}
+
+func hasIdenticalPodSpecImage(spec *kapi.PodSpec, containerName, image string) bool {
+	if spec == nil {
+		return false
+	}
+	for i := range spec.InitContainers {
+		if spec.InitContainers[i].Name == containerName {
+			return spec.InitContainers[i].Image == image
+		}
+	}
+	for i := range spec.Containers {
+		if spec.Containers[i].Name == containerName {
+			return spec.Containers[i].Image == image
+		}
+	}
+	return false
 }
 
 // Mutate applies fn to all containers and init containers. If fn changes the Kind to
@@ -266,7 +284,11 @@ func (m *podSpecMutator) Path() *field.Path {
 func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
 	for i := range m.spec.InitContainers {
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.InitContainers[i].Image}
+		container := &m.spec.InitContainers[i]
+		if hasIdenticalPodSpecImage(m.oldSpec, container.Name, container.Image) {
+			continue
+		}
+		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
@@ -275,10 +297,14 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("initContainers").Index(i).Child("image")))
 			continue
 		}
-		m.spec.InitContainers[i].Image = ref.Name
+		container.Image = ref.Name
 	}
 	for i := range m.spec.Containers {
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.Containers[i].Image}
+		container := &m.spec.Containers[i]
+		if hasIdenticalPodSpecImage(m.oldSpec, container.Name, container.Image) {
+			continue
+		}
+		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
@@ -287,7 +313,7 @@ func (m *podSpecMutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("containers").Index(i).Child("image")))
 			continue
 		}
-		m.spec.Containers[i].Image = ref.Name
+		container.Image = ref.Name
 	}
 	return errs
 }
@@ -328,12 +354,30 @@ func (m *podSpecMutator) GetContainerByIndex(init bool, i int) (ContainerMutator
 
 // podSpecV1Mutator implements the mutation interface over objects with a pod spec.
 type podSpecV1Mutator struct {
-	spec *kapiv1.PodSpec
-	path *field.Path
+	spec    *kapiv1.PodSpec
+	oldSpec *kapiv1.PodSpec
+	path    *field.Path
 }
 
 func (m *podSpecV1Mutator) Path() *field.Path {
 	return m.path
+}
+
+func hasIdenticalPodSpecV1Image(spec *kapiv1.PodSpec, containerName, image string) bool {
+	if spec == nil {
+		return false
+	}
+	for i := range spec.InitContainers {
+		if spec.InitContainers[i].Name == containerName {
+			return spec.InitContainers[i].Image == image
+		}
+	}
+	for i := range spec.Containers {
+		if spec.Containers[i].Name == containerName {
+			return spec.Containers[i].Image == image
+		}
+	}
+	return false
 }
 
 // Mutate applies fn to all containers and init containers. If fn changes the Kind to
@@ -341,7 +385,11 @@ func (m *podSpecV1Mutator) Path() *field.Path {
 func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 	var errs field.ErrorList
 	for i := range m.spec.InitContainers {
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.InitContainers[i].Image}
+		container := &m.spec.InitContainers[i]
+		if hasIdenticalPodSpecV1Image(m.oldSpec, container.Name, container.Image) {
+			continue
+		}
+		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("initContainers").Index(i).Child("image")))
 			continue
@@ -350,10 +398,14 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("initContainers").Index(i).Child("image")))
 			continue
 		}
-		m.spec.InitContainers[i].Image = ref.Name
+		container.Image = ref.Name
 	}
 	for i := range m.spec.Containers {
-		ref := kapi.ObjectReference{Kind: "DockerImage", Name: m.spec.Containers[i].Image}
+		container := &m.spec.Containers[i]
+		if hasIdenticalPodSpecV1Image(m.oldSpec, container.Name, container.Image) {
+			continue
+		}
+		ref := kapi.ObjectReference{Kind: "DockerImage", Name: container.Image}
 		if err := fn(&ref); err != nil {
 			errs = append(errs, fieldErrorOrInternal(err, m.path.Child("containers").Index(i).Child("image")))
 			continue
@@ -362,7 +414,7 @@ func (m *podSpecV1Mutator) Mutate(fn ImageReferenceMutateFunc) field.ErrorList {
 			errs = append(errs, fieldErrorOrInternal(fmt.Errorf("pod specs may only contain references to docker images, not %q", ref.Kind), m.path.Child("containers").Index(i).Child("image")))
 			continue
 		}
-		m.spec.Containers[i].Image = ref.Name
+		container.Image = ref.Name
 	}
 	return errs
 }

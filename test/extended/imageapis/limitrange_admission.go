@@ -21,7 +21,7 @@ import (
 
 const limitRangeName = "limits"
 
-var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
+var _ = g.Describe("[Feature:ImageQuota][Serial] Image limit range", func() {
 	defer g.GinkgoRecover()
 	var oc = exutil.NewCLI("limitrange-admission", exutil.KubeConfigPath())
 
@@ -40,7 +40,8 @@ var _ = g.Describe("[Feature:ImageQuota] Image limit range", func() {
 		deleteTestImagesAndStreams(oc)
 	}
 
-	g.It(fmt.Sprintf("should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
+	g.It(fmt.Sprintf("[Skipped] should deny a push of built image exceeding %s limit", imageapi.LimitTypeImage), func() {
+		g.Skip("FIXME: fill image metadata for schema1 in the registry")
 		oc.SetOutputDir(exutil.TestContext.OutputDir)
 		defer tearDown(oc)
 

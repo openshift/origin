@@ -1099,16 +1099,6 @@ func DeepCopy_build_SourceBuildStrategy(in interface{}, out interface{}, c *conv
 			*out = new(bool)
 			**out = **in
 		}
-		if in.RuntimeImage != nil {
-			in, out := &in.RuntimeImage, &out.RuntimeImage
-			*out = new(api.ObjectReference)
-			**out = **in
-		}
-		if in.RuntimeArtifacts != nil {
-			in, out := &in.RuntimeArtifacts, &out.RuntimeArtifacts
-			*out = make([]ImageSourcePath, len(*in))
-			copy(*out, *in)
-		}
 		return nil
 	}
 }

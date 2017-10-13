@@ -302,7 +302,7 @@ func RunAssetServer(assetServer *AssetServer, stopCh <-chan struct{}) error {
 	go assetServer.GenericAPIServer.PrepareRun().Run(stopCh)
 
 	glog.Infof("Web console listening at https://%s", assetServer.GenericAPIServer.SecureServingInfo.BindAddress)
-	glog.Infof("Web console available at %s", assetServer.PublicURL)
+	glog.Infof("Web console available at %s", assetServer.PublicURL.String())
 
 	// Attempt to verify the server came up for 20 seconds (100 tries * 100ms, 100ms timeout per try)
 	return cmdutil.WaitForSuccessfulDial(true, assetServer.GenericAPIServer.SecureServingInfo.BindNetwork, assetServer.GenericAPIServer.SecureServingInfo.BindAddress, 100*time.Millisecond, 100*time.Millisecond, 100)

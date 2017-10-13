@@ -488,7 +488,7 @@ func (c *connection) authenticateV2(header string) (string, error) {
 // the appropriate endpoint token. It will try HTTP if HTTPS fails and insecure connections
 // are allowed.
 func (c *connection) getRepositoryV1(name string) (repository, error) {
-	glog.V(4).Infof("Getting repository %s from %s", name, c.url)
+	glog.V(4).Infof("Getting repository %s from %s", name, c.url.String())
 
 	base := c.url
 	base.Path = path.Join(base.Path, fmt.Sprintf("/v1/repositories/%s/images", name))
