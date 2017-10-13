@@ -1,0 +1,29 @@
+kind: List
+apiVersion: v1
+items:
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: sdn
+    namespace: openshift-node
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: sdn-cluster-reader
+  roleRef:
+    name: cluster-reader
+  subjects:
+  - kind: ServiceAccount
+    name: sdn
+    namespace: openshift-node
+- apiVersion: authorization.openshift.io/v1
+  kind: ClusterRoleBinding
+  metadata:
+    name: sdn-reader
+  roleRef:
+    name: system:sdn-reader
+  subjects:
+  - kind: ServiceAccount
+    name: sdn
+    namespace: openshift-node
+# TODO: PSP binding

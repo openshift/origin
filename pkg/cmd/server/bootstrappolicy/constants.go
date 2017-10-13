@@ -4,6 +4,7 @@ package bootstrappolicy
 const (
 	DefaultOpenShiftSharedResourcesNamespace = "openshift"
 	DefaultOpenShiftInfraNamespace           = "openshift-infra"
+	DefaultOpenShiftNodeNamespace            = "openshift-node"
 )
 
 // users
@@ -98,11 +99,13 @@ const (
 
 	OpenshiftSharedResourceViewRoleName = "shared-resource-viewer"
 
-	NodeBootstrapRoleName = "system:node-bootstrapper"
+	NodeBootstrapRoleName    = "system:node-bootstrapper"
+	NodeConfigReaderRoleName = "system:node-config-reader"
 )
 
 // RoleBindings
 const (
+	// Legacy roles that must continue to have a plural form
 	SelfAccessReviewerRoleBindingName = SelfAccessReviewerRoleName + "s"
 	SelfProvisionerRoleBindingName    = SelfProvisionerRoleName + "s"
 	DeployerRoleBindingName           = DeployerRoleName + "s"
@@ -128,10 +131,11 @@ const (
 	RegistryViewerRoleBindingName     = RegistryViewerRoleName + "s"
 	RegistryEditorRoleBindingName     = RegistryEditorRoleName + "s"
 
+	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
+
+	// Bindings
 	BuildStrategyDockerRoleBindingName          = BuildStrategyDockerRoleName + "-binding"
 	BuildStrategyCustomRoleBindingName          = BuildStrategyCustomRoleName + "-binding"
 	BuildStrategySourceRoleBindingName          = BuildStrategySourceRoleName + "-binding"
 	BuildStrategyJenkinsPipelineRoleBindingName = BuildStrategyJenkinsPipelineRoleName + "-binding"
-
-	OpenshiftSharedResourceViewRoleBindingName = OpenshiftSharedResourceViewRoleName + "s"
 )

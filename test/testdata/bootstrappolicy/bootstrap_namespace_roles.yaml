@@ -209,5 +209,20 @@ items:
     - imagestreams/layers
     verbs:
     - get
+- apiVersion: rbac.authorization.k8s.io/v1beta1
+  kind: Role
+  metadata:
+    annotations:
+      rbac.authorization.kubernetes.io/autoupdate: "true"
+    creationTimestamp: null
+    name: system:node-config-reader
+    namespace: openshift-node
+  rules:
+  - apiGroups:
+    - ""
+    resources:
+    - configmaps
+    verbs:
+    - get
 kind: List
 metadata: {}

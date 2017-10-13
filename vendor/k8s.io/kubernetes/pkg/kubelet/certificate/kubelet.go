@@ -46,6 +46,7 @@ func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg 
 		return nil, fmt.Errorf("failed to initialize server certificate store: %v", err)
 	}
 	m, err := NewManager(&Config{
+		Name: "server",
 		CertificateSigningRequestClient: certSigningRequestClient,
 		Template: &x509.CertificateRequest{
 			Subject: pkix.Name{
@@ -62,7 +63,7 @@ func NewKubeletServerCertificateManager(kubeClient clientset.Interface, kubeCfg 
 			// digital signatures used during TLS negotiation.
 			certificates.UsageDigitalSignature,
 			// KeyEncipherment allows the cert/key pair to be used to encrypt
-			// keys, including the symetric keys negotiated during TLS setup
+			// keys, including the symmetric keys negotiated during TLS setup
 			// and used for data transfer.
 			certificates.UsageKeyEncipherment,
 			// ServerAuth allows the cert to be used by a TLS server to
@@ -92,6 +93,7 @@ func NewKubeletClientCertificateManager(certDirectory string, nodeName types.Nod
 		return nil, fmt.Errorf("failed to initialize client certificate store: %v", err)
 	}
 	m, err := NewManager(&Config{
+		Name: "client",
 		Template: &x509.CertificateRequest{
 			Subject: pkix.Name{
 				CommonName:   fmt.Sprintf("system:node:%s", nodeName),
@@ -106,7 +108,7 @@ func NewKubeletClientCertificateManager(certDirectory string, nodeName types.Nod
 			// negotiation.
 			certificates.UsageDigitalSignature,
 			// KeyEncipherment allows the cert/key pair to be used to encrypt
-			// keys, including the symetric keys negotiated during TLS setup
+			// keys, including the symmetric keys negotiated during TLS setup
 			// and used for data transfer..
 			certificates.UsageKeyEncipherment,
 			// ClientAuth allows the cert to be used by a TLS client to

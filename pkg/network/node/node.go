@@ -345,7 +345,7 @@ func (node *OsdnNode) Start() error {
 
 	networkChanged, err := node.SetupSDN()
 	if err != nil {
-		return err
+		return fmt.Errorf("node SDN setup failed: %v", err)
 	}
 
 	err = node.SubnetStartNode()

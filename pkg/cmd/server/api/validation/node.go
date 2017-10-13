@@ -12,6 +12,16 @@ import (
 )
 
 func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationResults {
+	validationResults := ValidateInClusterNodeConfig(config, fldPath)
+	if bootstrap := config.KubeletArguments["bootstrap-kubeconfig"]; len(bootstrap) > 0 {
+		validationResults.AddErrors(ValidateKubeConfig(bootstrap[0], fldPath.Child("kubeletArguments", "bootstrap-kubeconfig"))...)
+	} else {
+		validationResults.AddErrors(ValidateKubeConfig(config.MasterKubeConfig, fldPath.Child("masterKubeConfig"))...)
+	}
+	return validationResults
+}
+
+func ValidateInClusterNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationResults {
 	validationResults := ValidationResults{}
 
 	if len(config.NodeName) == 0 {
@@ -22,11 +32,11 @@ func ValidateNodeConfig(config *api.NodeConfig, fldPath *field.Path) ValidationR
 	}
 
 	servingInfoPath := fldPath.Child("servingInfo")
-	validationResults.Append(ValidateServingInfo(config.ServingInfo, servingInfoPath))
+	hasCertDir := len(config.KubeletArguments["cert-dir"]) > 0
+	validationResults.Append(ValidateServingInfo(config.ServingInfo, !hasCertDir, servingInfoPath))
 	if config.ServingInfo.BindNetwork == "tcp6" {
 		validationResults.AddErrors(field.Invalid(servingInfoPath.Child("bindNetwork"), config.ServingInfo.BindNetwork, "tcp6 is not a valid bindNetwork for nodes, must be tcp or tcp4"))
 	}
-	validationResults.AddErrors(ValidateKubeConfig(config.MasterKubeConfig, fldPath.Child("masterKubeConfig"))...)
 
 	if len(config.DNSBindAddress) > 0 {
 		validationResults.AddErrors(ValidateHostPort(config.DNSBindAddress, fldPath.Child("dnsBindAddress"))...)

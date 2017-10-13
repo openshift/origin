@@ -334,6 +334,27 @@ func SetProtobufClientDefaults(overrides *ClientConnectionOverrides) {
 	overrides.Burst *= 2
 }
 
+// GetKubeConfigOrInClusterConfig loads in-cluster config if kubeConfigFile is empty or the file if not,
+// then applies overrides.
+func GetKubeConfigOrInClusterConfig(kubeConfigFile string, overrides *ClientConnectionOverrides) (*restclient.Config, error) {
+	var kubeConfig *restclient.Config
+	var err error
+	if len(kubeConfigFile) == 0 {
+		kubeConfig, err = restclient.InClusterConfig()
+	} else {
+		loadingRules := &clientcmd.ClientConfigLoadingRules{}
+		loadingRules.ExplicitPath = kubeConfigFile
+		loader := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+
+		kubeConfig, err = loader.ClientConfig()
+	}
+	if err != nil {
+		return nil, err
+	}
+	applyClientConnectionOverrides(overrides, kubeConfig)
+	return kubeConfig, nil
+}
+
 // TODO: clients should be copied and instantiated from a common client config, tweaked, then
 // given to individual controllers and other infrastructure components.
 func GetInternalKubeClient(kubeConfigFile string, overrides *ClientConnectionOverrides) (kclientsetinternal.Interface, *restclient.Config, error) {

@@ -7093,6 +7093,22 @@ items:
     verbs:
     - get
 - apiVersion: v1
+  kind: Role
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:node-config-reader
+    namespace: openshift-node
+  rules:
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - configmaps
+    verbs:
+    - get
+- apiVersion: v1
   groupNames: null
   kind: RoleBinding
   metadata:
@@ -7228,6 +7244,23 @@ items:
   subjects:
   - kind: SystemGroup
     name: system:authenticated
+  userNames: null
+- apiVersion: v1
+  groupNames:
+  - system:nodes
+  kind: RoleBinding
+  metadata:
+    annotations:
+      openshift.io/reconcile-protect: "false"
+    creationTimestamp: null
+    name: system:node-config-reader
+    namespace: openshift-node
+  roleRef:
+    name: system:node-config-reader
+    namespace: openshift-node
+  subjects:
+  - kind: SystemGroup
+    name: system:nodes
   userNames: null
 kind: List
 metadata: {}

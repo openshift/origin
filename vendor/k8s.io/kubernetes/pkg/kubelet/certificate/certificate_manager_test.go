@@ -26,7 +26,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+
+	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	watch "k8s.io/apimachinery/pkg/watch"
 	certificates "k8s.io/kubernetes/pkg/apis/certificates/v1beta1"
 	certificatesclient "k8s.io/kubernetes/pkg/client/clientset_generated/clientset/typed/certificates/v1beta1"
@@ -135,6 +140,7 @@ func TestNewManagerNoRotation(t *testing.T) {
 		cert: storeCertData.certificate,
 	}
 	if _, err := NewManager(&Config{
+		Name:             "test_no_rotation",
 		Template:         &x509.CertificateRequest{},
 		Usages:           []certificates.KeyUsage{},
 		CertificateStore: store,
@@ -170,6 +176,11 @@ func TestShouldRotate(t *testing.T) {
 				},
 				template: &x509.CertificateRequest{},
 				usages:   []certificates.KeyUsage{},
+				certificateExpiration: prometheus.NewGauge(
+					prometheus.GaugeOpts{
+						Name: "test_gauge_name",
+					},
+				),
 			}
 			m.setRotationDeadline()
 			if m.shouldRotate() != test.shouldRotate {
@@ -212,6 +223,11 @@ func TestSetRotationDeadline(t *testing.T) {
 				},
 				template: &x509.CertificateRequest{},
 				usages:   []certificates.KeyUsage{},
+				certificateExpiration: prometheus.NewGauge(
+					prometheus.GaugeOpts{
+						Name: "test_gauge_name",
+					},
+				),
 			}
 			lowerBound := tc.notBefore.Add(time.Duration(float64(tc.notAfter.Sub(tc.notBefore)) * 0.7))
 			upperBound := tc.notBefore.Add(time.Duration(float64(tc.notAfter.Sub(tc.notBefore)) * 0.9))
@@ -270,6 +286,7 @@ func TestRotateCertWaitingForResultError(t *testing.T) {
 		},
 	}
 
+	certificateWaitBackoff = wait.Backoff{Steps: 1}
 	if success, err := m.rotateCerts(); success {
 		t.Errorf("Got success from 'rotateCerts', wanted failure.")
 	} else if err != nil {
@@ -282,6 +299,7 @@ func TestNewManagerBootstrap(t *testing.T) {
 
 	var cm Manager
 	cm, err := NewManager(&Config{
+		Name:                    "test_bootstrap",
 		Template:                &x509.CertificateRequest{},
 		Usages:                  []certificates.KeyUsage{},
 		CertificateStore:        store,
@@ -319,6 +337,7 @@ func TestNewManagerNoBootstrap(t *testing.T) {
 	}
 
 	cm, err := NewManager(&Config{
+		Name:                    "test_no_bootstrap",
 		Template:                &x509.CertificateRequest{},
 		Usages:                  []certificates.KeyUsage{},
 		CertificateStore:        store,
@@ -454,13 +473,14 @@ func TestInitializeCertificateSigningRequestClient(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			certificateStore := &fakeStore{
 				cert: tc.storeCert.certificate,
 			}
 
 			certificateManager, err := NewManager(&Config{
+				Name: fmt.Sprintf("test_initialize_client_%d", i),
 				Template: &x509.CertificateRequest{
 					Subject: pkix.Name{
 						Organization: []string{"system:nodes"},
@@ -555,13 +575,14 @@ func TestInitializeOtherRESTClients(t *testing.T) {
 		},
 	}
 
-	for _, tc := range testCases {
+	for i, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			certificateStore := &fakeStore{
 				cert: tc.storeCert.certificate,
 			}
 
 			certificateManager, err := NewManager(&Config{
+				Name: fmt.Sprintf("test_initialize_other_rest_clients_%d", i),
 				Template: &x509.CertificateRequest{
 					Subject: pkix.Name{
 						Organization: []string{"system:nodes"},
@@ -594,11 +615,171 @@ func TestInitializeOtherRESTClients(t *testing.T) {
 			} else {
 				m.setRotationDeadline()
 				if m.shouldRotate() {
-					if success, err := certificateManager.(*manager).rotateCerts(); !success {
-						t.Errorf("Got failure from 'rotateCerts', expected success")
-					} else if err != nil {
+					success, err := certificateManager.(*manager).rotateCerts()
+					if err != nil {
 						t.Errorf("Got error %v, expected none.", err)
+						return
 					}
+					if !success {
+						t.Errorf("Unexpected response 'rotateCerts': %t", success)
+						return
+					}
+				}
+			}
+
+			certificate = certificateManager.Current()
+			if !certificatesEqual(certificate, tc.expectedCertAfterStart.certificate) {
+				t.Errorf("Got %v, wanted %v", certificateString(certificate), certificateString(tc.expectedCertAfterStart.certificate))
+			}
+		})
+	}
+}
+
+func TestServerHealth(t *testing.T) {
+	type certs struct {
+		storeCert               *certificateData
+		bootstrapCert           *certificateData
+		apiCert                 *certificateData
+		expectedCertBeforeStart *certificateData
+		expectedCertAfterStart  *certificateData
+	}
+
+	updatedCerts := certs{
+		storeCert:               storeCertData,
+		bootstrapCert:           bootstrapCertData,
+		apiCert:                 apiServerCertData,
+		expectedCertBeforeStart: storeCertData,
+		expectedCertAfterStart:  apiServerCertData,
+	}
+
+	currentCerts := certs{
+		storeCert:               storeCertData,
+		bootstrapCert:           bootstrapCertData,
+		apiCert:                 apiServerCertData,
+		expectedCertBeforeStart: storeCertData,
+		expectedCertAfterStart:  storeCertData,
+	}
+
+	testCases := []struct {
+		description string
+		certs
+
+		failureType fakeClientFailureType
+		clientErr   error
+
+		expectRotateFail bool
+		expectHealthy    bool
+	}{
+		{
+			description:   "Current certificate, bootstrap certificate",
+			certs:         updatedCerts,
+			expectHealthy: true,
+		},
+		{
+			description: "Generic error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			expectRotateFail: true,
+		},
+		{
+			description: "Unauthorized error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewUnauthorized("unauthorized"),
+			expectRotateFail: true,
+			expectHealthy:    true,
+		},
+		{
+			description: "Generic unauthorized error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewGenericServerResponse(401, "POST", schema.GroupResource{}, "", "", 0, true),
+			expectRotateFail: true,
+			expectHealthy:    true,
+		},
+		{
+			description: "Generic not found error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewGenericServerResponse(404, "POST", schema.GroupResource{}, "", "", 0, true),
+			expectRotateFail: true,
+			expectHealthy:    false,
+		},
+		{
+			description: "Not found error on create",
+			certs:       currentCerts,
+
+			failureType:      createError,
+			clientErr:        errors.NewGenericServerResponse(404, "POST", schema.GroupResource{}, "", "", 0, false),
+			expectRotateFail: true,
+			expectHealthy:    true,
+		},
+		{
+			description: "Conflict error on watch",
+			certs:       currentCerts,
+
+			failureType:      watchError,
+			clientErr:        errors.NewGenericServerResponse(409, "POST", schema.GroupResource{}, "", "", 0, false),
+			expectRotateFail: true,
+			expectHealthy:    false,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			certificateStore := &fakeStore{
+				cert: tc.storeCert.certificate,
+			}
+
+			certificateManager, err := NewManager(&Config{
+				Name: fmt.Sprintf("test_server_health_%d", i),
+				Template: &x509.CertificateRequest{
+					Subject: pkix.Name{
+						Organization: []string{"system:nodes"},
+						CommonName:   "system:node:fake-node-name",
+					},
+				},
+				Usages: []certificates.KeyUsage{
+					certificates.UsageDigitalSignature,
+					certificates.UsageKeyEncipherment,
+					certificates.UsageClientAuth,
+				},
+				CertificateStore:        certificateStore,
+				BootstrapCertificatePEM: tc.bootstrapCert.certificatePEM,
+				BootstrapKeyPEM:         tc.bootstrapCert.keyPEM,
+				CertificateSigningRequestClient: &fakeClient{
+					certificatePEM: tc.apiCert.certificatePEM,
+					failureType:    tc.failureType,
+					err:            tc.clientErr,
+				},
+			})
+			if err != nil {
+				t.Errorf("Got %v, wanted no error.", err)
+			}
+
+			certificate := certificateManager.Current()
+			if !certificatesEqual(certificate, tc.expectedCertBeforeStart.certificate) {
+				t.Errorf("Got %v, wanted %v", certificateString(certificate), certificateString(tc.expectedCertBeforeStart.certificate))
+			}
+
+			if _, ok := certificateManager.(*manager); !ok {
+				t.Errorf("Expected a '*manager' from 'NewManager'")
+			} else {
+				success, err := certificateManager.(*manager).rotateCerts()
+				if err != nil {
+					t.Errorf("Got error %v, expected none.", err)
+					return
+				}
+				if !success != tc.expectRotateFail {
+					t.Errorf("Unexpected response 'rotateCerts': %t", success)
+					return
+				}
+				if actual := certificateManager.(*manager).ServerHealthy(); actual != tc.expectHealthy {
+					t.Errorf("Unexpected manager server health: %t", actual)
 				}
 			}
 
@@ -623,10 +804,29 @@ type fakeClient struct {
 	certificatesclient.CertificateSigningRequestInterface
 	failureType    fakeClientFailureType
 	certificatePEM []byte
+	err            error
+}
+
+func (c fakeClient) List(opts v1.ListOptions) (*certificates.CertificateSigningRequestList, error) {
+	if c.failureType == watchError {
+		if c.err != nil {
+			return nil, c.err
+		}
+		return nil, fmt.Errorf("Watch error")
+	}
+	csrReply := certificates.CertificateSigningRequestList{
+		Items: []certificates.CertificateSigningRequest{
+			{ObjectMeta: v1.ObjectMeta{UID: "fake-uid"}},
+		},
+	}
+	return &csrReply, nil
 }
 
 func (c fakeClient) Create(*certificates.CertificateSigningRequest) (*certificates.CertificateSigningRequest, error) {
 	if c.failureType == createError {
+		if c.err != nil {
+			return nil, c.err
+		}
 		return nil, fmt.Errorf("Create error")
 	}
 	csrReply := certificates.CertificateSigningRequest{}
@@ -636,6 +836,9 @@ func (c fakeClient) Create(*certificates.CertificateSigningRequest) (*certificat
 
 func (c fakeClient) Watch(opts v1.ListOptions) (watch.Interface, error) {
 	if c.failureType == watchError {
+		if c.err != nil {
+			return nil, c.err
+		}
 		return nil, fmt.Errorf("Watch error")
 	}
 	return &fakeWatch{
