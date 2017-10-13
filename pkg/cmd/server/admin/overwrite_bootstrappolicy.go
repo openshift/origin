@@ -70,6 +70,7 @@ func NewCommandOverwriteBootstrapPolicy(commandName string, fullName string, cre
 			}
 			kcmdutil.CheckErr(options.OverwriteBootstrapPolicy())
 		},
+		Deprecated: fmt.Sprintf("will not work against 3.7 servers"),
 	}
 
 	flags := cmd.Flags()
