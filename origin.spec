@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 113417b8e1b1712ee37cfa7a748b4675ff6f3439
+%global commit a6b9a747665e30941bc15382fc06e4f659ce021d
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.148.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=113417b
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.149.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=a6b9a74
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.149.0%{?dist}
+Release:        0.150.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,38 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Fri Oct 13 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.150.0
+- remove experimental extended builds api (bparees@redhat.com)
+- Make admin project creation wait for SAR (mkhan@redhat.com)
+- bump(github.com/openshift/source-to-image):
+  a0e78cce863f296bfb9bf77ac5acd152dc059e32 (gmontero@redhat.com)
+- Remove "template.openshift.io/template-instance" label (jminter@redhat.com)
+- Fix crash on last node when deleting second-to-last node (danw@redhat.com)
+- wait for pod before waiting for endpoint (bparees@redhat.com)
+- Allow the script output path to be overridden (skuznets@redhat.com)
+- update discovery with shortnames and categories (deads@redhat.com)
+- extended: fixed registry tests (miminar@redhat.com)
+- remove tech preview label from jenkins strategy (bparees@redhat.com)
+- Ensure that KUBECONFIG and KUBERNETES_MASTER are unset (skuznets@redhat.com)
+- fallback to orig err msg if no err causes found (jvallejo@redhat.com)
+- Fix typos in pkg/network (rpenta@redhat.com)
+- UPSTREAM: <drop>: Adapt etcd testing util to v3.2.8 (maszulik@redhat.com)
+- bump(github.com/coreos/etcd): v3.2.8 (maszulik@redhat.com)
+- bump(github.com/coreos/etcd): v3.2.1 (maszulik@redhat.com)
+- bump(github.com/docker/distribution): remove unnecessary vendor dirs from
+  inside docker/distribution (maszulik@redhat.com)
+- Fix emicklei/go-restful-swagger12 and remove coreos/etcd from godep-
+  restore.sh (maszulik@redhat.com)
+- Rebase process description (maszulik@redhat.com)
+- UPSTREAM: 52515: changes to upstream commits to fix unit test errors with
+  3.7. (avagarwa@redhat.com)
+- UPSTREAM: 52515: Clarify predicates name to clean confusing.
+  (avagarwa@redhat.com)
+- Fix go vet warnings (danw@redhat.com)
+- Make govet check glog.Info/Warning calls (danw@redhat.com)
+- Image policy should ignore unchanged images on update (ccoleman@redhat.com)
+- Write log using t.Log in registry unit tests (obulatov@redhat.com)
+
 * Thu Oct 12 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.149.0
 - bump(github.com/openshift/origin-web-console):
   ba1a82013693cce1265bd0d49d18638cd71c767d (eparis+openshiftbot@redhat.com)
