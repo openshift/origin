@@ -617,10 +617,12 @@ func CreateNewProject(clientConfig *restclient.Config, projectName, adminUser st
 	if err != nil {
 		return nil, nil, err
 	}
+	authorizationInterface := authorizationClient.Authorization()
 
 	newProjectOptions := &newproject.NewProjectOptions{
 		ProjectClient:     projectClient,
-		RoleBindingClient: authorizationClient.Authorization(),
+		RoleBindingClient: authorizationInterface,
+		SARClient:         authorizationInterface.SubjectAccessReviews(),
 		ProjectName:       projectName,
 		AdminRole:         bootstrappolicy.AdminRoleName,
 		AdminUser:         adminUser,
