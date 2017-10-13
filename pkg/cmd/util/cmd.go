@@ -18,9 +18,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 )
 
-// ErrExit is a marker interface for cli commands indicating that the response has been processed
-var ErrExit = fmt.Errorf("exit directly")
-
 var commaSepVarsPattern = regexp.MustCompile(".*=.*,.*=.*")
 
 // ReplaceCommandName recursively processes the examples in a given command to change a hardcoded

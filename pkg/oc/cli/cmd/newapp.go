@@ -224,7 +224,7 @@ func NewCmdNewApplication(name, baseName string, f *clientcmd.Factory, in io.Rea
 		Run: func(c *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(baseName, name, f, c, args, in, out, errout))
 			err := o.RunNewApp()
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -339,7 +339,7 @@ func (o *NewAppOptions) RunNewApp() error {
 	}
 
 	if errs := o.Action.WithMessage(configcmd.CreateMessage(config.Labels), "created").Run(result.List, result.Namespace); len(errs) > 0 {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 
 	if !o.Action.Verbose() || o.Action.DryRun {

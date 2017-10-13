@@ -10,7 +10,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/cmd/templates"
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -46,7 +45,7 @@ func NewCmdTYPE(fullName string, f *clientcmd.Factory, in io.Reader, out, errout
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
 				// TODO: move me to kcmdutil
-				if err == cmdutil.ErrExit {
+				if err == kcmdutil.ErrExit {
 					os.Exit(1)
 				}
 				kcmdutil.CheckErr(err)
