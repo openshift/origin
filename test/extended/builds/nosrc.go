@@ -14,9 +14,9 @@ import (
 var _ = g.Describe("[Feature:Builds] build with empty source", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-nosrc-build.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-nosrc-build.json")
 		oc           = exutil.NewCLI("cli-build-nosrc", exutil.KubeConfigPath())
-		exampleBuild = exutil.FixturePath("testdata", "test-build-app")
+		exampleBuild = exutil.FixturePath("testdata", "builds", "test-build-app")
 	)
 
 	g.Context("", func() {

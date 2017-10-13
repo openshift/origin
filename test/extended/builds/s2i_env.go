@@ -21,8 +21,8 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 
 	var (
 		imageStreamFixture   = exutil.FixturePath("..", "integration", "testdata", "test-image-stream.json")
-		stiEnvBuildFixture   = exutil.FixturePath("testdata", "test-env-build.json")
-		podAndServiceFixture = exutil.FixturePath("testdata", "test-build-podsvc.json")
+		stiEnvBuildFixture   = exutil.FixturePath("testdata", "builds", "test-env-build.json")
+		podAndServiceFixture = exutil.FixturePath("testdata", "builds", "test-build-podsvc.json")
 		oc                   = exutil.NewCLI("build-sti-env", exutil.KubeConfigPath())
 	)
 
@@ -53,7 +53,7 @@ var _ = g.Describe("[Feature:Builds][Slow] s2i build with environment file in so
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a test build")
-				path := exutil.FixturePath("testdata", "sti-environment-build-app")
+				path := exutil.FixturePath("testdata", "builds", "sti-environment-build-app")
 				br, _ := exutil.StartBuildAndWait(oc, "test", "--from-dir", path)
 				br.AssertSuccess()
 

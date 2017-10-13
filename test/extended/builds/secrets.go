@@ -14,7 +14,7 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] can use build secrets", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildSecretBaseDir    = exutil.FixturePath("testdata", "build-secrets")
+		buildSecretBaseDir    = exutil.FixturePath("testdata", "builds", "build-secrets")
 		secretsFixture        = filepath.Join(buildSecretBaseDir, "test-secret.json")
 		secondSecretsFixture  = filepath.Join(buildSecretBaseDir, "test-secret-2.json")
 		isFixture             = filepath.Join(buildSecretBaseDir, "test-is.json")

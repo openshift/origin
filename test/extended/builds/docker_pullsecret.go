@@ -17,7 +17,7 @@ var _ = g.Describe("[Feature:Builds][pullsecret][Conformance] docker build using
 	)
 
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-docker-build-pullsecret.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build-pullsecret.json")
 		oc           = exutil.NewCLI("docker-build-pullsecret", exutil.KubeConfigPath())
 	)
 

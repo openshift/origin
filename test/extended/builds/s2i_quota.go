@@ -20,7 +20,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 	)
 
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-s2i-build-quota.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-s2i-build-quota.json")
 		oc           = exutil.NewCLI("s2i-build-quota", exutil.KubeConfigPath())
 	)
 
@@ -47,7 +47,7 @@ var _ = g.Describe("[Feature:Builds][Conformance] s2i build with a quota", func(
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a test build")
-				br, _ := exutil.StartBuildAndWait(oc, "s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "build-quota"))
+				br, _ := exutil.StartBuildAndWait(oc, "s2i-build-quota", "--from-dir", exutil.FixturePath("testdata", "builds", "build-quota"))
 				br.AssertSuccess()
 				o.Expect(br.Build.Status.StartTimestamp).NotTo(o.BeNil(), "Build start timestamp should be set")
 				o.Expect(br.Build.Status.CompletionTimestamp).NotTo(o.BeNil(), "Build completion timestamp should be set")

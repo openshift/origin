@@ -19,7 +19,7 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 	)
 
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-docker-build-quota.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-docker-build-quota.json")
 		oc           = exutil.NewCLI("docker-build-quota", exutil.KubeConfigPath())
 	)
 	g.Context("", func() {
@@ -46,7 +46,7 @@ var _ = g.Describe("[Feature:Builds][quota][Slow] docker build with a quota", fu
 				o.Expect(err).NotTo(o.HaveOccurred())
 
 				g.By("starting a test build")
-				path := exutil.FixturePath("testdata", "build-quota")
+				path := exutil.FixturePath("testdata", "builds", "build-quota")
 				o.Expect(os.Chmod(filepath.Join(path, ".s2i", "bin", "assemble"), 0755)).NotTo(o.HaveOccurred())
 				br, err := exutil.StartBuildAndWait(oc, "docker-build-quota", "--from-dir", path)
 

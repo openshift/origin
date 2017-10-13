@@ -10,7 +10,7 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] testing build configuration hooks", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildFixture = exutil.FixturePath("testdata", "test-build-postcommit.json")
+		buildFixture = exutil.FixturePath("testdata", "builds", "test-build-postcommit.json")
 		oc           = exutil.NewCLI("cli-test-hooks", exutil.KubeConfigPath())
 	)
 

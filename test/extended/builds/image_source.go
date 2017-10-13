@@ -17,10 +17,10 @@ import (
 var _ = g.Describe("[Feature:Builds][Slow] build can have Docker image source", func() {
 	defer g.GinkgoRecover()
 	var (
-		buildConfigFixture = exutil.FixturePath("testdata", "test-imagesource-buildconfig.yaml")
-		s2iBuildFixture    = exutil.FixturePath("testdata", "test-imageresolution-s2i-build.yaml")
-		dockerBuildFixture = exutil.FixturePath("testdata", "test-imageresolution-docker-build.yaml")
-		customBuildFixture = exutil.FixturePath("testdata", "test-imageresolution-custom-build.yaml")
+		buildConfigFixture = exutil.FixturePath("testdata", "builds", "test-imagesource-buildconfig.yaml")
+		s2iBuildFixture    = exutil.FixturePath("testdata", "builds", "test-imageresolution-s2i-build.yaml")
+		dockerBuildFixture = exutil.FixturePath("testdata", "builds", "test-imageresolution-docker-build.yaml")
+		customBuildFixture = exutil.FixturePath("testdata", "builds", "test-imageresolution-custom-build.yaml")
 		oc                 = exutil.NewCLI("build-image-source", exutil.KubeConfigPath())
 		imageSourceLabel   = exutil.ParseLabelsOrDie("app=imagesourceapp")
 		imageDockerLabel   = exutil.ParseLabelsOrDie("app=imagedockerapp")
