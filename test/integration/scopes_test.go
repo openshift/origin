@@ -13,7 +13,6 @@ import (
 	"github.com/openshift/origin/pkg/authorization/authorizer/scope"
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
 	buildclient "github.com/openshift/origin/pkg/build/generated/internalclientset"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
@@ -63,14 +62,14 @@ func TestScopedTokens(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	whoamiConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	whoamiConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	whoamiConfig.BearerToken = whoamiOnlyToken.Name
 
-	if _, err := buildclient.NewForConfigOrDie(&whoamiConfig).Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
+	if _, err := buildclient.NewForConfigOrDie(whoamiConfig).Builds(projectName).List(metav1.ListOptions{}); !kapierrors.IsForbidden(err) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	user, err := userclient.NewForConfigOrDie(&whoamiConfig).Users().Get("~", metav1.GetOptions{})
+	user, err := userclient.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -80,7 +79,7 @@ func TestScopedTokens(t *testing.T) {
 
 	// try to impersonate a service account using this token
 	whoamiConfig.Impersonate = rest.ImpersonationConfig{UserName: apiserverserviceaccount.MakeUsername(projectName, "default")}
-	impersonatedUser, err := userclient.NewForConfigOrDie(&whoamiConfig).Users().Get("~", metav1.GetOptions{})
+	impersonatedUser, err := userclient.NewForConfigOrDie(whoamiConfig).Users().Get("~", metav1.GetOptions{})
 	if !kapierrors.IsForbidden(err) {
 		t.Fatalf("missing error: %v got user %#v", err, impersonatedUser)
 	}
@@ -167,9 +166,9 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	nonEscalatingEditConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	nonEscalatingEditConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	nonEscalatingEditConfig.BearerToken = nonEscalatingEditToken.Name
-	nonEscalatingEditClient, err := kclientset.NewForConfig(&nonEscalatingEditConfig)
+	nonEscalatingEditClient, err := kclientset.NewForConfig(nonEscalatingEditConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -190,9 +189,9 @@ func TestScopeEscalations(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	escalatingEditConfig := clientcmd.AnonymousClientConfig(clusterAdminClientConfig)
+	escalatingEditConfig := rest.AnonymousClientConfig(clusterAdminClientConfig)
 	escalatingEditConfig.BearerToken = escalatingEditToken.Name
-	escalatingEditClient, err := kclientset.NewForConfig(&escalatingEditConfig)
+	escalatingEditClient, err := kclientset.NewForConfig(escalatingEditConfig)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

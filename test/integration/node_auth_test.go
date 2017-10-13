@@ -16,7 +16,6 @@ import (
 	authorizationclient "github.com/openshift/origin/pkg/authorization/generated/internalclientset"
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthapiserver "github.com/openshift/origin/pkg/oauth/apiserver"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset/typed/oauth/internalversion"
@@ -62,9 +61,9 @@ func TestNodeAuth(t *testing.T) {
 	}
 	masterKubeletClientConfig.Port = uint(nodePortInt)
 
-	anonymousConfig := clientcmd.AnonymousClientConfig(adminConfig)
+	anonymousConfig := restclient.AnonymousClientConfig(adminConfig)
 
-	badTokenConfig := clientcmd.AnonymousClientConfig(adminConfig)
+	badTokenConfig := restclient.AnonymousClientConfig(adminConfig)
 	badTokenConfig.BearerToken = "bad-token"
 
 	bobKubeClient, bobConfig, err := testutil.GetClientForUser(adminConfig, "bob")
@@ -135,10 +134,10 @@ func TestNodeAuth(t *testing.T) {
 		NodeAdmin           bool
 	}{
 		"bad token": {
-			KubeletClientConfig: kubeletClientConfig(&badTokenConfig),
+			KubeletClientConfig: kubeletClientConfig(badTokenConfig),
 		},
 		"anonymous": {
-			KubeletClientConfig: kubeletClientConfig(&anonymousConfig),
+			KubeletClientConfig: kubeletClientConfig(anonymousConfig),
 			Forbidden:           true,
 		},
 		"cluster admin": {
