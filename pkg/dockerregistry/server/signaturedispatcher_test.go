@@ -45,7 +45,10 @@ func TestSignatureGet(t *testing.T) {
 	testImage.DockerImageManifest = ""
 	testImage.Signatures = append(testImage.Signatures, testSignature)
 
-	fos, imageClient := registrytest.NewFakeOpenShiftWithClient()
+	ctx := context.Background()
+	ctx = registrytest.WithTestLogger(ctx, t)
+
+	fos, imageClient := registrytest.NewFakeOpenShiftWithClient(ctx)
 	registrytest.AddImageStream(t, fos, "user", "app", map[string]string{
 		imageapi.InsecureRepositoryAnnotation: "true",
 	})
@@ -56,7 +59,6 @@ func TestSignatureGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ctx := context.Background()
 	ctx = withUserClient(ctx, osclient)
 	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
 		Loglevel: "debug",
@@ -162,6 +164,7 @@ func TestSignaturePut(t *testing.T) {
 	}
 
 	ctx := context.Background()
+	ctx = registrytest.WithTestLogger(ctx, t)
 	ctx = withUserClient(ctx, osclient)
 	registryApp := NewApp(ctx, registryclient.NewFakeRegistryClient(imageClient), &configuration.Configuration{
 		Loglevel: "debug",
