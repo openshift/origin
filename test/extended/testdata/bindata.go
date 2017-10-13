@@ -144,6 +144,7 @@
 // test/extended/testdata/sti-environment-build-app/Gemfile
 // test/extended/testdata/sti-environment-build-app/config.ru
 // test/extended/testdata/templates/templateinstance_objectkinds.yaml
+// test/extended/testdata/templates/templateservicebroker_bind.yaml
 // test/extended/testdata/test-auth-build.yaml
 // test/extended/testdata/test-bc-with-pr-ref.yaml
 // test/extended/testdata/test-build-app/Dockerfile
@@ -7551,6 +7552,105 @@ func testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml() (*asset, er
 	}
 
 	info := bindataFileInfo{name: "test/extended/testdata/templates/templateinstance_objectkinds.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
+}
+
+var _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml = []byte(`apiVersion: v1
+kind: Template
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+    namespace: ${NAMESPACE}
+
+- apiVersion: template.openshift.io/v1
+  kind: TemplateInstance
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+    namespace: ${NAMESPACE}
+  spec:
+    template:
+      apiVersion: v1
+      kind: Template
+      metadata:
+        uid: d261a5c9-db37-40b5-ac0f-5709e0e3aac4
+      objects:
+      - apiVersion: v1
+        data:
+          username: configmap-username
+        kind: ConfigMap
+        metadata:
+          annotations:
+            template.openshift.io/expose-configmap-username: "{.data['username']}"
+          name: configmap
+      - apiVersion: v1
+        kind: Secret
+        metadata:
+          annotations:
+            template.openshift.io/base64-expose-secret-password: "{.data['password']}"
+            template.openshift.io/expose-secret-username: "{.data['username']}"
+          name: secret
+        stringData:
+          password: secret-password
+          username: secret-username
+      - apiVersion: v1
+        kind: Service
+        metadata:
+          annotations:
+            template.openshift.io/expose-service-uri: http://{.spec.clusterIP}:{.spec.ports[?(.name=="port")].port}
+          name: service
+        spec:
+          ports:
+          - name: port
+            port: 1234
+      - apiVersion: v1
+        kind: Route
+        metadata:
+          annotations:
+            template.openshift.io/expose-route-uri: http://{.spec.host}{.spec.path}
+          name: route
+        spec:
+          host: host
+          path: /path
+          to:
+            kind: Service
+            name: service
+
+- apiVersion: template.openshift.io/v1
+  kind: BrokerTemplateInstance
+  metadata:
+    name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+  spec:
+    templateInstance:
+      apiVersion: template.openshift.io/v1
+      kind: TemplateInstance
+      name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+      namespace: ${NAMESPACE}
+
+    secret:
+      apiVersion: v1
+      kind: Secret
+      name: aadda50d-d92c-402d-bd29-5ed2095aad2c
+      namespace: ${NAMESPACE}
+
+parameters:
+- name: NAMESPACE
+  required: true
+`)
+
+func testExtendedTestdataTemplatesTemplateservicebroker_bindYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, nil
+}
+
+func testExtendedTestdataTemplatesTemplateservicebroker_bindYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataTemplatesTemplateservicebroker_bindYamlBytes()
+	if err != nil {
+		return nil, err
+	}
+
+	info := bindataFileInfo{name: "test/extended/testdata/templates/templateservicebroker_bind.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -28340,6 +28440,7 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/sti-environment-build-app/Gemfile": testExtendedTestdataStiEnvironmentBuildAppGemfile,
 	"test/extended/testdata/sti-environment-build-app/config.ru": testExtendedTestdataStiEnvironmentBuildAppConfigRu,
 	"test/extended/testdata/templates/templateinstance_objectkinds.yaml": testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml,
+	"test/extended/testdata/templates/templateservicebroker_bind.yaml": testExtendedTestdataTemplatesTemplateservicebroker_bindYaml,
 	"test/extended/testdata/test-auth-build.yaml": testExtendedTestdataTestAuthBuildYaml,
 	"test/extended/testdata/test-bc-with-pr-ref.yaml": testExtendedTestdataTestBcWithPrRefYaml,
 	"test/extended/testdata/test-build-app/Dockerfile": testExtendedTestdataTestBuildAppDockerfile,
@@ -28794,6 +28895,7 @@ var _bintree = &bintree{nil, map[string]*bintree{
 				}},
 				"templates": &bintree{nil, map[string]*bintree{
 					"templateinstance_objectkinds.yaml": &bintree{testExtendedTestdataTemplatesTemplateinstance_objectkindsYaml, map[string]*bintree{}},
+					"templateservicebroker_bind.yaml": &bintree{testExtendedTestdataTemplatesTemplateservicebroker_bindYaml, map[string]*bintree{}},
 				}},
 				"test-auth-build.yaml": &bintree{testExtendedTestdataTestAuthBuildYaml, map[string]*bintree{}},
 				"test-bc-with-pr-ref.yaml": &bintree{testExtendedTestdataTestBcWithPrRefYaml, map[string]*bintree{}},

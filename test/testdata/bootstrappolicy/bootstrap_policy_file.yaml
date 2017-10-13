@@ -4118,7 +4118,6 @@ items:
     - create
     - delete
     - get
-    - list
   - apiGroups:
     - ""
     attributeRestrictions: null
@@ -4126,14 +4125,21 @@ items:
     - configmaps
     - services
     verbs:
-    - list
+    - get
+  - apiGroups:
+    - ""
+    attributeRestrictions: null
+    resources:
+    - routes
+    verbs:
+    - get
   - apiGroups:
     - route.openshift.io
     attributeRestrictions: null
     resources:
     - routes
     verbs:
-    - list
+    - get
   - apiGroups:
     - ""
     attributeRestrictions: null

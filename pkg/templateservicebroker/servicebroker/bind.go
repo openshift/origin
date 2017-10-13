@@ -14,15 +14,15 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/util/jsonpath"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/apis/authorization"
 
 	"github.com/openshift/origin/pkg/authorization/util"
+	"github.com/openshift/origin/pkg/config/cmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
@@ -133,44 +133,6 @@ func updateCredentialsForObject(credentials map[string]interface{}, obj runtime.
 	return nil
 }
 
-// updateCredentials lists objects of a particular type created by a given
-// template in its namespace and calls updateCredentialsForObject for each.
-// TODO: handle objects created in other namespaces as well.
-func (b *Broker) updateCredentials(u user.Info, namespace, instanceID, group, resource string, credentials map[string]interface{}, lister func(metav1.ListOptions) (runtime.Object, error)) *api.Response {
-	glog.V(4).Infof("Template service broker: updateCredentials: group %s, resource: %s", group, resource)
-
-	requirement, _ := labels.NewRequirement(templateapi.TemplateInstanceLabel, selection.Equals, []string{instanceID})
-
-	if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
-		Namespace: namespace,
-		Verb:      "list",
-		Group:     group,
-		Resource:  resource,
-	}); err != nil {
-		return api.Forbidden(err)
-	}
-
-	list, err := lister(metav1.ListOptions{LabelSelector: labels.NewSelector().Add(*requirement).String()})
-	if err != nil {
-		if kerrors.IsForbidden(err) {
-			return api.Forbidden(err)
-		}
-
-		return api.InternalServerError(err)
-	}
-
-	err = meta.EachListItem(list, func(obj runtime.Object) error {
-		return updateCredentialsForObject(credentials, obj)
-	})
-
-	if err != nil {
-		return api.InternalServerError(err)
-	}
-
-	return nil
-
-}
-
 // Bind returns the secrets and services from a provisioned template.
 func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindRequest) *api.Response {
 	glog.V(4).Infof("Template service broker: Bind: instanceID %s, bindingID %s", instanceID, bindingID)
@@ -219,32 +181,55 @@ func (b *Broker) Bind(u user.Info, instanceID, bindingID string, breq *api.BindR
 
 	credentials := map[string]interface{}{}
 
-	resp := b.updateCredentials(u, namespace, instanceID, kapi.GroupName, "configmaps", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
-		return b.extkc.Core().ConfigMaps(namespace).List(o)
-	})
-	if resp != nil {
-		return resp
-	}
+	for _, object := range templateInstance.Status.Objects {
+		switch object.Ref.GroupVersionKind().GroupKind() {
+		case kapi.Kind("ConfigMap"),
+			kapi.Kind("Secret"),
+			kapi.Kind("Service"),
+			routeapi.Kind("Route"),
+			routeapi.LegacyKind("Route"):
+		default:
+			continue
+		}
 
-	resp = b.updateCredentials(u, namespace, instanceID, kapi.GroupName, "secrets", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
-		return b.extkc.Core().Secrets(namespace).List(o)
-	})
-	if resp != nil {
-		return resp
-	}
+		mapping, err := b.restmapper.RESTMapping(object.Ref.GroupVersionKind().GroupKind())
+		if err != nil {
+			return api.InternalServerError(err)
+		}
 
-	resp = b.updateCredentials(u, namespace, instanceID, kapi.GroupName, "services", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
-		return b.extkc.Core().Services(namespace).List(o)
-	})
-	if resp != nil {
-		return resp
-	}
+		if err := util.Authorize(b.kc.Authorization().SubjectAccessReviews(), u, &authorization.ResourceAttributes{
+			Namespace: object.Ref.Namespace,
+			Verb:      "get",
+			Group:     object.Ref.GroupVersionKind().Group,
+			Resource:  mapping.Resource,
+			Name:      object.Ref.Name,
+		}); err != nil {
+			return api.Forbidden(err)
+		}
 
-	resp = b.updateCredentials(u, namespace, instanceID, routeapi.GroupName, "routes", credentials, func(o metav1.ListOptions) (runtime.Object, error) {
-		return b.extrouteclient.Routes(namespace).List(o)
-	})
-	if resp != nil {
-		return resp
+		cli, err := cmd.ClientMapperFromConfig(b.extconfig).ClientForMapping(mapping)
+		if err != nil {
+			return api.InternalServerError(err)
+		}
+
+		obj, err := cli.Get().Resource(mapping.Resource).NamespaceIfScoped(object.Ref.Namespace, mapping.Scope.Name() == meta.RESTScopeNameNamespace).Name(object.Ref.Name).Do().Get()
+		if err != nil {
+			return api.InternalServerError(err)
+		}
+
+		meta, err := meta.Accessor(obj)
+		if err != nil {
+			return api.InternalServerError(err)
+		}
+
+		if meta.GetUID() != object.Ref.UID {
+			return api.InternalServerError(kerrors.NewNotFound(schema.GroupResource{Group: mapping.GroupVersionKind.Group, Resource: mapping.Resource}, object.Ref.Name))
+		}
+
+		err = updateCredentialsForObject(credentials, obj)
+		if err != nil {
+			return api.InternalServerError(err)
+		}
 	}
 
 	// The OSB API requires this function to be idempotent (restartable).  If
