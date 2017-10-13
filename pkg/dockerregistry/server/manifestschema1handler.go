@@ -90,9 +90,11 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 			})
 	}
 
-	if len(h.manifest.History) != len(h.manifest.FSLayers) {
-		errs = append(errs, fmt.Errorf("mismatched history and fslayer cardinality %d != %d",
-			len(h.manifest.History), len(h.manifest.FSLayers)))
+	manifestReferences := h.manifest.References()
+
+	if len(h.manifest.History) != len(manifestReferences) {
+		errs = append(errs, fmt.Errorf("mismatched history and manifests references %d != %d",
+			len(h.manifest.History), len(manifestReferences)))
 	}
 
 	if _, err := schema1.Verify(h.manifest); err != nil {
@@ -115,8 +117,10 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 		return nil
 	}
 
-	for _, fsLayer := range h.manifest.References() {
-		_, err := repo.Blobs(ctx).Stat(ctx, fsLayer.Digest)
+	var realSizes []int64
+
+	for _, fsLayer := range manifestReferences {
+		desc, err := repo.Blobs(ctx).Stat(ctx, fsLayer.Digest)
 		if err != nil {
 			if err != distribution.ErrBlobUnknown {
 				errs = append(errs, err)
@@ -125,11 +129,37 @@ func (h *manifestSchema1Handler) Verify(ctx context.Context, skipDependencyVerif
 
 			// On error here, we always append unknown blob errors.
 			errs = append(errs, distribution.ErrManifestBlobUnknown{Digest: fsLayer.Digest})
+			continue
+		}
+		realSizes = append(realSizes, desc.Size)
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+
+	v1Compatibility := struct {
+		Size int64 `json:"size,omitempty"`
+	}{}
+
+	for i, obj := range h.manifest.History {
+		v1Compatibility.Size = 0
+		if err := json.Unmarshal([]byte(obj.V1Compatibility), &v1Compatibility); err != nil {
+			errs = append(errs, err)
+			continue
+		}
+		if !isEmptyDigest(manifestReferences[i].Digest) && realSizes[i] != v1Compatibility.Size {
+			errs = append(errs, ErrManifestBlobBadSize{
+				Digest:       manifestReferences[i].Digest,
+				ActualSize:   realSizes[i],
+				ManifestSize: v1Compatibility.Size,
+			})
 		}
 	}
 
 	if len(errs) > 0 {
 		return errs
 	}
+
 	return nil
 }

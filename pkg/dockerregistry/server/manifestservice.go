@@ -21,6 +21,20 @@ import (
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
+// ErrManifestBlobBadSize returned when a size of blob specified in the manifest
+// does not match the actual size. The docker/distribution does not check this
+// and therefore does not have a ready-made error for this.
+type ErrManifestBlobBadSize struct {
+	Digest       digest.Digest
+	ActualSize   int64
+	ManifestSize int64
+}
+
+func (err ErrManifestBlobBadSize) Error() string {
+	return fmt.Sprintf("blob %v has the size (%d) different from one specified in manifest (%d)",
+		err.Digest, err.ActualSize, err.ManifestSize)
+}
+
 var _ distribution.ManifestService = &manifestService{}
 
 type manifestService struct {
