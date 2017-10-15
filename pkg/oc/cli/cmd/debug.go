@@ -362,12 +362,23 @@ func (o *DebugOptions) Debug() error {
 			if stderr == nil {
 				stderr = os.Stderr
 			}
+
+			podResult, err := o.Attach.PodClient.Pods(pod.Namespace).Get(pod.Name, metav1.GetOptions{})
+			var rc int
+			if err != nil {
+				fmt.Fprintf(stderr, "error: unable to get the pod return code.")
+				rc = 1
+			} else {
+				rc = int(podResult.Status.ContainerStatuses[0].State.Terminated.ExitCode)
+			}
+
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
 			if err := o.Attach.PodClient.Pods(pod.Namespace).Delete(pod.Name, metav1.NewDeleteOptions(0)); err != nil {
 				if !kapierrors.IsNotFound(err) {
 					fmt.Fprintf(stderr, "error: unable to delete the debug pod %q: %v\n", pod.Name, err)
 				}
 			}
+			os.Exit(rc)
 		},
 	)
 
