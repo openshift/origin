@@ -274,6 +274,8 @@ openshift-cli-expose.1
 openshift-cli-extract.1
 openshift-cli-get.1
 openshift-cli-idle.1
+openshift-cli-image-mirror.1
+openshift-cli-image.1
 openshift-cli-import-app.json.1
 openshift-cli-import-image.1
 openshift-cli-import.1
