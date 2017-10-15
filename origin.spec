@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 88d9b46cff04bc36fe04c2a31cf7b479c2315a53
+%global commit 1f04de0adac7e6a4211ef0a52bd476849fc9f59b
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.153.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=88d9b46
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.154.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1f04de0
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.154.0%{?dist}
+Release:        0.155.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,19 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Sun Oct 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.155.0
+- bump(github.com/openshift/origin-web-console):
+  8b7c0d947baf3950503e83863d08878c553de779 (eparis+openshiftbot@redhat.com)
+- cli: Mirror images across registries or to S3 (ccoleman@redhat.com)
+- bump(github.com/aws/aws-sdk-go/service/s3): add two packages
+  (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: 2384: Fallback to GET for manifest
+  (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: 2402: Allow manifest specification
+  (ccoleman@redhat.com)
+- UPSTREAM: docker/distribution: 2382: Don't double add scopes
+  (ccoleman@redhat.com)
+
 * Sat Oct 14 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.154.0
 - 
 
