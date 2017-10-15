@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/origin/pkg/oc/admin"
 	"github.com/openshift/origin/pkg/oc/cli/cmd"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/cluster"
+	"github.com/openshift/origin/pkg/oc/cli/cmd/image"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/importer"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/login"
 	"github.com/openshift/origin/pkg/oc/cli/cmd/observe"
@@ -164,6 +165,7 @@ func NewCommandCLI(name, fullName string, in io.Reader, out, errout io.Writer) *
 				cmd.NewCmdAuth(fullName, f, out, errout),
 				cmd.NewCmdConvert(fullName, f, out),
 				importer.NewCmdImport(fullName, f, in, out, errout),
+				image.NewCmdImage(fullName, f, in, out, errout),
 			},
 		},
 		{
