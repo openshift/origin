@@ -3092,6 +3092,12 @@ items:
     - templateinstances/status
     verbs:
     - update
+  - apiGroups:
+    - template.openshift.io
+    resources:
+    - templateinstances/finalizers
+    verbs:
+    - update
 - apiVersion: rbac.authorization.k8s.io/v1beta1
   kind: ClusterRole
   metadata:
@@ -3743,6 +3749,12 @@ items:
     - create
     - delete
     - get
+    - update
+  - apiGroups:
+    - template.openshift.io
+    resources:
+    - brokertemplateinstances/finalizers
+    verbs:
     - update
   - apiGroups:
     - template.openshift.io

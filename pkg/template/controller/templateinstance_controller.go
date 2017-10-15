@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
@@ -429,11 +430,13 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 
 	// We add an OwnerReference to all objects we create - this is also needed
 	// by the template service broker for cleanup.
+	blockOwnerDeletion := true
 	templateInstanceOwnerRef := metav1.OwnerReference{
-		APIVersion: templateapiv1.SchemeGroupVersion.String(),
-		Kind:       "TemplateInstance",
-		Name:       templateInstance.Name,
-		UID:        templateInstance.UID,
+		APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+		Kind:               "TemplateInstance",
+		Name:               templateInstance.Name,
+		UID:                templateInstance.UID,
+		BlockOwnerDeletion: &blockOwnerDeletion,
 	}
 
 	for _, obj := range template.Objects {
@@ -501,7 +504,7 @@ func (c *TemplateInstanceController) instantiate(templateInstance *templateapi.T
 			}
 
 			for _, ownerRef := range meta.GetOwnerReferences() {
-				if ownerRef == templateInstanceOwnerRef {
+				if reflect.DeepEqual(ownerRef, templateInstanceOwnerRef) {
 					createObj, createErr = obj, nil
 					break
 				}
