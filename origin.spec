@@ -21,12 +21,12 @@
 # %commit and %os_git_vars are intended to be set by tito custom builders provided
 # in the .tito/lib directory. The values in this spec file will not be kept up to date.
 %{!?commit:
-%global commit 1f04de0adac7e6a4211ef0a52bd476849fc9f59b
+%global commit d15d3711c0abdf40fcedb578f35493326de8e974
 }
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 # os_git_vars needed to run hack scripts during rpm builds
 %{!?os_git_vars:
-%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.154.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=1f04de0
+%global os_git_vars OS_GIT_MINOR=7+ OS_GIT_MAJOR=3 OS_GIT_VERSION=v3.7.0-0.155.0 OS_GIT_TREE_STATE=clean OS_BUILD_LDFLAGS_DEFAULT_IMAGE_STREAMS=rhel7 OS_IMAGE_PREFIX=registry.access.redhat.com/openshift3/ose OS_GIT_COMMIT=d15d371
 }
 
 %if 0%{?fedora} || 0%{?epel}
@@ -53,7 +53,7 @@ Name:           atomic-openshift
 # Version is not kept up to date and is intended to be set by tito custom
 # builders provided in the .tito/lib directory of this project
 Version:        3.7.0
-Release:        0.155.0%{?dist}
+Release:        0.156.0%{?dist}
 Summary:        Open Source Container Management by Red Hat
 License:        ASL 2.0
 URL:            https://%{import_path}
@@ -648,6 +648,20 @@ fi
 %{_bindir}/hyperkube
 
 %changelog
+* Mon Oct 16 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.156.0
+- replace cmdutil.ErrExit with kcmdutil.ErrExit (bparees@redhat.com)
+- Enable asynchronous deprovision in TSB (jminter@redhat.com)
+- extended: log registry pod to artifacts directory (miminar@redhat.com)
+- Fixed the wrong link of source (teleyic@gmail.com)
+- DiagnosticPod: handle interrupt (lmeyer@redhat.com)
+- NetworkCheck: warn -> info on wrong network plugin (lmeyer@redhat.com)
+- NetworkCheck: handle interrupt (lmeyer@redhat.com)
+- clusterresourceoverride: exempt known infra projects from enforcement
+  (sjenning@redhat.com)
+- UPSTREAM: 53753: Reduce log spam in qos container manager
+  (joesmith@redhat.com)
+- Require network API objects to have IPv4 addresses (danw@redhat.com)
+
 * Sun Oct 15 2017 Jenkins CD Merge Bot <smunilla@redhat.com> 3.7.0-0.155.0
 - bump(github.com/openshift/origin-web-console):
   8b7c0d947baf3950503e83863d08878c553de779 (eparis+openshiftbot@redhat.com)
