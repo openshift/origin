@@ -59,7 +59,7 @@ func ParseNetworkInfo(clusterNetwork []networkapi.ClusterNetworkEntry, serviceNe
 		if err != nil {
 			_, cidr, err := net.ParseCIDR(entry.CIDR)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", cidr, err)
+				return nil, fmt.Errorf("failed to parse ClusterNetwork CIDR %s: %v", entry.CIDR, err)
 			}
 			glog.Errorf("Configured clusterNetworks value %q is invalid; treating it as %q", entry.CIDR, cidr.String())
 		}
