@@ -16,7 +16,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -76,7 +75,7 @@ func NewCmdExtract(fullName string, f *clientcmd.Factory, in io.Reader, out, err
 			kcmdutil.CheckErr(options.Validate())
 			// TODO: move me to kcmdutil
 			err := options.Run()
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)

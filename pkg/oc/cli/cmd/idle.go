@@ -26,7 +26,6 @@ import (
 	deployapi "github.com/openshift/origin/pkg/apps/apis/apps"
 	appsmanualclient "github.com/openshift/origin/pkg/apps/client/v1"
 	appsv1client "github.com/openshift/origin/pkg/apps/generated/clientset/typed/apps/v1"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	unidlingapi "github.com/openshift/origin/pkg/unidling/api"
 	utilunidling "github.com/openshift/origin/pkg/unidling/util"
@@ -66,7 +65,7 @@ func NewCmdIdle(fullName string, f *clientcmd.Factory, out, errOut io.Writer) *c
 		Run: func(cmd *cobra.Command, args []string) {
 			kcmdutil.CheckErr(o.Complete(f, cmd, args))
 			err := o.RunIdle(f)
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -668,7 +667,7 @@ func (o *IdleOptions) RunIdle(f *clientcmd.Factory) error {
 	}
 
 	if hadError {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 
 	return nil

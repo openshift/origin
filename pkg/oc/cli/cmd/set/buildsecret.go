@@ -16,7 +16,6 @@ import (
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
 	buildapi "github.com/openshift/origin/pkg/build/apis/build"
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -94,7 +93,7 @@ func NewCmdBuildSecret(fullName string, f *clientcmd.Factory, out, errOut io.Wri
 			kcmdutil.CheckErr(options.Validate())
 			if err := options.Run(); err != nil {
 				// TODO: move me to kcmdutil
-				if err == cmdutil.ErrExit {
+				if err == kcmdutil.ErrExit {
 					os.Exit(1)
 				}
 				kcmdutil.CheckErr(err)

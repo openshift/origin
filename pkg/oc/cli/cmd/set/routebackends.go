@@ -21,7 +21,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	routeapi "github.com/openshift/origin/pkg/route/apis/route"
 )
@@ -114,7 +113,7 @@ func NewCmdRouteBackends(fullName string, f *clientcmd.Factory, out, errOut io.W
 			kcmdutil.CheckErr(options.Validate())
 			err := options.Run()
 			// TODO: move me to kcmdutil
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -257,7 +256,7 @@ func (o *BackendsOptions) Run() error {
 		kcmdutil.PrintSuccess(o.Mapper, o.ShortOutput, o.Out, info.Mapping.Resource, info.Name, false, "updated")
 	}
 	if failed {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 	return nil
 }

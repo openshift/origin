@@ -167,7 +167,7 @@ func NewCmdRegistry(f *clientcmd.Factory, parentName, name string, out, errout i
 			}
 			kcmdutil.CheckErr(opts.Complete(f, cmd, out, errout, args))
 			err := opts.RunCmdRegistry()
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -471,7 +471,7 @@ func (opts *RegistryOptions) RunCmdRegistry() error {
 	}
 
 	if errs := opts.Config.Action.WithMessage(fmt.Sprintf("Creating registry %s", opts.Config.Name), "created").Run(list, opts.namespace); len(errs) > 0 {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 	return nil
 }
