@@ -378,7 +378,7 @@ func launchRateLimitedRouter(t *testing.T, routeclient routeinternalclientset.In
 		plugin = NewDelayPlugin(plugin, maxDelay)
 	}
 
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, kc)
+	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient.Project().Projects(), kc)
 	ctrl := factory.Create(plugin, false, false)
 	ctrl.Run()
 
@@ -409,11 +409,6 @@ func launchRouter(routeclient routeinternalclientset.Interface, projectclient pr
 	})
 	factory := routerSelection.NewFactory(routeclient, projectclient.Project().Projects(), kc)
 	ctrl := factory.Create(plugin, false, false)
-
-	// Minimize resync latency
-	ctrl.NamespaceSyncInterval = factory.ResyncInterval - 1*time.Second
-	ctrl.NamespaceWaitInterval = 1 * time.Second
-
 	ctrl.Run()
 
 	return templatePlugin
