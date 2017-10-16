@@ -35,6 +35,7 @@ func TestImageWithMetadata(t *testing.T) {
 			expectedImage: imageapi.Image{
 				DockerImageManifest: `{"name": "library/ubuntu", "tag": "latest"}`,
 			},
+			expectError: true,
 		},
 		"error unmarshalling v1 compat": {
 			image: imageapi.Image{

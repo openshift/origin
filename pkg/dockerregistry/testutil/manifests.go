@@ -3,7 +3,6 @@ package testutil
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"net/url"
 	"reflect"
 	"testing"
@@ -14,11 +13,7 @@ import (
 	"github.com/docker/distribution/manifest"
 	"github.com/docker/distribution/manifest/schema1"
 	"github.com/docker/distribution/manifest/schema2"
-	"github.com/docker/distribution/reference"
-	distclient "github.com/docker/distribution/registry/client"
 	"github.com/docker/distribution/registry/client/auth"
-	"github.com/docker/distribution/registry/client/auth/challenge"
-	"github.com/docker/distribution/registry/client/transport"
 	"github.com/docker/libtrust"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,13 +26,8 @@ import (
 )
 
 type ManifestSchemaVersion int
-type LayerPayload []byte
-type ConfigPayload []byte
 
-type Payload struct {
-	Config ConfigPayload
-	Layers []LayerPayload
-}
+type ConfigPayload []byte
 
 const (
 	ManifestSchema1 ManifestSchemaVersion = 1
@@ -46,8 +36,7 @@ const (
 
 // MakeSchema1Manifest constructs a schema 1 manifest from a given list of digests and returns
 // the digest of the manifest
-// github.com/docker/distribution/testutil
-func MakeSchema1Manifest(name, tag string, layers []distribution.Descriptor) (string, distribution.Manifest, error) {
+func MakeSchema1Manifest(name, tag string, layers []distribution.Descriptor) (distribution.Manifest, error) {
 	m := schema1.Manifest{
 		Versioned: manifest.Versioned{
 			SchemaVersion: 1,
@@ -65,20 +54,20 @@ func MakeSchema1Manifest(name, tag string, layers []distribution.Descriptor) (st
 
 	pk, err := libtrust.GenerateECP256PrivateKey()
 	if err != nil {
-		return "", nil, fmt.Errorf("unexpected error generating private key: %v", err)
+		return nil, fmt.Errorf("unexpected error generating private key: %v", err)
 	}
 
 	signedManifest, err := schema1.Sign(&m, pk)
 	if err != nil {
-		return "", nil, fmt.Errorf("error signing manifest: %v", err)
+		return nil, fmt.Errorf("error signing manifest: %v", err)
 	}
 
-	return string(signedManifest.Canonical), signedManifest, nil
+	return signedManifest, nil
 }
 
 // MakeSchema2Manifest constructs a schema 2 manifest from a given list of digests and returns
 // the digest of the manifest
-func MakeSchema2Manifest(config distribution.Descriptor, layers []distribution.Descriptor) (string, distribution.Manifest, error) {
+func MakeSchema2Manifest(config distribution.Descriptor, layers []distribution.Descriptor) (distribution.Manifest, error) {
 	m := schema2.Manifest{
 		Versioned: schema2.SchemaVersion,
 		Config:    config,
@@ -93,37 +82,38 @@ func MakeSchema2Manifest(config distribution.Descriptor, layers []distribution.D
 
 	manifest, err := schema2.FromStruct(m)
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
-	_, payload, err := manifest.Payload()
-	if err != nil {
-		return "", nil, err
-	}
-
-	return string(payload), manifest, nil
+	return manifest, nil
 }
 
-func MakeRandomLayers(layerCount int) ([]distribution.Descriptor, []LayerPayload, error) {
-	var (
-		layers   []distribution.Descriptor
-		payloads []LayerPayload
-	)
-
-	for i := 0; i < layerCount; i++ {
-		content, err := CreateRandomTarFile()
+// CanonicalManifest returns m in its canonical representation.
+func CanonicalManifest(m distribution.Manifest) ([]byte, error) {
+	switch m := m.(type) {
+	case *schema1.SignedManifest:
+		return m.Canonical, nil
+	case *schema2.DeserializedManifest:
+		_, payload, err := m.Payload()
 		if err != nil {
-			return layers, payloads, fmt.Errorf("unexpected error generating test layer file: %v", err)
+			return nil, err
 		}
+		return payload, nil
+	}
+	return nil, fmt.Errorf("no canonical representation of %T: %#+v", m, m)
+}
 
-		layers = append(layers, distribution.Descriptor{
-			Digest: digest.FromBytes(content),
-			Size:   int64(len(content)),
-		})
-		payloads = append(payloads, LayerPayload(content))
+func MakeRandomLayer() ([]byte, distribution.Descriptor, error) {
+	content, err := CreateRandomTarFile()
+	if err != nil {
+		return nil, distribution.Descriptor{}, fmt.Errorf("failed to generate data for a random layer: %v", err)
 	}
 
-	return layers, payloads, nil
+	return content, distribution.Descriptor{
+		MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+		Size:      int64(len(content)),
+		Digest:    digest.FromBytes(content),
+	}, nil
 }
 
 func MakeManifestConfig() (ConfigPayload, distribution.Descriptor, error) {
@@ -141,42 +131,10 @@ func MakeManifestConfig() (ConfigPayload, distribution.Descriptor, error) {
 	return jsonBytes, cfgDesc, nil
 }
 
-func CreateRandomManifest(schemaVersion ManifestSchemaVersion, layerCount int) (string, distribution.Manifest, *Payload, error) {
-	var (
-		rawManifest string
-		manifest    distribution.Manifest
-		cfgDesc     distribution.Descriptor
-		err         error
-	)
-
-	layersDescs, layerPayloads, err := MakeRandomLayers(layerCount)
-	if err != nil {
-		return "", nil, nil, fmt.Errorf("cannot generate layers: %v", err)
-	}
-
-	payload := &Payload{
-		Layers: layerPayloads,
-	}
-
-	switch schemaVersion {
-	case ManifestSchema1:
-		rawManifest, manifest, err = MakeSchema1Manifest("who", "cares", layersDescs)
-	case ManifestSchema2:
-		_, cfgDesc, err = MakeManifestConfig()
-		if err != nil {
-			return "", nil, nil, err
-		}
-		rawManifest, manifest, err = MakeSchema2Manifest(cfgDesc, layersDescs)
-	default:
-		return "", nil, nil, fmt.Errorf("unsupported manifest version %d", schemaVersion)
-	}
-
-	return rawManifest, manifest, payload, err
-}
-
 // CreateUploadTestManifest generates a random manifest blob and uploads it to the given repository. For this
 // purpose, a given number of layers will be created and uploaded.
 func CreateAndUploadTestManifest(
+	ctx context.Context,
 	schemaVersion ManifestSchemaVersion,
 	layerCount int,
 	serverURL *url.URL,
@@ -188,16 +146,26 @@ func CreateAndUploadTestManifest(
 	)
 
 	for i := 0; i < layerCount; i++ {
-		ds, _, err := UploadRandomTestBlob(serverURL, creds, repoName)
+		ds, _, err := UploadRandomTestBlob(ctx, serverURL, creds, repoName)
 		if err != nil {
 			return "", "", "", nil, fmt.Errorf("unexpected error generating test blob layer: %v", err)
 		}
 		layerDescriptors = append(layerDescriptors, ds)
 	}
 
+	rt, err := NewTransport(serverURL.String(), repoName, creds)
+	if err != nil {
+		return "", "", "", nil, err
+	}
+
+	repo, err := NewRepository(ctx, repoName, serverURL.String(), rt)
+	if err != nil {
+		return "", "", "", nil, err
+	}
+
 	switch schemaVersion {
 	case ManifestSchema1:
-		canonical, manifest, err = MakeSchema1Manifest(repoName, tag, layerDescriptors)
+		manifest, err = MakeSchema1Manifest(repoName, tag, layerDescriptors)
 		if err != nil {
 			return "", "", "", nil, fmt.Errorf("failed to make manifest of schema 1: %v", err)
 		}
@@ -206,11 +174,11 @@ func CreateAndUploadTestManifest(
 		if err != nil {
 			return "", "", "", nil, err
 		}
-		_, err = UploadBlob(cfgPayload, serverURL, creds, repoName)
+		err = UploadBlob(ctx, repo, cfgDesc, cfgPayload)
 		if err != nil {
 			return "", "", "", nil, fmt.Errorf("failed to upload manifest config of schema 2: %v", err)
 		}
-		canonical, manifest, err = MakeSchema2Manifest(cfgDesc, layerDescriptors)
+		manifest, err = MakeSchema2Manifest(cfgDesc, layerDescriptors)
 		if err != nil {
 			return "", "", "", nil, fmt.Errorf("failed to make manifest schema 2: %v", err)
 		}
@@ -219,47 +187,18 @@ func CreateAndUploadTestManifest(
 		return "", "", "", nil, fmt.Errorf("unsupported manifest version %d", schemaVersion)
 	}
 
-	expectedDgst := digest.FromBytes([]byte(canonical))
-
-	ctx := context.Background()
-	ref, err := reference.ParseNamed(repoName)
+	canonicalBytes, err := CanonicalManifest(manifest)
 	if err != nil {
 		return "", "", "", nil, err
 	}
 
-	var rt http.RoundTripper
-	if creds != nil {
-		challengeManager := challenge.NewSimpleManager()
-		_, err := ping(challengeManager, serverURL.String()+"/v2/", "")
-		if err != nil {
-			return "", "", "", nil, err
-		}
-		rt = transport.NewTransport(
-			nil,
-			auth.NewAuthorizer(
-				challengeManager,
-				auth.NewTokenHandler(nil, creds, repoName, "pull", "push"),
-				auth.NewBasicHandler(creds)))
-	}
-	repo, err := distclient.NewRepository(ctx, ref, serverURL.String(), rt)
-	if err != nil {
-		return "", "", "", nil, fmt.Errorf("failed to get repository %q: %v", repoName, err)
-	}
+	dgst = digest.FromBytes(canonicalBytes)
 
-	ms, err := repo.Manifests(ctx)
-	if err != nil {
-		return "", "", "", nil, err
-	}
-	dgst, err = ms.Put(ctx, manifest)
-	if err != nil {
+	if err := UploadManifest(ctx, repo, tag, manifest); err != nil {
 		return "", "", "", nil, err
 	}
 
-	if expectedDgst != dgst {
-		return "", "", "", nil, fmt.Errorf("registry server computed different digest for uploaded manifest than expected: %q != %q", dgst, expectedDgst)
-	}
-
-	return dgst, canonical, manifestConfig, manifest, nil
+	return dgst, string(canonicalBytes), manifestConfig, manifest, nil
 }
 
 // AssertManifestsEqual compares two manifests and returns if they are equal. Signatures of manifest schema 1

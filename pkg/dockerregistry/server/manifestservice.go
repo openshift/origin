@@ -21,6 +21,20 @@ import (
 	quotautil "github.com/openshift/origin/pkg/quota/util"
 )
 
+// ErrManifestBlobBadSize is returned when the blob size in a manifest does
+// not match the actual size. The docker/distribution does not check this and
+// therefore does not provide an error for this.
+type ErrManifestBlobBadSize struct {
+	Digest         digest.Digest
+	ActualSize     int64
+	SizeInManifest int64
+}
+
+func (err ErrManifestBlobBadSize) Error() string {
+	return fmt.Sprintf("the blob %s has the size (%d) different from the one specified in the manifest (%d)",
+		err.Digest, err.ActualSize, err.SizeInManifest)
+}
+
 var _ distribution.ManifestService = &manifestService{}
 
 type manifestService struct {
@@ -104,6 +118,7 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
 	}
+
 	mediaType, payload, _, err := mh.Payload()
 	if err != nil {
 		return "", regapi.ErrorCodeManifestInvalid.WithDetail(err)
@@ -134,6 +149,11 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 		return "", err
 	}
 
+	layerOrder, layers, err := mh.Layers(ctx)
+	if err != nil {
+		return "", err
+	}
+
 	// Upload to openshift
 	ism := imageapiv1.ImageStreamMapping{
 		ObjectMeta: metav1.ObjectMeta{
@@ -146,12 +166,14 @@ func (m *manifestService) Put(ctx context.Context, manifest distribution.Manifes
 				Annotations: map[string]string{
 					imageapi.ManagedByOpenShiftAnnotation:      "true",
 					imageapi.ImageManifestBlobStoredAnnotation: "true",
+					imageapi.DockerImageLayersOrderAnnotation:  layerOrder,
 				},
 			},
 			DockerImageReference:         fmt.Sprintf("%s/%s/%s@%s", m.repo.config.registryAddr, m.repo.namespace, m.repo.name, dgst.String()),
 			DockerImageManifest:          string(payload),
 			DockerImageManifestMediaType: mediaType,
 			DockerImageConfig:            string(config),
+			DockerImageLayers:            layers,
 		},
 	}
 
