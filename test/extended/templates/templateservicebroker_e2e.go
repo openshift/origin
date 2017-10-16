@@ -10,21 +10,26 @@ import (
 	"golang.org/x/net/context"
 
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
 	"k8s.io/kubernetes/pkg/api/v1"
+	rbacapi "k8s.io/kubernetes/pkg/apis/rbac"
 	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
+	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
+	"github.com/openshift/origin/pkg/config/cmd"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
 	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/template/client/internalversion"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/client"
+	restutil "github.com/openshift/origin/pkg/util/rest"
 	exutil "github.com/openshift/origin/test/extended/util"
 )
 
@@ -188,8 +193,16 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			},
 		}))
 
+		blockOwnerDeletion := true
 		o.Expect(templateInstance.Annotations).To(o.Equal(map[string]string{
 			api.OpenServiceBrokerInstanceExternalID: templateInstance.Name,
+		}))
+		o.Expect(templateInstance.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
+			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+			Kind:               "BrokerTemplateInstance",
+			Name:               brokerTemplateInstance.Name,
+			UID:                brokerTemplateInstance.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
 		}))
 
 		o.Expect(templateInstance.Spec).To(o.Equal(templateapi.TemplateInstanceSpec{
@@ -215,6 +228,13 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 			o.Expect(obj.Ref.UID).ToNot(o.BeEmpty())
 		}
 
+		o.Expect(secret.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
+			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+			Kind:               "BrokerTemplateInstance",
+			Name:               brokerTemplateInstance.Name,
+			UID:                brokerTemplateInstance.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
+		}))
 		o.Expect(secret.Type).To(o.Equal(v1.SecretTypeOpaque))
 		o.Expect(secret.Data).To(o.Equal(map[string][]byte{
 			"DATABASE_USER": []byte("test"),
@@ -224,10 +244,11 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		o.Expect(examplesecret.OwnerReferences).To(o.ContainElement(metav1.OwnerReference{
-			APIVersion: templateapiv1.SchemeGroupVersion.String(),
-			Kind:       "TemplateInstance",
-			Name:       templateInstance.Name,
-			UID:        templateInstance.UID,
+			APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+			Kind:               "TemplateInstance",
+			Name:               templateInstance.Name,
+			UID:                templateInstance.UID,
+			BlockOwnerDeletion: &blockOwnerDeletion,
 		}))
 		o.Expect(examplesecret.Data["database-user"]).To(o.BeEquivalentTo("test"))
 		o.Expect(examplesecret.Data["database-password"]).To(o.MatchRegexp("^[a-zA-Z0-9]{16}$"))
@@ -262,25 +283,78 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker end-to-end te
 
 	deprovision := func() {
 		g.By("deprovisioning a service")
-		err := brokercli.Deprovision(context.Background(), cliUser, instanceID)
+		err := cli.TemplateClient().Template().Templates(cli.Namespace()).Delete(privatetemplate.Name, &metav1.DeleteOptions{})
+		o.Expect(err).NotTo(o.HaveOccurred())
+
+		err = brokercli.Deprovision(context.Background(), cliUser, instanceID)
 		o.Expect(err).NotTo(o.HaveOccurred())
 
 		_, err = cli.AdminTemplateClient().Template().BrokerTemplateInstances().Get(instanceID, metav1.GetOptions{})
 		o.Expect(err).To(o.HaveOccurred())
 		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
 
-		_, err = cli.TemplateClient().Template().TemplateInstances(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
+		restmapper := restutil.DefaultMultiRESTMapper()
 
-		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get(instanceID, metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
+		_, config, err := configapi.GetInternalKubeClient(exutil.KubeConfigPath(), nil)
+		o.Expect(err).NotTo(o.HaveOccurred())
 
-		// TODO: check that the namespace is actually empty at this point
-		_, err = cli.KubeClient().CoreV1().Secrets(cli.Namespace()).Get("examplesecret", metav1.GetOptions{})
-		o.Expect(err).To(o.HaveOccurred())
-		o.Expect(kerrors.IsNotFound(err)).To(o.BeTrue())
+		// check the namespace is empty
+		for gvk := range kapi.Scheme.AllKnownTypes() {
+			if gvk.Version == runtime.APIVersionInternal {
+				continue
+			}
+
+			switch gvk.GroupKind() {
+			case kapi.Kind("Event"),
+				kapi.Kind("ServiceAccount"),
+				kapi.Kind("Secret"),
+				kapi.Kind("RoleBinding"),
+				rbacapi.Kind("RoleBinding"),
+				authorizationapi.LegacyKind("RoleBinding"),
+				authorizationapi.Kind("RoleBinding"):
+				continue
+			}
+
+			mapping, err := restmapper.RESTMapping(gvk.GroupKind())
+			if meta.IsNoMatchError(err) {
+				continue
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if mapping.Scope.Name() != meta.RESTScopeNameNamespace {
+				continue
+			}
+
+			restcli, err := cmd.ClientMapperFromConfig(config).ClientForMapping(mapping)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			// list all objects
+			obj, err := restcli.Get().Resource(mapping.Resource).Namespace(cli.Namespace()).Do().Get()
+			if kerrors.IsNotFound(err) || kerrors.IsMethodNotSupported(err) {
+				continue
+			}
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			list, err := meta.ExtractList(obj)
+			o.Expect(err).NotTo(o.HaveOccurred())
+
+			if gvk.GroupKind() == kapi.Kind("Pod") {
+				// pods stick around for a while after deprovision because of
+				// graceful deletion.  As long as every pod deletion timestamp
+				// is set, that'll have to do.
+				for _, obj := range list {
+					meta, err := meta.Accessor(obj)
+					o.Expect(err).NotTo(o.HaveOccurred())
+					o.Expect(meta.GetDeletionTimestamp()).NotTo(o.BeNil())
+				}
+
+			} else {
+				if len(list) > 0 {
+					fmt.Fprintf(g.GinkgoWriter, "error: found %d objects of GVK %s", len(list), gvk.String())
+				}
+				o.Expect(list).To(o.BeEmpty())
+			}
+		}
 	}
 
 	g.Context("", func() {

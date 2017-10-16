@@ -16,6 +16,28 @@ import (
 	"github.com/openshift/origin/pkg/util/netutils"
 )
 
+func validateCIDRv4(cidr string) (*net.IPNet, error) {
+	ipnet, err := netutils.ParseCIDRMask(cidr)
+	if err != nil {
+		return nil, err
+	}
+	if ipnet.IP.To4() == nil {
+		return nil, fmt.Errorf("must be an IPv4 network")
+	}
+	return ipnet, nil
+}
+
+func validateIPv4(ip string) (net.IP, error) {
+	bytes := net.ParseIP(ip)
+	if bytes == nil {
+		return nil, fmt.Errorf("invalid IP address")
+	}
+	if bytes.To4() == nil {
+		return nil, fmt.Errorf("must be an IPv4 address")
+	}
+	return bytes, nil
+}
+
 var defaultClusterNetwork *networkapi.ClusterNetwork
 
 // SetDefaultClusterNetwork sets the expected value of the default ClusterNetwork record
@@ -31,7 +53,7 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 	// This check is mainly for ensuring backward compatibility
 	if len(clusterNet.Network) != 0 || clusterNet.HostSubnetLength != 0 {
 		//In the case that a user manually makes a clusterNetwork object with clusterNet.Network and clusterNet.HostubnetLength at least make sure they are valid values
-		clusterIPNet, err := netutils.ParseCIDRMask(clusterNet.Network)
+		clusterIPNet, err := validateCIDRv4(clusterNet.Network)
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("network"), clusterNet.Network, err.Error()))
 		} else {
@@ -47,12 +69,12 @@ func ValidateClusterNetwork(clusterNet *networkapi.ClusterNetwork) field.ErrorLi
 	if len(clusterNet.ClusterNetworks) == 0 && len(clusterNet.Network) == 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("clusterNetworks"), clusterNet.ClusterNetworks, "must have at least one cluster network CIDR"))
 	}
-	serviceIPNet, err := netutils.ParseCIDRMask(clusterNet.ServiceNetwork)
+	serviceIPNet, err := validateCIDRv4(clusterNet.ServiceNetwork)
 	if err != nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("serviceNetwork"), clusterNet.ServiceNetwork, err.Error()))
 	}
 	for i, cn := range clusterNet.ClusterNetworks {
-		clusterIPNet, err := netutils.ParseCIDRMask(cn.CIDR)
+		clusterIPNet, err := validateCIDRv4(cn.CIDR)
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("clusterNetworks").Index(i).Child("cidr"), cn.CIDR, err.Error()))
 			continue
@@ -116,18 +138,19 @@ func ValidateHostSubnet(hs *networkapi.HostSubnet) field.ErrorList {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, "field cannot be empty"))
 		}
 	} else {
-		_, err := netutils.ParseCIDRMask(hs.Subnet)
+		_, err := validateCIDRv4(hs.Subnet)
 		if err != nil {
 			allErrs = append(allErrs, field.Invalid(field.NewPath("subnet"), hs.Subnet, err.Error()))
 		}
 	}
+	// In theory this has to be IPv4, but it's possible some clusters might be limping along with IPv6 values?
 	if net.ParseIP(hs.HostIP) == nil {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("hostIP"), hs.HostIP, "invalid IP address"))
 	}
 
 	for i, egressIP := range hs.EgressIPs {
-		if net.ParseIP(egressIP) == nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("egressIPs").Index(i), egressIP, "invalid IP address"))
+		if _, err := validateIPv4(egressIP); err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("egressIPs").Index(i), egressIP, err.Error()))
 		}
 	}
 
@@ -158,8 +181,8 @@ func ValidateNetNamespace(netnamespace *networkapi.NetNamespace) field.ErrorList
 	}
 
 	for i, ip := range netnamespace.EgressIPs {
-		if net.ParseIP(ip) == nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("egressIPs").Index(i), ip, "invalid IP address"))
+		if _, err := validateIPv4(ip); err != nil {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("egressIPs").Index(i), ip, err.Error()))
 		}
 	}
 

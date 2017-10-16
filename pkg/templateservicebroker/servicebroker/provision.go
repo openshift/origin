@@ -15,17 +15,30 @@ import (
 
 	"github.com/openshift/origin/pkg/authorization/util"
 	templateapi "github.com/openshift/origin/pkg/template/apis/template"
+	templateapiv1 "github.com/openshift/origin/pkg/template/apis/template/v1"
 	"github.com/openshift/origin/pkg/templateservicebroker/openservicebroker/api"
 )
 
 // ensureSecret ensures the existence of a Secret object containing the template
 // configuration parameters.
-func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
+func (b *Broker) ensureSecret(u user.Info, namespace string, brokerTemplateInstance *templateapi.BrokerTemplateInstance, instanceID string, preq *api.ProvisionRequest, didWork *bool) (*kapi.Secret, *api.Response) {
 	glog.V(4).Infof("Template service broker: ensureSecret")
 
+	blockOwnerDeletion := true
 	secret := &kapi.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: instanceID},
-		Data:       map[string][]byte{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: instanceID,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+					Kind:               "BrokerTemplateInstance",
+					Name:               brokerTemplateInstance.Name,
+					UID:                brokerTemplateInstance.UID,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
+			},
+		},
+		Data: map[string][]byte{},
 	}
 
 	for k, v := range preq.Parameters {
@@ -76,7 +89,7 @@ func (b *Broker) ensureSecret(u user.Info, namespace string, instanceID string, 
 // ensureTemplateInstance ensures the existence of a TemplateInstance object
 // (this causes the template instance controller to instantiate the template in
 // the namespace).
-func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, instanceID string, template *templateapi.Template, secret *kapi.Secret, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
+func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, brokerTemplateInstance *templateapi.BrokerTemplateInstance, instanceID string, template *templateapi.Template, secret *kapi.Secret, didWork *bool) (*templateapi.TemplateInstance, *api.Response) {
 	glog.V(4).Infof("Template service broker: ensureTemplateInstance")
 
 	extra := map[string]templateapi.ExtraValue{}
@@ -84,11 +97,21 @@ func (b *Broker) ensureTemplateInstance(u user.Info, namespace string, instanceI
 		extra[k] = templateapi.ExtraValue(v)
 	}
 
+	blockOwnerDeletion := true
 	templateInstance := &templateapi.TemplateInstance{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: instanceID,
 			Annotations: map[string]string{
 				api.OpenServiceBrokerInstanceExternalID: instanceID,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion:         templateapiv1.SchemeGroupVersion.String(),
+					Kind:               "BrokerTemplateInstance",
+					Name:               brokerTemplateInstance.Name,
+					UID:                brokerTemplateInstance.UID,
+					BlockOwnerDeletion: &blockOwnerDeletion,
+				},
 			},
 		},
 		Spec: templateapi.TemplateInstanceSpec{
@@ -325,12 +348,12 @@ func (b *Broker) Provision(u user.Info, instanceID string, preq *api.ProvisionRe
 		return resp
 	}
 
-	secret, resp := b.ensureSecret(u, namespace, instanceID, preq, &didWork)
+	secret, resp := b.ensureSecret(u, namespace, brokerTemplateInstance, instanceID, preq, &didWork)
 	if resp != nil {
 		return resp
 	}
 
-	templateInstance, resp := b.ensureTemplateInstance(u, namespace, instanceID, template, secret, &didWork)
+	templateInstance, resp := b.ensureTemplateInstance(u, namespace, brokerTemplateInstance, instanceID, template, secret, &didWork)
 	if resp != nil {
 		return resp
 	}

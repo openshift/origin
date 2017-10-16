@@ -82,7 +82,7 @@ func NewCmdIPFailoverConfig(f *clientcmd.Factory, parentName, name string, out, 
 		Example: fmt.Sprintf(ipFailover_example, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := Run(f, options, cmd, args)
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -205,7 +205,7 @@ func Run(f *clientcmd.Factory, options *ipfailover.IPFailoverConfigCmdOptions, c
 	}
 
 	if errs := options.Action.WithMessage(fmt.Sprintf("Creating IP failover %s", name), "created").Run(list, namespace); len(errs) > 0 {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 	return nil
 }

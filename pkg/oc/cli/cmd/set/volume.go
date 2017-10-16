@@ -28,7 +28,6 @@ import (
 	kcmdutil "k8s.io/kubernetes/pkg/kubectl/cmd/util"
 	"k8s.io/kubernetes/pkg/kubectl/resource"
 
-	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 )
 
@@ -172,7 +171,7 @@ func NewCmdVolume(fullName string, f *clientcmd.Factory, out, errOut io.Writer) 
 			kcmdutil.CheckErr(err)
 
 			err = opts.RunVolume(args, f)
-			if err == cmdutil.ErrExit {
+			if err == kcmdutil.ErrExit {
 				os.Exit(1)
 			}
 			kcmdutil.CheckErr(err)
@@ -449,7 +448,7 @@ func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 	if v.List {
 		listingErrors := v.printVolumes(infos)
 		if len(listingErrors) > 0 {
-			return cmdutil.ErrExit
+			return kcmdutil.ErrExit
 		}
 		return nil
 	}
@@ -528,7 +527,7 @@ func (v *VolumeOptions) RunVolume(args []string, f *clientcmd.Factory) error {
 		kcmdutil.PrintSuccess(v.Mapper, false, v.Out, info.Mapping.Resource, info.Name, false, "updated")
 	}
 	if failed {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 	return nil
 }

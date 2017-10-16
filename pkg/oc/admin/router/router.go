@@ -271,7 +271,7 @@ func NewCmdRouter(f *clientcmd.Factory, parentName, name string, out, errout io.
 		Example: fmt.Sprintf(routerExample, parentName, name),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := RunCmdRouter(f, cmd, out, errout, cfg, args)
-			if err != cmdutil.ErrExit {
+			if err != kcmdutil.ErrExit {
 				kcmdutil.CheckErr(err)
 			} else {
 				os.Exit(1)
@@ -620,7 +620,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 			return err
 		}
 		fmt.Fprintf(errout, "error: %v\n", err)
-		defaultOutputErr = cmdutil.ErrExit
+		defaultOutputErr = kcmdutil.ErrExit
 	}
 
 	// create new router
@@ -843,7 +843,7 @@ func RunCmdRouter(f *clientcmd.Factory, cmd *cobra.Command, out, errout io.Write
 	}
 
 	if errs := cfg.Action.WithMessageAndPrefix(fmt.Sprintf("Creating router %s", cfg.Name), "created", levelPrefixFilter).Run(list, namespace); len(errs) > 0 {
-		return cmdutil.ErrExit
+		return kcmdutil.ErrExit
 	}
 	return nil
 }

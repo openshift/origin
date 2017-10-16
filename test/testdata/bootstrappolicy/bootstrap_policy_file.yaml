@@ -3373,6 +3373,13 @@ items:
     - templateinstances/status
     verbs:
     - update
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - templateinstances/finalizers
+    verbs:
+    - update
 - apiVersion: v1
   kind: ClusterRole
   metadata:
@@ -4089,6 +4096,13 @@ items:
     - create
     - delete
     - get
+    - update
+  - apiGroups:
+    - template.openshift.io
+    attributeRestrictions: null
+    resources:
+    - brokertemplateinstances/finalizers
+    verbs:
     - update
   - apiGroups:
     - template.openshift.io
