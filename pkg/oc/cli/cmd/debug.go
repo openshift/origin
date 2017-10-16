@@ -369,7 +369,11 @@ func (o *DebugOptions) Debug() error {
 				fmt.Fprintf(stderr, "error: unable to get the pod return code.")
 				rc = 1
 			} else {
-				rc = int(podResult.Status.ContainerStatuses[0].State.Terminated.ExitCode)
+				for _, cs := range podResult.Status.ContainerStatuses {
+					if o.Attach.ContainerName == cs.Name {
+						rc = int(cs.State.Terminated.ExitCode)
+					}
+				}
 			}
 
 			fmt.Fprintf(stderr, "\nRemoving debug pod ...\n")
