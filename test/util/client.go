@@ -20,7 +20,6 @@ import (
 
 	configapi "github.com/openshift/origin/pkg/cmd/server/api"
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
-	"github.com/openshift/origin/pkg/cmd/util/clientcmd"
 	"github.com/openshift/origin/pkg/cmd/util/tokencmd"
 	oauthapi "github.com/openshift/origin/pkg/oauth/apis/oauth"
 	oauthclient "github.com/openshift/origin/pkg/oauth/generated/internalclientset"
@@ -145,15 +144,15 @@ func GetClientForServiceAccount(adminClient kclientset.Interface, clientConfig r
 		return nil, nil, err
 	}
 
-	saClientConfig := clientcmd.AnonymousClientConfig(&clientConfig)
+	saClientConfig := restclient.AnonymousClientConfig(&clientConfig)
 	saClientConfig.BearerToken = token
 
-	kubeClientset, err := kclientset.NewForConfig(&saClientConfig)
+	kubeClientset, err := kclientset.NewForConfig(saClientConfig)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return kubeClientset, &saClientConfig, nil
+	return kubeClientset, saClientConfig, nil
 }
 
 // WaitForResourceQuotaSync watches given resource quota until its hard limit is updated to match the desired
