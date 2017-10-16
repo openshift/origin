@@ -3,8 +3,11 @@ package client
 import (
 	"bufio"
 	"fmt"
+	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
+	"syscall"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,11 +54,11 @@ func (d *DiagnosticPod) CanRun() (bool, error) {
 // Check is part of the Diagnostic interface; it runs the actual diagnostic logic
 func (d *DiagnosticPod) Check() types.DiagnosticResult {
 	r := types.NewDiagnosticResult("DiagnosticPod")
-	d.runDiagnosticPod(nil, r)
+	d.runDiagnosticPod(r)
 	return r
 }
 
-func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.DiagnosticResult) {
+func (d *DiagnosticPod) runDiagnosticPod(r types.DiagnosticResult) {
 	loglevel := d.Level
 	if loglevel > 2 {
 		loglevel = 2 // need to show summary at least
@@ -78,14 +81,33 @@ func (d *DiagnosticPod) runDiagnosticPod(service *kapi.Service, r types.Diagnost
 		r.Error("DCli2001", err, fmt.Sprintf("Creating diagnostic pod with image %s failed. Error: (%[2]T) %[2]v", imageName, err))
 		return
 	}
-	defer func() { // delete what we created, or notify that we couldn't
-		zero := int64(0)
-		delOpts := metav1.DeleteOptions{TypeMeta: pod.TypeMeta, GracePeriodSeconds: &zero}
-		if err := d.KubeClient.Core().Pods(d.Namespace).Delete(pod.ObjectMeta.Name, &delOpts); err != nil {
-			r.Error("DCl2002", err, fmt.Sprintf("Deleting diagnostic pod '%s' failed. Error: %s", pod.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
-		}
+
+	// Jump straight to clean up if there is an interrupt/terminate signal while running diagnostic
+	done := make(chan bool, 1)
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-sig
+		r.Warn("DCli2014", nil, "Interrupt received; aborting diagnostic.")
+		done <- true
 	}()
-	pod, err = d.KubeClient.Core().Pods(d.Namespace).Get(pod.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
+	go func() {
+		d.processDiagnosticPodResults(pod, imageName, r)
+		done <- true
+	}()
+
+	<-done
+	signal.Stop(sig)
+	// delete what we created, or notify that we couldn't
+	zero := int64(0)
+	delOpts := metav1.DeleteOptions{TypeMeta: pod.TypeMeta, GracePeriodSeconds: &zero}
+	if err := d.KubeClient.Core().Pods(d.Namespace).Delete(pod.ObjectMeta.Name, &delOpts); err != nil {
+		r.Error("DCl2002", err, fmt.Sprintf("Deleting diagnostic pod '%s' failed. Error: %s", pod.ObjectMeta.Name, fmt.Sprintf("(%T) %[1]s", err)))
+	}
+}
+
+func (d *DiagnosticPod) processDiagnosticPodResults(protoPod *kapi.Pod, imageName string, r types.DiagnosticResult) {
+	pod, err := d.KubeClient.Core().Pods(d.Namespace).Get(protoPod.ObjectMeta.Name, metav1.GetOptions{}) // status is filled in post-create
 	if err != nil {
 		r.Error("DCli2003", err, fmt.Sprintf("Retrieving the diagnostic pod definition failed. Error: (%T) %[1]v", err))
 		return
