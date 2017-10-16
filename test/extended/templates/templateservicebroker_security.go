@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apiserver/pkg/authentication/user"
 	kapi "k8s.io/kubernetes/pkg/api"
+	"k8s.io/kubernetes/test/e2e/framework"
 
 	authorizationapi "github.com/openshift/origin/pkg/authorization/apis/authorization"
 	"github.com/openshift/origin/pkg/cmd/server/bootstrappolicy"
@@ -43,6 +44,8 @@ var _ = g.Describe("[Conformance][templates] templateservicebroker security test
 	)
 
 	g.BeforeEach(func() {
+		framework.SkipIfProviderIs("gce")
+
 		brokercli, portForwardCmdClose = EnsureTSB(tsbOC)
 
 		var err error
