@@ -2929,6 +2929,13 @@ items:
     - list
   - apiGroups:
     - ""
+    - security.openshift.io
+    resources:
+    - podsecuritypolicysubjectreviews
+    verbs:
+    - create
+  - apiGroups:
+    - ""
     resources:
     - events
     verbs:
