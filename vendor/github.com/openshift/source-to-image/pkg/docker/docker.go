@@ -220,6 +220,8 @@ type RunContainerOptions struct {
 	// 2) it only gets applied when Command equals to "assemble" or "usage" script
 	// AND script is inside of the tar archive.
 	CommandExplicit []string
+	// SecurityOpt is passed through as security options to the underlying container.
+	SecurityOpt []string
 }
 
 // asDockerConfig converts a RunContainerOptions into a Config understood by the
@@ -244,6 +246,7 @@ func (rco RunContainerOptions) asDockerHostConfig() dockercontainer.HostConfig {
 		PublishAllPorts: rco.TargetImage,
 		NetworkMode:     dockercontainer.NetworkMode(rco.NetworkMode),
 		Binds:           rco.Binds,
+		SecurityOpt:     rco.SecurityOpt,
 	}
 	if rco.CGroupLimits != nil {
 		hostConfig.Resources.Memory = rco.CGroupLimits.MemoryLimitBytes

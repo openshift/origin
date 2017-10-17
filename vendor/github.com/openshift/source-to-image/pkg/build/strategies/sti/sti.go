@@ -537,6 +537,8 @@ func (builder *STI) Save(config *api.Config) (err error) {
 		NetworkMode:     string(config.DockerNetworkMode),
 		CGroupLimits:    config.CGroupLimits,
 		CapDrop:         config.DropCapabilities,
+		Binds:           config.BuildVolumes,
+		SecurityOpt:     config.SecurityOpt,
 	}
 
 	dockerpkg.StreamContainerIO(errReader, nil, func(s string) { glog.Info(s) })
@@ -594,6 +596,7 @@ func (builder *STI) Execute(command string, user string, config *api.Config) err
 		CGroupLimits:    config.CGroupLimits,
 		CapDrop:         config.DropCapabilities,
 		Binds:           config.BuildVolumes,
+		SecurityOpt:     config.SecurityOpt,
 	}
 
 	// If there are injections specified, override the original assemble script
