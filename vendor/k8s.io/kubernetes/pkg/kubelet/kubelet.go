@@ -566,6 +566,8 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 		// It's easier to always probe and initialize plugins till cri
 		// becomes the default.
 		klet.networkPlugin = nil
+		// if left at nil, that means it is unneeded
+		var legacyLogProvider kuberuntime.LegacyLogProvider
 
 		switch kubeCfg.ContainerRuntime {
 		case "docker":
@@ -601,6 +603,7 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 			}
 			if !supported {
 				klet.dockerLegacyService = dockershim.NewDockerLegacyService(kubeDeps.DockerClient)
+				legacyLogProvider = dockershim.NewLegacyLogProvider(klet.dockerLegacyService)
 			}
 		case "remote":
 			// No-op.
@@ -628,6 +631,7 @@ func NewMainKubelet(kubeCfg *componentconfig.KubeletConfiguration, kubeDeps *Kub
 			kubeCfg.CPUCFSQuota,
 			runtimeService,
 			imageService,
+			legacyLogProvider,
 		)
 		if err != nil {
 			return nil, err
