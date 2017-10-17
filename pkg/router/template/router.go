@@ -314,7 +314,6 @@ func (r *templateRouter) readState() error {
 // Commit applies the changes made to the router configuration - persists
 // the state and refresh the backend. This is all done in the background
 // so that we can rate limit + coalesce multiple changes.
-// Note: If this is changed FakeCommit() in fake.go should also be updated
 func (r *templateRouter) Commit() {
 	r.lock.Lock()
 
@@ -446,6 +445,7 @@ func (r *templateRouter) FilterNamespaces(namespaces sets.String) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
+	glog.V(4).Infof("Applying filtered namespaces: %v", namespaces)
 	if len(namespaces) == 0 {
 		r.state = make(map[string]ServiceAliasConfig)
 		r.serviceUnits = make(map[string]ServiceUnit)

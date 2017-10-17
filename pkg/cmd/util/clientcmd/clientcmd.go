@@ -46,31 +46,6 @@ func NewConfig() *Config {
 	}
 }
 
-// AnonymousClientConfig returns a copy of the given config with all user credentials (cert/key, bearer token, and username/password) removed
-func AnonymousClientConfig(config *restclient.Config) restclient.Config {
-	// copy only known safe fields
-	// TODO: expose a copy method on the config that is "auth free"
-	return restclient.Config{
-		Host:          config.Host,
-		APIPath:       config.APIPath,
-		Prefix:        config.Prefix,
-		ContentConfig: config.ContentConfig,
-		TLSClientConfig: restclient.TLSClientConfig{
-			CAFile:     config.TLSClientConfig.CAFile,
-			CAData:     config.TLSClientConfig.CAData,
-			Insecure:   config.Insecure,
-			ServerName: config.ServerName,
-		},
-		RateLimiter:   config.RateLimiter,
-		UserAgent:     config.UserAgent,
-		Transport:     config.Transport,
-		WrapTransport: config.WrapTransport,
-		QPS:           config.QPS,
-		Burst:         config.Burst,
-		Timeout:       config.Timeout,
-	}
-}
-
 // BindClientConfigSecurityFlags adds flags for the supplied client config
 func BindClientConfigSecurityFlags(config *restclient.Config, flags *pflag.FlagSet) {
 	flags.BoolVar(&config.Insecure, "insecure-skip-tls-verify", config.Insecure, "If true, the server's certificate will not be checked for validity. This will make your HTTPS connections insecure.")

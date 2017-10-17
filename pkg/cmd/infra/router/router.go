@@ -8,12 +8,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kclientset "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset"
-	kcoreclient "k8s.io/kubernetes/pkg/client/clientset_generated/internalclientset/typed/core/internalversion"
 
 	cmdutil "github.com/openshift/origin/pkg/cmd/util"
 	"github.com/openshift/origin/pkg/cmd/util/variable"
@@ -212,7 +210,7 @@ func (o *RouterSelection) Complete() error {
 
 // NewFactory initializes a factory that will watch the requested routes
 func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interface, projectclient projectclient.ProjectResourceInterface, kc kclientset.Interface) *controllerfactory.RouterControllerFactory {
-	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, kc)
+	factory := controllerfactory.NewDefaultRouterControllerFactory(routeclient, projectclient, kc)
 	factory.LabelSelector = o.LabelSelector
 	factory.FieldSelector = o.FieldSelector
 	factory.Namespace = o.Namespace
@@ -220,52 +218,16 @@ func (o *RouterSelection) NewFactory(routeclient routeinternalclientset.Interfac
 	switch {
 	case o.NamespaceLabels != nil:
 		glog.Infof("Router is only using routes in namespaces matching %s", o.NamespaceLabels)
-		factory.Namespaces = namespaceNames{kc.Core().Namespaces(), o.NamespaceLabels}
+		factory.NamespaceLabels = o.NamespaceLabels
 	case o.ProjectLabels != nil:
 		glog.Infof("Router is only using routes in projects matching %s", o.ProjectLabels)
-		factory.Namespaces = projectNames{projectclient, o.ProjectLabels}
+		factory.ProjectLabels = o.ProjectLabels
 	case len(factory.Namespace) > 0:
 		glog.Infof("Router is only using resources in namespace %s", factory.Namespace)
 	default:
 		glog.Infof("Router is including routes in all namespaces")
 	}
 	return factory
-}
-
-// projectNames returns the names of projects matching the label selector
-type projectNames struct {
-	client   projectclient.ProjectResourceInterface
-	selector labels.Selector
-}
-
-func (n projectNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector.String()})
-	if err != nil {
-		return nil, err
-	}
-	names := make(sets.String, len(all.Items))
-	for i := range all.Items {
-		names.Insert(all.Items[i].Name)
-	}
-	return names, nil
-}
-
-// namespaceNames returns the names of namespaces matching the label selector
-type namespaceNames struct {
-	client   kcoreclient.NamespaceInterface
-	selector labels.Selector
-}
-
-func (n namespaceNames) NamespaceNames() (sets.String, error) {
-	all, err := n.client.List(metav1.ListOptions{LabelSelector: n.selector.String()})
-	if err != nil {
-		return nil, err
-	}
-	names := make(sets.String, len(all.Items))
-	for i := range all.Items {
-		names.Insert(all.Items[i].Name)
-	}
-	return names, nil
 }
 
 func envVarAsStrings(name, defaultValue, separator string) []string {
